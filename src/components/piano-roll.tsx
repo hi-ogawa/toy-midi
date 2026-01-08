@@ -32,6 +32,8 @@ export const ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
 export const BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
 
 // Generate CSS background for grid (returns style object)
+// Uses linear-gradient + background-size instead of repeating-linear-gradient
+// to avoid subpixel rendering artifacts (see docs/2026-01-08-vertical-grid-alignment.md)
 function generateGridBackground(
   pixelsPerBeat: number,
   pixelsPerKey: number,
@@ -40,79 +42,64 @@ function generateGridBackground(
   scrollY: number,
 ): React.CSSProperties {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
-  const subBeatWidth = pixelsPerBeat * gridSnapValue;
-  const barWidth = pixelsPerBeat * BEATS_PER_BAR;
-  const octaveHeight = pixelsPerKey * 12;
 
-  // Horizontal row lines (at top of each row = boundary between rows)
-  const rowLines = `repeating-linear-gradient(
-    0deg,
-    #404040 0px,
-    #404040 1px,
-    transparent 1px,
-    transparent ${pixelsPerKey}px
-  )`;
+  // Round base sizes, derive others to avoid drift between grid layers
+  // Accept fractional subBeatWidth over visible drift
+  const rowHeight = Math.round(pixelsPerKey);
+  const beatWidth = Math.round(pixelsPerBeat);
+  const subBeatWidth = beatWidth * gridSnapValue; // Keep fractional to avoid drift
+  const barWidth = beatWidth * BEATS_PER_BAR;
+  const octaveHeight = rowHeight * 12;
 
-  // Octave lines (brighter line at top of each C row = boundary between B and C)
-  const octaveLines = `repeating-linear-gradient(
-    0deg,
-    #666666 0px,
-    #666666 1px,
-    transparent 1px,
-    transparent ${octaveHeight}px
-  )`;
+  // Calculate offsets using rounded values for consistency with note positions
+  const offsetX = -(scrollX * beatWidth) % barWidth;
+  const rowOffsetY = -(scrollY % 1) * rowHeight;
+  // Octave line at B/C boundary = bottom of C row
+  const octaveOffsetY =
+    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
+    octaveHeight;
 
-  // Vertical sub-beat lines (grid snap)
-  const subBeatLines = `repeating-linear-gradient(
-    90deg,
-    #333333 0px,
-    #333333 1px,
-    transparent 1px,
-    transparent ${subBeatWidth}px
-  )`;
-
-  // Vertical beat lines
-  const beatLines = `repeating-linear-gradient(
-    90deg,
-    #404040 0px,
-    #404040 1px,
-    transparent 1px,
-    transparent ${pixelsPerBeat}px
-  )`;
-
-  // Vertical bar lines (every 4 beats)
-  const barLines = `repeating-linear-gradient(
-    90deg,
-    #525252 0px,
-    #525252 1px,
-    transparent 1px,
-    transparent ${barWidth}px
-  )`;
-
-  // Calculate background offset based on scroll position
-  const offsetX = -(scrollX * pixelsPerBeat) % barWidth;
-  const rowOffsetY = -(scrollY % 1) * pixelsPerKey; // Fractional scroll offset
-
-  // Octave line offset: line should be at bottom of C rows (between B and C)
-  // Top pitch is MAX_PITCH - scrollY, C is at pitch % 12 === 0
-  // Distance from top to first B/C boundary (bottom of C row)
-  const topPitch = MAX_PITCH - scrollY;
-  const rowsToFirstC = ((Math.floor(topPitch) % 12) + 12) % 12; // Handle any pitch
-  const octaveOffsetY = rowOffsetY + (rowsToFirstC + 1) * pixelsPerKey;
-
-  // background-position for each layer
-  const positions = [
-    `${offsetX}px 0`, // barLines
-    `${offsetX}px 0`, // beatLines
-    `${offsetX}px 0`, // subBeatLines
-    `0 ${octaveOffsetY}px`, // octaveLines
-    `0 ${rowOffsetY}px`, // rowLines
-  ].join(", ");
+  // Define each layer as [gradient, size, position] - comment out to disable
+  // Using linear-gradient (not repeating) with background-size for cleaner rendering
+  // 180deg = top to bottom, 90deg = left to right
+  const layers: Array<[string, string, string]> = [
+    // Vertical bar lines (every 4 beats)
+    [
+      `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
+      `${barWidth}px 100%`,
+      `${offsetX}px 0`,
+    ],
+    // Vertical beat lines
+    [
+      `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
+      `${beatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ],
+    // Vertical sub-beat lines (grid snap)
+    [
+      `linear-gradient(90deg, #333333 0px, #333333 1px, transparent 1px, transparent 100%)`,
+      `${subBeatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ],
+    // Octave lines (B/C boundary)
+    [
+      `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
+      `100% ${octaveHeight}px`,
+      `0 ${octaveOffsetY}px`,
+    ],
+    // Row lines (every pitch)
+    [
+      `linear-gradient(180deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
+      `100% ${rowHeight}px`,
+      `0 ${rowOffsetY}px`,
+    ],
+  ];
 
   return {
     backgroundColor: "#1a1a1a",
-    backgroundImage: `${barLines}, ${beatLines}, ${subBeatLines}, ${octaveLines}, ${rowLines}`,
-    backgroundPosition: positions,
+    backgroundImage: layers.map(([gradient]) => gradient).join(", "),
+    backgroundSize: layers.map(([, size]) => size).join(", "),
+    backgroundPosition: layers.map(([, , position]) => position).join(", "),
   };
 }
 
@@ -161,7 +148,7 @@ export function PianoRoll() {
     setGridSnap,
   } = useProjectStore();
 
-  const gridRef = useRef<SVGSVGElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
   const [showDebug, setShowDebug] = useState(false);
@@ -177,6 +164,11 @@ export function PianoRoll() {
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
 
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
+
+  // Round pixel sizes to avoid subpixel rendering artifacts
+  // Keep fractional values in state for smooth zoom, but render with whole pixels
+  const roundedPixelsPerKey = Math.round(pixelsPerKey);
+  const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
 
   // Update viewport size on resize
   useEffect(() => {
@@ -324,7 +316,7 @@ export function PianoRoll() {
 
   // Handle mouse events on the grid
   const handleGridMouseDown = useCallback(
-    (e: React.MouseEvent<SVGSVGElement>) => {
+    (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.button !== 0) return;
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue);
@@ -548,10 +540,10 @@ export function PianoRoll() {
     }
   }, [dragMode, handleMouseMove, handleMouseUp]);
 
-  // Generate grid background with scroll offset
+  // Generate grid background with scroll offset (use rounded values)
   const gridBackground = generateGridBackground(
-    pixelsPerBeat,
-    pixelsPerKey,
+    roundedPixelsPerBeat,
+    roundedPixelsPerKey,
     gridSnap,
     scrollX,
     scrollY,
@@ -620,7 +612,7 @@ export function PianoRoll() {
           {/* Piano keyboard */}
           <div className="flex-1 overflow-hidden">
             <Keyboard
-              pixelsPerKey={pixelsPerKey}
+              pixelsPerKey={roundedPixelsPerKey}
               scrollY={scrollY}
               viewportHeight={
                 viewportSize.height - TIMELINE_HEIGHT - WAVEFORM_HEIGHT
@@ -633,7 +625,7 @@ export function PianoRoll() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Timeline */}
           <Timeline
-            pixelsPerBeat={pixelsPerBeat}
+            pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
           />
@@ -643,55 +635,84 @@ export function PianoRoll() {
             style={{ height: WAVEFORM_HEIGHT }}
           />
           {/* Note grid with CSS background */}
-          <svg
+          <div
             ref={gridRef}
             data-testid="piano-roll-grid"
-            width="100%"
-            height="100%"
-            className="flex-1 cursor-crosshair"
+            className="flex-1 cursor-crosshair relative overflow-hidden"
             onMouseDown={handleGridMouseDown}
             style={gridBackground}
           >
+            {/* Debug: reference lines at y=0, pixelsPerKey, 2*pixelsPerKey (red) */}
+            {showDebug && (
+              <>
+                <div
+                  className="absolute left-0 right-0 h-[2px] bg-red-500"
+                  style={{ top: 0 }}
+                />
+                <div
+                  className="absolute left-0 right-0 h-px bg-red-500"
+                  style={{ top: roundedPixelsPerKey }}
+                />
+                <div
+                  className="absolute left-0 right-0 h-px bg-red-500"
+                  style={{ top: 2 * roundedPixelsPerKey }}
+                />
+                <div
+                  className="absolute text-red-500 text-[10px]"
+                  style={{ left: 5, top: 2 }}
+                >
+                  y=0
+                </div>
+                <div
+                  className="absolute text-red-500 text-[10px]"
+                  style={{ left: 5, top: roundedPixelsPerKey + 2 }}
+                >
+                  y={roundedPixelsPerKey}
+                </div>
+              </>
+            )}
             {/* Notes */}
             {visibleNotes.map((note) => (
-              <NoteRect
+              <NoteDiv
                 key={note.id}
                 note={note}
                 selected={selectedNoteIds.has(note.id)}
-                pixelsPerBeat={pixelsPerBeat}
-                pixelsPerKey={pixelsPerKey}
+                pixelsPerBeat={roundedPixelsPerBeat}
+                pixelsPerKey={roundedPixelsPerKey}
                 scrollX={scrollX}
                 scrollY={scrollY}
               />
             ))}
             {/* Preview note while creating */}
             {dragMode.type === "creating" && (
-              <rect
-                x={(dragMode.startBeat - scrollX) * pixelsPerBeat}
-                y={(MAX_PITCH - scrollY - dragMode.pitch) * pixelsPerKey}
-                width={
-                  (dragMode.currentBeat - dragMode.startBeat) * pixelsPerBeat
-                }
-                height={pixelsPerKey}
-                fill="#3b82f6"
-                opacity={0.5}
-                rx={2}
+              <div
+                className="absolute rounded-sm opacity-50"
+                style={{
+                  left: (dragMode.startBeat - scrollX) * roundedPixelsPerBeat,
+                  top:
+                    (MAX_PITCH - scrollY - dragMode.pitch) *
+                    roundedPixelsPerKey,
+                  width:
+                    (dragMode.currentBeat - dragMode.startBeat) *
+                    roundedPixelsPerBeat,
+                  height: roundedPixelsPerKey,
+                  backgroundColor: "#3b82f6",
+                }}
               />
             )}
             {/* Box select rectangle */}
             {dragMode.type === "box-select" && (
-              <rect
-                x={Math.min(dragMode.startX, dragMode.currentX)}
-                y={Math.min(dragMode.startY, dragMode.currentY)}
-                width={Math.abs(dragMode.currentX - dragMode.startX)}
-                height={Math.abs(dragMode.currentY - dragMode.startY)}
-                fill="#3b82f6"
-                opacity={0.2}
-                stroke="#3b82f6"
-                strokeWidth={1}
+              <div
+                className="absolute border border-blue-500 bg-blue-500/20"
+                style={{
+                  left: Math.min(dragMode.startX, dragMode.currentX),
+                  top: Math.min(dragMode.startY, dragMode.currentY),
+                  width: Math.abs(dragMode.currentX - dragMode.startX),
+                  height: Math.abs(dragMode.currentY - dragMode.startY),
+                }}
               />
             )}
-          </svg>
+          </div>
         </div>
       </div>
 
@@ -701,11 +722,22 @@ export function PianoRoll() {
           <div className="font-bold text-yellow-400 mb-2">Debug Info</div>
 
           <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Viewport:</div>
-            <div>scrollX: {scrollX.toFixed(2)} beats</div>
-            <div>scrollY: {scrollY.toFixed(4)}</div>
-            <div>pixelsPerBeat: {pixelsPerBeat.toFixed(2)}</div>
-            <div>pixelsPerKey: {pixelsPerKey.toFixed(4)}</div>
+            <div className="text-neutral-400 mb-1">Scroll State:</div>
+            <div className="text-cyan-400">scrollY: {scrollY.toFixed(6)}</div>
+            <div className="text-cyan-400">
+              Math.floor(scrollY): {Math.floor(scrollY)}
+            </div>
+            <div className="text-cyan-400">
+              scrollY % 1: {(scrollY % 1).toFixed(6)}
+            </div>
+            <div>
+              pixelsPerKey: {pixelsPerKey.toFixed(4)} →{" "}
+              <span className="text-green-400">{roundedPixelsPerKey}</span>
+            </div>
+            <div>
+              pixelsPerBeat: {pixelsPerBeat.toFixed(4)} →{" "}
+              <span className="text-green-400">{roundedPixelsPerBeat}</span>
+            </div>
             <div>
               topPitch: {MAX_PITCH - Math.floor(scrollY)} (
               {midiToNoteName(MAX_PITCH - Math.floor(scrollY))})
@@ -713,14 +745,30 @@ export function PianoRoll() {
           </div>
 
           <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Grid alignment:</div>
-            <div>scrollY % 1: {(scrollY % 1).toFixed(6)}</div>
-            <div>rowOffsetY: {(-(scrollY % 1) * pixelsPerKey).toFixed(4)}px</div>
-            <div>
-              Grid lines at: {(-(scrollY % 1) * pixelsPerKey).toFixed(2)}, {(-(scrollY % 1) * pixelsPerKey + pixelsPerKey).toFixed(2)}, {(-(scrollY % 1) * pixelsPerKey + 2*pixelsPerKey).toFixed(2)}...
+            <div className="text-neutral-400 mb-1">Row Lines Offset:</div>
+            <div className="text-cyan-400">
+              rowOffsetY = -(scrollY % 1) * pixelsPerKey
             </div>
-            <div className="text-neutral-500 mt-1">Row tops (from topPitch):</div>
-            {Array.from({ length: 5 }, (_, i) => MAX_PITCH - Math.floor(scrollY) - i).map((p) => {
+            <div className="text-cyan-400">
+              {" "}
+              = -{(scrollY % 1).toFixed(6)} * {pixelsPerKey.toFixed(2)}
+            </div>
+            <div className="text-cyan-400">
+              {" "}
+              = {(-(scrollY % 1) * pixelsPerKey).toFixed(4)}px
+            </div>
+            <div>
+              Grid lines at: {(-(scrollY % 1) * pixelsPerKey).toFixed(2)},{" "}
+              {(-(scrollY % 1) * pixelsPerKey + pixelsPerKey).toFixed(2)},{" "}
+              {(-(scrollY % 1) * pixelsPerKey + 2 * pixelsPerKey).toFixed(2)}...
+            </div>
+            <div className="text-neutral-500 mt-1">
+              Row tops (from topPitch):
+            </div>
+            {Array.from(
+              { length: 5 },
+              (_, i) => MAX_PITCH - Math.floor(scrollY) - i,
+            ).map((p) => {
               const y = (MAX_PITCH - scrollY - p) * pixelsPerKey;
               return (
                 <div key={p} className="text-neutral-500">
@@ -729,8 +777,62 @@ export function PianoRoll() {
               );
             })}
             <div className="text-yellow-400 mt-1">
-              Diff (row[0] - gridLine[0]): {((MAX_PITCH - scrollY - (MAX_PITCH - Math.floor(scrollY))) * pixelsPerKey - (-(scrollY % 1) * pixelsPerKey)).toFixed(6)}px
+              Diff (row[0] - gridLine[0]):{" "}
+              {(
+                (MAX_PITCH - scrollY - (MAX_PITCH - Math.floor(scrollY))) *
+                  pixelsPerKey -
+                -(scrollY % 1) * pixelsPerKey
+              ).toFixed(6)}
+              px
             </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="text-neutral-400 mb-1">
+              B/C Boundary (octave line):
+            </div>
+            {(() => {
+              const topPitchVal = MAX_PITCH - scrollY;
+              const topPitchInOctave =
+                ((Math.floor(topPitchVal) % 12) + 12) % 12;
+              const octaveHeight = pixelsPerKey * 12;
+              const octaveOffsetYVal =
+                ((((MAX_PITCH - scrollY) * pixelsPerKey) % octaveHeight) +
+                  octaveHeight) %
+                octaveHeight;
+              // Find first C at or below topPitch
+              const firstCPitch = Math.floor(topPitchVal) - topPitchInOctave;
+              const firstCRowTop =
+                (MAX_PITCH - scrollY - firstCPitch) * pixelsPerKey;
+              // Expected: firstCRowTop mod octaveHeight should equal octaveOffsetY
+              const expectedOffset =
+                ((firstCRowTop % octaveHeight) + octaveHeight) % octaveHeight;
+              return (
+                <>
+                  <div>topPitch: {topPitchVal.toFixed(4)}</div>
+                  <div>octaveHeight: {octaveHeight.toFixed(2)}px</div>
+                  <div>octaveOffsetY: {octaveOffsetYVal.toFixed(4)}px</div>
+                  <div className="text-green-400">
+                    First C: {midiToNoteName(firstCPitch)} (pitch {firstCPitch})
+                  </div>
+                  <div className="text-green-400">
+                    C row top: {firstCRowTop.toFixed(4)}px
+                  </div>
+                  <div className="text-green-400">
+                    C row top mod octaveHeight: {expectedOffset.toFixed(4)}px
+                  </div>
+                  <div
+                    className={
+                      Math.abs(expectedOffset - octaveOffsetYVal) < 0.001
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }
+                  >
+                    Diff: {(expectedOffset - octaveOffsetYVal).toFixed(6)}px
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           <div className="mb-3">
@@ -855,7 +957,7 @@ function Timeline({
   );
 }
 
-function NoteRect({
+function NoteDiv({
   note,
   selected,
   pixelsPerBeat,
@@ -876,39 +978,27 @@ function NoteRect({
   const width = note.duration * pixelsPerBeat;
 
   return (
-    <g data-testid={`note-${note.id}`} data-selected={selected}>
-      <rect
-        x={x}
-        y={y + 1}
-        width={width}
-        height={pixelsPerKey - 2}
-        fill={selected ? "#60a5fa" : "#3b82f6"}
-        stroke={selected ? "#93c5fd" : "#2563eb"}
-        strokeWidth={selected ? 2 : 1}
-        rx={2}
-        style={{ cursor: "move" }}
-      />
+    <div
+      data-testid={`note-${note.id}`}
+      data-selected={selected}
+      className="absolute rounded-sm cursor-move"
+      style={{
+        left: x,
+        top: y + 1,
+        width,
+        height: pixelsPerKey - 2,
+        backgroundColor: selected ? "#60a5fa" : "#3b82f6",
+        border: `${selected ? 2 : 1}px solid ${selected ? "#93c5fd" : "#2563eb"}`,
+        boxSizing: "border-box",
+      }}
+    >
       {/* Resize handles (visible on hover/selection) */}
       {selected && (
         <>
-          <rect
-            x={x}
-            y={y}
-            width={6}
-            height={pixelsPerKey}
-            fill="transparent"
-            style={{ cursor: "ew-resize" }}
-          />
-          <rect
-            x={x + width - 6}
-            y={y}
-            width={6}
-            height={pixelsPerKey}
-            fill="transparent"
-            style={{ cursor: "ew-resize" }}
-          />
+          <div className="absolute left-0 top-0 w-[6px] h-full cursor-ew-resize" />
+          <div className="absolute right-0 top-0 w-[6px] h-full cursor-ew-resize" />
         </>
       )}
-    </g>
+    </div>
   );
 }

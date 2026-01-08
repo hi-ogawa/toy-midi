@@ -104,9 +104,10 @@ test.describe("Piano Roll", () => {
     await page.mouse.move(startX + BEAT_WIDTH, startY);
     await page.mouse.up();
 
-    const note = page.locator("[data-testid^='note-']");
-    const initialRect = note.locator("rect").first();
-    const initialX = await initialRect.getAttribute("x");
+    const note = page.locator("[data-testid^='note-']").first();
+    const initialBox = await note.boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const initialX = initialBox.x;
 
     // Drag note to beat 2
     const noteCenter = startX + BEAT_WIDTH * 0.25;
@@ -116,8 +117,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     // Note should have moved
-    const finalX = await initialRect.getAttribute("x");
-    expect(Number(finalX)).toBeGreaterThan(Number(initialX));
+    const finalBox = await note.boundingBox();
+    if (!finalBox) throw new Error("Note not found after move");
+    expect(finalBox.x).toBeGreaterThan(initialX);
   });
 
   test("changes grid snap", async ({ page }) => {
