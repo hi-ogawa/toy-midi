@@ -44,13 +44,19 @@ class AudioManager {
     if (!this.player) return;
     // Unsync first if already synced
     this.player.unsync();
-    // Sync with offset: at Transport time 0, play from _offset into the audio
-    this.player.sync().start(0, this._offset);
+    // Offset determines where audio aligns with timeline:
+    // - offset > 0: skip intro, audio starts before beat 0 (transport 0 = offset into audio)
+    // - offset < 0: delay audio, audio starts after beat 0 (transport -offset = start of audio)
+    if (this._offset >= 0) {
+      this.player.sync().start(0, this._offset);
+    } else {
+      this.player.sync().start(-this._offset, 0);
+    }
   }
 
   setOffset(offset: number): void {
-    // Clamp offset to valid range
-    this._offset = Math.max(0, Math.min(offset, this._duration));
+    // Clamp offset: can't skip more than duration, can't delay infinitely (use duration as limit)
+    this._offset = Math.max(-this._duration, Math.min(offset, this._duration));
     if (this.player) {
       const wasPlaying = this.isPlaying;
       const currentPosition = Tone.getTransport().seconds;

@@ -1160,17 +1160,12 @@ function WaveformArea({
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStartRef.current) return;
       const deltaX = e.clientX - dragStartRef.current.x;
-      // Moving the audio region right = decreasing offset (less intro skipped)
-      // deltaX in pixels -> deltaBeats -> deltaSeconds
+      // Moving the audio region right = decreasing offset (audio starts later)
+      // Moving the audio region left = increasing offset (skip more intro)
       const deltaBeats = deltaX / pixelsPerBeat;
       const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
-      const newOffset = Math.max(
-        0,
-        Math.min(
-          dragStartRef.current.startOffset - deltaSeconds,
-          audioDuration,
-        ),
-      );
+      // Allow negative offset (audio delayed) - AudioManager clamps to valid range
+      const newOffset = dragStartRef.current.startOffset - deltaSeconds;
       onOffsetChange(newOffset);
     };
 
@@ -1209,7 +1204,11 @@ function WaveformArea({
         >
           {/* Offset indicator */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap">
-            {audioOffset > 0 ? `+${audioOffset.toFixed(1)}s` : "0s"}
+            {audioOffset > 0
+              ? `+${audioOffset.toFixed(1)}s`
+              : audioOffset < 0
+                ? `${audioOffset.toFixed(1)}s`
+                : "0s"}
           </div>
         </div>
       )}
