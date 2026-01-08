@@ -183,25 +183,93 @@ interface ViewportState {
   | Zoom changes element sizes | Zoom changes what fits in viewport |
 - **Fit to window**: Piano roll should fill available space, zoom determines how many beats visible.
 
-### Next iteration
+### Attempt 2: Fixed viewport approach
 
-Revise to fixed viewport approach - editor fills window, pan/zoom to navigate content (like DAWs).
+**Concept:**
+
+- Piano roll fills available window (no scrollbars)
+- `scrollX` (beats) / `scrollY` (semitones) = viewport offset into content
+- `pixelsPerBeat` / `pixelsPerKey` = zoom level
+- Wheel = pan, Ctrl+wheel = zoom
+
+**State:**
+
+```typescript
+// Local component state
+scrollX: number; // leftmost visible beat
+scrollY: number; // topmost visible pitch
+pixelsPerBeat: number; // horizontal zoom (default 80)
+pixelsPerKey: number; // vertical zoom (default 20)
+```
+
+**Coordinate conversion:**
+
+```typescript
+// Beat/pitch to screen pixels
+beatToX = (beat) => (beat - scrollX) * pixelsPerBeat;
+pitchToY = (pitch) => (scrollY - pitch) * pixelsPerKey;
+
+// Screen pixels to beat/pitch
+xToBeat = (x) => x / pixelsPerBeat + scrollX;
+yToPitch = (y) => scrollY - y / pixelsPerKey;
+
+// Visible range
+visibleBeats = viewportWidth / pixelsPerBeat;
+visibleKeys = viewportHeight / pixelsPerKey;
+```
+
+**Wheel handling:**
+
+| Input            | Action                                    |
+| ---------------- | ----------------------------------------- |
+| Wheel            | Pan horizontally (scrollX += delta)       |
+| Shift + Wheel    | Pan vertically (scrollY += delta)         |
+| Ctrl + Wheel     | Zoom horizontally (pixelsPerBeat \*= 1.1) |
+| Ctrl+Shift+Wheel | Zoom vertically (pixelsPerKey \*= 1.1)    |
+
+**CSS grid background:**
+
+- Use `background-position` to offset grid pattern based on scrollX/scrollY
+- Grid always renders at current zoom, just shifted
+
+### Feedback
+
+- [x] zoom should center the current pointer position
+- [x] wheel behavior feels odd
+  - "wheel" (or touch pad) should have two directions. each should work for two pans.
+  - same for Ctrl + wheel variant.
+- [x] pitch range should be dynamical and extend further as allowed MIDI value range.
+
+**Resolution:**
+
+- Zoom now centers on cursor position (both horizontal and vertical)
+- 2D wheel/trackpad: deltaX→horizontal, deltaY→vertical for both pan and zoom
+- Pitch range extended to full MIDI (0-127), default view starts at bass range (G3)
 
 ## Status
 
-**Attempt 1 complete** - works but native scroll approach suboptimal
+**Attempt 2 complete** - fixed viewport with feedback addressed
 
 ### Done
 
-- `totalBeats` added to project-store.ts (default 128 = 32 bars)
-- SVG grid replaced with CSS `repeating-linear-gradient` background
-- Inner container sized dynamically based on `totalBeats * beatWidth`
-- Wheel zoom: Ctrl+wheel for horizontal, Ctrl+Shift+wheel for vertical
-- Timeline component accepts `totalBeats` prop
-- Build passes (`pnpm tsc && pnpm lint`)
+- Fixed viewport layout (no native scrollbars)
+- `scrollX` / `scrollY` state for viewport offset (in beats/semitones)
+- `pixelsPerBeat` / `pixelsPerKey` for zoom
+- 2D pan: deltaX→horizontal, deltaY→vertical (natural trackpad behavior)
+- 2D zoom with Ctrl: deltaY→horizontal zoom, deltaX→vertical zoom (cursor-centered)
+- Full MIDI pitch range (0-127), default view shows bass range (G3 at top)
+- CSS `background-position` offsets grid pattern based on scroll
+- Keyboard/Timeline render only visible portion
+- Note filtering to visible range
+- All E2E tests pass, build passes
+
+### Navigation
+
+| Input          | Action                          |
+| -------------- | ------------------------------- |
+| Trackpad/Wheel | Pan (deltaX→horiz, deltaY→vert) |
+| Ctrl + Wheel   | Zoom centered on cursor         |
 
 ### Remaining
 
 - Manual testing with `pnpm dev`
-- Note viewport filtering (deferred - SVG handles <500 notes fine)
-- E2E tests may need updates if grid behavior changed

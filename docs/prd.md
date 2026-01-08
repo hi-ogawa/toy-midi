@@ -247,6 +247,12 @@ interface Note {
 - [ ] Copy/paste notes
 - [ ] Help overlay (? key to show shortcuts)
 
+### Feedback
+
+- [ ] better indicater for each octave (perhaps slight higlight each C(n) on the left)
+- [ ] max out default bar counts since rendering are virtualized anyway
+- [ ] virtical grid and note cells aren't aligned (also left piano keyboard keys)
+
 ## Quick Reference
 
 ### Mouse

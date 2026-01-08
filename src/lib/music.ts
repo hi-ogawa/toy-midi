@@ -1,7 +1,11 @@
-// Bass range: E1 (28) to G3 (55)
-export const MIN_PITCH = 28; // E1
-export const MAX_PITCH = 55; // G3
-export const PITCH_COUNT = MAX_PITCH - MIN_PITCH + 1; // 28 rows
+// Full MIDI range: C-1 (0) to G9 (127)
+export const MIN_PITCH = 0; // C-1
+export const MAX_PITCH = 127; // G9
+export const PITCH_COUNT = MAX_PITCH - MIN_PITCH + 1; // 128 rows
+
+// Default view range (bass): E1 (28) to G3 (55)
+export const DEFAULT_VIEW_MIN_PITCH = 28; // E1
+export const DEFAULT_VIEW_MAX_PITCH = 55; // G3
 
 const NOTE_NAMES = [
   "C",
