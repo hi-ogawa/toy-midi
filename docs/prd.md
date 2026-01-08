@@ -256,6 +256,7 @@ interface Note {
 - [x] quick inline svg favicon
 - [ ] refactor debug panel
 - [x] black/white row highlight entire piano roll
+- [ ] zoom should keep current cursor as center
 
 ## Quick Reference
 
