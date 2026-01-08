@@ -15,6 +15,7 @@
 | File                   | Purpose                              |
 | ---------------------- | ------------------------------------ |
 | `docs/prd.md`          | Requirements, UX specs, architecture |
+| `docs/references.md`   | Reference projects and libraries     |
 | `docs/decisions.md`    | Technical decisions log              |
 | `docs/TODO.md`         | Open items (remove when done)        |
 | `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes         |
@@ -57,13 +58,16 @@ To continue in fresh session: `Read docs/YYYY-MM-DD-<topic>.md and continue`
 
 ## Reference Code
 
+See `docs/references.md` for full list of reference projects and libraries.
+
 Local references in `refs/` (gitignored). Key ones:
 
-| Ref          | Path               | What to look at               |
-| ------------ | ------------------ | ----------------------------- |
-| Signal       | `refs/signal`      | Piano roll UI, React patterns |
-| Tone.js      | `refs/tone-js`     | Audio API usage               |
-| @tonejs/midi | `refs/tonejs-midi` | MIDI file generation          |
+| Ref     | Path           | What to look at                              |
+| ------- | -------------- | -------------------------------------------- |
+| Signal  | `refs/signal`  | Piano roll UI, React patterns                |
+| Tone.js | `refs/Tone.js` | Audio API, Transport, synths (see examples/) |
+
+Setup: `pnpm dlx tiged https://github.com/Tonejs/Tone.js.git refs/Tone.js`
 
 ## Testing Strategy
 

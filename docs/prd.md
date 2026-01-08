@@ -130,6 +130,8 @@ Our behavior (click at beat 1, drag to beat 3):
 | State        | Zustand                 | Future-proof, minimal boilerplate              |
 | Storage      | localStorage + File API | Save/load projects                             |
 
+**Essential reference**: `refs/Tone.js/` - full Tone.js source + examples (especially `examples/mixer.html` for Transport pattern)
+
 ### Architecture
 
 **Conventions:**
