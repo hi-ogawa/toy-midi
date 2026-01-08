@@ -419,6 +419,8 @@ export function PianoRoll() {
           } else if (!selectedNoteIds.has(clickedNote.id)) {
             selectNotes([clickedNote.id], true);
           }
+          // Preview note sound on drag start
+          audioManager.playNote(clickedNote.pitch);
           setDragMode({
             type: "moving",
             noteId: clickedNote.id,
@@ -442,6 +444,8 @@ export function PianoRoll() {
           });
         } else {
           deselectAll();
+          // Preview note sound on creation start
+          audioManager.playNote(pitch);
           setDragMode({
             type: "creating",
             startBeat: snappedBeat,

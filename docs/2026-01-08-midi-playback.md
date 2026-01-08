@@ -142,13 +142,13 @@ Already designed in AudioManager - `playNote()` for immediate feedback:
 
 ## Implementation Steps
 
-1. [ ] Add tempo input to transport bar (manual BPM entry)
-2. [ ] Upgrade synth to PolySynth in AudioManager
-3. [ ] Add `scheduleNotes()` and `clearScheduledNotes()` methods
-4. [ ] Call `scheduleNotes()` on play, reschedule on seek
-5. [ ] Clear scheduled notes on pause/stop
-6. [ ] Add note preview on mousedown (note creation)
-7. [ ] Add note preview on note drag start
+1. [x] Add tempo input to transport bar (manual BPM entry)
+2. [x] Upgrade synth to PolySynth in AudioManager
+3. [x] Add `scheduleNotes()` and `clearScheduledNotes()` methods
+4. [x] Call `scheduleNotes()` on play, reschedule on seek
+5. [x] Clear scheduled notes on pause/stop
+6. [x] Add note preview on mousedown (note creation)
+7. [x] Add note preview on note drag start
 8. [ ] Test with backing track to verify sync
 
 ## Files to Modify
@@ -188,4 +188,13 @@ Start with simple approach, optimize if needed.
 
 ## Status
 
-**Planning** - Awaiting feedback
+**Done** - MIDI playback implemented
+
+### Completed
+- Tempo input in transport bar (30-300 BPM)
+- PolySynth for polyphonic playback
+- Notes scheduled on play, cleared on pause
+- Note preview on mousedown (creation and drag)
+
+### Remaining
+- Manual testing with backing track to verify sync

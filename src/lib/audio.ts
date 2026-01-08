@@ -1,8 +1,15 @@
 import * as Tone from "tone";
+import type { Note } from "../types";
+
+// Helper: convert beats to seconds
+function beatsToSeconds(beats: number, tempo: number): number {
+  return (beats / tempo) * 60;
+}
 
 class AudioManager {
   private player: Tone.Player | null = null;
-  private synth: Tone.Synth | null = null;
+  private synth: Tone.PolySynth | null = null;
+  private scheduledEvents: number[] = []; // Transport event IDs
   private _initialized = false;
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
@@ -10,7 +17,11 @@ class AudioManager {
   async init(): Promise<void> {
     if (this._initialized) return;
     await Tone.start(); // Resume audio context (browser autoplay policy)
-    this.synth = new Tone.Synth().toDestination();
+    // PolySynth for polyphonic playback (multiple simultaneous notes)
+    this.synth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
+    }).toDestination();
     this._initialized = true;
   }
 
@@ -116,6 +127,32 @@ class AudioManager {
 
   get loaded(): boolean {
     return this.player !== null && this.player.loaded;
+  }
+
+  // Schedule notes for playback (synced to Transport)
+  scheduleNotes(notes: Note[], fromSeconds: number, tempo: number): void {
+    this.clearScheduledNotes();
+
+    for (const note of notes) {
+      const startSeconds = beatsToSeconds(note.start, tempo);
+      const durationSeconds = beatsToSeconds(note.duration, tempo);
+
+      // Only schedule notes that haven't ended yet
+      if (startSeconds + durationSeconds > fromSeconds) {
+        const eventId = Tone.getTransport().scheduleOnce((time) => {
+          const freq = Tone.Frequency(note.pitch, "midi").toFrequency();
+          this.synth?.triggerAttackRelease(freq, durationSeconds, time);
+        }, startSeconds);
+        this.scheduledEvents.push(eventId);
+      }
+    }
+  }
+
+  clearScheduledNotes(): void {
+    for (const id of this.scheduledEvents) {
+      Tone.getTransport().clear(id);
+    }
+    this.scheduledEvents = [];
   }
 
   // Note preview (immediate, not synced to Transport)

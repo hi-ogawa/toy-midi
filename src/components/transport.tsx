@@ -14,9 +14,12 @@ export function Transport() {
     audioDuration,
     isPlaying,
     playheadPosition,
+    tempo,
+    notes,
     setAudioFile,
     setIsPlaying,
     setPlayheadPosition,
+    setTempo,
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,12 +73,15 @@ export function Transport() {
 
     if (isPlaying) {
       audioManager.pause();
+      audioManager.clearScheduledNotes();
       setIsPlaying(false);
     } else {
+      // Schedule MIDI notes from current position
+      audioManager.scheduleNotes(notes, audioManager.position, tempo);
       audioManager.play();
       setIsPlaying(true);
     }
-  }, [isPlaying, setIsPlaying]);
+  }, [isPlaying, setIsPlaying, notes, tempo]);
 
   // Space key to toggle play/pause
   useEffect(() => {
@@ -141,6 +147,25 @@ export function Transport() {
         className="font-mono text-sm text-neutral-300 min-w-[100px]"
       >
         {formatTime(playheadPosition)} / {formatTime(audioDuration)}
+      </div>
+
+      {/* Tempo input */}
+      <div className="flex items-center gap-1">
+        <input
+          data-testid="tempo-input"
+          type="number"
+          min={30}
+          max={300}
+          value={tempo}
+          onChange={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value >= 30 && value <= 300) {
+              setTempo(value);
+            }
+          }}
+          className="w-14 px-1 py-0.5 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center"
+        />
+        <span className="text-xs text-neutral-400">BPM</span>
       </div>
 
       {/* File name */}

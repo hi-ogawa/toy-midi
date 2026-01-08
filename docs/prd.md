@@ -215,11 +215,11 @@ interface Note {
 
 ### Dynamic Timeline
 
-- [ ] Timeline length based on audio duration (not fixed 8 bars)
-- [ ] Viewport-based grid rendering (virtualized)
-- [ ] Wheel scroll (horizontal)
-- [ ] Ctrl+wheel zoom (horizontal)
-- [ ] Vertical scroll for pitch range
+- [x] Timeline length based on audio duration (not fixed 8 bars)
+- [x] Viewport-based grid rendering (virtualized)
+- [x] Wheel scroll (horizontal)
+- [x] Ctrl+wheel zoom (horizontal)
+- [x] Vertical scroll for pitch range
 
 ### Audio Playback
 
@@ -229,6 +229,12 @@ interface Note {
 - [x] Auto-scroll during playback
 - [x] Click timeline to seek
 - [ ] Tempo detection: tap-based (during playback) and manual BPM input
+
+### MIDI playback
+
+- [ ] basic midi sync
+- [ ] playback along with transport
+- [ ] Note preview sound on mousedown
 
 ### MIDI Export
 
@@ -246,7 +252,6 @@ interface Note {
 - [ ] Waveform display
 - [ ] Loop regions
 - [x] Keyboard shortcuts (space=play)
-- [ ] Note preview sound on mousedown
 - [ ] Copy/paste notes
 - [ ] Help overlay (? key to show shortcuts)
 
@@ -264,6 +269,8 @@ interface Note {
 - [ ] toggle-able auto scroll during playback
 - [ ] investigate timeline click-to-seek delay
 - [ ] waveform visualization (draw peaks from audio buffer)
+- [ ] jumping timeline during audio playback is broken.
+- [ ] playback metronome (toggle)
 
 ## Quick Reference
 

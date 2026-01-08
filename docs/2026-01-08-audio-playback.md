@@ -285,6 +285,7 @@ Piano roll uses beats, audio uses seconds. Need tempo value to convert:
 ## Follow Up
 
 All follow-up items moved to prd.md feedback or completed:
+
 - [x] why two buttons? just one play/pause toggle? - removed stop button
 - [x] playhead something blue-ish? - changed to sky-400
 - [x] space as play/pause shortcut - added
