@@ -236,42 +236,52 @@ interface Note {
 - [x] playback along with transport
 - [x] Note preview sound on mousedown
 
-### MIDI Export
-
-- [ ] Generate MIDI file from notes
-- [ ] Download as .mid file
-- [ ] Tempo embedding
-
 ### Project Management
 
 - [x] Tempo input (time signature TBD)
-- [ ] Save/load project (localStorage or JSON file)
 
 ### Feedback - High Priority
 
+- [x] Waveform display (necessary to sync with tempo)
+  - [x] fix waveform lag (downsampled to 500 points)
+  - [x] resize audio track height (drag bottom edge)
+  - [ ] higher resolution rendering at zoom (future)
+- [ ] Save/load project
+  - [ ] local storage / indexdb
+  - [ ] load last session by default
 - [ ] embed free soundfont? (need at least bass sound even if boring)
-- [ ] Waveform display (necessary to sync with tempo)
+- [ ] midi preview playback when pressing left sticky keys
 - [ ] zoom should keep current cursor as center
+- [ ] deploy (vercel)
+- [ ] time signature support (currently hardcoded 4/4)
+- [ ] MIDI Export
+  - [ ] Generate MIDI file from notes
+  - [ ] Download as .mid file
+  - [ ] Tempo embedding
 
 ### Feedback - Medium Priority
 
-- [ ] audio offset label looks reversed
-- [ ] "No audio loaded" label looks off when scrolling
-- [ ] quick midi preview playback when pressing left sticky keys
-- [ ] (semi) infinite zoom out horizontally to cover entire timeline
+- [ ] basic action polish
+  - [ ] Copy/paste notes
+  - [ ] extend note (right edge) without select
+  - [ ] extend note dragging should fit to grid better
+  - [ ] limit vertical scale only on left sticky keys
 - [ ] toggle-able auto scroll during playback
-- [ ] deploy (vercel)
+- [ ] Help overlay (? key to show shortcuts)
+- [ ] Refine waveform display (currently it's too rough)
 
 ### Feedback - Low Priority / Future
 
-- [ ] time signature support (currently hardcoded 4/4)
-- [ ] Copy/paste notes
-- [ ] Help overlay (? key to show shortcuts)
+- [ ] improve testing
+- [ ] full review for better code organization
 - [ ] basic locator to mark parts
 - [ ] initial flash of lower keys ranges
 - [ ] refactor debug panel
 - [ ] investigate timeline click-to-seek delay
 - [ ] jumping timeline during audio playback is broken.
+- [ ] "No audio loaded" label looks off when scrolling
+- [ ] audio offset label looks reversed
+- [ ] (semi) infinite zoom out horizontally to cover entire timeline
 
 ### Feedback - Done
 

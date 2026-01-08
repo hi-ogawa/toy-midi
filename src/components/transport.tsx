@@ -26,6 +26,7 @@ export function Transport() {
     setAudioVolume,
     setMidiVolume,
     setMetronomeEnabled,
+    setAudioPeaks,
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,11 @@ export function Transport() {
       const duration = await audioManager.loadAudio(file);
       setAudioFile(file.name, duration);
       setPlayheadPosition(0);
+
+      // Extract peaks for waveform display
+      const peaksPerSecond = 100;
+      const peaks = audioManager.getPeaks(peaksPerSecond);
+      setAudioPeaks(peaks, peaksPerSecond);
     } catch (err) {
       console.error("Failed to load audio:", err);
     }

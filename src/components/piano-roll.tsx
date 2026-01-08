@@ -20,7 +20,9 @@ import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 // Layout constants (exported for tests)
 export const KEYBOARD_WIDTH = 60;
 export const TIMELINE_HEIGHT = 32;
-export const WAVEFORM_HEIGHT = 60;
+export const DEFAULT_WAVEFORM_HEIGHT = 60;
+export const MIN_WAVEFORM_HEIGHT = 40;
+export const MAX_WAVEFORM_HEIGHT = 200;
 export const BEATS_PER_BAR = 4;
 
 // Default zoom levels (pixels per beat/key)
@@ -179,6 +181,7 @@ export function PianoRoll() {
     setGridSnap,
     setPlayheadPosition,
     setAudioOffset,
+    audioPeaks,
   } = useProjectStore();
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -192,6 +195,7 @@ export function PianoRoll() {
   const [scrollY, setScrollY] = useState(MAX_PITCH - DEFAULT_VIEW_MAX_PITCH);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [pixelsPerKey, setPixelsPerKey] = useState(DEFAULT_PIXELS_PER_KEY);
+  const [waveformHeight, setWaveformHeight] = useState(DEFAULT_WAVEFORM_HEIGHT);
 
   // Track viewport size
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
@@ -295,7 +299,7 @@ export function PianoRoll() {
 
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left - KEYBOARD_WIDTH;
-      const mouseY = e.clientY - rect.top - TIMELINE_HEIGHT - WAVEFORM_HEIGHT;
+      const mouseY = e.clientY - rect.top - TIMELINE_HEIGHT - waveformHeight;
 
       // Ctrl + wheel = zoom (both axes, centered on cursor)
       if (e.ctrlKey) {
@@ -664,7 +668,7 @@ export function PianoRoll() {
           {/* Waveform spacer */}
           <div
             className="shrink-0 border-b border-neutral-700 flex items-center justify-center text-xs text-neutral-500"
-            style={{ height: WAVEFORM_HEIGHT }}
+            style={{ height: waveformHeight }}
           >
             Audio
           </div>
@@ -674,7 +678,7 @@ export function PianoRoll() {
               pixelsPerKey={roundedPixelsPerKey}
               scrollY={scrollY}
               viewportHeight={
-                viewportSize.height - TIMELINE_HEIGHT - WAVEFORM_HEIGHT
+                viewportSize.height - TIMELINE_HEIGHT - waveformHeight
               }
             />
           </div>
@@ -703,10 +707,13 @@ export function PianoRoll() {
             audioOffset={audioOffset}
             tempo={tempo}
             playheadBeat={secondsToBeats(playheadPosition, tempo)}
+            audioPeaks={audioPeaks}
+            height={waveformHeight}
             onOffsetChange={(newOffset) => {
               audioManager.setOffset(newOffset);
               setAudioOffset(newOffset);
             }}
+            onHeightChange={setWaveformHeight}
           />
           {/* Note grid with CSS background */}
           <div
@@ -1121,7 +1128,10 @@ function WaveformArea({
   audioOffset,
   tempo,
   playheadBeat,
+  audioPeaks,
+  height,
   onOffsetChange,
+  onHeightChange,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
@@ -1130,11 +1140,18 @@ function WaveformArea({
   audioOffset: number;
   tempo: number;
   playheadBeat: number;
+  audioPeaks: number[];
+  height: number;
   onOffsetChange: (offset: number) => void;
+  onHeightChange: (height: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const dragStartRef = useRef<{ x: number; startOffset: number } | null>(null);
+  const resizeStartRef = useRef<{ y: number; startHeight: number } | null>(
+    null,
+  );
 
   // Convert audio duration/offset to beats for positioning
   const audioDurationBeats = secondsToBeats(audioDuration, tempo);
@@ -1186,16 +1203,52 @@ function WaveformArea({
     };
   }, [isDragging, pixelsPerBeat, tempo, audioDuration, onOffsetChange]);
 
+  // Resize handler
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    resizeStartRef.current = { y: e.clientY, startHeight: height };
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeStartRef.current) return;
+      const deltaY = e.clientY - resizeStartRef.current.y;
+      const newHeight = Math.max(
+        MIN_WAVEFORM_HEIGHT,
+        Math.min(
+          MAX_WAVEFORM_HEIGHT,
+          resizeStartRef.current.startHeight + deltaY,
+        ),
+      );
+      onHeightChange(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      resizeStartRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing, onHeightChange]);
+
   return (
     <div
       ref={containerRef}
       className="relative shrink-0 bg-neutral-800 border-b border-neutral-700 overflow-hidden"
-      style={{ height: WAVEFORM_HEIGHT }}
+      style={{ height }}
     >
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"
@@ -1206,8 +1259,15 @@ function WaveformArea({
           }}
           onMouseDown={handleMouseDown}
         >
+          {/* Waveform SVG */}
+          {audioPeaks.length > 0 && (
+            <Waveform
+              peaks={audioPeaks}
+              height={height - 8} // Account for top-1 bottom-1 padding
+            />
+          )}
           {/* Offset indicator */}
-          <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap">
+          <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioOffset > 0
               ? `+${audioOffset.toFixed(1)}s`
               : audioOffset < 0
@@ -1229,6 +1289,67 @@ function WaveformArea({
           No audio loaded
         </div>
       )}
+      {/* Resize handle */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-1 cursor-ns-resize hover:bg-neutral-600 transition-colors"
+        onMouseDown={handleResizeMouseDown}
+      />
     </div>
+  );
+}
+
+// Waveform SVG component - renders peaks as a filled polygon
+// Downsamples peaks to max ~500 points to avoid SVG lag
+function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
+  if (peaks.length === 0) return null;
+
+  // Downsample to max 500 points for performance
+  const maxPoints = 500;
+  const step = Math.max(1, Math.floor(peaks.length / maxPoints));
+  const sampledPeaks: number[] = [];
+
+  for (let i = 0; i < peaks.length; i += step) {
+    // Take max of this chunk for accuracy
+    let max = 0;
+    for (let j = i; j < Math.min(i + step, peaks.length); j++) {
+      if (peaks[j] > max) max = peaks[j];
+    }
+    sampledPeaks.push(max);
+  }
+
+  // Use viewBox coordinates (0-1000 for x, 0-height for y)
+  const viewBoxWidth = 1000;
+  const centerY = height / 2;
+  const maxAmplitude = centerY * 0.9; // Leave some margin
+
+  // Create path points for upper and lower halves
+  const upperPoints: string[] = [];
+  const lowerPoints: string[] = [];
+
+  for (let i = 0; i < sampledPeaks.length; i++) {
+    // X position scaled to viewBox width
+    const x = (i / (sampledPeaks.length - 1 || 1)) * viewBoxWidth;
+    const amplitude = sampledPeaks[i] * maxAmplitude;
+
+    upperPoints.push(`${x},${centerY - amplitude}`);
+    lowerPoints.unshift(`${x},${centerY + amplitude}`);
+  }
+
+  // Close the path by connecting upper and lower halves
+  const pathData = `M ${upperPoints.join(" L ")} L ${lowerPoints.join(" L ")} Z`;
+
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full"
+      viewBox={`0 0 ${viewBoxWidth} ${height}`}
+      preserveAspectRatio="none"
+    >
+      <path
+        d={pathData}
+        fill="rgba(255, 255, 255, 0.3)"
+        stroke="rgba(255, 255, 255, 0.5)"
+        strokeWidth="1"
+      />
+    </svg>
   );
 }

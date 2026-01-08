@@ -237,6 +237,36 @@ class AudioManager {
   get canPlay(): boolean {
     return this._initialized;
   }
+
+  // Extract peaks from audio buffer for waveform display
+  // Returns array of peak values (0-1) at specified resolution
+  getPeaks(peaksPerSecond: number = 100): number[] {
+    if (!this.player || !this.player.buffer || !this.player.buffer.length) {
+      return [];
+    }
+
+    const buffer = this.player.buffer;
+    const samples = buffer.getChannelData(0); // Use left/mono channel
+    const sampleRate = buffer.sampleRate;
+    const samplesPerPeak = Math.floor(sampleRate / peaksPerSecond);
+    const peaks: number[] = [];
+
+    for (let i = 0; i < samples.length; i += samplesPerPeak) {
+      let max = 0;
+      const end = Math.min(i + samplesPerPeak, samples.length);
+      for (let j = i; j < end; j++) {
+        const abs = Math.abs(samples[j]);
+        if (abs > max) max = abs;
+      }
+      peaks.push(max);
+    }
+
+    return peaks;
+  }
+
+  get sampleRate(): number {
+    return this.player?.buffer?.sampleRate ?? 44100;
+  }
 }
 
 export const audioManager = new AudioManager();

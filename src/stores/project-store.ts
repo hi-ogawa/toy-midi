@@ -21,6 +21,10 @@ interface ProjectState {
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
 
+  // Waveform state
+  audioPeaks: number[]; // Peak values 0-1 for waveform display
+  peaksPerSecond: number; // Resolution of peaks array
+
   // Actions
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
@@ -42,6 +46,9 @@ interface ProjectState {
   setMidiVolume: (volume: number) => void;
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
+
+  // Waveform actions
+  setAudioPeaks: (peaks: number[], peaksPerSecond: number) => void;
 }
 
 let noteIdCounter = 0;
@@ -68,6 +75,10 @@ export const useProjectStore = create<ProjectState>((set) => ({
   midiVolume: 0.8,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
+
+  // Waveform state
+  audioPeaks: [],
+  peaksPerSecond: 100,
 
   addNote: (note) =>
     set((state) => ({
@@ -128,6 +139,10 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
+
+  // Waveform actions
+  setAudioPeaks: (peaks, peaksPerSecond) =>
+    set({ audioPeaks: peaks, peaksPerSecond }),
 }));
 
 // Helper: convert seconds to beats
