@@ -216,6 +216,7 @@ Resizing
 - E2E tests in `e2e/piano-roll.spec.ts`
 
 Capabilities:
+
 - SVG-based grid with keyboard sidebar
 - Grid snap control (1/4, 1/8, 1/16, triplets)
 - Click-drag note creation

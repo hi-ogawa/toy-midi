@@ -251,29 +251,29 @@ interface Note {
 
 ### Mouse
 
-| Action | Result |
-|--------|--------|
-| Click + drag on empty | Create note |
-| Click on note | Select |
-| Shift + click on note | Add to selection |
-| Shift + drag on empty | Box select |
-| Drag note body | Move (time + pitch) |
-| Drag note edge | Resize |
+| Action                | Result              |
+| --------------------- | ------------------- |
+| Click + drag on empty | Create note         |
+| Click on note         | Select              |
+| Shift + click on note | Add to selection    |
+| Shift + drag on empty | Box select          |
+| Drag note body        | Move (time + pitch) |
+| Drag note edge        | Resize              |
 
 ### Keyboard
 
-| Key | Action |
-|-----|--------|
+| Key                | Action          |
+| ------------------ | --------------- |
 | Delete / Backspace | Delete selected |
-| Escape | Deselect all |
+| Escape             | Deselect all    |
 
 ### Toolbar
 
-| Control | Options |
-|---------|---------|
-| Grid | 1/4, 1/8, 1/16, 1/4T, 1/8T, 1/16T |
-| H (horizontal zoom) | 50% - 200% |
-| V (vertical zoom) | 50% - 200% |
+| Control             | Options                           |
+| ------------------- | --------------------------------- |
+| Grid                | 1/4, 1/8, 1/16, 1/4T, 1/8T, 1/16T |
+| H (horizontal zoom) | 50% - 200%                        |
+| V (vertical zoom)   | 50% - 200%                        |
 
 ## Success Criteria
 

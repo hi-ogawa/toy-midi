@@ -5,6 +5,7 @@ Make piano roll work for full song transcription (3-5 min songs, ~150 bars).
 ## Problem
 
 Current implementation has fixed 8 bars (32 beats). Need:
+
 - Timeline that spans audio duration
 - Efficient rendering for long timelines
 - Smooth scroll/zoom navigation
@@ -15,13 +16,13 @@ Analyzed `refs/signal` piano roll. Full WebGL-based DAW.
 
 ### Architecture
 
-| Aspect | Signal's Approach |
-|--------|-------------------|
-| Grid | WebGL shader with modulo arithmetic (infinite pattern) |
-| Notes | WebGL instanced rendering (single draw call for all notes) |
-| Scroll | Custom scrollbars, Jotai atoms for state |
+| Aspect     | Signal's Approach                                                |
+| ---------- | ---------------------------------------------------------------- |
+| Grid       | WebGL shader with modulo arithmetic (infinite pattern)           |
+| Notes      | WebGL instanced rendering (single draw call for all notes)       |
+| Scroll     | Custom scrollbars, Jotai atoms for state                         |
 | Transforms | `TickTransform`/`KeyTransform` classes for tick↔pixel conversion |
-| Filtering | `EventView` class with range filtering synced to viewport |
+| Filtering  | `EventView` class with range filtering synced to viewport        |
 
 ### Key Files
 
@@ -44,6 +45,7 @@ Analyzed `refs/signal` piano roll. Full WebGL-based DAW.
 ### Grid Shader Approach
 
 Fragment shader uses modulo to create infinite repeating pattern:
+
 ```glsl
 float modY = mod(screenHeight - vPosition.y, height * 12.0);
 // Check which octave lane to draw based on modY
@@ -62,26 +64,27 @@ EventView (range-filtered by scroll)
 
 ```typescript
 Layout = {
-  pixelsPerTick: 0.1,      // 0.1px per MIDI tick
-  keyHeight: 16,           // px per key
-  keyWidth: 64,            // sidebar width
-  rulerHeight: 32,         // timeline height
-}
+  pixelsPerTick: 0.1, // 0.1px per MIDI tick
+  keyHeight: 16, // px per key
+  keyWidth: 64, // sidebar width
+  rulerHeight: 32, // timeline height
+};
 ```
 
 ## Decision: Simpler Approach
 
 Signal is over-engineered for our needs (WebGL, instanced rendering, custom scrollbars). We have <500 notes for bass transcription.
 
-| Aspect | Signal | Toy-midi |
-|--------|--------|----------|
-| Grid | WebGL shader | CSS repeating background |
-| Notes | WebGL instanced | SVG (filter visible) |
-| Scroll | Custom scrollbars | Native scroll container |
-| Zoom | Custom transform | Wheel events + CSS transform |
-| State | Jotai atoms | Zustand (already using) |
+| Aspect | Signal            | Toy-midi                     |
+| ------ | ----------------- | ---------------------------- |
+| Grid   | WebGL shader      | CSS repeating background     |
+| Notes  | WebGL instanced   | SVG (filter visible)         |
+| Scroll | Custom scrollbars | Native scroll container      |
+| Zoom   | Custom transform  | Wheel events + CSS transform |
+| State  | Jotai atoms       | Zustand (already using)      |
 
 **Rationale:**
+
 - CSS background pattern = zero render cost, infinite scaling
 - SVG notes = simpler, React-friendly, sufficient for <500 notes
 - Native scroll = less code, browser-optimized
@@ -95,12 +98,27 @@ Signal is over-engineered for our needs (WebGL, instanced rendering, custom scro
 .grid {
   background-image:
     /* beat lines */
-    repeating-linear-gradient(90deg, #404040 0 1px, transparent 1px var(--beat-width)),
+    repeating-linear-gradient(
+      90deg,
+      #404040 0 1px,
+      transparent 1px var(--beat-width)
+    ),
     /* bar lines (every 4 beats) */
-    repeating-linear-gradient(90deg, #525252 0 1px, transparent 1px calc(var(--beat-width) * 4)),
+    repeating-linear-gradient(
+        90deg,
+        #525252 0 1px,
+        transparent 1px calc(var(--beat-width) * 4)
+      ),
     /* row lines */
-    repeating-linear-gradient(0deg, #404040 0 1px, transparent 1px var(--row-height));
-  background-size: var(--beat-width) 100%, calc(var(--beat-width) * 4) 100%, 100% var(--row-height);
+    repeating-linear-gradient(
+        0deg,
+        #404040 0 1px,
+        transparent 1px var(--row-height)
+      );
+  background-size:
+    var(--beat-width) 100%,
+    calc(var(--beat-width) * 4) 100%,
+    100% var(--row-height);
 }
 ```
 
@@ -112,17 +130,17 @@ Signal is over-engineered for our needs (WebGL, instanced rendering, custom scro
 
 ### Zoom: Wheel events
 
-| Input | Action |
-|-------|--------|
-| Wheel | Native horizontal scroll |
-| Ctrl + Wheel | Horizontal zoom |
-| Shift + Wheel | Native vertical scroll |
-| Ctrl + Shift + Wheel | Vertical zoom |
+| Input                | Action                   |
+| -------------------- | ------------------------ |
+| Wheel                | Native horizontal scroll |
+| Ctrl + Wheel         | Horizontal zoom          |
+| Shift + Wheel        | Native vertical scroll   |
+| Ctrl + Shift + Wheel | Vertical zoom            |
 
 ### Notes: SVG with viewport filtering
 
 ```typescript
-const visibleNotes = notes.filter(note => {
+const visibleNotes = notes.filter((note) => {
   const noteEnd = note.start + note.duration;
   return noteEnd > viewportStart && note.start < viewportEnd;
 });
@@ -133,7 +151,7 @@ const visibleNotes = notes.filter(note => {
 ```typescript
 // Add to project store
 interface ViewportState {
-  totalBeats: number;   // timeline length (default 128 = 32 bars)
+  totalBeats: number; // timeline length (default 128 = 32 bars)
 }
 
 // Local component state (no need in store)
