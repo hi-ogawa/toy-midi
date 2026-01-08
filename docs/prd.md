@@ -272,6 +272,8 @@ interface Note {
 - [ ] jumping timeline during audio playback is broken.
 - [ ] playback metronome (toggle)
 - [ ] midi only playback without audio loaded
+- [ ] embed free soundfont?
+- [ ] allow tweak audio and midi volumes (mix)
 
 ## Quick Reference
 
