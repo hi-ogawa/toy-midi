@@ -191,10 +191,12 @@ Start with simple approach, optimize if needed.
 **Done** - MIDI playback implemented
 
 ### Completed
+
 - Tempo input in transport bar (30-300 BPM)
 - PolySynth for polyphonic playback
 - Notes scheduled on play, cleared on pause
 - Note preview on mousedown (creation and drag)
 
 ### Remaining
+
 - Manual testing with backing track to verify sync

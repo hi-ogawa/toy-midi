@@ -9,19 +9,47 @@ function beatsToSeconds(beats: number, tempo: number): number {
 class AudioManager {
   private player: Tone.Player | null = null;
   private synth: Tone.PolySynth | null = null;
+  private metronome: Tone.MembraneSynth | null = null;
+  private metronomeLoop: Tone.Loop | null = null;
+
+  // Gain nodes for mixing
+  private audioGain: Tone.Gain | null = null;
+  private midiGain: Tone.Gain | null = null;
+  private metronomeGain: Tone.Gain | null = null;
+
   private scheduledEvents: number[] = []; // Transport event IDs
   private _initialized = false;
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
+  private _metronomeEnabled = false;
 
   async init(): Promise<void> {
     if (this._initialized) return;
     await Tone.start(); // Resume audio context (browser autoplay policy)
+
+    // Create gain nodes for mixing
+    this.audioGain = new Tone.Gain(0.8).toDestination();
+    this.midiGain = new Tone.Gain(0.8).toDestination();
+    this.metronomeGain = new Tone.Gain(0.5).toDestination();
+
     // PolySynth for polyphonic playback (multiple simultaneous notes)
     this.synth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "triangle" },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
-    }).toDestination();
+    }).connect(this.midiGain);
+
+    // Metronome synth (short click sound)
+    this.metronome = new Tone.MembraneSynth({
+      pitchDecay: 0.008,
+      octaves: 2,
+      envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.05 },
+    }).connect(this.metronomeGain);
+
+    // Metronome loop (quarter notes)
+    this.metronomeLoop = new Tone.Loop((time) => {
+      this.metronome?.triggerAttackRelease("C2", "32n", time);
+    }, "4n");
+
     this._initialized = true;
   }
 
@@ -42,7 +70,10 @@ class AudioManager {
     }
 
     // Create new player and wait for it to load
-    this.player = new Tone.Player().toDestination();
+    this.player = new Tone.Player();
+    if (this.audioGain) {
+      this.player.connect(this.audioGain);
+    }
     await this.player.load(url);
     this._duration = this.player.buffer.duration;
     this._offset = 0;
@@ -160,6 +191,46 @@ class AudioManager {
     if (!this.synth) return;
     const freq = Tone.Frequency(pitch, "midi").toFrequency();
     this.synth.triggerAttackRelease(freq, duration);
+  }
+
+  // Volume controls (0-1)
+  setAudioVolume(volume: number): void {
+    if (this.audioGain) {
+      this.audioGain.gain.value = Math.max(0, Math.min(1, volume));
+    }
+  }
+
+  setMidiVolume(volume: number): void {
+    if (this.midiGain) {
+      this.midiGain.gain.value = Math.max(0, Math.min(1, volume));
+    }
+  }
+
+  setMetronomeVolume(volume: number): void {
+    if (this.metronomeGain) {
+      this.metronomeGain.gain.value = Math.max(0, Math.min(1, volume));
+    }
+  }
+
+  // Metronome controls
+  setMetronomeEnabled(enabled: boolean): void {
+    this._metronomeEnabled = enabled;
+    if (this.metronomeLoop) {
+      if (enabled) {
+        this.metronomeLoop.start(0);
+      } else {
+        this.metronomeLoop.stop();
+      }
+    }
+  }
+
+  get metronomeEnabled(): boolean {
+    return this._metronomeEnabled;
+  }
+
+  // Allow playback without audio (MIDI-only mode)
+  get canPlay(): boolean {
+    return this._initialized;
   }
 }
 

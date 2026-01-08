@@ -274,6 +274,10 @@ interface Note {
 - [ ] midi only playback without audio loaded
 - [ ] embed free soundfont?
 - [ ] allow tweak audio and midi volumes (mix)
+- [ ] audio offset label looks reversed
+- [ ] basic locator to mark parts
+- [ ] "No audio loaded" label looks off when scrolling
+- [ ] quick midi preview playback when pressing left sticky keys
 
 ## Quick Reference
 

@@ -15,6 +15,12 @@ interface ProjectState {
   isPlaying: boolean;
   playheadPosition: number; // in seconds
 
+  // Mixer state
+  audioVolume: number; // 0-1
+  midiVolume: number; // 0-1
+  metronomeEnabled: boolean;
+  metronomeVolume: number; // 0-1
+
   // Actions
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
@@ -30,6 +36,12 @@ interface ProjectState {
   setAudioOffset: (offset: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlayheadPosition: (position: number) => void;
+
+  // Mixer actions
+  setAudioVolume: (volume: number) => void;
+  setMidiVolume: (volume: number) => void;
+  setMetronomeEnabled: (enabled: boolean) => void;
+  setMetronomeVolume: (volume: number) => void;
 }
 
 let noteIdCounter = 0;
@@ -50,6 +62,12 @@ export const useProjectStore = create<ProjectState>((set) => ({
   audioOffset: 0,
   isPlaying: false,
   playheadPosition: 0,
+
+  // Mixer state
+  audioVolume: 0.8,
+  midiVolume: 0.8,
+  metronomeEnabled: false,
+  metronomeVolume: 0.5,
 
   addNote: (note) =>
     set((state) => ({
@@ -104,6 +122,12 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setIsPlaying: (playing) => set({ isPlaying: playing }),
 
   setPlayheadPosition: (position) => set({ playheadPosition: position }),
+
+  // Mixer actions
+  setAudioVolume: (volume) => set({ audioVolume: volume }),
+  setMidiVolume: (volume) => set({ midiVolume: volume }),
+  setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
+  setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
 }));
 
 // Helper: convert seconds to beats

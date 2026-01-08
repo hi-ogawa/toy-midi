@@ -16,10 +16,16 @@ export function Transport() {
     playheadPosition,
     tempo,
     notes,
+    audioVolume,
+    midiVolume,
+    metronomeEnabled,
     setAudioFile,
     setIsPlaying,
     setPlayheadPosition,
     setTempo,
+    setAudioVolume,
+    setMidiVolume,
+    setMetronomeEnabled,
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,8 +74,18 @@ export function Transport() {
     e.target.value = "";
   };
 
+  // Initialize audio manager and sync volumes
+  useEffect(() => {
+    audioManager.init().then(() => {
+      audioManager.setAudioVolume(audioVolume);
+      audioManager.setMidiVolume(midiVolume);
+      audioManager.setMetronomeEnabled(metronomeEnabled);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handlePlayPause = useCallback(async () => {
-    if (!audioManager.loaded) return;
+    // Allow play if audio loaded OR just for MIDI-only mode
+    await audioManager.init();
 
     if (isPlaying) {
       audioManager.pause();
@@ -105,6 +121,22 @@ export function Transport() {
   // Use audioDuration > 0 as proxy for loaded state (reactive)
   const audioLoaded = audioDuration > 0;
 
+  const handleAudioVolumeChange = (value: number) => {
+    setAudioVolume(value);
+    audioManager.setAudioVolume(value);
+  };
+
+  const handleMidiVolumeChange = (value: number) => {
+    setMidiVolume(value);
+    audioManager.setMidiVolume(value);
+  };
+
+  const handleMetronomeToggle = () => {
+    const newValue = !metronomeEnabled;
+    setMetronomeEnabled(newValue);
+    audioManager.setMetronomeEnabled(newValue);
+  };
+
   return (
     <div
       data-testid="transport"
@@ -127,12 +159,11 @@ export function Transport() {
         className="hidden"
       />
 
-      {/* Play/Pause button */}
+      {/* Play/Pause button - always enabled for MIDI-only mode */}
       <button
         data-testid="play-pause-button"
         onClick={handlePlayPause}
-        disabled={!audioLoaded}
-        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
+        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded"
       >
         {isPlaying ? (
           <span className="text-lg">⏸</span>
@@ -177,6 +208,58 @@ export function Transport() {
           {audioFileName}
         </span>
       )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Mixer controls */}
+      <div className="flex items-center gap-3">
+        {/* Audio volume */}
+        {audioLoaded && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-neutral-500">Audio</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={audioVolume * 100}
+              onChange={(e) =>
+                handleAudioVolumeChange(parseInt(e.target.value, 10) / 100)
+              }
+              className="w-16 h-1 accent-neutral-400"
+            />
+          </div>
+        )}
+
+        {/* MIDI volume */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-neutral-500">MIDI</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={midiVolume * 100}
+            onChange={(e) =>
+              handleMidiVolumeChange(parseInt(e.target.value, 10) / 100)
+            }
+            className="w-16 h-1 accent-neutral-400"
+          />
+        </div>
+
+        {/* Metronome toggle */}
+        <button
+          data-testid="metronome-toggle"
+          onClick={handleMetronomeToggle}
+          className={`px-2 py-1 text-xs rounded ${
+            metronomeEnabled
+              ? "bg-emerald-600 text-white"
+              : "bg-neutral-700 text-neutral-400 hover:bg-neutral-600"
+          }`}
+          title="Toggle metronome"
+        >
+          Metro
+        </button>
+      </div>
     </div>
   );
 }
