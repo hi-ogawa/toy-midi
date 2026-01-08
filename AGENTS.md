@@ -2,13 +2,13 @@
 
 ## Quick Reference
 
-| Command                 | When                         |
-| ----------------------- | ---------------------------- |
-| `pnpm dev`              | Start dev server             |
-| `pnpm tsc && pnpm lint` | After changes                |
-| `pnpm test`             | Unit tests (src/, vitest)    |
-| `pnpm test-e2e`         | E2E tests (e2e/, playwright) |
-| `pnpm build`            | Before commit                |
+| Command                   | When                         |
+| ------------------------- | ---------------------------- |
+| `pnpm dev`                | Start dev server             |
+| `pnpm tsc && pnpm lint`   | After changes                |
+| `pnpm test`               | Unit tests (src/, vitest)    |
+| `pnpm test-e2e`           | E2E tests (e2e/, playwright) |
+| `pnpm lint && pnpm build` | **Before commit**            |
 
 ## Key Docs
 
@@ -95,4 +95,5 @@ Audio sync can be tested manually during development.
 
 1. Create feature branch before starting work
 2. Commit logical changes separately
-3. Confirm with user before committing
+3. **Run `pnpm lint` before every commit** (formats .ts, .tsx, .md, .json, etc.)
+4. Confirm with user before committing
