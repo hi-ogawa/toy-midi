@@ -260,6 +260,8 @@ interface Note {
 - [x] black/white row highlight entire piano roll
 - [ ] zoom should keep current cursor as center
 - [ ] (semi) infinite zoom out horizontally to cover entire timeline
+- [ ] toggle-able auto scroll during playback
+- [ ] investigate timeline click-to-seek delay
 
 ## Quick Reference
 
