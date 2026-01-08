@@ -111,4 +111,37 @@ const STORAGE_KEY = "toy-midi-project";
 ### Future
 
 - Asset management UI (list, delete, size info)
-- Multiple project support
+- Multiple project support (see below)
+
+## Future: Project Management
+
+Current: auto-load last session (quick dev workflow).
+
+**Planned:**
+
+1. **Project list on startup**
+   - Show saved projects with name, date, note count
+   - "New Project" button
+   - "Continue Last" quick action
+
+2. **Multiple projects**
+   - Each project stored separately in IndexedDB
+   - Project metadata in localStorage index
+   - Share audio assets across projects (reference counting)
+
+3. **Project operations**
+   - Rename, duplicate, delete
+   - Export/import as JSON (without audio)
+   - Export with audio as zip (optional)
+
+**Storage structure:**
+
+```
+localStorage:
+  toy-midi-projects: { id, name, updatedAt }[]
+  toy-midi-last-project: projectId
+
+IndexedDB:
+  projects: { id, ...projectData }
+  assets: { key, blob, refCount }
+```
