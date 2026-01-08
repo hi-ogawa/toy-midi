@@ -246,9 +246,11 @@ interface Note {
   - [x] fix waveform lag (downsampled to 500 points)
   - [x] resize audio track height (drag bottom edge)
   - [ ] higher resolution rendering at zoom (future)
-- [ ] Save/load project
-  - [ ] local storage / indexdb
-  - [ ] load last session by default
+- [x] Save/load project
+  - [x] local storage for project state
+  - [x] IndexedDB for audio files
+  - [x] load last session by default
+  - [ ] asset management UI (future)
 - [ ] embed free soundfont? (need at least bass sound even if boring)
 - [ ] midi preview playback when pressing left sticky keys
 - [ ] zoom should keep current cursor as center
@@ -258,6 +260,7 @@ interface Note {
   - [ ] Generate MIDI file from notes
   - [ ] Download as .mid file
   - [ ] Tempo embedding
+- [ ] move grid/debug header to the top header (remove pan shortcut description)
 
 ### Feedback - Medium Priority
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { saveAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
 import { useProjectStore } from "../stores/project-store";
 
@@ -66,7 +67,11 @@ export function Transport() {
 
     try {
       const duration = await audioManager.loadAudio(file);
-      setAudioFile(file.name, duration);
+
+      // Save audio to IndexedDB for persistence
+      const assetKey = await saveAsset(file);
+
+      setAudioFile(file.name, duration, assetKey);
       setPlayheadPosition(0);
 
       // Extract peaks for waveform display

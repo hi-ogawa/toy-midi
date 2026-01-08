@@ -10,6 +10,7 @@ interface ProjectState {
 
   // Audio state
   audioFileName: string | null;
+  audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds
   audioOffset: number; // in seconds - position in audio that aligns with beat 0
   isPlaying: boolean;
@@ -36,7 +37,7 @@ interface ProjectState {
   setTempo: (bpm: number) => void;
 
   // Audio actions
-  setAudioFile: (fileName: string, duration: number) => void;
+  setAudioFile: (fileName: string, duration: number, assetKey?: string) => void;
   setAudioOffset: (offset: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlayheadPosition: (position: number) => void;
@@ -65,6 +66,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   // Audio state
   audioFileName: null,
+  audioAssetKey: null,
   audioDuration: 0,
   audioOffset: 0,
   isPlaying: false,
@@ -120,9 +122,10 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setTempo: (bpm) => set({ tempo: bpm }),
 
   // Audio actions
-  setAudioFile: (fileName, duration) =>
+  setAudioFile: (fileName, duration, assetKey) =>
     set({
       audioFileName: fileName,
+      audioAssetKey: assetKey ?? null,
       audioDuration: duration,
       audioOffset: 0,
       playheadPosition: 0,
@@ -153,4 +156,97 @@ export function secondsToBeats(seconds: number, tempo: number): number {
 // Helper: convert beats to seconds
 export function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
+}
+
+// === Project Persistence ===
+
+const STORAGE_KEY = "toy-midi-project";
+const STORAGE_VERSION = 1;
+
+interface SavedProject {
+  version: number;
+  notes: Note[];
+  tempo: number;
+  gridSnap: GridSnap;
+  audioFileName: string | null;
+  audioAssetKey: string | null; // Reference to IndexedDB asset
+  audioOffset: number;
+  audioVolume: number;
+  midiVolume: number;
+  metronomeEnabled: boolean;
+  metronomeVolume: number;
+}
+
+export function saveProject(): void {
+  const state = useProjectStore.getState();
+  const saved: SavedProject = {
+    version: STORAGE_VERSION,
+    notes: state.notes,
+    tempo: state.tempo,
+    gridSnap: state.gridSnap,
+    audioFileName: state.audioFileName,
+    audioAssetKey: state.audioAssetKey,
+    audioOffset: state.audioOffset,
+    audioVolume: state.audioVolume,
+    midiVolume: state.midiVolume,
+    metronomeEnabled: state.metronomeEnabled,
+    metronomeVolume: state.metronomeVolume,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  } catch (e) {
+    console.warn("Failed to save project:", e);
+  }
+}
+
+export interface LoadedProject {
+  audioAssetKey: string | null;
+  audioFileName: string | null;
+}
+
+export function loadProject(): LoadedProject | null {
+  try {
+    const json = localStorage.getItem(STORAGE_KEY);
+    if (!json) return null;
+
+    const saved: SavedProject = JSON.parse(json);
+    if (saved.version !== STORAGE_VERSION) {
+      console.warn("Project version mismatch, skipping load");
+      return null;
+    }
+
+    // Update note ID counter to avoid collisions
+    const maxId = saved.notes.reduce((max, n) => {
+      const match = n.id.match(/^note-(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    noteIdCounter = maxId;
+
+    useProjectStore.setState({
+      notes: saved.notes,
+      tempo: saved.tempo,
+      gridSnap: saved.gridSnap,
+      audioFileName: saved.audioFileName,
+      audioAssetKey: saved.audioAssetKey,
+      audioOffset: saved.audioOffset,
+      audioVolume: saved.audioVolume,
+      midiVolume: saved.midiVolume,
+      metronomeEnabled: saved.metronomeEnabled,
+      metronomeVolume: saved.metronomeVolume,
+      // Reset transient state
+      selectedNoteIds: new Set(),
+      isPlaying: false,
+      playheadPosition: 0,
+      audioDuration: 0,
+      audioPeaks: [],
+    });
+
+    return {
+      audioAssetKey: saved.audioAssetKey,
+      audioFileName: saved.audioFileName,
+    };
+  } catch (e) {
+    console.warn("Failed to load project:", e);
+    return null;
+  }
 }
