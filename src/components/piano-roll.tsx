@@ -44,22 +44,22 @@ function generateGridBackground(
   const barWidth = pixelsPerBeat * BEATS_PER_BAR;
   const octaveHeight = pixelsPerKey * 12;
 
-  // Horizontal row lines (at bottom of each row to match keyboard border-bottom)
+  // Horizontal row lines (at top of each row = boundary between rows)
   const rowLines = `repeating-linear-gradient(
     0deg,
-    transparent 0px,
-    transparent ${pixelsPerKey - 1}px,
-    #404040 ${pixelsPerKey - 1}px,
-    #404040 ${pixelsPerKey}px
+    #404040 0px,
+    #404040 1px,
+    transparent 1px,
+    transparent ${pixelsPerKey}px
   )`;
 
-  // Octave lines (brighter line between B and C, every 12 rows)
+  // Octave lines (brighter line at top of each C row = boundary between B and C)
   const octaveLines = `repeating-linear-gradient(
     0deg,
-    transparent 0px,
-    transparent ${octaveHeight - 1}px,
-    #666666 ${octaveHeight - 1}px,
-    #666666 ${octaveHeight}px
+    #666666 0px,
+    #666666 1px,
+    transparent 1px,
+    transparent ${octaveHeight}px
   )`;
 
   // Vertical sub-beat lines (grid snap)
@@ -703,32 +703,38 @@ export function PianoRoll() {
           <div className="mb-3">
             <div className="text-neutral-400 mb-1">Viewport:</div>
             <div>scrollX: {scrollX.toFixed(2)} beats</div>
-            <div>scrollY: {scrollY.toFixed(2)} (semitones from MAX_PITCH)</div>
-            <div>pixelsPerBeat: {pixelsPerBeat}</div>
-            <div>pixelsPerKey: {pixelsPerKey}</div>
+            <div>scrollY: {scrollY.toFixed(4)}</div>
+            <div>pixelsPerBeat: {pixelsPerBeat.toFixed(2)}</div>
+            <div>pixelsPerKey: {pixelsPerKey.toFixed(4)}</div>
             <div>
               topPitch: {MAX_PITCH - Math.floor(scrollY)} (
               {midiToNoteName(MAX_PITCH - Math.floor(scrollY))})
             </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="text-neutral-400 mb-1">Grid alignment:</div>
+            <div>scrollY % 1: {(scrollY % 1).toFixed(6)}</div>
+            <div>rowOffsetY: {(-(scrollY % 1) * pixelsPerKey).toFixed(4)}px</div>
             <div>
-              bottomPitch:{" "}
-              {Math.max(
-                MIN_PITCH,
-                MAX_PITCH - Math.floor(scrollY + visibleKeys),
-              )}{" "}
-              (
-              {midiToNoteName(
-                Math.max(
-                  MIN_PITCH,
-                  MAX_PITCH - Math.floor(scrollY + visibleKeys),
-                ),
-              )}
-              )
+              Grid lines at: {(-(scrollY % 1) * pixelsPerKey).toFixed(2)}, {(-(scrollY % 1) * pixelsPerKey + pixelsPerKey).toFixed(2)}, {(-(scrollY % 1) * pixelsPerKey + 2*pixelsPerKey).toFixed(2)}...
+            </div>
+            <div className="text-neutral-500 mt-1">Row tops (from topPitch):</div>
+            {Array.from({ length: 5 }, (_, i) => MAX_PITCH - Math.floor(scrollY) - i).map((p) => {
+              const y = (MAX_PITCH - scrollY - p) * pixelsPerKey;
+              return (
+                <div key={p} className="text-neutral-500">
+                  {midiToNoteName(p)} (pitch {p}): y={y.toFixed(4)}px
+                </div>
+              );
+            })}
+            <div className="text-yellow-400 mt-1">
+              Diff (row[0] - gridLine[0]): {((MAX_PITCH - scrollY - (MAX_PITCH - Math.floor(scrollY))) * pixelsPerKey - (-(scrollY % 1) * pixelsPerKey)).toFixed(6)}px
             </div>
           </div>
 
           <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Grid:</div>
+            <div className="text-neutral-400 mb-1">Grid settings:</div>
             <div>gridSnap: {gridSnap}</div>
             <div>totalBeats: {totalBeats}</div>
           </div>
