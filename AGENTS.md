@@ -23,12 +23,20 @@ Read `docs/prd.md` before implementing features.
 
 ## Task Documents
 
-For non-trivial work, create `docs/YYYY-MM-DD-<topic>.md` **before implementing**:
+For non-trivial work, create `docs/YYYY-MM-DD-<topic>.md` **before implementing**.
+
+Task docs should enable **handoff to a fresh agent** - include enough context to continue without conversation history.
+
+**Structure:**
 
 - Problem context and approach
 - Reference files/patterns to follow
 - Implementation steps
 - Feedback log (append user feedback during iteration)
+- **Status** (update before session ends):
+  - What's done
+  - What's remaining
+  - Any blockers or open questions
 
 **Workflow:**
 
@@ -36,8 +44,9 @@ For non-trivial work, create `docs/YYYY-MM-DD-<topic>.md` **before implementing*
 2. Wait for user feedback
 3. Log feedback to task doc, iterate on plan
 4. Proceed with implementation after approval
+5. **Update status before ending session**
 
-This enables review before work begins. Commit task docs with the work.
+To continue in fresh session: `Read docs/YYYY-MM-DD-<topic>.md and continue`
 
 ## Conventions
 

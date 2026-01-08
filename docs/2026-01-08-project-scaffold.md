@@ -100,3 +100,22 @@ src/
 ## Future
 
 - Consider `simple-git-hooks` for pre-commit lint: `pnpm add -D simple-git-hooks` + add `"simple-git-hooks": {"pre-commit": "pnpm lint-check"}` to package.json
+
+## Status
+
+**Done:**
+
+- Project scaffold complete (Vite + React + TS + Tailwind + testing)
+- PR created: https://github.com/hi-ogawa/toy-midi/pull/1
+
+**Remaining (Phase 1):**
+
+- Basic SVG rendering with grid
+- Piano keyboard sidebar (bass range E1-G3)
+- Grid snap control (1/4, 1/8, 1/16, triplets)
+- Click-drag to create notes
+- Note selection and deletion
+- Note dragging (move/resize)
+- E2E tests for editor interactions
+
+**Next:** Start piano roll implementation - see `docs/prd.md` for specs
