@@ -1,5 +1,7 @@
 # Canvas Grid Rendering
 
+NOTE: this task is postponed as we were able to fix css issues for the time being.
+
 ## Problem
 
 CSS gradient-based grid has subpixel rendering artifacts:

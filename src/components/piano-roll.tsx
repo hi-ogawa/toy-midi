@@ -59,17 +59,11 @@ function generateGridBackground(
     ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
     octaveHeight;
 
-  // Black key row background offset
-  // Pattern: C(0), C#(1), D(2), D#(3), E(4), F(5), F#(6), G(7), G#(8), A(9), A#(10), B(11)
-  // Black keys: 1, 3, 6, 8, 10
-  const topPitchInOctave = (((MAX_PITCH - Math.floor(scrollY)) % 12) + 12) % 12;
-  const blackKeyOffsetY = rowOffsetY - topPitchInOctave * rowHeight;
-
   // Build black key pattern gradient (one octave, 12 rows)
   // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
   const blackKeyColor = "rgba(0,0,0,0.35)";
   const r = rowHeight;
-  const blackKeyGradient = `linear-gradient(180deg,
+  const blackKeyGradient = `linear-gradient(0deg,
     transparent 0, transparent ${r}px,
     ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
     transparent ${2 * r}px, transparent ${3 * r}px,
@@ -87,8 +81,6 @@ function generateGridBackground(
   // Using linear-gradient (not repeating) with background-size for cleaner rendering
   // 180deg = top to bottom, 90deg = left to right
   const layers: Array<[string, string, string]> = [
-    // Black key row backgrounds (subtle darker shade)
-    [blackKeyGradient, `100% ${octaveHeight}px`, `0 ${blackKeyOffsetY}px`],
     // Vertical bar lines (every 4 beats)
     [
       `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
@@ -103,7 +95,7 @@ function generateGridBackground(
     ],
     // Vertical sub-beat lines (grid snap)
     [
-      `linear-gradient(90deg, #333333 0px, #333333 1px, transparent 1px, transparent 100%)`,
+      `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
       `${subBeatWidth}px 100%`,
       `${offsetX}px 0`,
     ],
@@ -115,10 +107,12 @@ function generateGridBackground(
     ],
     // Row lines (every pitch)
     [
-      `linear-gradient(180deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
+      `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
       `100% ${rowHeight}px`,
       `0 ${rowOffsetY}px`,
     ],
+    // Black key row backgrounds (subtle darker shade)
+    [blackKeyGradient, `100% ${octaveHeight}px`, `0 ${octaveOffsetY}px`],
   ];
 
   return {

@@ -253,9 +253,9 @@ interface Note {
 - [x] max out default bar counts since rendering are virtualized anyway
 - [x] virtical grid and note cells aren't aligned (also left piano keyboard keys)
 - [ ] initial flash of lower keys ranges
-- [ ] quick inline svg favicon
+- [x] quick inline svg favicon
 - [ ] refactor debug panel
-- [ ] black/white row highlight entire piano roll
+- [x] black/white row highlight entire piano roll
 
 ## Quick Reference
 
