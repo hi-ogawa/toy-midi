@@ -10,7 +10,7 @@ class AudioManager {
   private player: Tone.Player | null = null;
   private synth: Tone.PolySynth | null = null;
   private metronome: Tone.Synth | null = null;
-  private metronomeLoop: Tone.Loop | null = null;
+  private metronomeSeq: Tone.Sequence | null = null;
 
   // Gain nodes for mixing
   private audioGain: Tone.Gain | null = null;
@@ -41,13 +41,19 @@ class AudioManager {
     // Metronome synth (high pitched click)
     this.metronome = new Tone.Synth({
       oscillator: { type: "sine" },
-      envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
+      envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
     }).connect(this.metronomeGain);
 
-    // Metronome loop (quarter notes)
-    this.metronomeLoop = new Tone.Loop((time) => {
-      this.metronome?.triggerAttackRelease("G5", "32n", time);
-    }, "4n");
+    // Metronome sequence (4/4 with accent on beat 1)
+    // 1 = accent (high), 0 = normal (lower)
+    this.metronomeSeq = new Tone.Sequence(
+      (time, beat) => {
+        const pitch = beat === 1 ? "C7" : "G6";
+        this.metronome?.triggerAttackRelease(pitch, "32n", time);
+      },
+      [1, 0, 0, 0],
+      "4n",
+    );
 
     this._initialized = true;
   }
@@ -214,11 +220,11 @@ class AudioManager {
   // Metronome controls
   setMetronomeEnabled(enabled: boolean): void {
     this._metronomeEnabled = enabled;
-    if (this.metronomeLoop) {
+    if (this.metronomeSeq) {
       if (enabled) {
-        this.metronomeLoop.start(0);
+        this.metronomeSeq.start(0);
       } else {
-        this.metronomeLoop.stop();
+        this.metronomeSeq.stop();
       }
     }
   }

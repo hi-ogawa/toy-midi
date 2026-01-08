@@ -270,7 +270,8 @@ interface Note {
 - [ ] basic locator to mark parts
 - [ ] "No audio loaded" label looks off when scrolling
 - [ ] quick midi preview playback when pressing left sticky keys
-- [x] metronome tone is dead - changed to G5 sine click
+- [x] metronome tone is dead - changed to C7/G6 with accent on beat 1
+- [ ] time signature support (currently hardcoded 4/4)
 - [ ] Waveform display (necessary to sync with tempo)
 - [ ] Copy/paste notes
 - [ ] Help overlay (? key to show shortcuts)
