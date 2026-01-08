@@ -228,6 +228,7 @@ interface Note {
 - [x] Playhead visualization
 - [x] Auto-scroll during playback
 - [x] Click timeline to seek
+- [ ] Tempo detection: tap-based (during playback) and manual BPM input
 
 ### MIDI Export
 
