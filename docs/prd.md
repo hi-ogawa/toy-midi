@@ -232,9 +232,9 @@ interface Note {
 
 ### MIDI playback
 
-- [ ] basic midi sync
-- [ ] playback along with transport
-- [ ] Note preview sound on mousedown
+- [x] basic midi sync
+- [x] playback along with transport
+- [x] Note preview sound on mousedown
 
 ### MIDI Export
 
@@ -244,7 +244,7 @@ interface Note {
 
 ### Project Management
 
-- [ ] Tempo and time signature controls
+- [x] Tempo input (time signature TBD)
 - [ ] Save/load project (localStorage or JSON file)
 
 ### Polish (post-MVP)
@@ -271,6 +271,7 @@ interface Note {
 - [ ] waveform visualization (draw peaks from audio buffer)
 - [ ] jumping timeline during audio playback is broken.
 - [ ] playback metronome (toggle)
+- [ ] midi only playback without audio loaded
 
 ## Quick Reference
 
