@@ -9,7 +9,7 @@ function beatsToSeconds(beats: number, tempo: number): number {
 class AudioManager {
   private player: Tone.Player | null = null;
   private synth: Tone.PolySynth | null = null;
-  private metronome: Tone.MembraneSynth | null = null;
+  private metronome: Tone.Synth | null = null;
   private metronomeLoop: Tone.Loop | null = null;
 
   // Gain nodes for mixing
@@ -38,16 +38,15 @@ class AudioManager {
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
     }).connect(this.midiGain);
 
-    // Metronome synth (short click sound)
-    this.metronome = new Tone.MembraneSynth({
-      pitchDecay: 0.008,
-      octaves: 2,
-      envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.05 },
+    // Metronome synth (high pitched click)
+    this.metronome = new Tone.Synth({
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
     }).connect(this.metronomeGain);
 
     // Metronome loop (quarter notes)
     this.metronomeLoop = new Tone.Loop((time) => {
-      this.metronome?.triggerAttackRelease("C2", "32n", time);
+      this.metronome?.triggerAttackRelease("G5", "32n", time);
     }, "4n");
 
     this._initialized = true;
