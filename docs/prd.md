@@ -270,10 +270,10 @@ interface Note {
 - [ ] investigate timeline click-to-seek delay
 - [ ] waveform visualization (draw peaks from audio buffer)
 - [ ] jumping timeline during audio playback is broken.
-- [ ] playback metronome (toggle)
-- [ ] midi only playback without audio loaded
+- [x] playback metronome (toggle)
+- [x] midi only playback without audio loaded
 - [ ] embed free soundfont?
-- [ ] allow tweak audio and midi volumes (mix)
+- [x] allow tweak audio and midi volumes (mix)
 - [ ] audio offset label looks reversed
 - [ ] basic locator to mark parts
 - [ ] "No audio loaded" label looks off when scrolling
