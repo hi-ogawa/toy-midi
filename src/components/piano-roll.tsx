@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { audioManager } from "../lib/audio";
 import {
   isBlackKey,
   MAX_PITCH,
@@ -8,7 +9,12 @@ import {
   clampPitch,
   DEFAULT_VIEW_MAX_PITCH,
 } from "../lib/music";
-import { generateNoteId, useProjectStore } from "../stores/project-store";
+import {
+  beatsToSeconds,
+  generateNoteId,
+  secondsToBeats,
+  useProjectStore,
+} from "../stores/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 
 // Layout constants (exported for tests)
@@ -160,12 +166,16 @@ export function PianoRoll() {
     selectedNoteIds,
     gridSnap,
     totalBeats,
+    tempo,
+    playheadPosition,
+    isPlaying,
     addNote,
     updateNote,
     deleteNotes,
     selectNotes,
     deselectAll,
     setGridSnap,
+    setPlayheadPosition,
   } = useProjectStore();
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -202,6 +212,28 @@ export function PianoRoll() {
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
+
+  // Auto-scroll during playback to keep playhead visible
+  useEffect(() => {
+    if (!isPlaying) return;
+    const playheadBeat = secondsToBeats(playheadPosition, tempo);
+    const visibleBeatsNow = viewportSize.width / pixelsPerBeat;
+    // If playhead is past 80% of visible area, scroll to put it at 20%
+    if (playheadBeat > scrollX + visibleBeatsNow * 0.8) {
+      setScrollX(Math.max(0, playheadBeat - visibleBeatsNow * 0.2));
+    }
+    // If playhead is before visible area, scroll to show it
+    if (playheadBeat < scrollX) {
+      setScrollX(Math.max(0, playheadBeat - visibleBeatsNow * 0.2));
+    }
+  }, [
+    isPlaying,
+    playheadPosition,
+    tempo,
+    scrollX,
+    pixelsPerBeat,
+    viewportSize.width,
+  ]);
 
   // Calculate visible range
   const visibleBeats = viewportSize.width / pixelsPerBeat;
@@ -581,7 +613,7 @@ export function PianoRoll() {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100 select-none">
+    <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Toolbar */}
       <div className="h-12 flex items-center gap-4 px-4 border-b border-neutral-700 shrink-0">
         <span className="text-sm text-neutral-400">Grid:</span>
@@ -648,6 +680,12 @@ export function PianoRoll() {
             pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
+            playheadBeat={secondsToBeats(playheadPosition, tempo)}
+            onSeek={(beat) => {
+              const seconds = beatsToSeconds(beat, tempo);
+              audioManager.seek(seconds);
+              setPlayheadPosition(seconds);
+            }}
           />
           {/* Waveform placeholder */}
           <div
@@ -732,6 +770,19 @@ export function PianoRoll() {
                 }}
               />
             )}
+            {/* Playhead line */}
+            {(() => {
+              const playheadBeat = secondsToBeats(playheadPosition, tempo);
+              const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
+              // Only render if visible
+              if (playheadX < 0 || playheadX > viewportSize.width) return null;
+              return (
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none z-10"
+                  style={{ left: playheadX }}
+                />
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -940,10 +991,14 @@ function Timeline({
   pixelsPerBeat,
   scrollX,
   viewportWidth,
+  playheadBeat,
+  onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   viewportWidth: number;
+  playheadBeat: number;
+  onSeek: (beat: number) => void;
 }) {
   const markers = [];
 
@@ -967,12 +1022,31 @@ function Timeline({
     );
   }
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const beat = x / pixelsPerBeat + scrollX;
+    onSeek(Math.max(0, beat));
+  };
+
+  // Playhead position on timeline
+  const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
+  const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
   return (
     <div
-      className="relative shrink-0 bg-neutral-850 border-b border-neutral-700"
+      className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
+      onClick={handleClick}
     >
       {markers}
+      {/* Playhead indicator */}
+      {showPlayhead && (
+        <div
+          className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none"
+          style={{ left: playheadX }}
+        />
+      )}
     </div>
   );
 }

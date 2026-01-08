@@ -6,6 +6,13 @@ interface ProjectState {
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
+  tempo: number; // BPM
+
+  // Audio state
+  audioFileName: string | null;
+  audioDuration: number; // in seconds
+  isPlaying: boolean;
+  playheadPosition: number; // in seconds
 
   // Actions
   addNote: (note: Note) => void;
@@ -15,6 +22,12 @@ interface ProjectState {
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
   setTotalBeats: (beats: number) => void;
+  setTempo: (bpm: number) => void;
+
+  // Audio actions
+  setAudioFile: (fileName: string, duration: number) => void;
+  setIsPlaying: (playing: boolean) => void;
+  setPlayheadPosition: (position: number) => void;
 }
 
 let noteIdCounter = 0;
@@ -27,6 +40,13 @@ export const useProjectStore = create<ProjectState>((set) => ({
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
+  tempo: 120,
+
+  // Audio state
+  audioFileName: null,
+  audioDuration: 0,
+  isPlaying: false,
+  playheadPosition: 0,
 
   addNote: (note) =>
     set((state) => ({
@@ -64,4 +84,28 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setGridSnap: (snap) => set({ gridSnap: snap }),
 
   setTotalBeats: (beats) => set({ totalBeats: beats }),
+
+  setTempo: (bpm) => set({ tempo: bpm }),
+
+  // Audio actions
+  setAudioFile: (fileName, duration) =>
+    set({
+      audioFileName: fileName,
+      audioDuration: duration,
+      playheadPosition: 0,
+    }),
+
+  setIsPlaying: (playing) => set({ isPlaying: playing }),
+
+  setPlayheadPosition: (position) => set({ playheadPosition: position }),
 }));
+
+// Helper: convert seconds to beats
+export function secondsToBeats(seconds: number, tempo: number): number {
+  return (seconds / 60) * tempo;
+}
+
+// Helper: convert beats to seconds
+export function beatsToSeconds(beats: number, tempo: number): number {
+  return (beats / tempo) * 60;
+}

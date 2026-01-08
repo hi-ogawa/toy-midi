@@ -232,14 +232,14 @@ const beatToSeconds = (beat: number) => (beat / tempo) * 60;
 
 ## Implementation Steps
 
-1. [ ] Install Tone.js dependency (`pnpm add tone`)
-2. [ ] Create `src/lib/audio.ts` with AudioManager class
-3. [ ] Add audio state to project store (url, duration, isPlaying, playheadPosition)
-4. [ ] Create Transport component with play/pause/stop/load buttons
-5. [ ] Add playhead line to piano roll (vertical line at current position)
-6. [ ] Implement position tracking with requestAnimationFrame
-7. [ ] Add click-to-seek on timeline
-8. [ ] Add auto-scroll during playback
+1. [x] Install Tone.js dependency (`pnpm add tone`)
+2. [x] Create `src/lib/audio.ts` with AudioManager class
+3. [x] Add audio state to project store (url, duration, isPlaying, playheadPosition)
+4. [x] Create Transport component with play/pause/stop/load buttons
+5. [x] Add playhead line to piano roll (vertical line at current position)
+6. [x] Implement position tracking with requestAnimationFrame
+7. [x] Add click-to-seek on timeline
+8. [x] Add auto-scroll during playback
 9. [ ] Update waveform placeholder with basic visualization (stretch goal)
 
 ## Files to Modify
@@ -293,4 +293,18 @@ Piano roll uses beats, audio uses seconds. Need tempo value to convert:
 
 ## Status
 
-**Pending** - Ready for implementation
+**Done** - Core audio playback implemented
+
+### Completed
+
+- Tone.js installed and AudioManager class created
+- Transport component with play/pause/stop/load WAV
+- Player syncs to Tone.Transport for future MIDI mixing
+- Playhead line in grid and timeline
+- Auto-scroll during playback
+- Click timeline to seek
+
+### Remaining
+
+- Waveform visualization (stretch goal)
+- Manual testing with `pnpm dev`
