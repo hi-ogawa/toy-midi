@@ -264,7 +264,7 @@ interface Note {
 - [ ] jumping timeline during audio playback is broken.
 - [x] playback metronome (toggle)
 - [x] midi only playback without audio loaded
-- [ ] embed free soundfont?
+- [ ] embed free soundfont? (need at least bass sound even if boring)
 - [x] allow tweak audio and midi volumes (mix)
 - [ ] audio offset label looks reversed
 - [ ] basic locator to mark parts
@@ -276,6 +276,7 @@ interface Note {
 - [ ] Copy/paste notes
 - [ ] Help overlay (? key to show shortcuts)
 - [x] Keyboard shortcuts (space=play)
+- [ ] deploy (vercel)
 
 ## Quick Reference
 
