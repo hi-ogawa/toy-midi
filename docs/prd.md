@@ -223,11 +223,11 @@ interface Note {
 
 ### Audio Playback
 
-- [ ] Load audio file (WAV/MP3)
-- [ ] Play/pause/seek controls
-- [ ] Playhead visualization
-- [ ] Auto-scroll during playback
-- [ ] Click timeline to seek
+- [x] Load audio file (WAV/MP3)
+- [x] Play/pause/seek controls
+- [x] Playhead visualization
+- [x] Auto-scroll during playback
+- [x] Click timeline to seek
 
 ### MIDI Export
 
@@ -244,7 +244,7 @@ interface Note {
 
 - [ ] Waveform display
 - [ ] Loop regions
-- [ ] Keyboard shortcuts (space=play)
+- [x] Keyboard shortcuts (space=play)
 - [ ] Note preview sound on mousedown
 - [ ] Copy/paste notes
 - [ ] Help overlay (? key to show shortcuts)
