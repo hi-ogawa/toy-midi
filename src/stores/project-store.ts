@@ -26,7 +26,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
-  totalBeats: 128, // 32 bars
+  totalBeats: 640, // 160 bars (~5 min at 120 BPM)
 
   addNote: (note) =>
     set((state) => ({

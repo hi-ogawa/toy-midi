@@ -109,12 +109,23 @@ function generateGridBackground(
   )`;
 
   // Calculate background offset based on scroll position
+  // Each layer needs its own offset based on its repeat pattern
   const offsetX = -(scrollX * pixelsPerBeat) % barWidth;
-  const offsetY = -(scrollY * pixelsPerKey) % (pixelsPerKey * 12);
+  const rowOffsetY = -(scrollY % 1) * pixelsPerKey; // Match keyboard partial scroll
+  const octaveOffsetY = -(scrollY * pixelsPerKey) % (pixelsPerKey * 12);
+
+  // background-position for each layer: barLines, beatLines, subBeatLines, rowLines, rowBg
+  const positions = [
+    `${offsetX}px 0`, // barLines (vertical)
+    `${offsetX}px 0`, // beatLines (vertical)
+    `${offsetX}px 0`, // subBeatLines (vertical)
+    `0 ${rowOffsetY}px`, // rowLines (horizontal) - align with keyboard
+    `0 ${octaveOffsetY}px`, // rowBg (horizontal octave pattern)
+  ].join(", ");
 
   return {
     backgroundImage: `${barLines}, ${beatLines}, ${subBeatLines}, ${rowLines}, ${rowBg}`,
-    backgroundPosition: `${offsetX}px ${offsetY}px`,
+    backgroundPosition: positions,
   };
 }
 
@@ -717,13 +728,16 @@ function Keyboard({
 
   for (let pitch = startPitch; pitch >= endPitch; pitch--) {
     const black = isBlackKey(pitch);
+    const isC = pitch % 12 === 0; // C notes for octave indication
     rows.push(
       <div
         key={pitch}
         className={`flex items-center justify-end pr-2 text-xs border-b border-neutral-700 ${
           black
             ? "bg-neutral-800 text-neutral-400"
-            : "bg-neutral-700 text-neutral-200"
+            : isC
+              ? "bg-neutral-600 text-neutral-100 font-medium"
+              : "bg-neutral-700 text-neutral-200"
         }`}
         style={{ height: pixelsPerKey }}
       >

@@ -249,9 +249,10 @@ interface Note {
 
 ### Feedback
 
-- [ ] better indicater for each octave (perhaps slight higlight each C(n) on the left)
-- [ ] max out default bar counts since rendering are virtualized anyway
-- [ ] virtical grid and note cells aren't aligned (also left piano keyboard keys)
+- [x] better indicater for each octave (perhaps slight higlight each C(n) on the left)
+- [x] max out default bar counts since rendering are virtualized anyway
+- [x] virtical grid and note cells aren't aligned (also left piano keyboard keys)
+- [ ] initial flash of lower keys ranges
 
 ## Quick Reference
 
