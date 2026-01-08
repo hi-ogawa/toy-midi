@@ -254,8 +254,8 @@ interface Note {
 - [x] virtical grid and note cells aren't aligned (also left piano keyboard keys)
 - [ ] initial flash of lower keys ranges
 - [ ] quick inline svg favicon
-- [ ] refactor duplicacy for debug panel
-- [ ] bring back black/white cell highlight
+- [ ] refactor debug panel
+- [ ] black/white row highlight entire piano roll
 
 ## Quick Reference
 

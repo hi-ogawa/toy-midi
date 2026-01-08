@@ -51,7 +51,7 @@ function generateGridBackground(
   const barWidth = beatWidth * BEATS_PER_BAR;
   const octaveHeight = rowHeight * 12;
 
-  // Calculate offsets using rounded values for consistency with note positions
+  // Calculate offsets
   const offsetX = -(scrollX * beatWidth) % barWidth;
   const rowOffsetY = -(scrollY % 1) * rowHeight;
   // Octave line at B/C boundary = bottom of C row
@@ -59,10 +59,36 @@ function generateGridBackground(
     ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
     octaveHeight;
 
+  // Black key row background offset
+  // Pattern: C(0), C#(1), D(2), D#(3), E(4), F(5), F#(6), G(7), G#(8), A(9), A#(10), B(11)
+  // Black keys: 1, 3, 6, 8, 10
+  const topPitchInOctave = (((MAX_PITCH - Math.floor(scrollY)) % 12) + 12) % 12;
+  const blackKeyOffsetY = rowOffsetY - topPitchInOctave * rowHeight;
+
+  // Build black key pattern gradient (one octave, 12 rows)
+  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
+  const blackKeyColor = "rgba(0,0,0,0.35)";
+  const r = rowHeight;
+  const blackKeyGradient = `linear-gradient(180deg,
+    transparent 0, transparent ${r}px,
+    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
+    transparent ${2 * r}px, transparent ${3 * r}px,
+    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
+    transparent ${4 * r}px, transparent ${6 * r}px,
+    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
+    transparent ${7 * r}px, transparent ${8 * r}px,
+    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
+    transparent ${9 * r}px, transparent ${10 * r}px,
+    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
+    transparent ${11 * r}px, transparent ${12 * r}px
+  )`;
+
   // Define each layer as [gradient, size, position] - comment out to disable
   // Using linear-gradient (not repeating) with background-size for cleaner rendering
   // 180deg = top to bottom, 90deg = left to right
   const layers: Array<[string, string, string]> = [
+    // Black key row backgrounds (subtle darker shade)
+    [blackKeyGradient, `100% ${octaveHeight}px`, `0 ${blackKeyOffsetY}px`],
     // Vertical bar lines (every 4 beats)
     [
       `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
