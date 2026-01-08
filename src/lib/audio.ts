@@ -19,6 +19,7 @@ class AudioManager {
 
   private scheduledEvents: number[] = []; // Transport event IDs
   private _initialized = false;
+  private _playerConnected = false;
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
@@ -56,6 +57,11 @@ class AudioManager {
     );
 
     this._initialized = true;
+
+    // Apply deferred metronome state (may have been set before init)
+    if (this._metronomeEnabled) {
+      this.metronomeSeq.start();
+    }
   }
 
   async loadAudio(file: File): Promise<number> {
@@ -65,26 +71,40 @@ class AudioManager {
   }
 
   async loadFromUrl(url: string): Promise<number> {
-    await this.init();
+    // Don't call init() here - Tone.start() requires user gesture
+    // Just load the buffer, connect to gain later when initialized
 
     // Dispose previous player
     if (this.player) {
       this.player.unsync();
       this.player.dispose();
       this.player = null;
+      this._playerConnected = false;
     }
 
     // Create new player and wait for it to load
     this.player = new Tone.Player();
-    if (this.audioGain) {
-      this.player.connect(this.audioGain);
-    }
     await this.player.load(url);
     this._duration = this.player.buffer.duration;
     this._offset = 0;
-    this._syncPlayer();
+
+    // If already initialized, connect and sync now
+    if (this._initialized && this.audioGain) {
+      this.player.connect(this.audioGain);
+      this._syncPlayer();
+      this._playerConnected = true;
+    }
 
     return this._duration;
+  }
+
+  // Connect player to audio graph after init (called when starting playback)
+  private _ensurePlayerConnected(): void {
+    if (this.player && this.audioGain && !this._playerConnected) {
+      this.player.connect(this.audioGain);
+      this._syncPlayer();
+      this._playerConnected = true;
+    }
   }
 
   private _syncPlayer(): void {
@@ -123,6 +143,7 @@ class AudioManager {
   }
 
   play(): void {
+    this._ensurePlayerConnected();
     Tone.getTransport().start();
   }
 
@@ -222,7 +243,8 @@ class AudioManager {
     this._metronomeEnabled = enabled;
     if (this.metronomeSeq) {
       if (enabled) {
-        this.metronomeSeq.start(0);
+        // Start from current position, not 0 (can't schedule in the past)
+        this.metronomeSeq.start();
       } else {
         this.metronomeSeq.stop();
       }

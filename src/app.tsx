@@ -25,32 +25,40 @@ export function App() {
       console.log("Restored project from localStorage");
 
       // Restore audio from IndexedDB if available
+      console.log("audioAssetKey:", loaded.audioAssetKey);
       if (loaded.audioAssetKey) {
         setLoadingStatus("Restoring audio...");
-        loadAsset(loaded.audioAssetKey).then(async (asset) => {
-          if (asset) {
-            try {
-              const url = URL.createObjectURL(asset.blob);
-              const duration = await audioManager.loadFromUrl(url);
+        console.log("Loading asset from IndexedDB...");
+        loadAsset(loaded.audioAssetKey)
+          .then(async (asset) => {
+            if (asset) {
+              try {
+                const url = URL.createObjectURL(asset.blob);
+                const duration = await audioManager.loadFromUrl(url);
 
-              // Update duration in store (other fields already loaded)
-              useProjectStore.setState({ audioDuration: duration });
+                // Update duration in store (other fields already loaded)
+                useProjectStore.setState({ audioDuration: duration });
 
-              // Sync audioOffset with audioManager
-              const { audioOffset } = useProjectStore.getState();
-              audioManager.setOffset(audioOffset);
+                // Sync audioOffset with audioManager
+                const { audioOffset } = useProjectStore.getState();
+                audioManager.setOffset(audioOffset);
 
-              // Extract peaks for waveform
-              const peaks = audioManager.getPeaks(100);
-              setAudioPeaks(peaks, 100);
+                // Extract peaks for waveform
+                const peaks = audioManager.getPeaks(100);
+                setAudioPeaks(peaks, 100);
 
-              console.log("Restored audio from IndexedDB:", asset.name);
-            } catch (err) {
-              console.warn("Failed to restore audio:", err);
+                console.log("Restored audio from IndexedDB:", asset.name);
+              } catch (err) {
+                console.warn("Failed to restore audio:", err);
+              }
             }
-          }
-          setIsLoading(false);
-        });
+          })
+          .catch((err) => {
+            console.warn("Failed to load asset from IndexedDB:", err);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
       } else {
         setIsLoading(false);
       }

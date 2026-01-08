@@ -272,6 +272,10 @@ interface Note {
 - [ ] toggle-able auto scroll during playback
 - [ ] Help overlay (? key to show shortcuts)
 - [ ] Refine waveform display (currently it's too rough)
+- [ ] Project management improvements
+  - [ ] Startup screen (project list / restore prompt)
+  - [ ] Fixes AudioContext user gesture requirement
+  - [ ] Multiple project support
 
 ### Feedback - Low Priority / Future
 
