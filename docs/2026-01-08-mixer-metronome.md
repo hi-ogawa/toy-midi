@@ -109,10 +109,12 @@ Simple approach: just audio and midi sliders + metronome toggle for now.
 **Done** - Mixer and metronome implemented
 
 ### Completed
+
 - Gain nodes for audio, MIDI, metronome
 - Volume sliders in transport (Audio when loaded, MIDI always)
 - Metronome toggle button
 - MIDI-only playback (play without audio loaded)
 
 ### Remaining
+
 - Manual testing

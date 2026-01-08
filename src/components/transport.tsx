@@ -30,6 +30,7 @@ export function Transport() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rafRef = useRef<number | null>(null);
+  const tapTimesRef = useRef<number[]>([]);
 
   // Position tracking loop
   const updatePosition = useCallback(() => {
@@ -137,6 +138,39 @@ export function Transport() {
     audioManager.setMetronomeEnabled(newValue);
   };
 
+  const handleTapTempo = () => {
+    const now = performance.now();
+    const taps = tapTimesRef.current;
+
+    // Reset if last tap was more than 2 seconds ago
+    if (taps.length > 0 && now - taps[taps.length - 1] > 2000) {
+      tapTimesRef.current = [];
+    }
+
+    taps.push(now);
+
+    // Keep only last 8 taps
+    if (taps.length > 8) {
+      taps.shift();
+    }
+
+    // Need at least 2 taps to calculate BPM
+    if (taps.length >= 2) {
+      const intervals: number[] = [];
+      for (let i = 1; i < taps.length; i++) {
+        intervals.push(taps[i] - taps[i - 1]);
+      }
+      const avgInterval =
+        intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const bpm = Math.round(60000 / avgInterval);
+
+      // Clamp to valid range
+      if (bpm >= 30 && bpm <= 300) {
+        setTempo(bpm);
+      }
+    }
+  };
+
   return (
     <div
       data-testid="transport"
@@ -197,6 +231,14 @@ export function Transport() {
           className="w-14 px-1 py-0.5 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center"
         />
         <span className="text-xs text-neutral-400">BPM</span>
+        <button
+          data-testid="tap-tempo-button"
+          onClick={handleTapTempo}
+          className="px-2 py-0.5 text-xs bg-neutral-700 hover:bg-neutral-600 rounded"
+          title="Tap to set tempo"
+        >
+          Tap
+        </button>
       </div>
 
       {/* File name */}
