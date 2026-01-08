@@ -85,6 +85,12 @@ Local references in `refs/` (gitignored). Key ones:
 
 Audio sync can be tested manually during development.
 
+## Agent Rules
+
+- **Never run long-running tasks** (dev servers, watch modes, etc.)
+- Use `pnpm build` to verify code, not `pnpm dev`
+- User runs `pnpm dev` manually in their terminal
+
 ## Git Workflow
 
 1. Create feature branch before starting work

@@ -2,5 +2,5 @@ import { expect, test } from "@playwright/test";
 
 test("app loads", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator("h1")).toHaveText("toy-midi");
+  await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
 });
