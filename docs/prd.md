@@ -247,14 +247,6 @@ interface Note {
 - [x] Tempo input (time signature TBD)
 - [ ] Save/load project (localStorage or JSON file)
 
-### Polish (post-MVP)
-
-- [ ] Waveform display
-- [ ] Loop regions
-- [x] Keyboard shortcuts (space=play)
-- [ ] Copy/paste notes
-- [ ] Help overlay (? key to show shortcuts)
-
 ### Feedback
 
 - [x] better indicater for each octave (perhaps slight higlight each C(n) on the left)
@@ -278,6 +270,11 @@ interface Note {
 - [ ] basic locator to mark parts
 - [ ] "No audio loaded" label looks off when scrolling
 - [ ] quick midi preview playback when pressing left sticky keys
+- [ ] metronome tone is dead
+- [ ] Waveform display (necessary to sync with tempo)
+- [ ] Copy/paste notes
+- [ ] Help overlay (? key to show shortcuts)
+- [x] Keyboard shortcuts (space=play)
 
 ## Quick Reference
 
