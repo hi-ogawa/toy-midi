@@ -142,13 +142,14 @@ Already designed in AudioManager - `playNote()` for immediate feedback:
 
 ## Implementation Steps
 
-1. [ ] Upgrade synth to PolySynth in AudioManager
-2. [ ] Add `scheduleNotes()` and `clearScheduledNotes()` methods
-3. [ ] Call `scheduleNotes()` on play, reschedule on seek
-4. [ ] Clear scheduled notes on pause/stop
-5. [ ] Add note preview on mousedown (note creation)
-6. [ ] Add note preview on note drag start
-7. [ ] Test with backing track to verify sync
+1. [ ] Add tempo input to transport bar (manual BPM entry)
+2. [ ] Upgrade synth to PolySynth in AudioManager
+3. [ ] Add `scheduleNotes()` and `clearScheduledNotes()` methods
+4. [ ] Call `scheduleNotes()` on play, reschedule on seek
+5. [ ] Clear scheduled notes on pause/stop
+6. [ ] Add note preview on mousedown (note creation)
+7. [ ] Add note preview on note drag start
+8. [ ] Test with backing track to verify sync
 
 ## Files to Modify
 
