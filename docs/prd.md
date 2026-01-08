@@ -259,6 +259,7 @@ interface Note {
 - [ ] refactor debug panel
 - [x] black/white row highlight entire piano roll
 - [ ] zoom should keep current cursor as center
+- [ ] (semi) infinite zoom out horizontally to cover entire timeline
 
 ## Quick Reference
 

@@ -790,7 +790,7 @@ export function PianoRoll() {
               if (playheadX < 0 || playheadX > viewportSize.width) return null;
               return (
                 <div
-                  className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none z-10"
+                  className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
                   style={{ left: playheadX }}
                 />
               );
@@ -1055,7 +1055,7 @@ function Timeline({
       {/* Playhead indicator */}
       {showPlayhead && (
         <div
-          className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none"
           style={{ left: playheadX }}
         />
       )}
@@ -1216,7 +1216,7 @@ function WaveformArea({
       {/* Playhead */}
       {showPlayhead && (
         <div
-          className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none"
+          className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none"
           style={{ left: playheadX }}
         />
       )}

@@ -286,10 +286,10 @@ Piano roll uses beats, audio uses seconds. Need tempo value to convert:
 
 - [ ] Toggle-able auto scroll
 - [x] why two buttons? just one play/pause toggle? - removed stop button
-- [ ] playhead something blue-ish?
-- [ ] space as play/pause shortcut
+- [x] playhead something blue-ish? - changed to sky-400
+- [x] space as play/pause shortcut - added
 - [ ] what's delay between pressing timeline area to playhead jump?
-- [ ] audio segment cannot be dragged to right.
+- [x] audio segment cannot be dragged to right - expected behavior: offset can't be negative (can only skip intro, not prepend silence)
 
 ## Additional Requirements
 

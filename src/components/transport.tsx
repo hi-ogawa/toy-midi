@@ -65,7 +65,7 @@ export function Transport() {
     e.target.value = "";
   };
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = useCallback(async () => {
     if (!audioManager.loaded) return;
 
     if (isPlaying) {
@@ -75,7 +75,26 @@ export function Transport() {
       audioManager.play();
       setIsPlaying(true);
     }
-  };
+  }, [isPlaying, setIsPlaying]);
+
+  // Space key to toggle play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        // Don't trigger if typing in an input
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        e.preventDefault();
+        handlePlayPause();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePlayPause]);
 
   // Use audioDuration > 0 as proxy for loaded state (reactive)
   const audioLoaded = audioDuration > 0;
