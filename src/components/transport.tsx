@@ -77,12 +77,6 @@ export function Transport() {
     }
   };
 
-  const handleStop = () => {
-    audioManager.stop();
-    setIsPlaying(false);
-    setPlayheadPosition(0);
-  };
-
   // Use audioDuration > 0 as proxy for loaded state (reactive)
   const audioLoaded = audioDuration > 0;
 
@@ -120,16 +114,6 @@ export function Transport() {
         ) : (
           <span className="text-lg">▶</span>
         )}
-      </button>
-
-      {/* Stop button */}
-      <button
-        data-testid="stop-button"
-        onClick={handleStop}
-        disabled={!audioLoaded}
-        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
-      >
-        <span className="text-lg">⏹</span>
       </button>
 
       {/* Time display */}
