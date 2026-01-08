@@ -262,6 +262,7 @@ interface Note {
 - [ ] (semi) infinite zoom out horizontally to cover entire timeline
 - [ ] toggle-able auto scroll during playback
 - [ ] investigate timeline click-to-seek delay
+- [ ] waveform visualization (draw peaks from audio buffer)
 
 ## Quick Reference
 
