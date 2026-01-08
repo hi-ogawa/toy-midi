@@ -199,48 +199,30 @@ Resizing
 
 ## Feedback Log
 
-### Phase 1.2 feedback
-
-- [x] Grid click feels half off - clicking second half of cell placed note at next beat
-  - Fixed: changed `snapToGrid` from `Math.round` to `Math.floor`
-- [x] After selected, Escape to deselect
-  - Added Escape key handler
-- [x] Scale both vertically and horizontally
-  - Added H/V zoom dropdowns in toolbar (50%-200%)
-- [x] Horizontal scroll should keep left piano keys sticky
-  - Added `sticky left-0` to keyboard column
-- [ ] Select and copy for different timeline
-  - Needs transport state concept - deferred
+- [x] Grid click feels half off - fixed with `Math.floor` instead of `Math.round`
+- [x] Escape to deselect - added
+- [x] Scale both vertically and horizontally - added zoom dropdowns
+- [x] Sticky keyboard on horizontal scroll - added
+- [ ] Copy/paste notes - deferred (needs transport state)
 
 ## Status
 
-### Phase 1.0 - Project Scaffold (complete)
-
-- Vite + React + TypeScript + Tailwind
-- Testing: Vitest (unit), Playwright (E2E)
-- Zustand for state
-
-### Phase 1.1 - Basic Piano Roll (complete)
+**Feature: Note Editing - Complete**
 
 - Types (Note, GridSnap) in `src/types.ts`
 - Zustand store in `src/stores/project-store.ts`
 - Music utilities in `src/lib/music.ts`
-- Piano roll component in `src/components/piano-roll.tsx`:
-  - Layout: toolbar, timeline, waveform placeholder, piano roll grid
-  - Grid snap control (1/4, 1/8, 1/16, triplets)
-  - Click-drag note creation
-  - Note selection (click, shift+click, box select)
-  - Note deletion (Delete/Backspace)
-  - Note dragging (move body, resize edges)
+- Piano roll component in `src/components/piano-roll.tsx`
 - E2E tests in `e2e/piano-roll.spec.ts`
 
-### Phase 1.2 - UX Improvements (complete)
+Capabilities:
+- SVG-based grid with keyboard sidebar
+- Grid snap control (1/4, 1/8, 1/16, triplets)
+- Click-drag note creation
+- Note selection (click, shift+click, box select)
+- Note deletion (Delete/Backspace, Escape to deselect)
+- Note dragging (move body, resize edges)
+- Horizontal/Vertical zoom
+- Sticky keyboard on scroll
 
-- Grid snap fix (floor instead of round)
-- Escape to deselect
-- Sticky keyboard on horizontal scroll
-- Horizontal/Vertical zoom controls
-
-**Remaining:**
-
-- Copy/paste notes (needs transport state - Phase 2 scope)
+**Next: Dynamic Timeline** - see `docs/prd.md`

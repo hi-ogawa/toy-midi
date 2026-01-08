@@ -1,16 +1,16 @@
 # TODO
 
-## Phase 1: Static Piano Roll
+## Current: Dynamic Timeline
 
-- [x] Project setup (Vite + React + TypeScript + testing)
-- [x] Basic SVG rendering with grid
-- [x] Piano keyboard sidebar (bass range E1-G3)
-- [x] Grid snap control (1/4, 1/8, 1/16, triplets)
-- [x] Click-drag to create notes
-- [x] Note selection and deletion
-- [x] Note dragging (move/resize)
-- [x] E2E tests for editor interactions
+- [ ] Timeline length based on audio duration (not fixed 8 bars)
+- [ ] Viewport-based grid rendering (virtualized)
+- [ ] Wheel scroll (horizontal)
+- [ ] Ctrl+wheel zoom (horizontal)
+- [ ] Vertical scroll for pitch range
 
-## Backlog
+## Up Next
 
-See `docs/prd.md` for Phase 2-5 items.
+- Audio Playback
+- MIDI Export
+
+See `docs/prd.md` for full feature list.

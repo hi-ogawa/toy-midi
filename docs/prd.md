@@ -196,46 +196,84 @@ interface Note {
 - Delete/Backspace: Delete selected notes
 - Mousedown on note: Play preview sound
 
-## Implementation Phases
+## Features
 
-### Phase 1: Static Piano Roll
+### Note Editing (done)
 
-- [ ] Project setup (Vite + React + TypeScript)
-- [ ] Basic SVG rendering with grid
-- [ ] Piano keyboard sidebar (bass range E1-G3)
-- [ ] Grid snap control (1/4, 1/8, 1/16, triplets)
-- [ ] Click-drag to create notes (our custom behavior, not Ableton-style)
-- [ ] Note selection and deletion
-- [ ] Note dragging (move/resize)
+- [x] Project setup (Vite + React + TypeScript)
+- [x] SVG-based piano roll with grid
+- [x] Piano keyboard sidebar (bass range E1-G3)
+- [x] Grid snap control (1/4, 1/8, 1/16, triplets)
+- [x] Click-drag to create notes
+- [x] Note selection (click, shift+click, box select)
+- [x] Note deletion (Delete/Backspace)
+- [x] Note dragging (move/resize)
+- [x] Horizontal/vertical zoom
+- [x] Sticky keyboard on scroll
 
-### Phase 2: Audio Playback
+### Dynamic Timeline
+
+- [ ] Timeline length based on audio duration (not fixed 8 bars)
+- [ ] Viewport-based grid rendering (virtualized)
+- [ ] Wheel scroll (horizontal)
+- [ ] Ctrl+wheel zoom (horizontal)
+- [ ] Vertical scroll for pitch range
+
+### Audio Playback
 
 - [ ] Load audio file (WAV/MP3)
-- [ ] Tone.js playback with play/pause
-- [ ] Seek by clicking timeline
-- [ ] Playhead visualization on piano roll
-- [ ] Auto-scroll piano roll during playback
+- [ ] Play/pause/seek controls
+- [ ] Playhead visualization
+- [ ] Auto-scroll during playback
+- [ ] Click timeline to seek
 
-### Phase 3: Project Management
-
-- [ ] Tempo and time signature controls
-- [ ] Save project to localStorage
-- [ ] Load project from localStorage
-- [ ] Export project as JSON file
-- [ ] Import project from JSON file
-
-### Phase 4: MIDI Export
+### MIDI Export
 
 - [ ] Generate MIDI file from notes
 - [ ] Download as .mid file
-- [ ] Verify import in Ableton
+- [ ] Tempo embedding
 
-### Phase 5: Polish
+### Project Management
 
-- [ ] Visual improvements (note colors, selection highlight, hover states)
-- [ ] Basic keyboard shortcuts (space=play, delete=remove)
-- [ ] Responsive layout
-- [ ] UX refinements based on usage
+- [ ] Tempo and time signature controls
+- [ ] Save/load project (localStorage or JSON file)
+
+### Polish (post-MVP)
+
+- [ ] Waveform display
+- [ ] Loop regions
+- [ ] Keyboard shortcuts (space=play)
+- [ ] Note preview sound on mousedown
+- [ ] Copy/paste notes
+- [ ] Help overlay (? key to show shortcuts)
+
+## Quick Reference
+
+### Mouse
+
+| Action | Result |
+|--------|--------|
+| Click + drag on empty | Create note |
+| Click on note | Select |
+| Shift + click on note | Add to selection |
+| Shift + drag on empty | Box select |
+| Drag note body | Move (time + pitch) |
+| Drag note edge | Resize |
+
+### Keyboard
+
+| Key | Action |
+|-----|--------|
+| Delete / Backspace | Delete selected |
+| Escape | Deselect all |
+
+### Toolbar
+
+| Control | Options |
+|---------|---------|
+| Grid | 1/4, 1/8, 1/16, 1/4T, 1/8T, 1/16T |
+| H (horizontal zoom) | 50% - 200% |
+| V (vertical zoom) | 50% - 200% |
 
 ## Success Criteria
 
