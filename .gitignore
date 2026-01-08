@@ -18,3 +18,9 @@ refs/
 # Env
 .env
 .env.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Test
+test-results/

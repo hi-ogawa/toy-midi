@@ -6,14 +6,15 @@ Log of key technical decisions. Append new decisions at the bottom.
 
 ## 2026-01-08: Initial Stack
 
-| Choice | Decision | Rationale |
-|--------|----------|-----------|
-| Rendering | SVG | DOM events for easy interaction, simpler than Canvas hit detection |
-| State | Zustand | Future-proof, minimal boilerplate, good TS support |
-| Audio/MIDI | Tone.js + @tonejs/midi | Unified ecosystem, transport built-in, native TS |
-| Note input | Click-based | Mouse-first UX, keyboard shortcuts later |
+| Choice     | Decision               | Rationale                                                          |
+| ---------- | ---------------------- | ------------------------------------------------------------------ |
+| Rendering  | SVG                    | DOM events for easy interaction, simpler than Canvas hit detection |
+| State      | Zustand                | Future-proof, minimal boilerplate, good TS support                 |
+| Audio/MIDI | Tone.js + @tonejs/midi | Unified ecosystem, transport built-in, native TS                   |
+| Note input | Click-based            | Mouse-first UX, keyboard shortcuts later                           |
 
 **Alternatives considered:**
+
 - Canvas: Better performance but harder interaction handling
 - Howler.js: Simpler but no transport/scheduling
 - React Context: Would work but Zustand scales better
