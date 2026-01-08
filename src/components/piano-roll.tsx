@@ -164,6 +164,7 @@ export function PianoRoll() {
   const gridRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
+  const [showDebug, setShowDebug] = useState(false);
 
   // Viewport state: scroll position (in beats/semitones) and zoom (pixels per unit)
   const [scrollX, setScrollX] = useState(0); // leftmost visible beat
@@ -203,8 +204,9 @@ export function PianoRoll() {
       const y = clientY - rect.top;
       // Convert screen position to content position using scroll offset
       const beat = Math.max(0, x / pixelsPerBeat + scrollX);
+      // Pitch must be integer - combine scroll offset and y position before flooring
       const pitch = clampPitch(
-        MAX_PITCH - scrollY - Math.floor(y / pixelsPerKey),
+        MAX_PITCH - Math.floor(scrollY + y / pixelsPerKey),
       );
       return { beat, pitch };
     },
@@ -591,6 +593,12 @@ export function PianoRoll() {
         <span className="text-sm text-neutral-500 ml-auto">
           {selectedNoteIds.size > 0 && `${selectedNoteIds.size} selected`}
         </span>
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className={`text-xs px-2 py-1 rounded ${showDebug ? "bg-yellow-600" : "bg-neutral-700"}`}
+        >
+          Debug
+        </button>
       </div>
 
       {/* Main content area - fixed layout, no native scroll */}
@@ -686,6 +694,64 @@ export function PianoRoll() {
           </svg>
         </div>
       </div>
+
+      {/* Debug Panel */}
+      {showDebug && (
+        <div className="fixed bottom-4 right-4 bg-neutral-800 border border-neutral-600 rounded-lg p-4 text-xs font-mono max-w-md max-h-96 overflow-auto shadow-lg z-50 select-text">
+          <div className="font-bold text-yellow-400 mb-2">Debug Info</div>
+
+          <div className="mb-3">
+            <div className="text-neutral-400 mb-1">Viewport:</div>
+            <div>scrollX: {scrollX.toFixed(2)} beats</div>
+            <div>scrollY: {scrollY.toFixed(2)} (semitones from MAX_PITCH)</div>
+            <div>pixelsPerBeat: {pixelsPerBeat}</div>
+            <div>pixelsPerKey: {pixelsPerKey}</div>
+            <div>
+              topPitch: {MAX_PITCH - Math.floor(scrollY)} (
+              {midiToNoteName(MAX_PITCH - Math.floor(scrollY))})
+            </div>
+            <div>
+              bottomPitch:{" "}
+              {Math.max(MIN_PITCH, MAX_PITCH - Math.floor(scrollY + visibleKeys))}{" "}
+              (
+              {midiToNoteName(
+                Math.max(MIN_PITCH, MAX_PITCH - Math.floor(scrollY + visibleKeys)),
+              )}
+              )
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <div className="text-neutral-400 mb-1">Grid:</div>
+            <div>gridSnap: {gridSnap}</div>
+            <div>totalBeats: {totalBeats}</div>
+          </div>
+
+          <div>
+            <div className="text-neutral-400 mb-1">
+              Notes ({notes.length} total, {visibleNotes.length} visible):
+            </div>
+            {notes.length === 0 ? (
+              <div className="text-neutral-500">No notes</div>
+            ) : (
+              <div className="space-y-1">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`${selectedNoteIds.has(note.id) ? "text-blue-400" : ""}`}
+                  >
+                    {note.id}: pitch={note.pitch} ({midiToNoteName(note.pitch)}),
+                    start={note.start.toFixed(2)}, dur={note.duration.toFixed(2)}
+                    <span className="text-neutral-500 ml-1">
+                      → y={(MAX_PITCH - scrollY - note.pitch) * pixelsPerKey}px
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
