@@ -62,7 +62,7 @@ test.describe("Piano Roll", () => {
       gridBox.y + ROW_HEIGHT * 5,
     );
 
-    const note = page.locator("[data-testid^='note-']");
+    const note = page.locator("[data-testid^='note-']").first();
     await expect(note).toHaveAttribute("data-selected", "false");
 
     // Click on note to select
@@ -121,13 +121,14 @@ test.describe("Piano Roll", () => {
   });
 
   test("changes grid snap", async ({ page }) => {
-    const select = page.locator("select");
-    await expect(select).toHaveValue("1/8");
+    // Target the grid snap select specifically (first select in toolbar)
+    const gridSelect = page.locator("select").first();
+    await expect(gridSelect).toHaveValue("1/8");
 
-    await select.selectOption("1/16");
-    await expect(select).toHaveValue("1/16");
+    await gridSelect.selectOption("1/16");
+    await expect(gridSelect).toHaveValue("1/16");
 
-    await select.selectOption("1/4");
-    await expect(select).toHaveValue("1/4");
+    await gridSelect.selectOption("1/4");
+    await expect(gridSelect).toHaveValue("1/4");
   });
 });

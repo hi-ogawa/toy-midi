@@ -17,27 +17,104 @@ export const BASE_ROW_HEIGHT = 20;
 export const BASE_BEAT_WIDTH = 80;
 export const TIMELINE_HEIGHT = 32;
 export const WAVEFORM_HEIGHT = 60;
-export const VISIBLE_BARS = 8;
 export const BEATS_PER_BAR = 4;
-export const TOTAL_BEATS = VISIBLE_BARS * BEATS_PER_BAR;
 
 // Deprecated: use scaled versions from useDimensions
 export const ROW_HEIGHT = BASE_ROW_HEIGHT;
 export const BEAT_WIDTH = BASE_BEAT_WIDTH;
-export const GRID_WIDTH = TOTAL_BEATS * BASE_BEAT_WIDTH;
-export const GRID_HEIGHT = PITCH_COUNT * BASE_ROW_HEIGHT;
 
 const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function useDimensions(zoomX: number, zoomY: number) {
+// Generate CSS background for grid
+function generateGridBackground(
+  beatWidth: number,
+  rowHeight: number,
+  gridSnap: GridSnap,
+): string {
+  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
+  const subBeatWidth = beatWidth * gridSnapValue;
+  const barWidth = beatWidth * BEATS_PER_BAR;
+
+  // Row backgrounds (alternating for black keys in octave pattern)
+  // Pattern repeats every 12 semitones (octave)
+  // Black key positions in octave: C#, D#, F#, G#, A# (indices 1, 3, 6, 8, 10)
+  // We render from G3 down, so pattern starts offset. Using simple approximation.
+  const rowBg = `repeating-linear-gradient(
+    0deg,
+    #1a1a1a 0px,
+    #1a1a1a ${rowHeight}px,
+    #262626 ${rowHeight}px,
+    #262626 ${rowHeight * 2}px,
+    #1a1a1a ${rowHeight * 2}px,
+    #1a1a1a ${rowHeight * 3}px,
+    #262626 ${rowHeight * 3}px,
+    #262626 ${rowHeight * 4}px,
+    #1a1a1a ${rowHeight * 4}px,
+    #1a1a1a ${rowHeight * 5}px,
+    #1a1a1a ${rowHeight * 5}px,
+    #1a1a1a ${rowHeight * 6}px,
+    #262626 ${rowHeight * 6}px,
+    #262626 ${rowHeight * 7}px,
+    #1a1a1a ${rowHeight * 7}px,
+    #1a1a1a ${rowHeight * 8}px,
+    #262626 ${rowHeight * 8}px,
+    #262626 ${rowHeight * 9}px,
+    #1a1a1a ${rowHeight * 9}px,
+    #1a1a1a ${rowHeight * 10}px,
+    #262626 ${rowHeight * 10}px,
+    #262626 ${rowHeight * 11}px,
+    #1a1a1a ${rowHeight * 11}px,
+    #1a1a1a ${rowHeight * 12}px
+  )`;
+
+  // Horizontal row lines
+  const rowLines = `repeating-linear-gradient(
+    0deg,
+    #404040 0px,
+    #404040 1px,
+    transparent 1px,
+    transparent ${rowHeight}px
+  )`;
+
+  // Vertical sub-beat lines (grid snap)
+  const subBeatLines = `repeating-linear-gradient(
+    90deg,
+    #333333 0px,
+    #333333 1px,
+    transparent 1px,
+    transparent ${subBeatWidth}px
+  )`;
+
+  // Vertical beat lines
+  const beatLines = `repeating-linear-gradient(
+    90deg,
+    #404040 0px,
+    #404040 1px,
+    transparent 1px,
+    transparent ${beatWidth}px
+  )`;
+
+  // Vertical bar lines (every 4 beats)
+  const barLines = `repeating-linear-gradient(
+    90deg,
+    #525252 0px,
+    #525252 1px,
+    transparent 1px,
+    transparent ${barWidth}px
+  )`;
+
+  return `${barLines}, ${beatLines}, ${subBeatLines}, ${rowLines}, ${rowBg}`;
+}
+
+function useDimensions(zoomX: number, zoomY: number, totalBeats: number) {
   return useMemo(
     () => ({
       beatWidth: BASE_BEAT_WIDTH * zoomX,
       rowHeight: BASE_ROW_HEIGHT * zoomY,
-      gridWidth: TOTAL_BEATS * BASE_BEAT_WIDTH * zoomX,
+      gridWidth: totalBeats * BASE_BEAT_WIDTH * zoomX,
       gridHeight: PITCH_COUNT * BASE_ROW_HEIGHT * zoomY,
     }),
-    [zoomX, zoomY],
+    [zoomX, zoomY, totalBeats],
   );
 }
 
@@ -77,6 +154,7 @@ export function PianoRoll() {
     notes,
     selectedNoteIds,
     gridSnap,
+    totalBeats,
     addNote,
     updateNote,
     deleteNotes,
@@ -86,6 +164,7 @@ export function PianoRoll() {
   } = useProjectStore();
 
   const gridRef = useRef<SVGSVGElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
   const [zoomX, setZoomX] = useState(1);
   const [zoomY, setZoomY] = useState(1);
@@ -93,6 +172,7 @@ export function PianoRoll() {
   const { beatWidth, rowHeight, gridWidth, gridHeight } = useDimensions(
     zoomX,
     zoomY,
+    totalBeats,
   );
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
 
@@ -124,6 +204,41 @@ export function PianoRoll() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedNoteIds, deleteNotes, deselectAll]);
+
+  // Handle wheel for zoom (Ctrl+wheel)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Ctrl + wheel = horizontal zoom
+      if (e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const currentIndex = ZOOM_LEVELS.indexOf(zoomX);
+        const newIndex = Math.max(
+          0,
+          Math.min(ZOOM_LEVELS.length - 1, currentIndex + delta),
+        );
+        setZoomX(ZOOM_LEVELS[newIndex]);
+      }
+      // Ctrl + Shift + wheel = vertical zoom
+      else if (e.ctrlKey && e.shiftKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -1 : 1;
+        const currentIndex = ZOOM_LEVELS.indexOf(zoomY);
+        const newIndex = Math.max(
+          0,
+          Math.min(ZOOM_LEVELS.length - 1, currentIndex + delta),
+        );
+        setZoomY(ZOOM_LEVELS[newIndex]);
+      }
+      // No modifier = native scroll (horizontal and vertical)
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [zoomX, zoomY]);
 
   // Handle mouse events on the grid
   const handleGridMouseDown = useCallback(
@@ -390,7 +505,7 @@ export function PianoRoll() {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 overflow-auto">
+      <div ref={scrollContainerRef} className="flex-1 overflow-auto">
         <div className="flex" style={{ width: KEYBOARD_WIDTH + gridWidth }}>
           {/* Left column: keyboard labels (sticky) */}
           <div
@@ -413,13 +528,17 @@ export function PianoRoll() {
           {/* Right column: timeline, waveform, grid */}
           <div className="flex flex-col">
             {/* Timeline */}
-            <Timeline beatWidth={beatWidth} gridWidth={gridWidth} />
+            <Timeline
+              beatWidth={beatWidth}
+              gridWidth={gridWidth}
+              totalBeats={totalBeats}
+            />
             {/* Waveform placeholder */}
             <div
               className="bg-neutral-800 border-b border-neutral-700"
               style={{ height: WAVEFORM_HEIGHT }}
             />
-            {/* Note grid */}
+            {/* Note grid with CSS background */}
             <svg
               ref={gridRef}
               data-testid="piano-roll-grid"
@@ -427,14 +546,14 @@ export function PianoRoll() {
               height={gridHeight}
               className="cursor-crosshair"
               onMouseDown={handleGridMouseDown}
+              style={{
+                background: generateGridBackground(
+                  beatWidth,
+                  rowHeight,
+                  gridSnap,
+                ),
+              }}
             >
-              <Grid
-                gridSnap={gridSnap}
-                beatWidth={beatWidth}
-                rowHeight={rowHeight}
-                gridWidth={gridWidth}
-                gridHeight={gridHeight}
-              />
               {/* Notes */}
               {notes.map((note) => (
                 <NoteRect
@@ -504,13 +623,15 @@ function Keyboard({ rowHeight }: { rowHeight: number }) {
 function Timeline({
   beatWidth,
   gridWidth,
+  totalBeats,
 }: {
   beatWidth: number;
   gridWidth: number;
+  totalBeats: number;
 }) {
   const markers = [];
 
-  for (let beat = 0; beat <= TOTAL_BEATS; beat++) {
+  for (let beat = 0; beat <= totalBeats; beat++) {
     const isBar = beat % BEATS_PER_BAR === 0;
     if (isBar) {
       const barNumber = beat / BEATS_PER_BAR + 1;
@@ -534,71 +655,6 @@ function Timeline({
       {markers}
     </div>
   );
-}
-
-function Grid({
-  gridSnap,
-  beatWidth,
-  rowHeight,
-  gridWidth,
-  gridHeight,
-}: {
-  gridSnap: GridSnap;
-  beatWidth: number;
-  rowHeight: number;
-  gridWidth: number;
-  gridHeight: number;
-}) {
-  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
-  const lines = [];
-
-  // Horizontal lines (pitch rows)
-  for (let i = 0; i <= PITCH_COUNT; i++) {
-    const pitch = MAX_PITCH - i;
-    const black = i < PITCH_COUNT && isBlackKey(pitch);
-    lines.push(
-      <rect
-        key={`row-${i}`}
-        x={0}
-        y={i * rowHeight}
-        width={gridWidth}
-        height={rowHeight}
-        fill={black ? "#262626" : "#1a1a1a"}
-      />,
-    );
-    lines.push(
-      <line
-        key={`hline-${i}`}
-        x1={0}
-        y1={i * rowHeight}
-        x2={gridWidth}
-        y2={i * rowHeight}
-        stroke="#404040"
-        strokeWidth={0.5}
-      />,
-    );
-  }
-
-  // Vertical lines (beat divisions)
-  const totalGridLines = TOTAL_BEATS / gridSnapValue;
-  for (let i = 0; i <= totalGridLines; i++) {
-    const beat = i * gridSnapValue;
-    const isBar = beat % BEATS_PER_BAR === 0;
-    const isBeat = beat % 1 === 0;
-    lines.push(
-      <line
-        key={`vline-${i}`}
-        x1={beat * beatWidth}
-        y1={0}
-        x2={beat * beatWidth}
-        y2={gridHeight}
-        stroke={isBar ? "#525252" : isBeat ? "#404040" : "#333333"}
-        strokeWidth={isBar ? 1 : 0.5}
-      />,
-    );
-  }
-
-  return <g>{lines}</g>;
 }
 
 function NoteRect({

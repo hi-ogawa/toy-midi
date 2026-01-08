@@ -5,6 +5,7 @@ interface ProjectState {
   notes: Note[];
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
+  totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
 
   // Actions
   addNote: (note: Note) => void;
@@ -13,6 +14,7 @@ interface ProjectState {
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
+  setTotalBeats: (beats: number) => void;
 }
 
 let noteIdCounter = 0;
@@ -24,6 +26,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
+  totalBeats: 128, // 32 bars
 
   addNote: (note) =>
     set((state) => ({
@@ -59,4 +62,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
   deselectAll: () => set({ selectedNoteIds: new Set() }),
 
   setGridSnap: (snap) => set({ gridSnap: snap }),
+
+  setTotalBeats: (beats) => set({ totalBeats: beats }),
 }));
