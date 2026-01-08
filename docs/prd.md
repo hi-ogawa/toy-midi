@@ -247,36 +247,44 @@ interface Note {
 - [x] Tempo input (time signature TBD)
 - [ ] Save/load project (localStorage or JSON file)
 
-### Feedback
+### Feedback - High Priority
+
+- [ ] embed free soundfont? (need at least bass sound even if boring)
+- [ ] Waveform display (necessary to sync with tempo)
+- [ ] zoom should keep current cursor as center
+
+### Feedback - Medium Priority
+
+- [ ] audio offset label looks reversed
+- [ ] "No audio loaded" label looks off when scrolling
+- [ ] quick midi preview playback when pressing left sticky keys
+- [ ] (semi) infinite zoom out horizontally to cover entire timeline
+- [ ] toggle-able auto scroll during playback
+- [ ] deploy (vercel)
+
+### Feedback - Low Priority / Future
+
+- [ ] time signature support (currently hardcoded 4/4)
+- [ ] Copy/paste notes
+- [ ] Help overlay (? key to show shortcuts)
+- [ ] basic locator to mark parts
+- [ ] initial flash of lower keys ranges
+- [ ] refactor debug panel
+- [ ] investigate timeline click-to-seek delay
+- [ ] jumping timeline during audio playback is broken.
+
+### Feedback - Done
 
 - [x] better indicater for each octave (perhaps slight higlight each C(n) on the left)
 - [x] max out default bar counts since rendering are virtualized anyway
 - [x] virtical grid and note cells aren't aligned (also left piano keyboard keys)
-- [ ] initial flash of lower keys ranges
 - [x] quick inline svg favicon
-- [ ] refactor debug panel
 - [x] black/white row highlight entire piano roll
-- [ ] zoom should keep current cursor as center
-- [ ] (semi) infinite zoom out horizontally to cover entire timeline
-- [ ] toggle-able auto scroll during playback
-- [ ] investigate timeline click-to-seek delay
-- [ ] waveform visualization (draw peaks from audio buffer)
-- [ ] jumping timeline during audio playback is broken.
 - [x] playback metronome (toggle)
 - [x] midi only playback without audio loaded
-- [ ] embed free soundfont? (need at least bass sound even if boring)
 - [x] allow tweak audio and midi volumes (mix)
-- [ ] audio offset label looks reversed
-- [ ] basic locator to mark parts
-- [ ] "No audio loaded" label looks off when scrolling
-- [ ] quick midi preview playback when pressing left sticky keys
 - [x] metronome tone is dead - changed to C7/G6 with accent on beat 1
-- [ ] time signature support (currently hardcoded 4/4)
-- [ ] Waveform display (necessary to sync with tempo)
-- [ ] Copy/paste notes
-- [ ] Help overlay (? key to show shortcuts)
 - [x] Keyboard shortcuts (space=play)
-- [ ] deploy (vercel)
 
 ## Quick Reference
 
