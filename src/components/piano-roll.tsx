@@ -1160,14 +1160,14 @@ function WaveformArea({
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStartRef.current) return;
       const deltaX = e.clientX - dragStartRef.current.x;
-      // Moving the audio region right = increasing offset (skipping more intro)
+      // Moving the audio region right = decreasing offset (less intro skipped)
       // deltaX in pixels -> deltaBeats -> deltaSeconds
       const deltaBeats = deltaX / pixelsPerBeat;
       const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
       const newOffset = Math.max(
         0,
         Math.min(
-          dragStartRef.current.startOffset + deltaSeconds,
+          dragStartRef.current.startOffset - deltaSeconds,
           audioDuration,
         ),
       );
