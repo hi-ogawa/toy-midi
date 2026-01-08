@@ -204,35 +204,54 @@ export interface LoadedProject {
   audioFileName: string | null;
 }
 
+// Default values for new/missing fields
+const DEFAULTS: Omit<SavedProject, "version"> = {
+  notes: [],
+  tempo: 120,
+  gridSnap: "1/8",
+  audioFileName: null,
+  audioAssetKey: null,
+  audioOffset: 0,
+  audioVolume: 0.8,
+  midiVolume: 0.8,
+  metronomeEnabled: false,
+  metronomeVolume: 0.5,
+};
+
 export function loadProject(): LoadedProject | null {
   try {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) return null;
 
-    const saved: SavedProject = JSON.parse(json);
-    if (saved.version !== STORAGE_VERSION) {
-      console.warn("Project version mismatch, skipping load");
-      return null;
+    const saved = JSON.parse(json) as Partial<SavedProject>;
+
+    // Version check: only reject if major breaking change
+    // For now, version 1 is compatible with missing fields
+    if (saved.version && saved.version > STORAGE_VERSION) {
+      console.warn("Project from newer version, some data may be lost");
     }
 
+    // Merge with defaults (handles new fields gracefully)
+    const merged = { ...DEFAULTS, ...saved };
+
     // Update note ID counter to avoid collisions
-    const maxId = saved.notes.reduce((max, n) => {
+    const maxId = merged.notes.reduce((max, n) => {
       const match = n.id.match(/^note-(\d+)$/);
       return match ? Math.max(max, parseInt(match[1], 10)) : max;
     }, 0);
     noteIdCounter = maxId;
 
     useProjectStore.setState({
-      notes: saved.notes,
-      tempo: saved.tempo,
-      gridSnap: saved.gridSnap,
-      audioFileName: saved.audioFileName,
-      audioAssetKey: saved.audioAssetKey,
-      audioOffset: saved.audioOffset,
-      audioVolume: saved.audioVolume,
-      midiVolume: saved.midiVolume,
-      metronomeEnabled: saved.metronomeEnabled,
-      metronomeVolume: saved.metronomeVolume,
+      notes: merged.notes,
+      tempo: merged.tempo,
+      gridSnap: merged.gridSnap,
+      audioFileName: merged.audioFileName,
+      audioAssetKey: merged.audioAssetKey,
+      audioOffset: merged.audioOffset,
+      audioVolume: merged.audioVolume,
+      midiVolume: merged.midiVolume,
+      metronomeEnabled: merged.metronomeEnabled,
+      metronomeVolume: merged.metronomeVolume,
       // Reset transient state
       selectedNoteIds: new Set(),
       isPlaying: false,
@@ -242,8 +261,8 @@ export function loadProject(): LoadedProject | null {
     });
 
     return {
-      audioAssetKey: saved.audioAssetKey,
-      audioFileName: saved.audioFileName,
+      audioAssetKey: merged.audioAssetKey,
+      audioFileName: merged.audioFileName,
     };
   } catch (e) {
     console.warn("Failed to load project:", e);
