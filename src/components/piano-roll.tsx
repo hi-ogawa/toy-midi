@@ -31,54 +31,35 @@ export const BASE_BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
 export const ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
 export const BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
 
-// Generate CSS background for grid (returns both background-image and background-position)
+// Generate CSS background for grid (returns style object)
 function generateGridBackground(
   pixelsPerBeat: number,
   pixelsPerKey: number,
   gridSnap: GridSnap,
   scrollX: number,
   scrollY: number,
-): { backgroundImage: string; backgroundPosition: string } {
+): React.CSSProperties {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
   const subBeatWidth = pixelsPerBeat * gridSnapValue;
   const barWidth = pixelsPerBeat * BEATS_PER_BAR;
+  const octaveHeight = pixelsPerKey * 12;
 
-  // Row backgrounds (alternating for black keys in octave pattern)
-  const rowBg = `repeating-linear-gradient(
-    0deg,
-    #1a1a1a 0px,
-    #1a1a1a ${pixelsPerKey}px,
-    #262626 ${pixelsPerKey}px,
-    #262626 ${pixelsPerKey * 2}px,
-    #1a1a1a ${pixelsPerKey * 2}px,
-    #1a1a1a ${pixelsPerKey * 3}px,
-    #262626 ${pixelsPerKey * 3}px,
-    #262626 ${pixelsPerKey * 4}px,
-    #1a1a1a ${pixelsPerKey * 4}px,
-    #1a1a1a ${pixelsPerKey * 5}px,
-    #1a1a1a ${pixelsPerKey * 5}px,
-    #1a1a1a ${pixelsPerKey * 6}px,
-    #262626 ${pixelsPerKey * 6}px,
-    #262626 ${pixelsPerKey * 7}px,
-    #1a1a1a ${pixelsPerKey * 7}px,
-    #1a1a1a ${pixelsPerKey * 8}px,
-    #262626 ${pixelsPerKey * 8}px,
-    #262626 ${pixelsPerKey * 9}px,
-    #1a1a1a ${pixelsPerKey * 9}px,
-    #1a1a1a ${pixelsPerKey * 10}px,
-    #262626 ${pixelsPerKey * 10}px,
-    #262626 ${pixelsPerKey * 11}px,
-    #1a1a1a ${pixelsPerKey * 11}px,
-    #1a1a1a ${pixelsPerKey * 12}px
-  )`;
-
-  // Horizontal row lines
+  // Horizontal row lines (at bottom of each row to match keyboard border-bottom)
   const rowLines = `repeating-linear-gradient(
     0deg,
-    #404040 0px,
-    #404040 1px,
-    transparent 1px,
-    transparent ${pixelsPerKey}px
+    transparent 0px,
+    transparent ${pixelsPerKey - 1}px,
+    #404040 ${pixelsPerKey - 1}px,
+    #404040 ${pixelsPerKey}px
+  )`;
+
+  // Octave lines (brighter line between B and C, every 12 rows)
+  const octaveLines = `repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent ${octaveHeight - 1}px,
+    #666666 ${octaveHeight - 1}px,
+    #666666 ${octaveHeight}px
   )`;
 
   // Vertical sub-beat lines (grid snap)
@@ -109,22 +90,28 @@ function generateGridBackground(
   )`;
 
   // Calculate background offset based on scroll position
-  // Each layer needs its own offset based on its repeat pattern
   const offsetX = -(scrollX * pixelsPerBeat) % barWidth;
-  const rowOffsetY = -(scrollY % 1) * pixelsPerKey; // Match keyboard partial scroll
-  const octaveOffsetY = -(scrollY * pixelsPerKey) % (pixelsPerKey * 12);
+  const rowOffsetY = -(scrollY % 1) * pixelsPerKey; // Fractional scroll offset
 
-  // background-position for each layer: barLines, beatLines, subBeatLines, rowLines, rowBg
+  // Octave line offset: line should be at bottom of C rows (between B and C)
+  // Top pitch is MAX_PITCH - scrollY, C is at pitch % 12 === 0
+  // Distance from top to first B/C boundary (bottom of C row)
+  const topPitch = MAX_PITCH - scrollY;
+  const rowsToFirstC = ((Math.floor(topPitch) % 12) + 12) % 12; // Handle any pitch
+  const octaveOffsetY = rowOffsetY + (rowsToFirstC + 1) * pixelsPerKey;
+
+  // background-position for each layer
   const positions = [
-    `${offsetX}px 0`, // barLines (vertical)
-    `${offsetX}px 0`, // beatLines (vertical)
-    `${offsetX}px 0`, // subBeatLines (vertical)
-    `0 ${rowOffsetY}px`, // rowLines (horizontal) - align with keyboard
-    `0 ${octaveOffsetY}px`, // rowBg (horizontal octave pattern)
+    `${offsetX}px 0`, // barLines
+    `${offsetX}px 0`, // beatLines
+    `${offsetX}px 0`, // subBeatLines
+    `0 ${octaveOffsetY}px`, // octaveLines
+    `0 ${rowOffsetY}px`, // rowLines
   ].join(", ");
 
   return {
-    backgroundImage: `${barLines}, ${beatLines}, ${subBeatLines}, ${rowLines}, ${rowBg}`,
+    backgroundColor: "#1a1a1a",
+    backgroundImage: `${barLines}, ${beatLines}, ${subBeatLines}, ${octaveLines}, ${rowLines}`,
     backgroundPosition: positions,
   };
 }
@@ -655,10 +642,7 @@ export function PianoRoll() {
             height="100%"
             className="flex-1 cursor-crosshair"
             onMouseDown={handleGridMouseDown}
-            style={{
-              backgroundImage: gridBackground.backgroundImage,
-              backgroundPosition: gridBackground.backgroundPosition,
-            }}
+            style={gridBackground}
           >
             {/* Notes */}
             {visibleNotes.map((note) => (
@@ -728,20 +712,23 @@ function Keyboard({
 
   for (let pitch = startPitch; pitch >= endPitch; pitch--) {
     const black = isBlackKey(pitch);
-    const isC = pitch % 12 === 0; // C notes for octave indication
+    const isC = pitch % 12 === 0; // C notes for octave label
+    const isF = pitch % 12 === 5; // F notes
+    // B/C and E/F are adjacent white keys - need clearer border
+    const needsStrongBorder = isC || isF;
     rows.push(
       <div
         key={pitch}
-        className={`flex items-center justify-end pr-2 text-xs border-b border-neutral-700 ${
+        className={`flex items-center justify-end pr-2 text-xs border-b ${
           black
-            ? "bg-neutral-800 text-neutral-400"
-            : isC
-              ? "bg-neutral-600 text-neutral-100 font-medium"
-              : "bg-neutral-700 text-neutral-200"
+            ? "bg-neutral-800 border-neutral-700"
+            : needsStrongBorder
+              ? "bg-neutral-300 border-neutral-500 text-neutral-600"
+              : "bg-neutral-300 border-neutral-400 text-neutral-600"
         }`}
         style={{ height: pixelsPerKey }}
       >
-        {midiToNoteName(pitch)}
+        {isC ? midiToNoteName(pitch) : ""}
       </div>,
     );
   }

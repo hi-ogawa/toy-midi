@@ -248,7 +248,7 @@ visibleKeys = viewportHeight / pixelsPerKey;
 
 ## Status
 
-**Attempt 2 complete** - fixed viewport with feedback addressed
+**Attempt 2 complete** - fixed viewport with all feedback addressed
 
 ### Done
 
@@ -261,6 +261,10 @@ visibleKeys = viewportHeight / pixelsPerKey;
 - CSS `background-position` offsets grid pattern based on scroll
 - Keyboard/Timeline render only visible portion
 - Note filtering to visible range
+- Grid alignment fix: simplified to uniform background (removed black/white pattern)
+- Octave indicators: highlighted line between B and C
+- Keyboard styling: classic piano colors, labels only on C notes
+- B/C and E/F borders strengthened (adjacent white keys)
 - All E2E tests pass, build passes
 
 ### Navigation
@@ -273,3 +277,4 @@ visibleKeys = viewportHeight / pixelsPerKey;
 ### Remaining
 
 - Manual testing with `pnpm dev`
+- Initial flash of lower keys ranges (from prd.md feedback - deferred)

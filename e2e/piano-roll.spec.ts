@@ -18,9 +18,9 @@ test.describe("Piano Roll", () => {
     const grid = page.getByTestId("piano-roll-grid");
     await expect(grid).toBeVisible();
 
-    // Check keyboard labels are visible
-    await expect(page.getByText("G3")).toBeVisible();
-    await expect(page.getByText("E1")).toBeVisible();
+    // Check keyboard C labels are visible (only C notes show labels now)
+    await expect(page.getByText("C3")).toBeVisible();
+    await expect(page.getByText("C2")).toBeVisible();
   });
 
   test("creates note on click-drag", async ({ page }) => {
