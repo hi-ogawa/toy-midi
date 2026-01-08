@@ -25,10 +25,8 @@ export function App() {
       console.log("Restored project from localStorage");
 
       // Restore audio from IndexedDB if available
-      console.log("audioAssetKey:", loaded.audioAssetKey);
       if (loaded.audioAssetKey) {
         setLoadingStatus("Restoring audio...");
-        console.log("Loading asset from IndexedDB...");
         loadAsset(loaded.audioAssetKey)
           .then(async (asset) => {
             if (asset) {

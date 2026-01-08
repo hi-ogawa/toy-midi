@@ -19,23 +19,15 @@ function openDB(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
 
   dbPromise = new Promise((resolve, reject) => {
-    console.log("Opening IndexedDB...");
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => {
-      console.error("IndexedDB open error:", request.error);
-      reject(request.error);
-    };
-    request.onsuccess = () => {
-      console.log("IndexedDB opened successfully");
-      resolve(request.result);
-    };
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
     request.onblocked = () => {
       console.warn("IndexedDB blocked - close other tabs?");
     };
 
     request.onupgradeneeded = (event) => {
-      console.log("IndexedDB upgrade needed");
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "key" });
@@ -75,26 +67,15 @@ export async function saveAsset(file: File): Promise<string> {
 }
 
 export async function loadAsset(key: string): Promise<StoredAsset | null> {
-  console.log("loadAsset called with key:", key);
   const db = await openDB();
-  console.log("Got DB, fetching asset...");
 
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const request = store.get(key);
 
-    request.onsuccess = () => {
-      console.log(
-        "Asset fetch result:",
-        request.result ? "found" : "not found",
-      );
-      resolve(request.result || null);
-    };
-    request.onerror = () => {
-      console.error("Asset fetch error:", request.error);
-      reject(request.error);
-    };
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
   });
 }
 

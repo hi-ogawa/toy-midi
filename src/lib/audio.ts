@@ -60,7 +60,7 @@ class AudioManager {
 
     // Apply deferred metronome state (may have been set before init)
     if (this._metronomeEnabled) {
-      this.metronomeSeq.start();
+      this._startMetronomeAligned();
     }
   }
 
@@ -243,11 +243,29 @@ class AudioManager {
     this._metronomeEnabled = enabled;
     if (this.metronomeSeq) {
       if (enabled) {
-        // Start from current position, not 0 (can't schedule in the past)
-        this.metronomeSeq.start();
+        this._startMetronomeAligned();
       } else {
         this.metronomeSeq.stop();
       }
+    }
+  }
+
+  // Start metronome aligned to beat grid
+  private _startMetronomeAligned(): void {
+    if (!this.metronomeSeq) return;
+
+    const position = Tone.getTransport().seconds;
+    if (position <= 0) {
+      // At start, begin from 0
+      this.metronomeSeq.start(0);
+    } else {
+      // Mid-playback: calculate next measure start for proper beat 1 alignment
+      const tempo = Tone.getTransport().bpm.value;
+      const secondsPerBeat = 60 / tempo;
+      const secondsPerMeasure = secondsPerBeat * 4; // 4/4 time
+      const nextMeasure =
+        Math.ceil(position / secondsPerMeasure) * secondsPerMeasure;
+      this.metronomeSeq.start(nextMeasure);
     }
   }
 
