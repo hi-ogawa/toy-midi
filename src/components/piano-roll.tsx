@@ -169,6 +169,8 @@ export function PianoRoll() {
     tempo,
     playheadPosition,
     isPlaying,
+    audioDuration,
+    audioOffset,
     addNote,
     updateNote,
     deleteNotes,
@@ -176,6 +178,7 @@ export function PianoRoll() {
     deselectAll,
     setGridSnap,
     setPlayheadPosition,
+    setAudioOffset,
   } = useProjectStore();
 
   const gridRef = useRef<HTMLDivElement>(null);
@@ -687,10 +690,19 @@ export function PianoRoll() {
               setPlayheadPosition(seconds);
             }}
           />
-          {/* Waveform placeholder */}
-          <div
-            className="shrink-0 bg-neutral-800 border-b border-neutral-700"
-            style={{ height: WAVEFORM_HEIGHT }}
+          {/* Waveform / Audio region */}
+          <WaveformArea
+            pixelsPerBeat={roundedPixelsPerBeat}
+            scrollX={scrollX}
+            viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
+            audioDuration={audioDuration}
+            audioOffset={audioOffset}
+            tempo={tempo}
+            playheadBeat={secondsToBeats(playheadPosition, tempo)}
+            onOffsetChange={(newOffset) => {
+              audioManager.setOffset(newOffset);
+              setAudioOffset(newOffset);
+            }}
           />
           {/* Note grid with CSS background */}
           <div
@@ -1092,6 +1104,127 @@ function NoteDiv({
           <div className="absolute left-0 top-0 w-[6px] h-full cursor-ew-resize" />
           <div className="absolute right-0 top-0 w-[6px] h-full cursor-ew-resize" />
         </>
+      )}
+    </div>
+  );
+}
+
+function WaveformArea({
+  pixelsPerBeat,
+  scrollX,
+  viewportWidth,
+  audioDuration,
+  audioOffset,
+  tempo,
+  playheadBeat,
+  onOffsetChange,
+}: {
+  pixelsPerBeat: number;
+  scrollX: number;
+  viewportWidth: number;
+  audioDuration: number;
+  audioOffset: number;
+  tempo: number;
+  playheadBeat: number;
+  onOffsetChange: (offset: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; startOffset: number } | null>(null);
+
+  // Convert audio duration/offset to beats for positioning
+  const audioDurationBeats = secondsToBeats(audioDuration, tempo);
+  const audioOffsetBeats = secondsToBeats(audioOffset, tempo);
+
+  // Audio region starts at -audioOffsetBeats (relative to beat 0)
+  // If audioOffset = 5s, the audio starts 5s before beat 0 in the timeline
+  const audioStartBeat = -audioOffsetBeats;
+
+  // Calculate screen positions
+  const audioStartX = (audioStartBeat - scrollX) * pixelsPerBeat;
+  const audioWidth = audioDurationBeats * pixelsPerBeat;
+
+  // Playhead position
+  const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
+  const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (audioDuration === 0) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, startOffset: audioOffset };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragStartRef.current) return;
+      const deltaX = e.clientX - dragStartRef.current.x;
+      // Moving the audio region right = increasing offset (skipping more intro)
+      // deltaX in pixels -> deltaBeats -> deltaSeconds
+      const deltaBeats = deltaX / pixelsPerBeat;
+      const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
+      const newOffset = Math.max(
+        0,
+        Math.min(
+          dragStartRef.current.startOffset + deltaSeconds,
+          audioDuration,
+        ),
+      );
+      onOffsetChange(newOffset);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, pixelsPerBeat, tempo, audioDuration, onOffsetChange]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative shrink-0 bg-neutral-800 border-b border-neutral-700 overflow-hidden"
+      style={{ height: WAVEFORM_HEIGHT }}
+    >
+      {/* Audio region block */}
+      {audioDuration > 0 && (
+        <div
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize ${
+            isDragging
+              ? "bg-emerald-600"
+              : "bg-emerald-700 hover:bg-emerald-600"
+          }`}
+          style={{
+            left: audioStartX,
+            width: Math.max(audioWidth, 4),
+          }}
+          onMouseDown={handleMouseDown}
+        >
+          {/* Offset indicator */}
+          <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap">
+            {audioOffset > 0 ? `+${audioOffset.toFixed(1)}s` : "0s"}
+          </div>
+        </div>
+      )}
+      {/* Playhead */}
+      {showPlayhead && (
+        <div
+          className="absolute top-0 bottom-0 w-px bg-red-500 pointer-events-none"
+          style={{ left: playheadX }}
+        />
+      )}
+      {/* No audio loaded message */}
+      {audioDuration === 0 && (
+        <div className="flex items-center justify-center h-full text-xs text-neutral-500">
+          No audio loaded
+        </div>
       )}
     </div>
   );

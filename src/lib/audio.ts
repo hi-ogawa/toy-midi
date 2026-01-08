@@ -5,6 +5,7 @@ class AudioManager {
   private synth: Tone.Synth | null = null;
   private _initialized = false;
   private _duration = 0;
+  private _offset = 0; // Audio offset in seconds
 
   async init(): Promise<void> {
     if (this._initialized) return;
@@ -14,6 +15,12 @@ class AudioManager {
   }
 
   async loadAudio(file: File): Promise<number> {
+    // Create blob URL from file
+    const url = URL.createObjectURL(file);
+    return this.loadFromUrl(url);
+  }
+
+  async loadFromUrl(url: string): Promise<number> {
     await this.init();
 
     // Dispose previous player
@@ -23,16 +30,43 @@ class AudioManager {
       this.player = null;
     }
 
-    // Create blob URL from file
-    const url = URL.createObjectURL(file);
-
-    // Create new player synced to Transport
-    this.player = new Tone.Player(url).toDestination();
-    await this.player.loaded;
+    // Create new player and wait for it to load
+    this.player = new Tone.Player().toDestination();
+    await this.player.load(url);
     this._duration = this.player.buffer.duration;
-    this.player.sync().start(0); // Sync to Transport, start at position 0
+    this._offset = 0;
+    this._syncPlayer();
 
     return this._duration;
+  }
+
+  private _syncPlayer(): void {
+    if (!this.player) return;
+    // Unsync first if already synced
+    this.player.unsync();
+    // Sync with offset: at Transport time 0, play from _offset into the audio
+    this.player.sync().start(0, this._offset);
+  }
+
+  setOffset(offset: number): void {
+    // Clamp offset to valid range
+    this._offset = Math.max(0, Math.min(offset, this._duration));
+    if (this.player) {
+      const wasPlaying = this.isPlaying;
+      const currentPosition = Tone.getTransport().seconds;
+      if (wasPlaying) {
+        Tone.getTransport().pause();
+      }
+      this._syncPlayer();
+      if (wasPlaying) {
+        Tone.getTransport().seconds = currentPosition;
+        Tone.getTransport().start();
+      }
+    }
+  }
+
+  get offset(): number {
+    return this._offset;
   }
 
   play(): void {

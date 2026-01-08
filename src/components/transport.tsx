@@ -83,27 +83,36 @@ export function Transport() {
     setPlayheadPosition(0);
   };
 
+  // Use audioDuration > 0 as proxy for loaded state (reactive)
+  const audioLoaded = audioDuration > 0;
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2 bg-neutral-800 border-b border-neutral-700">
+    <div
+      data-testid="transport"
+      className="flex items-center gap-3 px-4 py-2 bg-neutral-800 border-b border-neutral-700"
+    >
       {/* Load button */}
       <button
+        data-testid="load-audio-button"
         onClick={handleLoadClick}
         className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded"
       >
-        Load WAV
+        Load Audio
       </button>
       <input
+        data-testid="audio-file-input"
         ref={fileInputRef}
         type="file"
-        accept=".wav"
+        accept="audio/*"
         onChange={handleFileChange}
         className="hidden"
       />
 
       {/* Play/Pause button */}
       <button
+        data-testid="play-pause-button"
         onClick={handlePlayPause}
-        disabled={!audioManager.loaded}
+        disabled={!audioLoaded}
         className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
       >
         {isPlaying ? (
@@ -115,21 +124,28 @@ export function Transport() {
 
       {/* Stop button */}
       <button
+        data-testid="stop-button"
         onClick={handleStop}
-        disabled={!audioManager.loaded}
+        disabled={!audioLoaded}
         className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed rounded"
       >
         <span className="text-lg">⏹</span>
       </button>
 
       {/* Time display */}
-      <div className="font-mono text-sm text-neutral-300 min-w-[100px]">
+      <div
+        data-testid="time-display"
+        className="font-mono text-sm text-neutral-300 min-w-[100px]"
+      >
         {formatTime(playheadPosition)} / {formatTime(audioDuration)}
       </div>
 
       {/* File name */}
       {audioFileName && (
-        <span className="text-sm text-neutral-400 truncate max-w-[200px]">
+        <span
+          data-testid="audio-file-name"
+          className="text-sm text-neutral-400 truncate max-w-[200px]"
+        >
           {audioFileName}
         </span>
       )}

@@ -285,26 +285,55 @@ Piano roll uses beats, audio uses seconds. Need tempo value to convert:
 ## Follow Up
 
 - [ ] Toggle-able auto scroll
-- [ ] Support compressed formats (mp3, webm, opus, ogg)
+
+## Additional Requirements
+
+### Audio Offset (Draggable Audio)
+
+Audio files may have irrelevant intros (e.g., YouTube video intros). Need to align audio with beat 1.
+
+**Approach:**
+
+- Add `audioOffset` state (in seconds) - how much audio is shifted relative to timeline
+- Drag waveform area horizontally to adjust offset
+- When Transport plays at position 0, audio plays from `audioOffset` into the file
+- Visual: waveform/audio region shows offset position on timeline
+
+```typescript
+// In AudioManager
+player.sync().start(0, audioOffset); // Start playing from audioOffset when Transport is at 0
+```
+
+### Demo Audio File
+
+Include a demo audio for quick testing:
+
+- User will add public domain audio to `public/`
+- Add "Load Demo" button in Transport (if demo exists)
 
 ## Scope
 
-- **MVP**: WAV files only (simplest, no codec issues)
+- Any audio format supported by browser (MP3, WAV, OGG, etc.)
+- Browser's `decodeAudioData()` handles decoding natively
 
 ## Status
 
-**Done** - Core audio playback implemented
+**Done** - Audio playback with offset complete
 
 ### Completed
 
 - Tone.js installed and AudioManager class created
-- Transport component with play/pause/stop/load WAV
+- Transport component with play/pause/stop/load (any audio format)
 - Player syncs to Tone.Transport for future MIDI mixing
 - Playhead line in grid and timeline
 - Auto-scroll during playback
 - Click timeline to seek
+- Audio offset: drag waveform region to align with beat 0
+- Visual offset indicator showing seconds
+- E2E tests for audio loading (both URL and file input)
+- Fixed Tone.js bug: use `player.load(url)` not `player.loaded`
+- Test audio file in `public/test-audio.wav`
 
 ### Remaining
 
 - Waveform visualization (stretch goal)
-- Manual testing with `pnpm dev`

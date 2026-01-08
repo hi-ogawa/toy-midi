@@ -1,4 +1,4 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -12,4 +12,15 @@ export default defineConfig({
   },
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["list"], ["github"]] : "list",
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: ["--autoplay-policy=no-user-gesture-required"],
+        },
+      },
+    },
+  ],
 });

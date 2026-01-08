@@ -11,6 +11,7 @@ interface ProjectState {
   // Audio state
   audioFileName: string | null;
   audioDuration: number; // in seconds
+  audioOffset: number; // in seconds - position in audio that aligns with beat 0
   isPlaying: boolean;
   playheadPosition: number; // in seconds
 
@@ -26,6 +27,7 @@ interface ProjectState {
 
   // Audio actions
   setAudioFile: (fileName: string, duration: number) => void;
+  setAudioOffset: (offset: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlayheadPosition: (position: number) => void;
 }
@@ -45,6 +47,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   // Audio state
   audioFileName: null,
   audioDuration: 0,
+  audioOffset: 0,
   isPlaying: false,
   playheadPosition: 0,
 
@@ -92,8 +95,11 @@ export const useProjectStore = create<ProjectState>((set) => ({
     set({
       audioFileName: fileName,
       audioDuration: duration,
+      audioOffset: 0,
       playheadPosition: 0,
     }),
+
+  setAudioOffset: (offset) => set({ audioOffset: offset }),
 
   setIsPlaying: (playing) => set({ isPlaying: playing }),
 

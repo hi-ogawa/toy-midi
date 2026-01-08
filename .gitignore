@@ -1,26 +1,6 @@
-# Dependencies
 node_modules/
-
-# Build
 dist/
-
-# Local reference repos (cloned for study)
-refs/
-
-# Editor
-.vscode/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-
-# Env
-.env
-.env.local
-
-# TypeScript
 *.tsbuildinfo
-
-# Test
 test-results/
+refs/
+demo.*
