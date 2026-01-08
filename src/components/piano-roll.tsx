@@ -712,10 +712,16 @@ export function PianoRoll() {
             </div>
             <div>
               bottomPitch:{" "}
-              {Math.max(MIN_PITCH, MAX_PITCH - Math.floor(scrollY + visibleKeys))}{" "}
+              {Math.max(
+                MIN_PITCH,
+                MAX_PITCH - Math.floor(scrollY + visibleKeys),
+              )}{" "}
               (
               {midiToNoteName(
-                Math.max(MIN_PITCH, MAX_PITCH - Math.floor(scrollY + visibleKeys)),
+                Math.max(
+                  MIN_PITCH,
+                  MAX_PITCH - Math.floor(scrollY + visibleKeys),
+                ),
               )}
               )
             </div>
@@ -740,8 +746,9 @@ export function PianoRoll() {
                     key={note.id}
                     className={`${selectedNoteIds.has(note.id) ? "text-blue-400" : ""}`}
                   >
-                    {note.id}: pitch={note.pitch} ({midiToNoteName(note.pitch)}),
-                    start={note.start.toFixed(2)}, dur={note.duration.toFixed(2)}
+                    {note.id}: pitch={note.pitch} ({midiToNoteName(note.pitch)}
+                    ), start={note.start.toFixed(2)}, dur=
+                    {note.duration.toFixed(2)}
                     <span className="text-neutral-500 ml-1">
                       → y={(MAX_PITCH - scrollY - note.pitch) * pixelsPerKey}px
                     </span>
