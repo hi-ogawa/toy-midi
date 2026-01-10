@@ -1,4 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
@@ -15,6 +17,8 @@ import {
 const savedProjectExists = hasSavedProject();
 
 export function App() {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   const initMutation = useMutation({
     mutationFn: async (continueProject: boolean) => {
       await audioManager.init();
@@ -58,6 +62,22 @@ export function App() {
       });
     },
   });
+
+  // Escape to close help overlay
+  useEffect(() => {
+    if (!isHelpOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsHelpOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isHelpOpen]);
 
   if (initMutation.isPending) {
     return (
@@ -106,8 +126,9 @@ export function App() {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
-      <Transport />
+      <Transport onHelpClick={() => setIsHelpOpen(true)} />
       <PianoRoll />
+      <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }

@@ -10,7 +10,11 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export function Transport() {
+type TransportProps = {
+  onHelpClick: () => void;
+};
+
+export function Transport({ onHelpClick }: TransportProps) {
   const {
     audioFileName,
     audioDuration,
@@ -325,6 +329,16 @@ export function Transport() {
           title="Toggle metronome"
         >
           Metro
+        </button>
+
+        {/* Help button */}
+        <button
+          data-testid="help-button"
+          onClick={onHelpClick}
+          className="w-6 h-6 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded text-neutral-400 hover:text-neutral-200 text-sm font-bold"
+          title="Show keyboard shortcuts"
+        >
+          ?
         </button>
       </div>
     </div>
