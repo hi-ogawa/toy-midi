@@ -189,10 +189,13 @@ export function Transport({ onHelpClick }: TransportProps) {
         : "Piano Roll",
     });
 
-    // Generate filename based on audio file or default
-    const fileName = audioFileName
-      ? audioFileName.replace(/\.[^.]+$/, ".mid")
-      : "export.mid";
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now
+      .toISOString()
+      .replace(/[T:]/g, "-")
+      .replace(/\.\d+Z$/, "");
+    const fileName = `toy-midi-export-${timestamp}.mid`;
 
     downloadMidiFile(midiData, fileName);
   };
