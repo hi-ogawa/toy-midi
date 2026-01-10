@@ -7,14 +7,12 @@ test.describe("Help Overlay", () => {
     await clickNewProject(page);
   });
 
-  test("shows help overlay when clicking help button", async ({ page }) => {
+  test("help overlay workflow", async ({ page }) => {
     // Help should not be visible initially
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
 
     // Click help button to show help
     await page.getByTestId("help-button").click();
-
-    // Help should now be visible
     await expect(page.getByTestId("help-overlay")).toBeVisible();
 
     // Check that it contains expected content
@@ -22,48 +20,7 @@ test.describe("Help Overlay", () => {
       page.getByRole("heading", { name: "Quick Reference" }),
     ).toBeVisible();
     await expect(page.getByText("Play / Pause")).toBeVisible();
-    // Use first() since "Delete selected notes" appears twice (for Delete and Backspace)
     await expect(page.getByText("Delete selected notes").first()).toBeVisible();
-  });
-
-  test("hides help overlay when pressing Escape", async ({ page }) => {
-    // Show help
-    await page.getByTestId("help-button").click();
-    await expect(page.getByTestId("help-overlay")).toBeVisible();
-
-    // Press Escape to hide
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("help-overlay")).not.toBeVisible();
-  });
-
-  test("hides help overlay when clicking backdrop", async ({ page }) => {
-    // Show help
-    await page.getByTestId("help-button").click();
-    await expect(page.getByTestId("help-overlay")).toBeVisible();
-
-    // Click the backdrop (outside the modal content)
-    await page
-      .getByTestId("help-overlay")
-      .click({ position: { x: 10, y: 10 } });
-    await expect(page.getByTestId("help-overlay")).not.toBeVisible();
-  });
-
-  test("does not close when clicking inside modal content", async ({
-    page,
-  }) => {
-    // Show help
-    await page.getByTestId("help-button").click();
-    await expect(page.getByTestId("help-overlay")).toBeVisible();
-
-    // Click inside the modal content
-    await page.getByRole("heading", { name: "Quick Reference" }).click();
-
-    // Help should still be visible
-    await expect(page.getByTestId("help-overlay")).toBeVisible();
-  });
-
-  test("displays items organized by category", async ({ page }) => {
-    await page.getByTestId("help-button").click();
 
     // Check for category headers
     await expect(
@@ -76,7 +33,7 @@ test.describe("Help Overlay", () => {
       page.getByRole("heading", { name: "Navigation", exact: true }),
     ).toBeVisible();
 
-    // Check for keyboard shortcuts (rendered as kbd elements)
+    // Check for keyboard shortcuts
     await expect(page.locator("kbd", { hasText: /^Space$/ })).toBeVisible();
     await expect(page.locator("kbd", { hasText: /^Delete$/ })).toBeVisible();
     await expect(page.locator("kbd", { hasText: /^Escape$/ })).toBeVisible();
@@ -85,5 +42,21 @@ test.describe("Help Overlay", () => {
     await expect(page.getByText("Create new note")).toBeVisible();
     await expect(page.getByText("Move note (time + pitch)")).toBeVisible();
     await expect(page.getByText("Zoom in / out")).toBeVisible();
+
+    // Click inside modal content - should stay open
+    await page.getByRole("heading", { name: "Quick Reference" }).click();
+    await expect(page.getByTestId("help-overlay")).toBeVisible();
+
+    // Click backdrop to close
+    await page
+      .getByTestId("help-overlay")
+      .click({ position: { x: 10, y: 10 } });
+    await expect(page.getByTestId("help-overlay")).not.toBeVisible();
+
+    // Open again and close with Escape
+    await page.getByTestId("help-button").click();
+    await expect(page.getByTestId("help-overlay")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("help-overlay")).not.toBeVisible();
   });
 });
