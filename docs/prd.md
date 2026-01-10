@@ -90,8 +90,10 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: deploy (vercel)
 - [x] fix: move toolbar to transport header (debug button as small bug icon button)
 - [ ] fix: rework transport header layout
-  - metro on off align left
-  - volume somewhere else?
+  - metro toggle align left
+  - play/pause use proper icon
+  - button text shouldn't be black
+  - input/button/select design (height?) seems inconsistent
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
