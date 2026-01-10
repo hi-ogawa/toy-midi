@@ -12,13 +12,13 @@
 
 ## Key Docs
 
-| File                   | Purpose                              |
-| ---------------------- | ------------------------------------ |
-| `docs/prd.md`          | Requirements, UX specs, architecture |
-| `docs/references.md`   | Reference projects and libraries     |
-| `docs/decisions.md`    | Technical decisions log              |
-| `docs/TODO.md`         | Open items (remove when done)        |
-| `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes         |
+| File                   | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `docs/TODO.md`         | **Short-term tasks (start here)** |
+| `docs/prd.md`          | Requirements, UX specs, features  |
+| `docs/architecture.md` | Technical architecture overview   |
+| `docs/references.md`   | Reference projects and libraries  |
+| `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes      |
 
 Read `docs/prd.md` before implementing features.
 
@@ -80,7 +80,9 @@ Setup: `pnpm dlx tiged https://github.com/Tonejs/Tone.js.git refs/Tone.js`
 | MIDI export             | Medium   | Unit tests for output format            |
 | Audio playback          | Low      | Manual testing for now                  |
 
-**Note**: Web Audio integration is hard to test automatically. Focus tests on:
+**Note**: (TODO: reconsider audio testing ⚠️)
+
+Web Audio integration is hard to test automatically. Focus tests on:
 
 - SVG rendering and interaction
 - Mouse event handling (create, move, resize notes)

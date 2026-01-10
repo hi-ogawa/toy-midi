@@ -11,6 +11,5 @@ pnpm dev
 
 ## Docs
 
-- [PRD](docs/prd.md) - Requirements and architecture
-- [Decisions](docs/decisions.md) - Technical decisions log
-- [TODO](docs/TODO.md) - Open items
+- [PRD](docs/prd.md) - Requirements and features
+- [Architecture](docs/architecture.md) - Technical architecture
