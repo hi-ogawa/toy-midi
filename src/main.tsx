@@ -4,6 +4,9 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
+import { exposeStoreForE2E } from "./stores/project-store";
+
+exposeStoreForE2E();
 
 const queryClient = new QueryClient({
   defaultOptions: {
