@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 import { saveAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
+import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { GridSnap } from "../types";
 
@@ -184,6 +185,26 @@ export function Transport({ onHelpClick }: TransportProps) {
     }
   };
 
+  const handleExportMidi = () => {
+    const midiData = exportMidi({
+      notes,
+      tempo,
+      trackName: audioFileName
+        ? audioFileName.replace(/\.[^.]+$/, "")
+        : "Piano Roll",
+    });
+
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now
+      .toISOString()
+      .replace(/[T:]/g, "-")
+      .replace(/\.\d+Z$/, "");
+    const fileName = `toy-midi-export-${timestamp}.mid`;
+
+    downloadMidiFile(midiData, fileName);
+  };
+
   return (
     <div
       data-testid="transport"
@@ -206,6 +227,17 @@ export function Transport({ onHelpClick }: TransportProps) {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {/* Export MIDI button */}
+      <button
+        data-testid="export-midi-button"
+        onClick={handleExportMidi}
+        disabled={notes.length === 0}
+        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50"
+        title="Export MIDI file"
+      >
+        Export MIDI
+      </button>
 
       {/* Play/Pause button - always enabled for MIDI-only mode */}
       <button
