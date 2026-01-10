@@ -63,7 +63,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: MIDI export (.mid file with tempo)
 - [ ] feat: time signature support (currently hardcoded 4/4)
 - [ ] feat: embed soundfont (bass sound)
-- [ ] feat: midi preview when pressing keyboard sidebar
+- [x] feat: midi preview when pressing keyboard sidebar
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] feat: toggle auto-scroll during playback

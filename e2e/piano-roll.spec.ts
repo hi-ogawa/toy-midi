@@ -375,7 +375,10 @@ test.describe("Piano Roll", () => {
 
     // Click on the keyboard key to trigger preview
     // We can't directly test audio output in E2E, but we can verify the click works
-    await page.mouse.click(keyBox.x + keyBox.width / 2, keyBox.y + keyBox.height / 2);
+    await page.mouse.click(
+      keyBox.x + keyBox.width / 2,
+      keyBox.y + keyBox.height / 2,
+    );
 
     // The test passes if no errors occur - audio preview is played in the background
     // Manual verification needed for actual audio output
