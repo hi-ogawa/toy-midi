@@ -82,13 +82,13 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
-- [ ] fix: initial flash of lower keys
+- [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: timeline click-to-seek delay
 - [ ] fix: jumping timeline during playback
 - [ ] fix: "No audio loaded" label scroll behavior
 - [ ] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
-- [ ] fix: move toobar to transport header (debug button as small bug icon button)
+- [x] fix: move toolbar to transport header (debug button as small bug icon button)
 - [ ] fix: rework transport header layout
   - metro on off align left
   - volume somewhere else?

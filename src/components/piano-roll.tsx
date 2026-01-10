@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { audioManager } from "../lib/audio";
 import {
   isBlackKey,
@@ -173,12 +179,12 @@ export function PianoRoll() {
     isPlaying,
     audioDuration,
     audioOffset,
+    showDebug,
     addNote,
     updateNote,
     deleteNotes,
     selectNotes,
     deselectAll,
-    setGridSnap,
     setPlayheadPosition,
     setAudioOffset,
     audioPeaks,
@@ -187,7 +193,6 @@ export function PianoRoll() {
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
-  const [showDebug, setShowDebug] = useState(false);
 
   // Viewport state: scroll position (in beats/semitones) and zoom (pixels per unit)
   const [scrollX, setScrollX] = useState(0); // leftmost visible beat
@@ -207,8 +212,8 @@ export function PianoRoll() {
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
 
-  // Update viewport size on resize
-  useEffect(() => {
+  // Update viewport size on resize (useLayoutEffect to measure before paint)
+  useLayoutEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -624,33 +629,6 @@ export function PianoRoll() {
 
   return (
     <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
-      {/* Toolbar */}
-      <div className="h-12 flex items-center gap-4 px-4 border-b border-neutral-700 shrink-0">
-        <span className="text-sm text-neutral-400">Grid:</span>
-        <select
-          value={gridSnap}
-          onChange={(e) => setGridSnap(e.target.value as GridSnap)}
-          className="bg-neutral-800 border border-neutral-600 rounded px-2 py-1 text-sm"
-        >
-          <option value="1/4">1/4</option>
-          <option value="1/8">1/8</option>
-          <option value="1/16">1/16</option>
-          <option value="1/4T">1/4T</option>
-          <option value="1/8T">1/8T</option>
-          <option value="1/16T">1/16T</option>
-        </select>
-
-        <span className="text-sm text-neutral-500 ml-auto">
-          {selectedNoteIds.size > 0 && `${selectedNoteIds.size} selected`}
-        </span>
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className={`text-xs px-2 py-1 rounded ${showDebug ? "bg-yellow-600" : "bg-neutral-700"}`}
-        >
-          Debug
-        </button>
-      </div>
-
       {/* Main content area - fixed layout, no native scroll */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: keyboard labels */}
