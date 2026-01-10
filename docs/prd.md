@@ -82,16 +82,18 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
-- [ ] fix: initial flash of lower keys
+- [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: timeline click-to-seek delay
 - [ ] fix: jumping timeline during playback
 - [ ] fix: "No audio loaded" label scroll behavior
 - [ ] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
-- [ ] fix: move toobar to transport header (debug button as small bug icon button)
+- [x] fix: move toolbar to transport header (debug button as small bug icon button)
 - [ ] fix: rework transport header layout
-  - metro on off align left
-  - volume somewhere else?
+  - metro toggle align left
+  - play/pause use proper icon
+  - button text shouldn't be black
+  - input/button/select design (height?) seems inconsistent
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
