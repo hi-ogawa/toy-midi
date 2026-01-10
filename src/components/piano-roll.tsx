@@ -994,7 +994,7 @@ function Keyboard({
     rows.push(
       <div
         key={pitch}
-        className={`flex items-center justify-end pr-2 text-xs border-b ${
+        className={`flex items-center justify-end pr-2 text-xs border-b cursor-pointer hover:brightness-110 ${
           black
             ? "bg-neutral-800 border-neutral-700"
             : needsStrongBorder
@@ -1002,6 +1002,10 @@ function Keyboard({
               : "bg-neutral-300 border-neutral-400 text-neutral-600"
         }`}
         style={{ height: pixelsPerKey }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          audioManager.playNote(pitch);
+        }}
       >
         {isC ? midiToNoteName(pitch) : ""}
       </div>,
