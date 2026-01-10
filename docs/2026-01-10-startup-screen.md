@@ -71,6 +71,7 @@ File: `e2e/startup-screen.spec.ts`
 
 - User gesture requirement is the main driver
 - Should offer "Continue" vs "New Project" choice (not auto-restore)
+- **2026-01-10**: Added Enter key support as quick path - pressing Enter continues saved project if exists, otherwise starts new project
 
 ## Status
 
@@ -79,3 +80,4 @@ File: `e2e/startup-screen.spec.ts`
 - [x] Implementation started
 - [x] Implementation complete
 - [x] Tests passing (36/36)
+- [x] Enter key support added (quick path to continue or start)

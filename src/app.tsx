@@ -63,6 +63,24 @@ export function App() {
     },
   });
 
+  // Enter to continue saved project (startup screen only)
+  useEffect(() => {
+    // Only enable Enter key if there's a saved project and we're on startup screen
+    if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
+      return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        initMutation.mutate(true); // Always continue with saved project
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [initMutation, savedProjectExists]);
+
   // Escape to close help overlay
   useEffect(() => {
     if (!isHelpOpen) return;
@@ -119,6 +137,15 @@ export function App() {
               New Project
             </button>
           </div>
+          {savedProjectExists && (
+            <div className="text-neutral-500 text-sm">
+              Press{" "}
+              <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
+                Enter
+              </kbd>{" "}
+              to continue
+            </div>
+          )}
         </div>
       </div>
     );

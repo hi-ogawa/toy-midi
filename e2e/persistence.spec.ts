@@ -15,7 +15,7 @@ test.describe("Project Persistence", () => {
     await clickNewProject(page);
   });
 
-  test("notes persist after page reload", async ({ page }) => {
+  test("notes persist after reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -140,50 +140,23 @@ test.describe("Project Persistence", () => {
     );
   });
 
-  test("tempo persists after reload", async ({ page }) => {
+  test("settings persist after reload", async ({ page }) => {
+    // Change tempo
     const tempoInput = page.getByTestId("tempo-input");
     await expect(tempoInput).toHaveValue("120");
-
-    // Change tempo
     await tempoInput.fill("95");
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("95");
 
-    // Wait for auto-save
-    await page.waitForTimeout(600);
-
-    // Reload and click Continue to restore
-    await page.reload();
-    await clickContinue(page);
-
-    // Tempo should be restored
-    await expect(page.getByTestId("tempo-input")).toHaveValue("95");
-  });
-
-  test("grid snap persists after reload", async ({ page }) => {
+    // Change grid snap
     const gridSelect = page.locator("select").first();
     await expect(gridSelect).toHaveValue("1/8");
-
-    // Change grid snap
     await gridSelect.selectOption("1/16");
     await expect(gridSelect).toHaveValue("1/16");
 
-    // Wait for auto-save
-    await page.waitForTimeout(600);
-
-    // Reload and click Continue to restore
-    await page.reload();
-    await clickContinue(page);
-
-    // Grid snap should be restored
-    await expect(page.locator("select").first()).toHaveValue("1/16");
-  });
-
-  test("metronome setting persists after reload", async ({ page }) => {
+    // Enable metronome
     const metronomeToggle = page.getByTestId("metronome-toggle");
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
-
-    // Enable metronome
     await metronomeToggle.click();
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
@@ -194,7 +167,9 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Metronome should still be enabled
+    // All settings should be restored
+    await expect(page.getByTestId("tempo-input")).toHaveValue("95");
+    await expect(page.locator("select").first()).toHaveValue("1/16");
     await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -296,7 +271,7 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
   });
 
-  test("selection is not persisted (transient state)", async ({ page }) => {
+  test("transient state resets on reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -323,37 +298,6 @@ test.describe("Project Persistence", () => {
     const restoredNote = page.locator("[data-testid^='note-']").first();
     await expect(restoredNote).toHaveCount(1);
     await expect(restoredNote).toHaveAttribute("data-selected", "false");
-  });
-
-  test("playhead position resets on reload (transient state)", async ({
-    page,
-  }) => {
-    // This test verifies that playhead resets to 0 on reload
-    // Since we can't easily move playhead without playing, we just verify
-    // the initial state is correct after reload with persisted data
-
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note to ensure we have persisted state
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1,
-      gridBox.y + ROW_HEIGHT * 3,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 2,
-      gridBox.y + ROW_HEIGHT * 3,
-    );
-    await page.mouse.up();
-
-    // Wait for auto-save
-    await page.waitForTimeout(600);
-
-    // Reload and click Continue to restore
-    await page.reload();
-    await clickContinue(page);
 
     // Time display should show 0:00 (playhead at start)
     const timeDisplay = page.getByTestId("time-display");

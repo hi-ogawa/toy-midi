@@ -86,6 +86,12 @@ Setup: `pnpm dlx tiged https://github.com/Tonejs/Tone.js.git refs/Tone.js`
 | MIDI export             | Medium   | Unit tests for output format            |
 | Audio playback          | Low      | Manual testing for now                  |
 
+**E2E iteration tips**: Use `--timeout` and `-x` to fail fast when iterating:
+
+```bash
+pnpm test-e2e --timeout 5000 -x  # 5s timeout, stop on first failure
+```
+
 **Note**: (TODO: reconsider audio testing ⚠️)
 
 Web Audio integration is hard to test automatically. Focus tests on:
