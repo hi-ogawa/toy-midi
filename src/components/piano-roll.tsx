@@ -317,10 +317,9 @@ export function PianoRoll() {
             );
             // Zoom around mouse position horizontally
             const beatAtMouse = mouseX / pixelsPerBeat + scrollX;
-            const newMouseX = (beatAtMouse - scrollX) * newPixelsPerBeat;
             const newScrollX = Math.max(
               0,
-              scrollX + (mouseX - newMouseX) / newPixelsPerBeat,
+              beatAtMouse - mouseX / newPixelsPerBeat,
             );
             setPixelsPerBeat(newPixelsPerBeat);
             setScrollX(newScrollX);
@@ -333,14 +332,14 @@ export function PianoRoll() {
             );
             // Zoom around mouse position vertically
             const keyAtMouse = mouseY / pixelsPerKey + scrollY;
-            const newMouseY = (keyAtMouse - scrollY) * newPixelsPerKey;
-            const maxScrollY = Math.max(0, MAX_PITCH - MIN_PITCH - visibleKeys);
+            const newVisibleKeys = viewportSize.height / newPixelsPerKey;
+            const maxScrollY = Math.max(
+              0,
+              MAX_PITCH - MIN_PITCH - newVisibleKeys,
+            );
             const newScrollY = Math.max(
               0,
-              Math.min(
-                maxScrollY,
-                scrollY + (mouseY - newMouseY) / newPixelsPerKey,
-              ),
+              Math.min(maxScrollY, keyAtMouse - mouseY / newPixelsPerKey),
             );
             setPixelsPerKey(newPixelsPerKey);
             setScrollY(newScrollY);
@@ -974,6 +973,25 @@ function Keyboard({
   scrollY: number;
   viewportHeight: number;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const lastPlayedPitch = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      lastPlayedPitch.current = null;
+    };
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  const playPitch = useCallback((pitch: number) => {
+    if (lastPlayedPitch.current !== pitch) {
+      lastPlayedPitch.current = pitch;
+      audioManager.playNote(pitch);
+    }
+  }, []);
+
   const rows = [];
   // Calculate which pitches are visible
   const startPitch = Math.min(MAX_PITCH, MAX_PITCH - Math.floor(scrollY));
@@ -994,7 +1012,7 @@ function Keyboard({
     rows.push(
       <div
         key={pitch}
-        className={`flex items-center justify-end pr-2 text-xs border-b ${
+        className={`flex items-center justify-end pr-2 text-xs border-b cursor-pointer hover:brightness-110 ${
           black
             ? "bg-neutral-800 border-neutral-700"
             : needsStrongBorder
@@ -1002,6 +1020,16 @@ function Keyboard({
               : "bg-neutral-300 border-neutral-400 text-neutral-600"
         }`}
         style={{ height: pixelsPerKey }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+          playPitch(pitch);
+        }}
+        onMouseEnter={() => {
+          if (isDragging) {
+            playPitch(pitch);
+          }
+        }}
       >
         {isC ? midiToNoteName(pitch) : ""}
       </div>,

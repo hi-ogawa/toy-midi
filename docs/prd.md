@@ -63,7 +63,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: MIDI export (.mid file with tempo)
 - [ ] feat: time signature support (currently hardcoded 4/4)
 - [ ] feat: embed soundfont (bass sound)
-- [ ] feat: midi preview when pressing keyboard sidebar
+- [x] feat: midi preview when pressing keyboard sidebar
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] feat: toggle auto-scroll during playback
@@ -78,7 +78,7 @@ See [architecture.md](architecture.md) for implementation details.
     - [x] chore: setup sonner for error toasts
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
-- [ ] fix: zoom should keep cursor as center
+- [x] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
