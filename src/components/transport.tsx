@@ -1,0 +1,326 @@
+import { useCallback, useEffect, useRef } from "react";
+import { saveAsset } from "../lib/asset-store";
+import { audioManager } from "../lib/audio";
+import { useProjectStore } from "../stores/project-store";
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+export function Transport() {
+  const {
+    audioFileName,
+    audioDuration,
+    isPlaying,
+    playheadPosition,
+    tempo,
+    notes,
+    audioVolume,
+    midiVolume,
+    metronomeEnabled,
+    setAudioFile,
+    setIsPlaying,
+    setPlayheadPosition,
+    setTempo,
+    setAudioVolume,
+    setMidiVolume,
+    setMetronomeEnabled,
+    setAudioPeaks,
+  } = useProjectStore();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const tapTimesRef = useRef<number[]>([]);
+
+  // Position tracking loop
+  const updatePosition = useCallback(() => {
+    if (audioManager.isPlaying) {
+      setPlayheadPosition(audioManager.position);
+      rafRef.current = requestAnimationFrame(updatePosition);
+    }
+  }, [setPlayheadPosition]);
+
+  // Start/stop position tracking when play state changes
+  useEffect(() => {
+    if (isPlaying) {
+      rafRef.current = requestAnimationFrame(updatePosition);
+    } else if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, [isPlaying, updatePosition]);
+
+  const handleLoadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const duration = await audioManager.loadAudio(file);
+
+      // Save audio to IndexedDB for persistence
+      const assetKey = await saveAsset(file);
+
+      setAudioFile(file.name, duration, assetKey);
+      setPlayheadPosition(0);
+
+      // Extract peaks for waveform display
+      const peaksPerSecond = 100;
+      const peaks = audioManager.getPeaks(peaksPerSecond);
+      setAudioPeaks(peaks, peaksPerSecond);
+    } catch (err) {
+      console.error("Failed to load audio:", err);
+    }
+
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  // Initialize audio manager and sync volumes
+  useEffect(() => {
+    audioManager.init().then(() => {
+      audioManager.setAudioVolume(audioVolume);
+      audioManager.setMidiVolume(midiVolume);
+      audioManager.setMetronomeEnabled(metronomeEnabled);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePlayPause = useCallback(async () => {
+    // Allow play if audio loaded OR just for MIDI-only mode
+    await audioManager.init();
+
+    if (isPlaying) {
+      audioManager.pause();
+      audioManager.clearScheduledNotes();
+      setIsPlaying(false);
+    } else {
+      // Schedule MIDI notes from current position
+      audioManager.scheduleNotes(notes, audioManager.position, tempo);
+      audioManager.play();
+      setIsPlaying(true);
+    }
+  }, [isPlaying, setIsPlaying, notes, tempo]);
+
+  // Space key to toggle play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        // Don't trigger if typing in an input
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        e.preventDefault();
+        handlePlayPause();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePlayPause]);
+
+  // Use audioDuration > 0 as proxy for loaded state (reactive)
+  const audioLoaded = audioDuration > 0;
+
+  const handleAudioVolumeChange = (value: number) => {
+    setAudioVolume(value);
+    audioManager.setAudioVolume(value);
+  };
+
+  const handleMidiVolumeChange = (value: number) => {
+    setMidiVolume(value);
+    audioManager.setMidiVolume(value);
+  };
+
+  const handleMetronomeToggle = () => {
+    const newValue = !metronomeEnabled;
+    setMetronomeEnabled(newValue);
+    audioManager.setMetronomeEnabled(newValue);
+  };
+
+  const handleTapTempo = () => {
+    const now = performance.now();
+    const taps = tapTimesRef.current;
+
+    // Reset if last tap was more than 2 seconds ago
+    if (taps.length > 0 && now - taps[taps.length - 1] > 2000) {
+      tapTimesRef.current = [];
+    }
+
+    taps.push(now);
+
+    // Keep only last 8 taps
+    if (taps.length > 8) {
+      taps.shift();
+    }
+
+    // Need at least 2 taps to calculate BPM
+    if (taps.length >= 2) {
+      const intervals: number[] = [];
+      for (let i = 1; i < taps.length; i++) {
+        intervals.push(taps[i] - taps[i - 1]);
+      }
+      const avgInterval =
+        intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      const bpm = Math.round(60000 / avgInterval);
+
+      // Clamp to valid range
+      if (bpm >= 30 && bpm <= 300) {
+        setTempo(bpm);
+      }
+    }
+  };
+
+  return (
+    <div
+      data-testid="transport"
+      className="flex items-center gap-3 px-4 py-2 bg-neutral-800 border-b border-neutral-700"
+    >
+      {/* Load button */}
+      <button
+        data-testid="load-audio-button"
+        onClick={handleLoadClick}
+        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded"
+      >
+        Load Audio
+      </button>
+      <input
+        data-testid="audio-file-input"
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Play/Pause button - always enabled for MIDI-only mode */}
+      <button
+        data-testid="play-pause-button"
+        onClick={handlePlayPause}
+        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded"
+      >
+        {isPlaying ? (
+          <span className="text-lg">⏸</span>
+        ) : (
+          <span className="text-lg">▶</span>
+        )}
+      </button>
+
+      {/* Time display */}
+      <div
+        data-testid="time-display"
+        className="font-mono text-sm text-neutral-300 min-w-[100px]"
+      >
+        {formatTime(playheadPosition)} / {formatTime(audioDuration)}
+      </div>
+
+      {/* Tempo input */}
+      <div className="flex items-center gap-1">
+        <input
+          data-testid="tempo-input"
+          type="number"
+          min={30}
+          max={300}
+          value={tempo}
+          onChange={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value)) {
+              // Accept any value during typing, clamp on blur
+              setTempo(value);
+            }
+          }}
+          onBlur={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value)) {
+              setTempo(Math.min(300, Math.max(30, value)));
+            }
+          }}
+          className="w-14 px-1 py-0.5 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center"
+        />
+        <span className="text-xs text-neutral-400">BPM</span>
+        <button
+          data-testid="tap-tempo-button"
+          onClick={handleTapTempo}
+          className="px-2 py-0.5 text-xs bg-neutral-700 hover:bg-neutral-600 rounded"
+          title="Tap to set tempo"
+        >
+          Tap
+        </button>
+      </div>
+
+      {/* File name */}
+      {audioFileName && (
+        <span
+          data-testid="audio-file-name"
+          className="text-sm text-neutral-400 truncate max-w-[200px]"
+        >
+          {audioFileName}
+        </span>
+      )}
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Mixer controls */}
+      <div className="flex items-center gap-3">
+        {/* Audio volume */}
+        {audioLoaded && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-neutral-500">Audio</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={audioVolume * 100}
+              onChange={(e) =>
+                handleAudioVolumeChange(parseInt(e.target.value, 10) / 100)
+              }
+              className="w-16 h-1 accent-neutral-400"
+            />
+          </div>
+        )}
+
+        {/* MIDI volume */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-neutral-500">MIDI</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={midiVolume * 100}
+            onChange={(e) =>
+              handleMidiVolumeChange(parseInt(e.target.value, 10) / 100)
+            }
+            className="w-16 h-1 accent-neutral-400"
+          />
+        </div>
+
+        {/* Metronome toggle */}
+        <button
+          data-testid="metronome-toggle"
+          onClick={handleMetronomeToggle}
+          aria-pressed={metronomeEnabled}
+          className={`px-2 py-1 text-xs rounded ${
+            metronomeEnabled
+              ? "bg-emerald-600 text-white"
+              : "bg-neutral-700 text-neutral-400 hover:bg-neutral-600"
+          }`}
+          title="Toggle metronome"
+        >
+          Metro
+        </button>
+      </div>
+    </div>
+  );
+}
