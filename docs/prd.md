@@ -67,7 +67,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] feat: toggle auto-scroll during playback
-- [ ] feat: help overlay (? key, code-generated from keybindings)
+- [x] feat: help overlay (? key, code-generated from keybindings)
 - [ ] feat: higher resolution waveform at zoom
 - [ ] feat: asset management UI
 - [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
@@ -106,9 +106,9 @@ See [architecture.md](architecture.md) for implementation details.
 - Audio recording
 - Pitch-preserved tempo change
 
-## Quick Reference ⚠️
+## Quick Reference
 
-> May be outdated. See TODO: help overlay.
+> Press **?** in the app to see the interactive help overlay with all keyboard shortcuts and mouse actions.
 
 ### Mouse
 
@@ -128,6 +128,7 @@ See [architecture.md](architecture.md) for implementation details.
 | Delete / Backspace | Delete selected |
 | Escape             | Deselect all    |
 | Space              | Play/pause      |
+| ?                  | Show/hide help  |
 
 ### Toolbar
 
