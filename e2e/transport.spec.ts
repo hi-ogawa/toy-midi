@@ -161,7 +161,7 @@ test.describe("Transport Controls", () => {
     await expect(exportButton).toBeEnabled();
   });
 
-  test("export MIDI downloads a file", async ({ page, context }) => {
+  test("export MIDI downloads a file", async ({ page }) => {
     // Add a note by clicking on the piano roll
     const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
     await pianoRoll.click({ position: { x: 100, y: 100 } });
