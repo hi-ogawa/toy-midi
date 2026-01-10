@@ -974,6 +974,25 @@ function Keyboard({
   scrollY: number;
   viewportHeight: number;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const lastPlayedPitch = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      lastPlayedPitch.current = null;
+    };
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => window.removeEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  const playPitch = useCallback((pitch: number) => {
+    if (lastPlayedPitch.current !== pitch) {
+      lastPlayedPitch.current = pitch;
+      audioManager.playNote(pitch);
+    }
+  }, []);
+
   const rows = [];
   // Calculate which pitches are visible
   const startPitch = Math.min(MAX_PITCH, MAX_PITCH - Math.floor(scrollY));
@@ -1004,7 +1023,13 @@ function Keyboard({
         style={{ height: pixelsPerKey }}
         onMouseDown={(e) => {
           e.preventDefault();
-          audioManager.playNote(pitch);
+          setIsDragging(true);
+          playPitch(pitch);
+        }}
+        onMouseEnter={() => {
+          if (isDragging) {
+            playPitch(pitch);
+          }
         }}
       >
         {isC ? midiToNoteName(pitch) : ""}
