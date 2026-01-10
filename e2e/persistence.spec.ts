@@ -103,6 +103,43 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
   });
 
+  test("audio file persists after reload", async ({ page }) => {
+    // Load audio file
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByTestId("load-audio-button").click(),
+    ]);
+    await fileChooser.setFiles("public/test-audio.wav");
+
+    // Wait for audio to load
+    await expect(page.getByTestId("audio-file-name")).toBeVisible();
+    await expect(page.getByTestId("audio-file-name")).toHaveText(
+      "test-audio.wav",
+    );
+
+    // Get duration before reload
+    const timeDisplay = page.getByTestId("time-display");
+    await expect(timeDisplay).not.toContainText("0:00 / 0:00");
+
+    // Wait for auto-save
+    await page.waitForTimeout(600);
+
+    // Reload and click Continue to restore
+    await page.reload();
+    await clickContinue(page);
+
+    // Audio file name should be restored
+    await expect(page.getByTestId("audio-file-name")).toBeVisible();
+    await expect(page.getByTestId("audio-file-name")).toHaveText(
+      "test-audio.wav",
+    );
+
+    // Duration should be restored (not 0:00)
+    await expect(page.getByTestId("time-display")).not.toContainText(
+      "0:00 / 0:00",
+    );
+  });
+
   test("tempo persists after reload", async ({ page }) => {
     const tempoInput = page.getByTestId("tempo-input");
     await expect(tempoInput).toHaveValue("120");

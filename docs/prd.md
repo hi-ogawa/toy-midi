@@ -92,7 +92,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
-- [ ] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
+- [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 
