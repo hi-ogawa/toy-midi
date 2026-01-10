@@ -1,6 +1,6 @@
 import { Midi } from "@tonejs/midi";
-import { Note } from "../types";
 import { beatsToSeconds } from "../stores/project-store";
+import { Note } from "../types";
 
 export interface MidiExportOptions {
   notes: Note[];
@@ -18,20 +18,20 @@ export function exportMidi(options: MidiExportOptions): Uint8Array {
 
   // Create a new MIDI file
   const midi = new Midi();
-  
+
   // Set tempo
   midi.header.setTempo(tempo);
-  
+
   // Add a single track for all notes
   const track = midi.addTrack();
   track.name = trackName;
-  
+
   // Add all notes to the track
   // Notes in the store are in beats, need to convert to seconds
   notes.forEach((note) => {
     const timeInSeconds = beatsToSeconds(note.start, tempo);
     const durationInSeconds = beatsToSeconds(note.duration, tempo);
-    
+
     track.addNote({
       midi: note.pitch,
       time: timeInSeconds,

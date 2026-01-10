@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { exportMidi } from "./midi-export";
 import { Note } from "../types";
+import { exportMidi } from "./midi-export";
 
 describe("MIDI Export", () => {
   it("should create a valid MIDI file with correct tempo", () => {
