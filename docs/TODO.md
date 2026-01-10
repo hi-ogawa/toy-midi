@@ -2,7 +2,7 @@
 
 Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
-## 1. Startup Screen
+## Startup Screen
 
 **Goal:** Solve AudioContext + persistence/init flow issues.
 
@@ -18,7 +18,7 @@ Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
 **Why:** Foundation for clean audio state. Fixes race conditions in restore flow.
 
-## 2. Audio ↔ State Sync Refactor
+## Audio ↔ State Sync Refactor
 
 **Goal:** Single source of truth, eliminate sync bugs.
 
