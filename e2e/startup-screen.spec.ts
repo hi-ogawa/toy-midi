@@ -133,7 +133,7 @@ test.describe("Startup Screen", () => {
     await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
   });
 
-  test("pressing Enter starts new project when no saved project", async ({
+  test("pressing Enter does nothing when no saved project", async ({
     page,
   }) => {
     await page.reload();
@@ -141,15 +141,17 @@ test.describe("Startup Screen", () => {
     // Verify startup screen is visible
     await expect(page.getByTestId("startup-screen")).toBeVisible();
 
-    // Press Enter
+    // Press Enter - should NOT start the app
     await page.keyboard.press("Enter");
 
-    // Main UI should be visible with empty state
-    await expect(page.getByTestId("transport")).toBeVisible();
-    await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
+    // Wait a bit to ensure nothing happens
+    await page.waitForTimeout(200);
 
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(0);
+    // Startup screen should still be visible (no navigation happened)
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+
+    // Main UI should NOT be visible
+    await expect(page.getByTestId("transport")).not.toBeVisible();
   });
 
   test("pressing Enter continues saved project when it exists", async ({

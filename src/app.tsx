@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
-import { StartupScreenKeyHandler } from "./components/startup-screen-key-handler";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager } from "./lib/audio";
@@ -64,6 +63,24 @@ export function App() {
     },
   });
 
+  // Enter to continue saved project (startup screen only)
+  useEffect(() => {
+    // Only enable Enter key if there's a saved project and we're on startup screen
+    if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
+      return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        initMutation.mutate(true); // Always continue with saved project
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [initMutation, savedProjectExists]);
+
   // Escape to close help overlay
   useEffect(() => {
     if (!isHelpOpen) return;
@@ -92,50 +109,45 @@ export function App() {
 
   if (!initMutation.isSuccess) {
     return (
-      <>
-        <StartupScreenKeyHandler
-          onEnter={() => initMutation.mutate(savedProjectExists)}
-        />
-        <div
-          data-testid="startup-screen"
-          className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
-        >
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold text-neutral-200">
-              toy-midi
-            </h1>
-            <div className="flex gap-3">
-              {hasSavedProject() && (
-                <button
-                  data-testid="continue-button"
-                  onClick={() => initMutation.mutate(true)}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
-                >
-                  Continue
-                </button>
-              )}
+      <div
+        data-testid="startup-screen"
+        className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
+      >
+        <div className="flex flex-col items-center gap-6">
+          <h1 className="text-2xl font-semibold text-neutral-200">toy-midi</h1>
+          <div className="flex gap-3">
+            {hasSavedProject() && (
               <button
-                data-testid="new-project-button"
-                onClick={() => initMutation.mutate(false)}
-                className={`px-6 py-3 rounded-lg font-medium ${
-                  savedProjectExists
-                    ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
-                    : "bg-emerald-600 hover:bg-emerald-500 text-white"
-                }`}
+                data-testid="continue-button"
+                onClick={() => initMutation.mutate(true)}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
               >
-                New Project
+                Continue
               </button>
-            </div>
+            )}
+            <button
+              data-testid="new-project-button"
+              onClick={() => initMutation.mutate(false)}
+              className={`px-6 py-3 rounded-lg font-medium ${
+                savedProjectExists
+                  ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+              }`}
+            >
+              New Project
+            </button>
+          </div>
+          {savedProjectExists && (
             <div className="text-neutral-500 text-sm">
               Press{" "}
               <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
                 Enter
               </kbd>{" "}
-              to {savedProjectExists ? "continue" : "start"}
+              to continue
             </div>
-          </div>
+          )}
         </div>
-      </>
+      </div>
     );
   }
 
