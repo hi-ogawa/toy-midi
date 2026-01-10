@@ -3,6 +3,7 @@
 ## Problem Context
 
 Implement a help overlay that:
+
 - Shows all keyboard shortcuts and mouse actions
 - Triggered by pressing `?` key
 - Dismissed by pressing `?` again or `Escape`
@@ -11,6 +12,7 @@ Implement a help overlay that:
 ## Current State
 
 Keyboard shortcuts are scattered across components:
+
 - `src/components/transport.tsx`: Space (play/pause)
 - `src/components/piano-roll.tsx`: Delete/Backspace (delete notes), Escape (deselect)
 
@@ -27,12 +29,18 @@ Mouse actions are documented in `docs/prd.md` but not in code.
 ## Implementation Steps
 
 - [x] Create task doc and plan
-- [ ] Create keybindings config file
-- [ ] Create help overlay component
-- [ ] Add global keyboard handler for `?` key
-- [ ] Add E2E test for help overlay
-- [ ] Manual verification with screenshots
+- [x] Create keybindings config file
+- [x] Create help overlay component
+- [x] Add global keyboard handler for `?` key
+- [x] Add E2E test for help overlay
+- [x] Manual verification with screenshots
+
+## Implementation Notes
+
+- Key handling: `?` key is detected as either `e.key === "?"` or `e.key === "/" && e.shiftKey` depending on browser/keyboard layout
+- Event capture phase used to prevent conflicts with piano-roll Escape handler
+- Help overlay z-index: 50 (higher than other components)
 
 ## Status
 
-Planning phase - awaiting approval.
+✅ Complete - All tests passing, feature implemented and verified.

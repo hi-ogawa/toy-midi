@@ -1,4 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
@@ -15,6 +17,8 @@ import {
 const savedProjectExists = hasSavedProject();
 
 export function App() {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   const initMutation = useMutation({
     mutationFn: async (continueProject: boolean) => {
       await audioManager.init();
@@ -58,6 +62,36 @@ export function App() {
       });
     },
   });
+
+  // Global keyboard handler for help overlay
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Show/hide help with '?' key (Shift + /)
+      // Note: e.key can be either "?" or "/" depending on keyboard layout/browser
+      if ((e.key === "?" || (e.key === "/" && e.shiftKey)) && !e.repeat) {
+        // Don't trigger if typing in an input
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        setIsHelpOpen((prev) => !prev);
+      }
+      // Also allow Escape to close help (only when help is open)
+      else if (e.key === "Escape" && isHelpOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsHelpOpen(false);
+      }
+    };
+
+    // Use capture phase to handle before other components
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isHelpOpen]);
 
   if (initMutation.isPending) {
     return (
@@ -108,6 +142,7 @@ export function App() {
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport />
       <PianoRoll />
+      <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
