@@ -219,9 +219,11 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
 };
 
 // Expose store for E2E testing in dev mode
-if (import.meta.env.DEV) {
-  (window as Window & { __store?: typeof useProjectStore }).__store =
-    useProjectStore;
+export function exposeStoreForE2E(): void {
+  if (import.meta.env.DEV) {
+    (window as Window & { __store?: typeof useProjectStore }).__store =
+      useProjectStore;
+  }
 }
 
 export function hasSavedProject(): boolean {
