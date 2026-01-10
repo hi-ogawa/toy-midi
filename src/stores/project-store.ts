@@ -22,6 +22,9 @@ interface ProjectState {
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
 
+  // UI state
+  showDebug: boolean;
+
   // Waveform state
   audioPeaks: number[]; // Peak values 0-1 for waveform display
   peaksPerSecond: number; // Resolution of peaks array
@@ -47,6 +50,9 @@ interface ProjectState {
   setMidiVolume: (volume: number) => void;
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
+
+  // UI actions
+  setShowDebug: (show: boolean) => void;
 
   // Waveform actions
   setAudioPeaks: (peaks: number[], peaksPerSecond: number) => void;
@@ -77,6 +83,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
   midiVolume: 0.8,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
+
+  // UI state
+  showDebug: false,
 
   // Waveform state
   audioPeaks: [],
@@ -142,6 +151,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
+
+  // UI actions
+  setShowDebug: (show) => set({ showDebug: show }),
 
   // Waveform actions
   setAudioPeaks: (peaks, peaksPerSecond) =>
@@ -219,9 +231,11 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
 };
 
 // Expose store for E2E testing in dev mode
-if (import.meta.env.DEV) {
-  (window as Window & { __store?: typeof useProjectStore }).__store =
-    useProjectStore;
+export function exposeStoreForE2E(): void {
+  if (import.meta.env.DEV) {
+    (window as Window & { __store?: typeof useProjectStore }).__store =
+      useProjectStore;
+  }
 }
 
 export function hasSavedProject(): boolean {

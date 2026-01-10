@@ -20,82 +20,58 @@ test.describe("Piano Roll", () => {
     await expect(page.getByText("C2")).toBeVisible();
   });
 
-  test("creates note on click-drag", async ({ page }) => {
+  test("create, select, and delete note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
     // Create note at beat 0, pitch G3 (top row)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5; // middle of beat 0
-    const startY = gridBox.y + ROW_HEIGHT * 0.5; // G3 row
-
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY); // drag 1 beat
-    await page.mouse.up();
-
-    // Note should be created
-    const note = page.locator("[data-testid^='note-']");
-    await expect(note).toHaveCount(1);
-    await expect(note).toHaveAttribute("data-selected", "true");
-  });
-
-  test("selects note on click", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note first
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
+
     await page.mouse.move(startX, startY);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, startY);
     await page.mouse.up();
 
-    // Click elsewhere to deselect
-    await page.mouse.click(
-      gridBox.x + BEAT_WIDTH * 5,
-      gridBox.y + ROW_HEIGHT * 5,
-    );
+    // Note should be created and selected
+    const note = page.locator("[data-testid^='note-']");
+    await expect(note).toHaveCount(1);
+    await expect(note).toHaveAttribute("data-selected", "true");
 
-    const note = page.locator("[data-testid^='note-']").first();
+    // Press Escape to deselect
+    await page.keyboard.press("Escape");
     await expect(note).toHaveAttribute("data-selected", "false");
 
     // Click on note to select
     await page.mouse.click(startX + BEAT_WIDTH * 0.25, startY);
     await expect(note).toHaveAttribute("data-selected", "true");
-  });
 
-  test("deletes selected note with Delete key", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Delete with Delete key
+    await page.keyboard.press("Delete");
+    await expect(note).toHaveCount(0);
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    // Create another note to test Backspace
     await page.mouse.move(startX, startY);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, startY);
     await page.mouse.up();
 
-    const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
 
-    // Delete with Delete key
-    await page.keyboard.press("Delete");
+    // Delete with Backspace key
+    await page.keyboard.press("Backspace");
     await expect(note).toHaveCount(0);
   });
 
-  test("moves note by dragging body", async ({ page }) => {
+  test("move note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
-    // Create a note at beat 0
+    // Create a note at row 5 (to have room to move up)
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    const startY = gridBox.y + ROW_HEIGHT * 5.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, startY);
@@ -105,54 +81,81 @@ test.describe("Piano Roll", () => {
     const initialBox = await note.boundingBox();
     if (!initialBox) throw new Error("Note not found");
     const initialX = initialBox.x;
+    const initialY = initialBox.y;
 
-    // Drag note to beat 2
+    // Drag note horizontally (time)
     const noteCenter = startX + BEAT_WIDTH * 0.25;
     await page.mouse.move(noteCenter, startY);
     await page.mouse.down();
     await page.mouse.move(noteCenter + BEAT_WIDTH * 2, startY);
     await page.mouse.up();
 
-    // Note should have moved
+    let movedBox = await note.boundingBox();
+    if (!movedBox) throw new Error("Note not found after move");
+    expect(movedBox.x).toBeGreaterThan(initialX);
+
+    // Drag note vertically (pitch)
+    await page.mouse.move(
+      movedBox.x + movedBox.width / 2,
+      movedBox.y + movedBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      movedBox.x + movedBox.width / 2,
+      movedBox.y - ROW_HEIGHT * 2,
+    );
+    await page.mouse.up();
+
     const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after move");
-    expect(finalBox.x).toBeGreaterThan(initialX);
+    if (!finalBox) throw new Error("Note not found after vertical move");
+    expect(finalBox.y).toBeLessThan(initialY);
   });
 
-  test("changes grid snap", async ({ page }) => {
-    // Target the grid snap select specifically (first select in toolbar)
-    const gridSelect = page.locator("select").first();
-    await expect(gridSelect).toHaveValue("1/8");
-
-    await gridSelect.selectOption("1/16");
-    await expect(gridSelect).toHaveValue("1/16");
-
-    await gridSelect.selectOption("1/4");
-    await expect(gridSelect).toHaveValue("1/4");
-  });
-
-  test("deletes selected note with Backspace key", async ({ page }) => {
+  test("resize note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    // Create a note at beat 2 (so we have room to resize left)
+    const startX = gridBox.x + BEAT_WIDTH * 2;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
     await page.mouse.up();
 
-    const note = page.locator("[data-testid^='note-']");
-    await expect(note).toHaveCount(1);
+    const note = page.locator("[data-testid^='note-']").first();
+    const initialBox = await note.boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const initialWidth = initialBox.width;
+    const initialX = initialBox.x;
 
-    // Delete with Backspace key
-    await page.keyboard.press("Backspace");
-    await expect(note).toHaveCount(0);
+    // Drag right edge to extend
+    const rightEdgeX = initialBox.x + initialBox.width - 2;
+    const noteY = initialBox.y + initialBox.height / 2;
+    await page.mouse.move(rightEdgeX, noteY);
+    await page.mouse.down();
+    await page.mouse.move(rightEdgeX + BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    let resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after right resize");
+    expect(resizedBox.width).toBeGreaterThan(initialWidth);
+
+    // Drag left edge to shrink
+    const leftEdgeX = resizedBox.x + 2;
+    await page.mouse.move(leftEdgeX, noteY);
+    await page.mouse.down();
+    await page.mouse.move(leftEdgeX + BEAT_WIDTH * 0.5, noteY);
+    await page.mouse.up();
+
+    const finalBox = await note.boundingBox();
+    if (!finalBox) throw new Error("Note not found after left resize");
+    expect(finalBox.x).toBeGreaterThan(initialX);
+    expect(finalBox.width).toBeLessThan(resizedBox.width);
   });
 
-  test("deselects all notes with Escape key", async ({ page }) => {
+  test("deselect with Escape", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -173,7 +176,7 @@ test.describe("Piano Roll", () => {
     await expect(note).toHaveAttribute("data-selected", "false");
   });
 
-  test("selects multiple notes with Shift+click", async ({ page }) => {
+  test("multi-select with Shift+click", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -216,7 +219,7 @@ test.describe("Piano Roll", () => {
     await expect(note2).toHaveAttribute("data-selected", "true");
   });
 
-  test("box selects notes with Shift+drag on empty area", async ({ page }) => {
+  test("box select with Shift+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -265,106 +268,19 @@ test.describe("Piano Roll", () => {
     await expect(notes.last()).toHaveAttribute("data-selected", "true");
   });
 
-  test("resizes note from right edge", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+  test("grid snap", async ({ page }) => {
+    // Target the grid snap select specifically (first select in toolbar)
+    const gridSelect = page.locator("select").first();
+    await expect(gridSelect).toHaveValue("1/8");
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
+    await gridSelect.selectOption("1/16");
+    await expect(gridSelect).toHaveValue("1/16");
 
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-    const initialWidth = initialBox.width;
-
-    // Drag right edge to extend the note
-    const rightEdgeX = initialBox.x + initialBox.width - 2;
-    const noteY = initialBox.y + initialBox.height / 2;
-    await page.mouse.move(rightEdgeX, noteY);
-    await page.mouse.down();
-    await page.mouse.move(rightEdgeX + BEAT_WIDTH, noteY);
-    await page.mouse.up();
-
-    // Note should be wider
-    const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after resize");
-    expect(finalBox.width).toBeGreaterThan(initialWidth);
+    await gridSelect.selectOption("1/4");
+    await expect(gridSelect).toHaveValue("1/4");
   });
 
-  test("resizes note from left edge", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note at beat 2 (so we have room to resize left)
-    const startX = gridBox.x + BEAT_WIDTH * 2;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-    const initialX = initialBox.x;
-    const initialWidth = initialBox.width;
-
-    // Drag left edge to shrink the note
-    const leftEdgeX = initialBox.x + 2;
-    const noteY = initialBox.y + initialBox.height / 2;
-    await page.mouse.move(leftEdgeX, noteY);
-    await page.mouse.down();
-    await page.mouse.move(leftEdgeX + BEAT_WIDTH * 0.5, noteY);
-    await page.mouse.up();
-
-    // Note should have moved right and be narrower
-    const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after resize");
-    expect(finalBox.x).toBeGreaterThan(initialX);
-    expect(finalBox.width).toBeLessThan(initialWidth);
-  });
-
-  test("moves note pitch by dragging vertically", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note at row 5 (to have room to move up)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 5.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-    const initialY = initialBox.y;
-
-    // Drag note upward (higher pitch)
-    const noteCenter = initialBox.x + initialBox.width / 2;
-    await page.mouse.move(noteCenter, initialBox.y + initialBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(noteCenter, initialBox.y - ROW_HEIGHT * 2);
-    await page.mouse.up();
-
-    // Note should have moved up
-    const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after move");
-    expect(finalBox.y).toBeLessThan(initialY);
-  });
-
-  test("plays MIDI preview when clicking keyboard sidebar", async ({
-    page,
-  }) => {
+  test("keyboard preview", async ({ page }) => {
     // Find a keyboard key (e.g., C3 label)
     const c3Label = page.getByText("C3");
     await expect(c3Label).toBeVisible();
@@ -381,6 +297,5 @@ test.describe("Piano Roll", () => {
     );
 
     // The test passes if no errors occur - audio preview is played in the background
-    // Manual verification needed for actual audio output
   });
 });
