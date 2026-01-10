@@ -41,25 +41,6 @@ test.describe("Transport Controls", () => {
     await playButton.click();
     // Should show play icon again
     await expect(page.getByTestId("play-icon")).toBeVisible();
-  });
-
-  test("space bar toggles play/pause", async ({ page }) => {
-    // Load audio first
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-    await expect(page.getByTestId("audio-file-name")).toHaveText(
-      "test-audio.wav",
-      { timeout: 5000 },
-    );
-
-    const playButton = page.getByTestId("play-pause-button");
-    await expect(playButton).toBeEnabled({ timeout: 5000 });
-    // Should show play icon initially
-    await expect(page.getByTestId("play-icon")).toBeVisible();
 
     // Press space to play
     await page.keyboard.press("Space");
