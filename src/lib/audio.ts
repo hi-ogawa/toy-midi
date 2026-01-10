@@ -31,20 +31,48 @@ class AudioManager {
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
 
-  // Event emitter for state changes
-  private listeners: AudioManagerListener[] = [];
+  // Position update state
   private positionUpdateRaf: number | null = null;
+  private positionListeners: Array<(position: number) => void> = [];
 
-  // Event emitter methods
+  // Subscribe to state changes (using Tone.Transport events as source of truth)
   subscribe(listener: AudioManagerListener): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
+    // Subscribe to Transport state changes
+    const handleStart = () => {
+      listener({ type: "playStateChanged", isPlaying: true });
+      this.startPositionUpdates();
     };
-  }
+    const handleStop = () => {
+      listener({ type: "playStateChanged", isPlaying: false });
+      this.stopPositionUpdates();
+      listener({ type: "positionChanged", position: 0 });
+    };
+    const handlePause = () => {
+      listener({ type: "playStateChanged", isPlaying: false });
+      this.stopPositionUpdates();
+      listener({ type: "positionChanged", position: this.position });
+    };
 
-  private emit(event: AudioManagerEvent): void {
-    this.listeners.forEach((listener) => listener(event));
+    // Add position listener
+    const handlePosition = (position: number) => {
+      listener({ type: "positionChanged", position });
+    };
+    this.positionListeners.push(handlePosition);
+
+    // Subscribe to Transport events
+    Tone.getTransport().on("start", handleStart);
+    Tone.getTransport().on("stop", handleStop);
+    Tone.getTransport().on("pause", handlePause);
+
+    // Return unsubscribe function
+    return () => {
+      Tone.getTransport().off("start", handleStart);
+      Tone.getTransport().off("stop", handleStop);
+      Tone.getTransport().off("pause", handlePause);
+      this.positionListeners = this.positionListeners.filter(
+        (l) => l !== handlePosition,
+      );
+    };
   }
 
   // Position update loop (only runs when playing)
@@ -53,7 +81,8 @@ class AudioManager {
 
     const updateLoop = () => {
       if (this.isPlaying) {
-        this.emit({ type: "positionChanged", position: this.position });
+        const position = this.position;
+        this.positionListeners.forEach((listener) => listener(position));
         this.positionUpdateRaf = requestAnimationFrame(updateLoop);
       } else {
         this.positionUpdateRaf = null;
@@ -191,24 +220,18 @@ class AudioManager {
   play(): void {
     this._ensurePlayerConnected();
     Tone.getTransport().start();
-    this.emit({ type: "playStateChanged", isPlaying: true });
-    this.startPositionUpdates();
+    // Transport will emit "start" event
   }
 
   pause(): void {
     Tone.getTransport().pause();
-    this.emit({ type: "playStateChanged", isPlaying: false });
-    this.stopPositionUpdates();
-    // Emit final position
-    this.emit({ type: "positionChanged", position: this.position });
+    // Transport will emit "pause" event
   }
 
   stop(): void {
     Tone.getTransport().stop();
     Tone.getTransport().seconds = 0;
-    this.emit({ type: "playStateChanged", isPlaying: false });
-    this.stopPositionUpdates();
-    this.emit({ type: "positionChanged", position: 0 });
+    // Transport will emit "stop" event
   }
 
   seek(seconds: number): void {
