@@ -4,3 +4,6 @@ dist/
 test-results/
 refs/
 demo.*
+
+# Large soundfonts (use sin.sf2 as default, download others separately)
+public/soundfonts/A320U.sf2

@@ -1,14 +1,18 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
+import { SoundFontSynth } from "./soundfont-synth";
 
 // Helper: convert beats to seconds
 function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
+// Default soundfont URL
+const DEFAULT_SOUNDFONT_URL = "/soundfonts/sin.sf2";
+
 class AudioManager {
   private player: Tone.Player | null = null;
-  private synth: Tone.PolySynth | null = null;
+  private synth: SoundFontSynth | null = null;
   private metronome: Tone.Synth | null = null;
   private metronomeSeq: Tone.Sequence | null = null;
 
@@ -33,11 +37,11 @@ class AudioManager {
     this.midiGain = new Tone.Gain(0.8).toDestination();
     this.metronomeGain = new Tone.Gain(0.5).toDestination();
 
-    // PolySynth for polyphonic playback (multiple simultaneous notes)
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
-    }).connect(this.midiGain);
+    // SoundFont synth for MIDI playback
+    const context = Tone.getContext().rawContext as AudioContext;
+    this.synth = new SoundFontSynth(context, this.midiGain.input);
+    await this.synth.setup();
+    await this.synth.loadSoundFont(DEFAULT_SOUNDFONT_URL);
 
     // Metronome synth (high pitched click)
     this.metronome = new Tone.Synth({
@@ -196,11 +200,19 @@ class AudioManager {
 
       // Only schedule notes that haven't ended yet
       if (startSeconds + durationSeconds > fromSeconds) {
-        const eventId = Tone.getTransport().scheduleOnce((time) => {
-          const freq = Tone.Frequency(note.pitch, "midi").toFrequency();
-          this.synth?.triggerAttackRelease(freq, durationSeconds, time);
+        // Schedule noteOn
+        const noteOnId = Tone.getTransport().scheduleOnce((time) => {
+          const delayFromNow = time - Tone.getContext().currentTime;
+          this.synth?.noteOn(note.pitch, 100, 0, Math.max(0, delayFromNow));
         }, startSeconds);
-        this.scheduledEvents.push(eventId);
+        this.scheduledEvents.push(noteOnId);
+
+        // Schedule noteOff
+        const noteOffId = Tone.getTransport().scheduleOnce((time) => {
+          const delayFromNow = time - Tone.getContext().currentTime;
+          this.synth?.noteOff(note.pitch, 0, Math.max(0, delayFromNow));
+        }, startSeconds + durationSeconds);
+        this.scheduledEvents.push(noteOffId);
       }
     }
   }
@@ -215,8 +227,7 @@ class AudioManager {
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.2): void {
     if (!this.synth) return;
-    const freq = Tone.Frequency(pitch, "midi").toFrequency();
-    this.synth.triggerAttackRelease(freq, duration);
+    this.synth.playNote(pitch, duration);
   }
 
   // Volume controls (0-1)
@@ -306,6 +317,16 @@ class AudioManager {
 
   get sampleRate(): number {
     return this.player?.buffer?.sampleRate ?? 44100;
+  }
+
+  // Load a different soundfont
+  async loadSoundFont(url: string): Promise<void> {
+    if (!this.synth) return;
+    await this.synth.loadSoundFont(url);
+  }
+
+  get soundFontLoaded(): boolean {
+    return this.synth?.loaded ?? false;
   }
 }
 
