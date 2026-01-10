@@ -1,7 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { PianoRoll } from "./components/piano-roll";
-import { StartupScreen } from "./components/startup-screen";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager } from "./lib/audio";
@@ -16,69 +14,52 @@ import {
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();
 
-async function initNewProject() {
-  await audioManager.init();
-  clearProject();
-}
-
-async function initContinueProject() {
-  await audioManager.init();
-
-  const loaded = loadProject();
-
-  if (loaded?.audioAssetKey) {
-    const asset = await loadAsset(loaded.audioAssetKey);
-    if (asset) {
-      const url = URL.createObjectURL(asset.blob);
-      const duration = await audioManager.loadFromUrl(url);
-
-      useProjectStore.setState({ audioDuration: duration });
-
-      const { audioOffset } = useProjectStore.getState();
-      audioManager.setOffset(audioOffset);
-
-      const peaks = audioManager.getPeaks(100);
-      useProjectStore.getState().setAudioPeaks(peaks, 100);
-    }
-  }
-
-  // Sync mixer settings with audioManager
-  const state = useProjectStore.getState();
-  audioManager.setAudioVolume(state.audioVolume);
-  audioManager.setMidiVolume(state.midiVolume);
-  audioManager.setMetronomeEnabled(state.metronomeEnabled);
-  audioManager.setMetronomeVolume(state.metronomeVolume);
-}
-
 export function App() {
-  const newProjectMutation = useMutation({ mutationFn: initNewProject });
-  const continueProjectMutation = useMutation({
-    mutationFn: initContinueProject,
-  });
+  const initMutation = useMutation({
+    mutationFn: async (continueProject: boolean) => {
+      await audioManager.init();
 
-  const isLoading =
-    newProjectMutation.isPending || continueProjectMutation.isPending;
-  const isReady =
-    newProjectMutation.isSuccess || continueProjectMutation.isSuccess;
+      if (!continueProject) {
+        clearProject();
+      } else {
+        const loaded = loadProject();
 
-  // Auto-save on state changes (debounced) - only when ready
-  useEffect(() => {
-    if (!isReady) return;
+        if (loaded?.audioAssetKey) {
+          const asset = await loadAsset(loaded.audioAssetKey);
+          if (asset) {
+            const url = URL.createObjectURL(asset.blob);
+            const duration = await audioManager.loadFromUrl(url);
 
-    const unsubscribe = useProjectStore.subscribe(() => {
-      clearTimeout(
-        (window as unknown as { _saveTimeout?: number })._saveTimeout,
-      );
-      (window as unknown as { _saveTimeout?: number })._saveTimeout =
-        window.setTimeout(() => {
+            useProjectStore.setState({ audioDuration: duration });
+
+            const { audioOffset } = useProjectStore.getState();
+            audioManager.setOffset(audioOffset);
+
+            const peaks = audioManager.getPeaks(100);
+            useProjectStore.getState().setAudioPeaks(peaks, 100);
+          }
+        }
+
+        // Sync mixer settings with audioManager
+        const state = useProjectStore.getState();
+        audioManager.setAudioVolume(state.audioVolume);
+        audioManager.setMidiVolume(state.midiVolume);
+        audioManager.setMetronomeEnabled(state.metronomeEnabled);
+        audioManager.setMetronomeVolume(state.metronomeVolume);
+      }
+
+      // Setup auto-save on state changes (debounced)
+      let saveTimeout: number;
+      useProjectStore.subscribe(() => {
+        clearTimeout(saveTimeout);
+        saveTimeout = window.setTimeout(() => {
           saveProject();
         }, 500);
-    });
+      });
+    },
+  });
 
-    return () => unsubscribe();
-  }, [isReady]);
-
-  if (isLoading) {
+  if (initMutation.isPending) {
     return (
       <div className="h-screen flex flex-col bg-neutral-900">
         <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
@@ -88,13 +69,38 @@ export function App() {
     );
   }
 
-  if (!isReady) {
+  if (!initMutation.isSuccess) {
     return (
-      <StartupScreen
-        hasSavedProject={savedProjectExists}
-        onNewProject={() => newProjectMutation.mutate()}
-        onContinue={() => continueProjectMutation.mutate()}
-      />
+      <div
+        data-testid="startup-screen"
+        className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
+      >
+        <div className="flex flex-col items-center gap-6">
+          <h1 className="text-2xl font-semibold text-neutral-200">toy-midi</h1>
+          <div className="flex gap-3">
+            {hasSavedProject() && (
+              <button
+                data-testid="continue-button"
+                onClick={() => initMutation.mutate(true)}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
+              >
+                Continue
+              </button>
+            )}
+            <button
+              data-testid="new-project-button"
+              onClick={() => initMutation.mutate(false)}
+              className={`px-6 py-3 rounded-lg font-medium ${
+                savedProjectExists
+                  ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+              }`}
+            >
+              New Project
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
