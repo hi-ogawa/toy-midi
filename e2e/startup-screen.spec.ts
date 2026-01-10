@@ -6,11 +6,10 @@ test.describe("Startup Screen", () => {
     // Clear localStorage to control test state
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
+    await page.reload();
   });
 
   test("new project flow", async ({ page }) => {
-    await page.reload();
-
     // Startup screen should be visible
     const startupScreen = page.getByTestId("startup-screen");
     await expect(startupScreen).toBeVisible();
@@ -43,8 +42,6 @@ test.describe("Startup Screen", () => {
 
   test("continue project flow", async ({ page }) => {
     // First, create a project with some data via store
-    await page.reload();
-
     const newProjectButton = page.getByTestId("new-project-button");
     await newProjectButton.click();
 
@@ -77,5 +74,37 @@ test.describe("Startup Screen", () => {
 
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(140);
+  });
+
+  test("Enter key shortcut", async ({ page }) => {
+    // Without saved project, Enter should do nothing
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(200);
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+    await expect(page.getByTestId("transport")).not.toBeVisible();
+
+    // Create a project
+    await page.getByTestId("new-project-button").click();
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "test-note-enter",
+        pitch: 65,
+        start: 0.5,
+        duration: 1.5,
+        velocity: 90,
+      });
+    });
+    await page.waitForTimeout(600);
+
+    // With saved project, Enter should continue
+    await page.reload();
+    await expect(page.getByTestId("continue-button")).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("transport")).toBeVisible();
+
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].pitch).toBe(65);
   });
 });
