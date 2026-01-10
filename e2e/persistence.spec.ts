@@ -303,4 +303,61 @@ test.describe("Project Persistence", () => {
     const timeDisplay = page.getByTestId("time-display");
     await expect(timeDisplay).toContainText("0:00");
   });
+
+  test("viewport state persists after reload", async ({ page }) => {
+    // Get evaluateStore helper
+    const { evaluateStore } = await import("./helpers");
+
+    // Change viewport state by modifying store directly
+    await evaluateStore(page, (store) => {
+      const state = store.getState();
+      state.setScrollX(25);
+      state.setScrollY(60);
+      state.setPixelsPerBeat(120);
+      state.setPixelsPerKey(30);
+      state.setWaveformHeight(100);
+    });
+
+    // Verify the changes were applied
+    const changedScrollX = await evaluateStore(
+      page,
+      (store) => store.getState().scrollX,
+    );
+    expect(changedScrollX).toBe(25);
+
+    // Wait for auto-save
+    await page.waitForTimeout(600);
+
+    // Reload and click Continue to restore
+    await page.reload();
+    await clickContinue(page);
+
+    // Verify viewport state was restored
+    const restoredScrollX = await evaluateStore(
+      page,
+      (store) => store.getState().scrollX,
+    );
+    const restoredScrollY = await evaluateStore(
+      page,
+      (store) => store.getState().scrollY,
+    );
+    const restoredPixelsPerBeat = await evaluateStore(
+      page,
+      (store) => store.getState().pixelsPerBeat,
+    );
+    const restoredPixelsPerKey = await evaluateStore(
+      page,
+      (store) => store.getState().pixelsPerKey,
+    );
+    const restoredWaveformHeight = await evaluateStore(
+      page,
+      (store) => store.getState().waveformHeight,
+    );
+
+    expect(restoredScrollX).toBe(25);
+    expect(restoredScrollY).toBe(60);
+    expect(restoredPixelsPerBeat).toBe(120);
+    expect(restoredPixelsPerKey).toBe(30);
+    expect(restoredWaveformHeight).toBe(100);
+  });
 });

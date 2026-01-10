@@ -227,7 +227,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         data-testid="load-audio-button"
         onClick={handleLoadClick}
         disabled={loadAudioMutation.isPending}
-        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50"
+        className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50 font-medium"
       >
         {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
       </button>
@@ -245,7 +245,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         data-testid="export-midi-button"
         onClick={handleExportMidi}
         disabled={notes.length === 0}
-        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50"
+        className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50 font-medium"
         title="Export MIDI file"
       >
         Export MIDI
@@ -255,13 +255,42 @@ export function Transport({ onHelpClick }: TransportProps) {
       <button
         data-testid="play-pause-button"
         onClick={handlePlayPause}
-        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded"
+        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded text-neutral-200 hover:text-white"
       >
         {isPlaying ? (
-          <span className="text-lg">⏸</span>
+          <svg
+            data-testid="pause-icon"
+            className="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
         ) : (
-          <span className="text-lg">▶</span>
+          <svg
+            data-testid="play-icon"
+            className="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path d="M8 5v14l11-7z" />
+          </svg>
         )}
+      </button>
+
+      {/* Metronome toggle */}
+      <button
+        data-testid="metronome-toggle"
+        onClick={handleMetronomeToggle}
+        aria-pressed={metronomeEnabled}
+        className={`h-10 px-3 text-sm rounded font-medium ${
+          metronomeEnabled
+            ? "bg-emerald-600 text-white hover:bg-emerald-500"
+            : "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
+        }`}
+        title="Toggle metronome"
+      >
+        Metro
       </button>
 
       {/* Time display */}
@@ -293,13 +322,13 @@ export function Transport({ onHelpClick }: TransportProps) {
               setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
-          className="w-14 px-1 py-0.5 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center"
+          className="w-14 h-10 px-2 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center text-neutral-200"
         />
         <span className="text-xs text-neutral-400">BPM</span>
         <button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
-          className="px-2 py-0.5 text-xs bg-neutral-700 hover:bg-neutral-600 rounded"
+          className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded font-medium"
           title="Tap to set tempo"
         >
           Tap
@@ -313,7 +342,7 @@ export function Transport({ onHelpClick }: TransportProps) {
           data-testid="grid-snap-select"
           value={gridSnap}
           onChange={(e) => setGridSnap(e.target.value as GridSnap)}
-          className="bg-neutral-700 border border-neutral-600 rounded px-1.5 py-0.5 text-xs"
+          className="h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
         >
           <option value="1/4">1/4</option>
           <option value="1/8">1/8</option>
@@ -370,21 +399,6 @@ export function Transport({ onHelpClick }: TransportProps) {
             className="w-16 h-1 accent-neutral-400"
           />
         </div>
-
-        {/* Metronome toggle */}
-        <button
-          data-testid="metronome-toggle"
-          onClick={handleMetronomeToggle}
-          aria-pressed={metronomeEnabled}
-          className={`px-2 py-1 text-xs rounded ${
-            metronomeEnabled
-              ? "bg-emerald-600 text-white"
-              : "bg-neutral-700 text-neutral-400 hover:bg-neutral-600"
-          }`}
-          title="Toggle metronome"
-        >
-          Metro
-        </button>
 
         {/* Debug toggle */}
         <button

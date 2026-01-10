@@ -29,24 +29,28 @@ test.describe("Transport Controls", () => {
     const timeDisplay = page.getByTestId("time-display");
     await expect(timeDisplay).not.toHaveText("0:00 / 0:00", { timeout: 5000 });
 
-    await expect(playButton).toBeEnabled({ timeout: 5000 });
-    await expect(playButton).toHaveText("▶");
+    // Should show play icon initially
+    await expect(page.getByTestId("play-icon")).toBeVisible();
 
     // Click to play
     await playButton.click();
-    await expect(playButton).toHaveText("⏸");
+    // Should show pause icon
+    await expect(page.getByTestId("pause-icon")).toBeVisible();
 
     // Click to pause
     await playButton.click();
-    await expect(playButton).toHaveText("▶");
+    // Should show play icon again
+    await expect(page.getByTestId("play-icon")).toBeVisible();
 
-    // Space bar to play
+    // Press space to play
     await page.keyboard.press("Space");
-    await expect(playButton).toHaveText("⏸");
+    // Should show pause icon
+    await expect(page.getByTestId("pause-icon")).toBeVisible();
 
     // Space bar to pause
     await page.keyboard.press("Space");
-    await expect(playButton).toHaveText("▶");
+    // Should show play icon again
+    await expect(page.getByTestId("play-icon")).toBeVisible();
   });
 
   test("tempo input", async ({ page }) => {
