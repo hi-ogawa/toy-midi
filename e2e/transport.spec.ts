@@ -8,14 +8,12 @@ test.describe("Transport Controls", () => {
     await clickNewProject(page);
   });
 
-  test("play button is always enabled for MIDI-only mode", async ({ page }) => {
+  test("playback controls", async ({ page }) => {
+    // Play button is always enabled for MIDI-only mode
     const playButton = page.getByTestId("play-pause-button");
-    // Play button is always enabled to allow MIDI-only playback
     await expect(playButton).toBeEnabled();
-  });
 
-  test("play/pause toggles with button click", async ({ page }) => {
-    // Load audio first
+    // Load audio
     const fileInput = page.getByTestId("audio-file-input");
     const testAudioPath = path.join(
       import.meta.dirname,
@@ -27,10 +25,11 @@ test.describe("Transport Controls", () => {
       { timeout: 5000 },
     );
 
-    const playButton = page.getByTestId("play-pause-button");
-    await expect(playButton).toBeEnabled({ timeout: 5000 });
+    // Time display should show duration
+    const timeDisplay = page.getByTestId("time-display");
+    await expect(timeDisplay).not.toHaveText("0:00 / 0:00", { timeout: 5000 });
 
-    // Should show play icon initially
+    await expect(playButton).toBeEnabled({ timeout: 5000 });
     await expect(playButton).toHaveText("▶");
 
     // Click to play
@@ -40,59 +39,37 @@ test.describe("Transport Controls", () => {
     // Click to pause
     await playButton.click();
     await expect(playButton).toHaveText("▶");
-  });
 
-  test("space bar toggles play/pause", async ({ page }) => {
-    // Load audio first
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-    await expect(page.getByTestId("audio-file-name")).toHaveText(
-      "test-audio.wav",
-      { timeout: 5000 },
-    );
-
-    const playButton = page.getByTestId("play-pause-button");
-    await expect(playButton).toBeEnabled({ timeout: 5000 });
-    await expect(playButton).toHaveText("▶");
-
-    // Press space to play
+    // Space bar to play
     await page.keyboard.press("Space");
     await expect(playButton).toHaveText("⏸");
 
-    // Press space to pause
+    // Space bar to pause
     await page.keyboard.press("Space");
     await expect(playButton).toHaveText("▶");
   });
 
-  test("tempo input accepts valid values", async ({ page }) => {
+  test("tempo input", async ({ page }) => {
     const tempoInput = page.getByTestId("tempo-input");
     await expect(tempoInput).toHaveValue("120");
 
-    // Change tempo
+    // Change tempo to valid value
     await tempoInput.fill("140");
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("140");
-  });
 
-  test("tempo input clamps to valid range", async ({ page }) => {
-    const tempoInput = page.getByTestId("tempo-input");
-
-    // Test below minimum (30)
+    // Test below minimum (30) - should clamp
     await tempoInput.fill("10");
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("30");
 
-    // Test above maximum (300)
+    // Test above maximum (300) - should clamp
     await tempoInput.fill("500");
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("300");
   });
 
-  test("metronome toggle works", async ({ page }) => {
+  test("metronome toggle", async ({ page }) => {
     const metronomeToggle = page.getByTestId("metronome-toggle");
 
     // Should be off by default
@@ -107,15 +84,13 @@ test.describe("Transport Controls", () => {
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("tap tempo button updates tempo", async ({ page }) => {
+  test("tap tempo", async ({ page }) => {
     const tapButton = page.getByTestId("tap-tempo-button");
     const tempoInput = page.getByTestId("tempo-input");
 
-    // Initial tempo
     await expect(tempoInput).toHaveValue("120");
 
-    // Tap 4 times at ~100ms intervals (600 BPM, but should clamp to 300)
-    // Actually, let's tap at ~500ms intervals for 120 BPM
+    // Tap 4 times at ~500ms intervals for ~120 BPM
     await tapButton.click();
     await page.waitForTimeout(500);
     await tapButton.click();
@@ -128,22 +103,6 @@ test.describe("Transport Controls", () => {
     const newTempo = await tempoInput.inputValue();
     expect(parseInt(newTempo)).toBeGreaterThanOrEqual(30);
     expect(parseInt(newTempo)).toBeLessThanOrEqual(300);
-  });
-
-  test("time display shows duration after loading audio", async ({ page }) => {
-    const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).toHaveText("0:00 / 0:00");
-
-    // Load audio
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-
-    // Wait for duration to update
-    await expect(timeDisplay).not.toHaveText("0:00 / 0:00", { timeout: 5000 });
   });
 
   test("export MIDI workflow", async ({ page }) => {

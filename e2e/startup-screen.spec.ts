@@ -8,7 +8,7 @@ test.describe("Startup Screen", () => {
     await page.evaluate(() => localStorage.clear());
   });
 
-  test("startup screen appears on initial load", async ({ page }) => {
+  test("new project flow", async ({ page }) => {
     await page.reload();
 
     // Startup screen should be visible
@@ -18,69 +18,30 @@ test.describe("Startup Screen", () => {
     // Main UI should NOT be visible yet
     await expect(page.getByTestId("transport")).not.toBeVisible();
     await expect(page.getByTestId("piano-roll-grid")).not.toBeVisible();
-  });
 
-  test("new project button is always visible", async ({ page }) => {
-    await page.reload();
-
+    // New project button should be visible
     const newProjectButton = page.getByTestId("new-project-button");
     await expect(newProjectButton).toBeVisible();
-  });
 
-  test("continue button only shows when saved project exists", async ({
-    page,
-  }) => {
-    // No saved project - continue button should not be visible
-    await page.reload();
+    // Continue button should NOT be visible (no saved project)
+    await expect(page.getByTestId("continue-button")).not.toBeVisible();
 
-    const continueButton = page.getByTestId("continue-button");
-    await expect(continueButton).not.toBeVisible();
-
-    // Create a project with a note via store, then trigger save
-    const newProjectButton = page.getByTestId("new-project-button");
+    // Click new project
     await newProjectButton.click();
 
-    await evaluateStore(page, (store) => {
-      store.getState().addNote({
-        id: "test-note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      });
-    });
-
-    // Wait for auto-save
-    await page.waitForTimeout(600);
-
-    // Reload - continue button should now be visible
-    await page.reload();
-
-    await expect(page.getByTestId("continue-button")).toBeVisible();
-  });
-
-  test("clicking new project shows main UI with empty state", async ({
-    page,
-  }) => {
-    await page.reload();
-
-    const newProjectButton = page.getByTestId("new-project-button");
-    await newProjectButton.click();
-
-    // Main UI should be visible
+    // Main UI should now be visible
     await expect(page.getByTestId("transport")).toBeVisible();
     await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
 
-    // Should have no notes
+    // Should have empty state
     const notes = await evaluateStore(page, (store) => store.getState().notes);
     expect(notes).toHaveLength(0);
 
-    // Default tempo
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(120);
   });
 
-  test("clicking continue restores saved project", async ({ page }) => {
+  test("continue project flow", async ({ page }) => {
     // First, create a project with some data via store
     await page.reload();
 
@@ -101,7 +62,7 @@ test.describe("Startup Screen", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload and click continue
+    // Reload - continue button should now be visible
     await page.reload();
 
     const continueButton = page.getByTestId("continue-button");
@@ -116,20 +77,5 @@ test.describe("Startup Screen", () => {
 
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(140);
-  });
-
-  test("main UI hidden until startup choice made", async ({ page }) => {
-    await page.reload();
-
-    // Before clicking anything, main UI should be hidden
-    await expect(page.getByTestId("transport")).not.toBeVisible();
-    await expect(page.getByTestId("piano-roll-grid")).not.toBeVisible();
-
-    // Click new project
-    await page.getByTestId("new-project-button").click();
-
-    // Now main UI should be visible
-    await expect(page.getByTestId("transport")).toBeVisible();
-    await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
   });
 });
