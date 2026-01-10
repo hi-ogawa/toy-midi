@@ -13,7 +13,6 @@ import {
   MIN_PITCH,
   snapToGrid,
   clampPitch,
-  DEFAULT_VIEW_MAX_PITCH,
 } from "../lib/music";
 import {
   beatsToSeconds,
@@ -188,19 +187,22 @@ export function PianoRoll() {
     setPlayheadPosition,
     setAudioOffset,
     audioPeaks,
+    // Viewport state from store
+    scrollX,
+    scrollY,
+    pixelsPerBeat,
+    pixelsPerKey,
+    waveformHeight,
+    setScrollX,
+    setScrollY,
+    setPixelsPerBeat,
+    setPixelsPerKey,
+    setWaveformHeight,
   } = useProjectStore();
 
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
-
-  // Viewport state: scroll position (in beats/semitones) and zoom (pixels per unit)
-  const [scrollX, setScrollX] = useState(0); // leftmost visible beat
-  // Start with bass range in view (G3 at top)
-  const [scrollY, setScrollY] = useState(MAX_PITCH - DEFAULT_VIEW_MAX_PITCH);
-  const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
-  const [pixelsPerKey, setPixelsPerKey] = useState(DEFAULT_PIXELS_PER_KEY);
-  const [waveformHeight, setWaveformHeight] = useState(DEFAULT_WAVEFORM_HEIGHT);
 
   // Track viewport size
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });

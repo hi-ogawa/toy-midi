@@ -25,6 +25,13 @@ interface ProjectState {
   // UI state
   showDebug: boolean;
 
+  // Viewport state
+  scrollX: number; // leftmost visible beat
+  scrollY: number; // topmost visible pitch (in semitones from pitch 0)
+  pixelsPerBeat: number; // horizontal zoom
+  pixelsPerKey: number; // vertical zoom (pixels per semitone)
+  waveformHeight: number; // resizable waveform area height
+
   // Waveform state
   audioPeaks: number[]; // Peak values 0-1 for waveform display
   peaksPerSecond: number; // Resolution of peaks array
@@ -53,6 +60,13 @@ interface ProjectState {
 
   // UI actions
   setShowDebug: (show: boolean) => void;
+
+  // Viewport actions
+  setScrollX: (scrollX: number) => void;
+  setScrollY: (scrollY: number) => void;
+  setPixelsPerBeat: (pixelsPerBeat: number) => void;
+  setPixelsPerKey: (pixelsPerKey: number) => void;
+  setWaveformHeight: (height: number) => void;
 
   // Waveform actions
   setAudioPeaks: (peaks: number[], peaksPerSecond: number) => void;
@@ -86,6 +100,13 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   // UI state
   showDebug: false,
+
+  // Viewport state (defaults match piano-roll.tsx)
+  scrollX: 0,
+  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
+  pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
+  waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
 
   // Waveform state
   audioPeaks: [],
@@ -155,6 +176,13 @@ export const useProjectStore = create<ProjectState>((set) => ({
   // UI actions
   setShowDebug: (show) => set({ showDebug: show }),
 
+  // Viewport actions
+  setScrollX: (scrollX) => set({ scrollX }),
+  setScrollY: (scrollY) => set({ scrollY }),
+  setPixelsPerBeat: (pixelsPerBeat) => set({ pixelsPerBeat }),
+  setPixelsPerKey: (pixelsPerKey) => set({ pixelsPerKey }),
+  setWaveformHeight: (height) => set({ waveformHeight: height }),
+
   // Waveform actions
   setAudioPeaks: (peaks, peaksPerSecond) =>
     set({ audioPeaks: peaks, peaksPerSecond }),
@@ -187,6 +215,12 @@ interface SavedProject {
   midiVolume: number;
   metronomeEnabled: boolean;
   metronomeVolume: number;
+  // Viewport state
+  scrollX?: number;
+  scrollY?: number;
+  pixelsPerBeat?: number;
+  pixelsPerKey?: number;
+  waveformHeight?: number;
 }
 
 export function saveProject(): void {
@@ -203,6 +237,12 @@ export function saveProject(): void {
     midiVolume: state.midiVolume,
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
+    // Viewport state
+    scrollX: state.scrollX,
+    scrollY: state.scrollY,
+    pixelsPerBeat: state.pixelsPerBeat,
+    pixelsPerKey: state.pixelsPerKey,
+    waveformHeight: state.waveformHeight,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
@@ -228,6 +268,12 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   midiVolume: 0.8,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
+  // Viewport state defaults
+  scrollX: 0,
+  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  pixelsPerBeat: 80,
+  pixelsPerKey: 20,
+  waveformHeight: 60,
 };
 
 // Expose store for E2E testing in dev mode
@@ -253,6 +299,7 @@ export function clearProject(): void {
     audioPeaks: [],
     peaksPerSecond: 100,
     totalBeats: 640,
+    showDebug: false,
   });
 }
 
@@ -290,6 +337,12 @@ export function loadProject(): LoadedProject | null {
       midiVolume: merged.midiVolume,
       metronomeEnabled: merged.metronomeEnabled,
       metronomeVolume: merged.metronomeVolume,
+      // Viewport state
+      scrollX: merged.scrollX ?? DEFAULTS.scrollX!,
+      scrollY: merged.scrollY ?? DEFAULTS.scrollY!,
+      pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat!,
+      pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey!,
+      waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
       // Reset transient state
       selectedNoteIds: new Set(),
       isPlaying: false,
