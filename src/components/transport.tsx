@@ -86,14 +86,8 @@ export function Transport() {
     e.target.value = "";
   };
 
-  // Initialize audio manager and sync volumes
-  useEffect(() => {
-    audioManager.init().then(() => {
-      audioManager.setAudioVolume(audioVolume);
-      audioManager.setMidiVolume(midiVolume);
-      audioManager.setMetronomeEnabled(metronomeEnabled);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: audioManager.init() is called in App.tsx on startup screen click
+  // Volume sync is also handled there after project restore
 
   const handlePlayPause = useCallback(async () => {
     // Allow play if audio loaded OR just for MIDI-only mode

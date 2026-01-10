@@ -224,6 +224,24 @@ if (import.meta.env.DEV) {
     useProjectStore;
 }
 
+export function hasSavedProject(): boolean {
+  return localStorage.getItem(STORAGE_KEY) !== null;
+}
+
+export function clearProject(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  useProjectStore.setState({
+    ...DEFAULTS,
+    selectedNoteIds: new Set(),
+    isPlaying: false,
+    playheadPosition: 0,
+    audioDuration: 0,
+    audioPeaks: [],
+    peaksPerSecond: 100,
+    totalBeats: 640,
+  });
+}
+
 export function loadProject(): LoadedProject | null {
   try {
     const json = localStorage.getItem(STORAGE_KEY);

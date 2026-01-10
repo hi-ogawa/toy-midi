@@ -11,6 +11,17 @@ declare global {
 }
 
 /**
+ * Click through the startup screen to get to the main UI.
+ * Call this in beforeEach for tests that need the main UI.
+ */
+export async function clickThroughStartup(page: Page): Promise<void> {
+  const newProjectButton = page.getByTestId("new-project-button");
+  await newProjectButton.click();
+  // Wait for main UI to be ready
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/**
  * Evaluate a function against the Zustand store in the browser context.
  * Only available in dev mode where window.__store is exposed.
  *

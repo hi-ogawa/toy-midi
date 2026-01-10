@@ -73,6 +73,12 @@ Setup: `pnpm dlx tiged https://github.com/Tonejs/Tone.js.git refs/Tone.js`
 
 **Priority**: Editor input/interaction testing is essential.
 
+**E2E-first approach**: For UI features, write E2E test skeletons (`test.skip`) before implementation. This:
+
+- Clarifies expected behavior upfront
+- Defines testable acceptance criteria
+- Ensures test coverage isn't forgotten
+
 | Area                    | Priority | Approach                                |
 | ----------------------- | -------- | --------------------------------------- |
 | Piano roll interactions | High     | E2E tests (click, drag, select, delete) |

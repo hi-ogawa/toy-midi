@@ -1,8 +1,16 @@
 import { expect, test } from "@playwright/test";
+import { clickThroughStartup } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
 const ROW_HEIGHT = 20;
+
+// Helper to click Continue button after reload (when saved project exists)
+async function clickContinue(page: import("@playwright/test").Page) {
+  const continueButton = page.getByTestId("continue-button");
+  await continueButton.click();
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
 
 test.describe("Project Persistence", () => {
   test.beforeEach(async ({ page }) => {
@@ -10,6 +18,8 @@ test.describe("Project Persistence", () => {
     // Clear localStorage to start fresh
     await page.evaluate(() => localStorage.clear());
     await page.reload();
+    // Click through startup screen (no saved project, so "New Project")
+    await clickThroughStartup(page);
   });
 
   test("notes persist after page reload", async ({ page }) => {
@@ -32,8 +42,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save (debounced at 500ms)
     await page.waitForTimeout(600);
 
-    // Reload the page
+    // Reload the page and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should still exist after reload
     const restoredNote = page.locator("[data-testid^='note-']");
@@ -91,8 +102,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // All 3 notes should be restored
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
@@ -110,8 +122,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Tempo should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
@@ -128,8 +141,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Grid snap should be restored
     await expect(page.locator("select").first()).toHaveValue("1/16");
@@ -146,8 +160,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Metronome should still be enabled
     await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
@@ -190,8 +205,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should be at the moved position
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -242,8 +258,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Should still have only 1 note
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
@@ -268,8 +285,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should exist but NOT be selected (selection is transient)
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -303,8 +321,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Time display should show 0:00 (playhead at start)
     const timeDisplay = page.getByTestId("time-display");

@@ -70,14 +70,17 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: help overlay (? key, code-generated from keybindings)
 - [ ] feat: higher resolution waveform at zoom
 - [ ] feat: asset management UI
-- [ ] feat: startup screen (see architecture.md - solves AudioContext + restore flow)
+- [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
+  - [ ] fix: layout shift on startup (`useState(() => hasSavedProject())`)
+  - [ ] chore: consolidate e2e helpers `clickContinue` / `clickThroughStartup`
+  - [ ] refactor: remove redundant `audioManager.init()` in handlePlayPause
+  - [ ] refactor: evaluate React Query for async restore logic
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
 - [ ] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
-- [ ] fix: AudioContext user gesture handling (combine with startup screen)
 - [ ] fix: initial flash of lower keys
 - [ ] fix: timeline click-to-seek delay
 - [ ] fix: jumping timeline during playback
