@@ -74,8 +74,8 @@ See [architecture.md](architecture.md) for implementation details.
   - [x] fix: layout shift on startup
   - [x] chore: consolidate e2e helpers (`clickNewProject`, `clickContinue`)
   - [x] refactor: remove redundant `audioManager.init()` in handlePlayPause
-  - [ ] refactor: evaluate React Query
-    - [ ] chore: setup sonner for error toasts
+  - [x] refactor: evaluate React Query
+    - [x] chore: setup sonner for error toasts
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
 - [ ] fix: zoom should keep cursor as center
