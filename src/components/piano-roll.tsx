@@ -317,10 +317,9 @@ export function PianoRoll() {
             );
             // Zoom around mouse position horizontally
             const beatAtMouse = mouseX / pixelsPerBeat + scrollX;
-            const newMouseX = (beatAtMouse - scrollX) * newPixelsPerBeat;
             const newScrollX = Math.max(
               0,
-              scrollX + (mouseX - newMouseX) / newPixelsPerBeat,
+              beatAtMouse - mouseX / newPixelsPerBeat,
             );
             setPixelsPerBeat(newPixelsPerBeat);
             setScrollX(newScrollX);
@@ -333,14 +332,14 @@ export function PianoRoll() {
             );
             // Zoom around mouse position vertically
             const keyAtMouse = mouseY / pixelsPerKey + scrollY;
-            const newMouseY = (keyAtMouse - scrollY) * newPixelsPerKey;
-            const maxScrollY = Math.max(0, MAX_PITCH - MIN_PITCH - visibleKeys);
+            const newVisibleKeys = viewportSize.height / newPixelsPerKey;
+            const maxScrollY = Math.max(
+              0,
+              MAX_PITCH - MIN_PITCH - newVisibleKeys,
+            );
             const newScrollY = Math.max(
               0,
-              Math.min(
-                maxScrollY,
-                scrollY + (mouseY - newMouseY) / newPixelsPerKey,
-              ),
+              Math.min(maxScrollY, keyAtMouse - mouseY / newPixelsPerKey),
             );
             setPixelsPerKey(newPixelsPerKey);
             setScrollY(newScrollY);
