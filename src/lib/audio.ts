@@ -6,10 +6,26 @@ function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
-// Event types for AudioManager state changes
-type AudioManagerEvent =
-  | { type: "playStateChanged"; isPlaying: boolean }
-  | { type: "positionChanged"; position: number };
+// Expose Tone.Transport event types directly
+type TransportEventNames =
+  | "start"
+  | "stop"
+  | "pause"
+  | "loop"
+  | "loopEnd"
+  | "loopStart"
+  | "ticks";
+
+// Transport state type (not exported by Tone.js)
+type TransportState = "started" | "stopped" | "paused";
+
+// Direct wrapper of Transport state
+type AudioManagerEvent = {
+  type: TransportEventNames;
+  state: TransportState;
+  position: Tone.Unit.Time; // Transport position (e.g., "0:0:0")
+  seconds: number; // Position in seconds
+};
 
 type AudioManagerListener = (event: AudioManagerEvent) => void;
 
@@ -33,31 +49,36 @@ class AudioManager {
 
   // Position update state
   private positionUpdateRaf: number | null = null;
-  private positionListeners: Array<(position: number) => void> = [];
+  private positionListeners: Array<(event: AudioManagerEvent) => void> = [];
 
-  // Subscribe to state changes (using Tone.Transport events as source of truth)
+  // Subscribe to state changes (exposing Tone.Transport events directly)
   subscribe(listener: AudioManagerListener): () => void {
+    const emitEvent = (type: TransportEventNames) => {
+      const transport = Tone.getTransport();
+      listener({
+        type,
+        state: transport.state,
+        position: transport.position,
+        seconds: transport.seconds,
+      });
+    };
+
     // Subscribe to Transport state changes
     const handleStart = () => {
-      listener({ type: "playStateChanged", isPlaying: true });
+      emitEvent("start");
       this.startPositionUpdates();
     };
     const handleStop = () => {
-      listener({ type: "playStateChanged", isPlaying: false });
+      emitEvent("stop");
       this.stopPositionUpdates();
-      listener({ type: "positionChanged", position: 0 });
     };
     const handlePause = () => {
-      listener({ type: "playStateChanged", isPlaying: false });
+      emitEvent("pause");
       this.stopPositionUpdates();
-      listener({ type: "positionChanged", position: this.position });
     };
 
-    // Add position listener
-    const handlePosition = (position: number) => {
-      listener({ type: "positionChanged", position });
-    };
-    this.positionListeners.push(handlePosition);
+    // Add position listener for RAF updates
+    this.positionListeners.push(listener);
 
     // Subscribe to Transport events
     Tone.getTransport().on("start", handleStart);
@@ -70,7 +91,7 @@ class AudioManager {
       Tone.getTransport().off("stop", handleStop);
       Tone.getTransport().off("pause", handlePause);
       this.positionListeners = this.positionListeners.filter(
-        (l) => l !== handlePosition,
+        (l) => l !== listener,
       );
     };
   }
@@ -81,8 +102,14 @@ class AudioManager {
 
     const updateLoop = () => {
       if (this.isPlaying) {
-        const position = this.position;
-        this.positionListeners.forEach((listener) => listener(position));
+        const transport = Tone.getTransport();
+        const event: AudioManagerEvent = {
+          type: "ticks",
+          state: transport.state,
+          position: transport.position,
+          seconds: transport.seconds,
+        };
+        this.positionListeners.forEach((listener) => listener(event));
         this.positionUpdateRaf = requestAnimationFrame(updateLoop);
       } else {
         this.positionUpdateRaf = null;

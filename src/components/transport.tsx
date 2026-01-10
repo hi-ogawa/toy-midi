@@ -48,11 +48,11 @@ export function Transport({ onHelpClick }: TransportProps) {
   // Subscribe to AudioManager state changes (single source of truth)
   useEffect(() => {
     const unsubscribe = audioManager.subscribe((event) => {
-      if (event.type === "playStateChanged") {
-        setIsPlaying(event.isPlaying);
-      } else if (event.type === "positionChanged") {
-        setPlayheadPosition(event.position);
-      }
+      // Update playing state from Transport state
+      const isPlaying = event.state === "started";
+      setIsPlaying(isPlaying);
+      // Update position from Transport seconds
+      setPlayheadPosition(event.seconds);
     });
 
     return unsubscribe;
