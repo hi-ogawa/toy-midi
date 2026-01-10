@@ -6,32 +6,32 @@ function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
+// All fields are guaranteed to be initialized in init() which is called before any usage
 class AudioManager {
-  private player: Tone.Player | null = null;
-  private synth: Tone.PolySynth | null = null;
-  private metronome: Tone.Synth | null = null;
-  private metronomeSeq: Tone.Sequence | null = null;
+  private player!: Tone.Player;
+  private synth!: Tone.PolySynth;
+  private metronome!: Tone.Synth;
+  private metronomeSeq!: Tone.Sequence;
 
   // Gain nodes for mixing
-  private audioGain: Tone.Gain | null = null;
-  private midiGain: Tone.Gain | null = null;
-  private metronomeGain: Tone.Gain | null = null;
+  private audioGain!: Tone.Gain;
+  private midiGain!: Tone.Gain;
+  private metronomeGain!: Tone.Gain;
 
   private scheduledEvents: number[] = []; // Transport event IDs
-  private _initialized = false;
-  private _playerConnected = false;
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
-  private _metronomeEnabled = false;
 
   async init(): Promise<void> {
-    if (this._initialized) return;
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
     // Create gain nodes for mixing
     this.audioGain = new Tone.Gain(0.8).toDestination();
     this.midiGain = new Tone.Gain(0.8).toDestination();
     this.metronomeGain = new Tone.Gain(0.5).toDestination();
+
+    // Player for audio file playback
+    this.player = new Tone.Player().connect(this.audioGain);
 
     // PolySynth for polyphonic playback (multiple simultaneous notes)
     this.synth = new Tone.PolySynth(Tone.Synth, {
@@ -50,18 +50,11 @@ class AudioManager {
     this.metronomeSeq = new Tone.Sequence(
       (time, beat) => {
         const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome?.triggerAttackRelease(pitch, "32n", time);
+        this.metronome.triggerAttackRelease(pitch, "32n", time);
       },
       [1, 0, 0, 0],
       "4n",
     );
-
-    this._initialized = true;
-
-    // Apply deferred metronome state (may have been set before init)
-    if (this._metronomeEnabled) {
-      this._startMetronomeAligned();
-    }
   }
 
   async loadAudio(file: File): Promise<number> {
@@ -71,44 +64,15 @@ class AudioManager {
   }
 
   async loadFromUrl(url: string): Promise<number> {
-    // Don't call init() here - Tone.start() requires user gesture
-    // Just load the buffer, connect to gain later when initialized
-
-    // Dispose previous player
-    if (this.player) {
-      this.player.unsync();
-      this.player.dispose();
-      this.player = null;
-      this._playerConnected = false;
-    }
-
-    // Create new player and wait for it to load
-    this.player = new Tone.Player();
+    this.player.unsync();
     await this.player.load(url);
     this._duration = this.player.buffer.duration;
     this._offset = 0;
-
-    // If already initialized, connect and sync now
-    if (this._initialized && this.audioGain) {
-      this.player.connect(this.audioGain);
-      this._syncPlayer();
-      this._playerConnected = true;
-    }
-
+    this._syncPlayer();
     return this._duration;
   }
 
-  // Connect player to audio graph after init (called when starting playback)
-  private _ensurePlayerConnected(): void {
-    if (this.player && this.audioGain && !this._playerConnected) {
-      this.player.connect(this.audioGain);
-      this._syncPlayer();
-      this._playerConnected = true;
-    }
-  }
-
   private _syncPlayer(): void {
-    if (!this.player) return;
     // Unsync first if already synced
     this.player.unsync();
     // Offset determines where audio aligns with timeline:
@@ -124,26 +88,19 @@ class AudioManager {
   setOffset(offset: number): void {
     // Clamp offset: can't skip more than duration, can't delay infinitely (use duration as limit)
     this._offset = Math.max(-this._duration, Math.min(offset, this._duration));
-    if (this.player) {
-      const wasPlaying = this.isPlaying;
-      const currentPosition = Tone.getTransport().seconds;
-      if (wasPlaying) {
-        Tone.getTransport().pause();
-      }
-      this._syncPlayer();
-      if (wasPlaying) {
-        Tone.getTransport().seconds = currentPosition;
-        Tone.getTransport().start();
-      }
+    const wasPlaying = this.isPlaying;
+    const currentPosition = Tone.getTransport().seconds;
+    if (wasPlaying) {
+      Tone.getTransport().pause();
+    }
+    this._syncPlayer();
+    if (wasPlaying) {
+      Tone.getTransport().seconds = currentPosition;
+      Tone.getTransport().start();
     }
   }
 
-  get offset(): number {
-    return this._offset;
-  }
-
   play(): void {
-    this._ensurePlayerConnected();
     Tone.getTransport().start();
   }
 
@@ -174,16 +131,8 @@ class AudioManager {
     return Tone.getTransport().seconds;
   }
 
-  get duration(): number {
-    return this._duration;
-  }
-
   get isPlaying(): boolean {
     return Tone.getTransport().state === "started";
-  }
-
-  get loaded(): boolean {
-    return this.player !== null && this.player.loaded;
   }
 
   // Schedule notes for playback (synced to Transport)
@@ -198,7 +147,7 @@ class AudioManager {
       if (startSeconds + durationSeconds > fromSeconds) {
         const eventId = Tone.getTransport().scheduleOnce((time) => {
           const freq = Tone.Frequency(note.pitch, "midi").toFrequency();
-          this.synth?.triggerAttackRelease(freq, durationSeconds, time);
+          this.synth.triggerAttackRelease(freq, durationSeconds, time);
         }, startSeconds);
         this.scheduledEvents.push(eventId);
       }
@@ -214,74 +163,35 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.2): void {
-    if (!this.synth) return;
     const freq = Tone.Frequency(pitch, "midi").toFrequency();
     this.synth.triggerAttackRelease(freq, duration);
   }
 
   // Volume controls (0-1)
   setAudioVolume(volume: number): void {
-    if (this.audioGain) {
-      this.audioGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.audioGain.gain.value = Math.max(0, Math.min(1, volume));
   }
 
   setMidiVolume(volume: number): void {
-    if (this.midiGain) {
-      this.midiGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.midiGain.gain.value = Math.max(0, Math.min(1, volume));
   }
 
   setMetronomeVolume(volume: number): void {
-    if (this.metronomeGain) {
-      this.metronomeGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.metronomeGain.gain.value = Math.max(0, Math.min(1, volume));
   }
 
-  // Metronome controls
   setMetronomeEnabled(enabled: boolean): void {
-    this._metronomeEnabled = enabled;
-    if (this.metronomeSeq) {
-      if (enabled) {
-        this._startMetronomeAligned();
-      } else {
-        this.metronomeSeq.stop();
-      }
-    }
-  }
-
-  // Start metronome aligned to beat grid
-  private _startMetronomeAligned(): void {
-    if (!this.metronomeSeq) return;
-
-    const position = Tone.getTransport().seconds;
-    if (position <= 0) {
-      // At start, begin from 0
+    if (enabled) {
       this.metronomeSeq.start(0);
     } else {
-      // Mid-playback: calculate next measure start for proper beat 1 alignment
-      const tempo = Tone.getTransport().bpm.value;
-      const secondsPerBeat = 60 / tempo;
-      const secondsPerMeasure = secondsPerBeat * 4; // 4/4 time
-      const nextMeasure =
-        Math.ceil(position / secondsPerMeasure) * secondsPerMeasure;
-      this.metronomeSeq.start(nextMeasure);
+      this.metronomeSeq.stop();
     }
-  }
-
-  get metronomeEnabled(): boolean {
-    return this._metronomeEnabled;
-  }
-
-  // Allow playback without audio (MIDI-only mode)
-  get canPlay(): boolean {
-    return this._initialized;
   }
 
   // Extract peaks from audio buffer for waveform display
   // Returns array of peak values (0-1) at specified resolution
   getPeaks(peaksPerSecond: number = 100): number[] {
-    if (!this.player || !this.player.buffer || !this.player.buffer.length) {
+    if (!this.player.buffer.length) {
       return [];
     }
 
@@ -302,10 +212,6 @@ class AudioManager {
     }
 
     return peaks;
-  }
-
-  get sampleRate(): number {
-    return this.player?.buffer?.sampleRate ?? 44100;
   }
 }
 
