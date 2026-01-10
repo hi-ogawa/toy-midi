@@ -361,4 +361,26 @@ test.describe("Piano Roll", () => {
     if (!finalBox) throw new Error("Note not found after move");
     expect(finalBox.y).toBeLessThan(initialY);
   });
+
+  test("plays MIDI preview when clicking keyboard sidebar", async ({
+    page,
+  }) => {
+    // Find a keyboard key (e.g., C3 label)
+    const c3Label = page.getByText("C3");
+    await expect(c3Label).toBeVisible();
+
+    // Get the bounding box of the keyboard key
+    const keyBox = await c3Label.boundingBox();
+    if (!keyBox) throw new Error("Keyboard key not found");
+
+    // Click on the keyboard key to trigger preview
+    // We can't directly test audio output in E2E, but we can verify the click works
+    await page.mouse.click(
+      keyBox.x + keyBox.width / 2,
+      keyBox.y + keyBox.height / 2,
+    );
+
+    // The test passes if no errors occur - audio preview is played in the background
+    // Manual verification needed for actual audio output
+  });
 });
