@@ -17,13 +17,8 @@ type AppState = "startup" | "loading" | "ready";
 export function App() {
   const [appState, setAppState] = useState<AppState>("startup");
   const [loadingStatus, setLoadingStatus] = useState("Initializing...");
-  const [savedProjectExists, setSavedProjectExists] = useState(false);
+  const [savedProjectExists] = useState(() => hasSavedProject());
   const setAudioPeaks = useProjectStore((s) => s.setAudioPeaks);
-
-  // Check for saved project on mount
-  useEffect(() => {
-    setSavedProjectExists(hasSavedProject());
-  }, []);
 
   // Handle "New Project" click
   const handleNewProject = async () => {

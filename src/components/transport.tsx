@@ -89,10 +89,7 @@ export function Transport() {
   // Note: audioManager.init() is called in App.tsx on startup screen click
   // Volume sync is also handled there after project restore
 
-  const handlePlayPause = useCallback(async () => {
-    // Allow play if audio loaded OR just for MIDI-only mode
-    await audioManager.init();
-
+  const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       audioManager.pause();
       audioManager.clearScheduledNotes();

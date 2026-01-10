@@ -1,16 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { clickThroughStartup } from "./helpers";
+import { clickContinue, clickNewProject } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
 const ROW_HEIGHT = 20;
-
-// Helper to click Continue button after reload (when saved project exists)
-async function clickContinue(page: import("@playwright/test").Page) {
-  const continueButton = page.getByTestId("continue-button");
-  await continueButton.click();
-  await page.getByTestId("transport").waitFor({ state: "visible" });
-}
 
 test.describe("Project Persistence", () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +12,7 @@ test.describe("Project Persistence", () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     // Click through startup screen (no saved project, so "New Project")
-    await clickThroughStartup(page);
+    await clickNewProject(page);
   });
 
   test("notes persist after page reload", async ({ page }) => {

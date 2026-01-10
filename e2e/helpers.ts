@@ -11,15 +11,23 @@ declare global {
 }
 
 /**
- * Click through the startup screen to get to the main UI.
- * Call this in beforeEach for tests that need the main UI.
+ * Click "New Project" on startup screen to get to main UI with empty state.
  */
-export async function clickThroughStartup(page: Page): Promise<void> {
-  const newProjectButton = page.getByTestId("new-project-button");
-  await newProjectButton.click();
-  // Wait for main UI to be ready
+export async function clickNewProject(page: Page): Promise<void> {
+  await page.getByTestId("new-project-button").click();
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }
+
+/**
+ * Click "Continue" on startup screen to restore saved project.
+ */
+export async function clickContinue(page: Page): Promise<void> {
+  await page.getByTestId("continue-button").click();
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/** @deprecated Use clickNewProject instead */
+export const clickThroughStartup = clickNewProject;
 
 /**
  * Evaluate a function against the Zustand store in the browser context.
