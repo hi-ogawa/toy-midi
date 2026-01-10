@@ -67,7 +67,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] feat: toggle auto-scroll during playback
-- [x] feat: help overlay (? key, code-generated from keybindings)
+- [x] feat: help overlay (? button, code-generated from keybindings)
 - [ ] feat: higher resolution waveform at zoom
 - [ ] feat: asset management UI
 - [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
@@ -88,7 +88,10 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: "No audio loaded" label scroll behavior
 - [ ] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
-- [ ] fix: move debug header to top toolbar
+- [ ] fix: move toobar to transport header (debug button as small bug icon button)
+- [ ] fix: rework transport header layout
+  - metro on off align left
+  - volume somewhere else?
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
@@ -108,30 +111,6 @@ See [architecture.md](architecture.md) for implementation details.
 
 ## Quick Reference
 
-> Press **?** in the app to see the interactive help overlay with all keyboard shortcuts and mouse actions.
+Click the **?** button in the transport bar to see all keyboard shortcuts and mouse actions.
 
-### Mouse
-
-| Action                | Result              |
-| --------------------- | ------------------- |
-| Click + drag on empty | Create note         |
-| Click on note         | Select              |
-| Shift + click on note | Add to selection    |
-| Shift + drag on empty | Box select          |
-| Drag note body        | Move (time + pitch) |
-| Drag note edge        | Resize              |
-
-### Keyboard
-
-| Key                | Action          |
-| ------------------ | --------------- |
-| Delete / Backspace | Delete selected |
-| Escape             | Deselect all    |
-| Space              | Play/pause      |
-| ?                  | Show/hide help  |
-
-### Toolbar
-
-| Control | Options                           |
-| ------- | --------------------------------- |
-| Grid    | 1/4, 1/8, 1/16, 1/4T, 1/8T, 1/16T |
+Source of truth: `src/lib/keybindings.ts`

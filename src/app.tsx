@@ -63,32 +63,18 @@ export function App() {
     },
   });
 
-  // Global keyboard handler for help overlay
+  // Escape to close help overlay
   useEffect(() => {
+    if (!isHelpOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Show/hide help with '?' key (Shift + /)
-      // Note: e.key can be either "?" or "/" depending on keyboard layout/browser
-      if ((e.key === "?" || (e.key === "/" && e.shiftKey)) && !e.repeat) {
-        // Don't trigger if typing in an input
-        if (
-          e.target instanceof HTMLInputElement ||
-          e.target instanceof HTMLTextAreaElement
-        ) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        setIsHelpOpen((prev) => !prev);
-      }
-      // Also allow Escape to close help (only when help is open)
-      else if (e.key === "Escape" && isHelpOpen) {
+      if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);
       }
     };
 
-    // Use capture phase to handle before other components
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isHelpOpen]);
@@ -140,7 +126,7 @@ export function App() {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
-      <Transport />
+      <Transport onHelpClick={() => setIsHelpOpen(true)} />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>

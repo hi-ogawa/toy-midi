@@ -4,13 +4,13 @@
 export type KeyBinding = {
   key: string;
   description: string;
-  category: "playback" | "editing" | "navigation" | "help";
+  category: "playback" | "editing" | "navigation";
 };
 
 export type MouseAction = {
   action: string;
   description: string;
-  category: "note-editing" | "selection" | "navigation";
+  category: "editing" | "navigation";
 };
 
 export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
@@ -37,48 +37,39 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Deselect all notes",
     category: "editing",
   },
-
-  // Help
-  {
-    key: "?",
-    description: "Show / Hide this help",
-    category: "help",
-  },
 ];
 
 export const MOUSE_ACTIONS: MouseAction[] = [
-  // Note editing
+  // Editing
   {
     action: "Click + Drag on empty space",
     description: "Create new note",
-    category: "note-editing",
+    category: "editing",
   },
   {
     action: "Drag note body",
     description: "Move note (time + pitch)",
-    category: "note-editing",
+    category: "editing",
   },
   {
     action: "Drag note edge",
     description: "Resize note duration",
-    category: "note-editing",
+    category: "editing",
   },
-
-  // Selection
   {
     action: "Click on note",
     description: "Select note",
-    category: "selection",
+    category: "editing",
   },
   {
     action: "Shift + Click on note",
     description: "Add note to selection",
-    category: "selection",
+    category: "editing",
   },
   {
     action: "Shift + Drag on empty space",
     description: "Box select multiple notes",
-    category: "selection",
+    category: "editing",
   },
 
   // Navigation
@@ -104,7 +95,4 @@ export const CATEGORY_NAMES = {
   playback: "Playback",
   editing: "Editing",
   navigation: "Navigation",
-  help: "Help",
-  "note-editing": "Note Editing",
-  selection: "Selection",
 } as const;

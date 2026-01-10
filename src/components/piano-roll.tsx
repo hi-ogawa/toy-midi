@@ -640,10 +640,6 @@ export function PianoRoll() {
           <option value="1/16T">1/16T</option>
         </select>
 
-        <span className="text-sm text-neutral-500 ml-4">
-          Pan: trackpad/wheel | Zoom: Ctrl+wheel
-        </span>
-
         <span className="text-sm text-neutral-500 ml-auto">
           {selectedNoteIds.size > 0 && `${selectedNoteIds.size} selected`}
         </span>
