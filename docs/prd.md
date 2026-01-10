@@ -78,7 +78,7 @@ See [architecture.md](architecture.md) for implementation details.
     - [x] chore: setup sonner for error toasts
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
-- [ ] fix: zoom should keep cursor as center
+- [x] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
