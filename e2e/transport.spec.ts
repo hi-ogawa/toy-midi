@@ -30,27 +30,18 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled({ timeout: 5000 });
 
-    // Should show play icon initially (SVG with path d="M8 5v14l11-7z")
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M8 5v14l11-7z",
-    );
+    // Should show play icon initially
+    await expect(page.getByTestId("play-icon")).toBeVisible();
 
     // Click to play
     await playButton.click();
-    // Should show pause icon (SVG with path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z")
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M6 4h4v16H6V4zm8 0h4v16h-4V4z",
-    );
+    // Should show pause icon
+    await expect(page.getByTestId("pause-icon")).toBeVisible();
 
     // Click to pause
     await playButton.click();
     // Should show play icon again
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M8 5v14l11-7z",
-    );
+    await expect(page.getByTestId("play-icon")).toBeVisible();
   });
 
   test("space bar toggles play/pause", async ({ page }) => {
@@ -69,26 +60,17 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled({ timeout: 5000 });
     // Should show play icon initially
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M8 5v14l11-7z",
-    );
+    await expect(page.getByTestId("play-icon")).toBeVisible();
 
     // Press space to play
     await page.keyboard.press("Space");
     // Should show pause icon
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M6 4h4v16H6V4zm8 0h4v16h-4V4z",
-    );
+    await expect(page.getByTestId("pause-icon")).toBeVisible();
 
     // Press space to pause
     await page.keyboard.press("Space");
     // Should show play icon again
-    await expect(playButton.locator("svg path")).toHaveAttribute(
-      "d",
-      "M8 5v14l11-7z",
-    );
+    await expect(page.getByTestId("play-icon")).toBeVisible();
   });
 
   test("tempo input accepts valid values", async ({ page }) => {

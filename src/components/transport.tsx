@@ -246,11 +246,21 @@ export function Transport({ onHelpClick }: TransportProps) {
         className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded text-neutral-200 hover:text-white"
       >
         {isPlaying ? (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            data-testid="pause-icon"
+            className="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
           </svg>
         ) : (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            data-testid="play-icon"
+            className="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M8 5v14l11-7z" />
           </svg>
         )}
