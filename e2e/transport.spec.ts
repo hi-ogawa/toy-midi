@@ -1,9 +1,11 @@
 import path from "path";
 import { expect, test } from "@playwright/test";
+import { clickNewProject } from "./helpers";
 
 test.describe("Transport Controls", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    await clickNewProject(page);
   });
 
   test("play button is always enabled for MIDI-only mode", async ({ page }) => {

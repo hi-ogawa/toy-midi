@@ -2,21 +2,9 @@
 
 Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
-## Startup Screen
+## ~~Startup Screen~~ (Done)
 
-**Goal:** Solve AudioContext + persistence/init flow issues.
-
-**Doc:** See `architecture.md` → "Persistence & Init Flow"
-
-**Tasks:**
-
-- [ ] Create `StartupScreen` component ("Click to start")
-- [ ] On click: `audioManager.init()` (guaranteed user gesture)
-- [ ] Sequential restore: localStorage → IndexedDB → audio load
-- [ ] Remove nested async useEffect from App.tsx
-- [ ] Show main UI after restore complete
-
-**Why:** Foundation for clean audio state. Fixes race conditions in restore flow.
+See `docs/2026-01-10-startup-screen.md` for implementation and follow-up items.
 
 ## Audio ↔ State Sync Refactor
 

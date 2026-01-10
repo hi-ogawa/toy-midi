@@ -1,94 +1,111 @@
-import { useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager } from "./lib/audio";
 import {
+  clearProject,
+  hasSavedProject,
   loadProject,
   saveProject,
   useProjectStore,
 } from "./stores/project-store";
 
+// Check once at module load - doesn't change during session
+const savedProjectExists = hasSavedProject();
+
 export function App() {
-  const hasLoadedRef = useRef(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingStatus, setLoadingStatus] = useState("Loading...");
-  const setAudioPeaks = useProjectStore((s) => s.setAudioPeaks);
+  const initMutation = useMutation({
+    mutationFn: async (continueProject: boolean) => {
+      await audioManager.init();
 
-  // Load project on mount (once)
-  useEffect(() => {
-    if (hasLoadedRef.current) return;
-    hasLoadedRef.current = true;
-
-    const loaded = loadProject();
-    if (loaded) {
-      console.log("Restored project from localStorage");
-
-      // Restore audio from IndexedDB if available
-      if (loaded.audioAssetKey) {
-        setLoadingStatus("Restoring audio...");
-        loadAsset(loaded.audioAssetKey)
-          .then(async (asset) => {
-            if (asset) {
-              try {
-                const url = URL.createObjectURL(asset.blob);
-                const duration = await audioManager.loadFromUrl(url);
-
-                // Update duration in store (other fields already loaded)
-                useProjectStore.setState({ audioDuration: duration });
-
-                // Sync audioOffset with audioManager
-                const { audioOffset } = useProjectStore.getState();
-                audioManager.setOffset(audioOffset);
-
-                // Extract peaks for waveform
-                const peaks = audioManager.getPeaks(100);
-                setAudioPeaks(peaks, 100);
-
-                console.log("Restored audio from IndexedDB:", asset.name);
-              } catch (err) {
-                console.warn("Failed to restore audio:", err);
-              }
-            }
-          })
-          .catch((err) => {
-            console.warn("Failed to load asset from IndexedDB:", err);
-          })
-          .finally(() => {
-            setIsLoading(false);
-          });
+      if (!continueProject) {
+        clearProject();
       } else {
-        setIsLoading(false);
-      }
-    } else {
-      setIsLoading(false);
-    }
-  }, [setAudioPeaks]);
+        const loaded = loadProject();
 
-  // Auto-save on state changes (debounced)
-  useEffect(() => {
-    // Subscribe to store changes
-    const unsubscribe = useProjectStore.subscribe(() => {
-      // Debounce saves
-      clearTimeout(
-        (window as unknown as { _saveTimeout?: number })._saveTimeout,
-      );
-      (window as unknown as { _saveTimeout?: number })._saveTimeout =
-        window.setTimeout(() => {
+        if (loaded?.audioAssetKey) {
+          const asset = await loadAsset(loaded.audioAssetKey);
+          if (asset) {
+            const url = URL.createObjectURL(asset.blob);
+            const duration = await audioManager.loadFromUrl(url);
+
+            useProjectStore.setState({ audioDuration: duration });
+
+            const { audioOffset } = useProjectStore.getState();
+            audioManager.setOffset(audioOffset);
+
+            const peaks = audioManager.getPeaks(100);
+            useProjectStore.getState().setAudioPeaks(peaks, 100);
+          }
+        }
+
+        // Sync mixer settings with audioManager
+        const state = useProjectStore.getState();
+        audioManager.setAudioVolume(state.audioVolume);
+        audioManager.setMidiVolume(state.midiVolume);
+        audioManager.setMetronomeEnabled(state.metronomeEnabled);
+        audioManager.setMetronomeVolume(state.metronomeVolume);
+      }
+
+      // Setup auto-save on state changes (debounced)
+      let saveTimeout: number;
+      useProjectStore.subscribe(() => {
+        clearTimeout(saveTimeout);
+        saveTimeout = window.setTimeout(() => {
           saveProject();
         }, 500);
-    });
+      });
+    },
+  });
 
-    return () => unsubscribe();
-  }, []);
+  if (initMutation.isPending) {
+    return (
+      <div className="h-screen flex flex-col bg-neutral-900">
+        <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
+          <div className="text-neutral-400 text-sm">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!initMutation.isSuccess) {
+    return (
+      <div
+        data-testid="startup-screen"
+        className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
+      >
+        <div className="flex flex-col items-center gap-6">
+          <h1 className="text-2xl font-semibold text-neutral-200">toy-midi</h1>
+          <div className="flex gap-3">
+            {hasSavedProject() && (
+              <button
+                data-testid="continue-button"
+                onClick={() => initMutation.mutate(true)}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
+              >
+                Continue
+              </button>
+            )}
+            <button
+              data-testid="new-project-button"
+              onClick={() => initMutation.mutate(false)}
+              className={`px-6 py-3 rounded-lg font-medium ${
+                savedProjectExists
+                  ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white"
+              }`}
+            >
+              New Project
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
-      {isLoading && (
-        <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
-          <div className="text-neutral-400 text-sm">{loadingStatus}</div>
-        </div>
-      )}
       <Transport />
       <PianoRoll />
     </div>

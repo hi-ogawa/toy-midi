@@ -11,6 +11,25 @@ declare global {
 }
 
 /**
+ * Click "New Project" on startup screen to get to main UI with empty state.
+ */
+export async function clickNewProject(page: Page): Promise<void> {
+  await page.getByTestId("new-project-button").click();
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/**
+ * Click "Continue" on startup screen to restore saved project.
+ */
+export async function clickContinue(page: Page): Promise<void> {
+  await page.getByTestId("continue-button").click();
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/** @deprecated Use clickNewProject instead */
+export const clickThroughStartup = clickNewProject;
+
+/**
  * Evaluate a function against the Zustand store in the browser context.
  * Only available in dev mode where window.__store is exposed.
  *

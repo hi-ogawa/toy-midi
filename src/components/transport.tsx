@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 import { saveAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
@@ -57,15 +58,8 @@ export function Transport() {
     };
   }, [isPlaying, updatePosition]);
 
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
+  const loadAudioMutation = useMutation({
+    mutationFn: async (file: File) => {
       const duration = await audioManager.loadAudio(file);
 
       // Save audio to IndexedDB for persistence
@@ -78,27 +72,26 @@ export function Transport() {
       const peaksPerSecond = 100;
       const peaks = audioManager.getPeaks(peaksPerSecond);
       setAudioPeaks(peaks, peaksPerSecond);
-    } catch (err) {
-      console.error("Failed to load audio:", err);
-    }
+    },
+  });
 
+  const handleLoadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      loadAudioMutation.mutate(file);
+    }
     // Reset input so same file can be selected again
     e.target.value = "";
   };
 
-  // Initialize audio manager and sync volumes
-  useEffect(() => {
-    audioManager.init().then(() => {
-      audioManager.setAudioVolume(audioVolume);
-      audioManager.setMidiVolume(midiVolume);
-      audioManager.setMetronomeEnabled(metronomeEnabled);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: audioManager.init() is called in App.tsx on startup screen click
+  // Volume sync is also handled there after project restore
 
-  const handlePlayPause = useCallback(async () => {
-    // Allow play if audio loaded OR just for MIDI-only mode
-    await audioManager.init();
-
+  const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       audioManager.pause();
       audioManager.clearScheduledNotes();
@@ -191,9 +184,10 @@ export function Transport() {
       <button
         data-testid="load-audio-button"
         onClick={handleLoadClick}
-        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded"
+        disabled={loadAudioMutation.isPending}
+        className="px-3 py-1 text-sm bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50"
       >
-        Load Audio
+        {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
       </button>
       <input
         data-testid="audio-file-input"

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clickContinue, clickNewProject } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -10,6 +11,8 @@ test.describe("Project Persistence", () => {
     // Clear localStorage to start fresh
     await page.evaluate(() => localStorage.clear());
     await page.reload();
+    // Click through startup screen (no saved project, so "New Project")
+    await clickNewProject(page);
   });
 
   test("notes persist after page reload", async ({ page }) => {
@@ -32,8 +35,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save (debounced at 500ms)
     await page.waitForTimeout(600);
 
-    // Reload the page
+    // Reload the page and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should still exist after reload
     const restoredNote = page.locator("[data-testid^='note-']");
@@ -91,11 +95,49 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // All 3 notes should be restored
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
+  });
+
+  test("audio file persists after reload", async ({ page }) => {
+    // Load audio file
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByTestId("load-audio-button").click(),
+    ]);
+    await fileChooser.setFiles("public/test-audio.wav");
+
+    // Wait for audio to load
+    await expect(page.getByTestId("audio-file-name")).toBeVisible();
+    await expect(page.getByTestId("audio-file-name")).toHaveText(
+      "test-audio.wav",
+    );
+
+    // Get duration before reload
+    const timeDisplay = page.getByTestId("time-display");
+    await expect(timeDisplay).not.toContainText("0:00 / 0:00");
+
+    // Wait for auto-save
+    await page.waitForTimeout(600);
+
+    // Reload and click Continue to restore
+    await page.reload();
+    await clickContinue(page);
+
+    // Audio file name should be restored
+    await expect(page.getByTestId("audio-file-name")).toBeVisible();
+    await expect(page.getByTestId("audio-file-name")).toHaveText(
+      "test-audio.wav",
+    );
+
+    // Duration should be restored (not 0:00)
+    await expect(page.getByTestId("time-display")).not.toContainText(
+      "0:00 / 0:00",
+    );
   });
 
   test("tempo persists after reload", async ({ page }) => {
@@ -110,8 +152,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Tempo should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
@@ -128,8 +171,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Grid snap should be restored
     await expect(page.locator("select").first()).toHaveValue("1/16");
@@ -146,8 +190,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Metronome should still be enabled
     await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
@@ -190,8 +235,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should be at the moved position
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -242,8 +288,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Should still have only 1 note
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
@@ -268,8 +315,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Note should exist but NOT be selected (selection is transient)
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -303,8 +351,9 @@ test.describe("Project Persistence", () => {
     // Wait for auto-save
     await page.waitForTimeout(600);
 
-    // Reload
+    // Reload and click Continue to restore
     await page.reload();
+    await clickContinue(page);
 
     // Time display should show 0:00 (playhead at start)
     const timeDisplay = page.getByTestId("time-display");

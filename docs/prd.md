@@ -70,14 +70,18 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: help overlay (? key, code-generated from keybindings)
 - [ ] feat: higher resolution waveform at zoom
 - [ ] feat: asset management UI
-- [ ] feat: startup screen (see architecture.md - solves AudioContext + restore flow)
+- [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
+  - [x] fix: layout shift on startup
+  - [x] chore: consolidate e2e helpers (`clickNewProject`, `clickContinue`)
+  - [x] refactor: remove redundant `audioManager.init()` in handlePlayPause
+  - [x] refactor: evaluate React Query
+    - [x] chore: setup sonner for error toasts
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
 - [ ] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: refine waveform display resolution
-- [ ] fix: AudioContext user gesture handling (combine with startup screen)
 - [ ] fix: initial flash of lower keys
 - [ ] fix: timeline click-to-seek delay
 - [ ] fix: jumping timeline during playback
@@ -88,6 +92,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
+- [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 

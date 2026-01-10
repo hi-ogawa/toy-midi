@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { clickNewProject } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -7,6 +8,7 @@ const ROW_HEIGHT = 20;
 test.describe("Piano Roll", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
+    await clickNewProject(page);
   });
 
   test("renders grid and keyboard", async ({ page }) => {

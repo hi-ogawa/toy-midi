@@ -13,9 +13,11 @@
     "test-e2e": "playwright test"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.16",
     "clsx": "^2.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tone": "^15.1.22",
     "zustand": "^5.0.9"
