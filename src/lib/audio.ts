@@ -47,10 +47,6 @@ class AudioManager {
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
 
-  // Position update state
-  private positionUpdateRaf: number | null = null;
-  private positionListeners: Array<(event: AudioManagerEvent) => void> = [];
-
   // Subscribe to state changes (exposing Tone.Transport events directly)
   subscribe(listener: AudioManagerListener): () => void {
     const emitEvent = (type: TransportEventNames) => {
@@ -63,67 +59,34 @@ class AudioManager {
       });
     };
 
-    // Subscribe to Transport state changes
-    const handleStart = () => {
-      emitEvent("start");
-      this.startPositionUpdates();
-    };
-    const handleStop = () => {
-      emitEvent("stop");
-      this.stopPositionUpdates();
-    };
-    const handlePause = () => {
-      emitEvent("pause");
-      this.stopPositionUpdates();
-    };
-
-    // Add position listener for RAF updates
-    this.positionListeners.push(listener);
+    // Subscribe to all Transport events
+    const handleStart = () => emitEvent("start");
+    const handleStop = () => emitEvent("stop");
+    const handlePause = () => emitEvent("pause");
+    const handleLoop = () => emitEvent("loop");
+    const handleLoopEnd = () => emitEvent("loopEnd");
+    const handleLoopStart = () => emitEvent("loopStart");
+    const handleTicks = () => emitEvent("ticks");
 
     // Subscribe to Transport events
     Tone.getTransport().on("start", handleStart);
     Tone.getTransport().on("stop", handleStop);
     Tone.getTransport().on("pause", handlePause);
+    Tone.getTransport().on("loop", handleLoop);
+    Tone.getTransport().on("loopEnd", handleLoopEnd);
+    Tone.getTransport().on("loopStart", handleLoopStart);
+    Tone.getTransport().on("ticks", handleTicks);
 
     // Return unsubscribe function
     return () => {
       Tone.getTransport().off("start", handleStart);
       Tone.getTransport().off("stop", handleStop);
       Tone.getTransport().off("pause", handlePause);
-      this.positionListeners = this.positionListeners.filter(
-        (l) => l !== listener,
-      );
+      Tone.getTransport().off("loop", handleLoop);
+      Tone.getTransport().off("loopEnd", handleLoopEnd);
+      Tone.getTransport().off("loopStart", handleLoopStart);
+      Tone.getTransport().off("ticks", handleTicks);
     };
-  }
-
-  // Position update loop (only runs when playing)
-  private startPositionUpdates(): void {
-    if (this.positionUpdateRaf !== null) return;
-
-    const updateLoop = () => {
-      if (this.isPlaying) {
-        const transport = Tone.getTransport();
-        const event: AudioManagerEvent = {
-          type: "ticks",
-          state: transport.state,
-          position: transport.position,
-          seconds: transport.seconds,
-        };
-        this.positionListeners.forEach((listener) => listener(event));
-        this.positionUpdateRaf = requestAnimationFrame(updateLoop);
-      } else {
-        this.positionUpdateRaf = null;
-      }
-    };
-
-    this.positionUpdateRaf = requestAnimationFrame(updateLoop);
-  }
-
-  private stopPositionUpdates(): void {
-    if (this.positionUpdateRaf !== null) {
-      cancelAnimationFrame(this.positionUpdateRaf);
-      this.positionUpdateRaf = null;
-    }
   }
 
   async init(): Promise<void> {
