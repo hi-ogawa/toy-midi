@@ -132,4 +132,66 @@ test.describe("Startup Screen", () => {
     await expect(page.getByTestId("transport")).toBeVisible();
     await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
   });
+
+  test("pressing Enter starts new project when no saved project", async ({
+    page,
+  }) => {
+    await page.reload();
+
+    // Verify startup screen is visible
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+
+    // Press Enter
+    await page.keyboard.press("Enter");
+
+    // Main UI should be visible with empty state
+    await expect(page.getByTestId("transport")).toBeVisible();
+    await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
+
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes).toHaveLength(0);
+  });
+
+  test("pressing Enter continues saved project when it exists", async ({
+    page,
+  }) => {
+    // First, create a project with some data
+    await page.reload();
+
+    await page.getByTestId("new-project-button").click();
+
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "test-note-enter",
+        pitch: 65,
+        start: 0.5,
+        duration: 1.5,
+        velocity: 90,
+      });
+      store.getState().setTempo(150);
+    });
+
+    // Wait for auto-save
+    await page.waitForTimeout(600);
+
+    // Reload - now we have a saved project
+    await page.reload();
+
+    // Verify startup screen is visible with continue button
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+    await expect(page.getByTestId("continue-button")).toBeVisible();
+
+    // Press Enter (should continue)
+    await page.keyboard.press("Enter");
+
+    // Main UI should be visible with restored state
+    await expect(page.getByTestId("transport")).toBeVisible();
+
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].pitch).toBe(65);
+
+    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
+    expect(tempo).toBe(150);
+  });
 });

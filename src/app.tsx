@@ -63,6 +63,24 @@ export function App() {
     },
   });
 
+  // Enter to start project (startup screen only)
+  useEffect(() => {
+    if (initMutation.isSuccess || initMutation.isPending) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        // If saved project exists, continue with it (quick path)
+        // Otherwise, start new project
+        initMutation.mutate(savedProjectExists);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [initMutation, savedProjectExists]);
+
   // Escape to close help overlay
   useEffect(() => {
     if (!isHelpOpen) return;
@@ -118,6 +136,13 @@ export function App() {
             >
               New Project
             </button>
+          </div>
+          <div className="text-neutral-500 text-sm">
+            Press{" "}
+            <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
+              Enter
+            </kbd>{" "}
+            to {savedProjectExists ? "continue" : "start"}
           </div>
         </div>
       </div>
