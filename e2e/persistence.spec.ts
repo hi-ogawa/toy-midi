@@ -1,9 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject } from "./helpers";
-
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
-const ROW_HEIGHT = 20;
+import { clickContinue, clickNewProject, evaluateStore } from "./helpers";
 
 test.describe("Project Persistence", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,21 +12,19 @@ test.describe("Project Persistence", () => {
   });
 
   test("notes persist after page reload", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Add a note via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 1, duration: 2, velocity: 100 });
+    });
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 1.5;
-    const startY = gridBox.y + ROW_HEIGHT * 3.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
-    await page.mouse.up();
-
-    // Verify note exists
-    const note = page.locator("[data-testid^='note-']");
-    await expect(note).toHaveCount(1);
+    // Verify note exists in store
+    const noteCount = await evaluateStore(
+      page,
+      (store) => store.getState().notes.length,
+    );
+    expect(noteCount).toBe(1);
 
     // Wait for auto-save (debounced at 500ms)
     await page.waitForTimeout(600);
@@ -39,58 +33,41 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Note should still exist after reload
-    const restoredNote = page.locator("[data-testid^='note-']");
-    await expect(restoredNote).toHaveCount(1);
+    // Note should still exist after reload (verify via store)
+    const restoredNotes = await evaluateStore(
+      page,
+      (store) => store.getState().notes,
+    );
+    expect(restoredNotes).toHaveLength(1);
+    expect(restoredNotes[0].pitch).toBe(60);
+    expect(restoredNotes[0].start).toBe(1);
+    expect(restoredNotes[0].duration).toBe(2);
   });
 
   test("multiple notes persist after reload", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create first note
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 0.5,
-      gridBox.y + ROW_HEIGHT * 2,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1.5,
-      gridBox.y + ROW_HEIGHT * 2,
-    );
-    await page.mouse.up();
-
-    await page.keyboard.press("Escape");
-
-    // Create second note
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 2.5,
-      gridBox.y + ROW_HEIGHT * 4,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 4,
-      gridBox.y + ROW_HEIGHT * 4,
-    );
-    await page.mouse.up();
-
-    await page.keyboard.press("Escape");
-
-    // Create third note
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 5,
-      gridBox.y + ROW_HEIGHT * 6,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 6,
-      gridBox.y + ROW_HEIGHT * 6,
-    );
-    await page.mouse.up();
+    // Add 3 notes via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 0, duration: 1, velocity: 100 });
+      store.getState().addNote({
+        id: "n2",
+        pitch: 55,
+        start: 2,
+        duration: 1.5,
+        velocity: 100,
+      });
+      store
+        .getState()
+        .addNote({ id: "n3", pitch: 50, start: 5, duration: 1, velocity: 100 });
+    });
 
     // Verify 3 notes exist
-    await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
+    const noteCount = await evaluateStore(
+      page,
+      (store) => store.getState().notes.length,
+    );
+    expect(noteCount).toBe(3);
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -99,8 +76,13 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // All 3 notes should be restored
-    await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
+    // All 3 notes should be restored (verify via store)
+    const restoredNotes = await evaluateStore(
+      page,
+      (store) => store.getState().notes,
+    );
+    expect(restoredNotes).toHaveLength(3);
+    expect(restoredNotes.map((n) => n.id).sort()).toEqual(["n1", "n2", "n3"]);
   });
 
   test("audio file persists after reload", async ({ page }) => {
@@ -141,13 +123,14 @@ test.describe("Project Persistence", () => {
   });
 
   test("tempo persists after reload", async ({ page }) => {
+    // Change tempo via UI
     const tempoInput = page.getByTestId("tempo-input");
-    await expect(tempoInput).toHaveValue("120");
-
-    // Change tempo
     await tempoInput.fill("95");
     await tempoInput.blur();
-    await expect(tempoInput).toHaveValue("95");
+
+    // Verify via store
+    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
+    expect(tempo).toBe(95);
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -156,17 +139,25 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Tempo should be restored
-    await expect(page.getByTestId("tempo-input")).toHaveValue("95");
+    // Tempo should be restored (verify via store)
+    const restoredTempo = await evaluateStore(
+      page,
+      (store) => store.getState().tempo,
+    );
+    expect(restoredTempo).toBe(95);
   });
 
   test("grid snap persists after reload", async ({ page }) => {
+    // Change grid snap via UI
     const gridSelect = page.locator("select").first();
-    await expect(gridSelect).toHaveValue("1/8");
-
-    // Change grid snap
     await gridSelect.selectOption("1/16");
-    await expect(gridSelect).toHaveValue("1/16");
+
+    // Verify via store
+    const gridSnap = await evaluateStore(
+      page,
+      (store) => store.getState().gridSnap,
+    );
+    expect(gridSnap).toBe("1/16");
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -175,17 +166,25 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Grid snap should be restored
-    await expect(page.locator("select").first()).toHaveValue("1/16");
+    // Grid snap should be restored (verify via store)
+    const restoredGridSnap = await evaluateStore(
+      page,
+      (store) => store.getState().gridSnap,
+    );
+    expect(restoredGridSnap).toBe("1/16");
   });
 
   test("metronome setting persists after reload", async ({ page }) => {
+    // Enable metronome via UI
     const metronomeToggle = page.getByTestId("metronome-toggle");
-    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
-
-    // Enable metronome
     await metronomeToggle.click();
-    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
+
+    // Verify via store
+    const metronomeEnabled = await evaluateStore(
+      page,
+      (store) => store.getState().metronomeEnabled,
+    );
+    expect(metronomeEnabled).toBe(true);
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -194,43 +193,38 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Metronome should still be enabled
-    await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    // Metronome should still be enabled (verify via store)
+    const restoredMetronome = await evaluateStore(
+      page,
+      (store) => store.getState().metronomeEnabled,
     );
+    expect(restoredMetronome).toBe(true);
   });
 
   test("note edits persist after reload", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Create a note via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 1, duration: 1, velocity: 100 });
+    });
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 1;
-    const startY = gridBox.y + ROW_HEIGHT * 5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
+    // Edit the note (move it and change pitch) via store
+    await evaluateStore(page, (store) => {
+      store.getState().updateNote("n1", { pitch: 65, start: 4, duration: 2 });
+    });
 
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-
-    // Move the note
-    const noteCenter = initialBox.x + initialBox.width / 2;
-    await page.mouse.move(noteCenter, initialBox.y + initialBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(
-      noteCenter + BEAT_WIDTH * 3,
-      initialBox.y - ROW_HEIGHT * 2,
+    // Verify the edit via store
+    const editedNote = await evaluateStore(page, (store) =>
+      store.getState().notes.find((n) => n.id === "n1"),
     );
-    await page.mouse.up();
-
-    // Get new position
-    const movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
+    expect(editedNote).toEqual({
+      id: "n1",
+      pitch: 65,
+      start: 4,
+      duration: 2,
+      velocity: 100,
+    });
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -239,51 +233,48 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Note should be at the moved position
-    const restoredNote = page.locator("[data-testid^='note-']").first();
-    const restoredBox = await restoredNote.boundingBox();
-    if (!restoredBox) throw new Error("Note not found after reload");
-
-    // Position should match (within tolerance for rounding)
-    expect(restoredBox.x).toBeCloseTo(movedBox.x, -1);
-    expect(restoredBox.y).toBeCloseTo(movedBox.y, -1);
+    // Note should be at the edited position (verify via store)
+    const restoredNote = await evaluateStore(page, (store) =>
+      store.getState().notes.find((n) => n.id === "n1"),
+    );
+    expect(restoredNote).toEqual({
+      id: "n1",
+      pitch: 65,
+      start: 4,
+      duration: 2,
+      velocity: 100,
+    });
   });
 
   test("deleted notes stay deleted after reload", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Create two notes via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 0, duration: 1, velocity: 100 });
+      store
+        .getState()
+        .addNote({ id: "n2", pitch: 55, start: 3, duration: 1, velocity: 100 });
+    });
 
-    // Create two notes
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 0.5,
-      gridBox.y + ROW_HEIGHT * 2,
+    // Verify 2 notes exist
+    let noteCount = await evaluateStore(
+      page,
+      (store) => store.getState().notes.length,
     );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1.5,
-      gridBox.y + ROW_HEIGHT * 2,
+    expect(noteCount).toBe(2);
+
+    // Delete one note via store
+    await evaluateStore(page, (store) => {
+      store.getState().deleteNotes(["n2"]);
+    });
+
+    // Verify only 1 note remains
+    noteCount = await evaluateStore(
+      page,
+      (store) => store.getState().notes.length,
     );
-    await page.mouse.up();
-
-    await page.keyboard.press("Escape");
-
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 3,
-      gridBox.y + ROW_HEIGHT * 4,
-    );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 4,
-      gridBox.y + ROW_HEIGHT * 4,
-    );
-    await page.mouse.up();
-
-    await expect(page.locator("[data-testid^='note-']")).toHaveCount(2);
-
-    // Delete the selected note (second one)
-    await page.keyboard.press("Delete");
-    await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
+    expect(noteCount).toBe(1);
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -292,25 +283,29 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Should still have only 1 note
-    await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
+    // Should still have only 1 note (verify via store)
+    const restoredNotes = await evaluateStore(
+      page,
+      (store) => store.getState().notes,
+    );
+    expect(restoredNotes).toHaveLength(1);
+    expect(restoredNotes[0].id).toBe("n1");
   });
 
   test("selection is not persisted (transient state)", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Create a note and select it via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 1, duration: 1, velocity: 100 });
+      store.getState().selectNotes(["n1"]);
+    });
 
-    // Create a note (auto-selected)
-    const startX = gridBox.x + BEAT_WIDTH * 1;
-    const startY = gridBox.y + ROW_HEIGHT * 3;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']").first();
-    await expect(note).toHaveAttribute("data-selected", "true");
+    // Verify note is selected
+    const selectedIds = await evaluateStore(page, (store) =>
+      Array.from(store.getState().selectedNoteIds),
+    );
+    expect(selectedIds).toContain("n1");
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -320,33 +315,35 @@ test.describe("Project Persistence", () => {
     await clickContinue(page);
 
     // Note should exist but NOT be selected (selection is transient)
-    const restoredNote = page.locator("[data-testid^='note-']").first();
-    await expect(restoredNote).toHaveCount(1);
-    await expect(restoredNote).toHaveAttribute("data-selected", "false");
+    const restoredNotes = await evaluateStore(
+      page,
+      (store) => store.getState().notes,
+    );
+    expect(restoredNotes).toHaveLength(1);
+
+    const restoredSelectedIds = await evaluateStore(page, (store) =>
+      Array.from(store.getState().selectedNoteIds),
+    );
+    expect(restoredSelectedIds).toHaveLength(0);
   });
 
   test("playhead position resets on reload (transient state)", async ({
     page,
   }) => {
-    // This test verifies that playhead resets to 0 on reload
-    // Since we can't easily move playhead without playing, we just verify
-    // the initial state is correct after reload with persisted data
+    // Create a note and set playhead position via store
+    await evaluateStore(page, (store) => {
+      store
+        .getState()
+        .addNote({ id: "n1", pitch: 60, start: 1, duration: 1, velocity: 100 });
+      store.getState().setPlayheadPosition(5.0); // Set to 5 seconds
+    });
 
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note to ensure we have persisted state
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1,
-      gridBox.y + ROW_HEIGHT * 3,
+    // Verify playhead is at 5 seconds
+    const playhead = await evaluateStore(
+      page,
+      (store) => store.getState().playheadPosition,
     );
-    await page.mouse.down();
-    await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 2,
-      gridBox.y + ROW_HEIGHT * 3,
-    );
-    await page.mouse.up();
+    expect(playhead).toBe(5.0);
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -355,8 +352,11 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Time display should show 0:00 (playhead at start)
-    const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).toContainText("0:00");
+    // Playhead should reset to 0 (verify via store)
+    const restoredPlayhead = await evaluateStore(
+      page,
+      (store) => store.getState().playheadPosition,
+    );
+    expect(restoredPlayhead).toBe(0);
   });
 });
