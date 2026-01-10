@@ -85,7 +85,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
 - [ ] fix: move debug header to top toolbar
-- [ ] chore: improve testing coverage and structure (docs/2026-01-10-e2e-testing.md)
+- [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (see architecture.md)
 - [ ] refactor: refactor debug panel

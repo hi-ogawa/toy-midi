@@ -2,23 +2,7 @@
 
 Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
-## 1. E2E Testing Infrastructure (in progress)
-
-**Goal:** Clean, reliable tests for agent-driven development.
-
-**Doc:** `docs/2026-01-10-e2e-testing.md`
-
-**Tasks:**
-
-- [ ] Expose `window.__store` in dev mode
-- [ ] Create `evaluateStore(page, fn)` helper
-- [ ] Refactor fragile tests to use store API
-- [ ] Delete redundant `audio.spec.ts`
-- [ ] Ensure all tests pass: `pnpm test-e2e`
-
-**Why first:** Flaky tests block confident iteration. Need stable foundation.
-
-## 2. Startup Screen
+## 1. Startup Screen
 
 **Goal:** Solve AudioContext + persistence/init flow issues.
 
@@ -34,7 +18,7 @@ Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
 **Why:** Foundation for clean audio state. Fixes race conditions in restore flow.
 
-## 3. Audio ↔ State Sync Refactor
+## 2. Audio ↔ State Sync Refactor
 
 **Goal:** Single source of truth, eliminate sync bugs.
 

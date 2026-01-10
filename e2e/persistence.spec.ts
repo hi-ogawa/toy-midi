@@ -137,11 +137,11 @@ test.describe("Project Persistence", () => {
 
   test("metronome setting persists after reload", async ({ page }) => {
     const metronomeToggle = page.getByTestId("metronome-toggle");
-    await expect(metronomeToggle).not.toBeChecked();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
     // Enable metronome
     await metronomeToggle.click();
-    await expect(metronomeToggle).toBeChecked();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
     // Wait for auto-save
     await page.waitForTimeout(600);
@@ -150,7 +150,10 @@ test.describe("Project Persistence", () => {
     await page.reload();
 
     // Metronome should still be enabled
-    await expect(page.getByTestId("metronome-toggle")).toBeChecked();
+    await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   test("note edits persist after reload", async ({ page }) => {

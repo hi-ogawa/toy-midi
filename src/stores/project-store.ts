@@ -218,6 +218,12 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   metronomeVolume: 0.5,
 };
 
+// Expose store for E2E testing in dev mode
+if (import.meta.env.DEV) {
+  (window as Window & { __store?: typeof useProjectStore }).__store =
+    useProjectStore;
+}
+
 export function loadProject(): LoadedProject | null {
   try {
     const json = localStorage.getItem(STORAGE_KEY);

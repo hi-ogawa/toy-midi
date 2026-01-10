@@ -6,9 +6,10 @@ test.describe("Transport Controls", () => {
     await page.goto("/");
   });
 
-  test("play button is disabled without audio", async ({ page }) => {
+  test("play button is always enabled for MIDI-only mode", async ({ page }) => {
     const playButton = page.getByTestId("play-pause-button");
-    await expect(playButton).toBeDisabled();
+    // Play button is always enabled to allow MIDI-only playback
+    await expect(playButton).toBeEnabled();
   });
 
   test("play/pause toggles with button click", async ({ page }) => {
@@ -27,16 +28,16 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled({ timeout: 5000 });
 
-    // Should show Play initially
-    await expect(playButton).toHaveText("Play");
+    // Should show play icon initially
+    await expect(playButton).toHaveText("▶");
 
     // Click to play
     await playButton.click();
-    await expect(playButton).toHaveText("Pause");
+    await expect(playButton).toHaveText("⏸");
 
     // Click to pause
     await playButton.click();
-    await expect(playButton).toHaveText("Play");
+    await expect(playButton).toHaveText("▶");
   });
 
   test("space bar toggles play/pause", async ({ page }) => {
@@ -54,15 +55,15 @@ test.describe("Transport Controls", () => {
 
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled({ timeout: 5000 });
-    await expect(playButton).toHaveText("Play");
+    await expect(playButton).toHaveText("▶");
 
     // Press space to play
     await page.keyboard.press("Space");
-    await expect(playButton).toHaveText("Pause");
+    await expect(playButton).toHaveText("⏸");
 
     // Press space to pause
     await page.keyboard.press("Space");
-    await expect(playButton).toHaveText("Play");
+    await expect(playButton).toHaveText("▶");
   });
 
   test("tempo input accepts valid values", async ({ page }) => {
@@ -92,16 +93,16 @@ test.describe("Transport Controls", () => {
   test("metronome toggle works", async ({ page }) => {
     const metronomeToggle = page.getByTestId("metronome-toggle");
 
-    // Should be unchecked by default
-    await expect(metronomeToggle).not.toBeChecked();
+    // Should be off by default
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
     // Toggle on
     await metronomeToggle.click();
-    await expect(metronomeToggle).toBeChecked();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
     // Toggle off
     await metronomeToggle.click();
-    await expect(metronomeToggle).not.toBeChecked();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
   });
 
   test("tap tempo button updates tempo", async ({ page }) => {

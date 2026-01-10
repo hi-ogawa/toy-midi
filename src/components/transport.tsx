@@ -235,8 +235,15 @@ export function Transport() {
           value={tempo}
           onChange={(e) => {
             const value = parseInt(e.target.value, 10);
-            if (!isNaN(value) && value >= 30 && value <= 300) {
+            if (!isNaN(value)) {
+              // Accept any value during typing, clamp on blur
               setTempo(value);
+            }
+          }}
+          onBlur={(e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value)) {
+              setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
           className="w-14 px-1 py-0.5 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center"
@@ -303,6 +310,7 @@ export function Transport() {
         <button
           data-testid="metronome-toggle"
           onClick={handleMetronomeToggle}
+          aria-pressed={metronomeEnabled}
           className={`px-2 py-1 text-xs rounded ${
             metronomeEnabled
               ? "bg-emerald-600 text-white"
