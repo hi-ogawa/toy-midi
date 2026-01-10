@@ -4,6 +4,7 @@ import { saveAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
+import { GridSnap } from "../types";
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -26,6 +27,8 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioVolume,
     midiVolume,
     metronomeEnabled,
+    gridSnap,
+    showDebug,
     setAudioFile,
     setIsPlaying,
     setPlayheadPosition,
@@ -33,6 +36,8 @@ export function Transport({ onHelpClick }: TransportProps) {
     setAudioVolume,
     setMidiVolume,
     setMetronomeEnabled,
+    setGridSnap,
+    setShowDebug,
     setAudioPeaks,
   } = useProjectStore();
 
@@ -289,6 +294,24 @@ export function Transport({ onHelpClick }: TransportProps) {
         </button>
       </div>
 
+      {/* Grid snap selector */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-neutral-400">Grid:</span>
+        <select
+          data-testid="grid-snap-select"
+          value={gridSnap}
+          onChange={(e) => setGridSnap(e.target.value as GridSnap)}
+          className="bg-neutral-700 border border-neutral-600 rounded px-1.5 py-0.5 text-xs"
+        >
+          <option value="1/4">1/4</option>
+          <option value="1/8">1/8</option>
+          <option value="1/16">1/16</option>
+          <option value="1/4T">1/4T</option>
+          <option value="1/8T">1/8T</option>
+          <option value="1/16T">1/16T</option>
+        </select>
+      </div>
+
       {/* File name */}
       {audioFileName && (
         <span
@@ -349,6 +372,26 @@ export function Transport({ onHelpClick }: TransportProps) {
           title="Toggle metronome"
         >
           Metro
+        </button>
+
+        {/* Debug toggle */}
+        <button
+          data-testid="debug-toggle"
+          onClick={() => setShowDebug(!showDebug)}
+          className={`w-6 h-6 flex items-center justify-center rounded ${
+            showDebug
+              ? "bg-yellow-600 text-white"
+              : "bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-neutral-200"
+          }`}
+          title="Toggle debug overlay"
+        >
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M6.56 1.14a.75.75 0 01.177 1.045 3.989 3.989 0 00-.464.86c.185.17.382.329.59.473A3.993 3.993 0 0110 2c1.272 0 2.405.594 3.137 1.518.208-.144.405-.302.59-.473a3.989 3.989 0 00-.464-.86.75.75 0 011.222-.869c.369.519.65 1.105.822 1.736a.75.75 0 01-.174.707 5.23 5.23 0 01-1.795 1.283A4.003 4.003 0 0114 7.5h1.5a.75.75 0 010 1.5H14v1.25c0 .307-.025.608-.072.903l1.903.65a.75.75 0 01-.486 1.42l-1.638-.558a4.004 4.004 0 01-.946 1.167l1.236 2.139a.75.75 0 01-1.299.75l-1.177-2.04a4 4 0 01-3.042 0l-1.177 2.04a.75.75 0 11-1.299-.75l1.236-2.139a4.004 4.004 0 01-.946-1.167l-1.638.558a.75.75 0 01-.486-1.42l1.903-.65A4.03 4.03 0 016 10.25V9H4.5a.75.75 0 010-1.5H6A4.003 4.003 0 016.662 5.04 5.23 5.23 0 014.867 3.756a.75.75 0 01-.174-.707c.172-.63.453-1.217.822-1.736a.75.75 0 011.045-.177zM7.5 7.5c0 .232.03.457.086.672.055.215.136.42.24.611h4.348c.104-.191.185-.396.24-.611A2.5 2.5 0 007.5 7.5zm.086 2.783a2.5 2.5 0 004.828 0h-4.828z"
+              clipRule="evenodd"
+            />
+          </svg>
         </button>
 
         {/* Help button */}
