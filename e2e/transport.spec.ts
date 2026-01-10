@@ -145,4 +145,38 @@ test.describe("Transport Controls", () => {
     // Wait for duration to update
     await expect(timeDisplay).not.toHaveText("0:00 / 0:00", { timeout: 5000 });
   });
+
+  test("export MIDI button is disabled when no notes", async ({ page }) => {
+    const exportButton = page.getByTestId("export-midi-button");
+    await expect(exportButton).toBeDisabled();
+  });
+
+  test("export MIDI button is enabled when notes exist", async ({ page }) => {
+    // Add a note by clicking on the piano roll
+    const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
+    await pianoRoll.click({ position: { x: 100, y: 100 } });
+
+    // Export button should now be enabled
+    const exportButton = page.getByTestId("export-midi-button");
+    await expect(exportButton).toBeEnabled();
+  });
+
+  test("export MIDI downloads a file", async ({ page, context }) => {
+    // Add a note by clicking on the piano roll
+    const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
+    await pianoRoll.click({ position: { x: 100, y: 100 } });
+
+    // Set up download handler
+    const downloadPromise = page.waitForEvent("download");
+
+    // Click export button
+    const exportButton = page.getByTestId("export-midi-button");
+    await exportButton.click();
+
+    // Wait for download
+    const download = await downloadPromise;
+
+    // Verify download has .mid extension
+    expect(download.suggestedFilename()).toMatch(/\.mid$/);
+  });
 });
