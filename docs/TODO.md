@@ -6,6 +6,20 @@ Focused tasks for next few sessions. See `prd.md` for full roadmap.
 
 See `docs/2026-01-10-startup-screen.md` for implementation and follow-up items.
 
+## E2E Test Refactoring (In Progress)
+
+**Goal:** Refactor tests to use `evaluateStore` helper for more robust state setup/verification.
+
+**Doc:** See `docs/2026-01-10-e2e-testing.md`
+
+**Status:**
+- [x] Refactored 9 persistence tests to use `evaluateStore` (PR #3)
+- [ ] 3 piano-roll keyboard tests blocked - store updates via `page.evaluate` don't trigger React re-renders
+
+**Remaining (optional):**
+- [ ] Investigate React re-render issue with external store mutations
+- [ ] Additional test coverage (audio offset, volume sliders, zoom/pan)
+
 ## Audio ↔ State Sync Refactor
 
 **Goal:** Single source of truth, eliminate sync bugs.
