@@ -6,6 +6,13 @@ function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
+// Event types for AudioManager state changes
+type AudioManagerEvent =
+  | { type: "playStateChanged"; isPlaying: boolean }
+  | { type: "positionChanged"; position: number };
+
+type AudioManagerListener = (event: AudioManagerEvent) => void;
+
 class AudioManager {
   private player: Tone.Player | null = null;
   private synth: Tone.PolySynth | null = null;
@@ -23,6 +30,45 @@ class AudioManager {
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
+
+  // Event emitter for state changes
+  private listeners: AudioManagerListener[] = [];
+  private positionUpdateRaf: number | null = null;
+
+  // Event emitter methods
+  subscribe(listener: AudioManagerListener): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private emit(event: AudioManagerEvent): void {
+    this.listeners.forEach((listener) => listener(event));
+  }
+
+  // Position update loop (only runs when playing)
+  private startPositionUpdates(): void {
+    if (this.positionUpdateRaf !== null) return;
+
+    const updateLoop = () => {
+      if (this.isPlaying) {
+        this.emit({ type: "positionChanged", position: this.position });
+        this.positionUpdateRaf = requestAnimationFrame(updateLoop);
+      } else {
+        this.positionUpdateRaf = null;
+      }
+    };
+
+    this.positionUpdateRaf = requestAnimationFrame(updateLoop);
+  }
+
+  private stopPositionUpdates(): void {
+    if (this.positionUpdateRaf !== null) {
+      cancelAnimationFrame(this.positionUpdateRaf);
+      this.positionUpdateRaf = null;
+    }
+  }
 
   async init(): Promise<void> {
     if (this._initialized) return;
@@ -145,15 +191,24 @@ class AudioManager {
   play(): void {
     this._ensurePlayerConnected();
     Tone.getTransport().start();
+    this.emit({ type: "playStateChanged", isPlaying: true });
+    this.startPositionUpdates();
   }
 
   pause(): void {
     Tone.getTransport().pause();
+    this.emit({ type: "playStateChanged", isPlaying: false });
+    this.stopPositionUpdates();
+    // Emit final position
+    this.emit({ type: "positionChanged", position: this.position });
   }
 
   stop(): void {
     Tone.getTransport().stop();
     Tone.getTransport().seconds = 0;
+    this.emit({ type: "playStateChanged", isPlaying: false });
+    this.stopPositionUpdates();
+    this.emit({ type: "positionChanged", position: 0 });
   }
 
   seek(seconds: number): void {
@@ -187,6 +242,7 @@ class AudioManager {
   }
 
   // Schedule notes for playback (synced to Transport)
+  // Now supports dynamic updates: can be called during playback to update scheduled notes
   scheduleNotes(notes: Note[], fromSeconds: number, tempo: number): void {
     this.clearScheduledNotes();
 
@@ -202,6 +258,13 @@ class AudioManager {
         }, startSeconds);
         this.scheduledEvents.push(eventId);
       }
+    }
+  }
+
+  // Update notes during playback (re-schedules from current position)
+  updateNotesWhilePlaying(notes: Note[], tempo: number): void {
+    if (this.isPlaying) {
+      this.scheduleNotes(notes, this.position, tempo);
     }
   }
 

@@ -21,6 +21,7 @@ export function Transport() {
     audioVolume,
     midiVolume,
     metronomeEnabled,
+    metronomeVolume,
     setAudioFile,
     setIsPlaying,
     setPlayheadPosition,
@@ -32,31 +33,44 @@ export function Transport() {
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const rafRef = useRef<number | null>(null);
   const tapTimesRef = useRef<number[]>([]);
 
-  // Position tracking loop
-  const updatePosition = useCallback(() => {
-    if (audioManager.isPlaying) {
-      setPlayheadPosition(audioManager.position);
-      rafRef.current = requestAnimationFrame(updatePosition);
-    }
-  }, [setPlayheadPosition]);
+  // Subscribe to AudioManager state changes (single source of truth)
+  useEffect(() => {
+    const unsubscribe = audioManager.subscribe((event) => {
+      if (event.type === "playStateChanged") {
+        setIsPlaying(event.isPlaying);
+      } else if (event.type === "positionChanged") {
+        setPlayheadPosition(event.position);
+      }
+    });
 
-  // Start/stop position tracking when play state changes
+    return unsubscribe;
+  }, [setIsPlaying, setPlayheadPosition]);
+
+  // Reactively sync volume settings with AudioManager when store changes
+  useEffect(() => {
+    audioManager.setAudioVolume(audioVolume);
+  }, [audioVolume]);
+
+  useEffect(() => {
+    audioManager.setMidiVolume(midiVolume);
+  }, [midiVolume]);
+
+  useEffect(() => {
+    audioManager.setMetronomeEnabled(metronomeEnabled);
+  }, [metronomeEnabled]);
+
+  useEffect(() => {
+    audioManager.setMetronomeVolume(metronomeVolume);
+  }, [metronomeVolume]);
+
+  // Dynamically update scheduled notes when notes or tempo change during playback
   useEffect(() => {
     if (isPlaying) {
-      rafRef.current = requestAnimationFrame(updatePosition);
-    } else if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+      audioManager.updateNotesWhilePlaying(notes, tempo);
     }
-    return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [isPlaying, updatePosition]);
+  }, [notes, tempo, isPlaying]);
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -89,20 +103,18 @@ export function Transport() {
   };
 
   // Note: audioManager.init() is called in App.tsx on startup screen click
-  // Volume sync is also handled there after project restore
+  // Volume sync is handled by reactive effects above
 
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       audioManager.pause();
       audioManager.clearScheduledNotes();
-      setIsPlaying(false);
     } else {
       // Schedule MIDI notes from current position
       audioManager.scheduleNotes(notes, audioManager.position, tempo);
       audioManager.play();
-      setIsPlaying(true);
     }
-  }, [isPlaying, setIsPlaying, notes, tempo]);
+  }, [isPlaying, notes, tempo]);
 
   // Space key to toggle play/pause
   useEffect(() => {
@@ -128,18 +140,18 @@ export function Transport() {
 
   const handleAudioVolumeChange = (value: number) => {
     setAudioVolume(value);
-    audioManager.setAudioVolume(value);
+    // AudioManager sync happens via useEffect above
   };
 
   const handleMidiVolumeChange = (value: number) => {
     setMidiVolume(value);
-    audioManager.setMidiVolume(value);
+    // AudioManager sync happens via useEffect above
   };
 
   const handleMetronomeToggle = () => {
     const newValue = !metronomeEnabled;
     setMetronomeEnabled(newValue);
-    audioManager.setMetronomeEnabled(newValue);
+    // AudioManager sync happens via useEffect above
   };
 
   const handleTapTempo = () => {
