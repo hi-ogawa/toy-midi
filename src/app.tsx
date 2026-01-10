@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { PianoRoll } from "./components/piano-roll";
 import { StartupScreen } from "./components/startup-screen";
 import { Transport } from "./components/transport";
@@ -12,71 +13,57 @@ import {
   useProjectStore,
 } from "./stores/project-store";
 
-type AppState = "startup" | "loading" | "ready";
+// Check once at module load - doesn't change during session
+const savedProjectExists = hasSavedProject();
+
+async function initNewProject() {
+  await audioManager.init();
+  clearProject();
+}
+
+async function initContinueProject() {
+  await audioManager.init();
+
+  const loaded = loadProject();
+
+  if (loaded?.audioAssetKey) {
+    const asset = await loadAsset(loaded.audioAssetKey);
+    if (asset) {
+      const url = URL.createObjectURL(asset.blob);
+      const duration = await audioManager.loadFromUrl(url);
+
+      useProjectStore.setState({ audioDuration: duration });
+
+      const { audioOffset } = useProjectStore.getState();
+      audioManager.setOffset(audioOffset);
+
+      const peaks = audioManager.getPeaks(100);
+      useProjectStore.getState().setAudioPeaks(peaks, 100);
+    }
+  }
+
+  // Sync mixer settings with audioManager
+  const state = useProjectStore.getState();
+  audioManager.setAudioVolume(state.audioVolume);
+  audioManager.setMidiVolume(state.midiVolume);
+  audioManager.setMetronomeEnabled(state.metronomeEnabled);
+  audioManager.setMetronomeVolume(state.metronomeVolume);
+}
 
 export function App() {
-  const [appState, setAppState] = useState<AppState>("startup");
-  const [loadingStatus, setLoadingStatus] = useState("Initializing...");
-  const [savedProjectExists] = useState(() => hasSavedProject());
-  const setAudioPeaks = useProjectStore((s) => s.setAudioPeaks);
+  const newProjectMutation = useMutation({ mutationFn: initNewProject });
+  const continueProjectMutation = useMutation({
+    mutationFn: initContinueProject,
+  });
 
-  // Handle "New Project" click
-  const handleNewProject = async () => {
-    setAppState("loading");
-    setLoadingStatus("Initializing...");
-
-    await audioManager.init();
-    clearProject();
-
-    setAppState("ready");
-  };
-
-  // Handle "Continue" click - restore saved project
-  const handleContinue = async () => {
-    setAppState("loading");
-    setLoadingStatus("Initializing...");
-
-    await audioManager.init();
-
-    setLoadingStatus("Restoring project...");
-    const loaded = loadProject();
-
-    if (loaded?.audioAssetKey) {
-      setLoadingStatus("Restoring audio...");
-      try {
-        const asset = await loadAsset(loaded.audioAssetKey);
-        if (asset) {
-          const url = URL.createObjectURL(asset.blob);
-          const duration = await audioManager.loadFromUrl(url);
-
-          useProjectStore.setState({ audioDuration: duration });
-
-          const { audioOffset } = useProjectStore.getState();
-          audioManager.setOffset(audioOffset);
-
-          const peaks = audioManager.getPeaks(100);
-          setAudioPeaks(peaks, 100);
-
-          console.log("Restored audio from IndexedDB:", asset.name);
-        }
-      } catch (err) {
-        console.warn("Failed to restore audio:", err);
-      }
-    }
-
-    // Sync mixer settings with audioManager
-    const state = useProjectStore.getState();
-    audioManager.setAudioVolume(state.audioVolume);
-    audioManager.setMidiVolume(state.midiVolume);
-    audioManager.setMetronomeEnabled(state.metronomeEnabled);
-    audioManager.setMetronomeVolume(state.metronomeVolume);
-
-    setAppState("ready");
-  };
+  const isLoading =
+    newProjectMutation.isPending || continueProjectMutation.isPending;
+  const isReady =
+    newProjectMutation.isSuccess || continueProjectMutation.isSuccess;
 
   // Auto-save on state changes (debounced) - only when ready
   useEffect(() => {
-    if (appState !== "ready") return;
+    if (!isReady) return;
 
     const unsubscribe = useProjectStore.subscribe(() => {
       clearTimeout(
@@ -89,25 +76,25 @@ export function App() {
     });
 
     return () => unsubscribe();
-  }, [appState]);
+  }, [isReady]);
 
-  if (appState === "startup") {
-    return (
-      <StartupScreen
-        hasSavedProject={savedProjectExists}
-        onNewProject={handleNewProject}
-        onContinue={handleContinue}
-      />
-    );
-  }
-
-  if (appState === "loading") {
+  if (isLoading) {
     return (
       <div className="h-screen flex flex-col bg-neutral-900">
         <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
-          <div className="text-neutral-400 text-sm">{loadingStatus}</div>
+          <div className="text-neutral-400 text-sm">Loading...</div>
         </div>
       </div>
+    );
+  }
+
+  if (!isReady) {
+    return (
+      <StartupScreen
+        hasSavedProject={savedProjectExists}
+        onNewProject={() => newProjectMutation.mutate()}
+        onContinue={() => continueProjectMutation.mutate()}
+      />
     );
   }
 
