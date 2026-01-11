@@ -60,11 +60,13 @@ UI Event → Store Action → (subscription syncs AudioManager)
 ```
 
 **Components should:**
+
 - Read state via `useProjectStore()` hook
 - Write state via store actions
 - **NEVER** call `audioManager.setXxx()` for state that's in the store
 
 **Components CAN call AudioManager for:**
+
 - `audioManager.play()` / `pause()` / `seek()` - transport control (not in store)
 - `audioManager.playNote()` - preview sound (ephemeral, not state)
 
@@ -79,12 +81,13 @@ useProjectStore.subscribe((state) => {
   this.setMetronomeVolume(state.metronomeVolume);
   this.setMetronomeEnabled(state.metronomeEnabled);
   this.setNotes(state.notes);
-  this.syncAudioTrack(state.audioOffset);  // <-- MISSING TODAY
+  this.syncAudioTrack(state.audioOffset); // <-- MISSING TODAY
   Tone.getTransport().bpm.value = state.tempo;
 });
 ```
 
 **AudioManager should:**
+
 - React to store changes via `.subscribe()`
 - **NEVER** read from store via `.getState()` (except edge cases)
 
@@ -103,6 +106,7 @@ No special "init sync" code needed. The subscription handles it.
 ### Issue 1: Incomplete Subscription
 
 **audio.ts:90-99** subscribes to:
+
 - ✅ audioVolume, midiVolume, metronomeVolume, metronomeEnabled
 - ✅ notes, tempo
 - ❌ **audioOffset** - MISSING
@@ -112,6 +116,7 @@ Because `audioOffset` is missing, components must call `syncAudioTrack()` direct
 ### Issue 2: Imperative Calls from Components
 
 **piano-roll.tsx:680-684**
+
 ```typescript
 onOffsetChange={(newOffset) => {
   // TODO: act on store change not UI event
@@ -121,6 +126,7 @@ onOffsetChange={(newOffset) => {
 ```
 
 Should be:
+
 ```typescript
 onOffsetChange={(newOffset) => {
   setAudioOffset(newOffset);  // ✅ Just update store
@@ -131,6 +137,7 @@ onOffsetChange={(newOffset) => {
 ### Issue 3: Init Sync in Wrong Place
 
 **app.tsx:47-53**
+
 ```typescript
 // Sync mixer settings with audioManager
 // TODO: consolidate with AudioManager.init
@@ -141,13 +148,14 @@ audioManager.setMetronomeEnabled(state.metronomeEnabled);
 audioManager.setMetronomeVolume(state.metronomeVolume);
 ```
 
-**Why this exists:** Zustand's `subscribe()` only fires on *changes*, not on initial subscribe. So for the "new project" case (no `loadProject()` call), the subscription never fires and initial state isn't applied.
+**Why this exists:** Zustand's `subscribe()` only fires on _changes_, not on initial subscribe. So for the "new project" case (no `loadProject()` call), the subscription never fires and initial state isn't applied.
 
 **The problem:** This sync logic belongs in AudioManager, not app.tsx. The fix is to have AudioManager read initial state during `init()`, then subscribe for future changes.
 
 ### Issue 4: getState() in AudioManager
 
 **audio.ts:129-130**
+
 ```typescript
 syncAudioTrack(
   offset: number = useProjectStore.getState().audioOffset,  // ❌ Reads from store
@@ -170,7 +178,7 @@ useProjectStore.subscribe((state) => {
   this.setMetronomeVolume(state.metronomeVolume);
   this.setMetronomeEnabled(state.metronomeEnabled);
   this.setNotes(state.notes);
-  this.syncAudioTrack(state.audioOffset);  // ADD THIS
+  this.syncAudioTrack(state.audioOffset); // ADD THIS
   Tone.getTransport().bpm.value = state.tempo;
 });
 ```
@@ -231,12 +239,12 @@ syncAudioTrack(offset: number): void {
 
 ## Access Pattern Summary
 
-| Context | Read Store | Write Store | Call AudioManager |
-|---------|------------|-------------|-------------------|
-| **React Components** | `useProjectStore()` | store actions | transport control only |
-| **AudioManager** | `.subscribe()` only | never | n/a |
-| **App init** | `.getState()` OK | `.setState()` OK | `.init()` only |
-| **Persistence** | `.getState()` | `.setState()` | never |
+| Context              | Read Store          | Write Store      | Call AudioManager      |
+| -------------------- | ------------------- | ---------------- | ---------------------- |
+| **React Components** | `useProjectStore()` | store actions    | transport control only |
+| **AudioManager**     | `.subscribe()` only | never            | n/a                    |
+| **App init**         | `.getState()` OK    | `.setState()` OK | `.init()` only         |
+| **Persistence**      | `.getState()`       | `.setState()`    | never                  |
 
 ---
 
@@ -245,12 +253,15 @@ syncAudioTrack(offset: number): void {
 These are real but not blocking:
 
 ### Selective Subscription (Performance)
+
 Currently subscription fires on every store change. Could use `subscribeWithSelector` to be more efficient. But the pattern issue is more important.
 
 ### useTransport Selector (Performance)
+
 Components re-render at 60fps during playback even if they only need `isPlaying`. Could split into separate hooks. But the pattern issue is more important.
 
 ### Naming Consistency
+
 `player` vs `audioPlayer`, etc. Cosmetic.
 
 ---
@@ -258,6 +269,7 @@ Components re-render at 60fps during playback even if they only need `isPlaying`
 ## Validation Checklist
 
 After fix:
+
 - [ ] `audioManager.syncAudioTrack()` is never called from components
 - [ ] `audioManager.setXxx()` is never called from components (except app init edge case)
 - [ ] AudioManager subscription includes `audioOffset`
@@ -269,10 +281,12 @@ After fix:
 ## Status
 
 ### Done
+
 - [x] Identified pattern violations
 - [x] Documented intended pattern
 
 ### Remaining
+
 - [ ] Implement the fix (Steps 1-4)
 - [ ] Verify tests pass
 - [ ] Clean up TODOs in code

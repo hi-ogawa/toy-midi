@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { GridSnap, Note } from "../types";
 
-interface ProjectState {
+export interface ProjectState {
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM

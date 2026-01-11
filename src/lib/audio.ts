@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
-import { useProjectStore } from "@/stores/project-store";
+import { useProjectStore, type ProjectState } from "@/stores/project-store";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -11,29 +11,25 @@ import { useProjectStore } from "@/stores/project-store";
  *
  * Transport state (play/pause/stop/seek) is managed by useTransport hook,
  * which directly interfaces with Tone.js Transport.
+ *
+ * State sync pattern:
+ * - applyState() is called once during init() for initial state
+ * - applyState() is called on every store change via subscription
+ * - Components should update store, not call AudioManager directly
  */
 class AudioManager {
-  // TODO: consistent names
-  // TODO: asusme non-null
-
-  // TODO: soundfont
   private midiSynth!: Tone.PolySynth;
   private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
 
   // audio track
-  player!: Tone.Player; // TODO: rename
+  player!: Tone.Player;
   private audioChannel!: Tone.Channel;
 
   // metronome
   private metronome!: Tone.Synth;
   private metronomeSeq!: Tone.Sequence;
   private metronomeChannel!: Tone.Channel;
-
-  // TODO: refactor?
-  // transport(): ReturnType<typeof Tone.getTransport> {
-  //   return Tone.getTransport();
-  // }
 
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
@@ -82,21 +78,27 @@ class AudioManager {
     );
     this.metronomeSeq.start(0);
 
-    // TODO: aim for state/event management
-    // - store -> UI
-    // - UI event -> store update
-    // - Tone.transport event -> AudioManager
-    // - store subscribe event -> AudioManager
-    useProjectStore.subscribe((project) => {
-      // TODO: selective subscription
-      // https://zustand.docs.pmnd.rs/middlewares/subscribe-with-selector
-      this.setAudioVolume(project.audioVolume);
-      this.setMidiVolume(project.midiVolume);
-      this.setMetronomeVolume(project.metronomeVolume);
-      this.setMetronomeEnabled(project.metronomeEnabled);
-      this.setNotes(project.notes);
-      Tone.getTransport().bpm.value = project.tempo;
+    // Apply initial state (subscription doesn't fire on subscribe)
+    this.applyState(useProjectStore.getState());
+
+    // Subscribe for future state changes
+    useProjectStore.subscribe((state) => {
+      this.applyState(state);
     });
+  }
+
+  /**
+   * Sync AudioManager with store state.
+   * Called once during init() and on every store change.
+   */
+  private applyState(state: ProjectState): void {
+    this.setAudioVolume(state.audioVolume);
+    this.setMidiVolume(state.midiVolume);
+    this.setMetronomeVolume(state.metronomeVolume);
+    this.setMetronomeEnabled(state.metronomeEnabled);
+    this.setNotes(state.notes);
+    this.syncAudioTrack(state.audioOffset);
+    Tone.getTransport().bpm.value = state.tempo;
   }
 
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
@@ -109,8 +111,6 @@ class AudioManager {
     Tone.getTransport().pause();
   }
 
-  // TODO: looks shady
-  // TODO: avoid click by fade in / out?
   seek(seconds: number): void {
     const transport = Tone.getTransport();
     const wasPlaying = transport.state === "started";
@@ -119,16 +119,13 @@ class AudioManager {
     }
     transport.seconds = Math.max(0, seconds);
     if (wasPlaying) {
-      this.syncAudioTrack();
+      // Re-sync player to new transport position with current offset
+      this.syncAudioTrack(useProjectStore.getState().audioOffset);
       transport.start();
     }
   }
 
-  // TODO: ensure buffer is ready?
-  // TODO: always act on useProjectStore update subscription.
-  syncAudioTrack(
-    offset: number = useProjectStore.getState().audioOffset,
-  ): void {
+  syncAudioTrack(offset: number): void {
     this.player.unsync();
     this.player.sync().start(offset);
   }

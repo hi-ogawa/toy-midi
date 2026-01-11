@@ -37,20 +37,13 @@ export function App() {
             URL.revokeObjectURL(url);
 
             audioManager.player.buffer = buffer;
-            audioManager.syncAudioTrack();
+            // Re-sync after loading buffer (applyState ran before buffer was ready)
+            audioManager.syncAudioTrack(useProjectStore.getState().audioOffset);
 
             const peaks = getAudioBufferPeaks(buffer, 100);
             useProjectStore.getState().setAudioPeaks(peaks, 100);
           }
         }
-
-        // Sync mixer settings with audioManager
-        // TODO: consolidate with AudioManager.init
-        const state = useProjectStore.getState();
-        audioManager.setAudioVolume(state.audioVolume);
-        audioManager.setMidiVolume(state.midiVolume);
-        audioManager.setMetronomeEnabled(state.metronomeEnabled);
-        audioManager.setMetronomeVolume(state.metronomeVolume);
       }
 
       // Setup auto-save on state changes (debounced)
