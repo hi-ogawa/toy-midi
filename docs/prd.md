@@ -97,12 +97,15 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
-  - [ ] fix: play/stop behavior issues
-  - [ ] fix: timeline jumping issues
+  - [ ] fix: play/stop behavior, timeline jumping issues
+    - playhead doesn't jump when paused
+    - midi playback broken after moving playhead
   - [ ] fix: remove deferred init patterns (\_ensurePlayerConnected, etc.)
   - [ ] fix: remove unnecessary null checks in AudioManager
+  - [ ] fix: metronome toggle is laggy
   - [ ] feat: persist lastPlayheadPosition
 - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
+  - reduce trivial re-expose Tone.js from audioManager
 - [ ] feat: add demo project (good for quick dev test case too)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
