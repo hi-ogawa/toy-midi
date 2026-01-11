@@ -29,11 +29,15 @@ export interface ProjectState {
   showDebug: boolean;
 
   // Viewport state
-  scrollX: number; // leftmost visible beat
-  scrollY: number; // topmost visible pitch (in semitones from pitch 0)
-  pixelsPerBeat: number; // horizontal zoom
-  pixelsPerKey: number; // vertical zoom (pixels per semitone)
-  waveformHeight: number; // resizable waveform area height
+  // scrollX/scrollY: content offset in logical units (beats/semitones), can be fractional
+  // pixelsPerBeat/pixelsPerKey: scale factors (content units → screen pixels)
+  //   currently fractional (×0.9/×1.1 per step), rounded at render time
+  //   TODO: consider discrete levels for simpler state and guaranteed roundtrip
+  scrollX: number; // horizontal offset: leftmost visible beat (0 = start)
+  scrollY: number; // vertical offset: rows scrolled from top (0 = C8 at top)
+  pixelsPerBeat: number; // horizontal scale: screen pixels per beat
+  pixelsPerKey: number; // vertical scale: screen pixels per semitone row
+  waveformHeight: number; // resizable waveform area height in pixels
 
   // Waveform state
   audioPeaks: number[]; // Peak values 0-1 for waveform display
