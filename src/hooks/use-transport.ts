@@ -77,23 +77,15 @@ const TRANSPORT_EVENT_NAMES = [
   "ticks",
 ] as const;
 
-// TODO: align with Tone.js's naming convention
 type TransportState = {
   isPlaying: boolean;
   position: number;
-  // TODO: more tranport state as source of truth
-  // transport.bpm;
-  // transport.timeSignature;
 };
 
 function deriveState(): TransportState {
   const transport = Tone.getTransport();
-  // transport.toSeconds(transport.ticks)
-  // Tone.Ticks(transport.ticks);
-  // Tone.Ticks(transport.ticks).toSeconds()
   return {
     isPlaying: transport.state === "started",
     position: transport.seconds,
-    // position: Tone.Ticks(transport.ticks).toSeconds(),
   };
 }
