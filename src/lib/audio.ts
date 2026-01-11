@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import type { Note } from "../types";
+import type { Note, TimeSignature } from "../types";
 
 // Helper: convert beats to seconds
 function beatsToSeconds(beats: number, tempo: number): number {
@@ -32,6 +32,7 @@ class AudioManager {
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
+  private _timeSignature = { numerator: 4, denominator: 4 };
 
   async init(): Promise<void> {
     if (this._initialized) return;
@@ -54,16 +55,8 @@ class AudioManager {
       envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
     }).connect(this.metronomeGain);
 
-    // Metronome sequence (4/4 with accent on beat 1)
-    // 1 = accent (high), 0 = normal (lower)
-    this.metronomeSeq = new Tone.Sequence(
-      (time, beat) => {
-        const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome?.triggerAttackRelease(pitch, "32n", time);
-      },
-      [1, 0, 0, 0],
-      "4n",
-    );
+    // Initialize metronome sequence with current time signature
+    this._createMetronomeSequence();
 
     this._initialized = true;
 
@@ -71,6 +64,34 @@ class AudioManager {
     if (this._metronomeEnabled) {
       this._startMetronomeAligned();
     }
+  }
+
+  // Create metronome sequence based on current time signature
+  private _createMetronomeSequence(): void {
+    // Dispose old sequence if exists
+    if (this.metronomeSeq) {
+      this.metronomeSeq.stop();
+      this.metronomeSeq.dispose();
+      this.metronomeSeq = null;
+    }
+
+    if (!this.metronome) return;
+
+    // Create beat pattern: 1 for accent (first beat), 0 for other beats
+    const pattern = Array.from(
+      { length: this._timeSignature.numerator },
+      (_, i) => (i === 0 ? 1 : 0),
+    );
+
+    // Create sequence with accent on beat 1
+    this.metronomeSeq = new Tone.Sequence(
+      (time, beat) => {
+        const pitch = beat === 1 ? "C7" : "G6";
+        this.metronome?.triggerAttackRelease(pitch, "32n", time);
+      },
+      pattern,
+      "4n", // Quarter note subdivision (could be adjusted based on denominator)
+    );
   }
 
   async loadAudio(file: File): Promise<number> {
@@ -257,10 +278,24 @@ class AudioManager {
       // Mid-playback: calculate next measure start for proper beat 1 alignment
       const tempo = Tone.getTransport().bpm.value;
       const secondsPerBeat = 60 / tempo;
-      const secondsPerMeasure = secondsPerBeat * 4; // 4/4 time
+      const beatsPerMeasure =
+        this._timeSignature.numerator * (4 / this._timeSignature.denominator);
+      const secondsPerMeasure = secondsPerBeat * beatsPerMeasure;
       const nextMeasure =
         Math.ceil(position / secondsPerMeasure) * secondsPerMeasure;
       this.metronomeSeq.start(nextMeasure);
+    }
+  }
+
+  // Update time signature and recreate metronome sequence
+  setTimeSignature(timeSignature: TimeSignature): void {
+    this._timeSignature = timeSignature;
+    if (this._initialized) {
+      const wasEnabled = this._metronomeEnabled;
+      this._createMetronomeSequence();
+      if (wasEnabled) {
+        this._startMetronomeAligned();
+      }
     }
   }
 

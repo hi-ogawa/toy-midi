@@ -22,6 +22,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioFileName,
     audioDuration,
     tempo,
+    timeSignature,
     notes,
     audioVolume,
     midiVolume,
@@ -31,6 +32,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     showDebug,
     setAudioFile,
     setTempo,
+    setTimeSignature,
     setAudioVolume,
     setMidiVolume,
     setMetronomeEnabled,
@@ -61,6 +63,10 @@ export function Transport({ onHelpClick }: TransportProps) {
   useEffect(() => {
     audioManager.setMetronomeVolume(metronomeVolume);
   }, [metronomeVolume]);
+
+  useEffect(() => {
+    audioManager.setTimeSignature(timeSignature);
+  }, [timeSignature]);
 
   // Dynamically update scheduled notes when notes or tempo change during playback
   // Note: Don't depend on `position` - it updates at 60fps during playback!
@@ -190,6 +196,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     const midiData = exportMidi({
       notes,
       tempo,
+      timeSignature,
       trackName: audioFileName
         ? audioFileName.replace(/\.[^.]+$/, "")
         : "Piano Roll",
@@ -322,6 +329,47 @@ export function Transport({ onHelpClick }: TransportProps) {
         >
           Tap
         </button>
+      </div>
+
+      {/* Time signature selector */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-neutral-400">Time:</span>
+        <select
+          data-testid="time-signature-numerator"
+          value={timeSignature.numerator}
+          onChange={(e) =>
+            setTimeSignature({
+              ...timeSignature,
+              numerator: parseInt(e.target.value, 10),
+            })
+          }
+          className="w-12 h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
+          title="Time signature numerator (beats per bar)"
+        >
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <span className="text-sm text-neutral-400">/</span>
+        <select
+          data-testid="time-signature-denominator"
+          value={timeSignature.denominator}
+          onChange={(e) =>
+            setTimeSignature({
+              ...timeSignature,
+              denominator: parseInt(e.target.value, 10),
+            })
+          }
+          className="w-12 h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
+          title="Time signature denominator (note value)"
+        >
+          <option value="4">4</option>
+          <option value="8">8</option>
+        </select>
       </div>
 
       {/* Grid snap selector */}

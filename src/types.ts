@@ -16,3 +16,8 @@ export const GRID_SNAP_VALUES: Record<GridSnap, number> = {
   "1/8T": 1 / 6,
   "1/16T": 1 / 12,
 };
+
+export interface TimeSignature {
+  numerator: number; // beats per bar (e.g., 3, 4, 5, 6)
+  denominator: number; // beat value (e.g., 4, 8)
+}

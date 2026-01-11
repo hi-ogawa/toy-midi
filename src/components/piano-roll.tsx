@@ -54,6 +54,7 @@ function generateGridBackground(
   gridSnap: GridSnap,
   scrollX: number,
   scrollY: number,
+  beatsPerBar: number,
 ): React.CSSProperties {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
 
@@ -62,7 +63,7 @@ function generateGridBackground(
   const rowHeight = Math.round(pixelsPerKey);
   const beatWidth = Math.round(pixelsPerBeat);
   const subBeatWidth = beatWidth * gridSnapValue; // Keep fractional to avoid drift
-  const barWidth = beatWidth * BEATS_PER_BAR;
+  const barWidth = beatWidth * beatsPerBar;
   const octaveHeight = rowHeight * 12;
 
   // Calculate offsets
@@ -175,6 +176,7 @@ export function PianoRoll() {
     gridSnap,
     totalBeats,
     tempo,
+    timeSignature,
     audioDuration,
     audioOffset,
     showDebug,
@@ -197,6 +199,9 @@ export function PianoRoll() {
     setPixelsPerKey,
     setWaveformHeight,
   } = useProjectStore();
+
+  // Calculate beats per bar from time signature (assuming quarter note = 1 beat)
+  const beatsPerBar = timeSignature.numerator * (4 / timeSignature.denominator);
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -610,6 +615,7 @@ export function PianoRoll() {
     gridSnap,
     scrollX,
     scrollY,
+    beatsPerBar,
   );
 
   // Filter notes to visible range (with some margin)
@@ -661,6 +667,7 @@ export function PianoRoll() {
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
+            beatsPerBar={beatsPerBar}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
@@ -1012,24 +1019,26 @@ function Timeline({
   scrollX,
   viewportWidth,
   playheadBeat,
+  beatsPerBar,
   onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   viewportWidth: number;
   playheadBeat: number;
+  beatsPerBar: number;
   onSeek: (beat: number) => void;
 }) {
   const markers = [];
 
   // Calculate visible beat range
-  const startBeat = Math.floor(scrollX / BEATS_PER_BAR) * BEATS_PER_BAR;
+  const startBeat = Math.floor(scrollX / beatsPerBar) * beatsPerBar;
   const endBeat =
-    Math.ceil((scrollX + viewportWidth / pixelsPerBeat) / BEATS_PER_BAR) *
-    BEATS_PER_BAR;
+    Math.ceil((scrollX + viewportWidth / pixelsPerBeat) / beatsPerBar) *
+    beatsPerBar;
 
-  for (let beat = startBeat; beat <= endBeat; beat += BEATS_PER_BAR) {
-    const barNumber = beat / BEATS_PER_BAR + 1;
+  for (let beat = startBeat; beat <= endBeat; beat += beatsPerBar) {
+    const barNumber = beat / beatsPerBar + 1;
     const x = (beat - scrollX) * pixelsPerBeat;
     markers.push(
       <div

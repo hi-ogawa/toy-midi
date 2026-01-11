@@ -1,26 +1,44 @@
 import { Midi } from "@tonejs/midi";
 import { beatsToSeconds } from "../stores/project-store";
-import { Note } from "../types";
+import { Note, TimeSignature } from "../types";
 
 export interface MidiExportOptions {
   notes: Note[];
   tempo: number;
+  timeSignature?: TimeSignature;
   trackName?: string;
 }
 
 /**
- * Export notes to a MIDI file with the specified tempo
- * @param options - Notes, tempo, and optional track name
+ * Export notes to a MIDI file with the specified tempo and time signature
+ * @param options - Notes, tempo, time signature, and optional track name
  * @returns Uint8Array containing the MIDI file data
  */
 export function exportMidi(options: MidiExportOptions): Uint8Array {
-  const { notes, tempo, trackName = "Piano Roll" } = options;
+  const {
+    notes,
+    tempo,
+    timeSignature = { numerator: 4, denominator: 4 },
+    trackName = "Piano Roll",
+  } = options;
 
   // Create a new MIDI file
   const midi = new Midi();
 
   // Set tempo
   midi.header.setTempo(tempo);
+
+  // Set time signature if the library supports it
+  // @tonejs/midi header has timeSignatures property
+  if (midi.header.timeSignatures) {
+    midi.header.timeSignatures = [
+      {
+        ticks: 0,
+        timeSignature: [timeSignature.numerator, timeSignature.denominator],
+        measures: 0,
+      },
+    ];
+  }
 
   // Add a single track for all notes
   const track = midi.addTrack();

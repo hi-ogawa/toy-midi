@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Note } from "../types";
+import { Note, TimeSignature } from "../types";
 import { exportMidi } from "./midi-export";
 
 describe("MIDI Export", () => {
@@ -36,6 +36,24 @@ describe("MIDI Export", () => {
       midiData[3],
     );
     expect(signature).toBe("MThd");
+  });
+
+  it("should handle time signature", () => {
+    const notes: Note[] = [
+      {
+        id: "note-1",
+        pitch: 60,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      },
+    ];
+
+    const timeSignature: TimeSignature = { numerator: 3, denominator: 4 };
+    const midiData = exportMidi({ notes, tempo: 120, timeSignature });
+
+    expect(midiData).toBeInstanceOf(Uint8Array);
+    expect(midiData.byteLength).toBeGreaterThan(0);
   });
 
   it("should handle empty notes array", () => {

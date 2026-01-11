@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { GridSnap, Note } from "../types";
+import { GridSnap, Note, TimeSignature } from "../types";
 
 interface ProjectState {
   notes: Note[];
@@ -7,6 +7,7 @@ interface ProjectState {
   gridSnap: GridSnap;
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
+  timeSignature: TimeSignature; // Time signature (default 4/4)
 
   // Audio state
   audioFileName: string | null;
@@ -43,6 +44,7 @@ interface ProjectState {
   setGridSnap: (snap: GridSnap) => void;
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
+  setTimeSignature: (timeSignature: TimeSignature) => void;
 
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey?: string) => void;
@@ -79,6 +81,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   gridSnap: "1/8",
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4
 
   // Audio state
   audioFileName: null,
@@ -145,6 +148,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   setTempo: (bpm) => set({ tempo: bpm }),
 
+  setTimeSignature: (timeSignature) => set({ timeSignature }),
+
   // Audio actions
   setAudioFile: (fileName, duration, assetKey) =>
     set({
@@ -197,6 +202,7 @@ interface SavedProject {
   notes: Note[];
   tempo: number;
   gridSnap: GridSnap;
+  timeSignature?: TimeSignature; // Optional for backward compatibility
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioOffset: number;
@@ -219,6 +225,7 @@ export function saveProject(): void {
     notes: state.notes,
     tempo: state.tempo,
     gridSnap: state.gridSnap,
+    timeSignature: state.timeSignature,
     audioFileName: state.audioFileName,
     audioAssetKey: state.audioAssetKey,
     audioOffset: state.audioOffset,
@@ -250,6 +257,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
   tempo: 120,
   gridSnap: "1/8",
+  timeSignature: { numerator: 4, denominator: 4 },
   audioFileName: null,
   audioAssetKey: null,
   audioOffset: 0,
@@ -317,6 +325,7 @@ export function loadProject(): LoadedProject | null {
       notes: merged.notes,
       tempo: merged.tempo,
       gridSnap: merged.gridSnap,
+      timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature!,
       audioFileName: merged.audioFileName,
       audioAssetKey: merged.audioAssetKey,
       audioOffset: merged.audioOffset,
