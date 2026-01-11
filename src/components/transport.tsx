@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import {
-  ChevronDownIcon,
   CircleHelpIcon,
   DownloadIcon,
   PauseIcon,
@@ -47,8 +46,8 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const beatsPerSecond = tempo / 60;
   const totalBeats = seconds * beatsPerSecond;
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
-  const beatInBar = (totalBeats % 4) + 1;
-  return `${bar}|${beatInBar.toFixed(2)}`;
+  const beatInBar = Math.floor(totalBeats % 4) + 1;
+  return `${bar}|${beatInBar}`;
 }
 
 // Metronome icon (not in lucide)
@@ -295,7 +294,7 @@ export function Transport({ onHelpClick }: TransportProps) {
               setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
-          className="w-12 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
+          className="w-14 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
         />
         <Button
           data-testid="tap-tempo-button"
@@ -328,7 +327,7 @@ export function Transport({ onHelpClick }: TransportProps) {
           <SelectTrigger
             data-testid="grid-snap-select"
             size="sm"
-            className="w-16"
+            className="w-20"
           >
             <SelectValue />
           </SelectTrigger>
@@ -349,10 +348,13 @@ export function Transport({ onHelpClick }: TransportProps) {
       {/* Settings dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button data-testid="settings-button" variant="ghost" size="sm">
+          <Button
+            data-testid="settings-button"
+            variant="ghost"
+            size="icon"
+            title="Settings"
+          >
             <SettingsIcon className="size-4" />
-            Settings
-            <ChevronDownIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
