@@ -98,7 +98,7 @@ export function Transport({ onHelpClick }: TransportProps) {
       if (e.code === "Space" && !e.repeat) {
         // Don't trigger if typing in an input
         if (
-          e.target instanceof HTMLInputElement ||
+          (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
           e.target instanceof HTMLTextAreaElement
         ) {
           return;
