@@ -302,16 +302,12 @@ export function PianoRoll() {
       const mouseX = e.clientX - rect.left - KEYBOARD_WIDTH;
       const mouseY = e.clientY - rect.top - TIMELINE_HEIGHT - waveformHeight;
 
-      // Ctrl + wheel = zoom (both axes, centered on cursor)
-      if (e.ctrlKey) {
-        // Horizontal zoom (deltaX or deltaY for single-axis scroll devices)
-        if (e.deltaX !== 0 || e.deltaY !== 0) {
-          // Use deltaY for horizontal zoom (more common scroll direction)
-          const hZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
-          // Use deltaX for vertical zoom (horizontal scroll)
-          const vZoomFactor = e.deltaX > 0 ? 0.9 : e.deltaX < 0 ? 1.1 : 1;
-
-          if (hZoomFactor !== 1) {
+      // Ctrl + wheel = horizontal zoom, Shift + wheel = vertical zoom
+      if (e.ctrlKey || e.shiftKey) {
+        if (e.deltaY !== 0) {
+          // Ctrl + deltaY = horizontal zoom
+          if (e.ctrlKey && !e.shiftKey) {
+            const hZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
             const newPixelsPerBeat = Math.max(
               MIN_PIXELS_PER_BEAT,
               Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * hZoomFactor),
@@ -325,9 +321,9 @@ export function PianoRoll() {
             setPixelsPerBeat(newPixelsPerBeat);
             setScrollX(newScrollX);
           }
-
-          // Only apply vertical zoom if mouse is over the keyboard/grid area (mouseY >= 0)
-          if (vZoomFactor !== 1 && mouseY >= 0) {
+          // Shift + deltaY = vertical zoom (only if mouse is over keyboard/grid area)
+          else if (e.shiftKey && !e.ctrlKey && mouseY >= 0) {
+            const vZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
             const newPixelsPerKey = Math.max(
               MIN_PIXELS_PER_KEY,
               Math.min(MAX_PIXELS_PER_KEY, pixelsPerKey * vZoomFactor),

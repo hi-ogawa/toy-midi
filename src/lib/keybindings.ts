@@ -80,7 +80,12 @@ export const MOUSE_ACTIONS: MouseAction[] = [
   },
   {
     action: "Ctrl + Mouse wheel",
-    description: "Zoom in / out",
+    description: "Zoom in / out (horizontal)",
+    category: "navigation",
+  },
+  {
+    action: "Shift + Mouse wheel",
+    description: "Zoom in / out (vertical)",
     category: "navigation",
   },
   {
