@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { ToneAudioBuffer } from "tone";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
-import { audioManager } from "./lib/audio";
+import { audioManager, getAudioBufferPeaks } from "./lib/audio";
 import {
   clearProject,
   hasSavedProject,
@@ -32,14 +33,13 @@ export function App() {
           const asset = await loadAsset(loaded.audioAssetKey);
           if (asset) {
             const url = URL.createObjectURL(asset.blob);
-            const duration = await audioManager.loadFromUrl(url);
+            const buffer = await ToneAudioBuffer.fromUrl(url);
+            URL.revokeObjectURL(url);
 
-            useProjectStore.setState({ audioDuration: duration });
+            audioManager.player.buffer = buffer;
+            audioManager.syncAudioTrack();
 
-            const { audioOffset } = useProjectStore.getState();
-            audioManager.setOffset(audioOffset);
-
-            const peaks = audioManager.getPeaks(100);
+            const peaks = getAudioBufferPeaks(buffer, 100);
             useProjectStore.getState().setAudioPeaks(peaks, 100);
           }
         }

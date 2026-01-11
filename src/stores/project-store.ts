@@ -17,7 +17,7 @@ interface ProjectState {
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds
-  audioOffset: number; // in seconds - position in audio that aligns with beat 0
+  audioOffset: number; // in seconds - timeline position where audio starts (>= 0)
 
   // Mixer state
   audioVolume: number; // 0-1
@@ -204,6 +204,7 @@ interface SavedProject {
   gridSnap: GridSnap;
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
+  audioDuration: number;
   audioOffset: number;
   audioVolume: number;
   midiVolume: number;
@@ -226,6 +227,7 @@ export function saveProject(): void {
     gridSnap: state.gridSnap,
     audioFileName: state.audioFileName,
     audioAssetKey: state.audioAssetKey,
+    audioDuration: state.audioDuration,
     audioOffset: state.audioOffset,
     audioVolume: state.audioVolume,
     midiVolume: state.midiVolume,
@@ -257,6 +259,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   gridSnap: "1/8",
   audioFileName: null,
   audioAssetKey: null,
+  audioDuration: 0,
   audioOffset: 0,
   audioVolume: 0.8,
   midiVolume: 0.8,
@@ -287,7 +290,6 @@ export function clearProject(): void {
   useProjectStore.setState({
     ...DEFAULTS,
     selectedNoteIds: new Set(),
-    audioDuration: 0,
     audioPeaks: [],
     peaksPerSecond: 100,
     totalBeats: 640,
@@ -324,6 +326,7 @@ export function loadProject(): LoadedProject | null {
       gridSnap: merged.gridSnap,
       audioFileName: merged.audioFileName,
       audioAssetKey: merged.audioAssetKey,
+      audioDuration: merged.audioDuration,
       audioOffset: merged.audioOffset,
       audioVolume: merged.audioVolume,
       midiVolume: merged.midiVolume,
@@ -337,7 +340,6 @@ export function loadProject(): LoadedProject | null {
       waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
       // Reset transient state
       selectedNoteIds: new Set(),
-      audioDuration: 0,
       audioPeaks: [],
     });
 

@@ -11,7 +11,10 @@ exposeStoreForE2E();
 const queryClient = new QueryClient({
   defaultOptions: {
     mutations: {
-      onError: (error) => toast.error(error.message),
+      onError: (error) => {
+        console.error(error);
+        toast.error(error.message);
+      },
     },
   },
 });
