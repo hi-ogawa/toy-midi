@@ -17,11 +17,12 @@ import {
 } from "../lib/music";
 import {
   beatsToSeconds,
+  generateLocatorId,
   generateNoteId,
   secondsToBeats,
   useProjectStore,
 } from "../stores/project-store";
-import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { GRID_SNAP_VALUES, GridSnap, Locator, Note } from "../types";
 
 // Layout constants (exported for tests)
 export const KEYBOARD_WIDTH = 60;
@@ -211,6 +212,12 @@ export function PianoRoll() {
     deselectAll,
     setAudioOffset,
     audioPeaks,
+    // Locator state
+    locators,
+    selectedLocatorId,
+    addLocator,
+    deleteLocator,
+    selectLocator,
     // Viewport state from store
     scrollX,
     scrollY,
@@ -687,10 +694,21 @@ export function PianoRoll() {
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
+            locators={locators}
+            selectedLocatorId={selectedLocatorId}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
             }}
+            onCreateLocator={(beat, label) => {
+              addLocator({
+                id: generateLocatorId(),
+                beat,
+                label,
+              });
+            }}
+            onDeleteLocator={deleteLocator}
+            onSelectLocator={selectLocator}
           />
           {/* Waveform / Audio region */}
           <WaveformArea
@@ -1038,13 +1056,23 @@ function Timeline({
   scrollX,
   viewportWidth,
   playheadBeat,
+  locators,
+  selectedLocatorId,
   onSeek,
+  onCreateLocator,
+  onDeleteLocator,
+  onSelectLocator,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   viewportWidth: number;
   playheadBeat: number;
+  locators: Locator[];
+  selectedLocatorId: string | null;
   onSeek: (beat: number) => void;
+  onCreateLocator: (beat: number, label: string) => void;
+  onDeleteLocator: (id: string) => void;
+  onSelectLocator: (id: string | null) => void;
 }) {
   const markers = [];
 
@@ -1076,12 +1104,64 @@ function Timeline({
     );
   }
 
+  // Handle double-click to create locator
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Check if we clicked on a locator - if so, don't create a new one
+    if ((e.target as HTMLElement).closest("[data-locator-id]")) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const beat = Math.max(0, x / pixelsPerBeat + scrollX);
+    // Round to nearest beat for cleaner positioning
+    const roundedBeat = Math.round(beat);
+    // Find the next unused locator number
+    const existingNumbers = locators
+      .map((l) => {
+        const match = l.label.match(/^Locator (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((n) => n > 0);
+    const nextNumber =
+      existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    const label = `Locator ${nextNumber}`;
+    onCreateLocator(roundedBeat, label);
+  };
+
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Check if we clicked on a locator
+    const locatorElement = (e.target as HTMLElement).closest(
+      "[data-locator-id]",
+    );
+    if (locatorElement) {
+      const locatorId = locatorElement.getAttribute("data-locator-id");
+      const locator = locators.find((l) => l.id === locatorId);
+      if (locator) {
+        onSelectLocator(locatorId);
+        onSeek(locator.beat);
+        return;
+      }
+    }
+
+    // Otherwise, seek to clicked position and deselect locators
+    onSelectLocator(null);
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const beat = x / pixelsPerBeat + scrollX;
     onSeek(Math.max(0, beat));
   };
+
+  // Handle keyboard events for deleting selected locator
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (selectedLocatorId && (e.key === "Delete" || e.key === "Backspace")) {
+        e.preventDefault();
+        onDeleteLocator(selectedLocatorId);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedLocatorId, onDeleteLocator]);
 
   // Playhead position on timeline
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
@@ -1093,8 +1173,46 @@ function Timeline({
       className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       {markers}
+      {/* Locator markers */}
+      {locators.map((locator) => {
+        const x = (locator.beat - scrollX) * pixelsPerBeat;
+        const isVisible = x >= -20 && x <= viewportWidth + 20;
+        if (!isVisible) return null;
+
+        const isSelected = locator.id === selectedLocatorId;
+        return (
+          <div
+            key={locator.id}
+            data-locator-id={locator.id}
+            className="absolute group cursor-pointer"
+            style={{ left: x, top: 0 }}
+            title={locator.label}
+          >
+            {/* Triangle marker */}
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              className={`${isSelected ? "text-amber-400" : "text-amber-500"} drop-shadow-sm`}
+              style={{ transform: "translateX(-6px)" }}
+            >
+              <path d="M 6 0 L 12 12 L 0 12 Z" fill="currentColor" />
+            </svg>
+            {/* Label on hover or when selected */}
+            <div
+              className={`absolute left-0 top-12 text-xs whitespace-nowrap bg-neutral-800 border border-neutral-600 px-2 py-1 rounded shadow-lg ${
+                isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              } transition-opacity pointer-events-none`}
+              style={{ transform: "translateX(-50%)" }}
+            >
+              {locator.label}
+            </div>
+          </div>
+        );
+      })}
       {/* Playhead indicator */}
       {showPlayhead && (
         <div

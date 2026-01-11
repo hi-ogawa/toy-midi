@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { GridSnap, Note } from "../types";
+import { GridSnap, Locator, Note } from "../types";
 
 export interface ProjectState {
   // project
@@ -8,6 +8,10 @@ export interface ProjectState {
 
   // Midi track
   notes: Note[];
+
+  // Locators (section markers)
+  locators: Locator[];
+  selectedLocatorId: string | null;
 
   // Midi editor state
   selectedNoteIds: Set<string>;
@@ -53,6 +57,12 @@ export interface ProjectState {
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
 
+  // Locator actions
+  addLocator: (locator: Locator) => void;
+  updateLocator: (id: string, updates: Partial<Omit<Locator, "id">>) => void;
+  deleteLocator: (id: string) => void;
+  selectLocator: (id: string | null) => void;
+
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
@@ -82,8 +92,15 @@ export function generateNoteId(): string {
   return `note-${++noteIdCounter}`;
 }
 
+let locatorIdCounter = 0;
+export function generateLocatorId(): string {
+  return `locator-${++locatorIdCounter}`;
+}
+
 export const useProjectStore = create<ProjectState>((set) => ({
   notes: [],
+  locators: [],
+  selectedLocatorId: null,
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
@@ -154,6 +171,28 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   setTempo: (bpm) => set({ tempo: bpm }),
 
+  // Locator actions
+  addLocator: (locator) =>
+    set((state) => ({
+      locators: [...state.locators, locator].sort((a, b) => a.beat - b.beat),
+    })),
+
+  updateLocator: (id, updates) =>
+    set((state) => ({
+      locators: state.locators
+        .map((l) => (l.id === id ? { ...l, ...updates } : l))
+        .sort((a, b) => a.beat - b.beat),
+    })),
+
+  deleteLocator: (id) =>
+    set((state) => ({
+      locators: state.locators.filter((l) => l.id !== id),
+      selectedLocatorId:
+        state.selectedLocatorId === id ? null : state.selectedLocatorId,
+    })),
+
+  selectLocator: (id) => set({ selectedLocatorId: id }),
+
   // Audio actions
   setAudioFile: (fileName, duration, assetKey) =>
     set({
@@ -204,6 +243,7 @@ const STORAGE_VERSION = 1;
 interface SavedProject {
   version: number;
   notes: Note[];
+  locators?: Locator[]; // Optional for backwards compatibility
   tempo: number;
   gridSnap: GridSnap;
   audioFileName: string | null;
@@ -227,6 +267,7 @@ export function saveProject(): void {
   const saved: SavedProject = {
     version: STORAGE_VERSION,
     notes: state.notes,
+    locators: state.locators,
     tempo: state.tempo,
     gridSnap: state.gridSnap,
     audioFileName: state.audioFileName,
@@ -254,6 +295,7 @@ export function saveProject(): void {
 // Default values for new/missing fields
 const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
+  locators: [],
   tempo: 120,
   gridSnap: "1/8",
   audioFileName: null,
@@ -289,6 +331,7 @@ export function clearProject(): void {
   useProjectStore.setState({
     ...DEFAULTS,
     selectedNoteIds: new Set(),
+    selectedLocatorId: null,
     audioPeaks: [],
     peaksPerSecond: 100,
     totalBeats: 640,
@@ -319,8 +362,16 @@ export function loadProject() {
     }, 0);
     noteIdCounter = maxId;
 
+    // Update locator ID counter to avoid collisions
+    const maxLocatorId = (merged.locators ?? []).reduce((max, l) => {
+      const match = l.id.match(/^locator-(\d+)$/);
+      return match ? Math.max(max, parseInt(match[1], 10)) : max;
+    }, 0);
+    locatorIdCounter = Math.max(locatorIdCounter, maxLocatorId);
+
     useProjectStore.setState({
       notes: merged.notes,
+      locators: merged.locators ?? [],
       tempo: merged.tempo,
       gridSnap: merged.gridSnap,
       audioFileName: merged.audioFileName,
@@ -339,6 +390,7 @@ export function loadProject() {
       waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
       // Reset transient state
       selectedNoteIds: new Set(),
+      selectedLocatorId: null,
       audioPeaks: [],
     });
   } catch (e) {
