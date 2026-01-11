@@ -35,7 +35,7 @@ export const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const DEFAULT_PIXELS_PER_KEY = 20;
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
-const MAX_PIXELS_PER_BEAT = 200;
+const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
 const MAX_PIXELS_PER_KEY = 40;
 
@@ -1361,10 +1361,8 @@ function Waveform({
     const updateSize = () => {
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
-      // Set display size (CSS pixels)
-      canvas.style.width = rect.width + "px";
-      canvas.style.height = rect.height + "px";
-      // Set actual canvas size (device pixels for sharp rendering, rounded to avoid fractional pixels)
+      // Set canvas buffer size (device pixels for sharp rendering)
+      // CSS handles display size via w-full h-full class
       canvas.width = Math.round(rect.width * dpr);
       canvas.height = Math.round(rect.height * dpr);
       setCanvasSize({
