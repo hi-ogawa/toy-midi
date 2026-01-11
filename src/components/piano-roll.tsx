@@ -1204,7 +1204,7 @@ function WaveformArea({
     scrollX,
   );
   const gridBackgroundStyle: React.CSSProperties = {
-    backgroundColor: "#262626", // neutral-800
+    backgroundColor: "rgb(38 38 38)", // neutral-800 in Tailwind
     backgroundImage: verticalGridLayers
       .map(([gradient]) => gradient)
       .join(", "),
