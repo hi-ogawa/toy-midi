@@ -97,6 +97,11 @@ See [architecture.md](architecture.md) for implementation details.
     - setNotes() clears all notes and re-adds them (causes MIDI glitch)
     - syncAudioTrack() unsync/resync player (causes audio glitch)
     - need subscribeWithSelector to only call these when notes/audioOffset actually change
+  - [ ] refactor: consider unified state + audio architecture (docs/2026-01-11-unified-state-audio.md)
+    - merge AudioManager into store, actions directly update state + Tone.js
+    - eliminates subscription/sync complexity
+    - enables incremental updates (addNote adds to Part, not rebuild all)
+    - may not need zustand - could be simpler custom store
 - [ ] fix: "space" key shortcut shouldn't be captured by other input (except text input)
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
@@ -110,11 +115,6 @@ See [architecture.md](architecture.md) for implementation details.
   - no need to test what users hear, but can we test transport state?
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
-- [ ] refactor: consider unified state + audio architecture (docs/2026-01-11-unified-state-audio.md)
-  - merge AudioManager into store, actions directly update state + Tone.js
-  - eliminates subscription/sync complexity
-  - enables incremental updates (addNote adds to Part, not rebuild all)
-  - may not need zustand - could be simpler custom store
 
 ### Backlog
 

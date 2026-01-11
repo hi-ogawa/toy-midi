@@ -1,5 +1,10 @@
 # Architecture Overview
 
+This document is likely stale. See recent task docs for more up-to-date information.
+
+- docs/2026-01-11-state-management-principles.md
+- docs/2026-01-11-unified-state-audio.md
+
 ## Project Structure
 
 ```

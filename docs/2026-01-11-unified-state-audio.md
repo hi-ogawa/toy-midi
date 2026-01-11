@@ -6,10 +6,12 @@
 ## Context
 
 After refactoring state management (docs/2026-01-11-state-management-principles.md), we have:
+
 - Zustand store for state
 - AudioManager that subscribes to store and syncs Tone.js
 
 These are tightly coupled - effectively one reactive system split across two abstractions. This causes:
+
 - Subscription/sync complexity
 - Selective subscription needed to avoid glitches (setNotes, syncAudioTrack reset internal state)
 - Two places to understand for any audio-related feature
@@ -150,4 +152,4 @@ This is essentially what zustand does, but we own it and can be more explicit ab
 
 ## Notes
 
-*(Add notes as we explore)*
+_(Add notes as we explore)_
