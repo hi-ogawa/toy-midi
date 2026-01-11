@@ -1333,7 +1333,7 @@ function WaveformArea({
 // Threshold for switching between aggregation and detail modes
 const PEAK_AGGREGATION_THRESHOLD = 1;
 
-function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
+function Waveform({ peaks }: { peaks: number[]; height: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
@@ -1383,6 +1383,10 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
     // Calculate dimensions in CSS pixels (before scaling)
     const cssWidth = width / dpr;
     const cssHeight = height / dpr;
+
+    // Guard against zero or very small dimensions
+    if (cssWidth < 1 || cssHeight < 1) return;
+
     const centerY = cssHeight / 2;
     const maxAmplitude = centerY * 0.9;
 
@@ -1468,7 +1472,7 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
     }
 
     ctx.restore();
-  }, [peaks, canvasSize, height]);
+  }, [peaks, canvasSize]);
 
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 }
