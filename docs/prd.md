@@ -77,6 +77,7 @@ _Note editing_
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] fix: extend note dragging grid snap
+- [ ] fix: draw mode and select mode?
 
 _Timeline/Viewport_
 
