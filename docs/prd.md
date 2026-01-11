@@ -130,8 +130,7 @@ _Chores/Refactoring_
 - [ ] chore: deploy (vercel)
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
-- [ ] test: test audio context playback
-  - no need to test what users hear, but can we test transport state?
+- [ ] test: test audio context playback (docs/2026-01-11-e2e-audio-context-testing.md)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
