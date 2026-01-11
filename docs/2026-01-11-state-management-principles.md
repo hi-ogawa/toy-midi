@@ -270,11 +270,11 @@ Components re-render at 60fps during playback even if they only need `isPlaying`
 
 After fix:
 
-- [ ] `audioManager.syncAudioTrack()` is never called from components
-- [ ] `audioManager.setXxx()` is never called from components (except app init edge case)
-- [ ] AudioManager subscription includes `audioOffset`
-- [ ] app.tsx has no redundant mixer sync code
-- [ ] All tests pass
+- [x] `audioManager.syncAudioTrack()` only called from app.tsx (async buffer load edge case)
+- [x] `audioManager.setXxx()` never called from components
+- [x] AudioManager subscription includes `audioOffset`
+- [x] app.tsx has no redundant mixer sync code
+- [x] All tests pass (28 E2E, 5 unit)
 
 ---
 
@@ -284,15 +284,20 @@ After fix:
 
 - [x] Identified pattern violations
 - [x] Documented intended pattern
+- [x] Implement the fix (Steps 1-4)
+- [x] Verify tests pass
 
 ### Remaining
 
-- [ ] Implement the fix (Steps 1-4)
-- [ ] Verify tests pass
-- [ ] Clean up TODOs in code
+- [ ] Clean up remaining TODOs in code (lower priority)
 
 ---
 
 ## Feedback Log
 
 **2026-01-11:** User feedback - focus on pattern consistency, not performance. The issue is `useProjectStore` scattered everywhere with inconsistent usage, not about selective subscriptions.
+
+**2026-01-11:** Implementation complete. Pattern now applied consistently:
+- AudioManager uses applyState() for initial + subscription sync
+- Components only call store actions, not audioManager.setXxx()
+- audioOffset included in subscription
