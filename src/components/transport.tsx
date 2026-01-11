@@ -26,7 +26,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioVolume,
     midiVolume,
     metronomeEnabled,
-    metronomeVolume,
+    // metronomeVolume,
     gridSnap,
     showDebug,
     setAudioFile,
@@ -45,22 +45,22 @@ export function Transport({ onHelpClick }: TransportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
-  // Reactively sync volume settings with AudioManager when store changes
-  useEffect(() => {
-    audioManager.setAudioVolume(audioVolume);
-  }, [audioVolume]);
+  // // Reactively sync volume settings with AudioManager when store changes
+  // useEffect(() => {
+  //   audioManager.setAudioVolume(audioVolume);
+  // }, [audioVolume]);
 
-  useEffect(() => {
-    audioManager.setMidiVolume(midiVolume);
-  }, [midiVolume]);
+  // useEffect(() => {
+  //   audioManager.setMidiVolume(midiVolume);
+  // }, [midiVolume]);
 
-  useEffect(() => {
-    audioManager.setMetronomeEnabled(metronomeEnabled);
-  }, [metronomeEnabled]);
+  // useEffect(() => {
+  //   audioManager.setMetronomeEnabled(metronomeEnabled);
+  // }, [metronomeEnabled]);
 
-  useEffect(() => {
-    audioManager.setMetronomeVolume(metronomeVolume);
-  }, [metronomeVolume]);
+  // useEffect(() => {
+  //   audioManager.setMetronomeVolume(metronomeVolume);
+  // }, [metronomeVolume]);
 
   // TODO: playback scheduling shouldn't be driven directly by UI effect.
   // instead, we should do:

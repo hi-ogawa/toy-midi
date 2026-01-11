@@ -45,10 +45,10 @@ export function App() {
         }
 
         // Sync mixer settings with audioManager
+        // TODO: move to AudioManager.init?
         const state = useProjectStore.getState();
         audioManager.setAudioVolume(state.audioVolume);
         audioManager.setMidiVolume(state.midiVolume);
-        audioManager.setMetronomeEnabled(state.metronomeEnabled);
         audioManager.setMetronomeVolume(state.metronomeVolume);
       }
 
@@ -58,7 +58,7 @@ export function App() {
         clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => {
           saveProject();
-        }, 500);
+        }, 1000);
       });
     },
   });
