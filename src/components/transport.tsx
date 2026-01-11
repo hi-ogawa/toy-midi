@@ -1,8 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
+import { ToneAudioBuffer } from "tone";
 import { useTransport } from "../hooks/use-transport";
 import { saveAsset } from "../lib/asset-store";
-import { audioManager } from "../lib/audio";
+import { audioManager, getAudioBufferPeaks } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { GridSnap } from "../types";
@@ -26,7 +27,6 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioVolume,
     midiVolume,
     metronomeEnabled,
-    // metronomeVolume,
     gridSnap,
     showDebug,
     setAudioFile,
@@ -37,6 +37,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     setGridSnap,
     setShowDebug,
     setAudioPeaks,
+    setAudioOffset,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -47,19 +48,22 @@ export function Transport({ onHelpClick }: TransportProps) {
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
-      // TODO: revoke
+      // TODO: refactor with initial project restore in app.tsx
       const url = URL.createObjectURL(file);
-      const duration = await audioManager.loadFromUrl(url);
+      const buffer = await ToneAudioBuffer.fromUrl(url);
+      URL.revokeObjectURL(url);
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
+      setAudioFile(file.name, buffer.duration, assetKey);
 
-      setAudioFile(file.name, duration, assetKey);
-      audioManager.seek(0);
+      audioManager.player.buffer = buffer;
+      audioManager.player.sync().start(0);
+      setAudioOffset(0);
 
       // Extract peaks for waveform display
       const peaksPerSecond = 100;
-      const peaks = audioManager.getPeaks(peaksPerSecond);
+      const peaks = getAudioBufferPeaks(buffer, peaksPerSecond);
       setAudioPeaks(peaks, peaksPerSecond);
     },
   });
