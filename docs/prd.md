@@ -96,7 +96,7 @@ See [architecture.md](architecture.md) for implementation details.
   - input/button/select design (height?) seems inconsistent
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
-- [ ] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
+- [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
   - [ ] fix: playhead doesn't jump when pased
   - [ ] feat: persist lastPlayheadPosition
   - [ ] fix: midi playback broken when
