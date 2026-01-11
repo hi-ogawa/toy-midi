@@ -125,20 +125,12 @@ class AudioManager {
   }
 
   // TODO: ensure buffer is ready?
+  // TODO: always act on useProjectStore update subscription.
   syncAudioTrack(
     offset: number = useProjectStore.getState().audioOffset,
   ): void {
     this.player.unsync();
-    // TODO: negate audioOffset
-    // Offset determines where audio aligns with timeline:
-    // - offset > 0: skip intro, audio starts before beat 0 (transport 0 = offset into audio)
-    // - offset < 0: delay audio, audio starts after beat 0 (transport -offset = start of audio)
-    if (offset >= 0) {
-      // TODO: actually we don't need this case
-      this.player.sync().start(0, offset);
-    } else {
-      this.player.sync().start(-offset, 0);
-    }
+    this.player.sync().start(offset);
   }
 
   // TODO: incremental add / remove

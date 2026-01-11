@@ -17,7 +17,7 @@ interface ProjectState {
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds
-  audioOffset: number; // in seconds - position in audio that aligns with beat 0 (TODO: negate)
+  audioOffset: number; // in seconds - timeline position where audio starts (>= 0)
 
   // Mixer state
   audioVolume: number; // 0-1

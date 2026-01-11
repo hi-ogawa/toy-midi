@@ -1157,12 +1157,8 @@ function WaveformArea({
   const audioDurationBeats = secondsToBeats(audioDuration, tempo);
   const audioOffsetBeats = secondsToBeats(audioOffset, tempo);
 
-  // Audio region starts at -audioOffsetBeats (relative to beat 0)
-  // If audioOffset = 5s, the audio starts 5s before beat 0 in the timeline
-  const audioStartBeat = -audioOffsetBeats;
-
   // Calculate screen positions
-  const audioStartX = (audioStartBeat - scrollX) * pixelsPerBeat;
+  const audioStartX = (audioOffsetBeats - scrollX) * pixelsPerBeat;
   const audioWidth = audioDurationBeats * pixelsPerBeat;
 
   // Playhead position
@@ -1181,12 +1177,13 @@ function WaveformArea({
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStartRef.current) return;
       const deltaX = e.clientX - dragStartRef.current.x;
-      // Moving the audio region right = decreasing offset (audio starts later)
-      // Moving the audio region left = increasing offset (skip more intro)
+      // Moving right increases offset (audio moves right on timeline)
       const deltaBeats = deltaX / pixelsPerBeat;
       const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
-      // Allow negative offset (audio delayed) - AudioManager clamps to valid range
-      const newOffset = dragStartRef.current.startOffset - deltaSeconds;
+      const newOffset = Math.max(
+        0,
+        dragStartRef.current.startOffset + deltaSeconds,
+      );
       onOffsetChange(newOffset);
     };
 
