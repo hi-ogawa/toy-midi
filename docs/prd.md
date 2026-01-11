@@ -67,18 +67,29 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] fix: rework transport header layout
 - [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
+- [x] fix: "space" key shortcut shouldn't be captured by other input (except text input)
+- [x] fix: audio offset label direction
 
 ### TODO
 
-- [ ] feat: time signature support (currently hardcoded 4/4)
-- [ ] feat: embed soundfont (bass sound)
+_Note editing_
+
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
+- [ ] fix: extend note dragging grid snap
+
+_Timeline/Viewport_
+
+- [ ] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
 - [ ] feat: toggle auto-scroll during playback
+- [ ] fix: limit vertical scale to keyboard area only
+
+_Audio/Playback_
+
+- [ ] feat: time signature support (currently hardcoded 4/4)
+- [ ] feat: embed soundfont (bass sound)
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
-- [ ] feat: save multiple project
-- [ ] feat: locators to mark parts
-- [ ] feat: add demo project (good for quick dev test case too)
+- [ ] fix: project always restored with metronome enabled
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
   - [x] fix: play/stop behavior, timeline jumping issues
     - playhead doesn't jump when paused
@@ -102,12 +113,20 @@ See [architecture.md](architecture.md) for implementation details.
     - eliminates subscription/sync complexity
     - enables incremental updates (addNote adds to Part, not rebuild all)
     - may not need zustand - could be simpler custom store
-- [ ] fix: "space" key shortcut shouldn't be captured by other input (except text input)
-- [ ] fix: extend note dragging grid snap
-- [ ] fix: limit vertical scale to keyboard area only
+
+_Project management_
+
+- [ ] feat: save multiple project
+- [ ] feat: locators to mark parts
+- [ ] feat: add demo project (good for quick dev test case too)
+
+_UI polish_
+
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
-- [x] fix: audio offset label direction
+
+_Chores/Refactoring_
+
 - [ ] chore: deploy (vercel)
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
@@ -116,7 +135,6 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
-- [ ] fix: project always restored with metronome enabled
 
 ### Backlog
 
