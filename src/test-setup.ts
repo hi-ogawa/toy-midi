@@ -38,30 +38,30 @@ class MockAudioParam {
     this.maxValue = 3.4028235e38;
   }
 
-  setValueAtTime(value: number, time: number) {
+  setValueAtTime(value: number, _time: number) {
     this.value = value;
     return this;
   }
-  linearRampToValueAtTime(value: number, time: number) {
+  linearRampToValueAtTime(_value: number, _time: number) {
     return this;
   }
-  exponentialRampToValueAtTime(value: number, time: number) {
+  exponentialRampToValueAtTime(_value: number, _time: number) {
     return this;
   }
-  setTargetAtTime(target: number, startTime: number, timeConstant: number) {
+  setTargetAtTime(_target: number, _startTime: number, _timeConstant: number) {
     return this;
   }
   setValueCurveAtTime(
-    values: Float32Array,
-    startTime: number,
-    duration: number,
+    _values: Float32Array,
+    _startTime: number,
+    _duration: number,
   ) {
     return this;
   }
-  cancelScheduledValues(startTime: number) {
+  cancelScheduledValues(_startTime: number) {
     return this;
   }
-  cancelAndHoldAtTime(cancelTime: number) {
+  cancelAndHoldAtTime(_cancelTime: number) {
     return this;
   }
 }
@@ -86,8 +86,8 @@ class MockOscillatorNode extends MockAudioNode {
     this.detune = new MockAudioParam(0);
   }
 
-  start(when?: number) {}
-  stop(when?: number) {}
+  start(_when?: number) {}
+  stop(_when?: number) {}
 }
 
 class MockAudioBuffer {
@@ -103,19 +103,19 @@ class MockAudioBuffer {
     this.duration = length / sampleRate;
   }
 
-  getChannelData(channel: number) {
+  getChannelData(_channel: number) {
     return new Float32Array(this.length);
   }
 
   copyFromChannel(
-    destination: Float32Array,
-    channelNumber: number,
-    startInChannel?: number,
+    _destination: Float32Array,
+    _channelNumber: number,
+    _startInChannel?: number,
   ) {}
   copyToChannel(
-    source: Float32Array,
-    channelNumber: number,
-    startInChannel?: number,
+    _source: Float32Array,
+    _channelNumber: number,
+    _startInChannel?: number,
   ) {}
 }
 
@@ -133,8 +133,8 @@ class MockAudioBufferSourceNode extends MockAudioNode {
     this.detune = new MockAudioParam(0);
   }
 
-  start(when?: number, offset?: number, duration?: number) {}
-  stop(when?: number) {}
+  start(_when?: number, _offset?: number, _duration?: number) {}
+  stop(_when?: number) {}
 }
 
 class MockAudioDestinationNode extends MockAudioNode {
@@ -210,7 +210,7 @@ class MockAudioContext extends EventTarget {
     return node;
   }
 
-  createDelay(maxDelayTime?: number) {
+  createDelay(_maxDelayTime?: number) {
     const node = new MockAudioNode(this);
     (node as any).delayTime = new MockAudioParam(0);
     return node;
@@ -234,11 +234,11 @@ class MockAudioContext extends EventTarget {
     return node;
   }
 
-  createChannelSplitter(numberOfOutputs?: number) {
+  createChannelSplitter(_numberOfOutputs?: number) {
     return new MockAudioNode(this);
   }
 
-  createChannelMerger(numberOfInputs?: number) {
+  createChannelMerger(_numberOfInputs?: number) {
     return new MockAudioNode(this);
   }
 
@@ -256,7 +256,7 @@ class MockAudioContext extends EventTarget {
     return node;
   }
 
-  decodeAudioData(buffer: ArrayBuffer) {
+  decodeAudioData(_buffer: ArrayBuffer) {
     return Promise.resolve(this.createBuffer(2, 44100, 44100));
   }
 

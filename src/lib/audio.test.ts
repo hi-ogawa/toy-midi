@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { audioManager } from "./audio";
 
 /**
@@ -246,7 +246,7 @@ describe("Audio Transport State", () => {
     });
 
     it("should update notes during playback", () => {
-      const transport = Tone.getTransport();
+      Tone.getTransport(); // Initialize transport
       const notes = [
         { id: "1", pitch: 60, start: 0, duration: 1, velocity: 100 },
       ];
