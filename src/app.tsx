@@ -45,7 +45,7 @@ export function App() {
         }
 
         // Sync mixer settings with audioManager
-        // TODO: move to AudioManager.init?
+        // TODO: consolidate with AudioManager.init
         const state = useProjectStore.getState();
         audioManager.setAudioVolume(state.audioVolume);
         audioManager.setMidiVolume(state.midiVolume);
