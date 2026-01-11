@@ -353,6 +353,7 @@ export function loadProject(): LoadedProject | null {
  */
 export function loadDemoProject(): void {
   // Update note ID counter to avoid collisions with demo note IDs
+  // Set to maxId so the next generated note will be maxId + 1
   const maxId = DEMO_PROJECT.notes.reduce((max, n) => {
     const match = n.id.match(/^demo-(\d+)$/);
     return match ? Math.max(max, parseInt(match[1], 10)) : max;
@@ -360,28 +361,18 @@ export function loadDemoProject(): void {
   noteIdCounter = maxId;
 
   useProjectStore.setState({
+    // Start with defaults
+    ...DEFAULTS,
+    // Override with demo-specific data
     notes: DEMO_PROJECT.notes,
     tempo: DEMO_PROJECT.tempo,
     audioFileName: DEMO_PROJECT.audioFileName,
-    // Reset all other state to defaults
+    // Reset transient state
     selectedNoteIds: new Set(),
-    gridSnap: "1/8",
-    audioAssetKey: null,
     audioDuration: 0,
-    audioOffset: 0,
-    audioVolume: 0.8,
-    midiVolume: 0.8,
-    metronomeEnabled: false,
-    metronomeVolume: 0.5,
-    showDebug: false,
-    // Viewport state - center on demo notes
-    scrollX: 0,
-    scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
-    pixelsPerBeat: 80,
-    pixelsPerKey: 20,
-    waveformHeight: 60,
     audioPeaks: [],
     peaksPerSecond: 100,
     totalBeats: 640,
+    showDebug: false,
   });
 }
