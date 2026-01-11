@@ -6,6 +6,12 @@ export interface Note {
   velocity: number; // 0-127, default 100
 }
 
+export interface Locator {
+  id: string;
+  beat: number; // Position in timeline (beats)
+  label: string; // User-defined name (e.g., "Intro", "Verse 1")
+}
+
 export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 
 export const GRID_SNAP_VALUES: Record<GridSnap, number> = {
