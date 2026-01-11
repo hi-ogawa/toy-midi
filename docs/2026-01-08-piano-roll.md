@@ -9,7 +9,7 @@ Phase 1: Static piano roll with note editing.
 
 ## Scope
 
-From TODO.md Phase 1:
+Phase 1:
 
 - Basic SVG rendering with grid
 - Piano keyboard sidebar (bass range E1-G3)
