@@ -6,7 +6,7 @@ import { saveAsset } from "../lib/asset-store";
 import { audioManager, getAudioBufferPeaks } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
-import { GridSnap } from "../types";
+import { COMMON_TIME_SIGNATURES, GridSnap } from "../types";
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -23,6 +23,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioFileName,
     audioDuration,
     tempo,
+    timeSignature,
     notes,
     audioVolume,
     midiVolume,
@@ -32,6 +33,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     showDebug,
     setAudioFile,
     setTempo,
+    setTimeSignature,
     setAudioVolume,
     setMidiVolume,
     setMetronomeEnabled,
@@ -173,6 +175,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     const midiData = exportMidi({
       notes,
       tempo,
+      timeSignature,
       trackName: audioFileName
         ? audioFileName.replace(/\.[^.]+$/, "")
         : "Piano Roll",
@@ -320,6 +323,31 @@ export function Transport({ onHelpClick }: TransportProps) {
         >
           Tap
         </button>
+      </div>
+
+      {/* Time signature selector */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-neutral-400">Time:</span>
+        <select
+          data-testid="time-signature-select"
+          value={`${timeSignature.numerator}/${timeSignature.denominator}`}
+          onChange={(e) => {
+            const [numerator, denominator] = e.target.value
+              .split("/")
+              .map(Number);
+            setTimeSignature({ numerator, denominator });
+          }}
+          className="h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
+        >
+          {COMMON_TIME_SIGNATURES.map((ts) => (
+            <option
+              key={`${ts.numerator}/${ts.denominator}`}
+              value={`${ts.numerator}/${ts.denominator}`}
+            >
+              {ts.numerator}/{ts.denominator}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Grid snap selector */}

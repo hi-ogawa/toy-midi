@@ -99,6 +99,12 @@ class AudioManager {
     if (state.audioOffset !== prevState?.audioOffset) {
       this.syncAudioTrack(state.audioOffset);
     }
+    if (
+      !prevState ||
+      state.timeSignature.numerator !== prevState.timeSignature.numerator
+    ) {
+      this.setMetronomeSequence(state.timeSignature.numerator);
+    }
   }
 
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
@@ -167,6 +173,28 @@ class AudioManager {
 
   setMetronomeEnabled(enabled: boolean): void {
     this.metronomeChannel.mute = !enabled;
+  }
+
+  setMetronomeSequence(beatsPerBar: number): void {
+    // Stop and dispose existing sequence
+    this.metronomeSeq.stop();
+    this.metronomeSeq.dispose();
+
+    // Create new sequence with updated beats per bar
+    // First beat gets accent (high pitch), rest get normal (lower pitch)
+    const sequence = Array.from({ length: beatsPerBar }, (_, i) =>
+      i === 0 ? 1 : 0,
+    );
+
+    this.metronomeSeq = new Tone.Sequence(
+      (time, beat) => {
+        const pitch = beat === 1 ? "C7" : "G6";
+        this.metronome.triggerAttackRelease(pitch, "32n", time);
+      },
+      sequence,
+      "4n",
+    );
+    this.metronomeSeq.start(0);
   }
 }
 
