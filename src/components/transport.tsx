@@ -5,6 +5,7 @@ import {
   PauseIcon,
   PlayIcon,
   SettingsIcon,
+  TimerIcon,
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
@@ -34,7 +35,6 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Slider } from "./ui/slider";
-import { Toggle } from "./ui/toggle";
 
 function formatTimeCompact(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -48,16 +48,6 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
   return `${bar}|${beatInBar}`;
-}
-
-// Metronome icon (not in lucide)
-function MetronomeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 1.5a1 1 0 011 1v2.09a1 1 0 01-.553.894l-.447.224V8h1a1 1 0 110 2h-1v9.382l3.553-7.106a1 1 0 011.788.894l-4.5 9a1 1 0 01-1.788-.894L12 18.618V10h-1a1 1 0 110-2h1V5.618l-.447-.224A1 1 0 0111 4.5V2.5a1 1 0 011-1z" />
-      <path d="M7 22a2 2 0 01-2-2V8.472l3.528-5.293a2 2 0 013.472 2L9 10v10a2 2 0 01-2 2zM17 22a2 2 0 002-2V10l-2.528-4.82a2 2 0 00-3.472 2L16 8.472V20a2 2 0 002 2z" />
-    </svg>
-  );
 }
 
 type TransportProps = {
@@ -237,7 +227,7 @@ export function Transport({ onHelpClick }: TransportProps) {
       <Button
         data-testid="play-pause-button"
         onClick={handlePlayPause}
-        variant={isPlaying ? "default" : "secondary"}
+        variant={isPlaying ? "ghost" : "secondary"}
         size="icon"
         title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
@@ -249,16 +239,16 @@ export function Transport({ onHelpClick }: TransportProps) {
       </Button>
 
       {/* Metronome toggle */}
-      <Toggle
+      <Button
         data-testid="metronome-toggle"
-        pressed={metronomeEnabled}
-        onPressedChange={setMetronomeEnabled}
-        size="sm"
+        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
+        variant={metronomeEnabled ? "ghost" : "secondary"}
+        size="icon"
         title="Toggle metronome"
         aria-pressed={metronomeEnabled}
       >
-        <MetronomeIcon className="size-4" />
-      </Toggle>
+        <TimerIcon className="size-4" />
+      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
@@ -275,7 +265,8 @@ export function Transport({ onHelpClick }: TransportProps) {
       <div className="w-px h-5 bg-border" />
 
       {/* Tempo: BPM input + tap button + time signature */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">BPM:</span>
         <input
           data-testid="tempo-input"
           type="number"
@@ -302,10 +293,11 @@ export function Transport({ onHelpClick }: TransportProps) {
           variant="ghost"
           size="sm"
           title="Tap tempo"
+          className="text-xs px-1.5"
         >
           TAP
         </Button>
-        <span className="text-muted-foreground">-</span>
+        <span className="text-muted-foreground px-1">-</span>
         <span
           className="text-muted-foreground tabular-nums"
           title="Time signature"
@@ -319,6 +311,7 @@ export function Transport({ onHelpClick }: TransportProps) {
 
       {/* Grid snap selector */}
       <div className="flex items-center gap-1">
+        {/* TODO: icon? */}
         <span className="text-muted-foreground">Grid:</span>
         <Select
           value={gridSnap}
@@ -331,6 +324,7 @@ export function Transport({ onHelpClick }: TransportProps) {
           >
             <SelectValue />
           </SelectTrigger>
+          {/* TODO: layout odd? */}
           <SelectContent>
             <SelectItem value="1/4">1/4</SelectItem>
             <SelectItem value="1/8">1/8</SelectItem>
@@ -405,6 +399,7 @@ export function Transport({ onHelpClick }: TransportProps) {
             data-testid="auto-scroll-toggle"
             checked={autoScrollEnabled}
             onCheckedChange={setAutoScrollEnabled}
+            onSelect={(e) => e.preventDefault()}
             aria-pressed={autoScrollEnabled}
           >
             Auto-scroll
@@ -416,6 +411,7 @@ export function Transport({ onHelpClick }: TransportProps) {
             data-testid="debug-toggle"
             checked={showDebug}
             onCheckedChange={setShowDebug}
+            onSelect={(e) => e.preventDefault()}
           >
             Debug
           </DropdownMenuCheckboxItem>

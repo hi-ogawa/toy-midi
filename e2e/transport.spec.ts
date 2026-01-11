@@ -95,15 +95,12 @@ test.describe("Transport Controls", () => {
     // Should be on by default (checked state)
     await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
 
-    // Toggle off
+    // Toggle off (dropdown stays open)
     await autoScrollToggle.click();
-    // Re-open dropdown (it closes after click)
-    await page.getByTestId("settings-button").click();
     await expect(autoScrollToggle).toHaveAttribute("data-state", "unchecked");
 
     // Toggle on
     await autoScrollToggle.click();
-    await page.getByTestId("settings-button").click();
     await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
   });
 
