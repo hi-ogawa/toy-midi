@@ -27,6 +27,7 @@ export interface ProjectState {
 
   // UI state
   showDebug: boolean;
+  autoScrollEnabled: boolean;
 
   // Viewport state
   // scrollX/scrollY: content offset in logical units (beats/semitones), can be fractional
@@ -65,6 +66,7 @@ export interface ProjectState {
 
   // UI actions
   setShowDebug: (show: boolean) => void;
+  setAutoScrollEnabled: (enabled: boolean) => void;
 
   // Viewport actions
   setScrollX: (scrollX: number) => void;
@@ -103,6 +105,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   // UI state
   showDebug: false,
+  autoScrollEnabled: true,
 
   // Viewport state (defaults match piano-roll.tsx)
   scrollX: 0,
@@ -173,6 +176,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   // UI actions
   setShowDebug: (show) => set({ showDebug: show }),
+  setAutoScrollEnabled: (enabled) => set({ autoScrollEnabled: enabled }),
 
   // Viewport actions
   setScrollX: (scrollX) => set({ scrollX }),
@@ -214,6 +218,7 @@ interface SavedProject {
   midiVolume: number;
   metronomeEnabled: boolean;
   metronomeVolume: number;
+  autoScrollEnabled?: boolean;
   // Viewport state
   scrollX?: number;
   scrollY?: number;
@@ -237,6 +242,7 @@ export function saveProject(): void {
     midiVolume: state.midiVolume,
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
+    autoScrollEnabled: state.autoScrollEnabled,
     // Viewport state
     scrollX: state.scrollX,
     scrollY: state.scrollY,
@@ -264,6 +270,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   midiVolume: 0.8,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
+  autoScrollEnabled: true,
   // Viewport state defaults
   scrollX: 0,
   scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
@@ -293,6 +300,7 @@ export function clearProject(): void {
     peaksPerSecond: 100,
     totalBeats: 640,
     showDebug: false,
+    autoScrollEnabled: true,
   });
 }
 
@@ -331,6 +339,8 @@ export function loadProject() {
       midiVolume: merged.midiVolume,
       metronomeEnabled: merged.metronomeEnabled,
       metronomeVolume: merged.metronomeVolume,
+      autoScrollEnabled:
+        merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled!,
       // Viewport state
       scrollX: merged.scrollX ?? DEFAULTS.scrollX!,
       scrollY: merged.scrollY ?? DEFAULTS.scrollY!,
