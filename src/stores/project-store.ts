@@ -239,7 +239,9 @@ export function saveProject(): void {
 
   // Need a project ID to save
   if (!state.currentProjectId) {
-    console.warn("No current project ID, cannot save");
+    console.warn(
+      "Cannot save project: no current project ID set. Create a new project first.",
+    );
     return;
   }
 
@@ -339,7 +341,9 @@ export function loadProject(projectId?: string) {
     // Determine which project to load
     const idToLoad = projectId || getLastProjectId();
     if (!idToLoad) {
-      console.warn("No project ID specified and no last project found");
+      console.warn(
+        "No project to load: specify a project ID or ensure at least one project exists.",
+      );
       return null;
     }
 

@@ -12,6 +12,10 @@ export interface ProjectMetadata {
 
 // Generate unique project ID
 export function generateProjectId(): string {
+  // Use crypto.randomUUID() if available, otherwise fallback to timestamp + random
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `project-${crypto.randomUUID()}`;
+  }
   return `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
