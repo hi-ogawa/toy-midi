@@ -87,7 +87,7 @@ See [architecture.md](architecture.md) for implementation details.
   - [x] fix: remove unnecessary null checks in AudioManager
   - [x] fix: metronome toggle is laggy
   - [ ] feat: persist lastPlayheadPosition
-  - [ ] fix: `transport.bpm` source of truth instead of `store.tempo`
+  - [x] fix: `transport.bpm` source of truth instead of `store.tempo`
   - [x] fix: playback scheduling shouldn't be driven directly by UI effect
   - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
     - reduce trivial re-expose Tone.js from audioManager
