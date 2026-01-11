@@ -366,7 +366,6 @@ export function loadDemoProject(): void {
     // Override with demo-specific data
     notes: DEMO_PROJECT.notes,
     tempo: DEMO_PROJECT.tempo,
-    audioFileName: DEMO_PROJECT.audioFileName,
     // Reset transient state
     selectedNoteIds: new Set(),
     audioDuration: 0,
