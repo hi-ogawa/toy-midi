@@ -34,10 +34,13 @@ export const BEATS_PER_BAR = 4;
 // Default zoom levels (pixels per beat/key)
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const DEFAULT_PIXELS_PER_KEY = 20;
-const MIN_PIXELS_PER_BEAT = 20;
+const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
 const MAX_PIXELS_PER_BEAT = 200;
 const MIN_PIXELS_PER_KEY = 10;
 const MAX_PIXELS_PER_KEY = 40;
+
+// Minimum pixel spacing for grid line visibility (hide when lines are too dense)
+const MIN_LINE_SPACING = 8;
 
 // Deprecated: kept for E2E test compatibility
 export const BASE_ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
@@ -91,43 +94,59 @@ function generateGridBackground(
     transparent ${11 * r}px, transparent ${12 * r}px
   )`;
 
-  // Define each layer as [gradient, size, position] - comment out to disable
+  // Define each layer as [gradient, size, position] - conditionally included
   // Using linear-gradient (not repeating) with background-size for cleaner rendering
   // 180deg = top to bottom, 90deg = left to right
-  const layers: Array<[string, string, string]> = [
-    // Vertical bar lines (every 4 beats)
-    [
+  // Hide lines when spacing is below MIN_LINE_SPACING to avoid visual clutter at extreme zoom
+  const layers: Array<[string, string, string]> = [];
+
+  // Vertical bar lines (every 4 beats) - always show if spacing allows
+  if (barWidth >= MIN_LINE_SPACING) {
+    layers.push([
       `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
       `${barWidth}px 100%`,
       `${offsetX}px 0`,
-    ],
-    // Vertical beat lines
-    [
+    ]);
+  }
+
+  // Vertical beat lines - hide when too dense
+  if (beatWidth >= MIN_LINE_SPACING) {
+    layers.push([
       `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
       `${beatWidth}px 100%`,
       `${offsetX}px 0`,
-    ],
-    // Vertical sub-beat lines (grid snap)
-    [
+    ]);
+  }
+
+  // Vertical sub-beat lines (grid snap) - hide when too dense
+  if (subBeatWidth >= MIN_LINE_SPACING) {
+    layers.push([
       `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
       `${subBeatWidth}px 100%`,
       `${offsetX}px 0`,
-    ],
-    // Octave lines (B/C boundary)
-    [
-      `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
-      `100% ${octaveHeight}px`,
-      `0 ${octaveOffsetY}px`,
-    ],
-    // Row lines (every pitch)
-    [
-      `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
-      `100% ${rowHeight}px`,
-      `0 ${rowOffsetY}px`,
-    ],
-    // Black key row backgrounds (subtle darker shade)
-    [blackKeyGradient, `100% ${octaveHeight}px`, `0 ${octaveOffsetY}px`],
-  ];
+    ]);
+  }
+
+  // Octave lines (B/C boundary) - always visible
+  layers.push([
+    `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
+
+  // Row lines (every pitch) - always visible for now
+  layers.push([
+    `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
+    `100% ${rowHeight}px`,
+    `0 ${rowOffsetY}px`,
+  ]);
+
+  // Black key row backgrounds (subtle darker shade)
+  layers.push([
+    blackKeyGradient,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
 
   return {
     backgroundColor: "#1a1a1a",
