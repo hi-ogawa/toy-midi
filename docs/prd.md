@@ -106,6 +106,8 @@ See [architecture.md](architecture.md) for implementation details.
   - [ ] feat: persist lastPlayheadPosition
 - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
   - reduce trivial re-expose Tone.js from audioManager
+- [ ] test: test audio context playback
+  - no need to test what users hear, but can we test transport state?
 - [ ] feat: add demo project (good for quick dev test case too)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
