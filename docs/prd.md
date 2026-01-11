@@ -104,7 +104,7 @@ _Audio/Playback_
   - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
     - reduce trivial re-expose Tone.js from audioManager
 - [ ] follow up docs/2026-01-11-state-management-principles.md
-  - [ ] fix: selective subscription for setNotes and syncAudioTrack
+  - [x] fix: selective subscription for setNotes and syncAudioTrack
     - currently any zustand update triggers applyState() which resets internal state
     - setNotes() clears all notes and re-adds them (causes MIDI glitch)
     - syncAudioTrack() unsync/resync player (causes audio glitch)
