@@ -1330,6 +1330,9 @@ function WaveformArea({
 
 // Waveform Canvas component - renders peaks with dynamic resolution based on zoom
 // Uses canvas for pixel-level control and viewport-aware rendering
+// Threshold for switching between aggregation and detail modes
+const PEAK_AGGREGATION_THRESHOLD = 1;
+
 function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -1347,10 +1350,13 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
       // Set display size (CSS pixels)
       canvas.style.width = rect.width + "px";
       canvas.style.height = rect.height + "px";
-      // Set actual canvas size (device pixels for sharp rendering)
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      setCanvasSize({ width: rect.width * dpr, height: rect.height * dpr });
+      // Set actual canvas size (device pixels for sharp rendering, rounded to avoid fractional pixels)
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      setCanvasSize({
+        width: Math.round(rect.width * dpr),
+        height: Math.round(rect.height * dpr),
+      });
     };
 
     updateSize();
@@ -1391,14 +1397,15 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
     ctx.lineWidth = 1;
 
-    if (peaksPerPixel > 1) {
+    if (peaksPerPixel > PEAK_AGGREGATION_THRESHOLD) {
       // Zoomed out: aggregate multiple peaks per pixel
       // Pre-calculate max peaks for each pixel column to avoid duplication
       const aggregatedPeaks: number[] = [];
-      for (let x = 0; x < cssWidth; x++) {
+      const cssWidthInt = Math.floor(cssWidth);
+      for (let x = 0; x < cssWidthInt; x++) {
         const peakStart = Math.floor(x * peaksPerPixel);
         const peakEnd = Math.min(
-          Math.ceil((x + 1) * peaksPerPixel),
+          Math.floor((x + 1) * peaksPerPixel),
           peaks.length,
         );
 
@@ -1463,11 +1470,5 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
     ctx.restore();
   }, [peaks, canvasSize, height]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ width: "100%", height: "100%" }}
-    />
-  );
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 }
