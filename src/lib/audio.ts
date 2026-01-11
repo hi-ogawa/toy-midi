@@ -13,6 +13,9 @@ import { useProjectStore } from "@/stores/project-store";
  * which directly interfaces with Tone.js Transport.
  */
 class AudioManager {
+  // TODO: consistent names
+  // TODO: asusme non-null
+
   // TODO: soundfont
   private synth!: Tone.PolySynth;
   private midiGain: Tone.Gain | null = null;
@@ -89,6 +92,7 @@ class AudioManager {
       this.setMetronomeVolume(project.metronomeVolume);
       this.setMetronomeEnabled(project.metronomeEnabled);
       this.setNotes(project.notes);
+      // TODO?
       Tone.getTransport().bpm.value = project.tempo;
     });
   }
