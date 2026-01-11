@@ -36,74 +36,29 @@ export const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const DEFAULT_PIXELS_PER_KEY = 20;
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
-const MAX_PIXELS_PER_BEAT = 200;
+const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
 const MAX_PIXELS_PER_KEY = 40;
 
 // Minimum pixel spacing for grid line visibility (hide when lines are too dense)
 const MIN_LINE_SPACING = 8;
 
-// Deprecated: kept for E2E test compatibility
-export const BASE_ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
-export const BASE_BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
-export const ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
-export const BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
-
-// Generate CSS background for grid (returns style object)
-// Uses linear-gradient + background-size instead of repeating-linear-gradient
-// to avoid subpixel rendering artifacts (see docs/2026-01-08-vertical-grid-alignment.md)
-function generateGridBackground(
+// Generate vertical grid lines (bar, beat, sub-beat) for timelines
+// Returns layers array for use with background CSS properties
+function generateVerticalGridLayers(
   pixelsPerBeat: number,
-  pixelsPerKey: number,
   gridSnap: GridSnap,
   scrollX: number,
-  scrollY: number,
-): React.CSSProperties {
+): Array<[string, string, string]> {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
-
-  // Round base sizes, derive others to avoid drift between grid layers
-  // Accept fractional subBeatWidth over visible drift
-  const rowHeight = Math.round(pixelsPerKey);
   const beatWidth = Math.round(pixelsPerBeat);
-  const subBeatWidth = beatWidth * gridSnapValue; // Keep fractional to avoid drift
+  const subBeatWidth = beatWidth * gridSnapValue;
   const barWidth = beatWidth * BEATS_PER_BAR;
-  const octaveHeight = rowHeight * 12;
-
-  // Calculate offsets
   const offsetX = -(scrollX * beatWidth) % barWidth;
-  const rowOffsetY = -(scrollY % 1) * rowHeight;
-  // Octave line at B/C boundary = bottom of C row
-  const octaveOffsetY =
-    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
-    octaveHeight;
 
-  // Build black key pattern gradient (one octave, 12 rows)
-  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
-  const blackKeyColor = "rgba(0,0,0,0.35)";
-  const r = rowHeight;
-  const blackKeyGradient = `linear-gradient(0deg,
-    transparent 0, transparent ${r}px,
-    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
-    transparent ${2 * r}px, transparent ${3 * r}px,
-    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
-    transparent ${4 * r}px, transparent ${6 * r}px,
-    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
-    transparent ${7 * r}px, transparent ${8 * r}px,
-    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
-    transparent ${9 * r}px, transparent ${10 * r}px,
-    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
-    transparent ${11 * r}px, transparent ${12 * r}px
-  )`;
-
-  // Define each layer as [gradient, size, position] - conditionally included
-  // Using linear-gradient (not repeating) with background-size for cleaner rendering
-  // 180deg = top to bottom, 90deg = left to right
-  // Hide lines when spacing is below MIN_LINE_SPACING to avoid visual clutter at extreme zoom
   const layers: Array<[string, string, string]> = [];
 
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
-  // Find smallest multiplier N where barWidth * N >= MIN_LINE_SPACING
-  // Use powers of 2 for clean groupings: 1, 2, 4, 8, 16 bars
   let coarseBarMultiplier = 1;
   while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
     coarseBarMultiplier *= 2;
@@ -134,6 +89,59 @@ function generateGridBackground(
       `${offsetX}px 0`,
     ]);
   }
+
+  return layers;
+}
+
+// Deprecated: kept for E2E test compatibility
+export const BASE_ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
+export const BASE_BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
+export const ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
+export const BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
+
+// Generate CSS background for grid (returns style object)
+// Uses linear-gradient + background-size instead of repeating-linear-gradient
+// to avoid subpixel rendering artifacts (see docs/2026-01-08-vertical-grid-alignment.md)
+function generateGridBackground(
+  pixelsPerBeat: number,
+  pixelsPerKey: number,
+  gridSnap: GridSnap,
+  scrollX: number,
+  scrollY: number,
+): React.CSSProperties {
+  // Round base sizes, derive others to avoid drift between grid layers
+  const rowHeight = Math.round(pixelsPerKey);
+  const octaveHeight = rowHeight * 12;
+
+  // Calculate offsets for horizontal lines
+  const rowOffsetY = -(scrollY % 1) * rowHeight;
+  // Octave line at B/C boundary = bottom of C row
+  const octaveOffsetY =
+    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
+    octaveHeight;
+
+  // Build black key pattern gradient (one octave, 12 rows)
+  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
+  const blackKeyColor = "rgba(0,0,0,0.35)";
+  const r = rowHeight;
+  const blackKeyGradient = `linear-gradient(0deg,
+    transparent 0, transparent ${r}px,
+    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
+    transparent ${2 * r}px, transparent ${3 * r}px,
+    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
+    transparent ${4 * r}px, transparent ${6 * r}px,
+    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
+    transparent ${7 * r}px, transparent ${8 * r}px,
+    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
+    transparent ${9 * r}px, transparent ${10 * r}px,
+    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
+    transparent ${11 * r}px, transparent ${12 * r}px
+  )`;
+
+  const layers: Array<[string, string, string]> = [];
+
+  // Add vertical grid lines (bar, beat, sub-beat)
+  layers.push(...generateVerticalGridLayers(pixelsPerBeat, gridSnap, scrollX));
 
   // Octave lines (B/C boundary) - always visible
   layers.push([
@@ -338,16 +346,12 @@ export function PianoRoll() {
       const mouseX = e.clientX - rect.left - KEYBOARD_WIDTH;
       const mouseY = e.clientY - rect.top - TIMELINE_HEIGHT - waveformHeight;
 
-      // Ctrl + wheel = zoom (both axes, centered on cursor)
-      if (e.ctrlKey) {
-        // Horizontal zoom (deltaX or deltaY for single-axis scroll devices)
-        if (e.deltaX !== 0 || e.deltaY !== 0) {
-          // Use deltaY for horizontal zoom (more common scroll direction)
-          const hZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
-          // Use deltaX for vertical zoom (horizontal scroll)
-          const vZoomFactor = e.deltaX > 0 ? 0.9 : e.deltaX < 0 ? 1.1 : 1;
-
-          if (hZoomFactor !== 1) {
+      // Ctrl + wheel = horizontal zoom, Shift + wheel = vertical zoom
+      if (e.ctrlKey || e.shiftKey) {
+        if (e.deltaY !== 0) {
+          // Ctrl + deltaY = horizontal zoom
+          if (e.ctrlKey && !e.shiftKey) {
+            const hZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
             const newPixelsPerBeat = Math.max(
               MIN_PIXELS_PER_BEAT,
               Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * hZoomFactor),
@@ -361,8 +365,9 @@ export function PianoRoll() {
             setPixelsPerBeat(newPixelsPerBeat);
             setScrollX(newScrollX);
           }
-
-          if (vZoomFactor !== 1) {
+          // Shift + deltaY = vertical zoom (only if mouse is over keyboard/grid area)
+          else if (e.shiftKey && !e.ctrlKey && mouseY >= 0) {
+            const vZoomFactor = e.deltaY > 0 ? 0.9 : e.deltaY < 0 ? 1.1 : 1;
             const newPixelsPerKey = Math.max(
               MIN_PIXELS_PER_KEY,
               Math.min(MAX_PIXELS_PER_KEY, pixelsPerKey * vZoomFactor),
@@ -705,6 +710,7 @@ export function PianoRoll() {
           {/* Waveform / Audio region */}
           <WaveformArea
             pixelsPerBeat={roundedPixelsPerBeat}
+            gridSnap={gridSnap}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             audioDuration={audioDuration}
@@ -1175,6 +1181,7 @@ function NoteDiv({
 
 function WaveformArea({
   pixelsPerBeat,
+  gridSnap,
   scrollX,
   viewportWidth,
   audioDuration,
@@ -1187,6 +1194,7 @@ function WaveformArea({
   onHeightChange,
 }: {
   pixelsPerBeat: number;
+  gridSnap: GridSnap;
   scrollX: number;
   viewportWidth: number;
   audioDuration: number;
@@ -1205,6 +1213,23 @@ function WaveformArea({
   const resizeStartRef = useRef<{ y: number; startHeight: number } | null>(
     null,
   );
+
+  // Generate vertical grid background for audio track
+  const verticalGridLayers = generateVerticalGridLayers(
+    pixelsPerBeat,
+    gridSnap,
+    scrollX,
+  );
+  const gridBackgroundStyle: React.CSSProperties = {
+    backgroundColor: "rgb(38 38 38)", // neutral-800 in Tailwind
+    backgroundImage: verticalGridLayers
+      .map(([gradient]) => gradient)
+      .join(", "),
+    backgroundSize: verticalGridLayers.map(([, size]) => size).join(", "),
+    backgroundPosition: verticalGridLayers
+      .map(([, , position]) => position)
+      .join(", "),
+  };
 
   // Convert audio duration/offset to beats for positioning
   const audioDurationBeats = secondsToBeats(audioDuration, tempo);
@@ -1292,13 +1317,13 @@ function WaveformArea({
   return (
     <div
       ref={containerRef}
-      className="relative shrink-0 bg-neutral-800 border-b border-neutral-700 overflow-hidden"
-      style={{ height }}
+      className="relative shrink-0 border-b border-neutral-700 overflow-hidden"
+      style={{ height, ...gridBackgroundStyle }}
     >
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-85 ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"

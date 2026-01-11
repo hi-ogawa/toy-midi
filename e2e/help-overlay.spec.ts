@@ -41,7 +41,8 @@ test.describe("Help Overlay", () => {
     // Check for mouse actions
     await expect(page.getByText("Create new note")).toBeVisible();
     await expect(page.getByText("Move note (time + pitch)")).toBeVisible();
-    await expect(page.getByText("Zoom in / out")).toBeVisible();
+    await expect(page.getByText("Zoom in / out (horizontal)")).toBeVisible();
+    await expect(page.getByText("Zoom in / out (vertical)")).toBeVisible();
 
     // Click inside modal content - should stay open
     await page.getByRole("heading", { name: "Quick Reference" }).click();
