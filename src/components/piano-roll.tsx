@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -1048,8 +1049,11 @@ function Timeline({
 }) {
   const markers = [];
 
+  // Use rounded beatWidth to match grid alignment (grid uses Math.round for clean patterns)
+  const beatWidth = Math.round(pixelsPerBeat);
+
   // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
-  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
+  const barWidth = BEATS_PER_BAR * beatWidth;
   let labelBarStep = 1;
   while (barWidth * labelBarStep < MIN_LABEL_SPACING) {
     labelBarStep *= 2;
@@ -1059,20 +1063,27 @@ function Timeline({
   // Calculate visible beat range, aligned to label step
   const startBeat = Math.floor(scrollX / labelBeatStep) * labelBeatStep;
   const endBeat =
-    Math.ceil((scrollX + viewportWidth / pixelsPerBeat) / labelBeatStep) *
+    Math.ceil((scrollX + viewportWidth / beatWidth) / labelBeatStep) *
     labelBeatStep;
 
   for (let beat = startBeat; beat <= endBeat; beat += labelBeatStep) {
     const barNumber = beat / BEATS_PER_BAR + 1;
-    const x = (beat - scrollX) * pixelsPerBeat;
+    const x = (beat - scrollX) * beatWidth;
     markers.push(
-      <div
-        key={beat}
-        className="absolute text-xs text-neutral-400"
-        style={{ left: x, top: 8 }}
-      >
-        {barNumber}
-      </div>,
+      <Fragment key={beat}>
+        {/* Bar line tick mark */}
+        <div
+          className="absolute w-px bg-neutral-600"
+          style={{ left: x, top: 0, height: TIMELINE_HEIGHT }}
+        />
+        {/* Bar number label */}
+        <div
+          className="absolute text-xs text-neutral-400"
+          style={{ left: x + 6, top: 8 }}
+        >
+          {barNumber}
+        </div>
+      </Fragment>,
     );
   }
 
