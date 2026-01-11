@@ -378,9 +378,11 @@ export const useProjectStore = create<ProjectState>((set) => ({
         });
       }
 
-      // Move from redo to undo stack
-      historyStore.redoStack = redoStack.slice(0, -1);
-      historyStore.undoStack = [...historyStore.undoStack, entry];
+      // Move from redo to undo stack using proper store method
+      useHistoryStore.setState({
+        redoStack: redoStack.slice(0, -1),
+        undoStack: [...historyStore.undoStack, entry],
+      });
     } finally {
       historyStore.endRedo();
     }
