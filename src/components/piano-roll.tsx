@@ -326,7 +326,8 @@ export function PianoRoll() {
             setScrollX(newScrollX);
           }
 
-          if (vZoomFactor !== 1) {
+          // Only apply vertical zoom if mouse is over the keyboard/grid area (mouseY >= 0)
+          if (vZoomFactor !== 1 && mouseY >= 0) {
             const newPixelsPerKey = Math.max(
               MIN_PIXELS_PER_KEY,
               Math.min(MAX_PIXELS_PER_KEY, pixelsPerKey * vZoomFactor),
