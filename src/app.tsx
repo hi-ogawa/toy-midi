@@ -22,11 +22,10 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const initMutation = useMutation({
-    // TODO: options.restoreProject
-    mutationFn: async (continueProject: boolean) => {
+    mutationFn: async (options: { restore: boolean }) => {
       await audioManager.init();
 
-      if (continueProject) {
+      if (options.restore) {
         loadProject();
       } else {
         clearProject();
@@ -79,7 +78,7 @@ export function App() {
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        initMutation.mutate(true); // Always continue with saved project
+        initMutation.mutate({ restore: true });
       }
     };
 
@@ -125,7 +124,7 @@ export function App() {
             {hasSavedProject() && (
               <button
                 data-testid="continue-button"
-                onClick={() => initMutation.mutate(true)}
+                onClick={() => initMutation.mutate({ restore: true })}
                 className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
               >
                 Continue
@@ -133,7 +132,7 @@ export function App() {
             )}
             <button
               data-testid="new-project-button"
-              onClick={() => initMutation.mutate(false)}
+              onClick={() => initMutation.mutate({ restore: false })}
               className={`px-6 py-3 rounded-lg font-medium ${
                 savedProjectExists
                   ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
