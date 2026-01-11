@@ -128,7 +128,7 @@ onOffsetChange={(newOffset) => {
 }}
 ```
 
-### Issue 3: Redundant Init Sync
+### Issue 3: Init Sync in Wrong Place
 
 **app.tsx:47-53**
 ```typescript
@@ -141,12 +141,9 @@ audioManager.setMetronomeEnabled(state.metronomeEnabled);
 audioManager.setMetronomeVolume(state.metronomeVolume);
 ```
 
-This is redundant because:
-1. `audioManager.init()` sets up subscription
-2. `loadProject()` updates store
-3. Subscription should fire and sync
+**Why this exists:** Zustand's `subscribe()` only fires on *changes*, not on initial subscribe. So for the "new project" case (no `loadProject()` call), the subscription never fires and initial state isn't applied.
 
-But the code was written before subscription pattern was in place, never cleaned up.
+**The problem:** This sync logic belongs in AudioManager, not app.tsx. The fix is to have AudioManager read initial state during `init()`, then subscribe for future changes.
 
 ### Issue 4: getState() in AudioManager
 
@@ -187,11 +184,37 @@ onOffsetChange={(newOffset) => {
 }}
 ```
 
-### Step 3: Remove redundant init sync
+### Step 3: Move init sync to AudioManager
+
+```typescript
+// audio.ts - AudioManager.init()
+async init(): Promise<void> {
+  // ... setup synths ...
+
+  // Apply initial state (subscription doesn't fire on subscribe)
+  const initial = useProjectStore.getState();
+  this.applyState(initial);
+
+  // Subscribe for future changes
+  useProjectStore.subscribe((state) => {
+    this.applyState(state);
+  });
+}
+
+private applyState(state: ProjectState): void {
+  this.setAudioVolume(state.audioVolume);
+  this.setMidiVolume(state.midiVolume);
+  this.setMetronomeVolume(state.metronomeVolume);
+  this.setMetronomeEnabled(state.metronomeEnabled);
+  this.setNotes(state.notes);
+  this.syncAudioTrack(state.audioOffset);
+  Tone.getTransport().bpm.value = state.tempo;
+}
+```
 
 ```typescript
 // app.tsx - delete lines 47-53
-// The subscription handles it
+// AudioManager.init() handles it now
 ```
 
 ### Step 4: Remove getState() from AudioManager
