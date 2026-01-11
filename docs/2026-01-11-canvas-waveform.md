@@ -218,17 +218,48 @@ if (peaksPerPixel > 1) {
 
 ## Status
 
-**Not started**
+**Implemented**
 
-### TODO
+### Completed
 
-- [ ] Implement canvas-based Waveform component
-- [ ] Wire up viewport-aware rendering
-- [ ] Test at various zoom levels
-- [ ] Optimize performance
+- [x] Implement canvas-based Waveform component
+  - Replaced SVG with HTML canvas element
+  - Dynamic resolution based on zoom level
+  - Device pixel ratio support for sharp rendering
+- [x] Wire up viewport-aware rendering
+  - Aggregate peaks when zoomed out (multiple peaks per pixel)
+  - Show full detail when zoomed in (multiple pixels per peak)
+  - Auto-resize canvas on container changes
+- [x] TypeScript compilation passes
+- [x] Build succeeds
+- [x] Linting passes
 
-### Notes
+### Implementation Details
 
-- Keep existing peak extraction logic (getAudioBufferPeaks)
-- May need higher peaksPerSecond in future for extreme zoom (currently 100)
-- Consider caching rendered frames if performance issues
+**Key improvements over SVG:**
+1. **Dynamic resolution**: No more fixed 500-point downsampling
+2. **Zoom-aware**: Automatically adjusts detail level based on zoom
+3. **Sharp rendering**: Uses devicePixelRatio for high-DPI displays
+4. **Efficient**: Only renders what's needed based on available pixels
+
+**Technical approach:**
+- Canvas size automatically matches container (ResizeObserver)
+- Scales context by devicePixelRatio for crisp rendering
+- Calculates peaksPerPixel ratio to determine rendering mode:
+  - `peaksPerPixel > 1`: Zoomed out → aggregate peaks (find max in range)
+  - `peaksPerPixel < 1`: Zoomed in → show individual peaks with interpolation
+- Mirrored waveform display (top and bottom from center)
+
+### Manual Testing Procedure
+
+To verify the improvement:
+1. Load an audio file
+2. Zoom out (Ctrl+Wheel down) - waveform should remain smooth
+3. Zoom in (Ctrl+Wheel up) - waveform should show more detail
+4. Compare to previous SVG implementation (blocky at high zoom)
+
+### Future Enhancements (if needed)
+
+- Increase peaksPerSecond (currently 100) for even more detail at extreme zoom
+- Implement viewport-based rendering (only render visible portion) for very long audio files
+- Add caching/debouncing if performance issues on rapid zoom/scroll
