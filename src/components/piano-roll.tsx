@@ -375,14 +375,14 @@ export function PianoRoll() {
       }
       // No modifier = pan (both axes: deltaX→horizontal, deltaY→vertical)
       else {
-        const maxScrollX = Math.max(0, totalBeats - visibleBeats);
         const maxScrollY = Math.max(0, MAX_PITCH - MIN_PITCH - visibleKeys);
 
         // deltaX = horizontal pan, deltaY = vertical pan (natural 2D trackpad behavior)
+        // No horizontal limit - allow infinite scroll for arbitrary song length
         const newScrollX = scrollX + e.deltaX / pixelsPerBeat;
         const newScrollY = scrollY + e.deltaY / pixelsPerKey;
 
-        setScrollX(Math.max(0, Math.min(maxScrollX, newScrollX)));
+        setScrollX(Math.max(0, newScrollX));
         setScrollY(Math.max(0, Math.min(maxScrollY, newScrollY)));
       }
     };
@@ -394,9 +394,9 @@ export function PianoRoll() {
     pixelsPerKey,
     scrollX,
     scrollY,
-    totalBeats,
-    visibleBeats,
     visibleKeys,
+    viewportSize.height,
+    waveformHeight,
   ]);
 
   // Handle mouse events on the grid
