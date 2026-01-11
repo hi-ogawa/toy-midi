@@ -1374,14 +1374,18 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Scale context for device pixel ratio
-    ctx.scale(dpr, dpr);
-
-    const centerY = height / (2 * dpr);
+    // Calculate dimensions in CSS pixels (before scaling)
+    const cssWidth = width / dpr;
+    const cssHeight = height / dpr;
+    const centerY = cssHeight / 2;
     const maxAmplitude = centerY * 0.9;
 
+    // Scale context for device pixel ratio (after coordinate calculations)
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
     // Calculate peaks per pixel - determines if we aggregate or show detail
-    const peaksPerPixel = peaks.length / (width / dpr);
+    const peaksPerPixel = peaks.length / cssWidth;
 
     ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
@@ -1389,9 +1393,9 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
 
     if (peaksPerPixel > 1) {
       // Zoomed out: aggregate multiple peaks per pixel
-      // Draw as vertical bars for each pixel column
-      ctx.beginPath();
-      for (let x = 0; x < width / dpr; x++) {
+      // Pre-calculate max peaks for each pixel column to avoid duplication
+      const aggregatedPeaks: number[] = [];
+      for (let x = 0; x < cssWidth; x++) {
         const peakStart = Math.floor(x * peaksPerPixel);
         const peakEnd = Math.min(
           Math.ceil((x + 1) * peaksPerPixel),
@@ -1403,31 +1407,23 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
         for (let i = peakStart; i < peakEnd; i++) {
           if (peaks[i] > maxPeak) maxPeak = peaks[i];
         }
+        aggregatedPeaks.push(maxPeak);
+      }
 
-        const amplitude = maxPeak * maxAmplitude;
-
-        // Draw vertical bar (mirrored around center)
+      // Draw path using pre-calculated peaks
+      ctx.beginPath();
+      // Upper half
+      for (let x = 0; x < aggregatedPeaks.length; x++) {
+        const amplitude = aggregatedPeaks[x] * maxAmplitude;
         if (x === 0) {
           ctx.moveTo(x, centerY - amplitude);
         } else {
           ctx.lineTo(x, centerY - amplitude);
         }
       }
-
-      // Mirror to bottom half
-      for (let x = width / dpr - 1; x >= 0; x--) {
-        const peakStart = Math.floor(x * peaksPerPixel);
-        const peakEnd = Math.min(
-          Math.ceil((x + 1) * peaksPerPixel),
-          peaks.length,
-        );
-
-        let maxPeak = 0;
-        for (let i = peakStart; i < peakEnd; i++) {
-          if (peaks[i] > maxPeak) maxPeak = peaks[i];
-        }
-
-        const amplitude = maxPeak * maxAmplitude;
+      // Lower half (mirrored)
+      for (let x = aggregatedPeaks.length - 1; x >= 0; x--) {
+        const amplitude = aggregatedPeaks[x] * maxAmplitude;
         ctx.lineTo(x, centerY + amplitude);
       }
 
@@ -1439,7 +1435,9 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
       // Each peak gets multiple pixels
       const pixelsPerPeak = 1 / peaksPerPixel;
 
+      // Build both upper and lower paths in a single loop
       ctx.beginPath();
+      // Upper half
       for (let i = 0; i < peaks.length; i++) {
         const x = i * pixelsPerPeak;
         const amplitude = peaks[i] * maxAmplitude;
@@ -1450,8 +1448,7 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
           ctx.lineTo(x, centerY - amplitude);
         }
       }
-
-      // Mirror to bottom half
+      // Lower half (mirrored)
       for (let i = peaks.length - 1; i >= 0; i--) {
         const x = i * pixelsPerPeak;
         const amplitude = peaks[i] * maxAmplitude;
@@ -1462,6 +1459,8 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
       ctx.fill();
       ctx.stroke();
     }
+
+    ctx.restore();
   }, [peaks, canvasSize, height]);
 
   return (

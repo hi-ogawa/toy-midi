@@ -237,12 +237,14 @@ if (peaksPerPixel > 1) {
 ### Implementation Details
 
 **Key improvements over SVG:**
+
 1. **Dynamic resolution**: No more fixed 500-point downsampling
 2. **Zoom-aware**: Automatically adjusts detail level based on zoom
 3. **Sharp rendering**: Uses devicePixelRatio for high-DPI displays
 4. **Efficient**: Only renders what's needed based on available pixels
 
 **Technical approach:**
+
 - Canvas size automatically matches container (ResizeObserver)
 - Scales context by devicePixelRatio for crisp rendering
 - Calculates peaksPerPixel ratio to determine rendering mode:
@@ -253,6 +255,7 @@ if (peaksPerPixel > 1) {
 ### Manual Testing Procedure
 
 To verify the improvement:
+
 1. Load an audio file
 2. Zoom out (Ctrl+Wheel down) - waveform should remain smooth
 3. Zoom in (Ctrl+Wheel up) - waveform should show more detail
