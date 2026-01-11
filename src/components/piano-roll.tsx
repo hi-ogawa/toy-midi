@@ -221,6 +221,10 @@ export function PianoRoll() {
     deselectAll,
     setAudioOffset,
     audioPeaks,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     // Viewport state from store
     scrollX,
     scrollY,
@@ -322,17 +326,43 @@ export function PianoRoll() {
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if typing in an input
+      if (
+        (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedNoteIds.size > 0) {
           deleteNotes(Array.from(selectedNoteIds));
         }
       } else if (e.key === "Escape") {
         deselectAll();
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      } else if (e.key === "y" && (e.ctrlKey || e.metaKey)) {
+        // Ctrl+Y or Cmd+Y: Redo (alternative)
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        // Ctrl+Z or Cmd+Z: Undo
+        e.preventDefault();
+        if (canUndo()) {
+          undo();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNoteIds, deleteNotes, deselectAll]);
+  }, [selectedNoteIds, deleteNotes, deselectAll, undo, redo, canUndo, canRedo]);
 
   // Handle wheel for pan/zoom (2D: both deltaX and deltaY)
   useEffect(() => {

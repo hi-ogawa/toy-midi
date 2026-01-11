@@ -37,6 +37,21 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Deselect all notes",
     category: "editing",
   },
+  {
+    key: "Ctrl+Z",
+    description: "Undo",
+    category: "editing",
+  },
+  {
+    key: "Ctrl+Shift+Z",
+    description: "Redo",
+    category: "editing",
+  },
+  {
+    key: "Ctrl+Y",
+    description: "Redo (alternative)",
+    category: "editing",
+  },
 ];
 
 export const MOUSE_ACTIONS: MouseAction[] = [
