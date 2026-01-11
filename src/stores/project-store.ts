@@ -2,13 +2,18 @@ import { create } from "zustand";
 import { GridSnap, Note } from "../types";
 
 interface ProjectState {
-  notes: Note[];
-  selectedNoteIds: Set<string>;
-  gridSnap: GridSnap;
+  // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
 
-  // Audio state
+  // Midi track
+  notes: Note[];
+
+  // Midi editor state
+  selectedNoteIds: Set<string>;
+  gridSnap: GridSnap;
+
+  // Audio track
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds

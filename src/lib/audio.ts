@@ -1,10 +1,6 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
-
-// Helper: convert beats to seconds
-function beatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
-}
+import { useProjectStore } from "@/stores/project-store";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -17,60 +13,92 @@ function beatsToSeconds(beats: number, tempo: number): number {
  * which directly interfaces with Tone.js Transport.
  */
 class AudioManager {
+  // TODO: consistent names
+  // TODO: asusme non-null
+
+  // TODO: soundfont
+  private midiSynth!: Tone.PolySynth;
+  private midiChannel!: Tone.Channel;
+  private midiPart!: Tone.Part;
+
+  // audio track
+  // TODO: refactor
   private player: Tone.Player | null = null;
-  private synth: Tone.PolySynth | null = null;
-  private metronome: Tone.Synth | null = null;
-  private metronomeSeq: Tone.Sequence | null = null;
+  private audioChannel!: Tone.Channel;
 
-  // Gain nodes for mixing
-  private audioGain: Tone.Gain | null = null;
-  private midiGain: Tone.Gain | null = null;
-  private metronomeGain: Tone.Gain | null = null;
+  // metronome
+  private metronome!: Tone.Synth;
+  private metronomeSeq!: Tone.Sequence;
+  private metronomeChannel!: Tone.Channel;
 
-  private scheduledEvents: number[] = []; // Transport event IDs
-  private _initialized = false;
+  // TODO: single source of truth (store or audio manager)
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
-  private _metronomeEnabled = false;
+
+  // TODO: refactor?
+  // transport(): ReturnType<typeof Tone.getTransport> {
+  //   return Tone.getTransport();
+  // }
 
   async init(): Promise<void> {
-    if (this._initialized) return;
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
-    // Create gain nodes for mixing
-    this.audioGain = new Tone.Gain(0.8).toDestination();
-    this.midiGain = new Tone.Gain(0.8).toDestination();
-    this.metronomeGain = new Tone.Gain(0.5).toDestination();
+    // Create mixer channels
+    this.midiChannel = new Tone.Channel(0.8).toDestination();
+    this.audioChannel = new Tone.Channel(0.8).toDestination();
+    this.metronomeChannel = new Tone.Channel(0.5).toDestination();
 
     // PolySynth for polyphonic playback (multiple simultaneous notes)
-    this.synth = new Tone.PolySynth(Tone.Synth, {
+    this.midiSynth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "triangle" },
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
-    }).connect(this.midiGain);
+    }).connect(this.midiChannel);
+
+    this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
+      (time, event) => {
+        const freq = Tone.Frequency(event.pitch, "midi").toFrequency();
+        // Convert duration from beats to seconds using current tempo
+        const durationSeconds =
+          (event.duration / Tone.getTransport().bpm.value) * 60;
+        this.midiSynth.triggerAttackRelease(freq, durationSeconds, time);
+      },
+      [],
+    );
+    this.midiPart.start(0);
 
     // Metronome synth (high pitched click)
     this.metronome = new Tone.Synth({
       oscillator: { type: "sine" },
       envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
-    }).connect(this.metronomeGain);
+    }).connect(this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
     // 1 = accent (high), 0 = normal (lower)
     this.metronomeSeq = new Tone.Sequence(
       (time, beat) => {
         const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome?.triggerAttackRelease(pitch, "32n", time);
+        this.metronome.triggerAttackRelease(pitch, "32n", time);
       },
       [1, 0, 0, 0],
       "4n",
     );
+    this.metronomeSeq.start(0);
 
-    this._initialized = true;
-
-    // Apply deferred metronome state (may have been set before init)
-    if (this._metronomeEnabled) {
-      this._startMetronomeAligned();
-    }
+    // TODO: aim for state/event management
+    // - store -> UI
+    // - UI event -> store update
+    // - Tone.transport event -> AudioManager
+    // - store subscribe event -> AudioManager
+    useProjectStore.subscribe((project) => {
+      // TODO: selective subscription
+      // https://zustand.docs.pmnd.rs/middlewares/subscribe-with-selector
+      this.setAudioVolume(project.audioVolume);
+      this.setMidiVolume(project.midiVolume);
+      this.setMetronomeVolume(project.metronomeVolume);
+      this.setMetronomeEnabled(project.metronomeEnabled);
+      this.setNotes(project.notes);
+      Tone.getTransport().bpm.value = project.tempo;
+    });
   }
 
   async loadAudio(file: File): Promise<number> {
@@ -94,8 +122,8 @@ class AudioManager {
     this._offset = 0;
 
     // Connect and sync (init() is guaranteed to be called first via startup screen)
-    if (this.audioGain) {
-      this.player.connect(this.audioGain);
+    if (this.audioChannel) {
+      this.player.connect(this.audioChannel);
       this._syncPlayer();
     }
 
@@ -134,10 +162,6 @@ class AudioManager {
     }
   }
 
-  get offset(): number {
-    return this._offset;
-  }
-
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
@@ -168,104 +192,52 @@ class AudioManager {
     return this.player !== null && this.player.loaded;
   }
 
-  // Schedule notes for playback (synced to Transport)
-  // Now supports dynamic updates: can be called during playback to update scheduled notes
-  scheduleNotes(notes: Note[], fromSeconds: number, tempo: number): void {
-    this.clearScheduledNotes();
+  // TODO: incremental add / remove
+  setNotes(notes: Note[]): void {
+    this.midiPart.clear();
 
-    for (const note of notes) {
-      const startSeconds = beatsToSeconds(note.start, tempo);
-      const durationSeconds = beatsToSeconds(note.duration, tempo);
-
-      // Only schedule notes that haven't ended yet
-      if (startSeconds + durationSeconds > fromSeconds) {
-        const eventId = Tone.getTransport().scheduleOnce((time) => {
-          const freq = Tone.Frequency(note.pitch, "midi").toFrequency();
-          this.synth?.triggerAttackRelease(freq, durationSeconds, time);
-        }, startSeconds);
-        this.scheduledEvents.push(eventId);
-      }
+    // Time is in beats (quarter notes) - Transport BPM handles conversion
+    const events = notes.map((note) => ({
+      time: `0:${note.start}`, // "bars:quarters" notation, 0 bars + N quarter notes
+      pitch: note.pitch,
+      duration: note.duration,
+    }));
+    for (const event of events) {
+      this.midiPart.add(event.time, {
+        pitch: event.pitch,
+        duration: event.duration,
+      });
     }
-  }
-
-  // Update notes during playback (re-schedules from current position)
-  // Gets position directly from Transport to avoid RAF-frequency calls
-  updateNotesWhilePlaying(notes: Note[], tempo: number): void {
-    const position = Tone.getTransport().seconds;
-    this.scheduleNotes(notes, position, tempo);
-  }
-
-  clearScheduledNotes(): void {
-    for (const id of this.scheduledEvents) {
-      Tone.getTransport().clear(id);
-    }
-    this.scheduledEvents = [];
   }
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.2): void {
-    if (!this.synth) return;
+    if (!this.midiSynth) return;
     const freq = Tone.Frequency(pitch, "midi").toFrequency();
-    this.synth.triggerAttackRelease(freq, duration);
+    this.midiSynth.triggerAttackRelease(freq, duration);
   }
 
   // Volume controls (0-1)
   setAudioVolume(volume: number): void {
-    if (this.audioGain) {
-      this.audioGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.audioChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMidiVolume(volume: number): void {
-    if (this.midiGain) {
-      this.midiGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.midiChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMetronomeVolume(volume: number): void {
-    if (this.metronomeGain) {
-      this.metronomeGain.gain.value = Math.max(0, Math.min(1, volume));
-    }
+    this.metronomeChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
-  // Metronome controls
   setMetronomeEnabled(enabled: boolean): void {
-    this._metronomeEnabled = enabled;
-    if (this.metronomeSeq) {
-      if (enabled) {
-        this._startMetronomeAligned();
-      } else {
-        this.metronomeSeq.stop();
-      }
-    }
-  }
-
-  // Start metronome aligned to beat grid
-  private _startMetronomeAligned(): void {
-    if (!this.metronomeSeq) return;
-
-    const position = Tone.getTransport().seconds;
-    if (position <= 0) {
-      // At start, begin from 0
-      this.metronomeSeq.start(0);
-    } else {
-      // Mid-playback: calculate next measure start for proper beat 1 alignment
-      const tempo = Tone.getTransport().bpm.value;
-      const secondsPerBeat = 60 / tempo;
-      const secondsPerMeasure = secondsPerBeat * 4; // 4/4 time
-      const nextMeasure =
-        Math.ceil(position / secondsPerMeasure) * secondsPerMeasure;
-      this.metronomeSeq.start(nextMeasure);
-    }
-  }
-
-  get metronomeEnabled(): boolean {
-    return this._metronomeEnabled;
-  }
-
-  // Allow playback without audio (MIDI-only mode)
-  get canPlay(): boolean {
-    return this._initialized;
+    this.metronomeChannel.mute = !enabled;
   }
 
   // Extract peaks from audio buffer for waveform display
@@ -292,10 +264,6 @@ class AudioManager {
     }
 
     return peaks;
-  }
-
-  get sampleRate(): number {
-    return this.player?.buffer?.sampleRate ?? 44100;
   }
 }
 

@@ -91,6 +91,7 @@ See [architecture.md](architecture.md) for implementation details.
   - [ ] fix: playback scheduling shouldn't be driven directly by UI effect
   - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
     - reduce trivial re-expose Tone.js from audioManager
+- [ ] fix: "space" key shortcut shouldn't be captured by other input (except text input)
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)

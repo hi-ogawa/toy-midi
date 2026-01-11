@@ -45,6 +45,7 @@ export function App() {
         }
 
         // Sync mixer settings with audioManager
+        // TODO: consolidate with AudioManager.init
         const state = useProjectStore.getState();
         audioManager.setAudioVolume(state.audioVolume);
         audioManager.setMidiVolume(state.midiVolume);
@@ -53,6 +54,7 @@ export function App() {
       }
 
       // Setup auto-save on state changes (debounced)
+      // TODO: escape hatch for e2e to persist faster?
       let saveTimeout: number;
       useProjectStore.subscribe(() => {
         clearTimeout(saveTimeout);
