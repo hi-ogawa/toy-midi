@@ -49,11 +49,12 @@ function generateVerticalGridLayers(
   pixelsPerBeat: number,
   gridSnap: GridSnap,
   scrollX: number,
+  beatsPerBar: number,
 ): Array<[string, string, string]> {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
   const beatWidth = Math.round(pixelsPerBeat);
   const subBeatWidth = beatWidth * gridSnapValue;
-  const barWidth = beatWidth * BEATS_PER_BAR;
+  const barWidth = beatWidth * beatsPerBar;
   const offsetX = -(scrollX * beatWidth) % barWidth;
 
   const layers: Array<[string, string, string]> = [];
@@ -108,6 +109,7 @@ function generateGridBackground(
   gridSnap: GridSnap,
   scrollX: number,
   scrollY: number,
+  beatsPerBar: number,
 ): React.CSSProperties {
   // Round base sizes, derive others to avoid drift between grid layers
   const rowHeight = Math.round(pixelsPerKey);
@@ -141,7 +143,14 @@ function generateGridBackground(
   const layers: Array<[string, string, string]> = [];
 
   // Add vertical grid lines (bar, beat, sub-beat)
-  layers.push(...generateVerticalGridLayers(pixelsPerBeat, gridSnap, scrollX));
+  layers.push(
+    ...generateVerticalGridLayers(
+      pixelsPerBeat,
+      gridSnap,
+      scrollX,
+      beatsPerBar,
+    ),
+  );
 
   // Octave lines (B/C boundary) - always visible
   layers.push([
@@ -210,6 +219,7 @@ export function PianoRoll() {
     gridSnap,
     totalBeats,
     tempo,
+    timeSignature,
     audioDuration,
     audioOffset,
     showDebug,
@@ -245,6 +255,7 @@ export function PianoRoll() {
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
 
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
+  const beatsPerBar = timeSignature.numerator; // Get beats per bar from time signature
 
   // Round pixel sizes to avoid subpixel rendering artifacts
   // Keep fractional values in state for smooth zoom, but render with whole pixels
@@ -651,6 +662,7 @@ export function PianoRoll() {
     gridSnap,
     scrollX,
     scrollY,
+    beatsPerBar,
   );
 
   // Filter notes to visible range (with some margin)
@@ -702,6 +714,7 @@ export function PianoRoll() {
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
+            beatsPerBar={beatsPerBar}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
@@ -719,6 +732,7 @@ export function PianoRoll() {
             playheadBeat={secondsToBeats(position, tempo)}
             audioPeaks={audioPeaks}
             height={waveformHeight}
+            beatsPerBar={beatsPerBar}
             onOffsetChange={setAudioOffset}
             onHeightChange={setWaveformHeight}
           />
@@ -1054,12 +1068,14 @@ function Timeline({
   scrollX,
   viewportWidth,
   playheadBeat,
+  beatsPerBar,
   onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   viewportWidth: number;
   playheadBeat: number;
+  beatsPerBar: number;
   onSeek: (beat: number) => void;
 }) {
   const markers = [];
@@ -1068,12 +1084,12 @@ function Timeline({
   const beatWidth = Math.round(pixelsPerBeat);
 
   // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
-  const barWidth = BEATS_PER_BAR * beatWidth;
+  const barWidth = beatsPerBar * beatWidth;
   let labelBarStep = 1;
   while (barWidth * labelBarStep < MIN_LABEL_SPACING) {
     labelBarStep *= 2;
   }
-  const labelBeatStep = labelBarStep * BEATS_PER_BAR;
+  const labelBeatStep = labelBarStep * beatsPerBar;
 
   // Calculate visible beat range, aligned to label step
   const startBeat = Math.floor(scrollX / labelBeatStep) * labelBeatStep;
@@ -1082,7 +1098,7 @@ function Timeline({
     labelBeatStep;
 
   for (let beat = startBeat; beat <= endBeat; beat += labelBeatStep) {
-    const barNumber = beat / BEATS_PER_BAR + 1;
+    const barNumber = beat / beatsPerBar + 1;
     const x = (beat - scrollX) * beatWidth;
     markers.push(
       <Fragment key={beat}>
@@ -1190,6 +1206,7 @@ function WaveformArea({
   playheadBeat,
   audioPeaks,
   height,
+  beatsPerBar,
   onOffsetChange,
   onHeightChange,
 }: {
@@ -1203,6 +1220,7 @@ function WaveformArea({
   playheadBeat: number;
   audioPeaks: number[];
   height: number;
+  beatsPerBar: number;
   onOffsetChange: (offset: number) => void;
   onHeightChange: (height: number) => void;
 }) {
@@ -1219,6 +1237,7 @@ function WaveformArea({
     pixelsPerBeat,
     gridSnap,
     scrollX,
+    beatsPerBar,
   );
   const gridBackgroundStyle: React.CSSProperties = {
     backgroundColor: "rgb(38 38 38)", // neutral-800 in Tailwind

@@ -16,24 +16,19 @@ import { saveAsset } from "../lib/asset-store";
 import { audioManager, getAudioBufferPeaks } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
-import { GridSnap } from "../types";
+import { COMMON_TIME_SIGNATURES, GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { Slider } from "./ui/slider";
 
 function formatTimeCompact(seconds: number): string {
@@ -60,6 +55,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioFileName,
     audioDuration,
     tempo,
+    timeSignature,
     notes,
     audioVolume,
     metronomeEnabled,
@@ -68,6 +64,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     showDebug,
     setAudioFile,
     setTempo,
+    setTimeSignature,
     setAudioVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
@@ -193,6 +190,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     const midiData = exportMidi({
       notes,
       tempo,
+      timeSignature,
       trackName: audioFileName
         ? audioFileName.replace(/\.[^.]+$/, "")
         : "Piano Roll",
@@ -299,44 +297,69 @@ export function Transport({ onHelpClick }: TransportProps) {
         >
           TAP
         </Button>
-        <span className="text-muted-foreground px-1">-</span>
-        <span
-          className="text-muted-foreground tabular-nums"
-          title="Time signature"
-        >
-          4/4
-        </span>
       </div>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
 
-      {/* Grid snap selector */}
-      <div className="flex items-center gap-1">
-        {/* TODO: icon? */}
-        <span className="text-muted-foreground">Grid:</span>
-        <Select
-          value={gridSnap}
-          onValueChange={(v) => setGridSnap(v as GridSnap)}
-        >
-          <SelectTrigger
-            data-testid="grid-snap-select"
+      {/* Time signature selector */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="time-signature-select"
+            variant="ghost"
             size="sm"
-            className="w-20"
+            className="gap-1 font-mono"
           >
-            <SelectValue />
-          </SelectTrigger>
-          {/* TODO: layout odd? */}
-          <SelectContent>
-            <SelectItem value="1/4">1/4</SelectItem>
-            <SelectItem value="1/8">1/8</SelectItem>
-            <SelectItem value="1/16">1/16</SelectItem>
-            <SelectItem value="1/4T">1/4T</SelectItem>
-            <SelectItem value="1/8T">1/8T</SelectItem>
-            <SelectItem value="1/16T">1/16T</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            {timeSignature.numerator}/{timeSignature.denominator}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={`${timeSignature.numerator}/${timeSignature.denominator}`}
+            onValueChange={(v) => {
+              const [numerator, denominator] = v.split("/").map(Number);
+              setTimeSignature({ numerator, denominator });
+            }}
+          >
+            {COMMON_TIME_SIGNATURES.map((ts) => (
+              <DropdownMenuRadioItem
+                key={`${ts.numerator}/${ts.denominator}`}
+                value={`${ts.numerator}/${ts.denominator}`}
+              >
+                {ts.numerator}/{ts.denominator}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Grid snap selector */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="grid-snap-select"
+            variant="ghost"
+            size="sm"
+            className="gap-1 font-mono"
+          >
+            {gridSnap}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={gridSnap}
+            onValueChange={(v) => setGridSnap(v as GridSnap)}
+          >
+            <DropdownMenuRadioItem value="1/4">1/4</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/8">1/8</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/16">1/16</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Spacer */}
       <div className="flex-1" />
