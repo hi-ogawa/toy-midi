@@ -133,7 +133,7 @@ test.describe("Transport Controls", () => {
   });
 });
 
-test.describe.skip("Timeline Seek", () => {
+test.describe("Timeline Seek", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await clickNewProject(page);
