@@ -78,7 +78,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] feat: save multiple project
 - [ ] feat: locators to mark parts
-- [ ] feat: add demo project (good for quick dev test case too)
+- [x] feat: add demo project (good for quick dev test case too)
 - [ ] follow up docs/2026-01-10-audio-state-sync-refactor.md
   - [ ] fix: play/stop behavior, timeline jumping issues
     - playhead doesn't jump when paused

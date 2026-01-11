@@ -26,6 +26,14 @@ export async function clickContinue(page: Page): Promise<void> {
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }
 
+/**
+ * Click "Load Demo" on startup screen to load demo project.
+ */
+export async function clickLoadDemo(page: Page): Promise<void> {
+  await page.getByTestId("demo-button").click();
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
 /** @deprecated Use clickNewProject instead */
 export const clickThroughStartup = clickNewProject;
 

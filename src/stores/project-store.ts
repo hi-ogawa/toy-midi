@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DEMO_PROJECT } from "../lib/demo-data";
 import { GridSnap, Note } from "../types";
 
 interface ProjectState {
@@ -344,4 +345,33 @@ export function loadProject(): LoadedProject | null {
     console.warn("Failed to load project:", e);
     return null;
   }
+}
+
+/**
+ * Load the demo project with sample notes.
+ * Clears any existing project state and loads the demo data.
+ */
+export function loadDemoProject(): void {
+  // Update note ID counter to avoid collisions with demo note IDs
+  // Set to maxId so the next generated note will be maxId + 1
+  const maxId = DEMO_PROJECT.notes.reduce((max, n) => {
+    const match = n.id.match(/^demo-(\d+)$/);
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  noteIdCounter = maxId;
+
+  useProjectStore.setState({
+    // Start with defaults
+    ...DEFAULTS,
+    // Override with demo-specific data
+    notes: DEMO_PROJECT.notes,
+    tempo: DEMO_PROJECT.tempo,
+    // Reset transient state
+    selectedNoteIds: new Set(),
+    audioDuration: 0,
+    audioPeaks: [],
+    peaksPerSecond: 100,
+    totalBeats: 640,
+    showDebug: false,
+  });
 }

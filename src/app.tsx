@@ -5,9 +5,11 @@ import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager } from "./lib/audio";
+import { DEMO_PROJECT } from "./lib/demo-data";
 import {
   clearProject,
   hasSavedProject,
+  loadDemoProject,
   loadProject,
   saveProject,
   useProjectStore,
@@ -20,12 +22,32 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const initMutation = useMutation({
-    mutationFn: async (continueProject: boolean) => {
+    mutationFn: async (mode: "new" | "continue" | "demo") => {
       await audioManager.init();
 
-      if (!continueProject) {
+      if (mode === "new") {
         clearProject();
+      } else if (mode === "demo") {
+        loadDemoProject();
+
+        // Load demo audio if available
+        if (DEMO_PROJECT.audioUrl) {
+          const duration = await audioManager.loadFromUrl(
+            DEMO_PROJECT.audioUrl,
+          );
+          useProjectStore.setState({
+            audioDuration: duration,
+            audioFileName: DEMO_PROJECT.audioFileName,
+          });
+
+          const { audioOffset } = useProjectStore.getState();
+          audioManager.setOffset(audioOffset);
+
+          const peaks = audioManager.getPeaks(100);
+          useProjectStore.getState().setAudioPeaks(peaks, 100);
+        }
       } else {
+        // mode === "continue"
         const loaded = loadProject();
 
         if (loaded?.audioAssetKey) {
@@ -43,8 +65,10 @@ export function App() {
             useProjectStore.getState().setAudioPeaks(peaks, 100);
           }
         }
+      }
 
-        // Sync mixer settings with audioManager
+      // Sync mixer settings with audioManager (for continue/demo modes)
+      if (mode !== "new") {
         const state = useProjectStore.getState();
         audioManager.setAudioVolume(state.audioVolume);
         audioManager.setMidiVolume(state.midiVolume);
@@ -73,7 +97,7 @@ export function App() {
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        initMutation.mutate(true); // Always continue with saved project
+        initMutation.mutate("continue"); // Always continue with saved project
       }
     };
 
@@ -119,7 +143,7 @@ export function App() {
             {hasSavedProject() && (
               <button
                 data-testid="continue-button"
-                onClick={() => initMutation.mutate(true)}
+                onClick={() => initMutation.mutate("continue")}
                 className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
               >
                 Continue
@@ -127,7 +151,7 @@ export function App() {
             )}
             <button
               data-testid="new-project-button"
-              onClick={() => initMutation.mutate(false)}
+              onClick={() => initMutation.mutate("new")}
               className={`px-6 py-3 rounded-lg font-medium ${
                 savedProjectExists
                   ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
@@ -135,6 +159,13 @@ export function App() {
               }`}
             >
               New Project
+            </button>
+            <button
+              data-testid="demo-button"
+              onClick={() => initMutation.mutate("demo")}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium"
+            >
+              Load Demo
             </button>
           </div>
           {savedProjectExists && (
