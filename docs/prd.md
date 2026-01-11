@@ -57,46 +57,29 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] fix: black/white row highlight
 - [x] fix: metronome tone (C7/G6 with accent)
 - [x] chore: inline svg favicon
+- [x] feat: MIDI export (.mid file with tempo)
+- [x] feat: midi preview when pressing keyboard sidebar
+- [x] feat: help overlay (? button, code-generated from keybindings)
+- [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
+- [x] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
+- [x] fix: zoom should keep cursor as center
+- [x] fix: move toolbar to transport header (debug button as small bug icon button)
+- [x] fix: rework transport header layout
+- [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
+- [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 
 ### TODO
 
-- [ ] feat: MIDI export (.mid file with tempo)
 - [ ] feat: time signature support (currently hardcoded 4/4)
 - [ ] feat: embed soundfont (bass sound)
-- [x] feat: midi preview when pressing keyboard sidebar
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] feat: toggle auto-scroll during playback
-- [x] feat: help overlay (? button, code-generated from keybindings)
-- [ ] feat: higher resolution waveform at zoom
-- [ ] feat: asset management UI
-- [x] feat: startup screen (docs/2026-01-10-startup-screen.md)
-  - [x] fix: layout shift on startup
-  - [x] chore: consolidate e2e helpers (`clickNewProject`, `clickContinue`)
-  - [x] refactor: remove redundant `audioManager.init()` in handlePlayPause
-  - [x] refactor: evaluate React Query
-    - [x] chore: setup sonner for error toasts
-- [x] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
+- [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
+- [ ] feat: save multiple project
 - [ ] feat: locators to mark parts
-- [x] fix: zoom should keep cursor as center
-- [ ] fix: extend note dragging grid snap
-- [ ] fix: limit vertical scale to keyboard area only
-- [ ] fix: refine waveform display resolution
-- [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
-- [ ] fix: timeline click-to-seek delay
-- [ ] fix: jumping timeline during playback
-- [ ] fix: "No audio loaded" label scroll behavior
-- [ ] fix: audio offset label direction
-- [ ] chore: deploy (vercel)
-- [x] fix: move toolbar to transport header (debug button as small bug icon button)
-- [x] fix: rework transport header layout
-  - metro toggle align left
-  - play/pause use proper icon
-  - button text shouldn't be black
-  - input/button/select design (height?) seems inconsistent
-- [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
-- [ ] chore: code organization review
-- [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
+- [ ] feat: add demo project (good for quick dev test case too)
+- [ ] follow up docs/2026-01-10-audio-state-sync-refactor.md
   - [ ] fix: play/stop behavior, timeline jumping issues
     - playhead doesn't jump when paused
     - midi playback broken after moving playhead
@@ -104,12 +87,18 @@ See [architecture.md](architecture.md) for implementation details.
   - [ ] fix: remove unnecessary null checks in AudioManager
   - [ ] fix: metronome toggle is laggy
   - [ ] feat: persist lastPlayheadPosition
+- [ ] fix: extend note dragging grid snap
+- [ ] fix: limit vertical scale to keyboard area only
+- [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
+- [ ] fix: "No audio loaded" label scroll behavior
+- [ ] fix: audio offset label direction
+- [ ] chore: deploy (vercel)
+- [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
+- [ ] chore: code organization review
 - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
   - reduce trivial re-expose Tone.js from audioManager
 - [ ] test: test audio context playback
   - no need to test what users hear, but can we test transport state?
-- [ ] feat: add demo project (good for quick dev test case too)
-- [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 
