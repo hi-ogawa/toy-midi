@@ -290,7 +290,6 @@ export function clearProject(): void {
   useProjectStore.setState({
     ...DEFAULTS,
     selectedNoteIds: new Set(),
-    // audioDuration: 0,
     audioPeaks: [],
     peaksPerSecond: 100,
     totalBeats: 640,
