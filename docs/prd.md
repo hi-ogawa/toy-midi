@@ -77,6 +77,7 @@ See [architecture.md](architecture.md) for implementation details.
   - [x] refactor: evaluate React Query
     - [x] chore: setup sonner for error toasts
 - [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
+- [ ] feat: persist lastPlayheadPosition (docs/2026-01-10-audio-state-sync-refactor.md)
 - [ ] feat: locators to mark parts
 - [x] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
@@ -96,7 +97,7 @@ See [architecture.md](architecture.md) for implementation details.
   - input/button/select design (height?) seems inconsistent
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
-- [ ] refactor: audio ↔ state sync (see architecture.md)
+- [ ] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components

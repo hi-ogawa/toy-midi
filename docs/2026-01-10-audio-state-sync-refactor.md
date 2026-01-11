@@ -471,4 +471,10 @@ This ensures beat 1 accent aligns with measures, but:
 
 ## Feedback Log
 
-_(Append user feedback during implementation)_
+**2026-01-11**: Store position handling
+
+- Remove `playheadPosition` and `isPlaying` from store for now (they're transient, not persisted)
+- Follow-up: Add `lastPlayheadPosition` as a cache for session restore
+  - Only update on start/stop/pause events (not during RAF playback)
+  - Used to restore position when reloading project
+  - Hook owns "live" position, store owns "cached" position for persistence
