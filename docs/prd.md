@@ -124,6 +124,8 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
+- [ ] fix: background grid for audio track too
+- [ ] fix: timeline bar label is not aligned at bar grid
 
 _Chores/Refactoring_
 
@@ -134,6 +136,7 @@ _Chores/Refactoring_
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
+- [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
 
 ### Backlog
 
