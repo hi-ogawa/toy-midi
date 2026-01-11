@@ -320,7 +320,7 @@ export function Transport({ onHelpClick }: TransportProps) {
           <SelectTrigger
             data-testid="time-signature-select"
             size="sm"
-            className="w-16"
+            className="w-20"
           >
             <SelectValue />
           </SelectTrigger>
