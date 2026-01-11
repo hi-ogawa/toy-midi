@@ -8,12 +8,20 @@ import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, getAudioBufferPeaks } from "./lib/audio";
 import {
+  createProject,
+  listProjects,
+  migrateFromSingleProject,
+} from "./lib/project-list";
+import {
   clearProject,
   hasSavedProject,
   loadProject,
   saveProject,
   useProjectStore,
 } from "./stores/project-store";
+
+// Migrate old single-project storage if needed
+migrateFromSingleProject();
 
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();
@@ -22,13 +30,17 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const initMutation = useMutation({
-    mutationFn: async (options: { restore: boolean }) => {
+    mutationFn: async (options: { restore: boolean; projectId?: string }) => {
       await audioManager.init();
 
       if (options.restore) {
-        loadProject();
+        // Load existing project (by ID or last project)
+        loadProject(options.projectId);
       } else {
+        // Create new project
+        const newProjectId = createProject("Untitled");
         clearProject();
+        useProjectStore.setState({ currentProjectId: newProjectId });
       }
 
       const project = useProjectStore.getState();
@@ -113,28 +125,70 @@ export function App() {
   }
 
   if (!initMutation.isSuccess) {
+    const projects = listProjects();
+    const hasProjects = projects.length > 0;
+
     return (
       <div
         data-testid="startup-screen"
         className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
       >
-        <div className="flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-6 max-w-2xl w-full px-4">
           <h1 className="text-2xl font-semibold text-neutral-200">toy-midi</h1>
+
+          {hasProjects && (
+            <div className="w-full max-h-96 overflow-y-auto bg-neutral-800 rounded-lg p-4">
+              <h2 className="text-lg font-medium text-neutral-300 mb-3">
+                Recent Projects
+              </h2>
+              <div className="space-y-2">
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    data-testid={`project-card-${project.id}`}
+                    onClick={() =>
+                      initMutation.mutate({
+                        restore: true,
+                        projectId: project.id,
+                      })
+                    }
+                    className="w-full text-left px-4 py-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-neutral-200 font-medium">
+                          {project.name}
+                        </div>
+                        <div className="text-neutral-500 text-sm">
+                          {new Date(project.updatedAt).toLocaleDateString()}{" "}
+                          {new Date(project.updatedAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3">
-            {hasSavedProject() && (
+            {hasProjects && (
               <button
                 data-testid="continue-button"
                 onClick={() => initMutation.mutate({ restore: true })}
                 className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
               >
-                Continue
+                Continue Last
               </button>
             )}
             <button
               data-testid="new-project-button"
               onClick={() => initMutation.mutate({ restore: false })}
               className={`px-6 py-3 rounded-lg font-medium ${
-                savedProjectExists
+                hasProjects
                   ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
                   : "bg-emerald-600 hover:bg-emerald-500 text-white"
               }`}
@@ -142,7 +196,7 @@ export function App() {
               New Project
             </button>
           </div>
-          {savedProjectExists && (
+          {hasProjects && (
             <div className="text-neutral-500 text-sm">
               Press{" "}
               <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">

@@ -1,8 +1,15 @@
 import { create } from "zustand";
+import {
+  getLastProjectId,
+  getProjectKey,
+  setLastProjectId,
+  updateProjectMetadata,
+} from "../lib/project-list";
 import { GridSnap, Note } from "../types";
 
 export interface ProjectState {
   // project
+  currentProjectId: string | null; // ID of currently loaded project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
 
@@ -85,6 +92,7 @@ export function generateNoteId(): string {
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
+  currentProjectId: null,
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
@@ -202,7 +210,6 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 
 // === Project Persistence ===
 
-const STORAGE_KEY = "toy-midi-project";
 const STORAGE_VERSION = 1;
 
 interface SavedProject {
@@ -229,6 +236,13 @@ interface SavedProject {
 
 export function saveProject(): void {
   const state = useProjectStore.getState();
+
+  // Need a project ID to save
+  if (!state.currentProjectId) {
+    console.warn("No current project ID, cannot save");
+    return;
+  }
+
   const saved: SavedProject = {
     version: STORAGE_VERSION,
     notes: state.notes,
@@ -251,7 +265,14 @@ export function saveProject(): void {
     waveformHeight: state.waveformHeight,
   };
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    const storageKey = getProjectKey(state.currentProjectId);
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+
+    // Update project metadata (updatedAt)
+    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
+
+    // Update last project ID
+    setLastProjectId(state.currentProjectId);
   } catch (e) {
     console.warn("Failed to save project:", e);
   }
@@ -287,13 +308,22 @@ export function exposeStoreForE2E(): void {
   }
 }
 
+// Check if any projects exist (new multi-project system)
 export function hasSavedProject(): boolean {
-  return localStorage.getItem(STORAGE_KEY) !== null;
+  // Check for old single-project system
+  const OLD_STORAGE_KEY = "toy-midi-project";
+  if (localStorage.getItem(OLD_STORAGE_KEY) !== null) {
+    return true;
+  }
+
+  // Check for new multi-project system
+  return getLastProjectId() !== null;
 }
 
 export function clearProject(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  // Clear current project state
   useProjectStore.setState({
+    currentProjectId: null,
     ...DEFAULTS,
     selectedNoteIds: new Set(),
     audioPeaks: [],
@@ -304,10 +334,21 @@ export function clearProject(): void {
   });
 }
 
-export function loadProject() {
+export function loadProject(projectId?: string) {
   try {
-    const json = localStorage.getItem(STORAGE_KEY);
-    if (!json) return null;
+    // Determine which project to load
+    const idToLoad = projectId || getLastProjectId();
+    if (!idToLoad) {
+      console.warn("No project ID specified and no last project found");
+      return null;
+    }
+
+    const storageKey = getProjectKey(idToLoad);
+    const json = localStorage.getItem(storageKey);
+    if (!json) {
+      console.warn(`Project ${idToLoad} not found in storage`);
+      return null;
+    }
 
     const saved = JSON.parse(json) as Partial<SavedProject>;
 
@@ -328,6 +369,7 @@ export function loadProject() {
     noteIdCounter = maxId;
 
     useProjectStore.setState({
+      currentProjectId: idToLoad,
       notes: merged.notes,
       tempo: merged.tempo,
       gridSnap: merged.gridSnap,

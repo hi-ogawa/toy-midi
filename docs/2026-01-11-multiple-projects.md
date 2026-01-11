@@ -106,19 +106,27 @@ Need to migrate existing single project to new multi-project structure:
 
 ```typescript
 // On first load with new version
-if (localStorage.getItem('toy-midi-project') && !localStorage.getItem('toy-midi-project-list')) {
+if (
+  localStorage.getItem("toy-midi-project") &&
+  !localStorage.getItem("toy-midi-project-list")
+) {
   // Migrate: create project list with single "Untitled" project
   const projectId = generateProjectId();
-  const oldProject = localStorage.getItem('toy-midi-project');
+  const oldProject = localStorage.getItem("toy-midi-project");
   localStorage.setItem(`toy-midi-project-${projectId}`, oldProject);
-  localStorage.setItem('toy-midi-project-list', JSON.stringify([{
-    id: projectId,
-    name: 'Untitled',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  }]));
-  localStorage.setItem('toy-midi-last-project-id', projectId);
-  localStorage.removeItem('toy-midi-project'); // clean up
+  localStorage.setItem(
+    "toy-midi-project-list",
+    JSON.stringify([
+      {
+        id: projectId,
+        name: "Untitled",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]),
+  );
+  localStorage.setItem("toy-midi-last-project-id", projectId);
+  localStorage.removeItem("toy-midi-project"); // clean up
 }
 ```
 
