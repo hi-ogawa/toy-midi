@@ -20,6 +20,11 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Play / Pause",
     category: "playback",
   },
+  {
+    key: "Ctrl+F",
+    description: "Toggle auto-scroll",
+    category: "playback",
+  },
 
   // Editing
   {

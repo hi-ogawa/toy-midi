@@ -269,15 +269,19 @@ test.describe("Piano Roll", () => {
   });
 
   test("grid snap", async ({ page }) => {
-    // Target the grid snap select specifically (first select in toolbar)
-    const gridSelect = page.locator("select").first();
-    await expect(gridSelect).toHaveValue("1/8");
+    // Target the grid snap select trigger
+    const gridSelect = page.getByTestId("grid-snap-select");
+    await expect(gridSelect).toContainText("1/8");
 
-    await gridSelect.selectOption("1/16");
-    await expect(gridSelect).toHaveValue("1/16");
+    // Open dropdown and select 1/16
+    await gridSelect.click();
+    await page.getByRole("option", { name: "1/16", exact: true }).click();
+    await expect(gridSelect).toContainText("1/16");
 
-    await gridSelect.selectOption("1/4");
-    await expect(gridSelect).toHaveValue("1/4");
+    // Open dropdown and select 1/4
+    await gridSelect.click();
+    await page.getByRole("option", { name: "1/4", exact: true }).click();
+    await expect(gridSelect).toContainText("1/4");
   });
 
   test("keyboard preview", async ({ page }) => {

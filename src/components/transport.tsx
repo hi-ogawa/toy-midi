@@ -1,4 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
+import {
+  CircleHelpIcon,
+  DownloadIcon,
+  PauseIcon,
+  PlayIcon,
+  SettingsIcon,
+  TimerIcon,
+  UploadIcon,
+  Volume2Icon,
+} from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { ToneAudioBuffer } from "tone";
 import { useTransport } from "../hooks/use-transport";
@@ -7,11 +17,38 @@ import { audioManager, getAudioBufferPeaks } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, GridSnap } from "../types";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Slider } from "./ui/slider";
 
-function formatTime(seconds: number): string {
+function formatTimeCompact(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const hundredths = Math.floor((seconds % 1) * 100);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
+}
+
+function formatBarBeat(seconds: number, tempo: number): string {
+  const beatsPerSecond = tempo / 60;
+  const totalBeats = seconds * beatsPerSecond;
+  const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
+  const beatInBar = Math.floor(totalBeats % 4) + 1;
+  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
 }
 
 type TransportProps = {
@@ -26,7 +63,6 @@ export function Transport({ onHelpClick }: TransportProps) {
     timeSignature,
     notes,
     audioVolume,
-    midiVolume,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
@@ -35,7 +71,6 @@ export function Transport({ onHelpClick }: TransportProps) {
     setTempo,
     setTimeSignature,
     setAudioVolume,
-    setMidiVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
@@ -85,9 +120,6 @@ export function Transport({ onHelpClick }: TransportProps) {
     e.target.value = "";
   };
 
-  // Note: audioManager.init() is called in App.tsx on startup screen click
-  // Volume sync is handled by reactive effects above
-
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       audioManager.pause();
@@ -96,47 +128,35 @@ export function Transport({ onHelpClick }: TransportProps) {
     }
   }, [isPlaying]);
 
-  // Space key to toggle play/pause
+  const handleAutoScrollToggle = useCallback(() => {
+    setAutoScrollEnabled(!autoScrollEnabled);
+  }, [autoScrollEnabled, setAutoScrollEnabled]);
+
+  // Keyboard shortcuts: Space=play/pause, Ctrl+F=auto-scroll
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input
+      if (
+        (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       if (e.code === "Space" && !e.repeat) {
-        // Don't trigger if typing in an input
-        if (
-          (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-          e.target instanceof HTMLTextAreaElement
-        ) {
-          return;
-        }
         e.preventDefault();
         handlePlayPause();
+      } else if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
+        e.preventDefault();
+        handleAutoScrollToggle();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handlePlayPause]);
+  }, [handlePlayPause, handleAutoScrollToggle]);
 
   // Use audioDuration > 0 as proxy for loaded state (reactive)
   const audioLoaded = audioDuration > 0;
-
-  const handleAudioVolumeChange = (value: number) => {
-    setAudioVolume(value);
-    // AudioManager sync happens via useEffect above
-  };
-
-  const handleMidiVolumeChange = (value: number) => {
-    setMidiVolume(value);
-    // AudioManager sync happens via useEffect above
-  };
-
-  const handleMetronomeToggle = () => {
-    const newValue = !metronomeEnabled;
-    setMetronomeEnabled(newValue);
-    // AudioManager sync happens via useEffect above
-  };
-
-  const handleAutoScrollToggle = () => {
-    setAutoScrollEnabled(!autoScrollEnabled);
-  };
 
   const handleTapTempo = () => {
     const now = performance.now();
@@ -195,17 +215,9 @@ export function Transport({ onHelpClick }: TransportProps) {
   return (
     <div
       data-testid="transport"
-      className="flex items-center gap-3 px-4 py-2 bg-neutral-800 border-b border-neutral-700"
+      className="flex items-center gap-2 px-3 py-2 bg-neutral-800 border-b border-neutral-700"
     >
-      {/* Load button */}
-      <button
-        data-testid="load-audio-button"
-        onClick={handleLoadClick}
-        disabled={loadAudioMutation.isPending}
-        className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50 font-medium"
-      >
-        {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
-      </button>
+      {/* Hidden file input */}
       <input
         data-testid="audio-file-input"
         ref={fileInputRef}
@@ -215,84 +227,51 @@ export function Transport({ onHelpClick }: TransportProps) {
         className="hidden"
       />
 
-      {/* Export MIDI button */}
-      <button
-        data-testid="export-midi-button"
-        onClick={handleExportMidi}
-        disabled={notes.length === 0}
-        className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded disabled:opacity-50 font-medium"
-        title="Export MIDI file"
-      >
-        Export MIDI
-      </button>
-
-      {/* Play/Pause button - always enabled for MIDI-only mode */}
-      <button
+      {/* Play/Pause button */}
+      <Button
         data-testid="play-pause-button"
         onClick={handlePlayPause}
-        className="w-10 h-10 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded text-neutral-200 hover:text-white"
+        variant={isPlaying ? "default" : "ghost"}
+        size="icon"
+        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
-          <svg
-            data-testid="pause-icon"
-            className="w-5 h-5"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-          </svg>
+          <PauseIcon data-testid="pause-icon" className="size-4" />
         ) : (
-          <svg
-            data-testid="play-icon"
-            className="w-5 h-5"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M8 5v14l11-7z" />
-          </svg>
+          <PlayIcon data-testid="play-icon" className="size-4" />
         )}
-      </button>
+      </Button>
 
       {/* Metronome toggle */}
-      <button
+      {/* TODO: better metronome icon */}
+      <Button
         data-testid="metronome-toggle"
-        onClick={handleMetronomeToggle}
-        aria-pressed={metronomeEnabled}
-        className={`h-10 px-3 text-sm rounded font-medium ${
-          metronomeEnabled
-            ? "bg-emerald-600 text-white hover:bg-emerald-500"
-            : "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
-        }`}
+        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
+        variant={metronomeEnabled ? "default" : "ghost"}
+        size="icon"
         title="Toggle metronome"
+        aria-pressed={metronomeEnabled}
       >
-        Metro
-      </button>
+        <TimerIcon className="size-4" />
+      </Button>
 
-      {/* Auto-scroll toggle */}
-      <button
-        data-testid="auto-scroll-toggle"
-        onClick={handleAutoScrollToggle}
-        aria-pressed={autoScrollEnabled}
-        className={`h-10 px-3 text-sm rounded font-medium ${
-          autoScrollEnabled
-            ? "bg-blue-600 text-white hover:bg-blue-500"
-            : "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
-        }`}
-        title="Toggle auto-scroll during playback"
-      >
-        Auto-scroll
-      </button>
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
 
-      {/* Time display */}
+      {/* Time display: Bar|Beat - MM:SS.frac */}
       <div
         data-testid="time-display"
-        className="font-mono text-sm text-neutral-300 min-w-[100px]"
+        className="font-mono text-muted-foreground tabular-nums"
       >
-        {formatTime(position)} / {formatTime(audioDuration)}
+        {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
       </div>
 
-      {/* Tempo input */}
-      <div className="flex items-center gap-1">
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
+
+      {/* Tempo: BPM input + tap button + time signature */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">BPM:</span>
         <input
           data-testid="tempo-input"
           type="number"
@@ -302,7 +281,6 @@ export function Transport({ onHelpClick }: TransportProps) {
           onChange={(e) => {
             const value = parseInt(e.target.value, 10);
             if (!isNaN(value)) {
-              // Accept any value during typing, clamp on blur
               setTempo(value);
             }
           }}
@@ -312,139 +290,172 @@ export function Transport({ onHelpClick }: TransportProps) {
               setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
-          className="w-14 h-10 px-2 text-sm font-mono bg-neutral-700 border border-neutral-600 rounded text-center text-neutral-200"
+          className="w-14 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
         />
-        <span className="text-xs text-neutral-400">BPM</span>
-        <button
+        <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
-          className="h-10 px-3 text-sm text-neutral-200 bg-neutral-700 hover:bg-neutral-600 rounded font-medium"
-          title="Tap to set tempo"
+          variant="ghost"
+          size="sm"
+          title="Tap tempo"
+          className="text-xs px-1.5"
         >
-          Tap
-        </button>
+          TAP
+        </Button>
       </div>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
 
       {/* Time signature selector */}
       <div className="flex items-center gap-1">
-        <span className="text-xs text-neutral-400">Time:</span>
-        <select
-          data-testid="time-signature-select"
+        <span className="text-muted-foreground">Time:</span>
+        <Select
           value={`${timeSignature.numerator}/${timeSignature.denominator}`}
-          onChange={(e) => {
-            const [numerator, denominator] = e.target.value
-              .split("/")
-              .map(Number);
+          onValueChange={(v) => {
+            const [numerator, denominator] = v.split("/").map(Number);
             setTimeSignature({ numerator, denominator });
           }}
-          className="h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
         >
-          {COMMON_TIME_SIGNATURES.map((ts) => (
-            <option
-              key={`${ts.numerator}/${ts.denominator}`}
-              value={`${ts.numerator}/${ts.denominator}`}
-            >
-              {ts.numerator}/{ts.denominator}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            data-testid="time-signature-select"
+            size="sm"
+            className="w-16"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {COMMON_TIME_SIGNATURES.map((ts) => (
+              <SelectItem
+                key={`${ts.numerator}/${ts.denominator}`}
+                value={`${ts.numerator}/${ts.denominator}`}
+              >
+                {ts.numerator}/{ts.denominator}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Grid snap selector */}
       <div className="flex items-center gap-1">
-        <span className="text-xs text-neutral-400">Grid:</span>
-        <select
-          data-testid="grid-snap-select"
+        {/* TODO: icon? */}
+        <span className="text-muted-foreground">Grid:</span>
+        <Select
           value={gridSnap}
-          onChange={(e) => setGridSnap(e.target.value as GridSnap)}
-          className="h-10 px-2 text-sm text-neutral-200 bg-neutral-700 border border-neutral-600 rounded"
+          onValueChange={(v) => setGridSnap(v as GridSnap)}
         >
-          <option value="1/4">1/4</option>
-          <option value="1/8">1/8</option>
-          <option value="1/16">1/16</option>
-          <option value="1/4T">1/4T</option>
-          <option value="1/8T">1/8T</option>
-          <option value="1/16T">1/16T</option>
-        </select>
+          <SelectTrigger
+            data-testid="grid-snap-select"
+            size="sm"
+            className="w-20"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          {/* TODO: layout odd? */}
+          <SelectContent>
+            <SelectItem value="1/4">1/4</SelectItem>
+            <SelectItem value="1/8">1/8</SelectItem>
+            <SelectItem value="1/16">1/16</SelectItem>
+            <SelectItem value="1/4T">1/4T</SelectItem>
+            <SelectItem value="1/8T">1/8T</SelectItem>
+            <SelectItem value="1/16T">1/16T</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-
-      {/* File name */}
-      {audioFileName && (
-        <span
-          data-testid="audio-file-name"
-          className="text-sm text-neutral-400 truncate max-w-[200px]"
-        >
-          {audioFileName}
-        </span>
-      )}
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Mixer controls */}
-      <div className="flex items-center gap-3">
-        {/* Audio volume */}
-        {audioLoaded && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-neutral-500">Audio</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={audioVolume * 100}
-              onChange={(e) =>
-                handleAudioVolumeChange(parseInt(e.target.value, 10) / 100)
-              }
-              className="w-16 h-1 accent-neutral-400"
-            />
-          </div>
-        )}
+      {/* Settings dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="settings-button"
+            variant="ghost"
+            size="icon"
+            title="Settings"
+          >
+            <SettingsIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          {/* Load Audio */}
+          <DropdownMenuItem
+            data-testid="load-audio-button"
+            onClick={handleLoadClick}
+            disabled={loadAudioMutation.isPending}
+          >
+            <UploadIcon className="size-4" />
+            {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
+          </DropdownMenuItem>
 
-        {/* MIDI volume */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-neutral-500">MIDI</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={midiVolume * 100}
-            onChange={(e) =>
-              handleMidiVolumeChange(parseInt(e.target.value, 10) / 100)
-            }
-            className="w-16 h-1 accent-neutral-400"
-          />
-        </div>
+          {/* Export MIDI */}
+          <DropdownMenuItem
+            data-testid="export-midi-button"
+            onClick={handleExportMidi}
+            disabled={notes.length === 0}
+          >
+            <DownloadIcon className="size-4" />
+            Export MIDI
+          </DropdownMenuItem>
 
-        {/* Debug toggle */}
-        <button
-          data-testid="debug-toggle"
-          onClick={() => setShowDebug(!showDebug)}
-          className={`w-6 h-6 flex items-center justify-center rounded ${
-            showDebug
-              ? "bg-yellow-600 text-white"
-              : "bg-neutral-700 text-neutral-400 hover:bg-neutral-600 hover:text-neutral-200"
-          }`}
-          title="Toggle debug overlay"
-        >
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M6.56 1.14a.75.75 0 01.177 1.045 3.989 3.989 0 00-.464.86c.185.17.382.329.59.473A3.993 3.993 0 0110 2c1.272 0 2.405.594 3.137 1.518.208-.144.405-.302.59-.473a3.989 3.989 0 00-.464-.86.75.75 0 011.222-.869c.369.519.65 1.105.822 1.736a.75.75 0 01-.174.707 5.23 5.23 0 01-1.795 1.283A4.003 4.003 0 0114 7.5h1.5a.75.75 0 010 1.5H14v1.25c0 .307-.025.608-.072.903l1.903.65a.75.75 0 01-.486 1.42l-1.638-.558a4.004 4.004 0 01-.946 1.167l1.236 2.139a.75.75 0 01-1.299.75l-1.177-2.04a4 4 0 01-3.042 0l-1.177 2.04a.75.75 0 11-1.299-.75l1.236-2.139a4.004 4.004 0 01-.946-1.167l-1.638.558a.75.75 0 01-.486-1.42l1.903-.65A4.03 4.03 0 016 10.25V9H4.5a.75.75 0 010-1.5H6A4.003 4.003 0 016.662 5.04 5.23 5.23 0 014.867 3.756a.75.75 0 01-.174-.707c.172-.63.453-1.217.822-1.736a.75.75 0 011.045-.177zM7.5 7.5c0 .232.03.457.086.672.055.215.136.42.24.611h4.348c.104-.191.185-.396.24-.611A2.5 2.5 0 007.5 7.5zm.086 2.783a2.5 2.5 0 004.828 0h-4.828z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
+          <DropdownMenuSeparator />
 
-        {/* Help button */}
-        <button
-          data-testid="help-button"
-          onClick={onHelpClick}
-          className="w-6 h-6 flex items-center justify-center bg-neutral-700 hover:bg-neutral-600 rounded text-neutral-400 hover:text-neutral-200 text-sm font-bold"
-          title="Show keyboard shortcuts"
-        >
-          ?
-        </button>
-      </div>
+          {/* Audio volume (only if audio loaded) */}
+          {audioLoaded && (
+            <>
+              <div className="px-2 py-1.5 flex items-center gap-2">
+                <Volume2Icon className="size-4 text-muted-foreground" />
+                <span className="text-muted-foreground text-sm w-10">
+                  Audio
+                </span>
+                <Slider
+                  value={[audioVolume * 100]}
+                  onValueChange={([v]) => setAudioVolume(v / 100)}
+                  max={100}
+                  step={1}
+                  className="flex-1"
+                />
+              </div>
+              <DropdownMenuSeparator />
+            </>
+          )}
+
+          {/* Auto-scroll toggle */}
+          <DropdownMenuCheckboxItem
+            data-testid="auto-scroll-toggle"
+            checked={autoScrollEnabled}
+            onCheckedChange={setAutoScrollEnabled}
+            onSelect={(e) => e.preventDefault()}
+            aria-pressed={autoScrollEnabled}
+          >
+            Auto-scroll
+            <DropdownMenuShortcut>Ctrl+F</DropdownMenuShortcut>
+          </DropdownMenuCheckboxItem>
+
+          {/* Debug toggle */}
+          <DropdownMenuCheckboxItem
+            data-testid="debug-toggle"
+            checked={showDebug}
+            onCheckedChange={setShowDebug}
+            onSelect={(e) => e.preventDefault()}
+          >
+            Debug
+          </DropdownMenuCheckboxItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Help button */}
+      <Button
+        data-testid="help-button"
+        onClick={onHelpClick}
+        variant="ghost"
+        size="icon"
+        title="Show keyboard shortcuts (?)"
+      >
+        <CircleHelpIcon className="size-4" />
+      </Button>
     </div>
   );
 }
