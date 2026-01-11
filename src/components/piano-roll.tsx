@@ -205,6 +205,7 @@ export function PianoRoll() {
     audioDuration,
     audioOffset,
     showDebug,
+    autoScrollEnabled,
     addNote,
     updateNote,
     deleteNotes,
@@ -257,7 +258,7 @@ export function PianoRoll() {
 
   // Auto-scroll during playback to keep playhead visible
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !autoScrollEnabled) return;
     const playheadBeat = secondsToBeats(position, tempo);
     const visibleBeatsNow = viewportSize.width / pixelsPerBeat;
     // If playhead is past 80% of visible area, scroll to put it at 20%
@@ -268,7 +269,15 @@ export function PianoRoll() {
     if (playheadBeat < scrollX) {
       setScrollX(Math.max(0, playheadBeat - visibleBeatsNow * 0.2));
     }
-  }, [isPlaying, position, tempo, scrollX, pixelsPerBeat, viewportSize.width]);
+  }, [
+    isPlaying,
+    autoScrollEnabled,
+    position,
+    tempo,
+    scrollX,
+    pixelsPerBeat,
+    viewportSize.width,
+  ]);
 
   // Calculate visible range
   const visibleBeats = viewportSize.width / pixelsPerBeat;
