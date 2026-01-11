@@ -81,7 +81,7 @@ _Note editing_
 
 _Timeline/Viewport_
 
-- [ ] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
+- [x] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
 - [ ] feat: toggle auto-scroll during playback
 - [ ] fix: limit vertical scale to keyboard area only
 
