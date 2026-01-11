@@ -45,21 +45,6 @@ export function Transport({ onHelpClick }: TransportProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
-  // TODO: playback scheduling shouldn't be driven directly by UI effect.
-  // instead, we should do:
-  // - store -> UI
-  // - UI event -> store update
-  // - Tone.transport event + store event -> AudioManager schedule notes
-  // == stale comment ==
-  // Dynamically update scheduled notes when notes or tempo change during playback
-  // Note: Don't depend on `position` - it updates at 60fps during playback!
-  // Get current position from Transport directly when needed.
-  useEffect(() => {
-    if (isPlaying) {
-      audioManager.updateNotesWhilePlaying(notes, tempo);
-    }
-  }, [notes, tempo, isPlaying]);
-
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
       const duration = await audioManager.loadAudio(file);
@@ -96,13 +81,10 @@ export function Transport({ onHelpClick }: TransportProps) {
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       audioManager.pause();
-      audioManager.clearScheduledNotes();
     } else {
-      // Schedule MIDI notes from current position
-      audioManager.scheduleNotes(notes, position, tempo);
       audioManager.play();
     }
-  }, [isPlaying, notes, tempo, position]);
+  }, [isPlaying]);
 
   // Space key to toggle play/pause
   useEffect(() => {

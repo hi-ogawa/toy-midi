@@ -2,11 +2,6 @@ import * as Tone from "tone";
 import type { Note } from "../types";
 import { useProjectStore } from "@/stores/project-store";
 
-// Helper: convert beats to seconds
-function beatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
-}
-
 /**
  * AudioManager handles audio-specific functionality:
  * - Audio file loading and playback sync
@@ -19,9 +14,9 @@ function beatsToSeconds(beats: number, tempo: number): number {
  */
 class AudioManager {
   // TODO: soundfont
-  // TODO: use Tone.Part
-  private synth: Tone.PolySynth | null = null;
+  private synth!: Tone.PolySynth;
   private midiGain: Tone.Gain | null = null;
+  private midiPart!: Tone.Part;
 
   // audio track
   // TODO: refactor
@@ -32,8 +27,6 @@ class AudioManager {
   private metronome!: Tone.Synth;
   private metronomeSeq!: Tone.Sequence;
   private metronomeChannel!: Tone.Channel;
-
-  private scheduledEvents: number[] = []; // Transport event IDs
 
   // TODO: single source of truth (store or audio manager)
   private _duration = 0;
@@ -53,6 +46,18 @@ class AudioManager {
       envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
     }).connect(this.midiGain);
 
+    this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
+      (time, event) => {
+        const freq = Tone.Frequency(event.pitch, "midi").toFrequency();
+        // Convert duration from beats to seconds using current tempo
+        const durationSeconds =
+          (event.duration / Tone.getTransport().bpm.value) * 60;
+        this.synth.triggerAttackRelease(freq, durationSeconds, time);
+      },
+      [],
+    );
+    this.midiPart.start(0);
+
     // Metronome synth (high pitched click)
     this.metronome = new Tone.Synth({
       oscillator: { type: "sine" },
@@ -69,7 +74,7 @@ class AudioManager {
       [1, 0, 0, 0],
       "4n",
     );
-    this.metronomeSeq.start();
+    this.metronomeSeq.start(0);
 
     // TODO: aim for state/event management
     // - store -> UI
@@ -83,6 +88,8 @@ class AudioManager {
       this.setMidiVolume(project.midiVolume);
       this.setMetronomeVolume(project.metronomeVolume);
       this.setMetronomeEnabled(project.metronomeEnabled);
+      this.setNotes(project.notes);
+      Tone.getTransport().bpm.value = project.tempo;
     });
   }
 
@@ -177,39 +184,22 @@ class AudioManager {
     return this.player !== null && this.player.loaded;
   }
 
-  // TODO: use Tone.Part
-  // Schedule notes for playback (synced to Transport)
-  // Now supports dynamic updates: can be called during playback to update scheduled notes
-  scheduleNotes(notes: Note[], fromSeconds: number, tempo: number): void {
-    this.clearScheduledNotes();
+  // TODO: incremental add / remove
+  setNotes(notes: Note[]): void {
+    this.midiPart.clear();
 
-    for (const note of notes) {
-      const startSeconds = beatsToSeconds(note.start, tempo);
-      const durationSeconds = beatsToSeconds(note.duration, tempo);
-
-      // Only schedule notes that haven't ended yet
-      if (startSeconds + durationSeconds > fromSeconds) {
-        const eventId = Tone.getTransport().scheduleOnce((time) => {
-          const freq = Tone.Frequency(note.pitch, "midi").toFrequency();
-          this.synth?.triggerAttackRelease(freq, durationSeconds, time);
-        }, startSeconds);
-        this.scheduledEvents.push(eventId);
-      }
+    // Time is in beats (quarter notes) - Transport BPM handles conversion
+    const events = notes.map((note) => ({
+      time: `0:${note.start}`, // "bars:quarters" notation, 0 bars + N quarter notes
+      pitch: note.pitch,
+      duration: note.duration,
+    }));
+    for (const event of events) {
+      this.midiPart.add(event.time, {
+        pitch: event.pitch,
+        duration: event.duration,
+      });
     }
-  }
-
-  // Update notes during playback (re-schedules from current position)
-  // Gets position directly from Transport to avoid RAF-frequency calls
-  updateNotesWhilePlaying(notes: Note[], tempo: number): void {
-    const position = Tone.getTransport().seconds;
-    this.scheduleNotes(notes, position, tempo);
-  }
-
-  clearScheduledNotes(): void {
-    for (const id of this.scheduledEvents) {
-      Tone.getTransport().clear(id);
-    }
-    this.scheduledEvents = [];
   }
 
   // Note preview (immediate, not synced to Transport)
