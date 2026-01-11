@@ -116,6 +116,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
+- [ ] fix: project always restored with metronome enabled
 
 ### Backlog
 
