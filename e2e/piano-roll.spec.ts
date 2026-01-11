@@ -275,12 +275,14 @@ test.describe("Piano Roll", () => {
 
     // Open dropdown and select 1/16
     await gridSelect.click();
-    await page.getByRole("option", { name: "1/16", exact: true }).click();
+    await page
+      .getByRole("menuitemradio", { name: "1/16", exact: true })
+      .click();
     await expect(gridSelect).toContainText("1/16");
 
     // Open dropdown and select 1/4
     await gridSelect.click();
-    await page.getByRole("option", { name: "1/4", exact: true }).click();
+    await page.getByRole("menuitemradio", { name: "1/4", exact: true }).click();
     await expect(gridSelect).toContainText("1/4");
   });
 

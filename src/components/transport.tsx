@@ -23,17 +23,12 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
 import { Slider } from "./ui/slider";
 
 function formatTimeCompact(seconds: number): string {
@@ -308,61 +303,63 @@ export function Transport({ onHelpClick }: TransportProps) {
       <div className="w-px h-5 bg-border" />
 
       {/* Time signature selector */}
-      <div className="flex items-center gap-1">
-        <span className="text-muted-foreground">Time:</span>
-        <Select
-          value={`${timeSignature.numerator}/${timeSignature.denominator}`}
-          onValueChange={(v) => {
-            const [numerator, denominator] = v.split("/").map(Number);
-            setTimeSignature({ numerator, denominator });
-          }}
-        >
-          <SelectTrigger
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
             data-testid="time-signature-select"
+            variant="ghost"
             size="sm"
-            className="w-20"
+            className="gap-1 font-mono"
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
+            {timeSignature.numerator}/{timeSignature.denominator}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={`${timeSignature.numerator}/${timeSignature.denominator}`}
+            onValueChange={(v) => {
+              const [numerator, denominator] = v.split("/").map(Number);
+              setTimeSignature({ numerator, denominator });
+            }}
+          >
             {COMMON_TIME_SIGNATURES.map((ts) => (
-              <SelectItem
+              <DropdownMenuRadioItem
                 key={`${ts.numerator}/${ts.denominator}`}
                 value={`${ts.numerator}/${ts.denominator}`}
               >
                 {ts.numerator}/{ts.denominator}
-              </SelectItem>
+              </DropdownMenuRadioItem>
             ))}
-          </SelectContent>
-        </Select>
-      </div>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Grid snap selector */}
-      <div className="flex items-center gap-1">
-        {/* TODO: icon? */}
-        <span className="text-muted-foreground">Grid:</span>
-        <Select
-          value={gridSnap}
-          onValueChange={(v) => setGridSnap(v as GridSnap)}
-        >
-          <SelectTrigger
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
             data-testid="grid-snap-select"
+            variant="ghost"
             size="sm"
-            className="w-20"
+            className="gap-1 font-mono"
           >
-            <SelectValue />
-          </SelectTrigger>
-          {/* TODO: layout odd? */}
-          <SelectContent>
-            <SelectItem value="1/4">1/4</SelectItem>
-            <SelectItem value="1/8">1/8</SelectItem>
-            <SelectItem value="1/16">1/16</SelectItem>
-            <SelectItem value="1/4T">1/4T</SelectItem>
-            <SelectItem value="1/8T">1/8T</SelectItem>
-            <SelectItem value="1/16T">1/16T</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            {gridSnap}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={gridSnap}
+            onValueChange={(v) => setGridSnap(v as GridSnap)}
+          >
+            <DropdownMenuRadioItem value="1/4">1/4</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/8">1/8</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/16">1/16</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Spacer */}
       <div className="flex-1" />

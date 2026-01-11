@@ -137,11 +137,13 @@ test.describe("Project Persistence", () => {
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("95");
 
-    // Change grid snap (Radix Select)
+    // Change grid snap
     const gridSelect = page.getByTestId("grid-snap-select");
     await expect(gridSelect).toContainText("1/8");
     await gridSelect.click();
-    await page.getByRole("option", { name: "1/16", exact: true }).click();
+    await page
+      .getByRole("menuitemradio", { name: "1/16", exact: true })
+      .click();
     await expect(gridSelect).toContainText("1/16");
 
     // Enable metronome
