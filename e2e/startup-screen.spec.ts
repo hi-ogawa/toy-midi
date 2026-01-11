@@ -76,6 +76,34 @@ test.describe("Startup Screen", () => {
     expect(tempo).toBe(140);
   });
 
+  test("demo project flow", async ({ page }) => {
+    // Demo button should be visible
+    const demoButton = page.getByTestId("demo-button");
+    await expect(demoButton).toBeVisible();
+
+    // Click demo button
+    await demoButton.click();
+
+    // Main UI should be visible
+    await expect(page.getByTestId("transport")).toBeVisible();
+    await expect(page.getByTestId("piano-roll-grid")).toBeVisible();
+
+    // Should have demo notes loaded
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes.length).toBeGreaterThan(0);
+
+    // Check that demo notes have expected properties
+    const firstNote = notes[0];
+    expect(firstNote.id).toContain("demo-");
+    expect(firstNote.pitch).toBeGreaterThan(0);
+    expect(firstNote.start).toBeGreaterThanOrEqual(0);
+    expect(firstNote.duration).toBeGreaterThan(0);
+
+    // Tempo should be 120 (demo default)
+    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
+    expect(tempo).toBe(120);
+  });
+
   test("Enter key shortcut", async ({ page }) => {
     // Without saved project, Enter should do nothing
     await expect(page.getByTestId("startup-screen")).toBeVisible();

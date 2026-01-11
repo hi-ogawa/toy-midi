@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DEMO_PROJECT } from "../lib/demo-data";
 import { GridSnap, Note } from "../types";
 
 interface ProjectState {
@@ -344,4 +345,43 @@ export function loadProject(): LoadedProject | null {
     console.warn("Failed to load project:", e);
     return null;
   }
+}
+
+/**
+ * Load the demo project with sample notes.
+ * Clears any existing project state and loads the demo data.
+ */
+export function loadDemoProject(): void {
+  // Update note ID counter to avoid collisions with demo note IDs
+  const maxId = DEMO_PROJECT.notes.reduce((max, n) => {
+    const match = n.id.match(/^demo-(\d+)$/);
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  noteIdCounter = maxId;
+
+  useProjectStore.setState({
+    notes: DEMO_PROJECT.notes,
+    tempo: DEMO_PROJECT.tempo,
+    audioFileName: DEMO_PROJECT.audioFileName,
+    // Reset all other state to defaults
+    selectedNoteIds: new Set(),
+    gridSnap: "1/8",
+    audioAssetKey: null,
+    audioDuration: 0,
+    audioOffset: 0,
+    audioVolume: 0.8,
+    midiVolume: 0.8,
+    metronomeEnabled: false,
+    metronomeVolume: 0.5,
+    showDebug: false,
+    // Viewport state - center on demo notes
+    scrollX: 0,
+    scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+    pixelsPerBeat: 80,
+    pixelsPerKey: 20,
+    waveformHeight: 60,
+    audioPeaks: [],
+    peaksPerSecond: 100,
+    totalBeats: 640,
+  });
 }
