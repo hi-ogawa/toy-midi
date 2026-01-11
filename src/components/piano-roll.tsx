@@ -678,6 +678,7 @@ export function PianoRoll() {
             audioPeaks={audioPeaks}
             height={waveformHeight}
             onOffsetChange={(newOffset) => {
+              // TODO: act on store change not UI event
               audioManager.syncAudioTrack(newOffset);
               setAudioOffset(newOffset);
             }}
