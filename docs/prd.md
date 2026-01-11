@@ -84,7 +84,7 @@ _Timeline/Viewport_
 - [x] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
 - [x] feat: toggle auto-scroll during playback
 - [ ] feat: (semi-)infinite zoom in (convenient for audio wave form view)
-- [ ] fix: limit vertical scale to keyboard area only
+- [x] fix: vertical zoom via Shift+wheel
 
 _Audio/Playback_
 
@@ -126,8 +126,8 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
-- [ ] fix: background grid for audio track too
-- [ ] fix: timeline bar label is not aligned at bar grid
+- [x] fix: background grid for audio track too
+- [x] fix: timeline bar label is not aligned at bar grid
 
 _Chores/Refactoring_
 
