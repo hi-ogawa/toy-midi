@@ -102,6 +102,19 @@ test.describe("Startup Screen", () => {
     // Tempo should be 120 (demo default)
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(120);
+
+    // Audio should be loaded
+    const audioFileName = await evaluateStore(
+      page,
+      (store) => store.getState().audioFileName,
+    );
+    expect(audioFileName).toBe("test-audio.wav");
+
+    const audioDuration = await evaluateStore(
+      page,
+      (store) => store.getState().audioDuration,
+    );
+    expect(audioDuration).toBeGreaterThan(0);
   });
 
   test("Enter key shortcut", async ({ page }) => {

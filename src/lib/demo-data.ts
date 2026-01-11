@@ -8,6 +8,7 @@ export interface DemoProjectData {
   notes: Note[];
   tempo: number;
   audioFileName: string | null;
+  audioUrl: string | null;
 }
 
 /**
@@ -28,5 +29,6 @@ export const DEMO_PROJECT: DemoProjectData = {
     { id: "demo-8", pitch: 47, start: 7, duration: 1, velocity: 100 }, // B2
   ],
   tempo: 120,
-  audioFileName: null,
+  audioFileName: "test-audio.wav",
+  audioUrl: "/test-audio.wav",
 };

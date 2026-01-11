@@ -5,6 +5,7 @@ import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager } from "./lib/audio";
+import { DEMO_PROJECT } from "./lib/demo-data";
 import {
   clearProject,
   hasSavedProject,
@@ -28,6 +29,23 @@ export function App() {
         clearProject();
       } else if (mode === "demo") {
         loadDemoProject();
+
+        // Load demo audio if available
+        if (DEMO_PROJECT.audioUrl) {
+          const duration = await audioManager.loadFromUrl(
+            DEMO_PROJECT.audioUrl,
+          );
+          useProjectStore.setState({
+            audioDuration: duration,
+            audioFileName: DEMO_PROJECT.audioFileName,
+          });
+
+          const { audioOffset } = useProjectStore.getState();
+          audioManager.setOffset(audioOffset);
+
+          const peaks = audioManager.getPeaks(100);
+          useProjectStore.getState().setAudioPeaks(peaks, 100);
+        }
       } else {
         // mode === "continue"
         const loaded = loadProject();
