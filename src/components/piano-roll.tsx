@@ -35,7 +35,7 @@ export const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const DEFAULT_PIXELS_PER_KEY = 20;
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
-const MAX_PIXELS_PER_BEAT = 200;
+const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
 const MAX_PIXELS_PER_KEY = 40;
 
