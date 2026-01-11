@@ -367,7 +367,7 @@ export function loadProject() {
       const match = l.id.match(/^locator-(\d+)$/);
       return match ? Math.max(max, parseInt(match[1], 10)) : max;
     }, 0);
-    locatorIdCounter = maxLocatorId;
+    locatorIdCounter = Math.max(locatorIdCounter, maxLocatorId);
 
     useProjectStore.setState({
       notes: merged.notes,

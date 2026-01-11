@@ -1115,7 +1115,16 @@ function Timeline({
     const beat = Math.max(0, x / pixelsPerBeat + scrollX);
     // Round to nearest beat for cleaner positioning
     const roundedBeat = Math.round(beat);
-    const label = `Locator ${locators.length + 1}`;
+    // Find the next unused locator number
+    const existingNumbers = locators
+      .map((l) => {
+        const match = l.label.match(/^Locator (\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((n) => n > 0);
+    const nextNumber =
+      existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    const label = `Locator ${nextNumber}`;
     onCreateLocator(roundedBeat, label);
   };
 
