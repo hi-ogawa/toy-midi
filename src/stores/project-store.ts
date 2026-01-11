@@ -13,8 +13,6 @@ interface ProjectState {
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds
   audioOffset: number; // in seconds - position in audio that aligns with beat 0
-  isPlaying: boolean;
-  playheadPosition: number; // in seconds
 
   // Mixer state
   audioVolume: number; // 0-1
@@ -49,8 +47,6 @@ interface ProjectState {
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey?: string) => void;
   setAudioOffset: (offset: number) => void;
-  setIsPlaying: (playing: boolean) => void;
-  setPlayheadPosition: (position: number) => void;
 
   // Mixer actions
   setAudioVolume: (volume: number) => void;
@@ -89,8 +85,6 @@ export const useProjectStore = create<ProjectState>((set) => ({
   audioAssetKey: null,
   audioDuration: 0,
   audioOffset: 0,
-  isPlaying: false,
-  playheadPosition: 0,
 
   // Mixer state
   audioVolume: 0.8,
@@ -158,14 +152,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
       audioAssetKey: assetKey ?? null,
       audioDuration: duration,
       audioOffset: 0,
-      playheadPosition: 0,
     }),
 
   setAudioOffset: (offset) => set({ audioOffset: offset }),
-
-  setIsPlaying: (playing) => set({ isPlaying: playing }),
-
-  setPlayheadPosition: (position) => set({ playheadPosition: position }),
 
   // Mixer actions
   setAudioVolume: (volume) => set({ audioVolume: volume }),
@@ -293,8 +282,6 @@ export function clearProject(): void {
   useProjectStore.setState({
     ...DEFAULTS,
     selectedNoteIds: new Set(),
-    isPlaying: false,
-    playheadPosition: 0,
     audioDuration: 0,
     audioPeaks: [],
     peaksPerSecond: 100,
@@ -345,8 +332,6 @@ export function loadProject(): LoadedProject | null {
       waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
       // Reset transient state
       selectedNoteIds: new Set(),
-      isPlaying: false,
-      playheadPosition: 0,
       audioDuration: 0,
       audioPeaks: [],
     });

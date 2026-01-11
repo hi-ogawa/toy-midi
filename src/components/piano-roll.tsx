@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTransport } from "../hooks/use-transport";
 import { audioManager } from "../lib/audio";
 import {
   isBlackKey,
@@ -174,8 +175,6 @@ export function PianoRoll() {
     gridSnap,
     totalBeats,
     tempo,
-    playheadPosition,
-    isPlaying,
     audioDuration,
     audioOffset,
     showDebug,
@@ -184,7 +183,6 @@ export function PianoRoll() {
     deleteNotes,
     selectNotes,
     deselectAll,
-    setPlayheadPosition,
     setAudioOffset,
     audioPeaks,
     // Viewport state from store
@@ -199,6 +197,9 @@ export function PianoRoll() {
     setPixelsPerKey,
     setWaveformHeight,
   } = useProjectStore();
+
+  // Transport state from hook (source of truth: Tone.js Transport)
+  const { isPlaying, position } = useTransport();
 
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -230,7 +231,7 @@ export function PianoRoll() {
   // Auto-scroll during playback to keep playhead visible
   useEffect(() => {
     if (!isPlaying) return;
-    const playheadBeat = secondsToBeats(playheadPosition, tempo);
+    const playheadBeat = secondsToBeats(position, tempo);
     const visibleBeatsNow = viewportSize.width / pixelsPerBeat;
     // If playhead is past 80% of visible area, scroll to put it at 20%
     if (playheadBeat > scrollX + visibleBeatsNow * 0.8) {
@@ -240,14 +241,7 @@ export function PianoRoll() {
     if (playheadBeat < scrollX) {
       setScrollX(Math.max(0, playheadBeat - visibleBeatsNow * 0.2));
     }
-  }, [
-    isPlaying,
-    playheadPosition,
-    tempo,
-    scrollX,
-    pixelsPerBeat,
-    viewportSize.width,
-  ]);
+  }, [isPlaying, position, tempo, scrollX, pixelsPerBeat, viewportSize.width]);
 
   // Calculate visible range
   const visibleBeats = viewportSize.width / pixelsPerBeat;
@@ -666,11 +660,10 @@ export function PianoRoll() {
             pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
-            playheadBeat={secondsToBeats(playheadPosition, tempo)}
+            playheadBeat={secondsToBeats(position, tempo)}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
-              setPlayheadPosition(seconds);
             }}
           />
           {/* Waveform / Audio region */}
@@ -681,7 +674,7 @@ export function PianoRoll() {
             audioDuration={audioDuration}
             audioOffset={audioOffset}
             tempo={tempo}
-            playheadBeat={secondsToBeats(playheadPosition, tempo)}
+            playheadBeat={secondsToBeats(position, tempo)}
             audioPeaks={audioPeaks}
             height={waveformHeight}
             onOffsetChange={(newOffset) => {
@@ -770,7 +763,7 @@ export function PianoRoll() {
             )}
             {/* Playhead line */}
             {(() => {
-              const playheadBeat = secondsToBeats(playheadPosition, tempo);
+              const playheadBeat = secondsToBeats(position, tempo);
               const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
               // Only render if visible
               if (playheadX < 0 || playheadX > viewportSize.width) return null;

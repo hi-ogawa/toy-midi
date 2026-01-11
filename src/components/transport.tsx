@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
+import { useTransport } from "../hooks/use-transport";
 import { saveAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
@@ -20,8 +21,6 @@ export function Transport({ onHelpClick }: TransportProps) {
   const {
     audioFileName,
     audioDuration,
-    isPlaying,
-    playheadPosition,
     tempo,
     notes,
     audioVolume,
@@ -31,8 +30,6 @@ export function Transport({ onHelpClick }: TransportProps) {
     gridSnap,
     showDebug,
     setAudioFile,
-    setIsPlaying,
-    setPlayheadPosition,
     setTempo,
     setAudioVolume,
     setMidiVolume,
@@ -42,21 +39,11 @@ export function Transport({ onHelpClick }: TransportProps) {
     setAudioPeaks,
   } = useProjectStore();
 
+  // Transport state from hook (source of truth: Tone.js Transport)
+  const { isPlaying, position } = useTransport();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
-
-  // Subscribe to AudioManager state changes (single source of truth)
-  useEffect(() => {
-    const unsubscribe = audioManager.subscribe((event) => {
-      // Update playing state from Transport state
-      const isPlaying = event.state === "started";
-      setIsPlaying(isPlaying);
-      // Update position from Transport seconds
-      setPlayheadPosition(event.seconds);
-    });
-
-    return unsubscribe;
-  }, [setIsPlaying, setPlayheadPosition]);
 
   // Reactively sync volume settings with AudioManager when store changes
   useEffect(() => {
@@ -76,6 +63,8 @@ export function Transport({ onHelpClick }: TransportProps) {
   }, [metronomeVolume]);
 
   // Dynamically update scheduled notes when notes or tempo change during playback
+  // Note: Don't depend on `position` - it updates at 60fps during playback!
+  // Get current position from Transport directly when needed.
   useEffect(() => {
     if (isPlaying) {
       audioManager.updateNotesWhilePlaying(notes, tempo);
@@ -90,7 +79,7 @@ export function Transport({ onHelpClick }: TransportProps) {
       const assetKey = await saveAsset(file);
 
       setAudioFile(file.name, duration, assetKey);
-      setPlayheadPosition(0);
+      audioManager.seek(0);
 
       // Extract peaks for waveform display
       const peaksPerSecond = 100;
@@ -121,10 +110,10 @@ export function Transport({ onHelpClick }: TransportProps) {
       audioManager.clearScheduledNotes();
     } else {
       // Schedule MIDI notes from current position
-      audioManager.scheduleNotes(notes, audioManager.position, tempo);
+      audioManager.scheduleNotes(notes, position, tempo);
       audioManager.play();
     }
-  }, [isPlaying, notes, tempo]);
+  }, [isPlaying, notes, tempo, position]);
 
   // Space key to toggle play/pause
   useEffect(() => {
@@ -298,7 +287,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         data-testid="time-display"
         className="font-mono text-sm text-neutral-300 min-w-[100px]"
       >
-        {formatTime(playheadPosition)} / {formatTime(audioDuration)}
+        {formatTime(position)} / {formatTime(audioDuration)}
       </div>
 
       {/* Tempo input */}

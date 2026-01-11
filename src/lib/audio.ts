@@ -6,29 +6,16 @@ function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
-// Expose Tone.Transport event types directly
-type TransportEventNames =
-  | "start"
-  | "stop"
-  | "pause"
-  | "loop"
-  | "loopEnd"
-  | "loopStart"
-  | "ticks";
-
-// Transport state type (not exported by Tone.js)
-type TransportState = "started" | "stopped" | "paused";
-
-// Direct wrapper of Transport state
-type AudioManagerEvent = {
-  type: TransportEventNames;
-  state: TransportState;
-  position: Tone.Unit.Time; // Transport position (e.g., "0:0:0")
-  seconds: number; // Position in seconds
-};
-
-type AudioManagerListener = (event: AudioManagerEvent) => void;
-
+/**
+ * AudioManager handles audio-specific functionality:
+ * - Audio file loading and playback sync
+ * - MIDI note scheduling and preview
+ * - Volume/mixer controls
+ * - Metronome
+ *
+ * Transport state (play/pause/stop/seek) is managed by useTransport hook,
+ * which directly interfaces with Tone.js Transport.
+ */
 class AudioManager {
   private player: Tone.Player | null = null;
   private synth: Tone.PolySynth | null = null;
@@ -42,52 +29,9 @@ class AudioManager {
 
   private scheduledEvents: number[] = []; // Transport event IDs
   private _initialized = false;
-  private _playerConnected = false;
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
   private _metronomeEnabled = false;
-
-  // Subscribe to state changes (exposing Tone.Transport events directly)
-  subscribe(listener: AudioManagerListener): () => void {
-    const emitEvent = (type: TransportEventNames) => {
-      const transport = Tone.getTransport();
-      listener({
-        type,
-        state: transport.state,
-        position: transport.position,
-        seconds: transport.seconds,
-      });
-    };
-
-    // Subscribe to all Transport events
-    const handleStart = () => emitEvent("start");
-    const handleStop = () => emitEvent("stop");
-    const handlePause = () => emitEvent("pause");
-    const handleLoop = () => emitEvent("loop");
-    const handleLoopEnd = () => emitEvent("loopEnd");
-    const handleLoopStart = () => emitEvent("loopStart");
-    const handleTicks = () => emitEvent("ticks");
-
-    // Subscribe to Transport events
-    Tone.getTransport().on("start", handleStart);
-    Tone.getTransport().on("stop", handleStop);
-    Tone.getTransport().on("pause", handlePause);
-    Tone.getTransport().on("loop", handleLoop);
-    Tone.getTransport().on("loopEnd", handleLoopEnd);
-    Tone.getTransport().on("loopStart", handleLoopStart);
-    Tone.getTransport().on("ticks", handleTicks);
-
-    // Return unsubscribe function
-    return () => {
-      Tone.getTransport().off("start", handleStart);
-      Tone.getTransport().off("stop", handleStop);
-      Tone.getTransport().off("pause", handlePause);
-      Tone.getTransport().off("loop", handleLoop);
-      Tone.getTransport().off("loopEnd", handleLoopEnd);
-      Tone.getTransport().off("loopStart", handleLoopStart);
-      Tone.getTransport().off("ticks", handleTicks);
-    };
-  }
 
   async init(): Promise<void> {
     if (this._initialized) return;
@@ -136,15 +80,11 @@ class AudioManager {
   }
 
   async loadFromUrl(url: string): Promise<number> {
-    // Don't call init() here - Tone.start() requires user gesture
-    // Just load the buffer, connect to gain later when initialized
-
     // Dispose previous player
     if (this.player) {
       this.player.unsync();
       this.player.dispose();
       this.player = null;
-      this._playerConnected = false;
     }
 
     // Create new player and wait for it to load
@@ -153,23 +93,13 @@ class AudioManager {
     this._duration = this.player.buffer.duration;
     this._offset = 0;
 
-    // If already initialized, connect and sync now
-    if (this._initialized && this.audioGain) {
+    // Connect and sync (init() is guaranteed to be called first via startup screen)
+    if (this.audioGain) {
       this.player.connect(this.audioGain);
       this._syncPlayer();
-      this._playerConnected = true;
     }
 
     return this._duration;
-  }
-
-  // Connect player to audio graph after init (called when starting playback)
-  private _ensurePlayerConnected(): void {
-    if (this.player && this.audioGain && !this._playerConnected) {
-      this.player.connect(this.audioGain);
-      this._syncPlayer();
-      this._playerConnected = true;
-    }
   }
 
   private _syncPlayer(): void {
@@ -190,15 +120,16 @@ class AudioManager {
     // Clamp offset: can't skip more than duration, can't delay infinitely (use duration as limit)
     this._offset = Math.max(-this._duration, Math.min(offset, this._duration));
     if (this.player) {
-      const wasPlaying = this.isPlaying;
-      const currentPosition = Tone.getTransport().seconds;
+      const transport = Tone.getTransport();
+      const wasPlaying = transport.state === "started";
+      const currentPosition = transport.seconds;
       if (wasPlaying) {
-        Tone.getTransport().pause();
+        transport.pause();
       }
       this._syncPlayer();
       if (wasPlaying) {
-        Tone.getTransport().seconds = currentPosition;
-        Tone.getTransport().start();
+        transport.seconds = currentPosition;
+        transport.start();
       }
     }
   }
@@ -207,47 +138,35 @@ class AudioManager {
     return this._offset;
   }
 
+  // Transport control methods (wrapper around Tone.Transport with app-specific logic)
+
   play(): void {
-    this._ensurePlayerConnected();
     Tone.getTransport().start();
-    // Transport will emit "start" event
   }
 
   pause(): void {
     Tone.getTransport().pause();
-    // Transport will emit "pause" event
   }
 
   stop(): void {
     Tone.getTransport().stop();
     Tone.getTransport().seconds = 0;
-    // Transport will emit "stop" event
   }
 
   seek(seconds: number): void {
-    const wasPlaying = this.isPlaying;
+    const transport = Tone.getTransport();
+    const wasPlaying = transport.state === "started";
     if (wasPlaying) {
-      Tone.getTransport().pause();
+      transport.pause();
     }
-    Tone.getTransport().seconds = Math.max(
-      0,
-      Math.min(seconds, this._duration),
-    );
+    transport.seconds = Math.max(0, seconds);
     if (wasPlaying) {
-      Tone.getTransport().start();
+      transport.start();
     }
-  }
-
-  get position(): number {
-    return Tone.getTransport().seconds;
   }
 
   get duration(): number {
     return this._duration;
-  }
-
-  get isPlaying(): boolean {
-    return Tone.getTransport().state === "started";
   }
 
   get loaded(): boolean {
@@ -275,10 +194,10 @@ class AudioManager {
   }
 
   // Update notes during playback (re-schedules from current position)
+  // Gets position directly from Transport to avoid RAF-frequency calls
   updateNotesWhilePlaying(notes: Note[], tempo: number): void {
-    if (this.isPlaying) {
-      this.scheduleNotes(notes, this.position, tempo);
-    }
+    const position = Tone.getTransport().seconds;
+    this.scheduleNotes(notes, position, tempo);
   }
 
   clearScheduledNotes(): void {
