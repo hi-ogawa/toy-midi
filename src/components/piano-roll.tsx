@@ -100,14 +100,21 @@ function generateGridBackground(
   // Hide lines when spacing is below MIN_LINE_SPACING to avoid visual clutter at extreme zoom
   const layers: Array<[string, string, string]> = [];
 
-  // Vertical bar lines (every 4 beats) - always show if spacing allows
-  if (barWidth >= MIN_LINE_SPACING) {
-    layers.push([
-      `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
-      `${barWidth}px 100%`,
-      `${offsetX}px 0`,
-    ]);
+  // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
+  // Find smallest multiplier N where barWidth * N >= MIN_LINE_SPACING
+  // Use powers of 2 for clean groupings: 1, 2, 4, 8, 16 bars
+  let coarseBarMultiplier = 1;
+  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
+    coarseBarMultiplier *= 2;
   }
+  const coarseBarWidth = barWidth * coarseBarMultiplier;
+  const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
+
+  layers.push([
+    `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
+    `${coarseBarWidth}px 100%`,
+    `${coarseBarOffsetX}px 0`,
+  ]);
 
   // Vertical beat lines - hide when too dense
   if (beatWidth >= MIN_LINE_SPACING) {
@@ -1023,6 +1030,9 @@ function Keyboard({
   return <div style={{ marginTop: offsetY }}>{rows}</div>;
 }
 
+// Minimum pixel spacing for timeline labels to avoid overlap
+const MIN_LABEL_SPACING = 30;
+
 function Timeline({
   pixelsPerBeat,
   scrollX,
@@ -1038,13 +1048,21 @@ function Timeline({
 }) {
   const markers = [];
 
-  // Calculate visible beat range
-  const startBeat = Math.floor(scrollX / BEATS_PER_BAR) * BEATS_PER_BAR;
-  const endBeat =
-    Math.ceil((scrollX + viewportWidth / pixelsPerBeat) / BEATS_PER_BAR) *
-    BEATS_PER_BAR;
+  // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
+  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
+  let labelBarStep = 1;
+  while (barWidth * labelBarStep < MIN_LABEL_SPACING) {
+    labelBarStep *= 2;
+  }
+  const labelBeatStep = labelBarStep * BEATS_PER_BAR;
 
-  for (let beat = startBeat; beat <= endBeat; beat += BEATS_PER_BAR) {
+  // Calculate visible beat range, aligned to label step
+  const startBeat = Math.floor(scrollX / labelBeatStep) * labelBeatStep;
+  const endBeat =
+    Math.ceil((scrollX + viewportWidth / pixelsPerBeat) / labelBeatStep) *
+    labelBeatStep;
+
+  for (let beat = startBeat; beat <= endBeat; beat += labelBeatStep) {
     const barNumber = beat / BEATS_PER_BAR + 1;
     const x = (beat - scrollX) * pixelsPerBeat;
     markers.push(

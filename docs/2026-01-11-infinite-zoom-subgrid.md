@@ -65,19 +65,17 @@ This translates to:
 - [x] Modify `generateGridBackground()` to conditionally include layers
 - [x] Reduce `MIN_PIXELS_PER_BEAT` to allow deeper zoom
 
-### Phase 2: Coarse grid at extreme zoom
+### Phase 2: Coarse grid at extreme zoom (done)
 
-- [ ] Show every Nth bar line when barWidth < threshold
-  - When `barWidth < 8`: show every 4 bars (16 beats)
-  - When `4-barWidth < 8`: show every 16 bars (64 beats)
-  - Pattern: find smallest N where `barWidth * N >= 8`
+- [x] Show every Nth bar line when barWidth < threshold
+  - Use powers of 2 multiplier: 1, 2, 4, 8, 16 bars
+  - Find smallest N where `barWidth * N >= MIN_LINE_SPACING`
 
-### Phase 3: Timeline label spacing
+### Phase 3: Timeline label spacing (done)
 
-- [ ] Prevent overlapping bar numbers in Timeline component
-  - Currently shows label every 4 beats (every bar)
-  - Need dynamic step: show every Nth bar based on available space
-  - Similar logic: find smallest N where `barWidth * N >= minLabelWidth` (~30px for "999")
+- [x] Prevent overlapping bar numbers in Timeline component
+  - Added `MIN_LABEL_SPACING = 30` constant
+  - Dynamic step: show every Nth bar (powers of 2) where spacing >= 30px
 
 ## Feedback Log
 
@@ -86,6 +84,9 @@ This translates to:
 
 ## Status
 
-- **Done:** Phase 1 complete - basic hiding works
-- **In Progress:** Phase 2 & 3 - coarse grid and timeline labels
+- **Done:** All phases complete
+  - Phase 1: Basic threshold-based hiding
+  - Phase 2: Coarse grid (every Nth bar) at extreme zoom
+  - Phase 3: Timeline label spacing
+- **Remaining:** Manual testing
 - **Blockers:** None
