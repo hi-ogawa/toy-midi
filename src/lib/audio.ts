@@ -64,6 +64,7 @@ class AudioManager {
       envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
     });
     this.metronomeChannel = new Tone.Channel(0.5).toDestination();
+    this.metronomeChannel.mute = true; // Start muted, applyState() will set actual state
     this.metronome.connect(this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
