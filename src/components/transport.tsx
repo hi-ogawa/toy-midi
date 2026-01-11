@@ -222,7 +222,7 @@ export function Transport({ onHelpClick }: TransportProps) {
   return (
     <div
       data-testid="transport"
-      className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 border-b border-neutral-700 text-xs"
+      className="flex items-center gap-2 px-3 py-2 bg-neutral-800 border-b border-neutral-700"
     >
       {/* Hidden file input */}
       <input
@@ -239,7 +239,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         data-testid="play-pause-button"
         onClick={handlePlayPause}
         variant={isPlaying ? "default" : "secondary"}
-        size="icon-sm"
+        size="icon"
         title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
@@ -295,17 +295,16 @@ export function Transport({ onHelpClick }: TransportProps) {
               setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
-          className="w-10 h-6 px-1 font-mono bg-input border border-border rounded text-center text-foreground text-xs"
+          className="w-12 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
         />
         <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
           variant="ghost"
-          size="icon-sm"
-          className="size-6"
+          size="sm"
           title="Tap tempo"
         >
-          <span className="text-xs font-medium">TAP</span>
+          TAP
         </Button>
         <span className="text-muted-foreground">-</span>
         <span
@@ -329,7 +328,7 @@ export function Transport({ onHelpClick }: TransportProps) {
           <SelectTrigger
             data-testid="grid-snap-select"
             size="sm"
-            className="h-6 w-16 text-xs"
+            className="w-16"
           >
             <SelectValue />
           </SelectTrigger>
@@ -350,15 +349,10 @@ export function Transport({ onHelpClick }: TransportProps) {
       {/* Settings dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            data-testid="settings-button"
-            variant="secondary"
-            size="sm"
-            className="h-6 gap-1"
-          >
-            <SettingsIcon className="size-3" />
-            <span>Settings</span>
-            <ChevronDownIcon className="size-3" />
+          <Button data-testid="settings-button" variant="ghost" size="sm">
+            <SettingsIcon className="size-4" />
+            Settings
+            <ChevronDownIcon className="size-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -389,7 +383,7 @@ export function Transport({ onHelpClick }: TransportProps) {
             <>
               <div className="px-2 py-1.5 flex items-center gap-2">
                 <Volume2Icon className="size-4 text-muted-foreground" />
-                <span className="text-muted-foreground text-xs w-10">
+                <span className="text-muted-foreground text-sm w-10">
                   Audio
                 </span>
                 <Slider
@@ -431,8 +425,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         data-testid="help-button"
         onClick={onHelpClick}
         variant="ghost"
-        size="icon-sm"
-        className="size-6"
+        size="icon"
         title="Show keyboard shortcuts (?)"
       >
         <CircleHelpIcon className="size-4" />
