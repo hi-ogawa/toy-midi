@@ -52,8 +52,8 @@ export function App() {
       }
 
       audioManager.applyState(useProjectStore.getState());
-      useProjectStore.subscribe((state) => {
-        audioManager.applyState(state);
+      useProjectStore.subscribe((state, prevState) => {
+        audioManager.applyState(state, prevState);
       });
 
       // Setup auto-save on state changes (debounced)

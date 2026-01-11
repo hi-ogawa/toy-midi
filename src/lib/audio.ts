@@ -81,18 +81,24 @@ class AudioManager {
 
   /**
    * Sync AudioManager with store state.
-   * Called once during init() and on every store change.
+   * Called once during init() (no prevState) and on every store change (with prevState).
+   * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
-  applyState(state: ProjectState): void {
-    // selectively subscribe
-    // (e.g. don't need to syncAudioTrack when other store fields change)
+  applyState(state: ProjectState, prevState?: ProjectState): void {
+    // Cheap operations - always apply
     this.setAudioVolume(state.audioVolume);
     this.setMidiVolume(state.midiVolume);
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
-    this.setNotes(state.notes);
-    this.syncAudioTrack(state.audioOffset);
     Tone.getTransport().bpm.value = state.tempo;
+
+    // Expensive operations - only when changed (or on initial sync)
+    if (state.notes !== prevState?.notes) {
+      this.setNotes(state.notes);
+    }
+    if (state.audioOffset !== prevState?.audioOffset) {
+      this.syncAudioTrack(state.audioOffset);
+    }
   }
 
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
@@ -110,6 +116,7 @@ class AudioManager {
   }
 
   syncAudioTrack(offset: number): void {
+    if (!this.player.loaded) return;
     this.player.unsync();
     this.player.sync().start(offset);
   }
