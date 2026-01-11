@@ -148,11 +148,6 @@ class AudioManager {
     Tone.getTransport().pause();
   }
 
-  stop(): void {
-    Tone.getTransport().stop();
-    Tone.getTransport().seconds = 0;
-  }
-
   seek(seconds: number): void {
     const transport = Tone.getTransport();
     const wasPlaying = transport.state === "started";

@@ -1055,6 +1055,7 @@ function Timeline({
 
   return (
     <div
+      data-testid="timeline"
       className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
       onClick={handleClick}
@@ -1063,6 +1064,7 @@ function Timeline({
       {/* Playhead indicator */}
       {showPlayhead && (
         <div
+          data-testid="timeline-playhead"
           className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none"
           style={{ left: playheadX }}
         />

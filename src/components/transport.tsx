@@ -62,6 +62,12 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioManager.setMetronomeVolume(metronomeVolume);
   }, [metronomeVolume]);
 
+  // TODO: playback scheduling shouldn't be driven directly by UI effect.
+  // instead, we should do:
+  // - store -> UI
+  // - UI event -> store update
+  // - Tone.transport event + store event -> AudioManager schedule notes
+  // == stale comment ==
   // Dynamically update scheduled notes when notes or tempo change during playback
   // Note: Don't depend on `position` - it updates at 60fps during playback!
   // Get current position from Transport directly when needed.
