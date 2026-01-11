@@ -12,13 +12,12 @@
 
 ## Key Docs
 
-| File                   | Purpose                           |
-| ---------------------- | --------------------------------- |
-| `docs/TODO.md`         | **Short-term tasks (start here)** |
-| `docs/prd.md`          | Requirements, UX specs, features  |
-| `docs/architecture.md` | Technical architecture overview   |
-| `docs/references.md`   | Reference projects and libraries  |
-| `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes      |
+| File                   | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `docs/prd.md`          | Requirements, UX specs, features |
+| `docs/architecture.md` | Technical architecture overview  |
+| `docs/references.md`   | Reference projects and libraries |
+| `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes     |
 
 Read `docs/prd.md` before implementing features.
 
