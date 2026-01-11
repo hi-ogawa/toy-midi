@@ -18,25 +18,28 @@ function beatsToSeconds(beats: number, tempo: number): number {
  * which directly interfaces with Tone.js Transport.
  */
 class AudioManager {
-  private player: Tone.Player | null = null;
+  // TODO: soundfont
+  // TODO: use Tone.Part
   private synth: Tone.PolySynth | null = null;
-  private metronome: Tone.Synth | null = null;
-  private metronomeSeq: Tone.Sequence | null = null;
-
-  // TODO: use Tone.Channel
-  // Gain nodes for mixing
-  private audioGain: Tone.Gain | null = null;
   private midiGain: Tone.Gain | null = null;
+
+  // audio track
+  // TODO: refactor
+  private player: Tone.Player | null = null;
+  private audioGain: Tone.Gain | null = null;
+
+  // metronome
+  private metronome!: Tone.Synth;
+  private metronomeSeq!: Tone.Sequence;
   private metronomeChannel!: Tone.Channel;
 
   private scheduledEvents: number[] = []; // Transport event IDs
-  private _initialized = false;
+
   // TODO: single source of truth (store or audio manager)
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
 
   async init(): Promise<void> {
-    if (this._initialized) return;
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
     // Create gain nodes for mixing
@@ -61,14 +64,12 @@ class AudioManager {
     this.metronomeSeq = new Tone.Sequence(
       (time, beat) => {
         const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome?.triggerAttackRelease(pitch, "32n", time);
+        this.metronome.triggerAttackRelease(pitch, "32n", time);
       },
       [1, 0, 0, 0],
       "4n",
     );
     this.metronomeSeq.start();
-
-    this._initialized = true;
 
     // TODO: aim for state/event management
     // - store -> UI
