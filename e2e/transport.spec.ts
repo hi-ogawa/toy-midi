@@ -128,4 +128,29 @@ test.describe("Transport Controls", () => {
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.mid$/);
   });
+
+  test("time signature controls", async ({ page }) => {
+    // Check default time signature is 4/4
+    const numeratorSelect = page.getByTestId("time-signature-numerator");
+    const denominatorSelect = page.getByTestId("time-signature-denominator");
+
+    await expect(numeratorSelect).toHaveValue("4");
+    await expect(denominatorSelect).toHaveValue("4");
+
+    // Change to 3/4
+    await numeratorSelect.selectOption("3");
+    await expect(numeratorSelect).toHaveValue("3");
+
+    // Change to 6/8
+    await numeratorSelect.selectOption("6");
+    await denominatorSelect.selectOption("8");
+    await expect(numeratorSelect).toHaveValue("6");
+    await expect(denominatorSelect).toHaveValue("8");
+
+    // Change back to 4/4
+    await numeratorSelect.selectOption("4");
+    await denominatorSelect.selectOption("4");
+    await expect(numeratorSelect).toHaveValue("4");
+    await expect(denominatorSelect).toHaveValue("4");
+  });
 });

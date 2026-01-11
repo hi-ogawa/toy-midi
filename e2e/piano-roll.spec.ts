@@ -269,8 +269,8 @@ test.describe("Piano Roll", () => {
   });
 
   test("grid snap", async ({ page }) => {
-    // Target the grid snap select specifically (first select in toolbar)
-    const gridSelect = page.locator("select").first();
+    // Use data-testid to target the grid snap select specifically
+    const gridSelect = page.getByTestId("grid-snap-select");
     await expect(gridSelect).toHaveValue("1/8");
 
     await gridSelect.selectOption("1/16");
