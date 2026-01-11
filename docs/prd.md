@@ -89,7 +89,7 @@ _Audio/Playback_
 - [ ] feat: time signature support (currently hardcoded 4/4)
 - [ ] feat: embed soundfont (bass sound)
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
-- [ ] fix: project always restored with metronome enabled
+- [x] fix: project always restored with metronome enabled
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
   - [x] fix: play/stop behavior, timeline jumping issues
     - playhead doesn't jump when paused
