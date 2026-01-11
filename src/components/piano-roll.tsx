@@ -1312,7 +1312,7 @@ function WaveformArea({
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-85 ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"
