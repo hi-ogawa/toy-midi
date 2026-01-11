@@ -31,6 +31,7 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence;
   private metronomeChannel!: Tone.Channel;
 
+  // TODO: rename
   // TODO: single source of truth (store or audio manager)
   private _duration = 0;
   private _offset = 0; // Audio offset in seconds
@@ -101,12 +102,7 @@ class AudioManager {
     });
   }
 
-  async loadAudio(file: File): Promise<number> {
-    // Create blob URL from file
-    const url = URL.createObjectURL(file);
-    return this.loadFromUrl(url);
-  }
-
+  // TODO: rename
   async loadFromUrl(url: string): Promise<number> {
     // Dispose previous player
     if (this.player) {
@@ -182,14 +178,6 @@ class AudioManager {
     if (wasPlaying) {
       transport.start();
     }
-  }
-
-  get duration(): number {
-    return this._duration;
-  }
-
-  get loaded(): boolean {
-    return this.player !== null && this.player.loaded;
   }
 
   // TODO: incremental add / remove

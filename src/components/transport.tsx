@@ -47,7 +47,9 @@ export function Transport({ onHelpClick }: TransportProps) {
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
-      const duration = await audioManager.loadAudio(file);
+      // TODO: revoke
+      const url = URL.createObjectURL(file);
+      const duration = await audioManager.loadFromUrl(url);
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
