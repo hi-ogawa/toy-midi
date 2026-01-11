@@ -54,12 +54,13 @@ export function App() {
       }
 
       // Setup auto-save on state changes (debounced)
+      // TODO: escape hatch for e2e to persist faster?
       let saveTimeout: number;
       useProjectStore.subscribe(() => {
         clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => {
           saveProject();
-        }, 1000);
+        }, 500);
       });
     },
   });
