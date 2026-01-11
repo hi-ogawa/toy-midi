@@ -49,6 +49,7 @@ export function App() {
         const state = useProjectStore.getState();
         audioManager.setAudioVolume(state.audioVolume);
         audioManager.setMidiVolume(state.midiVolume);
+        audioManager.setMetronomeEnabled(state.metronomeEnabled);
         audioManager.setMetronomeVolume(state.metronomeVolume);
       }
 
