@@ -5,13 +5,14 @@ import {
   setLastProjectId,
   updateProjectMetadata,
 } from "../lib/project-list";
-import { GridSnap, Note } from "../types";
+import { GridSnap, Note, TimeSignature } from "../types";
 
 export interface ProjectState {
   // project
   currentProjectId: string | null; // ID of currently loaded project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
+  timeSignature: TimeSignature; // Time signature (default 4/4)
 
   // Midi track
   notes: Note[];
@@ -60,6 +61,7 @@ export interface ProjectState {
   setGridSnap: (snap: GridSnap) => void;
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
+  setTimeSignature: (timeSignature: TimeSignature) => void;
 
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
@@ -98,6 +100,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   gridSnap: "1/8",
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
 
   // Audio state
   audioFileName: null,
@@ -165,6 +168,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   setTempo: (bpm) => set({ tempo: bpm }),
 
+  setTimeSignature: (timeSignature) => set({ timeSignature }),
+
   // Audio actions
   setAudioFile: (fileName, duration, assetKey) =>
     set({
@@ -216,6 +221,7 @@ interface SavedProject {
   version: number;
   notes: Note[];
   tempo: number;
+  timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
@@ -249,6 +255,7 @@ export function saveProject(): void {
     version: STORAGE_VERSION,
     notes: state.notes,
     tempo: state.tempo,
+    timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
     audioFileName: state.audioFileName,
     audioAssetKey: state.audioAssetKey,
@@ -284,6 +291,7 @@ export function saveProject(): void {
 const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
   tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
   audioFileName: null,
   audioAssetKey: null,
@@ -333,6 +341,7 @@ export function clearProject(): void {
     totalBeats: 640,
     showDebug: false,
     autoScrollEnabled: true,
+    timeSignature: { numerator: 4, denominator: 4 },
   });
 }
 
@@ -376,6 +385,7 @@ export function loadProject(projectId?: string) {
       currentProjectId: idToLoad,
       notes: merged.notes,
       tempo: merged.tempo,
+      timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature!,
       gridSnap: merged.gridSnap,
       audioFileName: merged.audioFileName,
       audioAssetKey: merged.audioAssetKey,

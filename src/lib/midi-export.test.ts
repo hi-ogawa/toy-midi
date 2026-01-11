@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Note } from "../types";
+import { Note, TimeSignature } from "../types";
 import { exportMidi } from "./midi-export";
 
 describe("MIDI Export", () => {
@@ -109,5 +109,68 @@ describe("MIDI Export", () => {
     });
 
     expect(midiData).toBeInstanceOf(Uint8Array);
+  });
+
+  it("should handle different time signatures", () => {
+    const notes: Note[] = [
+      {
+        id: "note-1",
+        pitch: 60,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      },
+    ];
+
+    // Test 3/4 time signature
+    const timeSignature34: TimeSignature = { numerator: 3, denominator: 4 };
+    const midiData34 = exportMidi({
+      notes,
+      tempo: 120,
+      timeSignature: timeSignature34,
+    });
+    expect(midiData34).toBeInstanceOf(Uint8Array);
+    expect(midiData34.byteLength).toBeGreaterThan(0);
+
+    // Test 5/4 time signature
+    const timeSignature54: TimeSignature = { numerator: 5, denominator: 4 };
+    const midiData54 = exportMidi({
+      notes,
+      tempo: 120,
+      timeSignature: timeSignature54,
+    });
+    expect(midiData54).toBeInstanceOf(Uint8Array);
+    expect(midiData54.byteLength).toBeGreaterThan(0);
+
+    // Test 6/8 time signature
+    const timeSignature68: TimeSignature = { numerator: 6, denominator: 8 };
+    const midiData68 = exportMidi({
+      notes,
+      tempo: 120,
+      timeSignature: timeSignature68,
+    });
+    expect(midiData68).toBeInstanceOf(Uint8Array);
+    expect(midiData68.byteLength).toBeGreaterThan(0);
+  });
+
+  it("should default to 4/4 time signature when not specified", () => {
+    const notes: Note[] = [
+      {
+        id: "note-1",
+        pitch: 60,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      },
+    ];
+
+    const midiData = exportMidi({
+      notes,
+      tempo: 120,
+      // timeSignature not provided, should default to 4/4
+    });
+
+    expect(midiData).toBeInstanceOf(Uint8Array);
+    expect(midiData.byteLength).toBeGreaterThan(0);
   });
 });

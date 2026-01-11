@@ -69,6 +69,22 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [x] fix: "space" key shortcut shouldn't be captured by other input (except text input)
 - [x] fix: audio offset label direction
+- [x] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
+- [x] feat: (semi-)infinite zoom in (convenient for audio wave form view)
+- [x] feat: toggle auto-scroll during playback
+- [x] fix: vertical zoom via Shift+wheel
+- [x] feat: time signature support (currently hardcoded 4/4)
+- [x] fix: project always restored with metronome enabled
+- [x] fix: play/stop behavior, timeline jumping issues
+- [x] fix: remove deferred init patterns (\_ensurePlayerConnected, etc.)
+- [x] fix: remove unnecessary null checks in AudioManager
+- [x] fix: metronome toggle is laggy
+- [x] fix: `transport.bpm` source of truth instead of `store.tempo`
+- [x] fix: playback scheduling shouldn't be driven directly by UI effect
+- [x] fix: selective subscription for setNotes and syncAudioTrack
+- [x] fix: background grid for audio track too
+- [x] fix: timeline bar label is not aligned at bar grid
+- [x] chore: deploy (vercel)
 
 ### TODO
 
@@ -81,40 +97,21 @@ _Note editing_
 
 _Timeline/Viewport_
 
-- [x] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
-- [x] feat: toggle auto-scroll during playback
-- [ ] feat: (semi-)infinite zoom in (convenient for audio wave form view)
-- [ ] fix: limit vertical scale to keyboard area only
+(none)
 
 _Audio/Playback_
 
-- [ ] feat: time signature support (currently hardcoded 4/4)
-- [ ] feat: embed soundfont (bass sound)
+- [ ] feat: soundfont player for midi synth
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
-- [x] fix: project always restored with metronome enabled
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
-  - [x] fix: play/stop behavior, timeline jumping issues
-    - playhead doesn't jump when paused
-    - midi playback broken after moving playhead
-  - [x] fix: remove deferred init patterns (\_ensurePlayerConnected, etc.)
-  - [x] fix: remove unnecessary null checks in AudioManager
-  - [x] fix: metronome toggle is laggy
   - [ ] feat: persist lastPlayheadPosition
-  - [x] fix: `transport.bpm` source of truth instead of `store.tempo`
-  - [x] fix: playback scheduling shouldn't be driven directly by UI effect
   - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
     - reduce trivial re-expose Tone.js from audioManager
-- [ ] follow up docs/2026-01-11-state-management-principles.md
-  - [x] fix: selective subscription for setNotes and syncAudioTrack
-    - currently any zustand update triggers applyState() which resets internal state
-    - setNotes() clears all notes and re-adds them (causes MIDI glitch)
-    - syncAudioTrack() unsync/resync player (causes audio glitch)
-    - need subscribeWithSelector to only call these when notes/audioOffset actually change
-  - [ ] refactor: consider unified state + audio architecture (docs/2026-01-11-unified-state-audio.md)
-    - merge AudioManager into store, actions directly update state + Tone.js
-    - eliminates subscription/sync complexity
-    - enables incremental updates (addNote adds to Part, not rebuild all)
-    - may not need zustand - could be simpler custom store
+- [ ] refactor: consider unified state + audio architecture (docs/2026-01-11-unified-state-audio.md)
+  - merge AudioManager into store, actions directly update state + Tone.js
+  - eliminates subscription/sync complexity
+  - enables incremental updates (addNote adds to Part, not rebuild all)
+  - may not need zustand - could be simpler custom store
 
 _Project management_
 
@@ -126,12 +123,9 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
-- [ ] fix: background grid for audio track too
-- [ ] fix: timeline bar label is not aligned at bar grid
 
 _Chores/Refactoring_
 
-- [ ] chore: deploy (vercel)
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] test: test audio context playback (docs/2026-01-11-e2e-audio-context-testing.md)

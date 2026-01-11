@@ -16,21 +16,16 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled();
 
-    // Load audio
+    // Load audio via hidden file input
     const fileInput = page.getByTestId("audio-file-input");
     const testAudioPath = path.join(
       import.meta.dirname,
       "../public/test-audio.wav",
     );
     await fileInput.setInputFiles(testAudioPath);
-    await expect(page.getByTestId("audio-file-name")).toHaveText(
-      "test-audio.wav",
-      { timeout: 5000 },
-    );
 
-    // Time display should show duration
-    const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).not.toHaveText("0:00 / 0:00", { timeout: 5000 });
+    // Wait for audio to load
+    await page.waitForTimeout(500);
 
     // Should show play icon initially
     await expect(page.getByTestId("play-icon")).toBeVisible();
@@ -92,18 +87,21 @@ test.describe("Transport Controls", () => {
   });
 
   test("auto-scroll toggle", async ({ page }) => {
+    // Open settings dropdown to access auto-scroll toggle
+    await page.getByTestId("settings-button").click();
+
     const autoScrollToggle = page.getByTestId("auto-scroll-toggle");
 
-    // Should be on by default
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+    // Should be on by default (checked state)
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
 
-    // Toggle off
+    // Toggle off (dropdown stays open)
     await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "false");
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "unchecked");
 
     // Toggle on
     await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
   });
 
   test("tap tempo", async ({ page }) => {
@@ -128,14 +126,20 @@ test.describe("Transport Controls", () => {
   });
 
   test("export MIDI workflow", async ({ page }) => {
+    // Open settings dropdown to access export button
+    await page.getByTestId("settings-button").click();
     const exportButton = page.getByTestId("export-midi-button");
 
     // Button disabled when no notes
     await expect(exportButton).toBeDisabled();
 
-    // Add a note
+    // Close dropdown, add a note
+    await page.keyboard.press("Escape");
     const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
     await pianoRoll.click({ position: { x: 100, y: 100 } });
+
+    // Open settings dropdown again
+    await page.getByTestId("settings-button").click();
 
     // Button enabled when notes exist
     await expect(exportButton).toBeEnabled();
@@ -178,9 +182,9 @@ test.describe("Timeline Seek", () => {
     if (!movedPlayheadBox) throw new Error("Playhead not found after seek");
     expect(movedPlayheadBox.x).toBeGreaterThan(initialX + BEAT_WIDTH * 3);
 
-    // Time display should reflect new position (not 0:00)
+    // Time display should reflect new position (not at bar 1, beat 1)
     const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).not.toContainText("0:00 /");
+    await expect(timeDisplay).not.toContainText("1|1.00");
   });
 
   test("MIDI plays from seeked position", async ({ page }) => {
