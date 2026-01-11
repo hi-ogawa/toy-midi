@@ -125,8 +125,8 @@ test.describe("Project Persistence", () => {
 
     // Audio should be restored - open settings to check for audio volume slider
     await page.getByTestId("settings-button").click();
-    // Audio volume slider only appears when audio is loaded
-    await expect(page.locator('input[type="range"]').first()).toBeVisible();
+    // Audio volume slider (Radix Slider) only appears when audio is loaded
+    await expect(page.locator('[data-slot="slider"]')).toBeVisible();
   });
 
   test("settings persist after reload", async ({ page }) => {
@@ -137,11 +137,12 @@ test.describe("Project Persistence", () => {
     await tempoInput.blur();
     await expect(tempoInput).toHaveValue("95");
 
-    // Change grid snap
-    const gridSelect = page.locator("select").first();
-    await expect(gridSelect).toHaveValue("1/8");
-    await gridSelect.selectOption("1/16");
-    await expect(gridSelect).toHaveValue("1/16");
+    // Change grid snap (Radix Select)
+    const gridSelect = page.getByTestId("grid-snap-select");
+    await expect(gridSelect).toContainText("1/8");
+    await gridSelect.click();
+    await page.getByRole("option", { name: "1/16", exact: true }).click();
+    await expect(gridSelect).toContainText("1/16");
 
     // Enable metronome
     const metronomeToggle = page.getByTestId("metronome-toggle");
@@ -158,7 +159,7 @@ test.describe("Project Persistence", () => {
 
     // All settings should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
-    await expect(page.locator("select").first()).toHaveValue("1/16");
+    await expect(page.getByTestId("grid-snap-select")).toContainText("1/16");
     await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
       "aria-pressed",
       "true",

@@ -24,9 +24,7 @@ test.describe("Transport Controls", () => {
     );
     await fileInput.setInputFiles(testAudioPath);
 
-    // Wait for audio to load - time display should change from initial state
-    const timeDisplay = page.getByTestId("time-display");
-    // Initial state is "1|1.00 - 0:00.00", after loading it should still show position
+    // Wait for audio to load
     await page.waitForTimeout(500);
 
     // Should show play icon initially
@@ -94,16 +92,19 @@ test.describe("Transport Controls", () => {
 
     const autoScrollToggle = page.getByTestId("auto-scroll-toggle");
 
-    // Should be on by default (green indicator dot)
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+    // Should be on by default (checked state)
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
 
     // Toggle off
     await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "false");
+    // Re-open dropdown (it closes after click)
+    await page.getByTestId("settings-button").click();
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "unchecked");
 
     // Toggle on
     await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+    await page.getByTestId("settings-button").click();
+    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
   });
 
   test("tap tempo", async ({ page }) => {
