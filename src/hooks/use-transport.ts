@@ -12,58 +12,88 @@ import * as Tone from "tone";
  * which handles app-specific logic like note scheduling.
  */
 export function useTransport() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const rafRef = useRef<number>(0);
+  // TODO:
+  // expose high frequency update should as a separate hook?
+  // or we should allow selector function to subscribe only partial state e.g.
+  // useTransport(s => s.isPlaying)
+  // useTransport(s => s.position)
+  // cf. tanstack router useRouter and use-sync-external-store/with-selector
+
+  const [transportState, setTransportState] = useState(() => deriveState());
+  const rafRef = useRef<number>(null);
 
   useEffect(() => {
-    const transport = Tone.getTransport();
-
-    // Sync initial state
-    setIsPlaying(transport.state === "started");
-    setPosition(transport.seconds);
-
-    // Subscribe to Transport state changes
-    const handleStart = () => {
-      setIsPlaying(true);
-      // Start RAF loop for smooth position updates
-      const updatePosition = () => {
-        setPosition(Tone.getTransport().seconds);
+    function handler() {
+      const state = deriveState();
+      setTransportState(state);
+      if (state.isPlaying && rafRef.current === null) {
+        // Start RAF loop for smooth position updates
+        const updatePosition = () => {
+          setTransportState(deriveState());
+          rafRef.current = requestAnimationFrame(updatePosition);
+        };
         rafRef.current = requestAnimationFrame(updatePosition);
-      };
-      rafRef.current = requestAnimationFrame(updatePosition);
-    };
+      }
+      if (!state.isPlaying && rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      // TODO: some state isn't synchronously updated before event is fired
+      if (!state.isPlaying) {
+        queueMicrotask(() => {
+          setTransportState(deriveState());
+        });
+      }
+    }
 
-    const handleStop = () => {
-      setIsPlaying(false);
-      cancelAnimationFrame(rafRef.current);
-      setPosition(Tone.getTransport().seconds);
-    };
+    const disposes: (() => void)[] = [];
 
-    const handlePause = () => {
-      setIsPlaying(false);
-      cancelAnimationFrame(rafRef.current);
-      setPosition(Tone.getTransport().seconds);
-    };
-
-    // Position changed while stopped (e.g., timeline click to seek)
-    const handleTicks = () => {
-      setPosition(Tone.getTransport().seconds);
-    };
-
-    transport.on("start", handleStart);
-    transport.on("stop", handleStop);
-    transport.on("pause", handlePause);
-    transport.on("ticks", handleTicks);
+    for (const e of TRANSPORT_EVENT_NAMES) {
+      Tone.getTransport().on(e, handler);
+      disposes.push(() => Tone.getTransport().off(e, handler));
+    }
 
     return () => {
-      transport.off("start", handleStart);
-      transport.off("stop", handleStop);
-      transport.off("pause", handlePause);
-      transport.off("ticks", handleTicks);
-      cancelAnimationFrame(rafRef.current);
+      for (const dispose of disposes) {
+        dispose();
+      }
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
     };
   }, []);
 
-  return { isPlaying, position };
+  return transportState;
+}
+
+// from Tone.js TransportEventNames type
+const TRANSPORT_EVENT_NAMES = [
+  "start",
+  "stop",
+  "pause",
+  "loop",
+  "loopEnd",
+  "loopStart",
+  "ticks",
+] as const;
+
+// TODO: align with Tone.js's naming convention
+type TransportState = {
+  isPlaying: boolean;
+  position: number;
+  // TODO: more tranport state as source of truth
+  // transport.bpm;
+  // transport.timeSignature;
+};
+
+function deriveState(): TransportState {
+  const transport = Tone.getTransport();
+  // transport.toSeconds(transport.ticks)
+  // Tone.Ticks(transport.ticks);
+  // Tone.Ticks(transport.ticks).toSeconds()
+  return {
+    isPlaying: transport.state === "started",
+    position: transport.seconds,
+    // position: Tone.Ticks(transport.ticks).toSeconds(),
+  };
 }

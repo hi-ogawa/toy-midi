@@ -87,6 +87,10 @@ See [architecture.md](architecture.md) for implementation details.
   - [ ] fix: remove unnecessary null checks in AudioManager
   - [ ] fix: metronome toggle is laggy
   - [ ] feat: persist lastPlayheadPosition
+  - [ ] fix: `transport.bpm` source of truth instead of `store.tempo`
+  - [ ] fix: playback scheduling shouldn't be driven directly by UI effect
+  - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
+    - reduce trivial re-expose Tone.js from audioManager
 - [ ] fix: extend note dragging grid snap
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
@@ -95,8 +99,6 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: deploy (vercel)
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
-- [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
-  - reduce trivial re-expose Tone.js from audioManager
 - [ ] test: test audio context playback
   - no need to test what users hear, but can we test transport state?
 - [ ] refactor: refactor debug panel
