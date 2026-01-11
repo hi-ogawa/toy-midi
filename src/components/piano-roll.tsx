@@ -1333,7 +1333,12 @@ function WaveformArea({
 // Threshold for switching between aggregation and detail modes
 const PEAK_AGGREGATION_THRESHOLD = 1;
 
-function Waveform({ peaks }: { peaks: number[]; height: number }) {
+function Waveform({
+  peaks,
+}: {
+  peaks: number[];
+  height: number; // Not used - canvas auto-sizes via ResizeObserver
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
