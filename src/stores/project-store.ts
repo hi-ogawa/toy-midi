@@ -51,13 +51,6 @@ export interface ProjectState {
   updateNotes: (
     updates: Array<{ id: string; changes: Partial<Omit<Note, "id">> }>,
   ) => void; // Batch update for history tracking
-  updateNotesWithHistory: (
-    updates: Array<{
-      id: string;
-      before: Partial<Omit<Note, "id">>;
-      after: Partial<Omit<Note, "id">>;
-    }>,
-  ) => void; // Update with explicit before/after for drag operations
   deleteNotes: (ids: string[]) => void;
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
@@ -101,7 +94,7 @@ export function generateNoteId(): string {
   return `note-${++noteIdCounter}`;
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
@@ -149,7 +142,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   },
 
   updateNote: (id, updates) => {
-    const state = useProjectStore.getState();
+    const state = get();
     const note = state.notes.find((n) => n.id === id);
     if (!note) return;
 
@@ -172,7 +165,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   },
 
   updateNotes: (updates) => {
-    const state = useProjectStore.getState();
+    const state = get();
     const historyStore = useHistoryStore.getState();
 
     // Build history entry with before and after state
@@ -209,30 +202,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
     });
   },
 
-  updateNotesWithHistory: (updates) => {
-    const historyStore = useHistoryStore.getState();
-
-    // Push history entry with provided before/after
-    if (updates.length > 0) {
-      historyStore.pushOperation({
-        type: "update-notes",
-        updates: updates,
-      });
-    }
-
-    // Apply after state
-    set((state) => {
-      const updatesMap = new Map(updates.map((u) => [u.id, u.after]));
-      return {
-        notes: state.notes.map((n) =>
-          updatesMap.has(n.id) ? { ...n, ...updatesMap.get(n.id)! } : n,
-        ),
-      };
-    });
-  },
-
   deleteNotes: (ids) => {
-    const state = useProjectStore.getState();
+    const state = get();
 
     // Track in history (save deleted notes)
     const historyStore = useHistoryStore.getState();
@@ -349,8 +320,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
     const historyStore = useHistoryStore.getState();
     if (!historyStore.canRedo()) return;
 
-    const redoStack = historyStore.redoStack;
-    const entry = redoStack[redoStack.length - 1];
+    const entry = historyStore.redoStack[historyStore.redoStack.length - 1];
 
     historyStore.startRedo();
 
@@ -378,11 +348,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
         });
       }
 
-      // Move from redo to undo stack using proper store method
-      useHistoryStore.setState({
-        redoStack: redoStack.slice(0, -1),
-        undoStack: [...historyStore.undoStack, entry],
-      });
+      // Move from redo to undo stack
+      historyStore.moveToUndo(entry);
     } finally {
       historyStore.endRedo();
     }

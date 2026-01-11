@@ -42,6 +42,7 @@ export interface HistoryState {
   startDrag: () => void;
   endDrag: () => void;
   moveToRedo: () => void; // Move top of undo stack to redo stack
+  moveToUndo: (entry: HistoryEntry) => void; // Move entry from redo to undo stack
 }
 
 const MAX_HISTORY = 50;
@@ -96,6 +97,17 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       return {
         undoStack: newUndoStack,
         redoStack: [...state.redoStack, entry],
+      };
+    });
+  },
+
+  moveToUndo: (entry) => {
+    set((state) => {
+      const newRedoStack = [...state.redoStack];
+      newRedoStack.pop(); // Remove the entry we're moving
+      return {
+        redoStack: newRedoStack,
+        undoStack: [...state.undoStack, entry],
       };
     });
   },
