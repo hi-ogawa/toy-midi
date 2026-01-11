@@ -38,8 +38,9 @@ import { Slider } from "./ui/slider";
 
 function formatTimeCompact(seconds: number): string {
   const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toFixed(2).padStart(5, "0")}`;
+  const secs = Math.floor(seconds % 60);
+  const hundredths = Math.floor((seconds % 1) * 100);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
 }
 
 function formatBarBeat(seconds: number, tempo: number): string {
@@ -47,7 +48,7 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const totalBeats = seconds * beatsPerSecond;
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
-  return `${bar}|${beatInBar}`;
+  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
 }
 
 type TransportProps = {
@@ -227,7 +228,7 @@ export function Transport({ onHelpClick }: TransportProps) {
       <Button
         data-testid="play-pause-button"
         onClick={handlePlayPause}
-        variant={isPlaying ? "ghost" : "secondary"}
+        variant={isPlaying ? "default" : "ghost"}
         size="icon"
         title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
@@ -239,10 +240,11 @@ export function Transport({ onHelpClick }: TransportProps) {
       </Button>
 
       {/* Metronome toggle */}
+      {/* TODO: better metronome icon */}
       <Button
         data-testid="metronome-toggle"
         onClick={() => setMetronomeEnabled(!metronomeEnabled)}
-        variant={metronomeEnabled ? "ghost" : "secondary"}
+        variant={metronomeEnabled ? "default" : "ghost"}
         size="icon"
         title="Toggle metronome"
         aria-pressed={metronomeEnabled}
@@ -253,10 +255,10 @@ export function Transport({ onHelpClick }: TransportProps) {
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
 
-      {/* Time display: Bar|Beat.frac - MM:SS.frac */}
+      {/* Time display: Bar|Beat - MM:SS.frac */}
       <div
         data-testid="time-display"
-        className="font-mono text-muted-foreground tabular-nums min-w-[140px]"
+        className="font-mono text-muted-foreground tabular-nums"
       >
         {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
       </div>
