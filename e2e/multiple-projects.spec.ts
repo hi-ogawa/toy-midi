@@ -126,10 +126,7 @@ test.describe("Multiple Projects", () => {
     await expect(page.getByTestId("transport")).toBeVisible();
 
     // Should have only the first project's note
-    const notes1 = await evaluateStore(
-      page,
-      (store) => store.getState().notes,
-    );
+    const notes1 = await evaluateStore(page, (store) => store.getState().notes);
     expect(notes1).toHaveLength(1);
     expect(notes1[0].pitch).toBe(60);
 
@@ -139,10 +136,7 @@ test.describe("Multiple Projects", () => {
     await expect(page.getByTestId("transport")).toBeVisible();
 
     // Should have only the second project's note
-    const notes2 = await evaluateStore(
-      page,
-      (store) => store.getState().notes,
-    );
+    const notes2 = await evaluateStore(page, (store) => store.getState().notes);
     expect(notes2).toHaveLength(1);
     expect(notes2[0].pitch).toBe(70);
   });

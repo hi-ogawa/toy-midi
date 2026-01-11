@@ -118,7 +118,7 @@ _Audio/Playback_
 
 _Project management_
 
-- [ ] feat: save multiple project
+- [x] feat: save multiple project
 - [ ] feat: locators to mark parts
 - [ ] feat: add demo project (good for quick dev test case too)
 
