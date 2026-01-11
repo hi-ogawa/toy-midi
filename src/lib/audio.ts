@@ -219,15 +219,21 @@ class AudioManager {
 
   // Volume controls (0-1)
   setAudioVolume(volume: number): void {
-    this.audioChannel.volume.value = Math.max(0, Math.min(1, volume));
+    this.audioChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMidiVolume(volume: number): void {
-    this.midiChannel.volume.value = Math.max(0, Math.min(1, volume));
+    this.midiChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMetronomeVolume(volume: number): void {
-    this.metronomeChannel.volume.value = Math.max(0, Math.min(1, volume));
+    this.metronomeChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMetronomeEnabled(enabled: boolean): void {
