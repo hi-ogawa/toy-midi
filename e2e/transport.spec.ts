@@ -1,6 +1,6 @@
 import path from "path";
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { clickNewProject, evaluateTone } from "./helpers";
 
 test.describe("Transport Controls", () => {
   test.beforeEach(async ({ page }) => {
@@ -127,5 +127,89 @@ test.describe("Transport Controls", () => {
     await exportButton.click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.mid$/);
+  });
+
+  test("audio context transport state", async ({ page }) => {
+    // Verify Transport is in stopped state initially
+    const initialState = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().state,
+    );
+    expect(initialState).toBe("stopped");
+
+    // Load audio
+    const fileInput = page.getByTestId("audio-file-input");
+    const testAudioPath = path.join(
+      import.meta.dirname,
+      "../public/test-audio.wav",
+    );
+    await fileInput.setInputFiles(testAudioPath);
+    await expect(page.getByTestId("audio-file-name")).toHaveText(
+      "test-audio.wav",
+      { timeout: 5000 },
+    );
+
+    // Click play button
+    const playButton = page.getByTestId("play-pause-button");
+    await playButton.click();
+
+    // Verify Transport state is "started"
+    const playingState = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().state,
+    );
+    expect(playingState).toBe("started");
+
+    // Verify position is progressing
+    const position1 = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().seconds,
+    );
+    await page.waitForTimeout(100); // Wait 100ms
+    const position2 = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().seconds,
+    );
+    expect(position2).toBeGreaterThan(position1);
+
+    // Click pause button
+    await playButton.click();
+
+    // Verify Transport state is "paused"
+    const pausedState = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().state,
+    );
+    expect(pausedState).toBe("paused");
+
+    // Verify position is not progressing when paused
+    const pausedPosition1 = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().seconds,
+    );
+    await page.waitForTimeout(100);
+    const pausedPosition2 = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().seconds,
+    );
+    expect(pausedPosition2).toBeCloseTo(pausedPosition1, 1);
+
+    // Test space key to resume
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(50); // Allow state to update
+    const resumedState = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().state,
+    );
+    expect(resumedState).toBe("started");
+
+    // Test space key to pause again
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(50); // Allow state to update
+    const pausedAgainState = await evaluateTone(
+      page,
+      (Tone) => Tone.getTransport().state,
+    );
+    expect(pausedAgainState).toBe("paused");
   });
 });

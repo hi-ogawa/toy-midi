@@ -305,3 +305,10 @@ class AudioManager {
 }
 
 export const audioManager = new AudioManager();
+
+// Expose Tone.js for E2E testing in dev mode
+export function exposeToneForE2E(): void {
+  if (import.meta.env.DEV) {
+    (window as Window & { Tone?: typeof Tone }).Tone = Tone;
+  }
+}
