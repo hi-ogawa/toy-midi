@@ -50,7 +50,7 @@ export interface ProjectState {
   setTempo: (bpm: number) => void;
 
   // Audio actions
-  setAudioFile: (fileName: string, duration: number, assetKey?: string) => void;
+  setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
 
   // Mixer actions
@@ -154,7 +154,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
   setAudioFile: (fileName, duration, assetKey) =>
     set({
       audioFileName: fileName,
-      audioAssetKey: assetKey ?? null,
+      audioAssetKey: assetKey,
       audioDuration: duration,
       audioOffset: 0,
     }),
@@ -247,11 +247,6 @@ export function saveProject(): void {
   }
 }
 
-export interface LoadedProject {
-  audioAssetKey: string | null;
-  audioFileName: string | null;
-}
-
 // Default values for new/missing fields
 const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
@@ -297,7 +292,7 @@ export function clearProject(): void {
   });
 }
 
-export function loadProject(): LoadedProject | null {
+export function loadProject() {
   try {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) return null;
@@ -342,11 +337,6 @@ export function loadProject(): LoadedProject | null {
       selectedNoteIds: new Set(),
       audioPeaks: [],
     });
-
-    return {
-      audioAssetKey: merged.audioAssetKey,
-      audioFileName: merged.audioFileName,
-    };
   } catch (e) {
     console.warn("Failed to load project:", e);
     return null;

@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { ToneAudioBuffer } from "tone";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
@@ -21,30 +22,40 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const initMutation = useMutation({
+    // TODO: options.restoreProject
     mutationFn: async (continueProject: boolean) => {
       await audioManager.init();
 
-      if (!continueProject) {
-        clearProject();
+      if (continueProject) {
+        loadProject();
       } else {
-        const loaded = loadProject();
+        clearProject();
+      }
 
-        if (loaded?.audioAssetKey) {
-          const asset = await loadAsset(loaded.audioAssetKey);
-          if (asset) {
-            const url = URL.createObjectURL(asset.blob);
-            const buffer = await ToneAudioBuffer.fromUrl(url);
-            URL.revokeObjectURL(url);
+      const project = useProjectStore.getState();
+      if (project.audioAssetKey) {
+        const asset = await loadAsset(project.audioAssetKey);
+        if (asset) {
+          const url = URL.createObjectURL(asset.blob);
+          const buffer = await ToneAudioBuffer.fromUrl(url);
+          URL.revokeObjectURL(url);
 
-            audioManager.player.buffer = buffer;
-            // Re-sync after loading buffer (applyState ran before buffer was ready)
-            audioManager.syncAudioTrack(useProjectStore.getState().audioOffset);
+          audioManager.player.buffer = buffer;
+          audioManager.syncAudioTrack(project.audioOffset);
 
-            const peaks = getAudioBufferPeaks(buffer, 100);
-            useProjectStore.getState().setAudioPeaks(peaks, 100);
-          }
+          const peaks = getAudioBufferPeaks(buffer, 100);
+          project.setAudioPeaks(peaks, 100);
+        } else {
+          toast.warning(
+            "Audio asset not found. The audio track will be cleared.",
+          );
         }
       }
+
+      audioManager.applyState(useProjectStore.getState());
+      useProjectStore.subscribe((state) => {
+        audioManager.applyState(state);
+      });
 
       // Setup auto-save on state changes (debounced)
       // TODO: escape hatch for e2e to persist faster?

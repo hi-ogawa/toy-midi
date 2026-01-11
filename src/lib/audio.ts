@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
-import { useProjectStore, type ProjectState } from "@/stores/project-store";
+import type { ProjectState } from "@/stores/project-store";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -77,21 +77,15 @@ class AudioManager {
       "4n",
     );
     this.metronomeSeq.start(0);
-
-    // Apply initial state (subscription doesn't fire on subscribe)
-    this.applyState(useProjectStore.getState());
-
-    // Subscribe for future state changes
-    useProjectStore.subscribe((state) => {
-      this.applyState(state);
-    });
   }
 
   /**
    * Sync AudioManager with store state.
    * Called once during init() and on every store change.
    */
-  private applyState(state: ProjectState): void {
+  applyState(state: ProjectState): void {
+    // selectively subscribe
+    // (e.g. don't need to syncAudioTrack when other store fields change)
     this.setAudioVolume(state.audioVolume);
     this.setMidiVolume(state.midiVolume);
     this.setMetronomeVolume(state.metronomeVolume);

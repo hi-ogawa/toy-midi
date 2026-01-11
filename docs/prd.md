@@ -115,6 +115,7 @@ See [architecture.md](architecture.md) for implementation details.
   - no need to test what users hear, but can we test transport state?
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
+- [ ] refactor: don't swallow error. use toast with log.
 
 ### Backlog
 
