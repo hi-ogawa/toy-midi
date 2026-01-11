@@ -79,8 +79,8 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] feat: save multiple project
 - [ ] feat: locators to mark parts
 - [ ] feat: add demo project (good for quick dev test case too)
-- [ ] follow up docs/2026-01-10-audio-state-sync-refactor.md
-  - [ ] fix: play/stop behavior, timeline jumping issues
+- [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
+  - [x] fix: play/stop behavior, timeline jumping issues
     - playhead doesn't jump when paused
     - midi playback broken after moving playhead
   - [ ] fix: remove deferred init patterns (\_ensurePlayerConnected, etc.)
