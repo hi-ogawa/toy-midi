@@ -96,7 +96,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: limit vertical scale to keyboard area only
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
-- [ ] fix: audio offset label direction
+- [x] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
