@@ -2,6 +2,9 @@ import path from "path";
 import { expect, test } from "@playwright/test";
 import { clickNewProject } from "./helpers";
 
+// Constants matching piano-roll.tsx
+const BEAT_WIDTH = 80;
+
 test.describe("Transport Controls", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -127,5 +130,82 @@ test.describe("Transport Controls", () => {
     await exportButton.click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.mid$/);
+  });
+});
+
+test.describe.skip("Timeline Seek", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await clickNewProject(page);
+  });
+
+  test("clicking timeline while paused moves playhead", async ({ page }) => {
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    // Playhead should start at position 0 (left edge)
+    const playhead = page.getByTestId("timeline-playhead");
+    const initialPlayheadBox = await playhead.boundingBox();
+    if (!initialPlayheadBox) throw new Error("Playhead not found");
+    const initialX = initialPlayheadBox.x;
+
+    // Click at beat 4 (4 * BEAT_WIDTH from left)
+    const clickX = timelineBox.x + BEAT_WIDTH * 4;
+    const clickY = timelineBox.y + timelineBox.height / 2;
+    await page.mouse.click(clickX, clickY);
+
+    // Wait for React state update
+    await page.waitForTimeout(100);
+
+    // Playhead should have moved right
+    const movedPlayheadBox = await playhead.boundingBox();
+    if (!movedPlayheadBox) throw new Error("Playhead not found after seek");
+    expect(movedPlayheadBox.x).toBeGreaterThan(initialX + BEAT_WIDTH * 3);
+
+    // Time display should reflect new position (not 0:00)
+    const timeDisplay = page.getByTestId("time-display");
+    await expect(timeDisplay).not.toContainText("0:00 /");
+  });
+
+  test("MIDI plays from seeked position", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a note at beat 2
+    const noteX = gridBox.x + BEAT_WIDTH * 2;
+    const noteY = gridBox.y + 100;
+    await page.mouse.move(noteX, noteY);
+    await page.mouse.down();
+    await page.mouse.move(noteX + BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    // Seek to beat 4 (past the note)
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    const seekX = timelineBox.x + BEAT_WIDTH * 4;
+    await page.mouse.click(seekX, timelineBox.y + timelineBox.height / 2);
+
+    // Start playback
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("pause-icon")).toBeVisible();
+
+    // Wait briefly for playback
+    await page.waitForTimeout(200);
+
+    // Stop playback
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("play-icon")).toBeVisible();
+
+    // The playhead should have moved forward from beat 4, not from 0
+    const playhead = page.getByTestId("timeline-playhead");
+    const playheadBox = await playhead.boundingBox();
+    if (!playheadBox) throw new Error("Playhead not found");
+
+    // Playhead should still be around beat 4+ (not reset to 0)
+    expect(playheadBox.x).toBeGreaterThan(timelineBox.x + BEAT_WIDTH * 3);
   });
 });

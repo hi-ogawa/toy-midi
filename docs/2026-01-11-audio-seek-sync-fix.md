@@ -76,6 +76,7 @@ if (wasPlaying) transport.start();
 ```
 
 Questions:
+
 - Is `player.seek()` more appropriate for offset changes?
 - Are there race conditions in this pattern?
 - How do other Tone.js apps handle audio alignment?
@@ -93,6 +94,7 @@ this.metronomeSeq.start(nextMeasure);
 ```
 
 Questions:
+
 - Is manual measure alignment the right pattern, or does Tone.js handle this?
 - Should we use `Tone.Loop` instead of `Tone.Sequence`?
 - The "lag" on metronome toggle - is this inherent to the pattern or fixable?
@@ -101,6 +103,7 @@ Questions:
 ### 5. Reference Patterns
 
 We should look at:
+
 - Other Tone.js DAW/sequencer examples
 - How Signal (refs/signal) handles transport sync
 - Tone.js examples in refs/Tone.js
@@ -111,11 +114,11 @@ We should look at:
 
 From Tone.js source research, these are confirmed correct:
 
-| Pattern | Status |
-|---------|--------|
-| `transport.seconds = x` for seeking | ✅ Standard |
-| `player.sync().start(time, offset)` | ✅ Idiomatic |
-| RAF for position during playback | ✅ No continuous event exists |
+| Pattern                             | Status                        |
+| ----------------------------------- | ----------------------------- |
+| `transport.seconds = x` for seeking | ✅ Standard                   |
+| `player.sync().start(time, offset)` | ✅ Idiomatic                  |
+| RAF for position during playback    | ✅ No continuous event exists |
 
 ---
 

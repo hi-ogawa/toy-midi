@@ -46,14 +46,21 @@ export function useTransport() {
       setPosition(Tone.getTransport().seconds);
     };
 
+    // Position changed while stopped (e.g., timeline click to seek)
+    const handleTicks = () => {
+      setPosition(Tone.getTransport().seconds);
+    };
+
     transport.on("start", handleStart);
     transport.on("stop", handleStop);
     transport.on("pause", handlePause);
+    transport.on("ticks", handleTicks);
 
     return () => {
       transport.off("start", handleStart);
       transport.off("stop", handleStop);
       transport.off("pause", handlePause);
+      transport.off("ticks", handleTicks);
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
