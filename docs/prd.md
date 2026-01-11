@@ -67,10 +67,10 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] fix: rework transport header layout
 - [x] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
+- [x] feat: time signature support (UI controls, grid rendering, metronome, MIDI export)
 
 ### TODO
 
-- [ ] feat: time signature support (currently hardcoded 4/4)
 - [ ] feat: embed soundfont (bass sound)
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select

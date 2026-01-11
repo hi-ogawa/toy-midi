@@ -81,6 +81,11 @@ interface Note {
   velocity: number; // 0-127
 }
 
+interface TimeSignature {
+  numerator: number; // beats per bar (e.g., 3, 4, 5, 6)
+  denominator: number; // beat value (e.g., 4, 8)
+}
+
 type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 ```
 
@@ -98,6 +103,7 @@ selectedNoteIds: Set<string>
 gridSnap: GridSnap
 totalBeats: number        // timeline length (default 640)
 tempo: number             // BPM (default 120)
+timeSignature: TimeSignature  // time signature (default 4/4)
 ```
 
 **Audio/Playback:**
@@ -440,5 +446,6 @@ DEFAULT_PIXELS_PER_KEY = 20
 MIN/MAX_PIXELS_PER_BEAT = 20-200
 MIN/MAX_PIXELS_PER_KEY = 10-40
 
-BEATS_PER_BAR = 4  // hardcoded 4/4
+BEATS_PER_BAR = 4  // deprecated constant, now calculated from timeSignature
+// beatsPerBar = timeSignature.numerator * (4 / timeSignature.denominator)
 ```
