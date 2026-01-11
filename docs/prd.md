@@ -82,8 +82,8 @@ _Note editing_
 _Timeline/Viewport_
 
 - [x] feat: (semi-)infinite zoom out - hide subgrid lines at extreme zoom levels
+- [x] feat: toggle auto-scroll during playback
 - [ ] feat: (semi-)infinite zoom in (convenient for audio wave form view)
-- [ ] feat: toggle auto-scroll during playback
 - [ ] fix: limit vertical scale to keyboard area only
 
 _Audio/Playback_
