@@ -112,17 +112,7 @@ class AudioManager {
   }
 
   seek(seconds: number): void {
-    const transport = Tone.getTransport();
-    const wasPlaying = transport.state === "started";
-    if (wasPlaying) {
-      transport.pause();
-    }
-    transport.seconds = Math.max(0, seconds);
-    if (wasPlaying) {
-      // Re-sync player to new transport position with current offset
-      this.syncAudioTrack(useProjectStore.getState().audioOffset);
-      transport.start();
-    }
+    Tone.getTransport().seconds = Math.max(0, seconds);
   }
 
   syncAudioTrack(offset: number): void {

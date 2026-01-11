@@ -298,6 +298,7 @@ After fix:
 **2026-01-11:** User feedback - focus on pattern consistency, not performance. The issue is `useProjectStore` scattered everywhere with inconsistent usage, not about selective subscriptions.
 
 **2026-01-11:** Implementation complete. Pattern now applied consistently:
+
 - AudioManager uses applyState() for initial + subscription sync
 - Components only call store actions, not audioManager.setXxx()
 - audioOffset included in subscription
