@@ -91,6 +91,21 @@ test.describe("Transport Controls", () => {
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("auto-scroll toggle", async ({ page }) => {
+    const autoScrollToggle = page.getByTestId("auto-scroll-toggle");
+
+    // Should be on by default
+    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+
+    // Toggle off
+    await autoScrollToggle.click();
+    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "false");
+
+    // Toggle on
+    await autoScrollToggle.click();
+    await expect(autoScrollToggle).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("tap tempo", async ({ page }) => {
     const tapButton = page.getByTestId("tap-tempo-button");
     const tempoInput = page.getByTestId("tempo-input");

@@ -27,6 +27,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     audioVolume,
     midiVolume,
     metronomeEnabled,
+    autoScrollEnabled,
     gridSnap,
     showDebug,
     setAudioFile,
@@ -34,6 +35,7 @@ export function Transport({ onHelpClick }: TransportProps) {
     setAudioVolume,
     setMidiVolume,
     setMetronomeEnabled,
+    setAutoScrollEnabled,
     setGridSnap,
     setShowDebug,
     setAudioPeaks,
@@ -128,6 +130,10 @@ export function Transport({ onHelpClick }: TransportProps) {
     const newValue = !metronomeEnabled;
     setMetronomeEnabled(newValue);
     // AudioManager sync happens via useEffect above
+  };
+
+  const handleAutoScrollToggle = () => {
+    setAutoScrollEnabled(!autoScrollEnabled);
   };
 
   const handleTapTempo = () => {
@@ -257,6 +263,21 @@ export function Transport({ onHelpClick }: TransportProps) {
         title="Toggle metronome"
       >
         Metro
+      </button>
+
+      {/* Auto-scroll toggle */}
+      <button
+        data-testid="auto-scroll-toggle"
+        onClick={handleAutoScrollToggle}
+        aria-pressed={autoScrollEnabled}
+        className={`h-10 px-3 text-sm rounded font-medium ${
+          autoScrollEnabled
+            ? "bg-blue-600 text-white hover:bg-blue-500"
+            : "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
+        }`}
+        title="Toggle auto-scroll during playback"
+      >
+        Auto-scroll
       </button>
 
       {/* Time display */}
