@@ -76,8 +76,7 @@ See [architecture.md](architecture.md) for implementation details.
   - [x] refactor: remove redundant `audioManager.init()` in handlePlayPause
   - [x] refactor: evaluate React Query
     - [x] chore: setup sonner for error toasts
-- [ ] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
-- [ ] feat: persist lastPlayheadPosition (docs/2026-01-10-audio-state-sync-refactor.md)
+- [x] feat: persist viewport state (scrollX/Y, zoom, waveformHeight)
 - [ ] feat: locators to mark parts
 - [x] fix: zoom should keep cursor as center
 - [ ] fix: extend note dragging grid snap
@@ -90,7 +89,7 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] fix: audio offset label direction
 - [ ] chore: deploy (vercel)
 - [x] fix: move toolbar to transport header (debug button as small bug icon button)
-- [ ] fix: rework transport header layout
+- [x] fix: rework transport header layout
   - metro toggle align left
   - play/pause use proper icon
   - button text shouldn't be black
@@ -98,6 +97,11 @@ See [architecture.md](architecture.md) for implementation details.
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] refactor: audio ↔ state sync (docs/2026-01-10-audio-state-sync-refactor.md)
+  - [ ] fix: playhead doesn't jump when pased
+  - [ ] feat: persist lastPlayheadPosition
+  - [ ] fix: midi playback broken when
+- [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
+- [ ] feat: add demo project (good for quick dev test case too)
 - [x] refactor: use useMutation for audio file loading (transport.tsx handleFileChange)
 - [ ] refactor: refactor debug panel
 - [ ] refactor: use UI library for common components
