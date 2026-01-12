@@ -197,6 +197,24 @@ type DragMode =
       originalStates: Array<{ id: string; start: number; pitch: number }>;
     }
   | {
+      type: "duplicating";
+      noteId: string; // The primary duplicate note being tracked
+      startBeat: number;
+      startPitch: number;
+      cellOffset: number; // which grid cell within the note was grabbed
+      offsetPitch: number;
+      // Original notes that were duplicated (for reference, not modified)
+      originalNotes: Array<{
+        id: string;
+        start: number;
+        pitch: number;
+        duration: number;
+        velocity: number;
+      }>;
+      // IDs of the newly created duplicate notes
+      duplicateNoteIds: string[];
+    }
+  | {
       type: "resizing-start";
       noteId: string;
       originalStart: number;
@@ -525,37 +543,93 @@ export function PianoRoll() {
       );
 
       if (clickedNote) {
-        // Select and maybe drag
-        if (e.shiftKey) {
-          selectNotes([clickedNote.id], false);
-        } else if (!selectedNoteIds.has(clickedNote.id)) {
-          selectNotes([clickedNote.id], true);
+        // Check if shift+clicking on already selected note -> duplicate mode
+        const isAlreadySelected = selectedNoteIds.has(clickedNote.id);
+        const shouldDuplicate = e.shiftKey && isAlreadySelected;
+
+        if (shouldDuplicate) {
+          // Duplicate all selected notes
+          const notesToDuplicate = notes.filter((n) =>
+            selectedNoteIds.has(n.id),
+          );
+          const duplicateNoteIds: string[] = [];
+          const originalNotes = notesToDuplicate.map((n) => ({
+            id: n.id,
+            start: n.start,
+            pitch: n.pitch,
+            duration: n.duration,
+            velocity: n.velocity,
+          }));
+
+          // Create duplicates at the same position as originals
+          notesToDuplicate.forEach((originalNote) => {
+            const duplicateNote: Note = {
+              id: generateNoteId(),
+              pitch: originalNote.pitch,
+              start: originalNote.start,
+              duration: originalNote.duration,
+              velocity: originalNote.velocity,
+            };
+            addNote(duplicateNote);
+            duplicateNoteIds.push(duplicateNote.id);
+          });
+
+          // Select the duplicates instead of the originals
+          selectNotes(duplicateNoteIds, true);
+
+          // Preview note sound on drag start
+          audioManager.playNote(clickedNote.pitch);
+
+          // Find the duplicate that corresponds to the clicked note
+          const clickedIndex = notesToDuplicate.findIndex(
+            (n) => n.id === clickedNote.id,
+          );
+          const duplicateClickedNoteId = duplicateNoteIds[clickedIndex];
+
+          historyStore.startDrag();
+          setDragMode({
+            type: "duplicating",
+            noteId: duplicateClickedNoteId,
+            startBeat: clickedNote.start,
+            startPitch: clickedNote.pitch,
+            cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
+            offsetPitch: 0,
+            originalNotes,
+            duplicateNoteIds,
+          });
+        } else {
+          // Normal selection and move behavior
+          if (e.shiftKey) {
+            selectNotes([clickedNote.id], false);
+          } else if (!isAlreadySelected) {
+            selectNotes([clickedNote.id], true);
+          }
+          // Preview note sound on drag start
+          audioManager.playNote(clickedNote.pitch);
+
+          // Capture original states of all selected notes for undo
+          // Note: if clicked note wasn't selected, it's now the only selected one
+          const notesToMove = selectedNoteIds.has(clickedNote.id)
+            ? notes.filter((n) => selectedNoteIds.has(n.id))
+            : [clickedNote];
+          const originalStates = notesToMove.map((n) => ({
+            id: n.id,
+            start: n.start,
+            pitch: n.pitch,
+          }));
+
+          historyStore.startDrag();
+          setDragMode({
+            type: "moving",
+            noteId: clickedNote.id,
+            startBeat: clickedNote.start,
+            startPitch: clickedNote.pitch,
+            // Cell offset: which grid cell within the note was grabbed
+            cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
+            offsetPitch: 0,
+            originalStates,
+          });
         }
-        // Preview note sound on drag start
-        audioManager.playNote(clickedNote.pitch);
-
-        // Capture original states of all selected notes for undo
-        // Note: if clicked note wasn't selected, it's now the only selected one
-        const notesToMove = selectedNoteIds.has(clickedNote.id)
-          ? notes.filter((n) => selectedNoteIds.has(n.id))
-          : [clickedNote];
-        const originalStates = notesToMove.map((n) => ({
-          id: n.id,
-          start: n.start,
-          pitch: n.pitch,
-        }));
-
-        historyStore.startDrag();
-        setDragMode({
-          type: "moving",
-          noteId: clickedNote.id,
-          startBeat: clickedNote.start,
-          startPitch: clickedNote.pitch,
-          // Cell offset: which grid cell within the note was grabbed
-          cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
-          offsetPitch: 0,
-          originalStates,
-        });
       } else {
         // Start creating a new note or box select
         if (e.shiftKey) {
@@ -620,6 +694,32 @@ export function PianoRoll() {
           const deltaStart = newStart - dragMode.startBeat;
           const deltaPitch = newPitch - dragMode.startPitch;
           selectedNoteIds.forEach((id) => {
+            if (id !== dragMode.noteId) {
+              const note = notes.find((n) => n.id === id);
+              if (note) {
+                updateNote(id, {
+                  start: Math.max(0, note.start + deltaStart),
+                  pitch: clampPitch(note.pitch + deltaPitch),
+                });
+              }
+            }
+          });
+        }
+        setDragMode({ ...dragMode, startBeat: newStart, startPitch: newPitch });
+      } else if (dragMode.type === "duplicating") {
+        // Cell-based snapping: duplicate notes move when cursor crosses grid lines
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = Math.max(
+          0,
+          (cursorCell - dragMode.cellOffset) * gridSnapValue,
+        );
+        const newPitch = clampPitch(pitch);
+        updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
+        // Update other duplicate notes too
+        if (dragMode.duplicateNoteIds.length > 1) {
+          const deltaStart = newStart - dragMode.startBeat;
+          const deltaPitch = newPitch - dragMode.startPitch;
+          dragMode.duplicateNoteIds.forEach((id) => {
             if (id !== dragMode.noteId) {
               const note = notes.find((n) => n.id === id);
               if (note) {
@@ -706,6 +806,12 @@ export function PianoRoll() {
           updates,
         });
       }
+    } else if (dragMode.type === "duplicating") {
+      // End drag - the duplicates have already been created and moved
+      // No need to push history since addNote already adds to history
+      historyStore.endDrag();
+
+      // The duplicates are already selected, so nothing more to do
     } else if (dragMode.type === "resizing-start") {
       // End drag and push history for resize
       historyStore.endDrag();
