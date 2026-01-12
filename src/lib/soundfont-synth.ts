@@ -1,6 +1,5 @@
 import { getSampleEventsFromSoundFont, type SynthEvent } from "@ryohey/wavelet";
 import * as Tone from "tone";
-import { Gain } from "tone/build/esm/core/context/Gain";
 
 type ToneContext = ReturnType<typeof Tone.getContext>;
 
@@ -17,11 +16,11 @@ export class SoundFontSynth {
   private _isLoaded = false;
 
   /** Tone.js-compatible output node for connecting to other Tone nodes */
-  readonly output: Gain;
+  readonly output: Tone.Gain;
 
   constructor(context: ToneContext) {
     this.context = context;
-    this.output = new Tone.Gain({ context: context as Tone.BaseContext });
+    this.output = new Tone.Gain({ context });
   }
 
   get isLoaded(): boolean {
