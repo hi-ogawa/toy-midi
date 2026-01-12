@@ -17,7 +17,7 @@ test.describe("Piano Roll", () => {
 
     // Check keyboard C labels are visible (only C notes show labels now)
     await expect(page.getByText("C3")).toBeVisible();
-    await expect(page.getByText("C2")).toBeVisible();
+    await expect(page.getByText("C4")).toBeVisible();
   });
 
   test("create, select, and delete note", async ({ page }) => {
