@@ -425,4 +425,52 @@ test.describe("Multiple Projects", () => {
 
     await expect(projectCard).toContainText("From Modal");
   });
+
+  test("can switch projects from modal", async ({ page }) => {
+    // Create two projects with different tempos
+    await clickNewProject(page);
+    await evaluateStore(page, (store) => {
+      store.getState().setTempo(120);
+    });
+    await page.waitForTimeout(600);
+    const project1Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    await page.reload();
+    await clickNewProject(page);
+    await evaluateStore(page, (store) => {
+      store.getState().setTempo(140);
+    });
+    await page.waitForTimeout(600);
+
+    // Verify we're on project 2 with tempo 140
+    const currentTempo = await evaluateStore(
+      page,
+      (store) => store.getState().tempo,
+    );
+    expect(currentTempo).toBe(140);
+
+    // Open project modal and switch to project 1
+    await page.getByTestId("settings-button").click();
+    await page.getByTestId("projects-button").click();
+
+    // Click on project 1 card
+    await page.getByTestId(`project-card-${project1Id}`).click();
+
+    // Wait for page reload and verify we're on project 1
+    await page.waitForTimeout(600);
+    const newTempo = await evaluateStore(
+      page,
+      (store) => store.getState().tempo,
+    );
+    expect(newTempo).toBe(120);
+
+    const currentProjectId = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+    expect(currentProjectId).toBe(project1Id);
+  });
 });
