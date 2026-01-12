@@ -28,13 +28,8 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
 
   // Editing
   {
-    key: "Delete",
-    description: "Delete selected notes",
-    category: "editing",
-  },
-  {
-    key: "Backspace",
-    description: "Delete selected notes",
+    key: "Delete / Backspace",
+    description: "Delete selected notes/locator",
     category: "editing",
   },
   {
@@ -65,6 +60,11 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
   {
     key: "Ctrl+Y",
     description: "Redo (alternative)",
+    category: "editing",
+  },
+  {
+    key: "L",
+    description: "Add locator at playhead",
     category: "editing",
   },
 ];
@@ -104,6 +104,21 @@ export const MOUSE_ACTIONS: MouseAction[] = [
   {
     action: "Shift + Drag on empty space",
     description: "Box select multiple notes",
+    category: "editing",
+  },
+  {
+    action: "Click on keyboard",
+    description: "Preview note sound",
+    category: "editing",
+  },
+  {
+    action: "Click on locator",
+    description: "Select locator",
+    category: "editing",
+  },
+  {
+    action: "Double-click locator",
+    description: "Rename locator",
     category: "editing",
   },
 
