@@ -427,6 +427,7 @@ export interface SavedProject {
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
+  locators?: Locator[]; // Optional for backward compatibility
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number;
@@ -451,6 +452,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
+  locators: [],
   audioFileName: null,
   audioAssetKey: null,
   audioDuration: 0,
@@ -477,6 +479,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
+    locators: state.locators,
     audioFileName: state.audioFileName,
     audioAssetKey: state.audioAssetKey,
     audioDuration: state.audioDuration,
@@ -514,11 +517,19 @@ export function fromSavedProject(
   }, 0);
   noteIdCounter = maxId;
 
+  // Update locator ID counter to avoid collisions
+  const maxLocatorId = (merged.locators ?? []).reduce((max, l) => {
+    const match = l.id.match(/^locator-(\d+)$/);
+    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
+  }, 0);
+  locatorIdCounter = maxLocatorId;
+
   return {
     notes: merged.notes,
     tempo: merged.tempo,
     timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
     gridSnap: merged.gridSnap,
+    locators: merged.locators ?? DEFAULTS.locators,
     audioFileName: merged.audioFileName,
     audioAssetKey: merged.audioAssetKey,
     audioDuration: merged.audioDuration,
@@ -536,6 +547,7 @@ export function fromSavedProject(
     waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight,
     // Reset transient state
     selectedNoteIds: new Set(),
+    selectedLocatorId: null,
     audioPeaks: [],
   };
 }

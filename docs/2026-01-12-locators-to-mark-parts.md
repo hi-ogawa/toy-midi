@@ -125,4 +125,27 @@ E2E tests:
 
 ## Status
 
-**Planned** - Implementation pending
+**Complete** - Implementation finished and tested
+
+### What's Done
+- ✅ Added Locator type to types.ts
+- ✅ Added locator state and actions to project-store.ts (with ID generator)
+- ✅ Updated Timeline component to render locators with triangle markers
+- ✅ Implemented interaction handlers:
+  - Double-click timeline to add locator (auto-named "Section 1", "Section 2", etc.)
+  - Click locator to select (changes color from sky-blue to amber)
+  - Delete/Backspace key to delete selected locator
+  - Escape key to deselect
+- ✅ Styled with consistent theme colors (sky-400 default, amber-400 selected)
+- ✅ Written 7 E2E tests (all passing)
+- ✅ Manual testing with screenshots confirms feature works
+
+### Remaining Work
+None - feature is complete for MVP
+
+### Future Enhancements (Deferred)
+- Drag to reposition locators
+- Double-click to rename inline (currently uses auto-generated names)
+- Click locator to seek playhead to position
+- Context menu for more options
+- Undo/redo support for locator operations

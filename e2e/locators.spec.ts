@@ -177,4 +177,38 @@ test.describe("Locators", () => {
     // Locator should still be visible
     await expect(page.getByText("Section 1")).toBeVisible();
   });
+
+  test("locators persist after page reload", async ({ page }) => {
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    // Add two locators
+    await page.mouse.dblclick(
+      timelineBox.x + 320,
+      timelineBox.y + timelineBox.height / 2,
+    );
+    await page.mouse.dblclick(
+      timelineBox.x + 640,
+      timelineBox.y + timelineBox.height / 2,
+    );
+
+    // Wait for auto-save (debounced, should be quick now)
+    await page.waitForTimeout(1000);
+
+    // Verify locators exist
+    await expect(page.getByText("Section 1")).toBeVisible();
+    await expect(page.getByText("Section 2")).toBeVisible();
+
+    // Reload page
+    await page.reload();
+
+    // Click "Continue" to restore project
+    await page.getByTestId("continue-button").click();
+    await page.getByTestId("transport").waitFor({ state: "visible" });
+
+    // Verify locators persisted
+    await expect(page.getByText("Section 1")).toBeVisible();
+    await expect(page.getByText("Section 2")).toBeVisible();
+  });
 });
