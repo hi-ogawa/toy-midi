@@ -1201,7 +1201,11 @@ function Timeline({
   onSeek: (beat: number) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef<{ x: number; startBeat: number } | null>(null);
+  const dragStartRef = useRef<{
+    x: number;
+    startBeat: number;
+    timelineRect: DOMRect;
+  } | null>(null);
 
   const markers = [];
 
@@ -1244,8 +1248,13 @@ function Timeline({
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
     setIsDragging(true);
-    dragStartRef.current = { x: e.clientX, startBeat: playheadBeat };
+    dragStartRef.current = {
+      x: e.clientX,
+      startBeat: playheadBeat,
+      timelineRect: rect,
+    };
   };
 
   useEffect(() => {
@@ -1280,14 +1289,10 @@ function Timeline({
 
       // If didn't move significantly, treat as a click
       if (!hasMoved) {
-        const rect = (e.target as HTMLElement)
-          .closest('[data-testid="timeline"]')
-          ?.getBoundingClientRect();
-        if (rect) {
-          const x = e.clientX - rect.left;
-          const beat = x / pixelsPerBeat + scrollX;
-          onSeek(Math.max(0, beat));
-        }
+        const rect = dragStartRef.current.timelineRect;
+        const x = e.clientX - rect.left;
+        const beat = x / pixelsPerBeat + scrollX;
+        onSeek(Math.max(0, beat));
       }
 
       setIsDragging(false);
