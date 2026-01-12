@@ -193,8 +193,8 @@ The feature is complete and ready for use. Users can now work on multiple transc
 - [x] `restore` in `options: { restore: boolean; projectId?: string })` seems redundant
 - [x] highlight last project in the list?
 - [ ] does this support open multiple tabs and edit different proejcts?
-- [ ] `migrateFromSingleProject` seems smelly (or entire `project-list.ts`)
-  - we might need more future proof storage management
+- [x] `migrateFromSingleProject` seems smelly (or entire `project-list.ts`)
+  - Removed in 2026-01-12 - migration is no longer needed
 - [ ] refactor ProjectListModal / ProjectListView
 
 ## Feedback Implementation (2026-01-12)
