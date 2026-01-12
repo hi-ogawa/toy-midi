@@ -191,7 +191,7 @@ The feature is complete and ready for use. Users can now work on multiple transc
 - [x] avoid all being "Untitled" by default but how?
 - [x] allow rename current project? (show current project name)
 - [x] `restore` in `options: { restore: boolean; projectId?: string })` seems redundant
-- [ ] highlight last project in the list?
+- [x] highlight last project in the list?
 - [ ] does this support open multiple tabs and edit different proejcts?
 - [ ] `migrateFromSingleProject` seems smelly (or entire `project-list.ts`)
   - we might need more future proof storage management
@@ -231,3 +231,38 @@ Added rename and delete functionality to the project management UI:
    - Extracted `ProjectListView` component (startup screen)
    - Created `ProjectListModal` component (in-app modal)
    - Both share similar UI patterns but with different contexts
+
+## Feedback Implementation (2026-01-12 Session 2)
+
+Addressed additional feedback items:
+
+1. **Remove Redundant `restore` Parameter**:
+   - Simplified `initMutation` to use only `projectId` option
+   - `projectId = undefined`: load last project
+   - `projectId = string`: load specific project  
+   - `projectId = ""`: create new project
+   - Cleaner API without boolean flag
+
+2. **Visual Highlight for Last Used Project**:
+   - Last used project shows emerald border (`border-emerald-700`)
+   - Background tint (`bg-emerald-900/30`) for subtle emphasis
+   - Updates automatically via `setLastProjectId()` on project load
+   - Added E2E test to verify highlighting behavior
+   - All 41 E2E tests passing
+
+### Current State
+
+All major feedback items addressed:
+- ✅ Sequential project naming (Untitled, Untitled 2, etc.)
+- ✅ Rename from startup screen and main app
+- ✅ Delete from startup screen
+- ✅ Simplified initMutation API
+- ✅ Visual highlight for last used project
+- ✅ Projects button opens in new tab (simple UX)
+
+### Remaining Items
+
+Lower priority enhancements for future consideration:
+- Multi-tab support (different projects in different tabs)
+- Storage architecture refactor
+- UI component consolidation
