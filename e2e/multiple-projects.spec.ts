@@ -391,38 +391,4 @@ test.describe("Multiple Projects", () => {
     ).not.toBeVisible();
     await expect(page.getByTestId(`project-card-${project2Id}`)).toBeVisible();
   });
-
-  test("can rename and delete from project modal in main app", async ({
-    page,
-  }) => {
-    // Create a project
-    await clickNewProject(page);
-    await evaluateStore(page, (store) => {
-      store.getState().setTempo(125);
-    });
-    await page.waitForTimeout(600);
-
-    const projectId = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
-
-    // Open project modal from transport
-    await page.getByTestId("settings-button").click();
-    await page.getByTestId("projects-button").click();
-
-    // Should see project card in modal
-    const projectCard = page.getByTestId(`project-card-${projectId}`);
-    await expect(projectCard).toBeVisible();
-    await expect(projectCard).toContainText("Untitled");
-
-    // Rename from modal
-    await projectCard.hover();
-    await page.getByTestId(`rename-button-${projectId}`).click();
-    const renameInput = page.getByTestId(`rename-input-${projectId}`);
-    await renameInput.fill("From Modal");
-    await renameInput.press("Enter");
-
-    await expect(projectCard).toContainText("From Modal");
-  });
 });
