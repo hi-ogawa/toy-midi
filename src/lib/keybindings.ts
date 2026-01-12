@@ -101,6 +101,11 @@ export const MOUSE_ACTIONS: MouseAction[] = [
     description: "Box select multiple notes",
     category: "editing",
   },
+  {
+    action: "Click on keyboard sidebar",
+    description: "Preview MIDI note sound",
+    category: "editing",
+  },
 
   // Navigation
   {
@@ -121,6 +126,16 @@ export const MOUSE_ACTIONS: MouseAction[] = [
   {
     action: "Click on timeline",
     description: "Seek to position",
+    category: "navigation",
+  },
+  {
+    action: "Drag audio waveform",
+    description: "Adjust audio offset (timeline position)",
+    category: "navigation",
+  },
+  {
+    action: "Drag bottom edge of waveform",
+    description: "Resize waveform height",
     category: "navigation",
   },
 ];
