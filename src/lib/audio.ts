@@ -316,6 +316,7 @@ class AudioManager {
   playNote(pitch: number, duration: number = 0.2): void {
     if (!this.midiSynth?.isLoaded) return;
     this.midiSynth.noteOn(pitch, 100);
+    // TODO: this feels abrupt and clicks
     this.midiSynth.noteOff(pitch, 0, duration);
   }
 
