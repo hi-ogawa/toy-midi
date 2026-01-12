@@ -35,7 +35,7 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const initMutation = useMutation({
-    mutationFn: async (options?: { projectId?: string }) => {
+    mutationFn: async (options: { projectId?: string }) => {
       await audioManager.init();
 
       const projectId = options?.projectId;

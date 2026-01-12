@@ -463,4 +463,36 @@ test.describe("Multiple Projects", () => {
     const projectCard = page.getByTestId(`project-card-${projectId}`);
     await expect(projectCard).toContainText("My Bass Track");
   });
+
+  test("last used project is visually highlighted", async ({ page }) => {
+    // Create first project
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project1Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Create second project
+    await page.reload();
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project2Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Go back to startup screen
+    await page.reload();
+
+    // Project 2 should be highlighted (it's the last one we used)
+    await expect(page.getByTestId(`project-card-${project2Id}`)).toHaveClass(
+      /border-emerald-700/,
+    );
+
+    // Project 1 should not be highlighted
+    await expect(
+      page.getByTestId(`project-card-${project1Id}`),
+    ).not.toHaveClass(/border-emerald-700/);
+  });
 });

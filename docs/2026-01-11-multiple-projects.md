@@ -190,11 +190,12 @@ The feature is complete and ready for use. Users can now work on multiple transc
   - Opens modal with project list
 - [x] avoid all being "Untitled" by default but how?
 - [x] allow rename current project? (show current project name)
-- [ ] `restore` in `options: { restore: boolean; projectId?: string })` seems redundant
+- [x] `restore` in `options: { restore: boolean; projectId?: string })` seems redundant
+- [ ] highlight last project in the list?
+- [ ] does this support open multiple tabs and edit different proejcts?
 - [ ] `migrateFromSingleProject` seems smelly (or entire `project-list.ts`)
   - we might need more future proof storage management
 - [ ] refactor ProjectListModal / ProjectListView
-- [ ] highlight last project in the list?
 
 ## Feedback Implementation (2026-01-12)
 

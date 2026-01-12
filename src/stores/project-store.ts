@@ -407,6 +407,9 @@ export function loadProject(projectId?: string) {
       selectedNoteIds: new Set(),
       audioPeaks: [],
     });
+
+    // Update last project ID
+    setLastProjectId(idToLoad);
   } catch (e) {
     console.warn("Failed to load project:", e);
     return null;

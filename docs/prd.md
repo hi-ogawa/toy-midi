@@ -127,6 +127,7 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
+- [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
 
 _Chores/Refactoring_
 
