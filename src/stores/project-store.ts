@@ -24,6 +24,7 @@ export interface ProjectState {
   // Mixer state
   audioVolume: number; // 0-1
   midiVolume: number; // 0-1
+  midiProgram: number; // GM program number 0-127
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
 
@@ -73,6 +74,7 @@ export interface ProjectState {
   // Mixer actions
   setAudioVolume: (volume: number) => void;
   setMidiVolume: (volume: number) => void;
+  setMidiProgram: (program: number) => void;
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
 
@@ -113,6 +115,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // Mixer state
   audioVolume: 0.8,
   midiVolume: 0.8,
+  midiProgram: 0, // Acoustic Grand Piano
   metronomeEnabled: false,
   metronomeVolume: 0.5,
 
@@ -263,6 +266,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // Mixer actions
   setAudioVolume: (volume) => set({ audioVolume: volume }),
   setMidiVolume: (volume) => set({ midiVolume: volume }),
+  setMidiProgram: (program) => set({ midiProgram: program }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
 
@@ -388,6 +392,7 @@ export interface SavedProject {
   audioOffset: number;
   audioVolume: number;
   midiVolume: number;
+  midiProgram?: number; // Optional for backward compatibility
   metronomeEnabled: boolean;
   metronomeVolume: number;
   autoScrollEnabled?: boolean;
@@ -411,6 +416,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   audioOffset: 0,
   audioVolume: 0.8,
   midiVolume: 0.8,
+  midiProgram: 0,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
   autoScrollEnabled: true,
@@ -436,6 +442,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     audioOffset: state.audioOffset,
     audioVolume: state.audioVolume,
     midiVolume: state.midiVolume,
+    midiProgram: state.midiProgram,
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
     autoScrollEnabled: state.autoScrollEnabled,
@@ -477,6 +484,7 @@ export function fromSavedProject(
     audioOffset: merged.audioOffset,
     audioVolume: merged.audioVolume,
     midiVolume: merged.midiVolume,
+    midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,
     metronomeEnabled: merged.metronomeEnabled,
     metronomeVolume: merged.metronomeVolume,
     autoScrollEnabled: merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled,
