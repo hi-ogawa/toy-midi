@@ -391,4 +391,76 @@ test.describe("Multiple Projects", () => {
     ).not.toBeVisible();
     await expect(page.getByTestId(`project-card-${project2Id}`)).toBeVisible();
   });
+
+  test("projects get sequential names (Untitled, Untitled 2, etc)", async ({
+    page,
+  }) => {
+    // Create first project - should be "Untitled"
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project1Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Create second project - should be "Untitled 2"
+    await page.reload();
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project2Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Create third project - should be "Untitled 3"
+    await page.reload();
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project3Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Go back to startup screen to verify names
+    await page.reload();
+
+    const project1Card = page.getByTestId(`project-card-${project1Id}`);
+    const project2Card = page.getByTestId(`project-card-${project2Id}`);
+    const project3Card = page.getByTestId(`project-card-${project3Id}`);
+
+    await expect(project1Card).toContainText("Untitled");
+    await expect(project2Card).toContainText("Untitled 2");
+    await expect(project3Card).toContainText("Untitled 3");
+  });
+
+  test("can rename current project from main app", async ({ page }) => {
+    // Create a project
+    await clickNewProject(page);
+    await evaluateStore(page, (store) => {
+      store.getState().setTempo(130);
+    });
+    await page.waitForTimeout(600);
+
+    const projectId = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Open settings dropdown and click rename
+    await page.getByTestId("settings-button").click();
+
+    // Set up prompt dialog handler
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain("Rename project");
+      expect(dialog.defaultValue()).toBe("Untitled");
+      await dialog.accept("My Bass Track");
+    });
+
+    await page.getByTestId("rename-project-button").click();
+
+    // Verify the name was changed by going to startup screen
+    await page.reload();
+    const projectCard = page.getByTestId(`project-card-${projectId}`);
+    await expect(projectCard).toContainText("My Bass Track");
+  });
 });

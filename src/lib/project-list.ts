@@ -44,13 +44,23 @@ export function getProjectMetadata(projectId: string): ProjectMetadata | null {
   return projects.find((p) => p.id === projectId) || null;
 }
 
+// Get default project name with sequential numbering
+export function getDefaultProjectName(): string {
+  const projects = listProjects();
+  const untitledCount = projects.filter((p) =>
+    p.name.match(/^Untitled( \d+)?$/),
+  ).length;
+
+  return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
+}
+
 // Create new project
-export function createProject(name: string): string {
+export function createProject(name?: string): string {
   const projectId = generateProjectId();
   const now = Date.now();
   const metadata: ProjectMetadata = {
     id: projectId,
-    name: name || "Untitled",
+    name: name || getDefaultProjectName(),
     createdAt: now,
     updatedAt: now,
   };

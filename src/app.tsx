@@ -11,6 +11,7 @@ import { audioManager, getAudioBufferPeaks } from "./lib/audio";
 import {
   createProject,
   deleteProject,
+  getProjectMetadata,
   listProjects,
   migrateFromSingleProject,
   updateProjectMetadata,
@@ -40,8 +41,8 @@ export function App() {
         // Load existing project (by ID or last project)
         loadProject(options.projectId);
       } else {
-        // Create new project
-        const newProjectId = createProject("Untitled");
+        // Create new project with auto-generated name
+        const newProjectId = createProject();
         clearProject();
         useProjectStore.setState({ currentProjectId: newProjectId });
       }
@@ -147,6 +148,20 @@ export function App() {
           // TODO: modal project list view and allow switch project?
           // for now, open startup page in new tab.
           window.open("/", "_blank");
+        }}
+        onRenameProject={() => {
+          const currentProjectId = useProjectStore.getState().currentProjectId;
+          if (!currentProjectId) return;
+
+          const metadata = getProjectMetadata(currentProjectId);
+          if (!metadata) return;
+
+          const newName = prompt("Rename project:", metadata.name);
+          if (newName && newName.trim() && newName.trim() !== metadata.name) {
+            updateProjectMetadata(currentProjectId, {
+              name: newName.trim(),
+            });
+          }
         }}
       />
       <PianoRoll />

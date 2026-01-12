@@ -4,6 +4,7 @@ import {
   DownloadIcon,
   FolderIcon,
   PauseIcon,
+  PencilIcon,
   PlayIcon,
   SettingsIcon,
   UploadIcon,
@@ -49,9 +50,14 @@ function formatBarBeat(seconds: number, tempo: number): string {
 type TransportProps = {
   onHelpClick: () => void;
   onProjectsClick: () => void;
+  onRenameProject: () => void;
 };
 
-export function Transport({ onHelpClick, onProjectsClick }: TransportProps) {
+export function Transport({
+  onHelpClick,
+  onProjectsClick,
+  onRenameProject,
+}: TransportProps) {
   const {
     audioFileName,
     audioDuration,
@@ -392,6 +398,15 @@ export function Transport({ onHelpClick, onProjectsClick }: TransportProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {/* Rename Project */}
+          <DropdownMenuItem
+            data-testid="rename-project-button"
+            onClick={onRenameProject}
+          >
+            <PencilIcon className="size-4" />
+            Rename Project
+          </DropdownMenuItem>
+
           {/* Projects */}
           <DropdownMenuItem
             data-testid="projects-button"
