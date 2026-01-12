@@ -143,6 +143,7 @@ _Chores/Refactoring_
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
 - [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
+- [ ] refactor: reduce auto-save debounce timeout (currently 500ms) to speed up E2E tests that still need waitForTimeout after state changes
 
 ### Backlog
 
