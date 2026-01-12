@@ -27,3 +27,15 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Preload large assets after initial render
+requestIdleCallback(() => {
+  for (const href of ["/oxisynth/oxisynth.wasm", "/soundfonts/A320U.sf2"]) {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "fetch";
+    link.crossOrigin = "anonymous";
+    link.href = href;
+    document.head.appendChild(link);
+  }
+});
