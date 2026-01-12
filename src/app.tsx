@@ -12,7 +12,6 @@ import {
   deleteProject,
   getLastProjectId,
   getProjectMetadata,
-  hasSavedProject,
   listProjects,
   loadProjectData,
   saveProjectData,
@@ -26,7 +25,7 @@ import {
 } from "./stores/project-store";
 
 // Check once at module load - doesn't change during session
-const savedProjectExists = hasSavedProject();
+const savedProjectExists = getLastProjectId() !== null;
 
 export function App() {
   const initMutation = useMutation({

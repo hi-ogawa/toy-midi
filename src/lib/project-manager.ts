@@ -119,11 +119,6 @@ export function hasProjects(): boolean {
   return listProjects().length > 0;
 }
 
-// Check if any projects exist (for startup screen)
-export function hasSavedProject(): boolean {
-  return getLastProjectId() !== null;
-}
-
 // Save project data to localStorage (pure - no Zustand)
 // Throws on error - caller should handle with toast
 export function saveProjectData(projectId: string, data: SavedProject): void {
