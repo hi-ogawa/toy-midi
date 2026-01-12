@@ -3,7 +3,6 @@ import type { GridSnap, Note, TimeSignature } from "../types";
 
 export interface ProjectState {
   // project
-  currentProjectId: string | null; // ID of currently loaded project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
   timeSignature: TimeSignature; // Time signature (default 4/4)
@@ -88,7 +87,6 @@ export function generateNoteId(): string {
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
-  currentProjectId: null,
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
@@ -283,7 +281,6 @@ export function toSavedProject(state: ProjectState): SavedProject {
 }
 
 // Pure deserialization: SavedProject -> Partial<ProjectState>
-// Note: Does NOT include currentProjectId - that's set by the caller
 export function fromSavedProject(
   data: Partial<SavedProject>,
 ): Partial<ProjectState> {

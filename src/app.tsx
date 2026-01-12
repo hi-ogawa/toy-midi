@@ -43,16 +43,9 @@ export function App() {
       // Load project data if existing project, otherwise use defaults (new project)
       if (options.projectId) {
         const data = loadProjectData(projectId);
-        useProjectStore.setState({
-          currentProjectId: projectId, // TODO: remove this from Zustand
-          ...fromSavedProject(data),
-        });
-      } else {
-        // New project - just set the ID, keep default state
-        useProjectStore.setState({
-          currentProjectId: projectId, // TODO: remove this from Zustand
-        });
+        useProjectStore.setState(fromSavedProject(data));
       }
+      // New project: no need to set anything, use default store state
 
       const project = useProjectStore.getState();
       if (project.audioAssetKey) {

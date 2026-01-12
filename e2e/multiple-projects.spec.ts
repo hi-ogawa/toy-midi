@@ -1,5 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
+
+// Helper to get the last project ID from localStorage
+async function getLastProjectId(page: Page): Promise<string | null> {
+  return page.evaluate(() => localStorage.getItem("toy-midi-last-project-id"));
+}
 
 test.describe("Multiple Projects", () => {
   test.beforeEach(async ({ page }) => {
@@ -33,10 +38,7 @@ test.describe("Multiple Projects", () => {
     await page.waitForTimeout(600);
 
     // Get first project ID
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
     expect(project1Id).not.toBeNull();
 
     // Reload to see project list
@@ -66,10 +68,7 @@ test.describe("Multiple Projects", () => {
 
     await page.waitForTimeout(600);
 
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
     expect(project2Id).not.toBeNull();
     expect(project2Id).not.toBe(project1Id);
 
@@ -96,10 +95,7 @@ test.describe("Multiple Projects", () => {
     });
     await page.waitForTimeout(600);
 
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
 
     // Create second project with different note
     await page.reload();
@@ -115,10 +111,7 @@ test.describe("Multiple Projects", () => {
     });
     await page.waitForTimeout(600);
 
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
 
     // Load first project
     await page.reload();
@@ -228,10 +221,7 @@ test.describe("Multiple Projects", () => {
       store.getState().setTempo(100);
     });
     await page.waitForTimeout(600);
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
 
     // Create second project (will be more recent)
     await page.reload();
@@ -241,10 +231,7 @@ test.describe("Multiple Projects", () => {
       store.getState().setTempo(120);
     });
     await page.waitForTimeout(600);
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
     await page.reload();
@@ -291,10 +278,7 @@ test.describe("Multiple Projects", () => {
     await clickNewProject(page);
     await page.waitForTimeout(600);
 
-    const projectId = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const projectId = await getLastProjectId(page);
 
     // Reload to see project list
     await page.reload();
@@ -330,10 +314,7 @@ test.describe("Multiple Projects", () => {
     await clickNewProject(page);
     await page.waitForTimeout(600);
 
-    const projectId = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const projectId = await getLastProjectId(page);
 
     // Reload to see project list
     await page.reload();
@@ -355,18 +336,12 @@ test.describe("Multiple Projects", () => {
     // Create two projects
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
 
     await page.reload();
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
     await page.reload();
@@ -398,28 +373,19 @@ test.describe("Multiple Projects", () => {
     // Create first project - should be "Untitled"
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
 
     // Create second project - should be "Untitled 2"
     await page.reload();
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
 
     // Create third project - should be "Untitled 3"
     await page.reload();
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project3Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project3Id = await getLastProjectId(page);
 
     // Go back to startup screen to verify names
     await page.reload();
@@ -441,10 +407,7 @@ test.describe("Multiple Projects", () => {
     });
     await page.waitForTimeout(600);
 
-    const projectId = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const projectId = await getLastProjectId(page);
 
     // Open settings dropdown and click rename
     await page.getByTestId("settings-button").click();
@@ -468,19 +431,13 @@ test.describe("Multiple Projects", () => {
     // Create first project
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project1Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project1Id = await getLastProjectId(page);
 
     // Create second project
     await page.reload();
     await clickNewProject(page);
     await page.waitForTimeout(600);
-    const project2Id = await evaluateStore(
-      page,
-      (store) => store.getState().currentProjectId,
-    );
+    const project2Id = await getLastProjectId(page);
 
     // Go back to startup screen
     await page.reload();
