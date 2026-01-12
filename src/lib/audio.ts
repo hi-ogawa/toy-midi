@@ -312,7 +312,8 @@ class AudioManager {
   }
 
   // Note preview (immediate, not synced to Transport)
-  playNote(pitch: number, duration: number = 0.2): void {
+  // TODO: preview note on/off should follow mouse down/up
+  playNote(pitch: number, duration: number = 0.5): void {
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
   }
 
