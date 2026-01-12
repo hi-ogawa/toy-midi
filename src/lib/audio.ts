@@ -4,6 +4,7 @@ import { SoundFontSynth } from "./soundfont-synth";
 import type { ProjectState } from "@/stores/project-store";
 
 const DEFAULT_SOUNDFONT_URL = "/soundfonts/A320U.sf2";
+// const DEFAULT_SOUNDFONT_URL = "/soundfonts/FluidR3_GM.sf2"; // Testing release envelope
 
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
@@ -185,10 +186,8 @@ class AudioManager {
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
-    const context = Tone.getContext();
-
-    // SoundFont synth for polyphonic playback
-    this.midiSynth = new SoundFontSynth(context);
+    // SoundFont synth for polyphonic playback (uses its own native AudioContext)
+    this.midiSynth = new SoundFontSynth();
     await this.midiSynth.setup();
     await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
 
@@ -199,7 +198,7 @@ class AudioManager {
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {
         // Calculate delay from now to the scheduled time
-        const now = context.currentTime;
+        const now = Tone.getContext().currentTime;
         const delayTime = Math.max(0, time - now);
 
         // Convert duration from beats to seconds using current tempo
@@ -313,10 +312,9 @@ class AudioManager {
   }
 
   // Note preview (immediate, not synced to Transport)
-  playNote(pitch: number, duration: number = 0.2): void {
+  playNote(pitch: number, duration: number = 0.5): void {
     if (!this.midiSynth?.isLoaded) return;
     this.midiSynth.noteOn(pitch, 100);
-    // TODO: this feels abrupt and clicks
     this.midiSynth.noteOff(pitch, 0, duration);
   }
 

@@ -1,16 +1,14 @@
 import { getSampleEventsFromSoundFont, type SynthEvent } from "@ryohey/wavelet";
 import * as Tone from "tone";
 
-type ToneContext = ReturnType<typeof Tone.getContext>;
-
 /**
  * SoundFontSynth wraps @ryohey/wavelet to provide SF2-based synthesis.
- * Uses Tone.js's AudioWorklet system for compatibility with standardized-audio-context.
- * Exposes a Tone.js-compatible output for easy integration with Tone.js audio graph.
+ * Uses native AudioContext (like Signal) for proper envelope behavior.
+ * Connects to Tone.js audio graph via MediaStreamDestination bridge.
  */
 export class SoundFontSynth {
   private synth: AudioWorkletNode | null = null;
-  private context: ToneContext;
+  private context: AudioContext;
   private isSetup = false;
   private sequenceNumber = 0;
   private _isLoaded = false;
@@ -18,13 +16,19 @@ export class SoundFontSynth {
   /** Tone.js-compatible output node for connecting to other Tone nodes */
   readonly output: Tone.Gain;
 
-  constructor(context: ToneContext) {
-    this.context = context;
-    this.output = new Tone.Gain({ context });
+  constructor() {
+    // Use native AudioContext like Signal does
+    this.context = new AudioContext();
+    // Create Tone.js output node for integration with Tone.js audio graph
+    this.output = new Tone.Gain();
   }
 
   get isLoaded(): boolean {
     return this._isLoaded;
+  }
+
+  get sampleRate(): number {
+    return this.context.sampleRate;
   }
 
   /**
@@ -38,8 +42,8 @@ export class SoundFontSynth {
       "@ryohey/wavelet/dist/processor.js",
       import.meta.url,
     ).toString();
-    // Use Tone.js's addAudioWorkletModule for standardized-audio-context compatibility
-    await this.context.addAudioWorkletModule(url);
+    // Use native audioWorklet.addModule like Signal
+    await this.context.audioWorklet.addModule(url);
     this.isSetup = true;
   }
 
@@ -65,16 +69,22 @@ export class SoundFontSynth {
       this.synth.disconnect();
     }
 
-    // Create new synth worklet node using Tone.js's wrapper
-    this.synth = this.context.createAudioWorkletNode("synth-processor", {
+    // Create new synth worklet node using native AudioWorkletNode like Signal
+    this.synth = new AudioWorkletNode(this.context, "synth-processor", {
       numberOfInputs: 0,
       outputChannelCount: [2],
     });
     this.sequenceNumber = 0;
 
-    // Connect worklet to output Gain node
-    // Use Tone.js's connect which handles native/wrapped node compatibility
-    Tone.connect(this.synth, this.output);
+    // Bridge native AudioContext to Tone.js:
+    // Create a MediaStreamDestination to capture audio from native context
+    const streamDest = this.context.createMediaStreamDestination();
+    this.synth.connect(streamDest);
+
+    // Create a MediaStreamSource in Tone.js context to receive the stream
+    const toneContext = Tone.getContext();
+    const streamSource = toneContext.createMediaStreamSource(streamDest.stream);
+    Tone.connect(streamSource, this.output);
 
     // Parse soundfont and extract sample events
     const sampleEvents = getSampleEventsFromSoundFont(new Uint8Array(data));
