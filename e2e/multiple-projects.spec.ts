@@ -276,8 +276,6 @@ test.describe("Multiple Projects", () => {
   test("can rename project from startup screen", async ({ page }) => {
     // Create a project
     await clickNewProject(page);
-    await page.waitForTimeout(600);
-
     const projectId = await getLastProjectId(page);
 
     // Reload to see project list
@@ -312,8 +310,6 @@ test.describe("Multiple Projects", () => {
   test("can cancel rename", async ({ page }) => {
     // Create a project
     await clickNewProject(page);
-    await page.waitForTimeout(600);
-
     const projectId = await getLastProjectId(page);
 
     // Reload to see project list
@@ -335,12 +331,10 @@ test.describe("Multiple Projects", () => {
   test("can delete project from startup screen", async ({ page }) => {
     // Create two projects
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project1Id = await getLastProjectId(page);
 
     await page.reload();
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
@@ -372,19 +366,16 @@ test.describe("Multiple Projects", () => {
   }) => {
     // Create first project - should be "Untitled"
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project1Id = await getLastProjectId(page);
 
     // Create second project - should be "Untitled 2"
     await page.reload();
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project2Id = await getLastProjectId(page);
 
     // Create third project - should be "Untitled 3"
     await page.reload();
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project3Id = await getLastProjectId(page);
 
     // Go back to startup screen to verify names

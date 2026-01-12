@@ -80,6 +80,7 @@ export function App() {
 
       // Setup auto-save on state changes (debounced)
       // projectId is captured in closure - no need for Zustand
+      // TODO: reduce timeout on E2E to reduce lengthy watiForTimeout
       let saveTimeout: number;
       useProjectStore.subscribe(() => {
         clearTimeout(saveTimeout);
