@@ -107,7 +107,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
-  clipboard: [], // Clipboard not persisted
+  clipboard: [], // Clipboard for copied notes (not persisted to storage)
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -391,7 +391,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     );
     if (selectedNotes.length === 0) return;
 
-    // Store deep copies in clipboard (without IDs since we'll generate new ones on paste)
+    // Create new object instances to avoid reference issues when pasting
     set({
       clipboard: selectedNotes.map((n) => ({ ...n })),
     });
@@ -410,10 +410,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const selectedNotes = state.notes.filter((n) =>
         state.selectedNoteIds.has(n.id),
       );
-      const maxEnd = Math.max(
-        ...selectedNotes.map((n) => n.start + n.duration),
-      );
-      pasteOffset = maxEnd - minStart;
+      // Safety check: only calculate offset if we actually found matching notes
+      if (selectedNotes.length > 0) {
+        const maxEnd = Math.max(
+          ...selectedNotes.map((n) => n.start + n.duration),
+        );
+        pasteOffset = maxEnd - minStart;
+      }
     }
 
     // Create new notes with new IDs and offset positions
