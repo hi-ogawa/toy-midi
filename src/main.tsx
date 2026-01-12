@@ -6,6 +6,7 @@ import { App } from "./app";
 import "./index.css";
 import { exposeStoreForE2E } from "./stores/project-store";
 import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
+import oxisynthWorkletUrl from "@/assets/oxisynth/worklet.js?url";
 import soundfontUrl from "@/assets/soundfonts/A320U.sf2?url";
 
 exposeStoreForE2E();
@@ -32,7 +33,7 @@ createRoot(document.getElementById("root")!).render(
 
 // Preload large assets after initial render
 requestIdleCallback(() => {
-  for (const href of [oxisynthWasmUrl, soundfontUrl]) {
+  for (const href of [oxisynthWasmUrl, oxisynthWorkletUrl, soundfontUrl]) {
     const link = document.createElement("link");
     link.rel = "preload";
     link.as = "fetch";
