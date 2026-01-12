@@ -20,6 +20,7 @@ import {
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
+  generateLocatorId,
   generateNoteId,
   secondsToBeats,
   useProjectStore,
@@ -28,7 +29,7 @@ import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 
 // Layout constants (exported for tests)
 export const KEYBOARD_WIDTH = 60;
-export const TIMELINE_HEIGHT = 32;
+export const TIMELINE_HEIGHT = 40;
 export const DEFAULT_WAVEFORM_HEIGHT = 60;
 export const MIN_WAVEFORM_HEIGHT = 40;
 export const MAX_WAVEFORM_HEIGHT = 200;
@@ -258,6 +259,13 @@ export function PianoRoll() {
     redo,
     canUndo,
     canRedo,
+    // Locator state and actions
+    locators,
+    selectedLocatorId,
+    addLocator,
+    updateLocator,
+    deleteLocator,
+    selectLocator,
     copyNotes,
     pasteNotes,
     // Viewport state from store
@@ -376,9 +384,12 @@ export function PianoRoll() {
     if (e.key === "Delete" || e.key === "Backspace") {
       if (selectedNoteIds.size > 0) {
         deleteNotes(Array.from(selectedNoteIds));
+      } else if (selectedLocatorId) {
+        deleteLocator(selectedLocatorId);
       }
     } else if (e.key === "Escape") {
       deselectAll();
+      selectLocator(null);
     } else if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
       // Ctrl+C or Cmd+C: Copy
       e.preventDefault();
@@ -407,6 +418,11 @@ export function PianoRoll() {
       if (canUndo()) {
         undo();
       }
+    } else if (e.key === "l" || e.key === "L") {
+      // L: Add locator at current playhead position
+      const playheadBeat = secondsToBeats(position, tempo);
+      const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
+      handleAddLocator(snappedBeat);
     }
   });
 
@@ -940,6 +956,38 @@ export function PianoRoll() {
     return inHorizontalRange && inVerticalRange;
   });
 
+  // Locator handlers
+  const handleAddLocator = (position: number) => {
+    const locatorNumber = locators.length + 1;
+    const newLocator = {
+      id: generateLocatorId(),
+      position,
+      label: `Section ${locatorNumber}`,
+    };
+    addLocator(newLocator);
+    selectLocator(newLocator.id);
+  };
+
+  const handleSelectLocator = (id: string) => {
+    selectLocator(id);
+    deselectAll(); // Deselect notes when selecting a locator
+  };
+
+  const handleUpdateLocator = (id: string, position: number) => {
+    updateLocator(id, { position });
+  };
+
+  const handleRenameLocator = (id: string, currentLabel: string) => {
+    const newLabel = window.prompt("Rename locator:", currentLabel);
+    if (newLabel !== null && newLabel.trim() !== "") {
+      updateLocator(id, { label: newLabel.trim() });
+    }
+  };
+
+  const handleDeleteLocator = (id: string) => {
+    deleteLocator(id);
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Main content area - fixed layout, no native scroll */}
@@ -984,6 +1032,12 @@ export function PianoRoll() {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
             }}
+            locators={locators}
+            selectedLocatorId={selectedLocatorId}
+            onSelectLocator={handleSelectLocator}
+            onRenameLocator={handleRenameLocator}
+            onUpdateLocator={handleUpdateLocator}
+            onDeleteLocator={handleDeleteLocator}
           />
           {/* Waveform / Audio region */}
           <WaveformArea
@@ -1334,6 +1388,12 @@ function Timeline({
   beatsPerBar,
   gridSnapValue,
   onSeek,
+  locators,
+  selectedLocatorId,
+  onSelectLocator,
+  onRenameLocator,
+  onUpdateLocator: _onUpdateLocator,
+  onDeleteLocator: _onDeleteLocator,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
@@ -1342,6 +1402,12 @@ function Timeline({
   beatsPerBar: number;
   gridSnapValue: number;
   onSeek: (beat: number) => void;
+  locators: Array<{ id: string; position: number; label: string }>;
+  selectedLocatorId: string | null;
+  onSelectLocator: (id: string) => void;
+  onRenameLocator: (id: string, currentLabel: string) => void;
+  onUpdateLocator: (id: string, position: number) => void;
+  onDeleteLocator: (id: string) => void;
 }) {
   const markers = [];
 
@@ -1374,8 +1440,8 @@ function Timeline({
         />
         {/* Bar number label */}
         <div
-          className="absolute text-xs text-neutral-400"
-          style={{ left: x + 6, top: 8 }}
+          className="absolute text-[10px] text-neutral-500"
+          style={{ left: x + 4, top: 2 }}
         >
           {barNumber}
         </div>
@@ -1395,6 +1461,12 @@ function Timeline({
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
+  // Filter visible locators
+  const visibleLocators = locators.filter((locator) => {
+    const x = (locator.position - scrollX) * beatWidth;
+    return x >= -50 && x <= viewportWidth + 50; // Add margin for labels
+  });
+
   return (
     <div
       data-testid="timeline"
@@ -1403,6 +1475,50 @@ function Timeline({
       onClick={handleClick}
     >
       {markers}
+      {/* Locators
+          Geometry: CSS triangle using border trick on a 0×0 element.
+          - border-l/r: half of triangle width (6px each = 12px wide)
+          - border-t: triangle height (10px)
+          - Container left: x - 5 to center the 12px triangle on position
+          - Container top: 28 so triangle (10px tall) ends at 38px near bottom
+      */}
+      {visibleLocators.map((locator) => {
+        const x = (locator.position - scrollX) * beatWidth;
+        const isSelected = locator.id === selectedLocatorId;
+        return (
+          <div
+            key={locator.id}
+            data-testid={`locator-${locator.id}`}
+            className="absolute group"
+            style={{ left: x - 5, top: 28 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectLocator(locator.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onRenameLocator(locator.id, locator.label);
+            }}
+          >
+            {/* Triangle: w=12px (6+6), h=10px */}
+            <div
+              className={`w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-l-transparent border-r-transparent cursor-pointer ${
+                isSelected ? "border-t-amber-400" : "border-neutral-500"
+              } group-hover:border-t-amber-300`}
+            />
+            {/* Label */}
+            <div
+              className={`absolute -top-2 left-[12px] text-[10px] whitespace-nowrap px-1 rounded cursor-pointer ${
+                isSelected
+                  ? "bg-amber-400 text-neutral-900"
+                  : "bg-neutral-600 text-neutral-100"
+              } group-hover:bg-amber-300 group-hover:text-neutral-900`}
+            >
+              {locator.label}
+            </div>
+          </div>
+        );
+      })}
       {/* Playhead indicator */}
       {showPlayhead && (
         <div
