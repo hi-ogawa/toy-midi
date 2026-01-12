@@ -18,7 +18,6 @@ import {
   updateProjectMetadata,
 } from "./lib/project-list";
 import {
-  clearProject,
   hasSavedProject,
   loadProject,
   saveProject,
@@ -44,7 +43,6 @@ export function App() {
       } else {
         // Create new project
         const newProjectId = createProject();
-        clearProject();
         useProjectStore.setState({ currentProjectId: newProjectId });
       }
 

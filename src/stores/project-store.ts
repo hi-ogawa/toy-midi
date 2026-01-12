@@ -330,21 +330,6 @@ export function hasSavedProject(): boolean {
   return getLastProjectId() !== null;
 }
 
-export function clearProject(): void {
-  // Clear current project state
-  useProjectStore.setState({
-    currentProjectId: null,
-    ...DEFAULTS,
-    selectedNoteIds: new Set(),
-    audioPeaks: [],
-    peaksPerSecond: 100,
-    totalBeats: 640,
-    showDebug: false,
-    autoScrollEnabled: true,
-    timeSignature: { numerator: 4, denominator: 4 },
-  });
-}
-
 export function loadProject(projectId: string) {
   try {
     const storageKey = getProjectKey(projectId);
