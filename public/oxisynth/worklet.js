@@ -1,4 +1,5 @@
 "use strict";
+// Based on https://github.com/hi-ogawa/web-audio-worklet-rust
 
 // TextEncoder/TextDecoder polyfill for AudioWorklet scope
 (function (r) {

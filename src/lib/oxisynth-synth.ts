@@ -1,3 +1,4 @@
+// WASM + worklet from https://github.com/hi-ogawa/web-audio-worklet-rust
 import * as Tone from "tone";
 
 type ToneContext = ReturnType<typeof Tone.getContext>;
