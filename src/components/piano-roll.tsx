@@ -225,6 +225,7 @@ export function PianoRoll() {
     timeSignature,
     audioDuration,
     audioOffset,
+    audioFileName,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -848,6 +849,7 @@ export function PianoRoll() {
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             audioDuration={audioDuration}
             audioOffset={audioOffset}
+            audioFileName={audioFileName}
             tempo={tempo}
             playheadBeat={secondsToBeats(position, tempo)}
             audioPeaks={audioPeaks}
@@ -1322,6 +1324,7 @@ function WaveformArea({
   viewportWidth,
   audioDuration,
   audioOffset,
+  audioFileName,
   tempo,
   playheadBeat,
   audioPeaks,
@@ -1336,6 +1339,7 @@ function WaveformArea({
   viewportWidth: number;
   audioDuration: number;
   audioOffset: number;
+  audioFileName: string | null;
   tempo: number;
   playheadBeat: number;
   audioPeaks: number[];
@@ -1480,13 +1484,12 @@ function WaveformArea({
               height={height - 8} // Account for top-1 bottom-1 padding
             />
           )}
-          {/* Offset indicator */}
+          {/* File name and offset indicator */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
-            {audioOffset > 0
-              ? `+${audioOffset.toFixed(1)}s`
-              : audioOffset < 0
-                ? `${audioOffset.toFixed(1)}s`
-                : "0s"}
+            {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
+            {audioOffset > 0 && (
+              <span className="opacity-75">+{audioOffset.toFixed(1)}s</span>
+            )}
           </div>
         </div>
       )}
