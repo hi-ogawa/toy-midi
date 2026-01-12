@@ -32,8 +32,8 @@ test.describe("Project Persistence", () => {
     const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
 
-    // Wait for auto-save (debounced at 500ms)
-    await page.waitForTimeout(600);
+    // Wait for auto-save
+    await page.waitForTimeout(100);
 
     // Reload the page and click Continue to restore
     await page.reload();
@@ -93,7 +93,7 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -104,40 +104,29 @@ test.describe("Project Persistence", () => {
   });
 
   test("audio file persists after reload", async ({ page }) => {
-    // Load audio file
+    // Open settings dropdown and load audio file
+    await page.getByTestId("settings-button").click();
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
       page.getByTestId("load-audio-button").click(),
     ]);
     await fileChooser.setFiles("public/test-audio.wav");
 
-    // Wait for audio to load
-    await expect(page.getByTestId("audio-file-name")).toBeVisible();
-    await expect(page.getByTestId("audio-file-name")).toHaveText(
-      "test-audio.wav",
-    );
-
-    // Get duration before reload
-    const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).not.toContainText("0:00 / 0:00");
+    // Wait for audio to load - audio volume slider should appear in settings
+    await page.getByTestId("settings-button").click();
+    await page.waitForTimeout(500);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
     await clickContinue(page);
 
-    // Audio file name should be restored
-    await expect(page.getByTestId("audio-file-name")).toBeVisible();
-    await expect(page.getByTestId("audio-file-name")).toHaveText(
-      "test-audio.wav",
-    );
-
-    // Duration should be restored (not 0:00)
-    await expect(page.getByTestId("time-display")).not.toContainText(
-      "0:00 / 0:00",
-    );
+    // Audio should be restored - open settings to check for audio volume slider
+    await page.getByTestId("settings-button").click();
+    // Audio volume slider (Radix Slider) only appears when audio is loaded
+    await expect(page.locator('[data-slot="slider"]')).toBeVisible();
   });
 
   test("settings persist after reload", async ({ page }) => {
@@ -149,10 +138,13 @@ test.describe("Project Persistence", () => {
     await expect(tempoInput).toHaveValue("95");
 
     // Change grid snap
-    const gridSelect = page.locator("select").first();
-    await expect(gridSelect).toHaveValue("1/8");
-    await gridSelect.selectOption("1/16");
-    await expect(gridSelect).toHaveValue("1/16");
+    const gridSelect = page.getByTestId("grid-snap-select");
+    await expect(gridSelect).toContainText("1/8");
+    await gridSelect.click();
+    await page
+      .getByRole("menuitemradio", { name: "1/16", exact: true })
+      .click();
+    await expect(gridSelect).toContainText("1/16");
 
     // Enable metronome
     const metronomeToggle = page.getByTestId("metronome-toggle");
@@ -161,7 +153,7 @@ test.describe("Project Persistence", () => {
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -169,7 +161,7 @@ test.describe("Project Persistence", () => {
 
     // All settings should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
-    await expect(page.locator("select").first()).toHaveValue("1/16");
+    await expect(page.getByTestId("grid-snap-select")).toContainText("1/16");
     await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -208,7 +200,7 @@ test.describe("Project Persistence", () => {
     if (!movedBox) throw new Error("Note not found after move");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -261,7 +253,7 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -288,7 +280,7 @@ test.describe("Project Persistence", () => {
     await expect(note).toHaveAttribute("data-selected", "true");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -326,7 +318,7 @@ test.describe("Project Persistence", () => {
     expect(changedScrollX).toBe(25);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();

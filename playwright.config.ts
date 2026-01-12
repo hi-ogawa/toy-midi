@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   webServer: {
-    command: "npm run dev",
+    command: "VITE_AUTO_SAVE_DEBOUNCE_MS=50 npm run dev",
     url: "http://localhost:5173",
     reuseExistingServer: !process.env.CI,
   },

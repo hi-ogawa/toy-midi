@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { GridSnap, Note } from "../types";
-import { useHistoryStore } from "./history-store";
+import type { GridSnap, Note, TimeSignature } from "../types";
+import { historyStore } from "./history-store";
 
 export interface ProjectState {
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
+  timeSignature: TimeSignature; // Time signature (default 4/4)
 
   // Midi track
   notes: Note[];
@@ -57,6 +58,7 @@ export interface ProjectState {
   setGridSnap: (snap: GridSnap) => void;
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
+  setTimeSignature: (timeSignature: TimeSignature) => void;
 
   // Undo/Redo actions
   undo: () => void;
@@ -100,6 +102,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   gridSnap: "1/8",
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
 
   // Audio state
   audioFileName: null,
@@ -130,10 +133,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   addNote: (note) => {
     // Track in history
-    const historyStore = useHistoryStore.getState();
     historyStore.pushOperation({
       type: "add-note",
-      note: { ...note }, // Store a copy
+      note,
     });
 
     set((state) => ({
@@ -147,7 +149,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (!note) return;
 
     // Track in history (only changed fields)
-    const historyStore = useHistoryStore.getState();
     const before: Partial<Omit<Note, "id">> = {};
     const after: Partial<Omit<Note, "id">> = {};
     for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
@@ -166,7 +167,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateNotes: (updates) => {
     const state = get();
-    const historyStore = useHistoryStore.getState();
 
     // Build history entry with before and after state
     const historyUpdates = updates
@@ -206,7 +206,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const state = get();
 
     // Track in history (save deleted notes)
-    const historyStore = useHistoryStore.getState();
     const deletedNotes = state.notes.filter((n) => ids.includes(n.id));
     if (deletedNotes.length > 0) {
       historyStore.pushOperation({
@@ -218,7 +217,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set((state) => {
       const idsSet = new Set(ids);
       const newSelected = new Set(state.selectedNoteIds);
-      ids.forEach((id) => newSelected.delete(id));
+      for (const id of ids) {
+        newSelected.delete(id);
+      }
       return {
         notes: state.notes.filter((n) => !idsSet.has(n.id)),
         selectedNoteIds: newSelected,
@@ -232,7 +233,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         return { selectedNoteIds: new Set(ids) };
       }
       const newSelected = new Set(state.selectedNoteIds);
-      ids.forEach((id) => newSelected.add(id));
+      for (const id of ids) {
+        newSelected.add(id);
+      }
       return { selectedNoteIds: newSelected };
     }),
 
@@ -243,6 +246,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setTotalBeats: (beats) => set({ totalBeats: beats }),
 
   setTempo: (bpm) => set({ tempo: bpm }),
+
+  setTimeSignature: (timeSignature) => set({ timeSignature }),
 
   // Audio actions
   setAudioFile: (fileName, duration, assetKey) =>
@@ -278,7 +283,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Undo/Redo actions
   undo: () => {
-    const historyStore = useHistoryStore.getState();
     if (!historyStore.canUndo()) return;
 
     const entry = historyStore.undoStack[historyStore.undoStack.length - 1];
@@ -317,7 +321,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   redo: () => {
-    const historyStore = useHistoryStore.getState();
     if (!historyStore.canRedo()) return;
 
     const entry = historyStore.redoStack[historyStore.redoStack.length - 1];
@@ -355,8 +358,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   },
 
-  canUndo: () => useHistoryStore.getState().canUndo(),
-  canRedo: () => useHistoryStore.getState().canRedo(),
+  canUndo: () => historyStore.canUndo(),
+  canRedo: () => historyStore.canRedo(),
 }));
 
 // Helper: convert seconds to beats
@@ -371,13 +374,13 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 
 // === Project Persistence ===
 
-const STORAGE_KEY = "toy-midi-project";
 const STORAGE_VERSION = 1;
 
-interface SavedProject {
+export interface SavedProject {
   version: number;
   notes: Note[];
   tempo: number;
+  timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   audioFileName: string | null;
   audioAssetKey: string | null; // Reference to IndexedDB asset
@@ -396,40 +399,11 @@ interface SavedProject {
   waveformHeight?: number;
 }
 
-export function saveProject(): void {
-  const state = useProjectStore.getState();
-  const saved: SavedProject = {
-    version: STORAGE_VERSION,
-    notes: state.notes,
-    tempo: state.tempo,
-    gridSnap: state.gridSnap,
-    audioFileName: state.audioFileName,
-    audioAssetKey: state.audioAssetKey,
-    audioDuration: state.audioDuration,
-    audioOffset: state.audioOffset,
-    audioVolume: state.audioVolume,
-    midiVolume: state.midiVolume,
-    metronomeEnabled: state.metronomeEnabled,
-    metronomeVolume: state.metronomeVolume,
-    autoScrollEnabled: state.autoScrollEnabled,
-    // Viewport state
-    scrollX: state.scrollX,
-    scrollY: state.scrollY,
-    pixelsPerBeat: state.pixelsPerBeat,
-    pixelsPerKey: state.pixelsPerKey,
-    waveformHeight: state.waveformHeight,
-  };
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-  } catch (e) {
-    console.warn("Failed to save project:", e);
-  }
-}
-
 // Default values for new/missing fields
 const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
   tempo: 120,
+  timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
   audioFileName: null,
   audioAssetKey: null,
@@ -448,85 +422,79 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   waveformHeight: 60,
 };
 
+// Pure serialization: ProjectState -> SavedProject
+export function toSavedProject(state: ProjectState): SavedProject {
+  return {
+    version: STORAGE_VERSION,
+    notes: state.notes,
+    tempo: state.tempo,
+    timeSignature: state.timeSignature,
+    gridSnap: state.gridSnap,
+    audioFileName: state.audioFileName,
+    audioAssetKey: state.audioAssetKey,
+    audioDuration: state.audioDuration,
+    audioOffset: state.audioOffset,
+    audioVolume: state.audioVolume,
+    midiVolume: state.midiVolume,
+    metronomeEnabled: state.metronomeEnabled,
+    metronomeVolume: state.metronomeVolume,
+    autoScrollEnabled: state.autoScrollEnabled,
+    scrollX: state.scrollX,
+    scrollY: state.scrollY,
+    pixelsPerBeat: state.pixelsPerBeat,
+    pixelsPerKey: state.pixelsPerKey,
+    waveformHeight: state.waveformHeight,
+  };
+}
+
+// Pure deserialization: SavedProject -> Partial<ProjectState>
+export function fromSavedProject(
+  data: Partial<SavedProject>,
+): Partial<ProjectState> {
+  // Version check: only reject if major breaking change
+  if (data.version && data.version > STORAGE_VERSION) {
+    console.warn("Project from newer version, some data may be lost");
+  }
+
+  // Merge with defaults (handles new fields gracefully)
+  const merged = { ...DEFAULTS, ...data };
+
+  // Update note ID counter to avoid collisions
+  const maxId = merged.notes.reduce((max, n) => {
+    const match = n.id.match(/^note-(\d+)$/);
+    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
+  }, 0);
+  noteIdCounter = maxId;
+
+  return {
+    notes: merged.notes,
+    tempo: merged.tempo,
+    timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
+    gridSnap: merged.gridSnap,
+    audioFileName: merged.audioFileName,
+    audioAssetKey: merged.audioAssetKey,
+    audioDuration: merged.audioDuration,
+    audioOffset: merged.audioOffset,
+    audioVolume: merged.audioVolume,
+    midiVolume: merged.midiVolume,
+    metronomeEnabled: merged.metronomeEnabled,
+    metronomeVolume: merged.metronomeVolume,
+    autoScrollEnabled: merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled,
+    scrollX: merged.scrollX ?? DEFAULTS.scrollX,
+    scrollY: merged.scrollY ?? DEFAULTS.scrollY,
+    pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat,
+    pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey,
+    waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight,
+    // Reset transient state
+    selectedNoteIds: new Set(),
+    audioPeaks: [],
+  };
+}
+
 // Expose store for E2E testing in dev mode
 export function exposeStoreForE2E(): void {
   if (import.meta.env.DEV) {
     (window as Window & { __store?: typeof useProjectStore }).__store =
       useProjectStore;
-  }
-}
-
-export function hasSavedProject(): boolean {
-  return localStorage.getItem(STORAGE_KEY) !== null;
-}
-
-export function clearProject(): void {
-  localStorage.removeItem(STORAGE_KEY);
-  useProjectStore.setState({
-    ...DEFAULTS,
-    selectedNoteIds: new Set(),
-    audioPeaks: [],
-    peaksPerSecond: 100,
-    totalBeats: 640,
-    showDebug: false,
-    autoScrollEnabled: true,
-  });
-  // Clear undo/redo history
-  useHistoryStore.getState().clearHistory();
-}
-
-export function loadProject() {
-  try {
-    const json = localStorage.getItem(STORAGE_KEY);
-    if (!json) return null;
-
-    const saved = JSON.parse(json) as Partial<SavedProject>;
-
-    // Version check: only reject if major breaking change
-    // For now, version 1 is compatible with missing fields
-    if (saved.version && saved.version > STORAGE_VERSION) {
-      console.warn("Project from newer version, some data may be lost");
-    }
-
-    // Merge with defaults (handles new fields gracefully)
-    const merged = { ...DEFAULTS, ...saved };
-
-    // Update note ID counter to avoid collisions
-    const maxId = merged.notes.reduce((max, n) => {
-      const match = n.id.match(/^note-(\d+)$/);
-      return match ? Math.max(max, parseInt(match[1], 10)) : max;
-    }, 0);
-    noteIdCounter = maxId;
-
-    useProjectStore.setState({
-      notes: merged.notes,
-      tempo: merged.tempo,
-      gridSnap: merged.gridSnap,
-      audioFileName: merged.audioFileName,
-      audioAssetKey: merged.audioAssetKey,
-      audioDuration: merged.audioDuration,
-      audioOffset: merged.audioOffset,
-      audioVolume: merged.audioVolume,
-      midiVolume: merged.midiVolume,
-      metronomeEnabled: merged.metronomeEnabled,
-      metronomeVolume: merged.metronomeVolume,
-      autoScrollEnabled:
-        merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled!,
-      // Viewport state
-      scrollX: merged.scrollX ?? DEFAULTS.scrollX!,
-      scrollY: merged.scrollY ?? DEFAULTS.scrollY!,
-      pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat!,
-      pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey!,
-      waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
-      // Reset transient state
-      selectedNoteIds: new Set(),
-      audioPeaks: [],
-    });
-
-    // Clear undo/redo history on project load
-    useHistoryStore.getState().clearHistory();
-  } catch (e) {
-    console.warn("Failed to load project:", e);
-    return null;
   }
 }

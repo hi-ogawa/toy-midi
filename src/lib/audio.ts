@@ -69,11 +69,11 @@ class AudioManager {
     // Metronome sequence (4/4 with accent on beat 1)
     // 1 = accent (high), 0 = normal (lower)
     this.metronomeSeq = new Tone.Sequence(
-      (time, beat) => {
-        const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome.triggerAttackRelease(pitch, "32n", time);
+      (time, note) => {
+        // const pitch = beat === 1 ? "C7" : "G6";
+        this.metronome.triggerAttackRelease(note, "32n", time);
       },
-      [1, 0, 0, 0],
+      ["C7", "G6", "G6", "G6"],
       "4n",
     );
     this.metronomeSeq.start(0);
@@ -98,6 +98,9 @@ class AudioManager {
     }
     if (state.audioOffset !== prevState?.audioOffset) {
       this.syncAudioTrack(state.audioOffset);
+    }
+    if (state.timeSignature.numerator !== prevState?.timeSignature.numerator) {
+      this.setMetronomeSequence(state.timeSignature.numerator);
     }
   }
 
@@ -167,6 +170,14 @@ class AudioManager {
 
   setMetronomeEnabled(enabled: boolean): void {
     this.metronomeChannel.mute = !enabled;
+  }
+
+  setMetronomeSequence(beatsPerBar: number): void {
+    // Create new sequence with updated beats per bar
+    this.metronomeSeq.clear();
+    this.metronomeSeq.events = Array.from({ length: beatsPerBar }, (_, i) =>
+      i === 0 ? "C7" : "G6",
+    );
   }
 }
 
