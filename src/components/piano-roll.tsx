@@ -621,10 +621,10 @@ export function PianoRoll() {
         }
         setDragMode({ ...dragMode, startBeat: newStart, startPitch: newPitch });
       } else if (dragMode.type === "resizing-start") {
-        // Use round for resizing so edge snaps at halfway point
-        const snappedBeat = Math.round(beat / gridSnapValue) * gridSnapValue;
+        // Cell-based snap: cursor's cell determines the new start position
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = cursorCell * gridSnapValue;
         const originalEnd = dragMode.originalStart + dragMode.originalDuration;
-        const newStart = Math.min(snappedBeat, originalEnd - gridSnapValue);
         const newDuration = originalEnd - newStart;
         if (newStart >= 0 && newDuration >= gridSnapValue) {
           updateNote(dragMode.noteId, {
@@ -633,11 +633,12 @@ export function PianoRoll() {
           });
         }
       } else if (dragMode.type === "resizing-end") {
-        // Use round for resizing so edge snaps at halfway point
-        const snappedBeat = Math.round(beat / gridSnapValue) * gridSnapValue;
+        // Cell-based snap: cursor's cell determines the new end position
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newEnd = (cursorCell + 1) * gridSnapValue;
         const newDuration = Math.max(
           gridSnapValue,
-          snappedBeat - dragMode.originalStart,
+          newEnd - dragMode.originalStart,
         );
         updateNote(dragMode.noteId, { duration: newDuration });
       } else if (dragMode.type === "box-select") {
