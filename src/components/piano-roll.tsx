@@ -191,7 +191,7 @@ type DragMode =
       noteId: string;
       startBeat: number;
       startPitch: number;
-      offsetBeat: number;
+      cellOffset: number; // which grid cell within the note was grabbed
       offsetPitch: number;
       // Original states of all notes being moved (for undo)
       originalStates: Array<{ id: string; start: number; pitch: number }>;
@@ -528,7 +528,8 @@ export function PianoRoll() {
             noteId: clickedNote.id,
             startBeat: clickedNote.start,
             startPitch: clickedNote.pitch,
-            offsetBeat: beat - clickedNote.start,
+            // Cell offset: which grid cell within the note was grabbed
+            cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
             offsetPitch: 0,
             originalStates,
           });
@@ -583,11 +584,12 @@ export function PianoRoll() {
         );
         setDragMode({ ...dragMode, currentBeat: endBeat });
       } else if (dragMode.type === "moving") {
-        const snappedBeat = snapToGrid(
-          beat - dragMode.offsetBeat,
-          gridSnapValue,
+        // Cell-based snapping: note moves when cursor crosses grid lines
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = Math.max(
+          0,
+          (cursorCell - dragMode.cellOffset) * gridSnapValue,
         );
-        const newStart = Math.max(0, snappedBeat);
         const newPitch = clampPitch(pitch);
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other selected notes too
@@ -608,7 +610,8 @@ export function PianoRoll() {
         }
         setDragMode({ ...dragMode, startBeat: newStart, startPitch: newPitch });
       } else if (dragMode.type === "resizing-start") {
-        const snappedBeat = snapToGrid(beat, gridSnapValue);
+        // Use round for resizing so edge snaps at halfway point
+        const snappedBeat = Math.round(beat / gridSnapValue) * gridSnapValue;
         const originalEnd = dragMode.originalStart + dragMode.originalDuration;
         const newStart = Math.min(snappedBeat, originalEnd - gridSnapValue);
         const newDuration = originalEnd - newStart;
@@ -619,7 +622,8 @@ export function PianoRoll() {
           });
         }
       } else if (dragMode.type === "resizing-end") {
-        const snappedBeat = snapToGrid(beat, gridSnapValue);
+        // Use round for resizing so edge snaps at halfway point
+        const snappedBeat = Math.round(beat / gridSnapValue) * gridSnapValue;
         const newDuration = Math.max(
           gridSnapValue,
           snappedBeat - dragMode.originalStart,
