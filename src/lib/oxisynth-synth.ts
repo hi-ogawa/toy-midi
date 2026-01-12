@@ -29,10 +29,8 @@ const PROCESSOR_NAME = "oxisynth";
  * Uses simple postMessage for communication (no comlink dependency).
  */
 export class OxiSynthSynth {
-  private node: AudioWorkletNode | null = null;
+  private node!: AudioWorkletNode;
   private context: ToneContext;
-  private isSetup = false;
-  private _isLoaded = false;
   private currentSoundfontId: string | null = null;
   private pendingCallbacks = new Map<string, (data: unknown) => void>();
 
@@ -43,15 +41,12 @@ export class OxiSynthSynth {
     this.output = new Tone.Gain({ context });
   }
 
-  get isLoaded(): boolean {
-    return this._isLoaded;
-  }
-
-  async setup(): Promise<void> {
-    if (this.isSetup) return;
-
+  async init(options: {
+    workletUrl: string;
+    wasmUrl: string;
+  }): Promise<void> {
     // Load worklet module
-    await this.context.addAudioWorkletModule("/oxisynth/worklet.js");
+    await this.context.addAudioWorkletModule(options.workletUrl);
 
     // Create worklet node
     this.node = this.context.createAudioWorkletNode(PROCESSOR_NAME, {
@@ -66,30 +61,18 @@ export class OxiSynthSynth {
     this.node.port.onmessage = (e) => this.handleMessage(e.data);
 
     // Load and initialize WASM
-    const wasmResponse = await fetch("/oxisynth/oxisynth.wasm");
+    const wasmResponse = await fetch(options.wasmUrl);
     const wasmBuffer = await wasmResponse.arrayBuffer();
 
     await this.sendMessage("init", { wasmBytes: wasmBuffer }, "ready", [
       wasmBuffer,
     ]);
-
-    this.isSetup = true;
   }
 
-  async loadSoundFontFromURL(url: string): Promise<void> {
-    const response = await fetch(url);
-    const data = await response.arrayBuffer();
-    await this.loadSoundFont(data, url);
-  }
-
-  async loadSoundFont(
+  async addSoundFont(
     data: ArrayBuffer,
     name: string = "soundfont",
   ): Promise<void> {
-    if (!this.node) {
-      throw new Error("OxiSynthSynth.setup() must be called first");
-    }
-
     // Add soundfont to the synth
     await this.sendMessage("addSoundfont", { name, data }, "soundfontAdded", [
       data,
@@ -98,20 +81,18 @@ export class OxiSynthSynth {
 
     // Select first preset from this soundfont
     const state = await this.getState();
-    const sf = state?.soundfonts.find((s) => s.id === name);
-    if (sf && sf.presets.length > 0) {
-      this.postMessage({
-        type: "setPreset",
-        soundfontId: name,
-        presetId: sf.presets[0].id,
-      });
+    const sf = state.soundfonts.find((s) => s.id === name);
+    if (!sf || sf.presets.length === 0) {
+      throw new Error(`No presets found in soundfont: ${name}`);
     }
-
-    this._isLoaded = true;
+    this.postMessage({
+      type: "setPreset",
+      soundfontId: name,
+      presetId: sf.presets[0].id,
+    });
   }
 
-  async getState(): Promise<OxiSynthState | null> {
-    if (!this.node) return null;
+  private async getState(): Promise<OxiSynthState> {
     const response = await this.sendMessage("getState", {}, "state");
     return (response as { state: OxiSynthState }).state;
   }
@@ -121,23 +102,28 @@ export class OxiSynthSynth {
    * Maps to bank 0, preset N.
    */
   async programChange(programNumber: number): Promise<void> {
-    if (!this.node || !this.currentSoundfontId) return;
+    if (!this.currentSoundfontId) {
+      throw new Error("No soundfont loaded");
+    }
 
     const state = await this.getState();
-    const sf = state?.soundfonts.find((s) => s.id === this.currentSoundfontId);
-    if (!sf) return;
+    const sf = state.soundfonts.find((s) => s.id === this.currentSoundfontId);
+    if (!sf) {
+      throw new Error(`Soundfont not found: ${this.currentSoundfontId}`);
+    }
 
     // Find preset matching bank 0, preset_num = programNumber
     const preset = sf.presets.find(
       (p) => p.bank === 0 && p.preset_num === programNumber,
     );
-    if (preset) {
-      this.postMessage({
-        type: "setPreset",
-        soundfontId: this.currentSoundfontId,
-        presetId: preset.id,
-      });
+    if (!preset) {
+      throw new Error(`Preset not found: bank=0, program=${programNumber}`);
     }
+    this.postMessage({
+      type: "setPreset",
+      soundfontId: this.currentSoundfontId,
+      presetId: preset.id,
+    });
   }
 
   noteOn(noteNumber: number, velocity: number = 100): void {
@@ -148,6 +134,24 @@ export class OxiSynthSynth {
     this.postMessage({ type: "noteOff", key: noteNumber });
   }
 
+  /**
+   * Trigger note on immediately and schedule note off after duration.
+   * Uses audio-frame accurate timing in the worklet.
+   */
+  triggerAttackRelease(
+    noteNumber: number,
+    duration: number,
+    velocity: number = 100,
+  ): void {
+    const durationSamples = Math.round(duration * this.context.sampleRate);
+    this.postMessage({
+      type: "noteOnOff",
+      key: noteNumber,
+      velocity,
+      durationSamples,
+    });
+  }
+
   allNotesOff(): void {
     // Send note off for all possible notes
     for (let note = 0; note < 128; note++) {
@@ -155,16 +159,11 @@ export class OxiSynthSynth {
     }
   }
 
-  dispose(): void {
-    this.node?.disconnect();
-    this.output.dispose();
-  }
-
   private postMessage(
     msg: Record<string, unknown>,
     transfer?: Transferable[],
   ): void {
-    this.node?.port.postMessage(msg, transfer ?? []);
+    this.node.port.postMessage(msg, transfer ?? []);
   }
 
   private sendMessage(

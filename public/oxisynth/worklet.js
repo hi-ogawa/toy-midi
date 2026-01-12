@@ -479,6 +479,7 @@ let soundfontPlayer = null;
 class OxiSynthProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
+    this.scheduledNoteOffs = []; // [{key, frame}, ...]
     this.port.onmessage = (e) => this.handleMessage(e.data);
   }
 
@@ -495,6 +496,14 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
         break;
       case "noteOff":
         soundfontPlayer?.note_off(msg.key);
+        break;
+      case "noteOnOff":
+        // Note on immediately, schedule note off
+        soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
+        this.scheduledNoteOffs.push({
+          key: msg.key,
+          frame: currentFrame + msg.durationSamples,
+        });
         break;
       case "addSoundfont":
         soundfontPlayer?.add_soundfonts_from_file(
@@ -522,6 +531,16 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     const out_l = outputs[0]?.[0];
     const out_r = outputs[0]?.[1];
     if (!soundfontPlayer || !out_l || !out_r) return true;
+
+    // Process scheduled noteOffs
+    this.scheduledNoteOffs = this.scheduledNoteOffs.filter((event) => {
+      if (currentFrame >= event.frame) {
+        soundfontPlayer.note_off(event.key);
+        return false;
+      }
+      return true;
+    });
+
     soundfontPlayer.process(out_l, out_r);
     return true;
   }

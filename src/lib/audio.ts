@@ -189,8 +189,12 @@ class AudioManager {
 
     // OxiSynth (Rust/WASM) for SF2 playback
     this.midiSynth = new OxiSynthSynth(context);
-    await this.midiSynth.setup();
-    await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
+    await this.midiSynth.init({
+      workletUrl: "/oxisynth/worklet.js",
+      wasmUrl: "/oxisynth/oxisynth.wasm",
+    });
+    const sf2Response = await fetch(DEFAULT_SOUNDFONT_URL);
+    await this.midiSynth.addSoundFont(await sf2Response.arrayBuffer(), DEFAULT_SOUNDFONT_URL);
 
     // Connect synth output to Channel for volume control
     this.midiChannel = new Tone.Channel(0).toDestination();
@@ -198,18 +202,9 @@ class AudioManager {
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (_time, event) => {
-        // Tone.Part calls this callback at the scheduled time
-        // noteOn is called immediately, noteOff is scheduled via Transport
-        this.midiSynth.noteOn(event.pitch, 100);
-
-        // Convert duration from beats to seconds using current tempo
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
-
-        // Schedule noteOff
-        Tone.getTransport().schedule(() => {
-          this.midiSynth.noteOff(event.pitch);
-        }, `+${durationSeconds}`);
+        this.midiSynth.triggerAttackRelease(event.pitch, durationSeconds, 100);
       },
       [],
     );
@@ -315,11 +310,7 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.2): void {
-    if (!this.midiSynth?.isLoaded) return;
-    this.midiSynth.noteOn(pitch, 100);
-    Tone.getDraw().schedule(() => {
-      this.midiSynth.noteOff(pitch);
-    }, Tone.now() + duration);
+    this.midiSynth.triggerAttackRelease(pitch, duration, 100);
   }
 
   // Volume controls (0-1)
