@@ -414,7 +414,7 @@ test.describe("Piano Roll", () => {
     // Shift+drag the selected note to duplicate it
     const noteCenter = initialBox.x + initialBox.width / 2;
     const noteMiddleY = initialBox.y + initialBox.height / 2;
-    
+
     await page.keyboard.down("Shift");
     await page.mouse.move(noteCenter, noteMiddleY);
     await page.mouse.down();
@@ -444,7 +444,9 @@ test.describe("Piano Roll", () => {
     await expect(duplicateNote).toHaveAttribute("data-selected", "true");
   });
 
-  test("duplicate multiple selected notes with Shift+drag", async ({ page }) => {
+  test("duplicate multiple selected notes with Shift+drag", async ({
+    page,
+  }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");

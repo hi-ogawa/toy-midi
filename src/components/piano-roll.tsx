@@ -807,9 +807,20 @@ export function PianoRoll() {
         });
       }
     } else if (dragMode.type === "duplicating") {
-      // End drag - the duplicates have already been created and moved
-      // No need to push history since addNote already adds to history
+      // End drag - record the duplication as an add-notes operation
       historyStore.endDrag();
+
+      // Get the current state of all duplicate notes
+      const currentDuplicates = notes.filter((n) =>
+        dragMode.duplicateNoteIds.includes(n.id),
+      );
+
+      if (currentDuplicates.length > 0) {
+        historyStore.pushOperation({
+          type: "add-notes",
+          notes: currentDuplicates,
+        });
+      }
 
       // The duplicates are already selected, so nothing more to do
     } else if (dragMode.type === "resizing-start") {
