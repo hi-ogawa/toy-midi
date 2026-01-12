@@ -253,6 +253,8 @@ After this, the architecture becomes clearer and we can decide if further separa
 - [x] Add toSavedProject/fromSavedProject pure functions
 - [x] Move saveProject/loadProject/hasSavedProject to app.tsx
 - [x] Remove localStorage from project-store.ts
+- [x] Rename project-list.ts to project-manager.ts
+- [x] Move persistence functions from app.tsx to project-manager.ts
 - [ ] Documentation update
 
 ## Summary
@@ -260,23 +262,23 @@ After this, the architecture becomes clearer and we can decide if further separa
 Refactor complete. The layer separation is now:
 
 ```
-src/app.tsx (orchestration)
-  ├── hasSavedProject()      - checks localStorage + project-list
-  ├── saveProject()          - toSavedProject → localStorage + metadata
-  └── loadProject()          - localStorage → fromSavedProject → store
+src/app.tsx (React UI only)
+  └── initMutation             - calls project-manager functions
 
-src/stores/project-store.ts (pure state)
-  ├── useProjectStore        - Zustand store
-  ├── toSavedProject()       - state → saved data (pure)
-  └── fromSavedProject()     - saved data → state (pure)
+src/lib/project-manager.ts (all project operations)
+  ├── Project list             - createProject, listProjects, deleteProject
+  ├── Project data             - saveProject, loadProject, hasSavedProject
+  ├── Metadata                 - getProjectMetadata, updateProjectMetadata
+  └── Migration                - migrateFromSingleProject
 
-src/lib/project-list.ts (metadata only)
-  ├── createProject()        - project list management
-  ├── getProjectKey()        - storage key helper
-  └── setLastProjectId()     - last project tracking
+src/stores/project-store.ts (pure Zustand state)
+  ├── useProjectStore          - Zustand store
+  ├── toSavedProject()         - state → saved data (pure)
+  └── fromSavedProject()       - saved data → state (pure)
 ```
 
-`project-store.ts` no longer touches localStorage or project-list.ts.
+`project-store.ts` no longer touches localStorage or has any external dependencies.
+`app.tsx` is now just React UI - no persistence logic.
 
 ## Related
 

@@ -1,7 +1,14 @@
-// Project list management for multiple project support
+// Project management for multiple project support
+
+import {
+  fromSavedProject,
+  toSavedProject,
+  useProjectStore,
+} from "../stores/project-store";
 
 const PROJECT_LIST_KEY = "toy-midi-project-list";
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
+const OLD_STORAGE_KEY = "toy-midi-project";
 
 export interface ProjectMetadata {
   id: string;
@@ -137,8 +144,6 @@ export function hasProjects(): boolean {
 
 // Migrate from old single-project storage to new multi-project storage
 export function migrateFromSingleProject(): boolean {
-  const OLD_STORAGE_KEY = "toy-midi-project";
-
   // Check if migration is needed
   if (!localStorage.getItem(OLD_STORAGE_KEY)) {
     return false; // Nothing to migrate
@@ -178,6 +183,62 @@ export function migrateFromSingleProject(): boolean {
     return true;
   } catch (e) {
     console.error("Failed to migrate project:", e);
+    return false;
+  }
+}
+
+// === Project Data Operations ===
+
+// Check if any projects exist (for startup screen)
+export function hasSavedProject(): boolean {
+  if (localStorage.getItem(OLD_STORAGE_KEY) !== null) {
+    return true;
+  }
+  return getLastProjectId() !== null;
+}
+
+// Save current project to localStorage
+export function saveProject(): void {
+  const state = useProjectStore.getState();
+
+  if (!state.currentProjectId) {
+    console.warn("Cannot save project: no current project ID set.");
+    return;
+  }
+
+  const saved = toSavedProject(state);
+  try {
+    const storageKey = getProjectKey(state.currentProjectId);
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
+    setLastProjectId(state.currentProjectId);
+  } catch (e) {
+    console.warn("Failed to save project:", e);
+  }
+}
+
+// Load project from localStorage into store
+export function loadProject(projectId: string): boolean {
+  try {
+    const storageKey = getProjectKey(projectId);
+    const json = localStorage.getItem(storageKey);
+    if (!json) {
+      console.warn(`Project ${projectId} not found in storage`);
+      return false;
+    }
+
+    const saved = JSON.parse(json);
+    const projectState = fromSavedProject(saved);
+
+    useProjectStore.setState({
+      currentProjectId: projectId,
+      ...projectState,
+    });
+
+    setLastProjectId(projectId);
+    return true;
+  } catch (e) {
+    console.warn("Failed to load project:", e);
     return false;
   }
 }
