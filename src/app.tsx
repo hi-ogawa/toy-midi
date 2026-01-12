@@ -80,7 +80,9 @@ export function App() {
 
       // Setup auto-save on state changes (debounced)
       // projectId is captured in closure - no need for Zustand
-      // TODO: reduce timeout on E2E to reduce lengthy watiForTimeout
+      const autoSaveDebounceMs = Number(
+        import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
+      );
       let saveTimeout: number;
       useProjectStore.subscribe(() => {
         clearTimeout(saveTimeout);
@@ -94,7 +96,7 @@ export function App() {
             console.error("Failed to save project:", e);
             toast.error("Failed to save project. Changes may be lost.");
           }
-        }, 500);
+        }, autoSaveDebounceMs);
       });
 
       return { projectId };

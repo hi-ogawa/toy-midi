@@ -57,7 +57,7 @@ test.describe("Startup Screen", () => {
     });
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload - continue button should now be visible
     await page.reload();

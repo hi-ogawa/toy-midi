@@ -414,7 +414,7 @@ App mounts → loadProject() from localStorage
 ### Save Flow
 
 ```
-Any state change → debounced 500ms → saveProject() to localStorage
+Any state change → debounced (default 500ms, configurable via VITE_AUTO_SAVE_DEBOUNCE_MS) → saveProject() to localStorage
 Audio loaded → saveAsset() to IndexedDB (once per file)
 ```
 
