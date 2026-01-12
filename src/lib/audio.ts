@@ -22,7 +22,7 @@ const DEFAULT_SOUNDFONT_URL = "/soundfonts/sin.sf2";
  */
 class AudioManager {
   private midiSynth!: SoundFontSynth;
-  private midiGain!: GainNode;
+  private midiGain!: GainNode; // TODO: can we still use Tone.Channel and bind to input?
   private midiPart!: Tone.Part;
 
   // audio track
@@ -37,23 +37,25 @@ class AudioManager {
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
-    const context = Tone.getContext().rawContext as AudioContext;
+    // Create dedicated AudioContext for soundfont synth
+    // (Tone.js context wrapper doesn't expose audioWorklet properly)
+    const sfContext = new AudioContext();
 
     // SoundFont synth for polyphonic playback
-    this.midiSynth = new SoundFontSynth(context);
+    this.midiSynth = new SoundFontSynth(sfContext);
     await this.midiSynth.setup();
     await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
 
     // Gain node for MIDI volume control
-    this.midiGain = context.createGain();
+    this.midiGain = sfContext.createGain();
     this.midiGain.gain.value = 0.8;
-    this.midiGain.connect(context.destination);
+    this.midiGain.connect(sfContext.destination);
     this.midiSynth.connect(this.midiGain);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {
         // Calculate delay from now to the scheduled time
-        const now = context.currentTime;
+        const now = sfContext.currentTime;
         const delayTime = Math.max(0, time - now);
 
         // Convert duration from beats to seconds using current tempo
