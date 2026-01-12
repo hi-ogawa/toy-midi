@@ -41,10 +41,7 @@ export class OxiSynthSynth {
     this.output = new Tone.Gain({ context });
   }
 
-  async init(options: {
-    workletUrl: string;
-    wasmUrl: string;
-  }): Promise<void> {
+  async init(options: { workletUrl: string; wasmUrl: string }): Promise<void> {
     // Load worklet module
     await this.context.addAudioWorkletModule(options.workletUrl);
 
@@ -153,9 +150,8 @@ export class OxiSynthSynth {
   }
 
   allNotesOff(): void {
-    // Send note off for all possible notes
     for (let note = 0; note < 128; note++) {
-      this.postMessage({ type: "noteOff", key: note });
+      this.noteOff(note);
     }
   }
 

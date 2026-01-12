@@ -194,7 +194,10 @@ class AudioManager {
       wasmUrl: "/oxisynth/oxisynth.wasm",
     });
     const sf2Response = await fetch(DEFAULT_SOUNDFONT_URL);
-    await this.midiSynth.addSoundFont(await sf2Response.arrayBuffer(), DEFAULT_SOUNDFONT_URL);
+    await this.midiSynth.addSoundFont(
+      await sf2Response.arrayBuffer(),
+      DEFAULT_SOUNDFONT_URL,
+    );
 
     // Connect synth output to Channel for volume control
     this.midiChannel = new Tone.Channel(0).toDestination();
