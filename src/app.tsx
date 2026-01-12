@@ -2,12 +2,11 @@ import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ToneAudioBuffer } from "tone";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
 import { loadAsset } from "./lib/asset-store";
-import { audioManager, getAudioBufferPeaks } from "./lib/audio";
+import { audioManager, loadAudioFile } from "./lib/audio";
 import {
   createProject,
   deleteProject,
@@ -57,15 +56,12 @@ export function App() {
       if (project.audioAssetKey) {
         const asset = await loadAsset(project.audioAssetKey);
         if (asset) {
-          const url = URL.createObjectURL(asset.blob);
-          const buffer = await ToneAudioBuffer.fromUrl(url);
-          URL.revokeObjectURL(url);
-
+          const { buffer, peaks, peaksPerSecond } = await loadAudioFile(
+            new File([asset.blob], asset.name),
+          );
           audioManager.player.buffer = buffer;
           audioManager.syncAudioTrack(project.audioOffset);
-
-          const peaks = getAudioBufferPeaks(buffer, 100);
-          project.setAudioPeaks(peaks, 100);
+          project.setAudioPeaks(peaks, peaksPerSecond);
         } else {
           toast.warning(
             "Audio asset not found. The audio track will be cleared.",

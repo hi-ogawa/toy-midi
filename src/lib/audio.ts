@@ -206,3 +206,27 @@ export function getAudioBufferPeaks(
 
   return peaks;
 }
+
+const PEAKS_PER_SECOND = 100;
+
+// Load audio file and extract metadata + peaks for waveform display
+export async function loadAudioFile(file: File): Promise<{
+  buffer: Tone.ToneAudioBuffer;
+  peaks: number[];
+  peaksPerSecond: number;
+  duration: number;
+}> {
+  const url = URL.createObjectURL(file);
+  try {
+    const buffer = await Tone.ToneAudioBuffer.fromUrl(url);
+    const peaks = getAudioBufferPeaks(buffer, PEAKS_PER_SECOND);
+    return {
+      buffer,
+      peaks,
+      peaksPerSecond: PEAKS_PER_SECOND,
+      duration: buffer.duration,
+    };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

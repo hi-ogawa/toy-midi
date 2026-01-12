@@ -112,9 +112,8 @@ test.describe("Project Persistence", () => {
     ]);
     await fileChooser.setFiles("public/test-audio.wav");
 
-    // Wait for audio to load - audio volume slider should appear in settings
-    await page.getByTestId("settings-button").click();
-    await page.waitForTimeout(500);
+    // Wait for audio to load - filename should appear in waveform area
+    await expect(page.getByText("test-audio.wav")).toBeVisible();
 
     // Wait for auto-save
     await page.waitForTimeout(100);
@@ -123,10 +122,8 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Audio should be restored - open settings to check for audio volume slider
-    await page.getByTestId("settings-button").click();
-    // Audio volume slider (Radix Slider) only appears when audio is loaded
-    await expect(page.locator('[data-slot="slider"]')).toBeVisible();
+    // Audio should be restored - filename should appear in waveform area
+    await expect(page.getByText("test-audio.wav")).toBeVisible();
   });
 
   test("settings persist after reload", async ({ page }) => {

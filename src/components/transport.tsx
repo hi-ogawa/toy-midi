@@ -3,6 +3,7 @@ import {
   CircleHelpIcon,
   DownloadIcon,
   FolderIcon,
+  MusicIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
@@ -11,10 +12,9 @@ import {
   Volume2Icon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import { ToneAudioBuffer } from "tone";
 import { useTransport } from "../hooks/use-transport";
 import { saveAsset } from "../lib/asset-store";
-import { audioManager, getAudioBufferPeaks } from "../lib/audio";
+import { audioManager, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
@@ -31,6 +31,27 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Slider } from "./ui/slider";
+
+function MetronomeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      viewBox="0 0 24 24"
+      aria-label="Metronome"
+    >
+      <title>Metronome</title>
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="m14.153 8.188l-.72-3.236a2.493 2.493 0 0 0-4.867 0L5.541 18.566A2 2 0 0 0 7.493 21h7.014a2 2 0 0 0 1.952-2.434l-.524-2.357M11 18l9-13m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
+      />
+    </svg>
+  );
+}
 
 function formatTimeCompact(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -60,25 +81,28 @@ export function Transport({
 }: TransportProps) {
   const {
     audioFileName,
-    audioDuration,
     tempo,
     timeSignature,
     notes,
+    midiVolume,
     audioVolume,
+    metronomeVolume,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
     showDebug,
-    setAudioFile,
     setTempo,
     setTimeSignature,
+    setMidiVolume,
     setAudioVolume,
+    setMetronomeVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
     setShowDebug,
-    setAudioPeaks,
+    setAudioFile,
     setAudioOffset,
+    setAudioPeaks,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -89,10 +113,7 @@ export function Transport({
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
-      // TODO: refactor with initial project restore in app.tsx
-      const url = URL.createObjectURL(file);
-      const buffer = await ToneAudioBuffer.fromUrl(url);
-      URL.revokeObjectURL(url);
+      const { buffer, peaks, peaksPerSecond } = await loadAudioFile(file);
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
@@ -102,9 +123,6 @@ export function Transport({
       audioManager.player.sync().start(0);
       setAudioOffset(0);
 
-      // Extract peaks for waveform display
-      const peaksPerSecond = 100;
-      const peaks = getAudioBufferPeaks(buffer, peaksPerSecond);
       setAudioPeaks(peaks, peaksPerSecond);
     },
   });
@@ -156,9 +174,6 @@ export function Transport({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePlayPause, handleAutoScrollToggle]);
-
-  // Use audioDuration > 0 as proxy for loaded state (reactive)
-  const audioLoaded = audioDuration > 0;
 
   const handleTapTempo = () => {
     const now = performance.now();
@@ -253,22 +268,7 @@ export function Transport({
         title="Toggle metronome"
         aria-pressed={metronomeEnabled}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="size-5"
-          viewBox="0 0 24 24"
-          aria-label="Metronome"
-        >
-          <title>Metronome</title>
-          <path
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="m14.153 8.188l-.72-3.236a2.493 2.493 0 0 0-4.867 0L5.541 18.566A2 2 0 0 0 7.493 21h7.014a2 2 0 0 0 1.952-2.434l-.524-2.357M11 18l9-13m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
-          />
-        </svg>
+        <MetronomeIcon className="size-5" />
       </Button>
 
       {/* Divider */}
@@ -440,25 +440,42 @@ export function Transport({
 
           <DropdownMenuSeparator />
 
-          {/* Audio volume (only if audio loaded) */}
-          {audioLoaded && (
-            <>
-              <div className="px-2 py-1.5 flex items-center gap-2">
-                <Volume2Icon className="size-4 text-muted-foreground" />
-                <span className="text-muted-foreground text-sm w-10">
-                  Audio
-                </span>
-                <Slider
-                  value={[audioVolume * 100]}
-                  onValueChange={([v]) => setAudioVolume(v / 100)}
-                  max={100}
-                  step={1}
-                  className="flex-1"
-                />
-              </div>
-              <DropdownMenuSeparator />
-            </>
-          )}
+          {/* Volume sliders */}
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <MusicIcon className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm w-12">MIDI</span>
+            <Slider
+              value={[midiVolume * 100]}
+              onValueChange={([v]) => setMidiVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <Volume2Icon className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm w-12">Audio</span>
+            <Slider
+              value={[audioVolume * 100]}
+              onValueChange={([v]) => setAudioVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <MetronomeIcon className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm w-12">Metro</span>
+            <Slider
+              value={[metronomeVolume * 100]}
+              onValueChange={([v]) => setMetronomeVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+
+          <DropdownMenuSeparator />
 
           {/* Auto-scroll toggle */}
           <DropdownMenuCheckboxItem

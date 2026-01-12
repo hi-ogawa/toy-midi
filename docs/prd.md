@@ -105,6 +105,9 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
+- [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
+- [ ] feat: remove audio track
+- [ ] feat: trim audio track length (start and end)
 - [ ] feat: soundfont player for midi synth
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
@@ -137,6 +140,11 @@ _UI polish_
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
 - [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
+
+_Misc_
+
+- [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
+- [ ] feat: support fret position annotation metadata
 
 _Chores/Refactoring_
 
