@@ -40,4 +40,5 @@ Clone into `refs/` (gitignored) e.g.
 ```bash
 pnpm dlx tiged https://github.com/ryohey/signal.git refs/signal
 pnpm dlx tiged https://github.com/Tonejs/Tone.js.git refs/Tone.js
+pnpm dlx tiged https://github.com/hi-ogawa/web-audio-worklet-rust refs/web-audio-worklet-rust
 ```
