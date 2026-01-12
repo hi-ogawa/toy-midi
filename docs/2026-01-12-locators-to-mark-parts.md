@@ -143,10 +143,14 @@ E2E tests:
 
 ### Remaining MVP Features
 
-| Feature              | Status  | Notes                               |
-| -------------------- | ------- | ----------------------------------- |
-| Rename locator       | ❌ TODO | Double-click locator to edit inline |
-| Drag locator to move | ❌ TODO | Lower priority                      |
+| Feature              | Status  | Notes                                  |
+| -------------------- | ------- | -------------------------------------- |
+| Rename locator       | ✅ Done | Double-click locator → window.prompt() |
+| Drag locator to move | ❌ TODO | Lower priority                         |
+
+- label change e2e
+- currently label is not clickable to select
+- currently locator label overlap with bar label. perhaps we could timeline region taller to avoid overlap?
 
 ### Future Enhancements (Deferred)
 

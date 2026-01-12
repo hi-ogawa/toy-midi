@@ -977,6 +977,13 @@ export function PianoRoll() {
     updateLocator(id, { position });
   };
 
+  const handleRenameLocator = (id: string, currentLabel: string) => {
+    const newLabel = window.prompt("Rename locator:", currentLabel);
+    if (newLabel !== null && newLabel.trim() !== "") {
+      updateLocator(id, { label: newLabel.trim() });
+    }
+  };
+
   const handleDeleteLocator = (id: string) => {
     deleteLocator(id);
   };
@@ -1028,6 +1035,7 @@ export function PianoRoll() {
             locators={locators}
             selectedLocatorId={selectedLocatorId}
             onSelectLocator={handleSelectLocator}
+            onRenameLocator={handleRenameLocator}
             onUpdateLocator={handleUpdateLocator}
             onDeleteLocator={handleDeleteLocator}
           />
@@ -1383,6 +1391,7 @@ function Timeline({
   locators,
   selectedLocatorId,
   onSelectLocator,
+  onRenameLocator,
   onUpdateLocator: _onUpdateLocator,
   onDeleteLocator: _onDeleteLocator,
 }: {
@@ -1396,6 +1405,7 @@ function Timeline({
   locators: Array<{ id: string; position: number; label: string }>;
   selectedLocatorId: string | null;
   onSelectLocator: (id: string) => void;
+  onRenameLocator: (id: string, currentLabel: string) => void;
   onUpdateLocator: (id: string, position: number) => void;
   onDeleteLocator: (id: string) => void;
 }) {
@@ -1481,6 +1491,7 @@ function Timeline({
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
+              onRenameLocator(locator.id, locator.label);
             }}
           >
             {/* Triangle marker */}
@@ -1491,7 +1502,7 @@ function Timeline({
             />
             {/* Label */}
             <div
-              className={`absolute top-10 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap px-1 rounded ${
+              className={`absolute top-1 left-[12px] text-[10px] whitespace-nowrap px-1 rounded ${
                 isSelected
                   ? "bg-amber-400 text-neutral-900"
                   : "bg-neutral-700 text-neutral-300"
