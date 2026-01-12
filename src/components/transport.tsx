@@ -11,7 +11,8 @@ import {
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
+import { useKeyboardShortcut } from "../hooks/use-keyboard-shortcut";
 import { useTransport } from "../hooks/use-transport";
 import { saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
@@ -153,27 +154,26 @@ export function Transport({
   }, [autoScrollEnabled, setAutoScrollEnabled]);
 
   // Keyboard shortcuts: Space=play/pause, Ctrl+F=auto-scroll
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
-      if (
-        (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
+  useKeyboardShortcut(
+    {
+      code: "Space",
+      preventDefault: true,
+      preventRepeat: true,
+    },
+    handlePlayPause,
+    [handlePlayPause],
+  );
 
-      if (e.code === "Space" && !e.repeat) {
-        e.preventDefault();
-        handlePlayPause();
-      } else if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
-        e.preventDefault();
-        handleAutoScrollToggle();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handlePlayPause, handleAutoScrollToggle]);
+  useKeyboardShortcut(
+    {
+      code: "KeyF",
+      ctrl: true,
+      preventDefault: true,
+      preventRepeat: true,
+    },
+    handleAutoScrollToggle,
+    [handleAutoScrollToggle],
+  );
 
   const handleTapTempo = () => {
     const now = performance.now();

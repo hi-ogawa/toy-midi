@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
+import { useKeyboardShortcut } from "./hooks/use-keyboard-shortcut";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
 import {
@@ -100,24 +101,25 @@ export function App() {
   });
 
   // Enter to continue saved project (startup screen only)
-  useEffect(() => {
-    if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
-      return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-        const lastProjectId = getLastProjectId();
-        if (lastProjectId) {
-          initMutation.mutate({ projectId: lastProjectId });
-        }
+  useKeyboardShortcut(
+    {
+      key: "Enter",
+      preventDefault: true,
+      stopPropagation: true,
+      capture: true,
+      enabled:
+        savedProjectExists &&
+        !initMutation.isSuccess &&
+        !initMutation.isPending,
+    },
+    () => {
+      const lastProjectId = getLastProjectId();
+      if (lastProjectId) {
+        initMutation.mutate({ projectId: lastProjectId });
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [initMutation.isSuccess, initMutation.isPending, initMutation.mutate]);
+    },
+    [initMutation.isSuccess, initMutation.isPending, initMutation.mutate],
+  );
 
   if (initMutation.isPending) {
     return (
@@ -152,20 +154,17 @@ function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Escape to close help overlay
-  useEffect(() => {
-    if (!isHelpOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsHelpOpen(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isHelpOpen]);
+  useKeyboardShortcut(
+    {
+      key: "Escape",
+      preventDefault: true,
+      stopPropagation: true,
+      capture: true,
+      enabled: isHelpOpen,
+    },
+    () => setIsHelpOpen(false),
+    [isHelpOpen],
+  );
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">

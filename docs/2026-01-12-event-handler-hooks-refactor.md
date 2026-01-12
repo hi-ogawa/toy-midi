@@ -12,11 +12,12 @@ The codebase has repetitive `useEffect` + `window.addEventListener` patterns for
 ### 1. Keyboard Shortcuts (3 instances)
 
 **app.tsx** - Enter key for startup screen:
+
 ```tsx
 useEffect(() => {
   if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
     return;
-  
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -24,17 +25,18 @@ useEffect(() => {
       // ... action
     }
   };
-  
+
   window.addEventListener("keydown", handleKeyDown, true);
   return () => window.removeEventListener("keydown", handleKeyDown, true);
 }, [dependencies]);
 ```
 
 **app.tsx** - Escape key for help overlay:
+
 ```tsx
 useEffect(() => {
   if (!isHelpOpen) return;
-  
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -42,13 +44,14 @@ useEffect(() => {
       setIsHelpOpen(false);
     }
   };
-  
+
   window.addEventListener("keydown", handleKeyDown, true);
   return () => window.removeEventListener("keydown", handleKeyDown, true);
 }, [isHelpOpen]);
 ```
 
 **piano-roll.tsx** - Multiple shortcuts (Delete, Escape, Undo/Redo):
+
 ```tsx
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,7 +62,7 @@ useEffect(() => {
     ) {
       return;
     }
-    
+
     if (e.key === "Delete" || e.key === "Backspace") {
       // ... action
     } else if (e.key === "Escape") {
@@ -78,6 +81,7 @@ useEffect(() => {
 ```
 
 **transport.tsx** - Space and Ctrl+F:
+
 ```tsx
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -88,7 +92,7 @@ useEffect(() => {
     ) {
       return;
     }
-    
+
     if (e.code === "Space" && !e.repeat) {
       e.preventDefault();
       handlePlayPause();
@@ -105,6 +109,7 @@ useEffect(() => {
 ### 2. Mouse Drag Handlers (4 instances)
 
 **piano-roll.tsx** - Note dragging:
+
 ```tsx
 useEffect(() => {
   if (dragMode.type !== "none") {
@@ -119,6 +124,7 @@ useEffect(() => {
 ```
 
 **piano-roll.tsx** - Keyboard dragging:
+
 ```tsx
 useEffect(() => {
   const handleMouseUp = () => {
@@ -131,13 +137,18 @@ useEffect(() => {
 ```
 
 **piano-roll.tsx** - WaveformArea dragging (2x similar patterns):
+
 ```tsx
 useEffect(() => {
   if (!isDragging) return;
-  
-  const handleMouseMove = (e: MouseEvent) => { /* ... */ };
-  const handleMouseUp = () => { /* ... */ };
-  
+
+  const handleMouseMove = (e: MouseEvent) => {
+    /* ... */
+  };
+  const handleMouseUp = () => {
+    /* ... */
+  };
+
   window.addEventListener("mousemove", handleMouseMove);
   window.addEventListener("mouseup", handleMouseUp);
   return () => {
@@ -150,6 +161,7 @@ useEffect(() => {
 ### 3. Other Window Events (2 instances)
 
 **piano-roll.tsx** - Window resize:
+
 ```tsx
 useLayoutEffect(() => {
   const updateSize = () => {
@@ -165,16 +177,17 @@ useLayoutEffect(() => {
 ```
 
 **piano-roll.tsx** - Wheel event (on container ref):
+
 ```tsx
 useEffect(() => {
   const container = containerRef.current;
   if (!container) return;
-  
+
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     // ... zoom/pan logic
   };
-  
+
   container.addEventListener("wheel", handleWheel, { passive: false });
   return () => container.removeEventListener("wheel", handleWheel);
 }, [dependencies]);
@@ -187,6 +200,7 @@ useEffect(() => {
 Create reusable hooks that encapsulate the event handler patterns:
 
 #### `useKeyboardShortcut`
+
 ```tsx
 // src/hooks/use-keyboard-shortcut.ts
 import { useEffect } from "react";
@@ -208,11 +222,11 @@ type KeyboardShortcutOptions = {
 export function useKeyboardShortcut(
   options: KeyboardShortcutOptions,
   callback: (e: KeyboardEvent) => void,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ) {
   useEffect(() => {
     if (options.enabled === false) return;
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Guard: Don't trigger if typing in an input (unless disabled)
       if (options.ignoreInputs !== false) {
@@ -223,29 +237,42 @@ export function useKeyboardShortcut(
           return;
         }
       }
-      
+
       // Check if key matches
       const keyMatches = options.key ? e.key === options.key : true;
       const codeMatches = options.code ? e.code === options.code : true;
-      const ctrlMatches = options.ctrl !== undefined ? e.ctrlKey === options.ctrl : true;
-      const metaMatches = options.meta !== undefined ? e.metaKey === options.meta : true;
-      const shiftMatches = options.shift !== undefined ? e.shiftKey === options.shift : true;
-      const altMatches = options.alt !== undefined ? e.altKey === options.alt : true;
-      
-      if (keyMatches && codeMatches && ctrlMatches && metaMatches && shiftMatches && altMatches) {
+      const ctrlMatches =
+        options.ctrl !== undefined ? e.ctrlKey === options.ctrl : true;
+      const metaMatches =
+        options.meta !== undefined ? e.metaKey === options.meta : true;
+      const shiftMatches =
+        options.shift !== undefined ? e.shiftKey === options.shift : true;
+      const altMatches =
+        options.alt !== undefined ? e.altKey === options.alt : true;
+
+      if (
+        keyMatches &&
+        codeMatches &&
+        ctrlMatches &&
+        metaMatches &&
+        shiftMatches &&
+        altMatches
+      ) {
         if (options.preventDefault) e.preventDefault();
         if (options.stopPropagation) e.stopPropagation();
         callback(e);
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown, options.capture);
-    return () => window.removeEventListener("keydown", handleKeyDown, options.capture);
+    return () =>
+      window.removeEventListener("keydown", handleKeyDown, options.capture);
   }, [options.enabled, ...deps]);
 }
 ```
 
 Usage:
+
 ```tsx
 // Before
 useEffect(() => {
@@ -263,13 +290,20 @@ useEffect(() => {
 
 // After
 useKeyboardShortcut(
-  { key: "Escape", preventDefault: true, stopPropagation: true, capture: true, enabled: isHelpOpen },
+  {
+    key: "Escape",
+    preventDefault: true,
+    stopPropagation: true,
+    capture: true,
+    enabled: isHelpOpen,
+  },
   () => setIsHelpOpen(false),
-  [isHelpOpen]
+  [isHelpOpen],
 );
 ```
 
 #### `useMouseDrag`
+
 ```tsx
 // src/hooks/use-mouse-drag.ts
 import { useEffect } from "react";
@@ -282,22 +316,22 @@ type MouseDragOptions = {
 
 export function useMouseDrag(
   options: MouseDragOptions,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ) {
   useEffect(() => {
     if (!options.enabled) return;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       options.onMove?.(e);
     };
-    
+
     const handleMouseUp = (e: MouseEvent) => {
       options.onEnd?.(e);
     };
-    
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-    
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
@@ -307,6 +341,7 @@ export function useMouseDrag(
 ```
 
 Usage:
+
 ```tsx
 // Before
 useEffect(() => {
@@ -327,18 +362,19 @@ useMouseDrag(
     onMove: handleMouseMove,
     onEnd: handleMouseUp,
   },
-  [dragMode, handleMouseMove, handleMouseUp]
+  [dragMode, handleMouseMove, handleMouseUp],
 );
 ```
 
 #### `useWindowResize`
+
 ```tsx
 // src/hooks/use-window-resize.ts
 import { useLayoutEffect } from "react";
 
 export function useWindowResize(
   callback: () => void,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ) {
   useLayoutEffect(() => {
     callback(); // Call immediately
@@ -349,6 +385,7 @@ export function useWindowResize(
 ```
 
 Usage:
+
 ```tsx
 // Before
 useLayoutEffect(() => {
@@ -375,6 +412,7 @@ useWindowResize(updateSize);
 ```
 
 #### `useElementEvent`
+
 ```tsx
 // src/hooks/use-element-event.ts
 import { useEffect, type RefObject } from "react";
@@ -384,36 +422,40 @@ export function useElementEvent<K extends keyof HTMLElementEventMap>(
   eventType: K,
   handler: (e: HTMLElementEventMap[K]) => void,
   options?: AddEventListenerOptions,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ) {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    
+
     element.addEventListener(eventType, handler as EventListener, options);
-    return () => element.removeEventListener(eventType, handler as EventListener, options);
+    return () =>
+      element.removeEventListener(eventType, handler as EventListener, options);
   }, [ref, eventType, options, ...deps]);
 }
 ```
 
 Usage:
+
 ```tsx
 // Before
 useEffect(() => {
   const container = containerRef.current;
   if (!container) return;
-  
+
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     // ... logic
   };
-  
+
   container.addEventListener("wheel", handleWheel, { passive: false });
   return () => container.removeEventListener("wheel", handleWheel);
 }, [dependencies]);
 
 // After
-useElementEvent(containerRef, "wheel", handleWheel, { passive: false }, [dependencies]);
+useElementEvent(containerRef, "wheel", handleWheel, { passive: false }, [
+  dependencies,
+]);
 ```
 
 ### Option 2: Declarative Shortcut Registry
