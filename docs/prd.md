@@ -138,6 +138,11 @@ _UI polish_
 - [ ] fix: "No audio loaded" label scroll behavior
 - [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
 
+_Misc_
+
+- [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
+- [ ] feat: support fret position annotation metadata
+
 _Chores/Refactoring_
 
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
