@@ -188,11 +188,7 @@ The feature is complete and ready for use. Users can now work on multiple transc
 - [x] show project list from main app view
   - Added "Projects" menu item in Settings dropdown
   - Opens modal with project list
-- [x] refactor ProjectListModal / ProjectListView
-  - Extracted `useProjectManagement` hook for shared state and handlers
-  - Extracted `ProjectCard` component for shared card rendering
-  - Reduced code duplication by 27 lines
-  - All 39 E2E tests passing
+- [ ] refactor ProjectListModal / ProjectListView
 - [ ] highlight last project in the list?
 - [ ] avoid all being "Untitled" by default but how?
 - [ ] `migrateFromSingleProject` seems smelly

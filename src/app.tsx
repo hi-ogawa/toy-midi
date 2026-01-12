@@ -34,10 +34,6 @@ export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isProjectListOpen, setIsProjectListOpen] = useState(false);
 
-  // Check for project ID in URL hash (for switching projects)
-  const urlParams = new URLSearchParams(window.location.hash.substring(1));
-  const projectIdFromUrl = urlParams.get("project");
-
   const initMutation = useMutation({
     mutationFn: async (options: { restore: boolean; projectId?: string }) => {
       await audioManager.init();
@@ -123,19 +119,6 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isHelpOpen]);
 
-  // Auto-load project from URL if specified
-  useEffect(() => {
-    if (
-      projectIdFromUrl &&
-      !initMutation.isSuccess &&
-      !initMutation.isPending
-    ) {
-      // Clear the hash after reading it
-      window.history.replaceState(null, "", window.location.pathname);
-      initMutation.mutate({ restore: true, projectId: projectIdFromUrl });
-    }
-  }, [projectIdFromUrl, initMutation]);
-
   if (initMutation.isPending) {
     return (
       <div className="h-screen flex flex-col bg-neutral-900">
@@ -171,8 +154,8 @@ export function App() {
         onClose={() => setIsProjectListOpen(false)}
         onSelectProject={(projectId: string) => {
           setIsProjectListOpen(false);
-          // Use URL hash to pass project ID across reload
-          window.location.hash = `#project=${projectId}`;
+          // Reload the page to switch projects
+          loadProject(projectId);
           window.location.reload();
         }}
       />
