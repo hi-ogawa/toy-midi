@@ -95,8 +95,9 @@ _Note editing_
 - [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
-- [ ] fix: extend note dragging grid snap
+- [x] fix: extend note dragging grid snap
 - [ ] fix: draw mode and select mode?
+- [ ] fix: default pitch range shouldn't be for bass
 
 _Timeline/Viewport_
 
