@@ -97,6 +97,11 @@ export const MOUSE_ACTIONS: MouseAction[] = [
     category: "editing",
   },
   {
+    action: "Shift + Drag selected note",
+    description: "Duplicate and move selected notes",
+    category: "editing",
+  },
+  {
     action: "Shift + Drag on empty space",
     description: "Box select multiple notes",
     category: "editing",
