@@ -1,4 +1,3 @@
-import { beatsToSeconds } from "../stores/project-store";
 import { Note, TimeSignature } from "../types";
 
 export interface ABCExportOptions {

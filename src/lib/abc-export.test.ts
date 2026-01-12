@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Note, TimeSignature } from "../types";
+import { Note } from "../types";
 import { exportABC } from "./abc-export";
 
 describe("ABC Export", () => {
