@@ -143,14 +143,14 @@ _Project management_
 _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
-- [ ] fix: "No audio loaded" label scroll behavior
+- [x] fix: "No audio loaded" label scroll behavior
 - [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
 
 _Misc_
 
 - [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
 - [ ] feat: support fret position annotation metadata
-- [ ] feat: full review quick reference and what's missing
+- [x] feat: full review quick reference and what's missing
 
 _Chores/Refactoring_
 
