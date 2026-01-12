@@ -1,6 +1,9 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
+import { SoundFontSynth } from "./soundfont-synth";
 import type { ProjectState } from "@/stores/project-store";
+
+const DEFAULT_SOUNDFONT_URL = "/soundfonts/sin.sf2";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -18,8 +21,8 @@ import type { ProjectState } from "@/stores/project-store";
  * - Components should update store, not call AudioManager directly
  */
 class AudioManager {
-  private midiSynth!: Tone.PolySynth;
-  private midiChannel!: Tone.Channel;
+  private midiSynth!: SoundFontSynth;
+  private midiGain!: GainNode;
   private midiPart!: Tone.Part;
 
   // audio track
@@ -34,20 +37,32 @@ class AudioManager {
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
-    // PolySynth for polyphonic playback (multiple simultaneous notes)
-    this.midiSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.3, release: 0.4 },
-    });
-    this.midiChannel = new Tone.Channel(0.8).toDestination();
-    this.midiSynth.connect(this.midiChannel);
+    const context = Tone.getContext().rawContext as AudioContext;
+
+    // SoundFont synth for polyphonic playback
+    this.midiSynth = new SoundFontSynth(context);
+    await this.midiSynth.setup();
+    await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
+
+    // Gain node for MIDI volume control
+    this.midiGain = context.createGain();
+    this.midiGain.gain.value = 0.8;
+    this.midiGain.connect(context.destination);
+    this.midiSynth.connect(this.midiGain);
+
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {
-        const freq = Tone.Frequency(event.pitch, "midi").toFrequency();
+        // Calculate delay from now to the scheduled time
+        const now = context.currentTime;
+        const delayTime = Math.max(0, time - now);
+
         // Convert duration from beats to seconds using current tempo
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
-        this.midiSynth.triggerAttackRelease(freq, durationSeconds, time);
+
+        // Schedule noteOn and noteOff
+        this.midiSynth.noteOn(event.pitch, 100, 0, delayTime);
+        this.midiSynth.noteOff(event.pitch, 0, delayTime + durationSeconds);
       },
       [],
     );
@@ -144,9 +159,9 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.2): void {
-    if (!this.midiSynth) return;
-    const freq = Tone.Frequency(pitch, "midi").toFrequency();
-    this.midiSynth.triggerAttackRelease(freq, duration);
+    if (!this.midiSynth?.isLoaded) return;
+    this.midiSynth.noteOn(pitch, 100);
+    this.midiSynth.noteOff(pitch, 0, duration);
   }
 
   // Volume controls (0-1)
@@ -157,9 +172,8 @@ class AudioManager {
   }
 
   setMidiVolume(volume: number): void {
-    this.midiChannel.volume.rampTo(
-      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
-    );
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    this.midiGain.gain.setTargetAtTime(clampedVolume, 0, 0.1);
   }
 
   setMetronomeVolume(volume: number): void {
