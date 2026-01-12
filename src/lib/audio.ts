@@ -1,6 +1,6 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
-import { SoundFontSynth } from "./soundfont-synth";
+import { OxiSynthSynth } from "./oxisynth-synth";
 import type { ProjectState } from "@/stores/project-store";
 
 const DEFAULT_SOUNDFONT_URL = "/soundfonts/A320U.sf2";
@@ -169,7 +169,7 @@ export const GM_PROGRAMS = [
  * - Components should update store, not call AudioManager directly
  */
 class AudioManager {
-  private midiSynth!: SoundFontSynth;
+  private midiSynth!: OxiSynthSynth;
   private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
 
@@ -187,8 +187,8 @@ class AudioManager {
 
     const context = Tone.getContext();
 
-    // SoundFont synth for polyphonic playback
-    this.midiSynth = new SoundFontSynth(context);
+    // OxiSynth (Rust/WASM) for SF2 playback
+    this.midiSynth = new OxiSynthSynth(context);
     await this.midiSynth.setup();
     await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
 
@@ -197,18 +197,19 @@ class AudioManager {
     this.midiSynth.output.connect(this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
-      (time, event) => {
-        // Calculate delay from now to the scheduled time
-        const now = context.currentTime;
-        const delayTime = Math.max(0, time - now);
+      (_time, event) => {
+        // Tone.Part calls this callback at the scheduled time
+        // noteOn is called immediately, noteOff is scheduled via Transport
+        this.midiSynth.noteOn(event.pitch, 100);
 
         // Convert duration from beats to seconds using current tempo
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
 
-        // Schedule noteOn and noteOff
-        this.midiSynth.noteOn(event.pitch, 100, 0, delayTime);
-        this.midiSynth.noteOff(event.pitch, 0, delayTime + durationSeconds);
+        // Schedule noteOff
+        Tone.getTransport().schedule(() => {
+          this.midiSynth.noteOff(event.pitch);
+        }, `+${durationSeconds}`);
       },
       [],
     );
@@ -316,8 +317,9 @@ class AudioManager {
   playNote(pitch: number, duration: number = 0.2): void {
     if (!this.midiSynth?.isLoaded) return;
     this.midiSynth.noteOn(pitch, 100);
-    // TODO: this feels abrupt and clicks
-    this.midiSynth.noteOff(pitch, 0, duration);
+    setTimeout(() => {
+      this.midiSynth.noteOff(pitch);
+    }, duration * 1000);
   }
 
   // Volume controls (0-1)
@@ -352,7 +354,8 @@ class AudioManager {
   }
 
   setProgram(programNumber: number): void {
-    this.midiSynth.programChange(programNumber);
+    // Fire and forget - programChange is async but we don't need to wait
+    void this.midiSynth.programChange(programNumber);
   }
 }
 

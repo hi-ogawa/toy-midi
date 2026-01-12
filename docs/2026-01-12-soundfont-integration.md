@@ -30,18 +30,19 @@ User's past project: https://github.com/hi-ogawa/web-audio-worklet-rust
 
 **Relevant files in `refs/web-audio-worklet-rust/`:**
 
-| File | Purpose |
-|------|---------|
-| `packages/wasm/src/soundfont_player.rs` | OxiSynth wrapper with noteOn/noteOff/process |
-| `packages/app/src/audio-worklet/soundfont-processor.ts` | AudioWorkletProcessor wrapping WASM |
-| `packages/app/src/audio-worklet/common.ts` | Processor name constant |
-| `packages/app/src/app.tsx` | Setup flow (lines 587-603) |
+| File                                                    | Purpose                                      |
+| ------------------------------------------------------- | -------------------------------------------- |
+| `packages/wasm/src/soundfont_player.rs`                 | OxiSynth wrapper with noteOn/noteOff/process |
+| `packages/app/src/audio-worklet/soundfont-processor.ts` | AudioWorkletProcessor wrapping WASM          |
+| `packages/app/src/audio-worklet/common.ts`              | Processor name constant                      |
+| `packages/app/src/app.tsx`                              | Setup flow (lines 587-603)                   |
 
 ### Pre-built Assets
 
 Deployed at: https://web-audio-worklet-rust-hiro18181.vercel.app/
 
 Available assets:
+
 - Worklet bundle: `/assets/index-50bcc1dd.js`
 - WASM binary: `/assets/index_bg-806f4b3b.wasm`
 
@@ -187,9 +188,7 @@ For long delays, consider using Tone.Transport.schedule() instead.
 
 **Last updated:** 2026-01-12
 
-
 ====
-
 
 # Soundfont Integration
 

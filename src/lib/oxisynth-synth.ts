@@ -90,19 +90,20 @@ export class OxiSynthSynth {
     }
 
     // Add soundfont to the synth
-    await this.sendMessage(
-      "addSoundfont",
-      { name, data },
-      "soundfontAdded",
-      [data],
-    );
+    await this.sendMessage("addSoundfont", { name, data }, "soundfontAdded", [
+      data,
+    ]);
     this.currentSoundfontId = name;
 
     // Select first preset from this soundfont
     const state = await this.getState();
     const sf = state?.soundfonts.find((s) => s.id === name);
     if (sf && sf.presets.length > 0) {
-      this.postMessage({ type: "setPreset", soundfontId: name, presetId: sf.presets[0].id });
+      this.postMessage({
+        type: "setPreset",
+        soundfontId: name,
+        presetId: sf.presets[0].id,
+      });
     }
 
     this._isLoaded = true;
