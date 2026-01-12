@@ -543,9 +543,9 @@ export function PianoRoll() {
       );
 
       if (clickedNote) {
-        // Check if shift+clicking on already selected note -> duplicate mode
+        // Check if Ctrl+clicking on already selected note -> duplicate mode
         const isAlreadySelected = selectedNoteIds.has(clickedNote.id);
-        const shouldDuplicate = e.shiftKey && isAlreadySelected;
+        const shouldDuplicate = (e.ctrlKey || e.metaKey) && isAlreadySelected;
 
         if (shouldDuplicate) {
           // Duplicate all selected notes

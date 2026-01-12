@@ -387,7 +387,7 @@ test.describe("Piano Roll", () => {
     // The test passes if no errors occur - audio preview is played in the background
   });
 
-  test("duplicate notes with Shift+drag", async ({ page }) => {
+  test("duplicate notes with Ctrl+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -411,16 +411,16 @@ test.describe("Piano Roll", () => {
     const initialX = initialBox.x;
     const initialY = initialBox.y;
 
-    // Shift+drag the selected note to duplicate it
+    // Ctrl+drag the selected note to duplicate it
     const noteCenter = initialBox.x + initialBox.width / 2;
     const noteMiddleY = initialBox.y + initialBox.height / 2;
 
-    await page.keyboard.down("Shift");
+    await page.keyboard.down("Control");
     await page.mouse.move(noteCenter, noteMiddleY);
     await page.mouse.down();
     await page.mouse.move(noteCenter + BEAT_WIDTH * 2, noteMiddleY);
     await page.mouse.up();
-    await page.keyboard.up("Shift");
+    await page.keyboard.up("Control");
 
     // Now there should be 2 notes (original + duplicate)
     await expect(notes).toHaveCount(2);
@@ -444,9 +444,7 @@ test.describe("Piano Roll", () => {
     await expect(duplicateNote).toHaveAttribute("data-selected", "true");
   });
 
-  test("duplicate multiple selected notes with Shift+drag", async ({
-    page,
-  }) => {
+  test("duplicate multiple selected notes with Ctrl+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -483,13 +481,13 @@ test.describe("Piano Roll", () => {
     await expect(notes.nth(0)).toHaveAttribute("data-selected", "true");
     await expect(notes.nth(1)).toHaveAttribute("data-selected", "true");
 
-    // Shift+drag one of the selected notes to duplicate both
-    await page.keyboard.down("Shift");
+    // Ctrl+drag one of the selected notes to duplicate both
+    await page.keyboard.down("Control");
     await page.mouse.move(note1X + BEAT_WIDTH * 0.5, note1Y);
     await page.mouse.down();
     await page.mouse.move(note1X + BEAT_WIDTH * 3, note1Y);
     await page.mouse.up();
-    await page.keyboard.up("Shift");
+    await page.keyboard.up("Control");
 
     // Now there should be 4 notes (2 originals + 2 duplicates)
     await expect(notes).toHaveCount(4);
