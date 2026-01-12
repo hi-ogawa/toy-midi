@@ -13,6 +13,7 @@ import {
   deleteProject,
   listProjects,
   migrateFromSingleProject,
+  type ProjectMetadata,
   updateProjectMetadata,
 } from "./lib/project-list";
 import {
@@ -162,29 +163,17 @@ export function App() {
   );
 }
 
-type ProjectListModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectProject: (projectId: string) => void;
-};
-
-function ProjectListModal({
-  isOpen,
-  onClose,
-  onSelectProject,
-}: ProjectListModalProps) {
+// Shared hook for project management logic
+function useProjectManagement() {
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
     null,
   );
   const [renameValue, setRenameValue] = useState("");
   const [projects, setProjects] = useState(listProjects());
 
-  // Refresh project list when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setProjects(listProjects());
-    }
-  }, [isOpen]);
+  const refreshProjects = () => {
+    setProjects(listProjects());
+  };
 
   const handleRenameStart = (
     e: React.MouseEvent,
@@ -201,7 +190,7 @@ function ProjectListModal({
       updateProjectMetadata(projectId, { name: renameValue.trim() });
       setRenamingProjectId(null);
       setRenameValue("");
-      setProjects(listProjects());
+      refreshProjects();
     }
   };
 
@@ -214,9 +203,156 @@ function ProjectListModal({
     e.stopPropagation();
     if (confirm("Delete this project? This action cannot be undone.")) {
       deleteProject(projectId);
-      setProjects(listProjects());
+      refreshProjects();
     }
   };
+
+  return {
+    projects,
+    renamingProjectId,
+    renameValue,
+    setRenameValue,
+    refreshProjects,
+    handleRenameStart,
+    handleRenameSubmit,
+    handleRenameCancel,
+    handleDelete,
+  };
+}
+
+// Shared ProjectCard component
+type ProjectCardProps = {
+  project: ProjectMetadata;
+  isRenaming: boolean;
+  renameValue: string;
+  onRenameValueChange: (value: string) => void;
+  onRenameStart: (e: React.MouseEvent, projectId: string, name: string) => void;
+  onRenameSubmit: (projectId: string) => void;
+  onRenameCancel: () => void;
+  onDelete: (e: React.MouseEvent, projectId: string) => void;
+  onSelect: (projectId: string) => void;
+};
+
+function ProjectCard({
+  project,
+  isRenaming,
+  renameValue,
+  onRenameValueChange,
+  onRenameStart,
+  onRenameSubmit,
+  onRenameCancel,
+  onDelete,
+  onSelect,
+}: ProjectCardProps) {
+  return (
+    <div
+      key={project.id}
+      data-testid={`project-card-${project.id}`}
+      className="w-full px-4 py-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors group"
+    >
+      {isRenaming ? (
+        <div className="flex items-center gap-2">
+          <input
+            data-testid={`rename-input-${project.id}`}
+            type="text"
+            value={renameValue}
+            onChange={(e) => onRenameValueChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onRenameSubmit(project.id);
+              } else if (e.key === "Escape") {
+                onRenameCancel();
+              }
+            }}
+            className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            type="button"
+            onClick={() => onRenameSubmit(project.id)}
+            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={onRenameCancel}
+            className="px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 rounded text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div className="flex justify-between items-start">
+          <button
+            type="button"
+            onClick={() => onSelect(project.id)}
+            className="flex-1 text-left"
+          >
+            <div className="text-neutral-200 font-medium">{project.name}</div>
+            <div className="text-neutral-500 text-sm">
+              {new Date(project.updatedAt).toLocaleDateString()}{" "}
+              {new Date(project.updatedAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </div>
+          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              data-testid={`rename-button-${project.id}`}
+              onClick={(e) => onRenameStart(e, project.id, project.name)}
+              className="p-1.5 hover:bg-neutral-500 rounded transition-colors"
+              title="Rename project"
+            >
+              <Pencil className="size-4 text-neutral-300" />
+            </button>
+            <button
+              type="button"
+              data-testid={`delete-button-${project.id}`}
+              onClick={(e) => onDelete(e, project.id)}
+              className="p-1.5 hover:bg-red-600 rounded transition-colors"
+              title="Delete project"
+            >
+              <Trash2 className="size-4 text-neutral-300" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type ProjectListModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectProject: (projectId: string) => void;
+};
+
+function ProjectListModal({
+  isOpen,
+  onClose,
+  onSelectProject,
+}: ProjectListModalProps) {
+  const {
+    projects,
+    renamingProjectId,
+    renameValue,
+    setRenameValue,
+    refreshProjects,
+    handleRenameStart,
+    handleRenameSubmit,
+    handleRenameCancel,
+    handleDelete,
+  } = useProjectManagement();
+
+  // Refresh project list when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      refreshProjects();
+    }
+  }, [isOpen, refreshProjects]);
 
   if (!isOpen) return null;
 
@@ -251,86 +387,18 @@ function ProjectListModal({
 
         <div className="space-y-2">
           {projects.map((project) => (
-            <div
+            <ProjectCard
               key={project.id}
-              data-testid={`project-card-${project.id}`}
-              className="w-full px-4 py-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors group"
-            >
-              {renamingProjectId === project.id ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    data-testid={`rename-input-${project.id}`}
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleRenameSubmit(project.id);
-                      } else if (e.key === "Escape") {
-                        handleRenameCancel();
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    onFocus={(e) => e.target.select()}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRenameSubmit(project.id)}
-                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRenameCancel}
-                    className="px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 rounded text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <div className="flex justify-between items-start">
-                  <button
-                    type="button"
-                    onClick={() => onSelectProject(project.id)}
-                    className="flex-1 text-left"
-                  >
-                    <div className="text-neutral-200 font-medium">
-                      {project.name}
-                    </div>
-                    <div className="text-neutral-500 text-sm">
-                      {new Date(project.updatedAt).toLocaleDateString()}{" "}
-                      {new Date(project.updatedAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </button>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      type="button"
-                      data-testid={`rename-button-${project.id}`}
-                      onClick={(e) =>
-                        handleRenameStart(e, project.id, project.name)
-                      }
-                      className="p-1.5 hover:bg-neutral-500 rounded transition-colors"
-                      title="Rename project"
-                    >
-                      <Pencil className="size-4 text-neutral-300" />
-                    </button>
-                    <button
-                      type="button"
-                      data-testid={`delete-button-${project.id}`}
-                      onClick={(e) => handleDelete(e, project.id)}
-                      className="p-1.5 hover:bg-red-600 rounded transition-colors"
-                      title="Delete project"
-                    >
-                      <Trash2 className="size-4 text-neutral-300" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              project={project}
+              isRenaming={renamingProjectId === project.id}
+              renameValue={renameValue}
+              onRenameValueChange={setRenameValue}
+              onRenameStart={handleRenameStart}
+              onRenameSubmit={handleRenameSubmit}
+              onRenameCancel={handleRenameCancel}
+              onDelete={handleDelete}
+              onSelect={onSelectProject}
+            />
           ))}
         </div>
       </div>
@@ -349,45 +417,18 @@ function ProjectListView({
   onContinueLast,
   onNewProject,
 }: ProjectListViewProps) {
-  const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
-    null,
-  );
-  const [renameValue, setRenameValue] = useState("");
-  const [projects, setProjects] = useState(listProjects());
+  const {
+    projects,
+    renamingProjectId,
+    renameValue,
+    setRenameValue,
+    handleRenameStart,
+    handleRenameSubmit,
+    handleRenameCancel,
+    handleDelete,
+  } = useProjectManagement();
 
   const hasProjects = projects.length > 0;
-
-  const handleRenameStart = (
-    e: React.MouseEvent,
-    projectId: string,
-    currentName: string,
-  ) => {
-    e.stopPropagation();
-    setRenamingProjectId(projectId);
-    setRenameValue(currentName);
-  };
-
-  const handleRenameSubmit = (projectId: string) => {
-    if (renameValue.trim()) {
-      updateProjectMetadata(projectId, { name: renameValue.trim() });
-      setRenamingProjectId(null);
-      setRenameValue("");
-      setProjects(listProjects());
-    }
-  };
-
-  const handleRenameCancel = () => {
-    setRenamingProjectId(null);
-    setRenameValue("");
-  };
-
-  const handleDelete = (e: React.MouseEvent, projectId: string) => {
-    e.stopPropagation();
-    if (confirm("Delete this project? This action cannot be undone.")) {
-      deleteProject(projectId);
-      setProjects(listProjects());
-    }
-  };
 
   return (
     <div
@@ -404,86 +445,18 @@ function ProjectListView({
             </h2>
             <div className="space-y-2">
               {projects.map((project) => (
-                <div
+                <ProjectCard
                   key={project.id}
-                  data-testid={`project-card-${project.id}`}
-                  className="w-full px-4 py-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors group"
-                >
-                  {renamingProjectId === project.id ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        data-testid={`rename-input-${project.id}`}
-                        type="text"
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleRenameSubmit(project.id);
-                          } else if (e.key === "Escape") {
-                            handleRenameCancel();
-                          }
-                        }}
-                        className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                        onFocus={(e) => e.target.select()}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRenameSubmit(project.id)}
-                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleRenameCancel}
-                        className="px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 rounded text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-start">
-                      <button
-                        type="button"
-                        onClick={() => onSelectProject(project.id)}
-                        className="flex-1 text-left"
-                      >
-                        <div className="text-neutral-200 font-medium">
-                          {project.name}
-                        </div>
-                        <div className="text-neutral-500 text-sm">
-                          {new Date(project.updatedAt).toLocaleDateString()}{" "}
-                          {new Date(project.updatedAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-                      </button>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          data-testid={`rename-button-${project.id}`}
-                          onClick={(e) =>
-                            handleRenameStart(e, project.id, project.name)
-                          }
-                          className="p-1.5 hover:bg-neutral-500 rounded transition-colors"
-                          title="Rename project"
-                        >
-                          <Pencil className="size-4 text-neutral-300" />
-                        </button>
-                        <button
-                          type="button"
-                          data-testid={`delete-button-${project.id}`}
-                          onClick={(e) => handleDelete(e, project.id)}
-                          className="p-1.5 hover:bg-red-600 rounded transition-colors"
-                          title="Delete project"
-                        >
-                          <Trash2 className="size-4 text-neutral-300" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  project={project}
+                  isRenaming={renamingProjectId === project.id}
+                  renameValue={renameValue}
+                  onRenameValueChange={setRenameValue}
+                  onRenameStart={handleRenameStart}
+                  onRenameSubmit={handleRenameSubmit}
+                  onRenameCancel={handleRenameCancel}
+                  onDelete={handleDelete}
+                  onSelect={onSelectProject}
+                />
               ))}
             </div>
           </div>
