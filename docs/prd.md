@@ -115,7 +115,16 @@ _Audio/Playback_
 
 _Project management_
 
-- [ ] feat: save multiple project
+- [x] feat: save multiple project
+- [ ] refactor: app initialization and project switching architecture (docs/2026-01-12-app-initialization-architecture.md)
+  - current: initMutation conflates app init with project loading, forces page reload for switching
+  - short-term: use localStorage flag instead of URL hash for cleaner reload pattern
+  - long-term: separate app initialization from project loading, enable in-app project switching
+- [ ] feat: multi-tab support for editing different projects
+  - current architecture: `currentProjectId` (store, per-tab) vs `toy-midi-last-project-id` (localStorage, cross-tab)
+  - works for different projects in different tabs, but no conflict detection
+  - issues: same project in multiple tabs risks data loss (last write wins on debounced save)
+  - needs: conflict detection/warning, storage event listener for cross-tab sync, locking or merge strategy
 - [ ] feat: locators to mark parts
 - [ ] feat: add demo project (good for quick dev test case too)
 
@@ -123,6 +132,7 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [ ] fix: "No audio loaded" label scroll behavior
+- [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
 
 _Chores/Refactoring_
 
@@ -133,6 +143,7 @@ _Chores/Refactoring_
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
 - [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
+- [ ] refactor: reduce auto-save debounce timeout (currently 500ms) to speed up E2E tests that still need waitForTimeout after state changes
 
 ### Backlog
 

@@ -2,7 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import {
   CircleHelpIcon,
   DownloadIcon,
+  FolderIcon,
   PauseIcon,
+  PencilIcon,
   PlayIcon,
   SettingsIcon,
   UploadIcon,
@@ -15,7 +17,7 @@ import { saveAsset } from "../lib/asset-store";
 import { audioManager, getAudioBufferPeaks } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
-import { COMMON_TIME_SIGNATURES, GridSnap } from "../types";
+import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -47,9 +49,15 @@ function formatBarBeat(seconds: number, tempo: number): string {
 
 type TransportProps = {
   onHelpClick: () => void;
+  onProjectsClick: () => void;
+  onRenameProject: () => void;
 };
 
-export function Transport({ onHelpClick }: TransportProps) {
+export function Transport({
+  onHelpClick,
+  onProjectsClick,
+  onRenameProject,
+}: TransportProps) {
   const {
     audioFileName,
     audioDuration,
@@ -245,12 +253,13 @@ export function Transport({ onHelpClick }: TransportProps) {
         title="Toggle metronome"
         aria-pressed={metronomeEnabled}
       >
-        {/* tabler:metronome */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="size-5"
           viewBox="0 0 24 24"
+          aria-label="Metronome"
         >
+          <title>Metronome</title>
           <path
             fill="none"
             stroke="currentColor"
@@ -258,7 +267,7 @@ export function Transport({ onHelpClick }: TransportProps) {
             strokeLinejoin="round"
             strokeWidth={2}
             d="m14.153 8.188l-.72-3.236a2.493 2.493 0 0 0-4.867 0L5.541 18.566A2 2 0 0 0 7.493 21h7.014a2 2 0 0 0 1.952-2.434l-.524-2.357M11 18l9-13m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
-          ></path>
+          />
         </svg>
       </Button>
 
@@ -286,14 +295,14 @@ export function Transport({ onHelpClick }: TransportProps) {
           max={300}
           value={tempo}
           onChange={(e) => {
-            const value = parseInt(e.target.value, 10);
-            if (!isNaN(value)) {
+            const value = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(value)) {
               setTempo(value);
             }
           }}
           onBlur={(e) => {
-            const value = parseInt(e.target.value, 10);
-            if (!isNaN(value)) {
+            const value = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(value)) {
               setTempo(Math.min(300, Math.max(30, value)));
             }
           }}
@@ -389,6 +398,26 @@ export function Transport({ onHelpClick }: TransportProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {/* Rename Project */}
+          <DropdownMenuItem
+            data-testid="rename-project-button"
+            onClick={onRenameProject}
+          >
+            <PencilIcon className="size-4" />
+            Rename Project
+          </DropdownMenuItem>
+
+          {/* Projects */}
+          <DropdownMenuItem
+            data-testid="projects-button"
+            onClick={onProjectsClick}
+          >
+            <FolderIcon className="size-4" />
+            Projects
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
           {/* Load Audio */}
           <DropdownMenuItem
             data-testid="load-audio-button"
