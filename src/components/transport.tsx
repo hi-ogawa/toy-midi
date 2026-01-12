@@ -3,6 +3,7 @@ import {
   CircleHelpIcon,
   DownloadIcon,
   FolderIcon,
+  MusicIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
@@ -59,18 +60,21 @@ export function Transport({
 }: TransportProps) {
   const {
     audioFileName,
-    audioDuration,
     tempo,
     timeSignature,
     notes,
+    midiVolume,
     audioVolume,
+    metronomeVolume,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
     showDebug,
     setTempo,
     setTimeSignature,
+    setMidiVolume,
     setAudioVolume,
+    setMetronomeVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
@@ -149,9 +153,6 @@ export function Transport({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePlayPause, handleAutoScrollToggle]);
-
-  // Use audioDuration > 0 as proxy for loaded state (reactive)
-  const audioLoaded = audioDuration > 0;
 
   const handleTapTempo = () => {
     const now = performance.now();
@@ -433,25 +434,57 @@ export function Transport({
 
           <DropdownMenuSeparator />
 
-          {/* Audio volume (only if audio loaded) */}
-          {audioLoaded && (
-            <>
-              <div className="px-2 py-1.5 flex items-center gap-2">
-                <Volume2Icon className="size-4 text-muted-foreground" />
-                <span className="text-muted-foreground text-sm w-10">
-                  Audio
-                </span>
-                <Slider
-                  value={[audioVolume * 100]}
-                  onValueChange={([v]) => setAudioVolume(v / 100)}
-                  max={100}
-                  step={1}
-                  className="flex-1"
-                />
-              </div>
-              <DropdownMenuSeparator />
-            </>
-          )}
+          {/* Volume sliders */}
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <MusicIcon className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm w-12">MIDI</span>
+            <Slider
+              value={[midiVolume * 100]}
+              onValueChange={([v]) => setMidiVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <Volume2Icon className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground text-sm w-12">Audio</span>
+            <Slider
+              value={[audioVolume * 100]}
+              onValueChange={([v]) => setAudioVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+          <div className="px-2 py-1.5 flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-4 text-muted-foreground"
+              viewBox="0 0 24 24"
+              aria-label="Metronome"
+            >
+              <title>Metronome</title>
+              <path
+                fill="none"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="m14.153 8.188l-.72-3.236a2.493 2.493 0 0 0-4.867 0L5.541 18.566A2 2 0 0 0 7.493 21h7.014a2 2 0 0 0 1.952-2.434l-.524-2.357M11 18l9-13m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
+              />
+            </svg>
+            <span className="text-muted-foreground text-sm w-12">Metro</span>
+            <Slider
+              value={[metronomeVolume * 100]}
+              onValueChange={([v]) => setMetronomeVolume(v / 100)}
+              max={100}
+              step={1}
+              className="flex-1"
+            />
+          </div>
+
+          <DropdownMenuSeparator />
 
           {/* Auto-scroll toggle */}
           <DropdownMenuCheckboxItem
