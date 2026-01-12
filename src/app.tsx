@@ -34,7 +34,9 @@ const savedProjectExists = hasSavedProject();
 
 export function App() {
   const initMutation = useMutation({
-    mutationFn: async (options: { projectId?: string }): Promise<string> => {
+    mutationFn: async (options: {
+      projectId?: string;
+    }): Promise<{ projectId: string }> => {
       await audioManager.init();
 
       // Get or create project ID
@@ -90,7 +92,7 @@ export function App() {
         }, 500);
       });
 
-      return projectId;
+      return { projectId };
     },
   });
 
@@ -133,7 +135,7 @@ export function App() {
     );
   }
 
-  return <Editor projectId={initMutation.data} />;
+  return <Editor projectId={initMutation.data.projectId} />;
 }
 
 // === Editor Component ===

@@ -135,7 +135,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
     set((state) => {
       const idsSet = new Set(ids);
       const newSelected = new Set(state.selectedNoteIds);
-      ids.forEach((id) => newSelected.delete(id));
+      for (const id of ids) {
+        newSelected.delete(id);
+      }
       return {
         notes: state.notes.filter((n) => !idsSet.has(n.id)),
         selectedNoteIds: newSelected,
@@ -148,7 +150,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
         return { selectedNoteIds: new Set(ids) };
       }
       const newSelected = new Set(state.selectedNoteIds);
-      ids.forEach((id) => newSelected.add(id));
+      for (const id of ids) {
+        newSelected.add(id);
+      }
       return { selectedNoteIds: newSelected };
     }),
 

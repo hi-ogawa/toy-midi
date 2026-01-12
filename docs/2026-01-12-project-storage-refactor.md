@@ -256,7 +256,10 @@ After this, the architecture becomes clearer and we can decide if further separa
 - [x] Rename project-list.ts to project-manager.ts
 - [x] Move persistence functions from app.tsx to project-manager.ts
 - [x] Remove Zustand dependency from project-manager.ts
-- [x] Documentation update
+- [x] Extract Editor component, pass projectId as prop
+- [x] Remove currentProjectId from Zustand state entirely
+- [x] Update E2E tests to use localStorage for projectId
+- [x] All 41 tests passing
 
 ## Summary
 
@@ -264,22 +267,31 @@ Refactor complete. The layer separation is now:
 
 ```
 src/app.tsx (Orchestration)
-  ├── saveProject()            - useProjectStore → toSavedProject → saveProjectData
-  ├── loadProject()            - loadProjectData → fromSavedProject → useProjectStore
-  └── initMutation             - coordinates audio init + project load
+  ├── App                       - owns initMutation, renders ProjectListView or Editor
+  ├── Editor                    - receives projectId as prop (NOT from Zustand)
+  ├── saveProject()             - useProjectStore → toSavedProject → saveProjectData
+  ├── loadProject()             - loadProjectData → fromSavedProject → useProjectStore
+  └── initMutation              - coordinates audio init + project load, returns projectId
 
 src/lib/project-manager.ts (Pure storage - NO Zustand)
-  ├── Project list             - createProject, listProjects, deleteProject
-  ├── Project data             - saveProjectData, loadProjectData, hasSavedProject
-  ├── Metadata                 - getProjectMetadata, updateProjectMetadata
-  └── Migration                - migrateFromSingleProject
+  ├── Project list              - createProject, listProjects, deleteProject
+  ├── Project data              - saveProjectData, loadProjectData, hasSavedProject
+  ├── Metadata                  - getProjectMetadata, updateProjectMetadata
+  └── Migration                 - migrateFromSingleProject
 
-src/stores/project-store.ts (Pure Zustand state - NO localStorage)
-  ├── useProjectStore          - Zustand store
-  ├── toSavedProject()         - state → saved data (pure)
-  └── fromSavedProject()       - saved data → state (pure)
-  └── SavedProject             - exported type
+src/stores/project-store.ts (Pure Zustand state - NO localStorage, NO currentProjectId)
+  ├── useProjectStore           - Zustand store (project data only)
+  ├── toSavedProject()          - state → saved data (pure)
+  └── fromSavedProject()        - saved data → state (pure)
+  └── SavedProject              - exported type
 ```
+
+**Key design decisions:**
+
+1. **`projectId` is prop, not Zustand state** - Editor receives it from `initMutation.data`
+2. **Auto-save uses closure** - `projectId` captured in subscription callback
+3. **No error swallowing** - storage functions throw, `useMutation` handles errors with toast
+4. **`currentProjectId` removed from Zustand entirely** - it was orchestration concern, not project data
 
 **Key changes in this iteration:**
 
@@ -287,6 +299,8 @@ src/stores/project-store.ts (Pure Zustand state - NO localStorage)
 - `saveProject`/`loadProject` renamed to `saveProjectData`/`loadProjectData` (pure storage)
 - Orchestration functions moved to `app.tsx` where Zustand and storage are bridged
 - `SavedProject` type now exported from `project-store.ts`
+- `currentProjectId` completely removed from Zustand - passed as prop instead
+- E2E tests updated to read project ID from localStorage (`toy-midi-last-project-id`)
 
 ## Related
 
