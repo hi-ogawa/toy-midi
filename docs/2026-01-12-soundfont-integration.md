@@ -2,73 +2,62 @@
 
 ## Status
 
-**Phase 1: Basic Integration** - In Progress (PR #42)
+**Phase 1: Basic Integration** - Complete (PR #42)
 
 ## Current State
 
 - SF2 synthesis working via @ryohey/wavelet AudioWorklet
 - Integrated with Tone.js worklet system (standardized-audio-context compatible)
-- Using sin.sf2 (minimal sine wave soundfont) - not great for testing
-- Basic noteOn/noteOff scheduling via Tone.Part
+- Using A320U.sf2 GM soundfont (9.3MB, GPL v2)
+- GM program selection UI in transport header
+- Transport stop/pause triggers allNotesOff
 
-## Issues to Address
+## Known Issues
 
-### 1. Better Default Soundfont
+### Note Release Feels Abrupt
 
-Current sin.sf2 is minimal sine wave - need GM soundfont for proper testing.
+**Symptom:** Notes end abruptly without natural decay/release.
 
-**Options:**
+**Investigation:** Analyzed wavelet's envelope implementation:
 
-- A320U.sf2 (~9.7MB, GPL v2) - used by Signal
-- GeneralUser GS (~30MB) - higher quality
+- `@ryohey/wavelet` implements proper ADSR envelopes (`AmplitudeEnvelope.ts`)
+- Release time is loaded from SF2's `releaseVolEnv` generator parameter
+- On noteOff, envelope enters release phase with logarithmic attenuation
+- Piano sounds in A320U.sf2 have short release times (realistic - damper stops strings)
 
-**Decision:** Use A320U.sf2 for now (smaller, proven)
+**Root cause:** This is expected SF2 behavior. Piano presets have short release because real pianos cut off when keys are released.
 
-### 2. MIDI Event Handling
+**Potential solutions:**
 
-Current approach pre-schedules both noteOn and noteOff with wavelet's delayTime:
+1. **Sustain pedal (CC#64)** - Prevents release phase until pedal lifted. Standard way to extend piano notes.
+2. **Try different instruments** - Strings (40-47) and pads (88-95) have longer natural release.
+3. **Different soundfont** - Some GM soundfonts have longer release times baked in.
+4. **Manual release extension** - Delay noteOff by fixed amount (not recommended - affects timing accuracy).
 
-```typescript
-this.midiSynth.noteOn(event.pitch, 100, 0, delayTime);
-this.midiSynth.noteOff(event.pitch, 0, delayTime + durationSeconds);
-```
-
-**Problems:**
-
-- Large delayTime values for long notes (converted to samples)
-- Notes don't stop when transport stops
-- No way to interrupt/cut notes
-- Timing drift potential between scheduled events
-
-**Better approach:** Proper MIDI sequencer pattern:
-
-- Schedule noteOn events synced to transport
-- Schedule noteOff separately or track active notes
-- Handle transport stop → all notes off
-- Handle seek → cut active notes
+**Decision:** TBD - need to confirm if issue affects all instruments or mainly piano.
 
 ## Implementation Plan
 
-### Phase 1 Completion (This PR)
+### Phase 1: Basic Integration (Done)
 
 - [x] Basic SF2 integration with Tone.js worklet system
-- [x] Switch to A320U.sf2 soundfont (9.3MB GM soundfont)
+- [x] Switch to A320U.sf2 soundfont
 - [x] Transport stop/pause → allNotesOff
 
-### Phase 2: Proper MIDI Sequencer (Follow-up)
-
-- [ ] Track active notes (which notes are currently playing)
-- [ ] Transport stop → trigger allNotesOff
-- [ ] Transport seek → cut active notes, restart notes at new position
-- [ ] Note preview (click on piano roll) separate from sequenced playback
-- [ ] Velocity support (use note velocity instead of hardcoded 100)
-
-### Phase 2.5: GM Program Selection (Done)
+### Phase 1.5: GM Program Selection (Done)
 
 - [x] GM_PROGRAMS array with all 128 instrument names
 - [x] midiProgram state in project store
 - [x] programChange method in SoundFontSynth
-- [x] UI select dropdown in Settings with grouped instruments
+- [x] UI select dropdown in transport header
+
+### Phase 2: Proper MIDI Sequencer (Future)
+
+- [ ] Track active notes (which notes are currently playing)
+- [ ] Transport seek → cut active notes, restart notes at new position
+- [ ] Note preview (click on piano roll) separate from sequenced playback
+- [ ] Velocity support (use note velocity instead of hardcoded 100)
+- [ ] Sustain pedal support (CC#64)
 
 ### Phase 3: User Soundfont Loading (Future)
 
