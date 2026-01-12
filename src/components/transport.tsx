@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import {
   CircleHelpIcon,
   DownloadIcon,
@@ -10,9 +11,9 @@ import {
   Volume2Icon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import { useAudioLoader } from "../hooks/use-audio-loader";
 import { useTransport } from "../hooks/use-transport";
-import { audioManager } from "../lib/audio";
+import { saveAsset } from "../lib/asset-store";
+import { audioManager, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
@@ -74,6 +75,9 @@ export function Transport({
     setAutoScrollEnabled,
     setGridSnap,
     setShowDebug,
+    setAudioFile,
+    setAudioOffset,
+    setAudioPeaks,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -82,7 +86,21 @@ export function Transport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
-  const loadAudioMutation = useAudioLoader();
+  const loadAudioMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const { buffer, peaks, peaksPerSecond } = await loadAudioFile(file);
+
+      // Save audio to IndexedDB for persistence
+      const assetKey = await saveAsset(file);
+      setAudioFile(file.name, buffer.duration, assetKey);
+
+      audioManager.player.buffer = buffer;
+      audioManager.player.sync().start(0);
+      setAudioOffset(0);
+
+      setAudioPeaks(peaks, peaksPerSecond);
+    },
+  });
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();
