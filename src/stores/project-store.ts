@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { GridSnap, Note, TimeSignature } from "../types";
+import { historyStore } from "./history-store";
 
 export interface ProjectState {
   // project
@@ -48,6 +49,9 @@ export interface ProjectState {
   // Actions
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
+  updateNotes: (
+    updates: Array<{ id: string; changes: Partial<Omit<Note, "id">> }>,
+  ) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
@@ -55,6 +59,12 @@ export interface ProjectState {
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
+
+  // Undo/Redo actions
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
@@ -86,7 +96,7 @@ export function generateNoteId(): string {
   return `note-${++noteIdCounter}`;
 }
 
-export const useProjectStore = create<ProjectState>((set) => ({
+export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
@@ -121,17 +131,89 @@ export const useProjectStore = create<ProjectState>((set) => ({
   audioPeaks: [],
   peaksPerSecond: 100,
 
-  addNote: (note) =>
+  addNote: (note) => {
+    // Track in history
+    historyStore.pushOperation({
+      type: "add-note",
+      note,
+    });
+
     set((state) => ({
       notes: [...state.notes, note],
-    })),
+    }));
+  },
 
-  updateNote: (id, updates) =>
+  updateNote: (id, updates) => {
+    const state = get();
+    const note = state.notes.find((n) => n.id === id);
+    if (!note) return;
+
+    // Track in history (only changed fields)
+    const before: Partial<Omit<Note, "id">> = {};
+    const after: Partial<Omit<Note, "id">> = {};
+    for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
+      before[key] = note[key];
+      after[key] = updates[key]!;
+    }
+    historyStore.pushOperation({
+      type: "update-notes",
+      updates: [{ id, before, after }],
+    });
+
     set((state) => ({
       notes: state.notes.map((n) => (n.id === id ? { ...n, ...updates } : n)),
-    })),
+    }));
+  },
 
-  deleteNotes: (ids) =>
+  updateNotes: (updates) => {
+    const state = get();
+
+    // Build history entry with before and after state
+    const historyUpdates = updates
+      .map(({ id, changes }) => {
+        const note = state.notes.find((n) => n.id === id);
+        if (!note) return null;
+
+        const before: Partial<Omit<Note, "id">> = {};
+        const after: Partial<Omit<Note, "id">> = {};
+        for (const key of Object.keys(changes) as Array<keyof typeof changes>) {
+          before[key] = note[key];
+          after[key] = changes[key]!;
+        }
+        return { id, before, after };
+      })
+      .filter((u) => u !== null);
+
+    if (historyUpdates.length > 0) {
+      historyStore.pushOperation({
+        type: "update-notes",
+        updates: historyUpdates,
+      });
+    }
+
+    // Apply updates
+    set((state) => {
+      const updatesMap = new Map(updates.map((u) => [u.id, u.changes]));
+      return {
+        notes: state.notes.map((n) =>
+          updatesMap.has(n.id) ? { ...n, ...updatesMap.get(n.id)! } : n,
+        ),
+      };
+    });
+  },
+
+  deleteNotes: (ids) => {
+    const state = get();
+
+    // Track in history (save deleted notes)
+    const deletedNotes = state.notes.filter((n) => ids.includes(n.id));
+    if (deletedNotes.length > 0) {
+      historyStore.pushOperation({
+        type: "delete-notes",
+        notes: deletedNotes,
+      });
+    }
+
     set((state) => {
       const idsSet = new Set(ids);
       const newSelected = new Set(state.selectedNoteIds);
@@ -142,7 +224,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
         notes: state.notes.filter((n) => !idsSet.has(n.id)),
         selectedNoteIds: newSelected,
       };
-    }),
+    });
+  },
 
   selectNotes: (ids, exclusive = true) =>
     set((state) => {
@@ -197,6 +280,86 @@ export const useProjectStore = create<ProjectState>((set) => ({
   // Waveform actions
   setAudioPeaks: (peaks, peaksPerSecond) =>
     set({ audioPeaks: peaks, peaksPerSecond }),
+
+  // Undo/Redo actions
+  undo: () => {
+    if (!historyStore.canUndo()) return;
+
+    const entry = historyStore.undoStack[historyStore.undoStack.length - 1];
+
+    historyStore.startUndo();
+
+    try {
+      if (entry.type === "add-note") {
+        // Undo add: remove the note
+        set((state) => ({
+          notes: state.notes.filter((n) => n.id !== entry.note.id),
+        }));
+      } else if (entry.type === "delete-notes") {
+        // Undo delete: restore the notes
+        set((state) => ({
+          notes: [...state.notes, ...entry.notes],
+        }));
+      } else if (entry.type === "update-notes") {
+        // Undo update: restore previous values
+        set((state) => {
+          const updatesMap = new Map(
+            entry.updates.map((u) => [u.id, u.before]),
+          );
+          return {
+            notes: state.notes.map((n) =>
+              updatesMap.has(n.id) ? { ...n, ...updatesMap.get(n.id)! } : n,
+            ),
+          };
+        });
+      }
+
+      historyStore.moveToRedo();
+    } finally {
+      historyStore.endUndo();
+    }
+  },
+
+  redo: () => {
+    if (!historyStore.canRedo()) return;
+
+    const entry = historyStore.redoStack[historyStore.redoStack.length - 1];
+
+    historyStore.startRedo();
+
+    try {
+      if (entry.type === "add-note") {
+        // Redo add: re-add the note
+        set((state) => ({
+          notes: [...state.notes, entry.note],
+        }));
+      } else if (entry.type === "delete-notes") {
+        // Redo delete: remove the notes again
+        const ids = entry.notes.map((n) => n.id);
+        set((state) => ({
+          notes: state.notes.filter((n) => !ids.includes(n.id)),
+        }));
+      } else if (entry.type === "update-notes") {
+        // Redo update: apply after state
+        set((state) => {
+          const updatesMap = new Map(entry.updates.map((u) => [u.id, u.after]));
+          return {
+            notes: state.notes.map((n) =>
+              updatesMap.has(n.id) ? { ...n, ...updatesMap.get(n.id)! } : n,
+            ),
+          };
+        });
+      }
+
+      // Move from redo to undo stack
+      historyStore.moveToUndo(entry);
+    } finally {
+      historyStore.endRedo();
+    }
+  },
+
+  canUndo: () => historyStore.canUndo(),
+  canRedo: () => historyStore.canRedo(),
 }));
 
 // Helper: convert seconds to beats

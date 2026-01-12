@@ -86,10 +86,14 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] fix: timeline bar label is not aligned at bar grid
 - [x] chore: deploy (vercel)
 
+- [x] feat: undo/redo for note operations (create, delete, move, resize)
+
 ### TODO
 
 _Note editing_
 
+- [ ] feat: undo/redo UI indicators (disabled state when stack empty, optional toast showing action name)
+- [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
 - [ ] feat: copy/paste notes
 - [ ] feat: extend note (right edge) without select
 - [ ] fix: extend note dragging grid snap
@@ -147,7 +151,6 @@ _Chores/Refactoring_
 
 ### Backlog
 
-- Undo/redo
 - Loop regions
 - Velocity editing
 - Section markers/locators

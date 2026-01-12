@@ -16,6 +16,7 @@ import {
   snapToGrid,
   clampPitch,
 } from "../lib/music";
+import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
   generateNoteId,
@@ -191,6 +192,8 @@ type DragMode =
       startPitch: number;
       offsetBeat: number;
       offsetPitch: number;
+      // Original states of all notes being moved (for undo)
+      originalStates: Array<{ id: string; start: number; pitch: number }>;
     }
   | {
       type: "resizing-start";
@@ -231,6 +234,10 @@ export function PianoRoll() {
     deselectAll,
     setAudioOffset,
     audioPeaks,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     // Viewport state from store
     scrollX,
     scrollY,
@@ -333,17 +340,43 @@ export function PianoRoll() {
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if typing in an input
+      if (
+        (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedNoteIds.size > 0) {
           deleteNotes(Array.from(selectedNoteIds));
         }
       } else if (e.key === "Escape") {
         deselectAll();
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      } else if (e.key === "y" && (e.ctrlKey || e.metaKey)) {
+        // Ctrl+Y or Cmd+Y: Redo (alternative)
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+        }
+      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        // Ctrl+Z or Cmd+Z: Undo
+        e.preventDefault();
+        if (canUndo()) {
+          undo();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNoteIds, deleteNotes, deselectAll]);
+  }, [selectedNoteIds, deleteNotes, deselectAll, undo, redo, canUndo, canRedo]);
 
   // Handle wheel for pan/zoom (2D: both deltaX and deltaY)
   useEffect(() => {
@@ -454,6 +487,7 @@ export function PianoRoll() {
 
         if (clickScreenX - noteScreenStart.x < edgeThreshold) {
           // Resize from start
+          historyStore.startDrag();
           setDragMode({
             type: "resizing-start",
             noteId: clickedNote.id,
@@ -462,6 +496,7 @@ export function PianoRoll() {
           });
         } else if (noteScreenEnd.x - clickScreenX < edgeThreshold) {
           // Resize from end
+          historyStore.startDrag();
           setDragMode({
             type: "resizing-end",
             noteId: clickedNote.id,
@@ -477,6 +512,19 @@ export function PianoRoll() {
           }
           // Preview note sound on drag start
           audioManager.playNote(clickedNote.pitch);
+
+          // Capture original states of all selected notes for undo
+          // Note: if clicked note wasn't selected, it's now the only selected one
+          const notesToMove = selectedNoteIds.has(clickedNote.id)
+            ? notes.filter((n) => selectedNoteIds.has(n.id))
+            : [clickedNote];
+          const originalStates = notesToMove.map((n) => ({
+            id: n.id,
+            start: n.start,
+            pitch: n.pitch,
+          }));
+
+          historyStore.startDrag();
           setDragMode({
             type: "moving",
             noteId: clickedNote.id,
@@ -484,6 +532,7 @@ export function PianoRoll() {
             startPitch: clickedNote.pitch,
             offsetBeat: beat - clickedNote.start,
             offsetPitch: 0,
+            originalStates,
           });
         }
       } else {
@@ -603,6 +652,77 @@ export function PianoRoll() {
         };
         addNote(newNote);
         selectNotes([newNote.id], true);
+      }
+    } else if (dragMode.type === "moving") {
+      // End drag and push history for all moved notes
+      historyStore.endDrag();
+
+      // Build history entry comparing original states to current states
+      const updates = dragMode.originalStates
+        .map(({ id, start, pitch }) => {
+          const currentNote = notes.find((n) => n.id === id);
+          if (!currentNote) return null;
+          // Only record if actually changed
+          if (currentNote.start === start && currentNote.pitch === pitch) {
+            return null;
+          }
+          return {
+            id,
+            before: { start, pitch },
+            after: { start: currentNote.start, pitch: currentNote.pitch },
+          };
+        })
+        .filter((u) => u !== null);
+
+      if (updates.length > 0) {
+        historyStore.pushOperation({
+          type: "update-notes",
+          updates,
+        });
+      }
+    } else if (dragMode.type === "resizing-start") {
+      // End drag and push history for resize
+      historyStore.endDrag();
+
+      const currentNote = notes.find((n) => n.id === dragMode.noteId);
+      if (
+        currentNote &&
+        (currentNote.start !== dragMode.originalStart ||
+          currentNote.duration !== dragMode.originalDuration)
+      ) {
+        historyStore.pushOperation({
+          type: "update-notes",
+          updates: [
+            {
+              id: dragMode.noteId,
+              before: {
+                start: dragMode.originalStart,
+                duration: dragMode.originalDuration,
+              },
+              after: {
+                start: currentNote.start,
+                duration: currentNote.duration,
+              },
+            },
+          ],
+        });
+      }
+    } else if (dragMode.type === "resizing-end") {
+      // End drag and push history for resize
+      historyStore.endDrag();
+
+      const currentNote = notes.find((n) => n.id === dragMode.noteId);
+      if (currentNote && currentNote.duration !== dragMode.originalDuration) {
+        historyStore.pushOperation({
+          type: "update-notes",
+          updates: [
+            {
+              id: dragMode.noteId,
+              before: { duration: dragMode.originalDuration },
+              after: { duration: currentNote.duration },
+            },
+          ],
+        });
       }
     } else if (dragMode.type === "box-select") {
       // Find notes in the box (convert screen coords to content coords)
