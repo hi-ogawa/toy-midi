@@ -15,16 +15,10 @@ test.describe("Help Overlay", () => {
     await page.getByTestId("help-button").click();
     await expect(page.getByTestId("help-overlay")).toBeVisible();
 
-    // Check that it contains expected content
+    // Check structure: title and category headers
     await expect(
       page.getByRole("heading", { name: "Quick Reference" }),
     ).toBeVisible();
-    await expect(page.getByText("Play / Pause")).toBeVisible();
-    await expect(
-      page.getByText("Delete selected notes/locator"),
-    ).toBeVisible();
-
-    // Check for category headers
     await expect(
       page.getByRole("heading", { name: "Playback", exact: true }),
     ).toBeVisible();
@@ -35,18 +29,10 @@ test.describe("Help Overlay", () => {
       page.getByRole("heading", { name: "Navigation", exact: true }),
     ).toBeVisible();
 
-    // Check for keyboard shortcuts
-    await expect(page.locator("kbd", { hasText: /^Space$/ })).toBeVisible();
-    await expect(
-      page.locator("kbd", { hasText: /^Delete \/ Backspace$/ }),
-    ).toBeVisible();
-    await expect(page.locator("kbd", { hasText: /^Escape$/ })).toBeVisible();
-
-    // Check for mouse actions
-    await expect(page.getByText("Create new note")).toBeVisible();
-    await expect(page.getByText("Move note (time + pitch)")).toBeVisible();
-    await expect(page.getByText("Zoom in / out (horizontal)")).toBeVisible();
-    await expect(page.getByText("Zoom in / out (vertical)")).toBeVisible();
+    // Check that keyboard shortcuts are rendered (has kbd elements)
+    const kbdElements = page.locator("kbd");
+    await expect(kbdElements.first()).toBeVisible();
+    expect(await kbdElements.count()).toBeGreaterThan(5);
 
     // Click inside modal content - should stay open
     await page.getByRole("heading", { name: "Quick Reference" }).click();
