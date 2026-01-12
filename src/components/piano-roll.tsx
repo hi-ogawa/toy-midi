@@ -271,21 +271,18 @@ export function PianoRoll() {
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
 
-  // Update viewport size on mount
+  // Update viewport size on resize (useLayoutEffect to measure before paint)
   useLayoutEffect(() => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setViewportSize({ width: rect.width, height: rect.height });
-    }
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setViewportSize({ width: rect.width, height: rect.height });
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
-
-  // Update viewport size on resize
-  useWindowEvent("resize", () => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setViewportSize({ width: rect.width, height: rect.height });
-    }
-  });
 
   // Auto-scroll during playback to keep playhead visible
   useEffect(() => {
