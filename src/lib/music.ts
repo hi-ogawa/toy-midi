@@ -42,7 +42,7 @@ export function yToPitch(y: number, rowHeight: number): number {
 }
 
 export function snapToGrid(value: number, gridSize: number): number {
-  return Math.floor(value / gridSize) * gridSize;
+  return Math.round(value / gridSize) * gridSize;
 }
 
 export function clampPitch(pitch: number): number {
