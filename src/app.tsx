@@ -15,18 +15,39 @@ import {
   getProjectMetadata,
   hasSavedProject,
   listProjects,
-  loadProject,
+  loadProjectData,
   migrateFromSingleProject,
-  saveProject,
+  saveProjectData,
   updateProjectMetadata,
 } from "./lib/project-manager";
-import { useProjectStore } from "./stores/project-store";
+import {
+  fromSavedProject,
+  toSavedProject,
+  useProjectStore,
+} from "./stores/project-store";
 
 // Migrate old single-project storage if needed
 migrateFromSingleProject();
 
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();
+
+// === Orchestration functions ===
+// These bridge Zustand state and localStorage via project-manager
+
+function saveProject(): void {
+  const state = useProjectStore.getState();
+  if (!state.currentProjectId) {
+    console.warn("Cannot save project: no current project ID set.");
+    return;
+  }
+  try {
+    saveProjectData(state.currentProjectId, toSavedProject(state));
+  } catch (e) {
+    console.error("Failed to save project:", e);
+    toast.error("Failed to save project. Changes may be lost.");
+  }
+}
 
 export function App() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -37,7 +58,11 @@ export function App() {
 
       if (options.projectId) {
         // Load specific project by ID
-        loadProject(options.projectId);
+        const data = loadProjectData(options.projectId);
+        useProjectStore.setState({
+          currentProjectId: options.projectId,
+          ...fromSavedProject(data),
+        });
       } else {
         // Create new project
         const newProjectId = createProject();

@@ -211,7 +211,7 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 
 const STORAGE_VERSION = 1;
 
-interface SavedProject {
+export interface SavedProject {
   version: number;
   notes: Note[];
   tempo: number;

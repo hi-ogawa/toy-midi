@@ -255,30 +255,38 @@ After this, the architecture becomes clearer and we can decide if further separa
 - [x] Remove localStorage from project-store.ts
 - [x] Rename project-list.ts to project-manager.ts
 - [x] Move persistence functions from app.tsx to project-manager.ts
-- [ ] Documentation update
+- [x] Remove Zustand dependency from project-manager.ts
+- [x] Documentation update
 
 ## Summary
 
 Refactor complete. The layer separation is now:
 
 ```
-src/app.tsx (React UI only)
-  └── initMutation             - calls project-manager functions
+src/app.tsx (Orchestration)
+  ├── saveProject()            - useProjectStore → toSavedProject → saveProjectData
+  ├── loadProject()            - loadProjectData → fromSavedProject → useProjectStore
+  └── initMutation             - coordinates audio init + project load
 
-src/lib/project-manager.ts (all project operations)
+src/lib/project-manager.ts (Pure storage - NO Zustand)
   ├── Project list             - createProject, listProjects, deleteProject
-  ├── Project data             - saveProject, loadProject, hasSavedProject
+  ├── Project data             - saveProjectData, loadProjectData, hasSavedProject
   ├── Metadata                 - getProjectMetadata, updateProjectMetadata
   └── Migration                - migrateFromSingleProject
 
-src/stores/project-store.ts (pure Zustand state)
+src/stores/project-store.ts (Pure Zustand state - NO localStorage)
   ├── useProjectStore          - Zustand store
   ├── toSavedProject()         - state → saved data (pure)
   └── fromSavedProject()       - saved data → state (pure)
+  └── SavedProject             - exported type
 ```
 
-`project-store.ts` no longer touches localStorage or has any external dependencies.
-`app.tsx` is now just React UI - no persistence logic.
+**Key changes in this iteration:**
+
+- `project-manager.ts` no longer imports from `project-store.ts`
+- `saveProject`/`loadProject` renamed to `saveProjectData`/`loadProjectData` (pure storage)
+- Orchestration functions moved to `app.tsx` where Zustand and storage are bridged
+- `SavedProject` type now exported from `project-store.ts`
 
 ## Related
 
