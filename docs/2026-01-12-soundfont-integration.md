@@ -16,25 +16,28 @@
 
 ### Note Release Feels Abrupt
 
-**Symptom:** Notes end abruptly without natural decay/release.
+**Symptom:** Notes end abruptly without natural decay/release across all instruments.
 
 **Investigation:** Analyzed wavelet's envelope implementation:
 
 - `@ryohey/wavelet` implements proper ADSR envelopes (`AmplitudeEnvelope.ts`)
 - Release time is loaded from SF2's `releaseVolEnv` generator parameter
 - On noteOff, envelope enters release phase with logarithmic attenuation
-- Piano sounds in A320U.sf2 have short release times (realistic - damper stops strings)
 
-**Root cause:** This is expected SF2 behavior. Piano presets have short release because real pianos cut off when keys are released.
+**Possible causes:**
+
+1. A320U.sf2 has short release times across presets
+2. Wavelet's envelope implementation issue
+3. Something in our noteOff scheduling
 
 **Potential solutions:**
 
-1. **Sustain pedal (CC#64)** - Prevents release phase until pedal lifted. Standard way to extend piano notes.
-2. **Try different instruments** - Strings (40-47) and pads (88-95) have longer natural release.
-3. **Different soundfont** - Some GM soundfonts have longer release times baked in.
-4. **Manual release extension** - Delay noteOff by fixed amount (not recommended - affects timing accuracy).
+1. **Try different soundfont** - Test with GeneralUser GS or FluidR3 to isolate if it's A320U-specific
+2. **Sustain pedal (CC#64)** - Prevents release phase until pedal lifted
+3. **Debug envelope params** - Log actual releaseTime values being loaded from soundfont
+4. **Manual release extension** - Delay noteOff (affects timing accuracy)
 
-**Decision:** TBD - need to confirm if issue affects all instruments or mainly piano.
+**Status:** Needs further investigation.
 
 ## Implementation Plan
 
