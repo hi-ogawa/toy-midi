@@ -430,13 +430,11 @@ test.describe("Multiple Projects", () => {
   test("last used project is visually highlighted", async ({ page }) => {
     // Create first project
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project1Id = await getLastProjectId(page);
 
     // Create second project
     await page.reload();
     await clickNewProject(page);
-    await page.waitForTimeout(600);
     const project2Id = await getLastProjectId(page);
 
     // Go back to startup screen
@@ -444,12 +442,29 @@ test.describe("Multiple Projects", () => {
 
     // Project 2 should be highlighted (it's the last one we used)
     await expect(page.getByTestId(`project-card-${project2Id}`)).toHaveClass(
-      /border-emerald-700/,
+      /border-emerald-700/, // TODO: avoid asserting border-emerald-700
     );
 
     // Project 1 should not be highlighted
     await expect(
       page.getByTestId(`project-card-${project1Id}`),
+    ).not.toHaveClass(/border-emerald-700/);
+
+    // Now load project 1 and verify highlight switches
+    await page.getByTestId(`project-card-${project1Id}`).click();
+    await expect(page.getByTestId("transport")).toBeVisible();
+
+    // Go back to startup screen
+    await page.reload();
+
+    // Project 1 should now be highlighted (it's the last one we opened)
+    await expect(page.getByTestId(`project-card-${project1Id}`)).toHaveClass(
+      /border-emerald-700/,
+    );
+
+    // Project 2 should no longer be highlighted
+    await expect(
+      page.getByTestId(`project-card-${project2Id}`),
     ).not.toHaveClass(/border-emerald-700/);
   });
 });

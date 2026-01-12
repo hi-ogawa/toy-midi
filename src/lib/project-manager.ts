@@ -67,7 +67,6 @@ export function createProject(name?: string): string {
   projects.push(metadata);
 
   localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
-  setLastProjectId(projectId);
   return projectId;
 }
 

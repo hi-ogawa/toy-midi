@@ -42,14 +42,16 @@ export function App() {
 
       // Get or create project ID
       const projectId = options.projectId ?? createProject();
+      setLastProjectId(projectId);
 
       // Load project data if existing project, otherwise use defaults (new project)
       if (options.projectId) {
         const data = loadProjectData(projectId);
         useProjectStore.setState(fromSavedProject(data));
-        setLastProjectId(projectId); // Mark as last opened project
+      } else {
+        // save new project on startup
+        saveProjectData(projectId, toSavedProject(useProjectStore.getState()));
       }
-      // New project: createProject() already sets lastProjectId
 
       const project = useProjectStore.getState();
       if (project.audioAssetKey) {
@@ -324,6 +326,7 @@ function ProjectListView({
                             )}
                           </div>
                         </button>
+                        {/* TODO: show always not just hover */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
