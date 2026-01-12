@@ -20,7 +20,9 @@ test.describe("Help Overlay", () => {
       page.getByRole("heading", { name: "Quick Reference" }),
     ).toBeVisible();
     await expect(page.getByText("Play / Pause")).toBeVisible();
-    await expect(page.getByText("Delete selected notes").first()).toBeVisible();
+    await expect(
+      page.getByText("Delete selected notes/locator"),
+    ).toBeVisible();
 
     // Check for category headers
     await expect(
@@ -35,7 +37,9 @@ test.describe("Help Overlay", () => {
 
     // Check for keyboard shortcuts
     await expect(page.locator("kbd", { hasText: /^Space$/ })).toBeVisible();
-    await expect(page.locator("kbd", { hasText: /^Delete$/ })).toBeVisible();
+    await expect(
+      page.locator("kbd", { hasText: /^Delete \/ Backspace$/ }),
+    ).toBeVisible();
     await expect(page.locator("kbd", { hasText: /^Escape$/ })).toBeVisible();
 
     // Check for mouse actions
