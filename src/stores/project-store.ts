@@ -345,21 +345,12 @@ export function clearProject(): void {
   });
 }
 
-export function loadProject(projectId?: string) {
+export function loadProject(projectId: string) {
   try {
-    // Determine which project to load
-    const idToLoad = projectId || getLastProjectId();
-    if (!idToLoad) {
-      console.warn(
-        "No project to load: specify a project ID or ensure at least one project exists.",
-      );
-      return null;
-    }
-
-    const storageKey = getProjectKey(idToLoad);
+    const storageKey = getProjectKey(projectId);
     const json = localStorage.getItem(storageKey);
     if (!json) {
-      console.warn(`Project ${idToLoad} not found in storage`);
+      console.warn(`Project ${projectId} not found in storage`);
       return null;
     }
 
@@ -382,7 +373,7 @@ export function loadProject(projectId?: string) {
     noteIdCounter = maxId;
 
     useProjectStore.setState({
-      currentProjectId: idToLoad,
+      currentProjectId: projectId,
       notes: merged.notes,
       tempo: merged.tempo,
       timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature!,
@@ -409,7 +400,7 @@ export function loadProject(projectId?: string) {
     });
 
     // Update last project ID
-    setLastProjectId(idToLoad);
+    setLastProjectId(projectId);
   } catch (e) {
     console.warn("Failed to load project:", e);
     return null;

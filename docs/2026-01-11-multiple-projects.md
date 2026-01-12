@@ -239,7 +239,7 @@ Addressed additional feedback items:
 1. **Remove Redundant `restore` Parameter**:
    - Simplified `initMutation` to use only `projectId` option
    - `projectId = undefined`: load last project
-   - `projectId = string`: load specific project  
+   - `projectId = string`: load specific project
    - `projectId = ""`: create new project
    - Cleaner API without boolean flag
 
@@ -253,6 +253,7 @@ Addressed additional feedback items:
 ### Current State
 
 All major feedback items addressed:
+
 - ✅ Sequential project naming (Untitled, Untitled 2, etc.)
 - ✅ Rename from startup screen and main app
 - ✅ Delete from startup screen
@@ -263,6 +264,7 @@ All major feedback items addressed:
 ### Remaining Items
 
 Lower priority enhancements for future consideration:
+
 - Multi-tab support (different projects in different tabs)
 - Storage architecture refactor
 - UI component consolidation

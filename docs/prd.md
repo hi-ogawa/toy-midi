@@ -120,6 +120,11 @@ _Project management_
   - current: initMutation conflates app init with project loading, forces page reload for switching
   - short-term: use localStorage flag instead of URL hash for cleaner reload pattern
   - long-term: separate app initialization from project loading, enable in-app project switching
+- [ ] feat: multi-tab support for editing different projects
+  - current architecture: `currentProjectId` (store, per-tab) vs `toy-midi-last-project-id` (localStorage, cross-tab)
+  - works for different projects in different tabs, but no conflict detection
+  - issues: same project in multiple tabs risks data loss (last write wins on debounced save)
+  - needs: conflict detection/warning, storage event listener for cross-tab sync, locking or merge strategy
 - [ ] feat: locators to mark parts
 - [ ] feat: add demo project (good for quick dev test case too)
 

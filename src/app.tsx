@@ -38,16 +38,11 @@ export function App() {
     mutationFn: async (options: { projectId?: string }) => {
       await audioManager.init();
 
-      const projectId = options?.projectId;
-
-      if (projectId && projectId !== "") {
+      if (options.projectId) {
         // Load specific project by ID
-        loadProject(projectId);
-      } else if (projectId === undefined && savedProjectExists) {
-        // Load last project (no projectId provided)
-        loadProject();
+        loadProject(options.projectId);
       } else {
-        // Create new project (projectId === "")
+        // Create new project
         const newProjectId = createProject();
         clearProject();
         useProjectStore.setState({ currentProjectId: newProjectId });
@@ -100,7 +95,10 @@ export function App() {
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
-        initMutation.mutate({}); // Load last project
+        const lastProjectId = getLastProjectId();
+        if (lastProjectId) {
+          initMutation.mutate({ projectId: lastProjectId });
+        }
       }
     };
 
@@ -140,8 +138,7 @@ export function App() {
         onSelectProject={(projectId: string) =>
           initMutation.mutate({ projectId })
         }
-        onContinueLast={() => initMutation.mutate({})}
-        onNewProject={() => initMutation.mutate({ projectId: "" })}
+        onNewProject={() => initMutation.mutate({})}
       />
     );
   }
@@ -178,13 +175,11 @@ export function App() {
 
 type ProjectListViewProps = {
   onSelectProject: (projectId: string) => void;
-  onContinueLast: () => void;
   onNewProject: () => void;
 };
 
 function ProjectListView({
   onSelectProject,
-  onContinueLast,
   onNewProject,
 }: ProjectListViewProps) {
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
@@ -343,7 +338,7 @@ function ProjectListView({
             <button
               type="button"
               data-testid="continue-button"
-              onClick={onContinueLast}
+              onClick={() => lastProjectId && onSelectProject(lastProjectId)}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
             >
               Continue Last
