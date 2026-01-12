@@ -1,6 +1,6 @@
 import path from "path";
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { clickContinue, clickNewProject } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -123,6 +123,27 @@ test.describe("Transport Controls", () => {
     const newTempo = await tempoInput.inputValue();
     expect(parseInt(newTempo)).toBeGreaterThanOrEqual(30);
     expect(parseInt(newTempo)).toBeLessThanOrEqual(300);
+  });
+
+  test("instrument selector (program change)", async ({ page }) => {
+    const instrumentSelect = page.getByTestId("instrument-select");
+
+    // Default should be "0: Acoustic Grand Piano"
+    await expect(instrumentSelect).toContainText("Acoustic Grand Piano");
+
+    // Open and select a different instrument
+    await instrumentSelect.click();
+    await page.getByRole("option", { name: /24:.*Acoustic Guitar/ }).click();
+
+    // Should show new instrument
+    await expect(instrumentSelect).toContainText("Acoustic Guitar");
+
+    // Verify state persisted - reload and check
+    await page.reload();
+    await clickContinue(page);
+    await expect(page.getByTestId("instrument-select")).toContainText(
+      "Acoustic Guitar",
+    );
   });
 
   test("export MIDI workflow", async ({ page }) => {

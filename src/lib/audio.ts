@@ -317,9 +317,9 @@ class AudioManager {
   playNote(pitch: number, duration: number = 0.2): void {
     if (!this.midiSynth?.isLoaded) return;
     this.midiSynth.noteOn(pitch, 100);
-    setTimeout(() => {
+    Tone.getDraw().schedule(() => {
       this.midiSynth.noteOff(pitch);
-    }, duration * 1000);
+    }, Tone.now() + duration);
   }
 
   // Volume controls (0-1)

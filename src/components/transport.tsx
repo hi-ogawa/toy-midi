@@ -401,7 +401,10 @@ export function Transport({
         value={String(midiProgram)}
         onValueChange={(v) => setMidiProgram(Number(v))}
       >
-        <SelectTrigger className="h-8 w-44 text-xs">
+        <SelectTrigger
+          data-testid="instrument-select"
+          className="h-8 w-44 text-xs"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent
