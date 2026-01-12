@@ -307,4 +307,81 @@ test.describe("Undo/Redo", () => {
     await page.keyboard.press("Control+z");
     await expect(note).toHaveCount(1); // Note should still be there
   });
+
+  test("undo multi-note move in single operation", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    const notes = page.locator("[data-testid^='note-']");
+
+    // Create first note at row 5
+    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const row1Y = gridBox.y + ROW_HEIGHT * 5.5;
+    await page.mouse.move(startX, row1Y);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, row1Y);
+    await page.mouse.up();
+    await expect(notes).toHaveCount(1);
+
+    // Create second note at row 6
+    const row2Y = gridBox.y + ROW_HEIGHT * 6.5;
+    await page.mouse.move(startX, row2Y);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, row2Y);
+    await page.mouse.up();
+    await expect(notes).toHaveCount(2);
+
+    // Get initial positions
+    const note1 = notes.nth(0);
+    const note2 = notes.nth(1);
+    const initial1 = await note1.boundingBox();
+    const initial2 = await note2.boundingBox();
+    if (!initial1 || !initial2) throw new Error("Notes not found");
+
+    // Box select both notes (shift+drag)
+    await page.mouse.move(gridBox.x, gridBox.y + ROW_HEIGHT * 5);
+    await page.keyboard.down("Shift");
+    await page.mouse.down();
+    await page.mouse.move(
+      gridBox.x + BEAT_WIDTH * 2,
+      gridBox.y + ROW_HEIGHT * 7.5,
+    );
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+
+    // Both notes should be selected (verify via visual or just proceed)
+    // Move both notes by dragging one
+    const moveStartX = initial1.x + initial1.width / 2;
+    const moveStartY = initial1.y + initial1.height / 2;
+    await page.mouse.move(moveStartX, moveStartY);
+    await page.mouse.down();
+    await page.mouse.move(moveStartX + BEAT_WIDTH * 2, moveStartY);
+    await page.mouse.up();
+
+    // Verify both notes moved
+    const moved1 = await note1.boundingBox();
+    const moved2 = await note2.boundingBox();
+    if (!moved1 || !moved2) throw new Error("Notes not found after move");
+    expect(moved1.x).toBeGreaterThan(initial1.x);
+    expect(moved2.x).toBeGreaterThan(initial2.x);
+
+    // Single undo should restore BOTH notes to original position
+    await page.keyboard.press("Control+z");
+
+    const undone1 = await note1.boundingBox();
+    const undone2 = await note2.boundingBox();
+    if (!undone1 || !undone2) throw new Error("Notes not found after undo");
+    expect(Math.abs(undone1.x - initial1.x)).toBeLessThan(2);
+    expect(Math.abs(undone2.x - initial2.x)).toBeLessThan(2);
+
+    // Redo should move both back
+    await page.keyboard.press("Control+y");
+
+    const redone1 = await note1.boundingBox();
+    const redone2 = await note2.boundingBox();
+    if (!redone1 || !redone2) throw new Error("Notes not found after redo");
+    expect(Math.abs(redone1.x - moved1.x)).toBeLessThan(2);
+    expect(Math.abs(redone2.x - moved2.x)).toBeLessThan(2);
+  });
 });
