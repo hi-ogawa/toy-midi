@@ -43,6 +43,16 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     category: "editing",
   },
   {
+    key: "Ctrl+C",
+    description: "Copy selected notes (Cmd+C on Mac)",
+    category: "editing",
+  },
+  {
+    key: "Ctrl+V",
+    description: "Paste notes (Cmd+V on Mac)",
+    category: "editing",
+  },
+  {
     key: "Ctrl+Z",
     description: "Undo",
     category: "editing",
