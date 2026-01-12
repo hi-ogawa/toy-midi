@@ -1,18 +1,27 @@
 import { getSampleEventsFromSoundFont, type SynthEvent } from "@ryohey/wavelet";
+import * as Tone from "tone";
+import { Gain } from "tone/build/esm/core/context/Gain";
+
+type ToneContext = ReturnType<typeof Tone.getContext>;
 
 /**
  * SoundFontSynth wraps @ryohey/wavelet to provide SF2-based synthesis.
- * Uses AudioWorklet for non-blocking audio processing.
+ * Uses Tone.js's AudioWorklet system for compatibility with standardized-audio-context.
+ * Exposes a Tone.js-compatible output for easy integration with Tone.js audio graph.
  */
 export class SoundFontSynth {
   private synth: AudioWorkletNode | null = null;
-  private context: AudioContext;
+  private context: ToneContext;
   private isSetup = false;
   private sequenceNumber = 0;
   private _isLoaded = false;
 
-  constructor(context: AudioContext) {
+  /** Tone.js-compatible output node for connecting to other Tone nodes */
+  readonly output: Gain;
+
+  constructor(context: ToneContext) {
     this.context = context;
+    this.output = new Tone.Gain({ context: context as Tone.BaseContext });
   }
 
   get isLoaded(): boolean {
@@ -30,7 +39,8 @@ export class SoundFontSynth {
       "@ryohey/wavelet/dist/processor.js",
       import.meta.url,
     ).toString();
-    await this.context.audioWorklet.addModule(url);
+    // Use Tone.js's addAudioWorkletModule for standardized-audio-context compatibility
+    await this.context.addAudioWorkletModule(url);
     this.isSetup = true;
   }
 
@@ -56,12 +66,16 @@ export class SoundFontSynth {
       this.synth.disconnect();
     }
 
-    // Create new synth worklet node
-    this.synth = new AudioWorkletNode(this.context, "synth-processor", {
+    // Create new synth worklet node using Tone.js's wrapper
+    this.synth = this.context.createAudioWorkletNode("synth-processor", {
       numberOfInputs: 0,
       outputChannelCount: [2],
     });
     this.sequenceNumber = 0;
+
+    // Connect worklet to output Gain node
+    // Use Tone.js's connect which handles native/wrapped node compatibility
+    Tone.connect(this.synth, this.output);
 
     // Parse soundfont and extract sample events
     const sampleEvents = getSampleEventsFromSoundFont(new Uint8Array(data));
@@ -72,20 +86,6 @@ export class SoundFontSynth {
     }
 
     this._isLoaded = true;
-  }
-
-  /**
-   * Connect the synth output to an AudioNode (e.g., gain node or destination).
-   */
-  connect(destination: AudioNode): void {
-    this.synth?.connect(destination);
-  }
-
-  /**
-   * Disconnect the synth from all outputs.
-   */
-  disconnect(): void {
-    this.synth?.disconnect();
   }
 
   /**
@@ -174,6 +174,11 @@ export class SoundFontSynth {
         delayTime: 0,
       });
     }
+  }
+
+  dispose(): void {
+    this.synth?.disconnect();
+    this.output.dispose();
   }
 
   private postMessage(event: SynthEvent, transfer?: Transferable[]): void {

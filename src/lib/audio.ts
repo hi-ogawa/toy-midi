@@ -22,7 +22,7 @@ const DEFAULT_SOUNDFONT_URL = "/soundfonts/sin.sf2";
  */
 class AudioManager {
   private midiSynth!: SoundFontSynth;
-  private midiGain!: GainNode; // TODO: can we still use Tone.Channel and bind to input?
+  private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
 
   // audio track
@@ -37,25 +37,21 @@ class AudioManager {
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
-    // Create dedicated AudioContext for soundfont synth
-    // (Tone.js context wrapper doesn't expose audioWorklet properly)
-    const sfContext = new AudioContext();
+    const context = Tone.getContext();
 
     // SoundFont synth for polyphonic playback
-    this.midiSynth = new SoundFontSynth(sfContext);
+    this.midiSynth = new SoundFontSynth(context);
     await this.midiSynth.setup();
     await this.midiSynth.loadSoundFontFromURL(DEFAULT_SOUNDFONT_URL);
 
-    // Gain node for MIDI volume control
-    this.midiGain = sfContext.createGain();
-    this.midiGain.gain.value = 0.8;
-    this.midiGain.connect(sfContext.destination);
-    this.midiSynth.connect(this.midiGain);
+    // Connect synth output to Channel for volume control
+    this.midiChannel = new Tone.Channel(0).toDestination();
+    this.midiSynth.output.connect(this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {
         // Calculate delay from now to the scheduled time
-        const now = sfContext.currentTime;
+        const now = context.currentTime;
         const delayTime = Math.max(0, time - now);
 
         // Convert duration from beats to seconds using current tempo
@@ -174,8 +170,9 @@ class AudioManager {
   }
 
   setMidiVolume(volume: number): void {
-    const clampedVolume = Math.max(0, Math.min(1, volume));
-    this.midiGain.gain.setTargetAtTime(clampedVolume, 0, 0.1);
+    this.midiChannel.volume.rampTo(
+      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
+    );
   }
 
   setMetronomeVolume(volume: number): void {
