@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { useTransport } from "../hooks/use-transport";
+import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import {
   isBlackKey,
@@ -270,18 +271,21 @@ export function PianoRoll() {
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
 
-  // Update viewport size on resize (useLayoutEffect to measure before paint)
+  // Update viewport size on mount
   useLayoutEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setViewportSize({ width: rect.width, height: rect.height });
-      }
-    };
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setViewportSize({ width: rect.width, height: rect.height });
+    }
   }, []);
+
+  // Update viewport size on resize
+  useWindowEvent("resize", () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setViewportSize({ width: rect.width, height: rect.height });
+    }
+  });
 
   // Auto-scroll during playback to keep playhead visible
   useEffect(() => {
@@ -339,45 +343,41 @@ export function PianoRoll() {
   );
 
   // Handle keyboard events
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts if typing in an input
-      if (
-        (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
+  useWindowEvent("keydown", (e) => {
+    // Don't trigger shortcuts if typing in an input
+    if (
+      (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
 
-      if (e.key === "Delete" || e.key === "Backspace") {
-        if (selectedNoteIds.size > 0) {
-          deleteNotes(Array.from(selectedNoteIds));
-        }
-      } else if (e.key === "Escape") {
-        deselectAll();
-      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-        // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
-        e.preventDefault();
-        if (canRedo()) {
-          redo();
-        }
-      } else if (e.key === "y" && (e.ctrlKey || e.metaKey)) {
-        // Ctrl+Y or Cmd+Y: Redo (alternative)
-        e.preventDefault();
-        if (canRedo()) {
-          redo();
-        }
-      } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-        // Ctrl+Z or Cmd+Z: Undo
-        e.preventDefault();
-        if (canUndo()) {
-          undo();
-        }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (selectedNoteIds.size > 0) {
+        deleteNotes(Array.from(selectedNoteIds));
       }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedNoteIds, deleteNotes, deselectAll, undo, redo, canUndo, canRedo]);
+    } else if (e.key === "Escape") {
+      deselectAll();
+    } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
+      e.preventDefault();
+      if (canRedo()) {
+        redo();
+      }
+    } else if (e.key === "y" && (e.ctrlKey || e.metaKey)) {
+      // Ctrl+Y or Cmd+Y: Redo (alternative)
+      e.preventDefault();
+      if (canRedo()) {
+        redo();
+      }
+    } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      // Ctrl+Z or Cmd+Z: Undo
+      e.preventDefault();
+      if (canUndo()) {
+        undo();
+      }
+    }
+  });
 
   // Handle wheel for pan/zoom (2D: both deltaX and deltaY)
   useEffect(() => {
@@ -765,16 +765,17 @@ export function PianoRoll() {
     scrollY,
   ]);
 
-  useEffect(() => {
+  useWindowEvent("mousemove", (e) => {
     if (dragMode.type !== "none") {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
-      };
+      handleMouseMove(e);
     }
-  }, [dragMode, handleMouseMove, handleMouseUp]);
+  });
+
+  useWindowEvent("mouseup", () => {
+    if (dragMode.type !== "none") {
+      handleMouseUp();
+    }
+  });
 
   // Generate grid background with scroll offset (use rounded values)
   const gridBackground = generateGridBackground(
@@ -1120,14 +1121,10 @@ function Keyboard({
   const [isDragging, setIsDragging] = useState(false);
   const lastPlayedPitch = useRef<number | null>(null);
 
-  useEffect(() => {
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      lastPlayedPitch.current = null;
-    };
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => window.removeEventListener("mouseup", handleMouseUp);
-  }, []);
+  useWindowEvent("mouseup", () => {
+    setIsDragging(false);
+    lastPlayedPitch.current = null;
+  });
 
   const playPitch = useCallback((pitch: number) => {
     if (lastPlayedPitch.current !== pitch) {
@@ -1392,34 +1389,24 @@ function WaveformArea({
     dragStartRef.current = { x: e.clientX, startOffset: audioOffset };
   };
 
-  useEffect(() => {
+  useWindowEvent("mousemove", (e) => {
+    if (!isDragging || !dragStartRef.current) return;
+    const deltaX = e.clientX - dragStartRef.current.x;
+    // Moving right increases offset (audio moves right on timeline)
+    const deltaBeats = deltaX / pixelsPerBeat;
+    const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
+    const newOffset = Math.max(
+      0,
+      dragStartRef.current.startOffset + deltaSeconds,
+    );
+    onOffsetChange(newOffset);
+  });
+
+  useWindowEvent("mouseup", () => {
     if (!isDragging) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragStartRef.current) return;
-      const deltaX = e.clientX - dragStartRef.current.x;
-      // Moving right increases offset (audio moves right on timeline)
-      const deltaBeats = deltaX / pixelsPerBeat;
-      const deltaSeconds = beatsToSeconds(deltaBeats, tempo);
-      const newOffset = Math.max(
-        0,
-        dragStartRef.current.startOffset + deltaSeconds,
-      );
-      onOffsetChange(newOffset);
-    };
-
-    const handleMouseUp = () => {
-      setIsDragging(false);
-      dragStartRef.current = null;
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging, pixelsPerBeat, tempo, audioDuration, onOffsetChange]);
+    setIsDragging(false);
+    dragStartRef.current = null;
+  });
 
   // Resize handler
   const handleResizeMouseDown = (e: React.MouseEvent) => {
@@ -1428,34 +1415,24 @@ function WaveformArea({
     resizeStartRef.current = { y: e.clientY, startHeight: height };
   };
 
-  useEffect(() => {
+  useWindowEvent("mousemove", (e) => {
+    if (!isResizing || !resizeStartRef.current) return;
+    const deltaY = e.clientY - resizeStartRef.current.y;
+    const newHeight = Math.max(
+      MIN_WAVEFORM_HEIGHT,
+      Math.min(
+        MAX_WAVEFORM_HEIGHT,
+        resizeStartRef.current.startHeight + deltaY,
+      ),
+    );
+    onHeightChange(newHeight);
+  });
+
+  useWindowEvent("mouseup", () => {
     if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!resizeStartRef.current) return;
-      const deltaY = e.clientY - resizeStartRef.current.y;
-      const newHeight = Math.max(
-        MIN_WAVEFORM_HEIGHT,
-        Math.min(
-          MAX_WAVEFORM_HEIGHT,
-          resizeStartRef.current.startHeight + deltaY,
-        ),
-      );
-      onHeightChange(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      resizeStartRef.current = null;
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, onHeightChange]);
+    setIsResizing(false);
+    resizeStartRef.current = null;
+  });
 
   return (
     <div
