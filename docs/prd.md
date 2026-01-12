@@ -148,6 +148,11 @@ _Misc_
 
 _Chores/Refactoring_
 
+- [ ] refactor: remove unnecessary useCallback now that useWindowEvent uses useEffectEvent
+  - `src/components/piano-roll.tsx:572` - `handleMouseMove`
+  - `src/components/piano-roll.tsx:640` - `handleMouseUp`
+  - `src/components/piano-roll.tsx:315` - `screenToGrid`
+  - `src/components/piano-roll.tsx:333` - `gridToScreen`
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: code organization review
 - [ ] test: test audio context playback (docs/2026-01-11-e2e-audio-context-testing.md)
