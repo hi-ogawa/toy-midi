@@ -404,7 +404,7 @@ export function Transport({
         <SelectTrigger className="h-8 w-44 text-xs">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="max-h-64">
+        <SelectContent position="popper" className="max-h-64">
           <SelectGroup>
             <SelectLabel>Piano</SelectLabel>
             {GM_PROGRAMS.slice(0, 8).map((name, i) => (
