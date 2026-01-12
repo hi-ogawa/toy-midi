@@ -32,41 +32,26 @@ migrateFromSingleProject();
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();
 
-// === Orchestration functions ===
-// These bridge Zustand state and localStorage via project-manager
-
-function saveProject(): void {
-  const state = useProjectStore.getState();
-  if (!state.currentProjectId) {
-    console.warn("Cannot save project: no current project ID set.");
-    return;
-  }
-  try {
-    saveProjectData(state.currentProjectId, toSavedProject(state));
-  } catch (e) {
-    console.error("Failed to save project:", e);
-    toast.error("Failed to save project. Changes may be lost.");
-  }
-}
-
 export function App() {
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
-
   const initMutation = useMutation({
-    mutationFn: async (options: { projectId?: string }) => {
+    mutationFn: async (options: { projectId?: string }): Promise<string> => {
       await audioManager.init();
 
+      // Get or create project ID
+      const projectId = options.projectId ?? createProject();
+
+      // Load project data if existing project, otherwise use defaults (new project)
       if (options.projectId) {
-        // Load specific project by ID
-        const data = loadProjectData(options.projectId);
+        const data = loadProjectData(projectId);
         useProjectStore.setState({
-          currentProjectId: options.projectId,
+          currentProjectId: projectId, // TODO: remove this from Zustand
           ...fromSavedProject(data),
         });
       } else {
-        // Create new project
-        const newProjectId = createProject();
-        useProjectStore.setState({ currentProjectId: newProjectId });
+        // New project - just set the ID, keep default state
+        useProjectStore.setState({
+          currentProjectId: projectId, // TODO: remove this from Zustand
+        });
       }
 
       const project = useProjectStore.getState();
@@ -95,20 +80,29 @@ export function App() {
       });
 
       // Setup auto-save on state changes (debounced)
-      // TODO: escape hatch for e2e to persist faster?
+      // projectId is captured in closure - no need for Zustand
       let saveTimeout: number;
       useProjectStore.subscribe(() => {
         clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => {
-          saveProject();
+          try {
+            saveProjectData(
+              projectId,
+              toSavedProject(useProjectStore.getState()),
+            );
+          } catch (e) {
+            console.error("Failed to save project:", e);
+            toast.error("Failed to save project. Changes may be lost.");
+          }
         }, 500);
       });
+
+      return projectId;
     },
   });
 
   // Enter to continue saved project (startup screen only)
   useEffect(() => {
-    // Only enable Enter key if there's a saved project and we're on startup screen
     if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
       return;
 
@@ -127,6 +121,38 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [initMutation.isSuccess, initMutation.isPending, initMutation.mutate]);
 
+  if (initMutation.isPending) {
+    return (
+      <div className="h-screen flex flex-col bg-neutral-900">
+        <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
+          <div className="text-neutral-400 text-sm">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!initMutation.isSuccess) {
+    return (
+      <ProjectListView
+        onSelectProject={(projectId) => initMutation.mutate({ projectId })}
+        onNewProject={() => initMutation.mutate({})}
+      />
+    );
+  }
+
+  return <Editor projectId={initMutation.data} />;
+}
+
+// === Editor Component ===
+// Pure component that receives projectId as prop
+
+type EditorProps = {
+  projectId: string;
+};
+
+function Editor({ projectId }: EditorProps) {
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
   // Escape to close help overlay
   useEffect(() => {
     if (!isHelpOpen) return;
@@ -143,27 +169,6 @@ export function App() {
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [isHelpOpen]);
 
-  if (initMutation.isPending) {
-    return (
-      <div className="h-screen flex flex-col bg-neutral-900">
-        <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
-          <div className="text-neutral-400 text-sm">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!initMutation.isSuccess) {
-    return (
-      <ProjectListView
-        onSelectProject={(projectId: string) =>
-          initMutation.mutate({ projectId })
-        }
-        onNewProject={() => initMutation.mutate({})}
-      />
-    );
-  }
-
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
@@ -174,15 +179,12 @@ export function App() {
           window.open("/", "_blank");
         }}
         onRenameProject={() => {
-          const currentProjectId = useProjectStore.getState().currentProjectId;
-          if (!currentProjectId) return;
-
-          const metadata = getProjectMetadata(currentProjectId);
+          const metadata = getProjectMetadata(projectId);
           if (!metadata) return;
 
           const newName = prompt("Rename project:", metadata.name);
           if (newName?.trim() && newName.trim() !== metadata.name) {
-            updateProjectMetadata(currentProjectId, {
+            updateProjectMetadata(projectId, {
               name: newName.trim(),
             });
           }
@@ -193,6 +195,8 @@ export function App() {
     </div>
   );
 }
+
+// === Project List View ===
 
 type ProjectListViewProps = {
   onSelectProject: (projectId: string) => void;
