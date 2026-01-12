@@ -1,10 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
 import { Transport } from "./components/transport";
+import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
 import {
@@ -95,11 +96,15 @@ export function App() {
   });
 
   // Enter to continue saved project (startup screen only)
-  useEffect(() => {
-    if (!savedProjectExists || initMutation.isSuccess || initMutation.isPending)
-      return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      if (
+        !savedProjectExists ||
+        initMutation.isSuccess ||
+        initMutation.isPending
+      )
+        return;
       if (e.key === "Enter") {
         e.preventDefault();
         e.stopPropagation();
@@ -108,11 +113,9 @@ export function App() {
           initMutation.mutate({ projectId: lastProjectId });
         }
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [initMutation.isSuccess, initMutation.isPending, initMutation.mutate]);
+    },
+    true,
+  );
 
   if (initMutation.isPending) {
     return (
@@ -147,20 +150,18 @@ function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   // Escape to close help overlay
-  useEffect(() => {
-    if (!isHelpOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      if (!isHelpOpen) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [isHelpOpen]);
+    },
+    true,
+  );
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
