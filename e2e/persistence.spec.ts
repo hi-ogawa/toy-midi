@@ -32,8 +32,8 @@ test.describe("Project Persistence", () => {
     const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
 
-    // Wait for auto-save (debounced at 500ms)
-    await page.waitForTimeout(600);
+    // Wait for auto-save
+    await page.waitForTimeout(100);
 
     // Reload the page and click Continue to restore
     await page.reload();
@@ -93,7 +93,7 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -117,7 +117,7 @@ test.describe("Project Persistence", () => {
     await page.waitForTimeout(500);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -153,7 +153,7 @@ test.describe("Project Persistence", () => {
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -200,7 +200,7 @@ test.describe("Project Persistence", () => {
     if (!movedBox) throw new Error("Note not found after move");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -253,7 +253,7 @@ test.describe("Project Persistence", () => {
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -280,7 +280,7 @@ test.describe("Project Persistence", () => {
     await expect(note).toHaveAttribute("data-selected", "true");
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -318,7 +318,7 @@ test.describe("Project Persistence", () => {
     expect(changedScrollX).toBe(25);
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Reload and click Continue to restore
     await page.reload();

@@ -35,7 +35,7 @@ test.describe("Multiple Projects", () => {
     });
 
     // Wait for auto-save
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(100);
 
     // Get first project ID
     const project1Id = await getLastProjectId(page);
