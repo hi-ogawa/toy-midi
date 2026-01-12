@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GridSnap, Note, TimeSignature } from "../types";
+import type { GridSnap, Locator, Note, TimeSignature } from "../types";
 import { historyStore } from "./history-store";
 
 export interface ProjectState {
@@ -14,6 +14,10 @@ export interface ProjectState {
   // Midi editor state
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
+
+  // Locators (section markers)
+  locators: Locator[];
+  selectedLocatorId: string | null;
 
   // Audio track
   audioFileName: string | null;
@@ -61,6 +65,12 @@ export interface ProjectState {
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
 
+  // Locator actions
+  addLocator: (locator: Locator) => void;
+  updateLocator: (id: string, updates: Partial<Omit<Locator, "id">>) => void;
+  deleteLocator: (id: string) => void;
+  selectLocator: (id: string | null) => void;
+
   // Undo/Redo actions
   undo: () => void;
   redo: () => void;
@@ -98,6 +108,11 @@ export function generateNoteId(): string {
   return `note-${++noteIdCounter}`;
 }
 
+let locatorIdCounter = 0;
+export function generateLocatorId(): string {
+  return `locator-${++locatorIdCounter}`;
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
@@ -105,6 +120,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
+
+  // Locator state
+  locators: [],
+  selectedLocatorId: null,
 
   // Audio state
   audioFileName: null,
@@ -251,6 +270,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setTempo: (bpm) => set({ tempo: bpm }),
 
   setTimeSignature: (timeSignature) => set({ timeSignature }),
+
+  // Locator actions
+  addLocator: (locator) =>
+    set((state) => ({
+      locators: [...state.locators, locator],
+    })),
+
+  updateLocator: (id, updates) =>
+    set((state) => ({
+      locators: state.locators.map((l) =>
+        l.id === id ? { ...l, ...updates } : l,
+      ),
+    })),
+
+  deleteLocator: (id) =>
+    set((state) => ({
+      locators: state.locators.filter((l) => l.id !== id),
+      selectedLocatorId:
+        state.selectedLocatorId === id ? null : state.selectedLocatorId,
+    })),
+
+  selectLocator: (id) => set({ selectedLocatorId: id }),
 
   // Audio actions
   setAudioFile: (fileName, duration, assetKey) =>

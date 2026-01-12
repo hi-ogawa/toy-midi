@@ -20,6 +20,7 @@ import {
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
+  generateLocatorId,
   generateNoteId,
   secondsToBeats,
   useProjectStore,
@@ -240,6 +241,13 @@ export function PianoRoll() {
     redo,
     canUndo,
     canRedo,
+    // Locator state and actions
+    locators,
+    selectedLocatorId,
+    addLocator,
+    updateLocator,
+    deleteLocator,
+    selectLocator,
     // Viewport state from store
     scrollX,
     scrollY,
@@ -352,9 +360,12 @@ export function PianoRoll() {
     if (e.key === "Delete" || e.key === "Backspace") {
       if (selectedNoteIds.size > 0) {
         deleteNotes(Array.from(selectedNoteIds));
+      } else if (selectedLocatorId) {
+        deleteLocator(selectedLocatorId);
       }
     } else if (e.key === "Escape") {
       deselectAll();
+      selectLocator(null);
     } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
       e.preventDefault();
@@ -795,6 +806,31 @@ export function PianoRoll() {
     return inHorizontalRange && inVerticalRange;
   });
 
+  // Locator handlers
+  const handleAddLocator = (position: number) => {
+    const locatorNumber = locators.length + 1;
+    const newLocator = {
+      id: generateLocatorId(),
+      position,
+      label: `Section ${locatorNumber}`,
+    };
+    addLocator(newLocator);
+    selectLocator(newLocator.id);
+  };
+
+  const handleSelectLocator = (id: string) => {
+    selectLocator(id);
+    deselectAll(); // Deselect notes when selecting a locator
+  };
+
+  const handleUpdateLocator = (id: string, position: number) => {
+    updateLocator(id, { position });
+  };
+
+  const handleDeleteLocator = (id: string) => {
+    deleteLocator(id);
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Main content area - fixed layout, no native scroll */}
@@ -838,6 +874,12 @@ export function PianoRoll() {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
             }}
+            locators={locators}
+            selectedLocatorId={selectedLocatorId}
+            onAddLocator={handleAddLocator}
+            onSelectLocator={handleSelectLocator}
+            onUpdateLocator={handleUpdateLocator}
+            onDeleteLocator={handleDeleteLocator}
           />
           {/* Waveform / Audio region */}
           <WaveformArea
@@ -1186,6 +1228,12 @@ function Timeline({
   playheadBeat,
   beatsPerBar,
   onSeek,
+  locators,
+  selectedLocatorId,
+  onAddLocator,
+  onSelectLocator,
+  onUpdateLocator,
+  onDeleteLocator,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
@@ -1193,6 +1241,12 @@ function Timeline({
   playheadBeat: number;
   beatsPerBar: number;
   onSeek: (beat: number) => void;
+  locators: Array<{ id: string; position: number; label: string }>;
+  selectedLocatorId: string | null;
+  onAddLocator: (position: number) => void;
+  onSelectLocator: (id: string) => void;
+  onUpdateLocator: (id: string, position: number) => void;
+  onDeleteLocator: (id: string) => void;
 }) {
   const markers = [];
 
@@ -1241,9 +1295,22 @@ function Timeline({
     onSeek(Math.max(0, beat));
   };
 
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const beat = x / pixelsPerBeat + scrollX;
+    onAddLocator(Math.max(0, beat));
+  };
+
   // Playhead position on timeline
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  // Filter visible locators
+  const visibleLocators = locators.filter((locator) => {
+    const x = (locator.position - scrollX) * pixelsPerBeat;
+    return x >= -50 && x <= viewportWidth + 50; // Add margin for labels
+  });
 
   return (
     <div
@@ -1251,8 +1318,46 @@ function Timeline({
       className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
       {markers}
+      {/* Locators */}
+      {visibleLocators.map((locator) => {
+        const x = (locator.position - scrollX) * pixelsPerBeat;
+        const isSelected = locator.id === selectedLocatorId;
+        return (
+          <div
+            key={locator.id}
+            data-testid={`locator-${locator.id}`}
+            className="absolute group"
+            style={{ left: x, top: 0 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectLocator(locator.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {/* Triangle marker */}
+            <div
+              className={`w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-l-transparent border-r-transparent cursor-pointer ${
+                isSelected ? "border-t-amber-400" : "border-t-sky-400"
+              } group-hover:border-t-amber-300`}
+            />
+            {/* Label */}
+            <div
+              className={`absolute top-10 left-1/2 -translate-x-1/2 text-[10px] whitespace-nowrap px-1 rounded ${
+                isSelected
+                  ? "bg-amber-400 text-neutral-900"
+                  : "bg-neutral-700 text-neutral-300"
+              } group-hover:bg-amber-300 group-hover:text-neutral-900 pointer-events-none`}
+            >
+              {locator.label}
+            </div>
+          </div>
+        );
+      })}
       {/* Playhead indicator */}
       {showPlayhead && (
         <div

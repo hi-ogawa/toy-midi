@@ -7,6 +7,7 @@ Users transcribing music need to mark different sections of their song (verse, c
 ## Requirements
 
 From PRD user workflow:
+
 - Mark song sections with locators
 - Locators should be visible on the timeline
 - Locators should help with navigation
@@ -14,6 +15,7 @@ From PRD user workflow:
 ## Reference Implementation
 
 Based on common DAW patterns:
+
 - Locators appear on the timeline as markers
 - Each locator has a position (in beats) and a label (text)
 - Users can click on the timeline to add a locator
@@ -25,6 +27,7 @@ Based on common DAW patterns:
 ## Data Model
 
 Add to `types.ts`:
+
 ```typescript
 export interface Locator {
   id: string;
@@ -36,6 +39,7 @@ export interface Locator {
 ## State Management
 
 Add to `project-store.ts`:
+
 ```typescript
 // In ProjectState interface:
 locators: Locator[];
@@ -49,6 +53,7 @@ deleteLocator: (id: string) => void;
 ## UI Implementation
 
 ### Visual Design
+
 - Render locators in the Timeline component (or as an overlay)
 - Display as vertical markers with labels
 - Visual style: small flag icon or triangle marker at top, optional label below
@@ -56,6 +61,7 @@ deleteLocator: (id: string) => void;
 - Colors: use theme colors (sky-400 for markers, similar to playhead)
 
 ### Interactions
+
 1. **Add**: Right-click on timeline → context menu → "Add Locator"
 2. **Select**: Click on locator marker
 3. **Move**: Drag locator marker horizontally
@@ -64,6 +70,7 @@ deleteLocator: (id: string) => void;
 6. **Seek**: Click locator (optional, or Shift+click)
 
 ### Component Structure
+
 ```
 Timeline
 ├── (existing bar markers and playhead)
@@ -110,6 +117,7 @@ Timeline
 ## Testing Strategy
 
 E2E tests:
+
 - Add locator by double-clicking timeline
 - Verify locator appears at correct position
 - Select and delete locator
