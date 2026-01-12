@@ -1,4 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
 import {
   CircleHelpIcon,
   DownloadIcon,
@@ -11,10 +10,9 @@ import {
   Volume2Icon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
-import { ToneAudioBuffer } from "tone";
+import { useAudioLoader } from "../hooks/use-audio-loader";
 import { useTransport } from "../hooks/use-transport";
-import { saveAsset } from "../lib/asset-store";
-import { audioManager, getAudioBufferPeaks } from "../lib/audio";
+import { audioManager } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
@@ -69,7 +67,6 @@ export function Transport({
     autoScrollEnabled,
     gridSnap,
     showDebug,
-    setAudioFile,
     setTempo,
     setTimeSignature,
     setAudioVolume,
@@ -77,8 +74,6 @@ export function Transport({
     setAutoScrollEnabled,
     setGridSnap,
     setShowDebug,
-    setAudioPeaks,
-    setAudioOffset,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -87,27 +82,7 @@ export function Transport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
-  const loadAudioMutation = useMutation({
-    mutationFn: async (file: File) => {
-      // TODO: refactor with initial project restore in app.tsx
-      const url = URL.createObjectURL(file);
-      const buffer = await ToneAudioBuffer.fromUrl(url);
-      URL.revokeObjectURL(url);
-
-      // Save audio to IndexedDB for persistence
-      const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
-
-      audioManager.player.buffer = buffer;
-      audioManager.player.sync().start(0);
-      setAudioOffset(0);
-
-      // Extract peaks for waveform display
-      const peaksPerSecond = 100;
-      const peaks = getAudioBufferPeaks(buffer, peaksPerSecond);
-      setAudioPeaks(peaks, peaksPerSecond);
-    },
-  });
+  const loadAudioMutation = useAudioLoader();
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();

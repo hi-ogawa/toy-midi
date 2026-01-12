@@ -1,3 +1,4 @@
+import { UploadIcon } from "lucide-react";
 import {
   Fragment,
   useCallback,
@@ -6,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useAudioLoader } from "../hooks/use-audio-loader";
 import { useTransport } from "../hooks/use-transport";
 import { audioManager } from "../lib/audio";
 import {
@@ -254,6 +256,9 @@ export function PianoRoll() {
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
+
+  // Audio loading
+  const loadAudioMutation = useAudioLoader();
 
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -857,6 +862,8 @@ export function PianoRoll() {
             beatsPerBar={beatsPerBar}
             onOffsetChange={setAudioOffset}
             onHeightChange={setWaveformHeight}
+            onLoadAudio={loadAudioMutation.mutate}
+            isLoadingAudio={loadAudioMutation.isPending}
           />
           {/* Note grid with CSS background */}
           <div
@@ -1332,6 +1339,8 @@ function WaveformArea({
   beatsPerBar,
   onOffsetChange,
   onHeightChange,
+  onLoadAudio,
+  isLoadingAudio,
 }: {
   pixelsPerBeat: number;
   gridSnap: GridSnap;
@@ -1347,8 +1356,11 @@ function WaveformArea({
   beatsPerBar: number;
   onOffsetChange: (offset: number) => void;
   onHeightChange: (height: number) => void;
+  onLoadAudio: (file: File) => void;
+  isLoadingAudio: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const dragStartRef = useRef<{ x: number; startOffset: number } | null>(null);
@@ -1457,12 +1469,32 @@ function WaveformArea({
     };
   }, [isResizing, onHeightChange]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onLoadAudio(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div
       ref={containerRef}
       className="relative shrink-0 border-b border-neutral-700 overflow-hidden"
       style={{ height, ...gridBackgroundStyle }}
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
@@ -1500,11 +1532,23 @@ function WaveformArea({
           style={{ left: playheadX }}
         />
       )}
-      {/* No audio loaded message */}
+      {/* Upload prompt when no audio loaded */}
       {audioDuration === 0 && (
-        <div className="flex items-center justify-center h-full text-xs text-neutral-500">
-          No audio loaded
-        </div>
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          disabled={isLoadingAudio}
+          className="flex items-center justify-center gap-1.5 h-full w-full text-xs text-neutral-500 hover:text-neutral-400 transition-colors cursor-pointer disabled:cursor-wait"
+        >
+          {isLoadingAudio ? (
+            "Loading..."
+          ) : (
+            <>
+              <UploadIcon className="size-3.5" />
+              Load audio
+            </>
+          )}
+        </button>
       )}
       {/* Resize handle */}
       <div
