@@ -384,4 +384,62 @@ test.describe("Undo/Redo", () => {
     expect(Math.abs(redone1.x - moved1.x)).toBeLessThan(2);
     expect(Math.abs(redone2.x - moved2.x)).toBeLessThan(2);
   });
+
+  test("drag through many steps creates single undo entry", async ({
+    page,
+  }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a note
+    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startY = gridBox.y + ROW_HEIGHT * 5.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    const note = page.locator("[data-testid^='note-']").first();
+    const initialBox = await note.boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const initialX = initialBox.x;
+
+    // Drag note through MANY intermediate steps (simulating a long drag)
+    const noteCenter = startX + BEAT_WIDTH * 0.5;
+    await page.mouse.move(noteCenter, startY);
+    await page.mouse.down();
+
+    // Move through 10 intermediate positions
+    for (let i = 1; i <= 10; i++) {
+      await page.mouse.move(noteCenter + BEAT_WIDTH * 0.3 * i, startY);
+    }
+    await page.mouse.up();
+
+    // Verify note moved to final position
+    const movedBox = await note.boundingBox();
+    if (!movedBox) throw new Error("Note not found after move");
+    expect(movedBox.x).toBeGreaterThan(initialX);
+
+    // Single undo should restore to original position (not just one step back)
+    await page.keyboard.press("Control+z");
+
+    const undoneBox = await note.boundingBox();
+    if (!undoneBox) throw new Error("Note not found after undo");
+    expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2);
+
+    // A second undo should undo the note creation (not another drag step)
+    await page.keyboard.press("Control+z");
+    await expect(note).toHaveCount(0);
+
+    // Redo should recreate note
+    await page.keyboard.press("Control+y");
+    await expect(note).toHaveCount(1);
+
+    // Second redo should move note back to final dragged position
+    await page.keyboard.press("Control+y");
+    const redoneMoved = await note.boundingBox();
+    if (!redoneMoved) throw new Error("Note not found after redo");
+    expect(Math.abs(redoneMoved.x - movedBox.x)).toBeLessThan(2);
+  });
 });
