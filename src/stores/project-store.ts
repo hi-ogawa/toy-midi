@@ -402,6 +402,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (state.clipboard.length === 0) return;
 
     // Find the earliest start time in clipboard to calculate offset
+    // Safety: clipboard.length > 0 guaranteed by early return above
     const minStart = Math.min(...state.clipboard.map((n) => n.start));
 
     // Find the latest end time of selected notes, or use 0 if nothing selected
