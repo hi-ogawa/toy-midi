@@ -181,3 +181,50 @@ The multiple project support feature has been successfully implemented with the 
    - No data loss during migration
 
 The feature is complete and ready for use. Users can now work on multiple transcription projects simultaneously, with each project maintaining its own notes, settings, and audio references.
+
+## Feedback
+
+- [x] allow rename/delete from project list
+- [x] show project list from main app view
+  - Added "Projects" menu item in Settings dropdown
+  - Opens modal with project list
+- [ ] refactor ProjectListModal / ProjectListView
+- [ ] highlight last project in the list?
+- [ ] avoid all being "Untitled" by default but how?
+- [ ] `migrateFromSingleProject` seems smelly
+  - we might need more future proof storage management
+
+## Feedback Implementation (2026-01-12)
+
+Added rename and delete functionality to the project management UI:
+
+1. **Rename Projects**:
+   - Hover over project card to reveal rename button (pencil icon)
+   - Click to enter edit mode with inline input
+   - Save with button click or cancel with Escape key
+   - Works on both startup screen and modal
+
+2. **Delete Projects**:
+   - Hover over project card to reveal delete button (trash icon)
+   - Confirmation dialog before deletion
+   - Updates project list immediately
+   - Works on both startup screen and modal
+
+3. **Project Modal**:
+   - Added "Projects" menu item in Transport settings dropdown
+   - Opens modal overlay showing all projects
+   - Same rename/delete UI as startup screen
+   - Clicking project reloads page with selected project
+
+4. **E2E Tests**:
+   - Added 4 new E2E tests covering:
+     - Rename project from startup screen
+     - Cancel rename operation
+     - Delete project from startup screen
+     - Rename/delete from modal in main app
+   - All 39 E2E tests passing
+
+5. **Component Refactoring**:
+   - Extracted `ProjectListView` component (startup screen)
+   - Created `ProjectListModal` component (in-app modal)
+   - Both share similar UI patterns but with different contexts

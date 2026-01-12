@@ -285,4 +285,144 @@ test.describe("Multiple Projects", () => {
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(115);
   });
+
+  test("can rename project from startup screen", async ({ page }) => {
+    // Create a project
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+
+    const projectId = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Reload to see project list
+    await page.reload();
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+
+    await expect(page.getByTestId(`project-card-${projectId}`)).toContainText(
+      "Untitled",
+    );
+
+    // Hover over card and click rename button
+    await page.getByTestId(`project-card-${projectId}`).hover();
+    await page.getByTestId(`rename-button-${projectId}`).click();
+
+    // Should show rename input
+    const renameInput = page.getByTestId(`rename-input-${projectId}`);
+    await expect(renameInput).toBeVisible();
+    await expect(renameInput).toHaveValue("Untitled");
+
+    // Change name
+    await renameInput.fill("My Song");
+    // Click the Save button instead of pressing Enter
+    await page.getByRole("button", { name: "Save" }).click();
+
+    // Wait a bit for the update to happen
+    await page.waitForTimeout(100);
+
+    // Should update the card
+    await expect(page.getByText("My Song")).toBeVisible();
+  });
+
+  test("can cancel rename", async ({ page }) => {
+    // Create a project
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+
+    const projectId = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Reload to see project list
+    await page.reload();
+    const projectCard = page.getByTestId(`project-card-${projectId}`);
+
+    // Start rename
+    await projectCard.hover();
+    await page.getByTestId(`rename-button-${projectId}`).click();
+
+    const renameInput = page.getByTestId(`rename-input-${projectId}`);
+    await renameInput.fill("New Name");
+    await renameInput.press("Escape");
+
+    // Should still show original name
+    await expect(projectCard).toContainText("Untitled");
+  });
+
+  test("can delete project from startup screen", async ({ page }) => {
+    // Create two projects
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project1Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    await page.reload();
+    await clickNewProject(page);
+    await page.waitForTimeout(600);
+    const project2Id = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Reload to see project list
+    await page.reload();
+    await expect(page.getByTestId(`project-card-${project1Id}`)).toBeVisible();
+    await expect(page.getByTestId(`project-card-${project2Id}`)).toBeVisible();
+
+    // Delete first project
+    const project1Card = page.getByTestId(`project-card-${project1Id}`);
+    await project1Card.hover();
+
+    // Set up dialog handler before clicking delete
+    page.on("dialog", (dialog) => {
+      expect(dialog.message()).toContain("Delete this project?");
+      dialog.accept();
+    });
+
+    await page.getByTestId(`delete-button-${project1Id}`).click();
+
+    // First project should be gone
+    await expect(
+      page.getByTestId(`project-card-${project1Id}`),
+    ).not.toBeVisible();
+    await expect(page.getByTestId(`project-card-${project2Id}`)).toBeVisible();
+  });
+
+  test("can rename and delete from project modal in main app", async ({
+    page,
+  }) => {
+    // Create a project
+    await clickNewProject(page);
+    await evaluateStore(page, (store) => {
+      store.getState().setTempo(125);
+    });
+    await page.waitForTimeout(600);
+
+    const projectId = await evaluateStore(
+      page,
+      (store) => store.getState().currentProjectId,
+    );
+
+    // Open project modal from transport
+    await page.getByTestId("settings-button").click();
+    await page.getByTestId("projects-button").click();
+
+    // Should see project card in modal
+    const projectCard = page.getByTestId(`project-card-${projectId}`);
+    await expect(projectCard).toBeVisible();
+    await expect(projectCard).toContainText("Untitled");
+
+    // Rename from modal
+    await projectCard.hover();
+    await page.getByTestId(`rename-button-${projectId}`).click();
+    const renameInput = page.getByTestId(`rename-input-${projectId}`);
+    await renameInput.fill("From Modal");
+    await renameInput.press("Enter");
+
+    await expect(projectCard).toContainText("From Modal");
+  });
 });
