@@ -105,6 +105,9 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
+- [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
+- [ ] feat: remove audio track
+- [ ] feat: trim audio track length (start and end)
 - [ ] feat: soundfont player for midi synth
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
