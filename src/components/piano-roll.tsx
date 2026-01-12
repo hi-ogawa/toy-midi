@@ -1508,11 +1508,11 @@ function Timeline({
             />
             {/* Label */}
             <div
-              className={`absolute -top-2 left-[12px] text-[10px] whitespace-nowrap px-1 rounded ${
+              className={`absolute -top-2 left-[12px] text-[10px] whitespace-nowrap px-1 rounded cursor-pointer ${
                 isSelected
                   ? "bg-amber-400 text-neutral-900"
                   : "bg-neutral-600 text-neutral-100"
-              } group-hover:bg-amber-300 group-hover:text-neutral-900 pointer-events-none`}
+              } group-hover:bg-amber-300 group-hover:text-neutral-900`}
             >
               {locator.label}
             </div>
