@@ -89,15 +89,18 @@ See [architecture.md](architecture.md) for implementation details.
 
 ### TODO
 
+🟢 priority
+
 _Note editing_
 
+- [ ] 🟢 feat: select+shift+drag should duplicate notes and move
 - [ ] feat: undo/redo UI indicators (disabled state when stack empty, optional toast showing action name)
 - [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
-- [ ] feat: copy/paste notes
+- [ ] 🟢 feat: copy/paste notes https://github.com/hi-ogawa/toy-midi/pull/49
 - [x] feat: extend note (right edge) without select
 - [x] fix: extend note dragging grid snap
 - [ ] fix: draw mode and select mode?
-- [ ] fix: default pitch range shouldn't be for bass
+- [x] fix: default pitch range shouldn't be for bass
 - [ ] feat: toggle snap
 
 _Timeline/Viewport_
@@ -106,7 +109,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
-- [ ] fix: timeline click should also snap
+- [ ] 🟢 fix: timeline click should also snap https://github.com/hi-ogawa/toy-midi/pull/55
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [ ] feat: remove audio track
 - [ ] feat: trim audio track length (start and end)
@@ -135,7 +138,7 @@ _Project management_
   - works for different projects in different tabs, but no conflict detection
   - issues: same project in multiple tabs risks data loss (last write wins on debounced save)
   - needs: conflict detection/warning, storage event listener for cross-tab sync, locking or merge strategy
-- [ ] feat: locators to mark parts
+- [ ] 🟢 feat: locators to mark parts https://github.com/hi-ogawa/toy-midi/pull/47
 - [ ] feat: add demo project (good for quick dev test case too)
 
 _UI polish_
@@ -148,6 +151,7 @@ _Misc_
 
 - [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
 - [ ] feat: support fret position annotation metadata
+- [ ] 🟢 feat: full review quick reference and what's missing
 
 _Chores/Refactoring_
 
