@@ -96,8 +96,8 @@ test.describe("Locators", () => {
     // Press Escape
     await page.keyboard.press("Escape");
 
-    // Verify deselected (sky color)
-    await expect(triangleDiv).toHaveClass(/border-t-sky-400/);
+    // Verify deselected (neutral color)
+    await expect(triangleDiv).toHaveClass(/border-neutral-500/);
   });
 
   test("locators persist across zoom", async ({ page }) => {
@@ -149,5 +149,27 @@ test.describe("Locators", () => {
     // Verify locators persisted
     await expect(page.getByText("Section 1")).toBeVisible();
     await expect(page.getByText("Section 2")).toBeVisible();
+  });
+
+  test("rename locator via double-click", async ({ page }) => {
+    // Add a locator
+    await page.keyboard.press("l");
+    await expect(page.getByText("Section 1")).toBeVisible();
+
+    const locator = page.locator("[data-testid^='locator-']").first();
+
+    // Set up dialog handler before double-click
+    page.on("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("prompt");
+      expect(dialog.defaultValue()).toBe("Section 1");
+      await dialog.accept("Intro");
+    });
+
+    // Double-click to rename
+    await locator.dblclick();
+
+    // Verify label changed
+    await expect(page.getByText("Intro")).toBeVisible();
+    await expect(page.getByText("Section 1")).not.toBeVisible();
   });
 });
