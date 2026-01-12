@@ -130,7 +130,7 @@ export const MOUSE_ACTIONS: MouseAction[] = [
   },
   {
     action: "Drag audio waveform",
-    description: "Adjust audio offset (timeline position)",
+    description: "Adjust audio offset",
     category: "navigation",
   },
   {
