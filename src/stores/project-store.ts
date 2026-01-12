@@ -240,53 +240,6 @@ interface SavedProject {
   waveformHeight?: number;
 }
 
-export function saveProject(): void {
-  const state = useProjectStore.getState();
-
-  // Need a project ID to save
-  if (!state.currentProjectId) {
-    console.warn(
-      "Cannot save project: no current project ID set. Create a new project first.",
-    );
-    return;
-  }
-
-  const saved: SavedProject = {
-    version: STORAGE_VERSION,
-    notes: state.notes,
-    tempo: state.tempo,
-    timeSignature: state.timeSignature,
-    gridSnap: state.gridSnap,
-    audioFileName: state.audioFileName,
-    audioAssetKey: state.audioAssetKey,
-    audioDuration: state.audioDuration,
-    audioOffset: state.audioOffset,
-    audioVolume: state.audioVolume,
-    midiVolume: state.midiVolume,
-    metronomeEnabled: state.metronomeEnabled,
-    metronomeVolume: state.metronomeVolume,
-    autoScrollEnabled: state.autoScrollEnabled,
-    // Viewport state
-    scrollX: state.scrollX,
-    scrollY: state.scrollY,
-    pixelsPerBeat: state.pixelsPerBeat,
-    pixelsPerKey: state.pixelsPerKey,
-    waveformHeight: state.waveformHeight,
-  };
-  try {
-    const storageKey = getProjectKey(state.currentProjectId);
-    localStorage.setItem(storageKey, JSON.stringify(saved));
-
-    // Update project metadata (updatedAt)
-    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
-
-    // Update last project ID
-    setLastProjectId(state.currentProjectId);
-  } catch (e) {
-    console.warn("Failed to save project:", e);
-  }
-}
-
 // Default values for new/missing fields
 const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
@@ -309,6 +262,102 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   pixelsPerKey: 20,
   waveformHeight: 60,
 };
+
+// Pure serialization: ProjectState -> SavedProject
+export function toSavedProject(state: ProjectState): SavedProject {
+  return {
+    version: STORAGE_VERSION,
+    notes: state.notes,
+    tempo: state.tempo,
+    timeSignature: state.timeSignature,
+    gridSnap: state.gridSnap,
+    audioFileName: state.audioFileName,
+    audioAssetKey: state.audioAssetKey,
+    audioDuration: state.audioDuration,
+    audioOffset: state.audioOffset,
+    audioVolume: state.audioVolume,
+    midiVolume: state.midiVolume,
+    metronomeEnabled: state.metronomeEnabled,
+    metronomeVolume: state.metronomeVolume,
+    autoScrollEnabled: state.autoScrollEnabled,
+    scrollX: state.scrollX,
+    scrollY: state.scrollY,
+    pixelsPerBeat: state.pixelsPerBeat,
+    pixelsPerKey: state.pixelsPerKey,
+    waveformHeight: state.waveformHeight,
+  };
+}
+
+// Pure deserialization: SavedProject -> Partial<ProjectState>
+// Note: Does NOT include currentProjectId - that's set by the caller
+export function fromSavedProject(
+  data: Partial<SavedProject>,
+): Partial<ProjectState> {
+  // Version check: only reject if major breaking change
+  if (data.version && data.version > STORAGE_VERSION) {
+    console.warn("Project from newer version, some data may be lost");
+  }
+
+  // Merge with defaults (handles new fields gracefully)
+  const merged = { ...DEFAULTS, ...data };
+
+  // Update note ID counter to avoid collisions
+  const maxId = merged.notes.reduce((max, n) => {
+    const match = n.id.match(/^note-(\d+)$/);
+    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
+  }, 0);
+  noteIdCounter = maxId;
+
+  return {
+    notes: merged.notes,
+    tempo: merged.tempo,
+    timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
+    gridSnap: merged.gridSnap,
+    audioFileName: merged.audioFileName,
+    audioAssetKey: merged.audioAssetKey,
+    audioDuration: merged.audioDuration,
+    audioOffset: merged.audioOffset,
+    audioVolume: merged.audioVolume,
+    midiVolume: merged.midiVolume,
+    metronomeEnabled: merged.metronomeEnabled,
+    metronomeVolume: merged.metronomeVolume,
+    autoScrollEnabled: merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled,
+    scrollX: merged.scrollX ?? DEFAULTS.scrollX,
+    scrollY: merged.scrollY ?? DEFAULTS.scrollY,
+    pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat,
+    pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey,
+    waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight,
+    // Reset transient state
+    selectedNoteIds: new Set(),
+    audioPeaks: [],
+  };
+}
+
+export function saveProject(): void {
+  const state = useProjectStore.getState();
+
+  // Need a project ID to save
+  if (!state.currentProjectId) {
+    console.warn(
+      "Cannot save project: no current project ID set. Create a new project first.",
+    );
+    return;
+  }
+
+  const saved = toSavedProject(state);
+  try {
+    const storageKey = getProjectKey(state.currentProjectId);
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+
+    // Update project metadata (updatedAt)
+    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
+
+    // Update last project ID
+    setLastProjectId(state.currentProjectId);
+  } catch (e) {
+    console.warn("Failed to save project:", e);
+  }
+}
 
 // Expose store for E2E testing in dev mode
 export function exposeStoreForE2E(): void {
@@ -340,48 +389,11 @@ export function loadProject(projectId: string) {
     }
 
     const saved = JSON.parse(json) as Partial<SavedProject>;
-
-    // Version check: only reject if major breaking change
-    // For now, version 1 is compatible with missing fields
-    if (saved.version && saved.version > STORAGE_VERSION) {
-      console.warn("Project from newer version, some data may be lost");
-    }
-
-    // Merge with defaults (handles new fields gracefully)
-    const merged = { ...DEFAULTS, ...saved };
-
-    // Update note ID counter to avoid collisions
-    const maxId = merged.notes.reduce((max, n) => {
-      const match = n.id.match(/^note-(\d+)$/);
-      return match ? Math.max(max, parseInt(match[1], 10)) : max;
-    }, 0);
-    noteIdCounter = maxId;
+    const projectState = fromSavedProject(saved);
 
     useProjectStore.setState({
       currentProjectId: projectId,
-      notes: merged.notes,
-      tempo: merged.tempo,
-      timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature!,
-      gridSnap: merged.gridSnap,
-      audioFileName: merged.audioFileName,
-      audioAssetKey: merged.audioAssetKey,
-      audioDuration: merged.audioDuration,
-      audioOffset: merged.audioOffset,
-      audioVolume: merged.audioVolume,
-      midiVolume: merged.midiVolume,
-      metronomeEnabled: merged.metronomeEnabled,
-      metronomeVolume: merged.metronomeVolume,
-      autoScrollEnabled:
-        merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled!,
-      // Viewport state
-      scrollX: merged.scrollX ?? DEFAULTS.scrollX!,
-      scrollY: merged.scrollY ?? DEFAULTS.scrollY!,
-      pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat!,
-      pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey!,
-      waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight!,
-      // Reset transient state
-      selectedNoteIds: new Set(),
-      audioPeaks: [],
+      ...projectState,
     });
 
     // Update last project ID

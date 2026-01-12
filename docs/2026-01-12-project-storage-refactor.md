@@ -41,28 +41,31 @@ function loadProject(projectId: string) {
   const json = localStorage.getItem(getProjectKey(projectId));
   const saved = JSON.parse(json) as SavedProject;
   const state = fromSavedProject(saved);
-  useProjectStore.setState({ 
-    currentProjectId: projectId,  // set separately - not part of project data
-    ...state 
+  useProjectStore.setState({
+    currentProjectId: projectId, // set separately - not part of project data
+    ...state,
   });
-  setLastProjectId(projectId);  // metadata concern
+  setLastProjectId(projectId); // metadata concern
 }
 
 function saveProject() {
   const state = useProjectStore.getState();
   const saved = toSavedProject(state);
-  localStorage.setItem(getProjectKey(state.currentProjectId), JSON.stringify(saved));
+  localStorage.setItem(
+    getProjectKey(state.currentProjectId),
+    JSON.stringify(saved),
+  );
   updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
 }
 ```
 
 ### Key Insight: `currentProjectId` is not project data
 
-| Field | Where it belongs | Why |
-|-------|------------------|-----|
-| `currentProjectId` | Orchestration | It's "which project is loaded", not part of the project itself |
-| `notes`, `tempo`, etc. | SavedProject | Actual project data |
-| `selectedNoteIds`, `audioPeaks` | Transient state | Reset on load, not persisted |
+| Field                           | Where it belongs | Why                                                            |
+| ------------------------------- | ---------------- | -------------------------------------------------------------- |
+| `currentProjectId`              | Orchestration    | It's "which project is loaded", not part of the project itself |
+| `notes`, `tempo`, etc.          | SavedProject     | Actual project data                                            |
+| `selectedNoteIds`, `audioPeaks` | Transient state  | Reset on load, not persisted                                   |
 
 The project ID is the **storage key**, not stored **inside** the project data.
 
@@ -185,8 +188,8 @@ class ProjectManager {
   }
 
   // Low-level storage (private)
-  private readFromStorage(id: string): ProjectData | null
-  private writeToStorage(id: string, data: ProjectData): void
+  private readFromStorage(id: string): ProjectData | null;
+  private writeToStorage(id: string, data: ProjectData): void;
 }
 
 export const projectManager = new ProjectManager();
@@ -227,7 +230,7 @@ After this, the architecture becomes clearer and we can decide if further separa
 
 1. Add `SavedProject` interface (already exists, but review for correctness)
 2. Add `toSavedProject(state): SavedProject` - pure function
-3. Add `fromSavedProject(data): Partial<ProjectState>` - pure function  
+3. Add `fromSavedProject(data): Partial<ProjectState>` - pure function
 4. Update `saveProject()` to use `toSavedProject()`
 5. Update `loadProject()` to use `fromSavedProject()` and set `currentProjectId` separately
 6. Move `saveProject`/`loadProject` to `app.tsx` (or new `lib/project-init.ts`)
@@ -246,9 +249,9 @@ After this, the architecture becomes clearer and we can decide if further separa
 
 - [x] Problem identified
 - [x] Options documented
-- [ ] Discuss approach
-- [ ] Implementation
-- [ ] Testing
+- [x] Discuss approach
+- [x] Add toSavedProject/fromSavedProject pure functions
+- [ ] Move saveProject/loadProject to app.tsx (future)
 - [ ] Documentation update
 
 ## Related
