@@ -404,7 +404,10 @@ export function Transport({
         <SelectTrigger className="h-8 w-44 text-xs">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent position="popper" className="max-h-64">
+        <SelectContent
+          position="popper"
+          className="max-h-64 [&>[data-slot=select-scroll-up-button]]:hidden [&>[data-slot=select-scroll-down-button]]:hidden"
+        >
           <SelectGroup>
             <SelectLabel>Piano</SelectLabel>
             {GM_PROGRAMS.slice(0, 8).map((name, i) => (
