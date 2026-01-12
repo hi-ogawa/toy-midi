@@ -35,26 +35,6 @@ function useWindowEvent<K extends keyof WindowEventMap>(
 }
 ```
 
-### `useElementEvent`
-
-Returns a ref callback (React 19 supports cleanup functions in ref callbacks):
-
-```tsx
-function useElementEvent<K extends keyof HTMLElementEventMap>(
-  type: K,
-  handler: (e: HTMLElementEventMap[K]) => void,
-  options?: boolean | AddEventListenerOptions,
-) {
-  const onEvent = useEffectEvent(handler);
-
-  return useCallback((el: HTMLElement | null) => {
-    if (!el) return;
-    el.addEventListener(type, onEvent, options);
-    return () => el.removeEventListener(type, onEvent, options);
-  }, []);
-}
-```
-
 ## Usage Examples
 
 ### Keyboard shortcuts
@@ -112,25 +92,6 @@ useWindowEvent("mouseup", (e) => {
 });
 ```
 
-### Element events (wheel with passive: false)
-
-```tsx
-const wheelRef = useElementEvent(
-  "wheel",
-  (e) => {
-    e.preventDefault();
-    handleZoom(e.deltaY);
-  },
-  { passive: false },
-);
-
-<div ref={wheelRef} />;
-
-// For multiple events on same element, use mergeRefs:
-const clickRef = useElementEvent("click", handleClick);
-<div ref={mergeRefs(wheelRef, clickRef)} />;
-```
-
 ### Window resize
 
 ```tsx
@@ -156,13 +117,11 @@ useEffect(() => {
 ## Implementation Steps
 
 1. Create `src/hooks/use-window-event.ts`
-2. Create `src/hooks/use-element-event.ts`
-3. Refactor `app.tsx` to use new hooks
-4. Refactor `transport.tsx` to use new hooks
-5. Refactor `piano-roll.tsx` to use new hooks
-6. Delete old hook files
-7. Run `pnpm tsc && pnpm lint`
-8. Run tests
+2. Refactor `app.tsx` to use new hooks
+3. Refactor `transport.tsx` to use new hooks
+4. Refactor `piano-roll.tsx` to use new hooks
+5. Run `pnpm tsc && pnpm lint`
+6. Run tests
 
 ## Status
 
@@ -172,5 +131,5 @@ useEffect(() => {
 
 ## Notes
 
-- `useElementEvent` was created but not used in the refactoring since the wheel handler in `piano-roll.tsx` shares `containerRef` with other code that needs bounding rect calculations. Kept the `useEffect` pattern for that case.
+- The wheel handler in `piano-roll.tsx` kept the `useEffect` pattern since it shares `containerRef` with other code that needs bounding rect calculations.
 - All other window event handlers converted to `useWindowEvent`.
