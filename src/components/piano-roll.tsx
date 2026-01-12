@@ -1200,6 +1200,9 @@ function Timeline({
   beatsPerBar: number;
   onSeek: (beat: number) => void;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; startBeat: number } | null>(null);
+
   const markers = [];
 
   // Use rounded beatWidth to match grid alignment (grid uses Math.round for clean patterns)
@@ -1240,12 +1243,64 @@ function Timeline({
     );
   }
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const beat = x / pixelsPerBeat + scrollX;
-    onSeek(Math.max(0, beat));
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, startBeat: playheadBeat };
   };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    let hasMoved = false;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragStartRef.current) return;
+      const deltaX = e.clientX - dragStartRef.current.x;
+
+      // Consider it a drag if mouse moved more than 3 pixels
+      if (Math.abs(deltaX) > 3) {
+        hasMoved = true;
+      }
+
+      if (hasMoved) {
+        const deltaBeats = deltaX / pixelsPerBeat;
+        const newBeat = Math.max(
+          0,
+          dragStartRef.current.startBeat + deltaBeats,
+        );
+        onSeek(newBeat);
+      }
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      if (!dragStartRef.current) {
+        setIsDragging(false);
+        return;
+      }
+
+      // If didn't move significantly, treat as a click
+      if (!hasMoved) {
+        const rect = (e.target as HTMLElement)
+          .closest('[data-testid="timeline"]')
+          ?.getBoundingClientRect();
+        if (rect) {
+          const x = e.clientX - rect.left;
+          const beat = x / pixelsPerBeat + scrollX;
+          onSeek(Math.max(0, beat));
+        }
+      }
+
+      setIsDragging(false);
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, pixelsPerBeat, scrollX, onSeek]);
 
   // Playhead position on timeline
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
@@ -1256,7 +1311,7 @@ function Timeline({
       data-testid="timeline"
       className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
-      onClick={handleClick}
+      onMouseDown={handleMouseDown}
     >
       {markers}
       {/* Playhead indicator */}

@@ -227,4 +227,65 @@ test.describe("Timeline Seek", () => {
     // Playhead should still be around beat 4+ (not reset to 0)
     expect(playheadBox.x).toBeGreaterThan(timelineBox.x + BEAT_WIDTH * 3);
   });
+
+  test("dragging timeline moves playhead", async ({ page }) => {
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    const playhead = page.getByTestId("timeline-playhead");
+    const initialPlayheadBox = await playhead.boundingBox();
+    if (!initialPlayheadBox) throw new Error("Playhead not found");
+    const initialX = initialPlayheadBox.x;
+
+    // Start drag from left edge of timeline (near beat 0)
+    const startX = timelineBox.x + 10;
+    const startY = timelineBox.y + timelineBox.height / 2;
+
+    // Drag to beat 4
+    const endX = timelineBox.x + BEAT_WIDTH * 4;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(endX, startY);
+    await page.mouse.up();
+
+    // Wait for React state update
+    await page.waitForTimeout(100);
+
+    // Playhead should have moved right
+    const movedPlayheadBox = await playhead.boundingBox();
+    if (!movedPlayheadBox) throw new Error("Playhead not found after drag");
+    expect(movedPlayheadBox.x).toBeGreaterThan(initialX + BEAT_WIDTH * 3);
+  });
+
+  test("dragging timeline works at exact zero position", async ({ page }) => {
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    const playhead = page.getByTestId("timeline-playhead");
+    const initialPlayheadBox = await playhead.boundingBox();
+    if (!initialPlayheadBox) throw new Error("Playhead not found");
+
+    // Start drag at exact position 0 (left edge of timeline)
+    const startX = timelineBox.x;
+    const startY = timelineBox.y + timelineBox.height / 2;
+
+    // Drag to beat 2
+    const endX = timelineBox.x + BEAT_WIDTH * 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(endX, startY);
+    await page.mouse.up();
+
+    // Wait for React state update
+    await page.waitForTimeout(100);
+
+    // Playhead should have moved right from position 0
+    const movedPlayheadBox = await playhead.boundingBox();
+    if (!movedPlayheadBox) throw new Error("Playhead not found after drag");
+    expect(movedPlayheadBox.x).toBeGreaterThan(
+      initialPlayheadBox.x + BEAT_WIDTH,
+    );
+  });
 });
