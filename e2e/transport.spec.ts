@@ -214,15 +214,15 @@ test.describe("Timeline Seek", () => {
     if (!timelineBox) throw new Error("Timeline not found");
 
     // Default grid snap is 1/8 note = 0.5 beats
-    // Click at beat 2.3 (should snap to beat 2.0)
-    const clickX = timelineBox.x + BEAT_WIDTH * 2.3;
+    // Click at beat 2.2 (should snap to beat 2.0 - rounds down)
+    const clickX = timelineBox.x + BEAT_WIDTH * 2.2;
     const clickY = timelineBox.y + timelineBox.height / 2;
     await page.mouse.click(clickX, clickY);
 
     // Wait for React state update
     await page.waitForTimeout(100);
 
-    // Playhead should be at exactly beat 2.0 (not 2.3)
+    // Playhead should be at exactly beat 2.0 (nearest grid line)
     const playhead = page.getByTestId("timeline-playhead");
     const playheadBox = await playhead.boundingBox();
     if (!playheadBox) throw new Error("Playhead not found");
@@ -232,8 +232,8 @@ test.describe("Timeline Seek", () => {
     // Allow 2px tolerance for rounding
     expect(Math.abs(playheadBox.x - expectedX)).toBeLessThan(2);
 
-    // Click at beat 2.7 (should snap to beat 2.5 with 1/8 note grid)
-    const clickX2 = timelineBox.x + BEAT_WIDTH * 2.7;
+    // Click at beat 2.3 (should snap to beat 2.5 - rounds up to nearest)
+    const clickX2 = timelineBox.x + BEAT_WIDTH * 2.3;
     await page.mouse.click(clickX2, clickY);
     await page.waitForTimeout(100);
 
