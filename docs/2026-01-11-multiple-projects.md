@@ -188,8 +188,8 @@ The feature is complete and ready for use. Users can now work on multiple transc
 - [x] show project list from main app view
   - Added "Projects" menu item in Settings dropdown
   - Opens modal with project list
-- [ ] avoid all being "Untitled" by default but how?
-- [ ] allow rename current project? (show current project name)
+- [x] avoid all being "Untitled" by default but how?
+- [x] allow rename current project? (show current project name)
 - [ ] `restore` in `options: { restore: boolean; projectId?: string })` seems redundant
 - [ ] `migrateFromSingleProject` seems smelly (or entire `project-list.ts`)
   - we might need more future proof storage management
