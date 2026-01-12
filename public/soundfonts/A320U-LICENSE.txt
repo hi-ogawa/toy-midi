@@ -1,0 +1,6 @@
+A320U.sf2 SoundFont
+
+Copyright 2005 by Milton Paredes
+Released under GNU GPL v2
+
+Source: https://github.com/denemo/denemo/blob/master/soundfonts/A320U.sf2

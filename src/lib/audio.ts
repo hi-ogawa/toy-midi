@@ -3,7 +3,7 @@ import type { Note } from "../types";
 import { SoundFontSynth } from "./soundfont-synth";
 import type { ProjectState } from "@/stores/project-store";
 
-const DEFAULT_SOUNDFONT_URL = "/soundfonts/sin.sf2";
+const DEFAULT_SOUNDFONT_URL = "/soundfonts/A320U.sf2";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -65,6 +65,10 @@ class AudioManager {
       [],
     );
     this.midiPart.start(0);
+
+    // Stop all notes when transport stops/pauses
+    Tone.getTransport().on("stop", () => this.midiSynth.allNotesOff());
+    Tone.getTransport().on("pause", () => this.midiSynth.allNotesOff());
 
     // Audio track
     this.player = new Tone.Player();
