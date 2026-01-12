@@ -276,8 +276,7 @@ src/app.tsx (Orchestration)
 src/lib/project-manager.ts (Pure storage - NO Zustand)
   ├── Project list              - createProject, listProjects, deleteProject
   ├── Project data              - saveProjectData, loadProjectData, hasSavedProject
-  ├── Metadata                  - getProjectMetadata, updateProjectMetadata
-  └── Migration                 - migrateFromSingleProject
+  └── Metadata                  - getProjectMetadata, updateProjectMetadata
 
 src/stores/project-store.ts (Pure Zustand state - NO localStorage, NO currentProjectId)
   ├── useProjectStore           - Zustand store (project data only)

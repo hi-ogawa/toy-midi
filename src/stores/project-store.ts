@@ -14,6 +14,7 @@ export interface ProjectState {
   // Midi editor state
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
+  clipboard: Note[]; // Copied notes (not persisted)
 
   // Locators (section markers)
   locators: Locator[];
@@ -77,6 +78,10 @@ export interface ProjectState {
   canUndo: () => boolean;
   canRedo: () => boolean;
 
+  // Copy/Paste actions
+  copyNotes: () => void;
+  pasteNotes: (insertBeat: number) => void;
+
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
@@ -117,6 +122,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
+  clipboard: [], // Clipboard for copied notes (not persisted to storage)
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -144,7 +150,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Viewport state (defaults match piano-roll.tsx)
   scrollX: 0,
-  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
   waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
@@ -340,6 +346,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set((state) => ({
           notes: state.notes.filter((n) => n.id !== entry.note.id),
         }));
+      } else if (entry.type === "add-notes") {
+        // Undo batch add: remove all the notes
+        const noteIds = entry.notes.map((n) => n.id);
+        set((state) => ({
+          notes: state.notes.filter((n) => !noteIds.includes(n.id)),
+        }));
       } else if (entry.type === "delete-notes") {
         // Undo delete: restore the notes
         set((state) => ({
@@ -378,6 +390,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set((state) => ({
           notes: [...state.notes, entry.note],
         }));
+      } else if (entry.type === "add-notes") {
+        // Redo batch add: re-add all the notes
+        set((state) => ({
+          notes: [...state.notes, ...entry.notes],
+        }));
       } else if (entry.type === "delete-notes") {
         // Redo delete: remove the notes again
         const ids = entry.notes.map((n) => n.id);
@@ -405,6 +422,49 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   canUndo: () => historyStore.canUndo(),
   canRedo: () => historyStore.canRedo(),
+
+  // Copy/Paste actions
+  copyNotes: () => {
+    const state = get();
+    // Copy selected notes to clipboard
+    const selectedNotes = state.notes.filter((n) =>
+      state.selectedNoteIds.has(n.id),
+    );
+    if (selectedNotes.length === 0) return;
+
+    // Create new object instances to avoid reference issues when pasting
+    set({
+      clipboard: selectedNotes.map((n) => ({ ...n })),
+    });
+  },
+
+  pasteNotes: (insertBeat: number) => {
+    const state = get();
+    if (state.clipboard.length === 0) return;
+
+    // Find the earliest start time in clipboard to calculate offset
+    const minStart = Math.min(...state.clipboard.map((n) => n.start));
+    const pasteOffset = insertBeat - minStart;
+
+    // Create new notes with new IDs and offset positions
+    const newNotes = state.clipboard.map((n) => ({
+      ...n,
+      id: generateNoteId(),
+      start: n.start + pasteOffset,
+    }));
+
+    // Track in history as a batch operation
+    historyStore.pushOperation({
+      type: "add-notes",
+      notes: newNotes,
+    });
+
+    // Add notes and select them
+    set((state) => ({
+      notes: [...state.notes, ...newNotes],
+      selectedNoteIds: new Set(newNotes.map((n) => n.id)),
+    }));
+  },
 }));
 
 // Helper: convert seconds to beats
@@ -465,7 +525,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   autoScrollEnabled: true,
   // Viewport state defaults
   scrollX: 0,
-  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80,
   pixelsPerKey: 20,
   waveformHeight: 60,

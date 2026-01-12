@@ -7,6 +7,10 @@ export type HistoryEntry =
       note: Note; // Store full note for redo
     }
   | {
+      type: "add-notes";
+      notes: Note[]; // Batch add for paste operation
+    }
+  | {
       type: "delete-notes";
       notes: Note[]; // Store deleted notes for undo
     }

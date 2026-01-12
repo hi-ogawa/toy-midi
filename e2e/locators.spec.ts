@@ -61,10 +61,7 @@ test.describe("Locators", () => {
 
     // Add a locator
     const locatorX = timelineBox.x + 320;
-    await page.mouse.dblclick(
-      locatorX,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    await page.mouse.dblclick(locatorX, timelineBox.y + timelineBox.height / 2);
 
     const locator = page.locator("[data-testid^='locator-']").first();
     await expect(locator).toBeVisible();

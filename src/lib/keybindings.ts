@@ -43,6 +43,16 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     category: "editing",
   },
   {
+    key: "Ctrl+C",
+    description: "Copy selected notes (Cmd+C on Mac)",
+    category: "editing",
+  },
+  {
+    key: "Ctrl+V",
+    description: "Paste notes (Cmd+V on Mac)",
+    category: "editing",
+  },
+  {
     key: "Ctrl+Z",
     description: "Undo",
     category: "editing",
@@ -84,6 +94,11 @@ export const MOUSE_ACTIONS: MouseAction[] = [
   {
     action: "Shift + Click on note",
     description: "Add note to selection",
+    category: "editing",
+  },
+  {
+    action: "Ctrl + Drag selected note",
+    description: "Duplicate and move selected notes",
     category: "editing",
   },
   {

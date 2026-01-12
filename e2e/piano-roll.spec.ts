@@ -17,7 +17,7 @@ test.describe("Piano Roll", () => {
 
     // Check keyboard C labels are visible (only C notes show labels now)
     await expect(page.getByText("C3")).toBeVisible();
-    await expect(page.getByText("C2")).toBeVisible();
+    await expect(page.getByText("C4")).toBeVisible();
   });
 
   test("create, select, and delete note", async ({ page }) => {
@@ -153,6 +153,88 @@ test.describe("Piano Roll", () => {
     if (!finalBox) throw new Error("Note not found after left resize");
     expect(finalBox.x).toBeGreaterThan(initialX);
     expect(finalBox.width).toBeLessThan(resizedBox.width);
+  });
+
+  // Test that resize snaps at the halfway point (uses Math.round, not Math.floor)
+  //
+  //   Grid (1/8 note = 0.5 beats = 40px)
+  //       beat 1      beat 1.5     beat 2      beat 2.5
+  //          |           |           |           |
+  //          +-----------+-----------+-----------+
+  //          |   40px    |   40px    |   40px    |
+  //
+  //   Initial: 1-beat note from beat 1 to beat 2
+  //          [===========note========]
+  //                                  ^ right edge at beat 2
+  // Cell-based resize snap: cursor's cell determines the note end position.
+  // The note end snaps to the right edge of the cursor's cell.
+  //
+  //   Grid: 0.5 beats per cell
+  //   Cell 3: beats 1.5-2.0, Cell 4: beats 2.0-2.5, Cell 5: beats 2.5-3.0
+  //
+  //   Test 1: Cursor in cell 4 (beat 2.1) -> end snaps to 2.5
+  //   Test 2: Cursor in cell 3 (beat 1.9) -> end snaps to 2.0 (shrinks back)
+  //   Test 3: Cursor in cell 5 (beat 2.6) -> end snaps to 3.0 (extends)
+  //
+  test("resize snaps based on cursor cell (cell-based behavior)", async ({
+    page,
+  }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a 1-beat note at beat 1 (ends at beat 2)
+    const noteStartBeat = 1;
+    const noteDurationBeats = 1;
+    const startX = gridBox.x + noteStartBeat * BEAT_WIDTH;
+    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + noteDurationBeats * BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    const note = page.locator("[data-testid^='note-']").first();
+    const initialBox = await note.boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const noteY = initialBox.y + initialBox.height / 2;
+
+    // Note ends at beat 2
+    const noteEndX = gridBox.x + 2 * BEAT_WIDTH;
+
+    // Test 1: Drag to beat 2.1 (cell 4: 2.0-2.5) -> end snaps to 2.5
+    await page.mouse.move(noteEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 2.1 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    let resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after resize");
+    // End at 2.5 means duration = 1.5 beats = 120px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH * 1.5, 1);
+
+    // Test 2: Drag to beat 1.9 (cell 3: 1.5-2.0) -> end snaps to 2.0 (shrinks)
+    const newEndX = gridBox.x + 2.5 * BEAT_WIDTH;
+    await page.mouse.move(newEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 1.9 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after resize");
+    // End at 2.0 means duration = 1.0 beat = 80px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH, 1);
+
+    // Test 3: Drag to beat 2.6 (cell 5: 2.5-3.0) -> end snaps to 3.0
+    const currentEndX = gridBox.x + 2 * BEAT_WIDTH;
+    await page.mouse.move(currentEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 2.6 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    const finalBox = await note.boundingBox();
+    if (!finalBox) throw new Error("Note not found after final resize");
+    // End at 3.0 means duration = 2.0 beats = 160px
+    expect(finalBox.width).toBeCloseTo(BEAT_WIDTH * 2, 1);
   });
 
   test("deselect with Escape", async ({ page }) => {
@@ -303,5 +385,119 @@ test.describe("Piano Roll", () => {
     );
 
     // The test passes if no errors occur - audio preview is played in the background
+  });
+
+  test("duplicate notes with Ctrl+drag", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a note at beat 1
+    const startX = gridBox.x + BEAT_WIDTH * 1.5;
+    const startY = gridBox.y + ROW_HEIGHT * 2.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    // Verify one note is created and selected
+    const notes = page.locator("[data-testid^='note-']");
+    await expect(notes).toHaveCount(1);
+    await expect(notes.first()).toHaveAttribute("data-selected", "true");
+
+    // Get initial position of the note
+    const initialBox = await notes.first().boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const initialX = initialBox.x;
+    const initialY = initialBox.y;
+
+    // Ctrl+drag the selected note to duplicate it
+    const noteCenter = initialBox.x + initialBox.width / 2;
+    const noteMiddleY = initialBox.y + initialBox.height / 2;
+
+    await page.keyboard.down("Control");
+    await page.mouse.move(noteCenter, noteMiddleY);
+    await page.mouse.down();
+    await page.mouse.move(noteCenter + BEAT_WIDTH * 2, noteMiddleY);
+    await page.mouse.up();
+    await page.keyboard.up("Control");
+
+    // Now there should be 2 notes (original + duplicate)
+    await expect(notes).toHaveCount(2);
+
+    // The original note should still be at the original position
+    const originalNote = notes.first();
+    const originalBox = await originalNote.boundingBox();
+    if (!originalBox) throw new Error("Original note not found");
+    expect(originalBox.x).toBeCloseTo(initialX, 1);
+    expect(originalBox.y).toBeCloseTo(initialY, 1);
+
+    // The duplicate should be moved to the right
+    const duplicateNote = notes.last();
+    const duplicateBox = await duplicateNote.boundingBox();
+    if (!duplicateBox) throw new Error("Duplicate note not found");
+    expect(duplicateBox.x).toBeGreaterThan(initialX);
+    expect(duplicateBox.y).toBeCloseTo(initialY, 1); // Same pitch
+
+    // The duplicate should be selected, original should not be
+    await expect(originalNote).toHaveAttribute("data-selected", "false");
+    await expect(duplicateNote).toHaveAttribute("data-selected", "true");
+  });
+
+  test("duplicate multiple selected notes with Ctrl+drag", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create first note
+    const note1X = gridBox.x + BEAT_WIDTH * 1.5;
+    const note1Y = gridBox.y + ROW_HEIGHT * 2.5;
+    await page.mouse.move(note1X, note1Y);
+    await page.mouse.down();
+    await page.mouse.move(note1X + BEAT_WIDTH, note1Y);
+    await page.mouse.up();
+
+    // Create second note at different position
+    await page.keyboard.press("Escape");
+    const note2X = gridBox.x + BEAT_WIDTH * 1.5;
+    const note2Y = gridBox.y + ROW_HEIGHT * 4.5;
+    await page.mouse.move(note2X, note2Y);
+    await page.mouse.down();
+    await page.mouse.move(note2X + BEAT_WIDTH, note2Y);
+    await page.mouse.up();
+
+    // Select both notes with box select
+    await page.keyboard.press("Escape");
+    await page.keyboard.down("Shift");
+    await page.mouse.move(note1X - BEAT_WIDTH * 0.5, note1Y - ROW_HEIGHT * 0.5);
+    await page.mouse.down();
+    await page.mouse.move(note2X + BEAT_WIDTH * 1.5, note2Y + ROW_HEIGHT * 0.5);
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+
+    // Verify both notes are selected
+    const notes = page.locator("[data-testid^='note-']");
+    await expect(notes).toHaveCount(2);
+    await expect(notes.nth(0)).toHaveAttribute("data-selected", "true");
+    await expect(notes.nth(1)).toHaveAttribute("data-selected", "true");
+
+    // Ctrl+drag one of the selected notes to duplicate both
+    await page.keyboard.down("Control");
+    await page.mouse.move(note1X + BEAT_WIDTH * 0.5, note1Y);
+    await page.mouse.down();
+    await page.mouse.move(note1X + BEAT_WIDTH * 3, note1Y);
+    await page.mouse.up();
+    await page.keyboard.up("Control");
+
+    // Now there should be 4 notes (2 originals + 2 duplicates)
+    await expect(notes).toHaveCount(4);
+
+    // The original notes should not be selected
+    await expect(notes.nth(0)).toHaveAttribute("data-selected", "false");
+    await expect(notes.nth(1)).toHaveAttribute("data-selected", "false");
+
+    // The duplicate notes should be selected
+    await expect(notes.nth(2)).toHaveAttribute("data-selected", "true");
+    await expect(notes.nth(3)).toHaveAttribute("data-selected", "true");
   });
 });

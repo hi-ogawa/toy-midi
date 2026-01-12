@@ -13,10 +13,8 @@ import {
   deleteProject,
   getLastProjectId,
   getProjectMetadata,
-  hasSavedProject,
   listProjects,
   loadProjectData,
-  migrateFromSingleProject,
   saveProjectData,
   setLastProjectId,
   updateProjectMetadata,
@@ -27,11 +25,8 @@ import {
   useProjectStore,
 } from "./stores/project-store";
 
-// Migrate old single-project storage if needed
-migrateFromSingleProject();
-
 // Check once at module load - doesn't change during session
-const savedProjectExists = hasSavedProject();
+const savedProjectExists = getLastProjectId() !== null;
 
 export function App() {
   const initMutation = useMutation({

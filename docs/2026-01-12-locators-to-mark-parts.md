@@ -128,6 +128,7 @@ E2E tests:
 **Complete** - Implementation finished, tested, and reviewed
 
 ### What's Done
+
 - ✅ Added Locator type to types.ts
 - ✅ Added locator state and actions to project-store.ts (with ID generator and full persistence)
 - ✅ Updated Timeline component to render locators with triangle markers
@@ -144,9 +145,11 @@ E2E tests:
 - ✅ All existing tests still pass (60/60)
 
 ### Remaining Work
+
 None - feature is complete for MVP
 
 ### Future Enhancements (Deferred)
+
 - Drag to reposition locators
 - Double-click to rename inline (currently uses auto-generated names)
 - Click locator to seek playhead to position

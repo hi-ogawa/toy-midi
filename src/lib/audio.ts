@@ -1,9 +1,10 @@
 import * as Tone from "tone";
 import type { Note } from "../types";
 import { OxiSynthSynth } from "./oxisynth-synth";
+import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
+import oxisynthWorkletUrl from "@/assets/oxisynth/worklet.js?url";
+import soundfontUrl from "@/assets/soundfonts/A320U.sf2?url";
 import type { ProjectState } from "@/stores/project-store";
-
-const DEFAULT_SOUNDFONT_URL = "/soundfonts/A320U.sf2";
 
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
@@ -190,13 +191,13 @@ class AudioManager {
     // OxiSynth (Rust/WASM) for SF2 playback
     this.midiSynth = new OxiSynthSynth(context);
     await this.midiSynth.init({
-      workletUrl: "/oxisynth/worklet.js",
-      wasmUrl: "/oxisynth/oxisynth.wasm",
+      workletUrl: oxisynthWorkletUrl,
+      wasmUrl: oxisynthWasmUrl,
     });
-    const sf2Response = await fetch(DEFAULT_SOUNDFONT_URL);
+    const sf2Response = await fetch(soundfontUrl);
     await this.midiSynth.addSoundFont(
       await sf2Response.arrayBuffer(),
-      DEFAULT_SOUNDFONT_URL,
+      soundfontUrl,
     );
 
     // Connect synth output to Channel for volume control
