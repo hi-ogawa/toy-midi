@@ -6,7 +6,7 @@
   function y() {}
   var z = String.fromCharCode,
     v = {}.toString,
-    A = v.call(r.SharedArrayBuffer),
+    A = r.SharedArrayBuffer ? v.call(r.SharedArrayBuffer) : "",
     B = v(),
     q = r.Uint8Array,
     t = q || Array,
@@ -181,13 +181,7 @@
     return q ? f.subarray(0, c) : f.slice(0, c);
   };
   E || ((r.TextDecoder = x), (r.TextEncoder = y));
-})(
-  "" + void 0 == typeof global
-    ? "" + void 0 == typeof self
-      ? this
-      : self
-    : global,
-);
+})(globalThis);
 
 // wasm-bindgen glue code
 let wasm;
