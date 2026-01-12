@@ -5,7 +5,6 @@ import {
   PauseIcon,
   PlayIcon,
   SettingsIcon,
-  TimerIcon,
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
@@ -231,14 +230,13 @@ export function Transport({ onHelpClick }: TransportProps) {
         title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
-          <PauseIcon data-testid="pause-icon" className="size-4" />
+          <PauseIcon data-testid="pause-icon" className="size-5" />
         ) : (
-          <PlayIcon data-testid="play-icon" className="size-4" />
+          <PlayIcon data-testid="play-icon" className="size-5" />
         )}
       </Button>
 
       {/* Metronome toggle */}
-      {/* TODO: better metronome icon */}
       <Button
         data-testid="metronome-toggle"
         onClick={() => setMetronomeEnabled(!metronomeEnabled)}
@@ -247,7 +245,21 @@ export function Transport({ onHelpClick }: TransportProps) {
         title="Toggle metronome"
         aria-pressed={metronomeEnabled}
       >
-        <TimerIcon className="size-4" />
+        {/* tabler:metronome */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="size-5"
+          viewBox="0 0 24 24"
+        >
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="m14.153 8.188l-.72-3.236a2.493 2.493 0 0 0-4.867 0L5.541 18.566A2 2 0 0 0 7.493 21h7.014a2 2 0 0 0 1.952-2.434l-.524-2.357M11 18l9-13m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0"
+          ></path>
+        </svg>
       </Button>
 
       {/* Divider */}
@@ -373,7 +385,7 @@ export function Transport({ onHelpClick }: TransportProps) {
             size="icon"
             title="Settings"
           >
-            <SettingsIcon className="size-4" />
+            <SettingsIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
@@ -451,7 +463,7 @@ export function Transport({ onHelpClick }: TransportProps) {
         size="icon"
         title="Show keyboard shortcuts (?)"
       >
-        <CircleHelpIcon className="size-4" />
+        <CircleHelpIcon className="size-5" />
       </Button>
     </div>
   );
