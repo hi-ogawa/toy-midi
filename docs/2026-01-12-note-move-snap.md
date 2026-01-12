@@ -374,5 +374,36 @@ The 0.25 beat improvement is uniform and doesn't require changing drag start log
 ## Status
 
 - [x] Analysis complete
-- [ ] Decision needed
-- [ ] Implementation
+- [x] Decision: Cell-based approach (Option 3)
+- [x] Implementation for note move (cellOffset)
+- [x] Implementation for note resize (2026-01-13)
+
+## Implementation Notes
+
+### Move (implemented)
+
+```typescript
+// On drag start:
+cellOffset = Math.floor((grabBeat - noteStart) / gridSnapValue);
+
+// On drag:
+cursorCell = Math.floor(cursor / gridSnapValue);
+noteStart = (cursorCell - cellOffset) * gridSnapValue;
+```
+
+### Resize (implemented 2026-01-13)
+
+Applied same cell-based principle to resize:
+
+```typescript
+// resizing-end:
+cursorCell = Math.floor(cursor / gridSnapValue);
+newEnd = (cursorCell + 1) * gridSnapValue;
+
+// resizing-start:
+cursorCell = Math.floor(cursor / gridSnapValue);
+newStart = cursorCell * gridSnapValue;
+```
+
+The cursor's cell determines the edge position. Crossing a grid boundary
+triggers the snap, regardless of where you grabbed within the edge threshold.

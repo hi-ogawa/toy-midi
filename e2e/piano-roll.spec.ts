@@ -166,24 +166,24 @@ test.describe("Piano Roll", () => {
   //   Initial: 1-beat note from beat 1 to beat 2
   //          [===========note========]
   //                                  ^ right edge at beat 2
+  // Cell-based resize snap: cursor's cell determines the note end position.
+  // The note end snaps to the right edge of the cursor's cell.
   //
-  //   Test 1: Drag right edge from beat 2 to beat 2.3 (24px)
-  //          [===========note========]------>
-  //                                  ^      ^ cursor at beat 2.3
-  //          round(2.3 / 0.5) = 5 -> snaps to beat 2.5 (extends!)
+  //   Grid: 0.5 beats per cell
+  //   Cell 3: beats 1.5-2.0, Cell 4: beats 2.0-2.5, Cell 5: beats 2.5-3.0
   //
-  //   Test 2: Drag right edge from beat 2.5 to beat 2.7 (16px)
-  //          round(2.7 / 0.5) = 5 -> stays at beat 2.5 (no change)
+  //   Test 1: Cursor in cell 4 (beat 2.1) -> end snaps to 2.5
+  //   Test 2: Cursor in cell 3 (beat 1.9) -> end snaps to 2.0 (shrinks back)
+  //   Test 3: Cursor in cell 5 (beat 2.6) -> end snaps to 3.0 (extends)
   //
-  test("resize snaps at halfway point (round behavior)", async ({ page }) => {
+  test("resize snaps based on cursor cell (cell-based behavior)", async ({
+    page,
+  }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
-    // Default grid snap is 1/8 note = 0.5 beats = 40px
-    const GRID_UNIT = BEAT_WIDTH * 0.5;
-
-    // Create a 1-beat note at beat 1 (use grid coordinates directly)
+    // Create a 1-beat note at beat 1 (ends at beat 2)
     const noteStartBeat = 1;
     const noteDurationBeats = 1;
     const startX = gridBox.x + noteStartBeat * BEAT_WIDTH;
@@ -196,37 +196,45 @@ test.describe("Piano Roll", () => {
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
     if (!initialBox) throw new Error("Note not found");
-
-    // Note should end at beat 2, calculate edge position from grid
-    let noteEndBeat = noteStartBeat + noteDurationBeats; // beat 2
-    let noteEndX = gridBox.x + noteEndBeat * BEAT_WIDTH;
     const noteY = initialBox.y + initialBox.height / 2;
 
-    // Test 1: Drag 0.6 grid units past edge - should snap to +1 grid unit
-    await page.mouse.move(noteEndX - 2, noteY); // Click near edge
+    // Note ends at beat 2
+    const noteEndX = gridBox.x + 2 * BEAT_WIDTH;
+
+    // Test 1: Drag to beat 2.1 (cell 4: 2.0-2.5) -> end snaps to 2.5
+    await page.mouse.move(noteEndX - 2, noteY);
     await page.mouse.down();
-    await page.mouse.move(noteEndX + GRID_UNIT * 0.6, noteY);
+    await page.mouse.move(gridBox.x + 2.1 * BEAT_WIDTH, noteY);
     await page.mouse.up();
 
     let resizedBox = await note.boundingBox();
     if (!resizedBox) throw new Error("Note not found after resize");
-    // 0.6 rounds up to 1, so width should increase by 1 grid unit
-    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH + GRID_UNIT, 1);
+    // End at 2.5 means duration = 1.5 beats = 120px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH * 1.5, 1);
 
-    // Update noteEndBeat for next test
-    noteEndBeat = noteStartBeat + (BEAT_WIDTH + GRID_UNIT) / BEAT_WIDTH; // beat 2.25
-    noteEndX = gridBox.x + noteEndBeat * BEAT_WIDTH;
-
-    // Test 2: Drag only 0.4 grid units - should NOT extend (rounds to 0)
-    await page.mouse.move(noteEndX - 2, noteY);
+    // Test 2: Drag to beat 1.9 (cell 3: 1.5-2.0) -> end snaps to 2.0 (shrinks)
+    const newEndX = gridBox.x + 2.5 * BEAT_WIDTH;
+    await page.mouse.move(newEndX - 2, noteY);
     await page.mouse.down();
-    await page.mouse.move(noteEndX + GRID_UNIT * 0.4, noteY);
+    await page.mouse.move(gridBox.x + 1.9 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after resize");
+    // End at 2.0 means duration = 1.0 beat = 80px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH, 1);
+
+    // Test 3: Drag to beat 2.6 (cell 5: 2.5-3.0) -> end snaps to 3.0
+    const currentEndX = gridBox.x + 2 * BEAT_WIDTH;
+    await page.mouse.move(currentEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 2.6 * BEAT_WIDTH, noteY);
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
     if (!finalBox) throw new Error("Note not found after final resize");
-    // 0.4 rounds down to 0, so width should stay the same
-    expect(finalBox.width).toBeCloseTo(resizedBox.width, 1);
+    // End at 3.0 means duration = 2.0 beats = 160px
+    expect(finalBox.width).toBeCloseTo(BEAT_WIDTH * 2, 1);
   });
 
   test("deselect with Escape", async ({ page }) => {

@@ -94,10 +94,11 @@ _Note editing_
 - [ ] feat: undo/redo UI indicators (disabled state when stack empty, optional toast showing action name)
 - [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
 - [ ] feat: copy/paste notes
-- [ ] feat: extend note (right edge) without select
+- [x] feat: extend note (right edge) without select
 - [x] fix: extend note dragging grid snap
 - [ ] fix: draw mode and select mode?
 - [ ] fix: default pitch range shouldn't be for bass
+- [ ] feat: toggle snap
 
 _Timeline/Viewport_
 
@@ -105,6 +106,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
+- [ ] fix: timeline click should also snap
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [ ] feat: remove audio track
 - [ ] feat: trim audio track length (start and end)
