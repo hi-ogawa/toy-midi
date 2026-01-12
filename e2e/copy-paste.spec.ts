@@ -18,10 +18,12 @@ async function seekTobeat(
   // Timeline x = beat * BEAT_WIDTH (since scrollX starts at 0)
   const clickX = timelineBox.x + beat * BEAT_WIDTH;
   const clickY = timelineBox.y + timelineBox.height / 2;
-  await page.mouse.click(clickX, clickY);
 
-  // Wait for transport state to sync after seek
-  await page.waitForTimeout(100);
+  // Double-click with jitter to ensure transport state syncs reliably
+  await page.mouse.click(clickX, clickY);
+  await page.waitForTimeout(50);
+  await page.mouse.click(clickX + 1, clickY); // +1px jitter
+  await page.waitForTimeout(50);
 }
 
 test.describe("Copy/Paste", () => {
