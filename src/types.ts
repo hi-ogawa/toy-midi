@@ -1,6 +1,6 @@
 export interface Note {
   id: string;
-  pitch: number; // MIDI note number (E1=28, G3=55)
+  pitch: number; // MIDI note number (0-127, e.g. C4=60)
   start: number; // Start time in beats
   duration: number; // Duration in beats
   velocity: number; // 0-127, default 100
