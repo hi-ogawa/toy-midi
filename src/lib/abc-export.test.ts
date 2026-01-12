@@ -16,12 +16,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    expect(abc).toContain("X:1");
-    expect(abc).toContain("T:Untitled");
-    expect(abc).toContain("M:4/4");
-    expect(abc).toContain("Q:1/4=120");
-    expect(abc).toContain("K:C");
-    expect(abc).toContain("c"); // Middle C in ABC notation
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c |"
+    `);
   });
 
   it("should handle different octaves correctly", () => {
@@ -51,10 +54,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // C3 should be uppercase C, C4 should be lowercase c, C5 should be c'
-    expect(abc).toContain("C"); // C3
-    expect(abc).toContain("c "); // C4 (with space)
-    expect(abc).toContain("c'"); // C5
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      C c c' |"
+    `);
   });
 
   it("should handle sharps/flats in note names", () => {
@@ -77,9 +85,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // Sharps in ABC are denoted with ^
-    expect(abc).toMatch(/\^c/); // C# (middle octave)
-    expect(abc).toMatch(/\^d/); // D# (middle octave)
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      ^c ^d |"
+    `);
   });
 
   it("should handle different note durations", () => {
@@ -109,9 +123,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    expect(abc).toContain("c2"); // Half note (2 beats)
-    expect(abc).toMatch(/d[\s|]/); // Quarter note (default, no number)
-    expect(abc).toContain("e/2"); // Eighth note (1/2 beat)
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c2 d e/2 |"
+    `);
   });
 
   it("should add rests for gaps between notes", () => {
@@ -134,14 +154,29 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    expect(abc).toContain("z"); // Rest symbol
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c z d |"
+    `);
   });
 
   it("should handle empty notes array", () => {
     const abc = exportABC({ notes: [], tempo: 120 });
 
-    expect(abc).toContain("X:1");
-    expect(abc).toContain("z"); // Should have at least one rest
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      z4 |"
+    `);
   });
 
   it("should set custom title", () => {
@@ -161,7 +196,15 @@ describe("ABC Export", () => {
       title: "My Custom Song",
     });
 
-    expect(abc).toContain("T:My Custom Song");
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:My Custom Song
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c |"
+    `);
   });
 
   it("should handle different time signatures", () => {
@@ -181,8 +224,15 @@ describe("ABC Export", () => {
       tempo: 120,
       timeSignature: { numerator: 3, denominator: 4 },
     });
-    expect(abc34).toContain("M:3/4");
-    expect(abc34).toContain("L:1/4");
+    expect(abc34).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:3/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c |"
+    `);
 
     // Test 6/8 time
     const abc68 = exportABC({
@@ -190,8 +240,15 @@ describe("ABC Export", () => {
       tempo: 120,
       timeSignature: { numerator: 6, denominator: 8 },
     });
-    expect(abc68).toContain("M:6/8");
-    expect(abc68).toContain("L:1/8");
+    expect(abc68).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:6/8
+      L:1/8
+      Q:1/8=120
+      K:C
+      c |"
+    `);
   });
 
   it("should handle different tempos", () => {
@@ -206,10 +263,26 @@ describe("ABC Export", () => {
     ];
 
     const abc60 = exportABC({ notes, tempo: 60 });
-    expect(abc60).toContain("Q:1/4=60");
+    expect(abc60).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=60
+      K:C
+      c |"
+    `);
 
     const abc180 = exportABC({ notes, tempo: 180 });
-    expect(abc180).toContain("Q:1/4=180");
+    expect(abc180).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=180
+      K:C
+      c |"
+    `);
   });
 
   it("should include bar lines at measure boundaries", () => {
@@ -232,11 +305,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // Should have bar lines
-    expect(abc).toContain("|");
-    // Count bar lines - should have at least 2 (one after each measure)
-    const barCount = (abc.match(/\|/g) || []).length;
-    expect(barCount).toBeGreaterThanOrEqual(2);
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c4 | d4 |"
+    `);
   });
 
   it("should sort notes by start time", () => {
@@ -259,11 +336,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // C should come before D in the output
-    const cIndex = abc.indexOf("c ");
-    const dIndex = abc.indexOf("d ");
-    expect(cIndex).toBeLessThan(dIndex);
-    expect(cIndex).toBeGreaterThan(0);
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c d |"
+    `);
   });
 
   it("should handle low octave notes", () => {
@@ -286,10 +367,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // C2 should be C, (uppercase with one comma)
-    expect(abc).toContain("C,");
-    // C1 should be C,, (uppercase with two commas)
-    expect(abc).toContain("C,,");
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      C, C,, |"
+    `);
   });
 
   it("should handle high octave notes", () => {
@@ -312,10 +398,15 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // C6 should be c'' (lowercase with two apostrophes)
-    expect(abc).toContain("c''");
-    // C7 should be c''' (lowercase with three apostrophes)
-    expect(abc).toContain("c'''");
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c'' c''' |"
+    `);
   });
 
   it("should handle dotted notes", () => {
@@ -338,9 +429,14 @@ describe("ABC Export", () => {
 
     const abc = exportABC({ notes, tempo: 120 });
 
-    // Dotted quarter should be 3/2
-    expect(abc).toContain("c3/2");
-    // Dotted eighth should be 3/4
-    expect(abc).toContain("d3/4");
+    expect(abc).toMatchInlineSnapshot(`
+      "X:1
+      T:Untitled
+      M:4/4
+      L:1/4
+      Q:1/4=120
+      K:C
+      c3/2 d3/4 |"
+    `);
   });
 });
