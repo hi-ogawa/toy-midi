@@ -29,7 +29,7 @@ import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 
 // Layout constants (exported for tests)
 export const KEYBOARD_WIDTH = 60;
-export const TIMELINE_HEIGHT = 32;
+export const TIMELINE_HEIGHT = 40;
 export const DEFAULT_WAVEFORM_HEIGHT = 60;
 export const MIN_WAVEFORM_HEIGHT = 40;
 export const MAX_WAVEFORM_HEIGHT = 200;
@@ -1440,8 +1440,8 @@ function Timeline({
         />
         {/* Bar number label */}
         <div
-          className="absolute text-xs text-neutral-400"
-          style={{ left: x + 6, top: 8 }}
+          className="absolute text-[10px] text-neutral-500"
+          style={{ left: x + 4, top: 2 }}
         >
           {barNumber}
         </div>
@@ -1475,7 +1475,13 @@ function Timeline({
       onClick={handleClick}
     >
       {markers}
-      {/* Locators */}
+      {/* Locators
+          Geometry: CSS triangle using border trick on a 0×0 element.
+          - border-l/r: half of triangle width (6px each = 12px wide)
+          - border-t: triangle height (10px)
+          - Container left: x - 5 to center the 12px triangle on position
+          - Container top: 28 so triangle (10px tall) ends at 38px near bottom
+      */}
       {visibleLocators.map((locator) => {
         const x = (locator.position - scrollX) * beatWidth;
         const isSelected = locator.id === selectedLocatorId;
@@ -1484,7 +1490,7 @@ function Timeline({
             key={locator.id}
             data-testid={`locator-${locator.id}`}
             className="absolute group"
-            style={{ left: x - 5, top: 0 }}
+            style={{ left: x - 5, top: 28 }}
             onClick={(e) => {
               e.stopPropagation();
               onSelectLocator(locator.id);
@@ -1494,18 +1500,18 @@ function Timeline({
               onRenameLocator(locator.id, locator.label);
             }}
           >
-            {/* Triangle marker */}
+            {/* Triangle: w=12px (6+6), h=10px */}
             <div
               className={`w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-l-transparent border-r-transparent cursor-pointer ${
-                isSelected ? "border-t-amber-400" : "border-t-sky-400"
+                isSelected ? "border-t-amber-400" : "border-neutral-500"
               } group-hover:border-t-amber-300`}
             />
             {/* Label */}
             <div
-              className={`absolute top-1 left-[12px] text-[10px] whitespace-nowrap px-1 rounded ${
+              className={`absolute -top-2 left-[12px] text-[10px] whitespace-nowrap px-1 rounded ${
                 isSelected
                   ? "bg-amber-400 text-neutral-900"
-                  : "bg-neutral-700 text-neutral-300"
+                  : "bg-neutral-600 text-neutral-100"
               } group-hover:bg-amber-300 group-hover:text-neutral-900 pointer-events-none`}
             >
               {locator.label}

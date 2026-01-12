@@ -148,9 +148,9 @@ E2E tests:
 | Rename locator       | ✅ Done | Double-click locator → window.prompt() |
 | Drag locator to move | ❌ TODO | Lower priority                         |
 
-- label change e2e
-- currently label is not clickable to select
-- currently locator label overlap with bar label. perhaps we could timeline region taller to avoid overlap?
+- [ ] label change e2e
+- [x] currently label is not clickable to select
+- [x] currently locator label overlap with bar label. perhaps we could timeline region taller to avoid overlap?
 
 ### Future Enhancements (Deferred)
 
