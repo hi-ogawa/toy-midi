@@ -24,20 +24,33 @@
 - Release time is loaded from SF2's `releaseVolEnv` generator parameter
 - On noteOff, envelope enters release phase with logarithmic attenuation
 
-**Possible causes:**
+**Investigation results:**
 
-1. A320U.sf2 has short release times across presets
-2. Wavelet's envelope implementation issue
-3. Something in our noteOff scheduling
+- Tested with both A320U.sf2 and FluidR3_GM.sf2 - same issue
+- noteOn/noteOff scheduling is correct (verified via console logs)
+- Switched to native AudioContext (like Signal) - didn't help
+- Signal works correctly with same soundfonts
+- Tested wavelet 0.7.4 (same as Signal) - didn't help
 
-**Potential solutions:**
+**Root cause found: Vite dev server**
 
-1. **Try different soundfont** - Test with GeneralUser GS or FluidR3 to isolate if it's A320U-specific
-2. **Sustain pedal (CC#64)** - Prevents release phase until pedal lifted
-3. **Debug envelope params** - Log actual releaseTime values being loaded from soundfont
-4. **Manual release extension** - Delay noteOff (affects timing accuracy)
+- Created minimal test at `/public/debug.html` - works correctly!
+- `pnpm build && pnpm preview` - works correctly!
+- Only `pnpm dev` (Vite dev server) has the issue
 
-**Status:** Needs further investigation.
+The abrupt note release only happens in Vite dev mode. Production build works fine.
+
+**Hypothesis:** Vite's dev server does something with the AudioWorklet processor.js
+that breaks the envelope timing - possibly HMR, module transformation, or
+timing-related dev tooling.
+
+**Next steps:**
+
+1. Investigate Vite's handling of AudioWorklet modules
+2. Check if there's a Vite config to exclude processor.js from transformation
+3. Consider serving processor.js from public/ in dev mode
+
+**Status:** Root cause identified - Vite dev mode issue. Need workaround.
 
 ## Implementation Plan
 
