@@ -8,6 +8,14 @@ export interface ABCExportOptions {
   title?: string;
 }
 
+// Number of bars to display per line in ABC notation
+const BARS_PER_LINE = 4;
+
+// Helper function to calculate greatest common divisor
+function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
 /**
  * Convert MIDI pitch to ABC notation
  * ABC uses: C,, D,, ... (two octaves below middle C)
@@ -41,7 +49,6 @@ function midiToABC(pitch: number): string {
 
   if (octave < 3) {
     // Below C3 (MIDI 48): use uppercase with commas
-    noteName = noteName.replace("^", "_"); // Flats for lowercase
     const commas = 3 - octave;
     return noteName + ",".repeat(commas);
   } else if (octave === 3) {
@@ -49,14 +56,11 @@ function midiToABC(pitch: number): string {
     return noteName;
   } else if (octave === 4) {
     // C4-B4 (MIDI 60-71): use lowercase (middle octave)
-    noteName = noteName.toLowerCase();
-    return noteName.replace("_", "^"); // Keep sharps as ^
+    return noteName.toLowerCase();
   } else {
     // C5+ (MIDI 72+): use lowercase with apostrophes
-    noteName = noteName.toLowerCase();
-    noteName = noteName.replace("_", "^");
     const apostrophes = octave - 4;
-    return noteName + "'".repeat(apostrophes);
+    return noteName.toLowerCase() + "'".repeat(apostrophes);
   }
 }
 
@@ -89,7 +93,6 @@ function durationToABC(beats: number): string {
     const fraction = beats;
     const numerator = Math.round(fraction * 4);
     const denominator = 4;
-    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
     const divisor = gcd(numerator, denominator);
     const simplifiedNum = numerator / divisor;
     const simplifiedDen = denominator / divisor;
@@ -107,7 +110,6 @@ function durationToABC(beats: number): string {
     const fraction = beats;
     const numerator = Math.round(fraction * 16);
     const denominator = 16;
-    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
     const divisor2 = gcd(numerator, denominator);
     const simplifiedNum = numerator / divisor2;
     const simplifiedDen = denominator / divisor2;
@@ -136,7 +138,9 @@ export function exportABC(options: ABCExportOptions): string {
   lines.push(`M:${timeSignature.numerator}/${timeSignature.denominator}`); // Meter (time signature)
   lines.push(`L:1/${timeSignature.denominator}`); // Default note length (quarter note for 4/4)
   lines.push(`Q:1/${timeSignature.denominator}=${tempo}`); // Tempo
-  lines.push("K:C"); // Key signature (C major for now, since MIDI doesn't encode key)
+  // Key signature: C major by default (all sharps/flats rendered as accidentals)
+  // This is a design choice since MIDI notes don't inherently indicate key
+  lines.push("K:C");
 
   // Sort notes by start time
   const sortedNotes = [...notes].sort((a, b) => a.start - b.start);
@@ -179,8 +183,8 @@ export function exportABC(options: ABCExportOptions): string {
       currentLine = currentLine.trim() + " |";
       currentBar = newBar;
 
-      // Start new line every 4 bars or at the end
-      if (currentBar % 4 === 0 || i === sortedNotes.length - 1) {
+      // Start new line every BARS_PER_LINE bars or at the end
+      if (currentBar % BARS_PER_LINE === 0 || i === sortedNotes.length - 1) {
         lines.push(currentLine);
         currentLine = "";
       } else {

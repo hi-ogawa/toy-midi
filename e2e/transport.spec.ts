@@ -224,7 +224,9 @@ test.describe("Transport Controls", () => {
     await copyButton.click();
 
     // Wait for success toast
-    await expect(page.getByText("ABC notation copied to clipboard")).toBeVisible();
+    await expect(
+      page.getByText("ABC notation copied to clipboard"),
+    ).toBeVisible();
 
     // Verify clipboard content
     const clipboardText = await page.evaluate(() =>
