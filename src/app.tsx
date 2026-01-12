@@ -18,6 +18,7 @@ import {
   loadProjectData,
   migrateFromSingleProject,
   saveProjectData,
+  setLastProjectId,
   updateProjectMetadata,
 } from "./lib/project-manager";
 import {
@@ -46,8 +47,9 @@ export function App() {
       if (options.projectId) {
         const data = loadProjectData(projectId);
         useProjectStore.setState(fromSavedProject(data));
+        setLastProjectId(projectId); // Mark as last opened project
       }
-      // New project: no need to set anything, use default store state
+      // New project: createProject() already sets lastProjectId
 
       const project = useProjectStore.getState();
       if (project.audioAssetKey) {
