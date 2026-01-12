@@ -131,7 +131,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Viewport state (defaults match piano-roll.tsx)
   scrollX: 0,
-  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
   waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
@@ -497,7 +497,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   autoScrollEnabled: true,
   // Viewport state defaults
   scrollX: 0,
-  scrollY: 72, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (55)
+  scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80,
   pixelsPerKey: 20,
   waveformHeight: 60,

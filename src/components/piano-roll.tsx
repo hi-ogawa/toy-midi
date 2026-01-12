@@ -191,7 +191,7 @@ type DragMode =
       noteId: string;
       startBeat: number;
       startPitch: number;
-      offsetBeat: number;
+      cellOffset: number; // which grid cell within the note was grabbed
       offsetPitch: number;
       // Original states of all notes being moved (for undo)
       originalStates: Array<{ id: string; start: number; pitch: number }>;
@@ -272,6 +272,10 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
+
+  // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
+  const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
+  const edgeThreshold = Math.max(6, Math.min(50, gridCellWidth * 0.2));
 
   // Update viewport size on resize (useLayoutEffect to measure before paint)
   useLayoutEffect(() => {
@@ -472,77 +476,84 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue);
+      const rect = gridRef.current!.getBoundingClientRect();
+      const clickScreenX = e.clientX - rect.left;
 
-      // Check if clicking on a note
+      // First, check if clicking near any note's edge (works outside note bounds too)
+      // This enables resize without selecting first
+      const notesAtPitch = notes.filter((n) => n.pitch === pitch);
+      for (const note of notesAtPitch) {
+        const noteScreenStart = gridToScreen(note.start, note.pitch);
+        const noteScreenEnd = gridToScreen(
+          note.start + note.duration,
+          note.pitch,
+        );
+
+        // Check right edge first (more common: extending notes)
+        const distToEnd = Math.abs(clickScreenX - noteScreenEnd.x);
+        if (distToEnd < edgeThreshold) {
+          historyStore.startDrag();
+          setDragMode({
+            type: "resizing-end",
+            noteId: note.id,
+            originalStart: note.start,
+            originalDuration: note.duration,
+          });
+          return;
+        }
+
+        // Check left edge
+        const distToStart = Math.abs(clickScreenX - noteScreenStart.x);
+        if (distToStart < edgeThreshold) {
+          historyStore.startDrag();
+          setDragMode({
+            type: "resizing-start",
+            noteId: note.id,
+            originalStart: note.start,
+            originalDuration: note.duration,
+          });
+          return;
+        }
+      }
+
+      // Check if clicking on a note (not on edge)
       const clickedNote = notes.find(
         (n) =>
           beat >= n.start && beat < n.start + n.duration && pitch === n.pitch,
       );
 
       if (clickedNote) {
-        // Check if clicking on edges for resize (in screen pixels)
-        const noteScreenStart = gridToScreen(
-          clickedNote.start,
-          clickedNote.pitch,
-        );
-        const noteScreenEnd = gridToScreen(
-          clickedNote.start + clickedNote.duration,
-          clickedNote.pitch,
-        );
-        const rect = gridRef.current!.getBoundingClientRect();
-        const clickScreenX = e.clientX - rect.left;
-        const edgeThreshold = 8;
-
-        if (clickScreenX - noteScreenStart.x < edgeThreshold) {
-          // Resize from start
-          historyStore.startDrag();
-          setDragMode({
-            type: "resizing-start",
-            noteId: clickedNote.id,
-            originalStart: clickedNote.start,
-            originalDuration: clickedNote.duration,
-          });
-        } else if (noteScreenEnd.x - clickScreenX < edgeThreshold) {
-          // Resize from end
-          historyStore.startDrag();
-          setDragMode({
-            type: "resizing-end",
-            noteId: clickedNote.id,
-            originalStart: clickedNote.start,
-            originalDuration: clickedNote.duration,
-          });
-        } else {
-          // Select and maybe drag
-          if (e.shiftKey) {
-            selectNotes([clickedNote.id], false);
-          } else if (!selectedNoteIds.has(clickedNote.id)) {
-            selectNotes([clickedNote.id], true);
-          }
-          // Preview note sound on drag start
-          audioManager.playNote(clickedNote.pitch);
-
-          // Capture original states of all selected notes for undo
-          // Note: if clicked note wasn't selected, it's now the only selected one
-          const notesToMove = selectedNoteIds.has(clickedNote.id)
-            ? notes.filter((n) => selectedNoteIds.has(n.id))
-            : [clickedNote];
-          const originalStates = notesToMove.map((n) => ({
-            id: n.id,
-            start: n.start,
-            pitch: n.pitch,
-          }));
-
-          historyStore.startDrag();
-          setDragMode({
-            type: "moving",
-            noteId: clickedNote.id,
-            startBeat: clickedNote.start,
-            startPitch: clickedNote.pitch,
-            offsetBeat: beat - clickedNote.start,
-            offsetPitch: 0,
-            originalStates,
-          });
+        // Select and maybe drag
+        if (e.shiftKey) {
+          selectNotes([clickedNote.id], false);
+        } else if (!selectedNoteIds.has(clickedNote.id)) {
+          selectNotes([clickedNote.id], true);
         }
+        // Preview note sound on drag start
+        audioManager.playNote(clickedNote.pitch);
+
+        // Capture original states of all selected notes for undo
+        // Note: if clicked note wasn't selected, it's now the only selected one
+        const notesToMove = selectedNoteIds.has(clickedNote.id)
+          ? notes.filter((n) => selectedNoteIds.has(n.id))
+          : [clickedNote];
+        const originalStates = notesToMove.map((n) => ({
+          id: n.id,
+          start: n.start,
+          pitch: n.pitch,
+        }));
+
+        historyStore.startDrag();
+        setDragMode({
+          type: "moving",
+          noteId: clickedNote.id,
+          startBeat: clickedNote.start,
+          startPitch: clickedNote.pitch,
+          // Cell offset: which grid cell within the note was grabbed
+          cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
+          offsetPitch: 0,
+          originalStates,
+        });
       } else {
         // Start creating a new note or box select
         if (e.shiftKey) {
@@ -572,6 +583,7 @@ export function PianoRoll() {
       notes,
       selectedNoteIds,
       gridSnapValue,
+      edgeThreshold,
       screenToGrid,
       gridToScreen,
       selectNotes,
@@ -593,11 +605,12 @@ export function PianoRoll() {
         );
         setDragMode({ ...dragMode, currentBeat: endBeat });
       } else if (dragMode.type === "moving") {
-        const snappedBeat = snapToGrid(
-          beat - dragMode.offsetBeat,
-          gridSnapValue,
+        // Cell-based snapping: note moves when cursor crosses grid lines
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = Math.max(
+          0,
+          (cursorCell - dragMode.cellOffset) * gridSnapValue,
         );
-        const newStart = Math.max(0, snappedBeat);
         const newPitch = clampPitch(pitch);
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other selected notes too
@@ -618,9 +631,10 @@ export function PianoRoll() {
         }
         setDragMode({ ...dragMode, startBeat: newStart, startPitch: newPitch });
       } else if (dragMode.type === "resizing-start") {
-        const snappedBeat = snapToGrid(beat, gridSnapValue);
+        // Cell-based snap: cursor's cell determines the new start position
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = cursorCell * gridSnapValue;
         const originalEnd = dragMode.originalStart + dragMode.originalDuration;
-        const newStart = Math.min(snappedBeat, originalEnd - gridSnapValue);
         const newDuration = originalEnd - newStart;
         if (newStart >= 0 && newDuration >= gridSnapValue) {
           updateNote(dragMode.noteId, {
@@ -629,10 +643,12 @@ export function PianoRoll() {
           });
         }
       } else if (dragMode.type === "resizing-end") {
-        const snappedBeat = snapToGrid(beat, gridSnapValue);
+        // Cell-based snap: cursor's cell determines the new end position
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newEnd = (cursorCell + 1) * gridSnapValue;
         const newDuration = Math.max(
           gridSnapValue,
-          snappedBeat - dragMode.originalStart,
+          newEnd - dragMode.originalStart,
         );
         updateNote(dragMode.noteId, { duration: newDuration });
       } else if (dragMode.type === "box-select") {
@@ -913,6 +929,7 @@ export function PianoRoll() {
                 pixelsPerKey={roundedPixelsPerKey}
                 scrollX={scrollX}
                 scrollY={scrollY}
+                edgeThreshold={edgeThreshold}
               />
             ))}
             {/* Preview note while creating */}
@@ -1282,6 +1299,7 @@ function NoteDiv({
   pixelsPerKey,
   scrollX,
   scrollY,
+  edgeThreshold,
 }: {
   note: Note;
   selected: boolean;
@@ -1289,11 +1307,15 @@ function NoteDiv({
   pixelsPerKey: number;
   scrollX: number;
   scrollY: number;
+  edgeThreshold: number;
 }) {
   // Convert note position to screen coordinates
   const x = (note.start - scrollX) * pixelsPerBeat;
   const y = (MAX_PITCH - scrollY - note.pitch) * pixelsPerKey;
   const width = note.duration * pixelsPerBeat;
+
+  // Handle extends edgeThreshold on each side of edge (matching detection zone)
+  const handleWidth = Math.round(edgeThreshold * 2);
 
   return (
     <div
@@ -1310,13 +1332,15 @@ function NoteDiv({
         boxSizing: "border-box",
       }}
     >
-      {/* Resize handles (visible on hover/selection) */}
-      {selected && (
-        <>
-          <div className="absolute left-0 top-0 w-[6px] h-full cursor-ew-resize" />
-          <div className="absolute right-0 top-0 w-[6px] h-full cursor-ew-resize" />
-        </>
-      )}
+      {/* Resize handles - always visible for edge grabbing */}
+      <div
+        className="absolute top-0 h-full cursor-ew-resize"
+        style={{ left: -edgeThreshold, width: handleWidth }}
+      />
+      <div
+        className="absolute top-0 h-full cursor-ew-resize"
+        style={{ right: -edgeThreshold, width: handleWidth }}
+      />
     </div>
   );
 }

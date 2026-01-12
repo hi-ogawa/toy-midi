@@ -17,7 +17,7 @@ test.describe("Piano Roll", () => {
 
     // Check keyboard C labels are visible (only C notes show labels now)
     await expect(page.getByText("C3")).toBeVisible();
-    await expect(page.getByText("C2")).toBeVisible();
+    await expect(page.getByText("C4")).toBeVisible();
   });
 
   test("create, select, and delete note", async ({ page }) => {
@@ -153,6 +153,88 @@ test.describe("Piano Roll", () => {
     if (!finalBox) throw new Error("Note not found after left resize");
     expect(finalBox.x).toBeGreaterThan(initialX);
     expect(finalBox.width).toBeLessThan(resizedBox.width);
+  });
+
+  // Test that resize snaps at the halfway point (uses Math.round, not Math.floor)
+  //
+  //   Grid (1/8 note = 0.5 beats = 40px)
+  //       beat 1      beat 1.5     beat 2      beat 2.5
+  //          |           |           |           |
+  //          +-----------+-----------+-----------+
+  //          |   40px    |   40px    |   40px    |
+  //
+  //   Initial: 1-beat note from beat 1 to beat 2
+  //          [===========note========]
+  //                                  ^ right edge at beat 2
+  // Cell-based resize snap: cursor's cell determines the note end position.
+  // The note end snaps to the right edge of the cursor's cell.
+  //
+  //   Grid: 0.5 beats per cell
+  //   Cell 3: beats 1.5-2.0, Cell 4: beats 2.0-2.5, Cell 5: beats 2.5-3.0
+  //
+  //   Test 1: Cursor in cell 4 (beat 2.1) -> end snaps to 2.5
+  //   Test 2: Cursor in cell 3 (beat 1.9) -> end snaps to 2.0 (shrinks back)
+  //   Test 3: Cursor in cell 5 (beat 2.6) -> end snaps to 3.0 (extends)
+  //
+  test("resize snaps based on cursor cell (cell-based behavior)", async ({
+    page,
+  }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a 1-beat note at beat 1 (ends at beat 2)
+    const noteStartBeat = 1;
+    const noteDurationBeats = 1;
+    const startX = gridBox.x + noteStartBeat * BEAT_WIDTH;
+    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + noteDurationBeats * BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    const note = page.locator("[data-testid^='note-']").first();
+    const initialBox = await note.boundingBox();
+    if (!initialBox) throw new Error("Note not found");
+    const noteY = initialBox.y + initialBox.height / 2;
+
+    // Note ends at beat 2
+    const noteEndX = gridBox.x + 2 * BEAT_WIDTH;
+
+    // Test 1: Drag to beat 2.1 (cell 4: 2.0-2.5) -> end snaps to 2.5
+    await page.mouse.move(noteEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 2.1 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    let resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after resize");
+    // End at 2.5 means duration = 1.5 beats = 120px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH * 1.5, 1);
+
+    // Test 2: Drag to beat 1.9 (cell 3: 1.5-2.0) -> end snaps to 2.0 (shrinks)
+    const newEndX = gridBox.x + 2.5 * BEAT_WIDTH;
+    await page.mouse.move(newEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 1.9 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    resizedBox = await note.boundingBox();
+    if (!resizedBox) throw new Error("Note not found after resize");
+    // End at 2.0 means duration = 1.0 beat = 80px
+    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH, 1);
+
+    // Test 3: Drag to beat 2.6 (cell 5: 2.5-3.0) -> end snaps to 3.0
+    const currentEndX = gridBox.x + 2 * BEAT_WIDTH;
+    await page.mouse.move(currentEndX - 2, noteY);
+    await page.mouse.down();
+    await page.mouse.move(gridBox.x + 2.6 * BEAT_WIDTH, noteY);
+    await page.mouse.up();
+
+    const finalBox = await note.boundingBox();
+    if (!finalBox) throw new Error("Note not found after final resize");
+    // End at 3.0 means duration = 2.0 beats = 160px
+    expect(finalBox.width).toBeCloseTo(BEAT_WIDTH * 2, 1);
   });
 
   test("deselect with Escape", async ({ page }) => {
