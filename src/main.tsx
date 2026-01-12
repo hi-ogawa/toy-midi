@@ -5,6 +5,8 @@ import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
 import { exposeStoreForE2E } from "./stores/project-store";
+import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
+import soundfontUrl from "@/assets/soundfonts/A320U.sf2?url";
 
 exposeStoreForE2E();
 
@@ -30,7 +32,7 @@ createRoot(document.getElementById("root")!).render(
 
 // Preload large assets after initial render
 requestIdleCallback(() => {
-  for (const href of ["/oxisynth/oxisynth.wasm", "/soundfonts/A320U.sf2"]) {
+  for (const href of [oxisynthWasmUrl, soundfontUrl]) {
     const link = document.createElement("link");
     link.rel = "preload";
     link.as = "fetch";
