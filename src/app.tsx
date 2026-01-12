@@ -267,7 +267,8 @@ function ProjectListView({
                   <div
                     key={project.id}
                     data-testid={`project-card-${project.id}`}
-                    className={`w-full px-4 py-3 rounded-lg transition-colors group ${
+                    aria-current={isLastProject ? "true" : undefined}
+                    className={`w-full px-4 py-3 rounded-lg transition-colors ${
                       isLastProject
                         ? "bg-emerald-900/30 hover:bg-emerald-900/40 border-2 border-emerald-700/50"
                         : "bg-neutral-700 hover:bg-neutral-600"
@@ -326,8 +327,7 @@ function ProjectListView({
                             )}
                           </div>
                         </button>
-                        {/* TODO: show always not just hover */}
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           <button
                             type="button"
                             data-testid={`rename-button-${project.id}`}

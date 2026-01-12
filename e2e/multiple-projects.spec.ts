@@ -441,14 +441,14 @@ test.describe("Multiple Projects", () => {
     await page.reload();
 
     // Project 2 should be highlighted (it's the last one we used)
-    await expect(page.getByTestId(`project-card-${project2Id}`)).toHaveClass(
-      /border-emerald-700/, // TODO: avoid asserting border-emerald-700
-    );
+    await expect(
+      page.getByTestId(`project-card-${project2Id}`),
+    ).toHaveAttribute("aria-current", "true");
 
     // Project 1 should not be highlighted
     await expect(
       page.getByTestId(`project-card-${project1Id}`),
-    ).not.toHaveClass(/border-emerald-700/);
+    ).not.toHaveAttribute("aria-current");
 
     // Now load project 1 and verify highlight switches
     await page.getByTestId(`project-card-${project1Id}`).click();
@@ -458,13 +458,13 @@ test.describe("Multiple Projects", () => {
     await page.reload();
 
     // Project 1 should now be highlighted (it's the last one we opened)
-    await expect(page.getByTestId(`project-card-${project1Id}`)).toHaveClass(
-      /border-emerald-700/,
-    );
+    await expect(
+      page.getByTestId(`project-card-${project1Id}`),
+    ).toHaveAttribute("aria-current", "true");
 
     // Project 2 should no longer be highlighted
     await expect(
       page.getByTestId(`project-card-${project2Id}`),
-    ).not.toHaveClass(/border-emerald-700/);
+    ).not.toHaveAttribute("aria-current");
   });
 });
