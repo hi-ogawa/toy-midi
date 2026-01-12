@@ -979,6 +979,7 @@ export function PianoRoll() {
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
             beatsPerBar={beatsPerBar}
+            gridSnapValue={gridSnapValue}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
@@ -1331,6 +1332,7 @@ function Timeline({
   viewportWidth,
   playheadBeat,
   beatsPerBar,
+  gridSnapValue,
   onSeek,
 }: {
   pixelsPerBeat: number;
@@ -1338,6 +1340,7 @@ function Timeline({
   viewportWidth: number;
   playheadBeat: number;
   beatsPerBar: number;
+  gridSnapValue: number;
   onSeek: (beat: number) => void;
 }) {
   const markers = [];
@@ -1384,7 +1387,8 @@ function Timeline({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const beat = x / pixelsPerBeat + scrollX;
-    onSeek(Math.max(0, beat));
+    const snappedBeat = snapToGrid(beat, gridSnapValue);
+    onSeek(Math.max(0, snappedBeat));
   };
 
   // Playhead position on timeline

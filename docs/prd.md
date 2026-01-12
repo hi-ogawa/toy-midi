@@ -96,7 +96,7 @@ _Note editing_
 - [ ] 🟢 feat: select+shift+drag should duplicate notes and move
 - [ ] feat: undo/redo UI indicators (disabled state when stack empty, optional toast showing action name)
 - [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
-- [ ] 🟢 feat: copy/paste notes https://github.com/hi-ogawa/toy-midi/pull/49
+- [x] 🟢 feat: copy/paste notes https://github.com/hi-ogawa/toy-midi/pull/49
 - [x] feat: extend note (right edge) without select
 - [x] fix: extend note dragging grid snap
 - [ ] fix: draw mode and select mode?
@@ -109,7 +109,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
-- [ ] 🟢 fix: timeline click should also snap https://github.com/hi-ogawa/toy-midi/pull/55
+- [x] 🟢 fix: timeline click should also snap https://github.com/hi-ogawa/toy-midi/pull/55
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [ ] feat: remove audio track
 - [ ] feat: trim audio track length (start and end)
