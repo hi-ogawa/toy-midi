@@ -14,6 +14,7 @@ export interface ProjectState {
   // Midi editor state
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
+  clipboard: Note[]; // Copied notes (not persisted)
 
   // Audio track
   audioFileName: string | null;
@@ -67,6 +68,10 @@ export interface ProjectState {
   canUndo: () => boolean;
   canRedo: () => boolean;
 
+  // Copy/Paste actions
+  copyNotes: () => void;
+  pasteNotes: () => void;
+
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
@@ -102,6 +107,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
+  clipboard: [], // Clipboard not persisted
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -299,6 +305,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set((state) => ({
           notes: state.notes.filter((n) => n.id !== entry.note.id),
         }));
+      } else if (entry.type === "add-notes") {
+        // Undo batch add: remove all the notes
+        const noteIds = entry.notes.map((n) => n.id);
+        set((state) => ({
+          notes: state.notes.filter((n) => !noteIds.includes(n.id)),
+        }));
       } else if (entry.type === "delete-notes") {
         // Undo delete: restore the notes
         set((state) => ({
@@ -337,6 +349,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set((state) => ({
           notes: [...state.notes, entry.note],
         }));
+      } else if (entry.type === "add-notes") {
+        // Redo batch add: re-add all the notes
+        set((state) => ({
+          notes: [...state.notes, ...entry.notes],
+        }));
       } else if (entry.type === "delete-notes") {
         // Redo delete: remove the notes again
         const ids = entry.notes.map((n) => n.id);
@@ -364,6 +381,60 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   canUndo: () => historyStore.canUndo(),
   canRedo: () => historyStore.canRedo(),
+
+  // Copy/Paste actions
+  copyNotes: () => {
+    const state = get();
+    // Copy selected notes to clipboard
+    const selectedNotes = state.notes.filter((n) =>
+      state.selectedNoteIds.has(n.id),
+    );
+    if (selectedNotes.length === 0) return;
+
+    // Store deep copies in clipboard (without IDs since we'll generate new ones on paste)
+    set({
+      clipboard: selectedNotes.map((n) => ({ ...n })),
+    });
+  },
+
+  pasteNotes: () => {
+    const state = get();
+    if (state.clipboard.length === 0) return;
+
+    // Find the earliest start time in clipboard to calculate offset
+    const minStart = Math.min(...state.clipboard.map((n) => n.start));
+
+    // Find the latest end time of selected notes, or use 0 if nothing selected
+    let pasteOffset = 0;
+    if (state.selectedNoteIds.size > 0) {
+      const selectedNotes = state.notes.filter((n) =>
+        state.selectedNoteIds.has(n.id),
+      );
+      const maxEnd = Math.max(
+        ...selectedNotes.map((n) => n.start + n.duration),
+      );
+      pasteOffset = maxEnd - minStart;
+    }
+
+    // Create new notes with new IDs and offset positions
+    const newNotes = state.clipboard.map((n) => ({
+      ...n,
+      id: generateNoteId(),
+      start: n.start + pasteOffset,
+    }));
+
+    // Track in history as a batch operation
+    historyStore.pushOperation({
+      type: "add-notes",
+      notes: newNotes,
+    });
+
+    // Add notes and select them
+    set((state) => ({
+      notes: [...state.notes, ...newNotes],
+      selectedNoteIds: new Set(newNotes.map((n) => n.id)),
+    }));
+  },
 }));
 
 // Helper: convert seconds to beats

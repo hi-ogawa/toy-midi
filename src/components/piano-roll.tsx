@@ -240,6 +240,8 @@ export function PianoRoll() {
     redo,
     canUndo,
     canRedo,
+    copyNotes,
+    pasteNotes,
     // Viewport state from store
     scrollX,
     scrollY,
@@ -355,6 +357,14 @@ export function PianoRoll() {
       }
     } else if (e.key === "Escape") {
       deselectAll();
+    } else if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
+      // Ctrl+C or Cmd+C: Copy
+      e.preventDefault();
+      copyNotes();
+    } else if (e.key === "v" && (e.ctrlKey || e.metaKey)) {
+      // Ctrl+V or Cmd+V: Paste
+      e.preventDefault();
+      pasteNotes();
     } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
       e.preventDefault();
