@@ -165,55 +165,6 @@ test.describe("Multiple Projects", () => {
     expect(tempo).toBe(130);
   });
 
-  test("migrates old single project to new multi-project system", async ({
-    page,
-  }) => {
-    // Simulate old storage structure
-    await page.evaluate(() => {
-      const oldProject = {
-        version: 1,
-        notes: [
-          { id: "old-note", pitch: 48, start: 0, duration: 1, velocity: 100 },
-        ],
-        tempo: 100,
-        gridSnap: "1/4",
-        audioFileName: null,
-        audioAssetKey: null,
-        audioDuration: 0,
-        audioOffset: 0,
-        audioVolume: 0.8,
-        midiVolume: 0.8,
-        metronomeEnabled: false,
-        metronomeVolume: 0.5,
-      };
-      localStorage.setItem("toy-midi-project", JSON.stringify(oldProject));
-    });
-
-    // Reload to trigger migration
-    await page.reload();
-
-    // Should see startup screen with migrated project
-    await expect(page.getByTestId("startup-screen")).toBeVisible();
-    await expect(page.getByTestId("continue-button")).toBeVisible();
-
-    // Continue should load the migrated project
-    await page.getByTestId("continue-button").click();
-    await expect(page.getByTestId("transport")).toBeVisible();
-
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].pitch).toBe(48);
-
-    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
-    expect(tempo).toBe(100);
-
-    // Old key should be removed
-    const oldKey = await page.evaluate(() =>
-      localStorage.getItem("toy-midi-project"),
-    );
-    expect(oldKey).toBeNull();
-  });
-
   test("project list shows most recently updated first", async ({ page }) => {
     // Create first project
     await clickNewProject(page);

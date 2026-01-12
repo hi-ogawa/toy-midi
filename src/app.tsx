@@ -15,7 +15,6 @@ import {
   hasSavedProject,
   listProjects,
   loadProjectData,
-  migrateFromSingleProject,
   saveProjectData,
   setLastProjectId,
   updateProjectMetadata,
@@ -25,9 +24,6 @@ import {
   toSavedProject,
   useProjectStore,
 } from "./stores/project-store";
-
-// Migrate old single-project storage if needed
-migrateFromSingleProject();
 
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();

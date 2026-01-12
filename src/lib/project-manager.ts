@@ -4,7 +4,6 @@ import type { SavedProject } from "../stores/project-store";
 
 const PROJECT_LIST_KEY = "toy-midi-project-list";
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
-const OLD_STORAGE_KEY = "toy-midi-project";
 
 export interface ProjectMetadata {
   id: string;
@@ -120,53 +119,8 @@ export function hasProjects(): boolean {
   return listProjects().length > 0;
 }
 
-// Migrate from old single-project storage to new multi-project storage
-export function migrateFromSingleProject(): boolean {
-  // Check if migration is needed
-  if (!localStorage.getItem(OLD_STORAGE_KEY)) {
-    return false; // Nothing to migrate
-  }
-
-  if (localStorage.getItem(PROJECT_LIST_KEY)) {
-    return false; // Already migrated
-  }
-
-  // Create new project entry
-  const projectId = generateProjectId();
-  const now = Date.now();
-
-  // Copy old project data to new key
-  const oldProject = localStorage.getItem(OLD_STORAGE_KEY);
-  if (oldProject) {
-    localStorage.setItem(getProjectKey(projectId), oldProject);
-  }
-
-  // Create project list with single entry
-  const projectList: ProjectMetadata[] = [
-    {
-      id: projectId,
-      name: "Untitled",
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
-  localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projectList));
-  setLastProjectId(projectId);
-
-  // Clean up old key
-  localStorage.removeItem(OLD_STORAGE_KEY);
-
-  console.log("Migrated single project to multi-project storage");
-  return true;
-}
-
-// === Project Data Operations ===
-
 // Check if any projects exist (for startup screen)
 export function hasSavedProject(): boolean {
-  if (localStorage.getItem(OLD_STORAGE_KEY) !== null) {
-    return true;
-  }
   return getLastProjectId() !== null;
 }
 
