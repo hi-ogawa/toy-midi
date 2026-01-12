@@ -116,6 +116,10 @@ _Audio/Playback_
 _Project management_
 
 - [x] feat: save multiple project
+- [ ] refactor: app initialization and project switching architecture (docs/2026-01-12-app-initialization-architecture.md)
+  - current: initMutation conflates app init with project loading, forces page reload for switching
+  - short-term: use localStorage flag instead of URL hash for cleaner reload pattern
+  - long-term: separate app initialization from project loading, enable in-app project switching
 - [ ] feat: locators to mark parts
 - [ ] feat: add demo project (good for quick dev test case too)
 
