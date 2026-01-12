@@ -63,10 +63,16 @@ this.midiSynth.noteOff(event.pitch, 0, delayTime + durationSeconds);
 - [ ] Note preview (click on piano roll) separate from sequenced playback
 - [ ] Velocity support (use note velocity instead of hardcoded 100)
 
+### Phase 2.5: GM Program Selection (Done)
+
+- [x] GM_PROGRAMS array with all 128 instrument names
+- [x] midiProgram state in project store
+- [x] programChange method in SoundFontSynth
+- [x] UI select dropdown in Settings with grouped instruments
+
 ### Phase 3: User Soundfont Loading (Future)
 
-- [ ] UI to select bundled soundfonts
-- [ ] Load custom .sf2 files from user
+- [ ] UI to load custom .sf2 files from user
 - [ ] Store soundfont preference in project
 - [ ] Preset/instrument selection per track
 
