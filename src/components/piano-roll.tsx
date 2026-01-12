@@ -418,6 +418,11 @@ export function PianoRoll() {
       if (canUndo()) {
         undo();
       }
+    } else if (e.key === "l" || e.key === "L") {
+      // L: Add locator at current playhead position
+      const playheadBeat = secondsToBeats(position, tempo);
+      const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
+      handleAddLocator(snappedBeat);
     }
   });
 
@@ -1022,7 +1027,6 @@ export function PianoRoll() {
             }}
             locators={locators}
             selectedLocatorId={selectedLocatorId}
-            onAddLocator={handleAddLocator}
             onSelectLocator={handleSelectLocator}
             onUpdateLocator={handleUpdateLocator}
             onDeleteLocator={handleDeleteLocator}
@@ -1378,7 +1382,6 @@ function Timeline({
   onSeek,
   locators,
   selectedLocatorId,
-  onAddLocator,
   onSelectLocator,
   onUpdateLocator: _onUpdateLocator,
   onDeleteLocator: _onDeleteLocator,
@@ -1392,7 +1395,6 @@ function Timeline({
   onSeek: (beat: number) => void;
   locators: Array<{ id: string; position: number; label: string }>;
   selectedLocatorId: string | null;
-  onAddLocator: (position: number) => void;
   onSelectLocator: (id: string) => void;
   onUpdateLocator: (id: string, position: number) => void;
   onDeleteLocator: (id: string) => void;
@@ -1445,20 +1447,13 @@ function Timeline({
     onSeek(Math.max(0, snappedBeat));
   };
 
-  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const beat = x / pixelsPerBeat + scrollX;
-    onAddLocator(Math.max(0, beat));
-  };
-
   // Playhead position on timeline
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   // Filter visible locators
   const visibleLocators = locators.filter((locator) => {
-    const x = (locator.position - scrollX) * pixelsPerBeat;
+    const x = (locator.position - scrollX) * beatWidth;
     return x >= -50 && x <= viewportWidth + 50; // Add margin for labels
   });
 
@@ -1468,19 +1463,18 @@ function Timeline({
       className="relative shrink-0 bg-neutral-850 border-b border-neutral-700 cursor-pointer"
       style={{ height: TIMELINE_HEIGHT }}
       onClick={handleClick}
-      onDoubleClick={handleDoubleClick}
     >
       {markers}
       {/* Locators */}
       {visibleLocators.map((locator) => {
-        const x = (locator.position - scrollX) * pixelsPerBeat;
+        const x = (locator.position - scrollX) * beatWidth;
         const isSelected = locator.id === selectedLocatorId;
         return (
           <div
             key={locator.id}
             data-testid={`locator-${locator.id}`}
             className="absolute group"
-            style={{ left: x, top: 0 }}
+            style={{ left: x - 5, top: 0 }}
             onClick={(e) => {
               e.stopPropagation();
               onSelectLocator(locator.id);

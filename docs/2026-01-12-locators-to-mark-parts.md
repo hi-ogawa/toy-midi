@@ -108,7 +108,7 @@ Timeline
 
 ## MVP Features for First Implementation
 
-1. Double-click empty timeline area → add locator with default label "Section 1", "Section 2", etc.
+1. Press `L` key → add locator at playhead with default label "Section 1", "Section 2", etc.
 2. Render locator as small triangle marker at position with label below
 3. Click locator → select (visual highlight)
 4. Press Delete/Backspace → delete selected locator
@@ -118,14 +118,14 @@ Timeline
 
 E2E tests:
 
-- Add locator by double-clicking timeline
+- Add locator with L key
 - Verify locator appears at correct position
 - Select and delete locator
 - Verify locator persists after page reload
 
 ## Status
 
-**Complete** - Implementation finished, tested, and reviewed
+**In Progress** - Basic implementation done, additional MVP features needed
 
 ### What's Done
 
@@ -133,25 +133,23 @@ E2E tests:
 - ✅ Added locator state and actions to project-store.ts (with ID generator and full persistence)
 - ✅ Updated Timeline component to render locators with triangle markers
 - ✅ Implemented interaction handlers:
-  - Double-click timeline to add locator (auto-named "Section 1", "Section 2", etc.)
+  - `L` key to add locator at playhead (snapped to grid, auto-named "Section 1", etc.)
   - Click locator to select (changes color from sky-blue to amber)
   - Delete/Backspace key to delete selected locator
   - Escape key to deselect
 - ✅ Styled with consistent theme colors (sky-400 default, amber-400 selected)
 - ✅ Written 8 E2E tests (all passing)
-- ✅ Manual testing with screenshots confirms feature works
-- ✅ Code review completed with persistence issues fixed
-- ✅ Security scan passed (0 alerts)
-- ✅ All existing tests still pass (60/60)
+- ✅ Locator persistence with project save/load
 
-### Remaining Work
+### Remaining MVP Features
 
-None - feature is complete for MVP
+| Feature              | Status  | Notes                               |
+| -------------------- | ------- | ----------------------------------- |
+| Rename locator       | ❌ TODO | Double-click locator to edit inline |
+| Drag locator to move | ❌ TODO | Lower priority                      |
 
 ### Future Enhancements (Deferred)
 
-- Drag to reposition locators
-- Double-click to rename inline (currently uses auto-generated names)
 - Click locator to seek playhead to position
 - Context menu for more options
 - Undo/redo support for locator operations

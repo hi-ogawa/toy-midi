@@ -7,18 +7,9 @@ test.describe("Locators", () => {
     await clickNewProject(page);
   });
 
-  test("add locator by double-clicking timeline", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    await expect(timeline).toBeVisible();
-
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
-    // Double-click at beat 4 (approximately 320px from left with default zoom)
-    const clickX = timelineBox.x + 320;
-    const clickY = timelineBox.y + timelineBox.height / 2;
-
-    await page.mouse.dblclick(clickX, clickY);
+  test("add locator with L key", async ({ page }) => {
+    // Press L to add locator at playhead (starts at beat 0)
+    await page.keyboard.press("l");
 
     // Check that locator was created
     const locator = page.locator("[data-testid^='locator-']");
@@ -33,17 +24,15 @@ test.describe("Locators", () => {
     const timelineBox = await timeline.boundingBox();
     if (!timelineBox) throw new Error("Timeline not found");
 
-    // Add first locator
-    await page.mouse.dblclick(
-      timelineBox.x + 160,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    // Add first locator at beat 0
+    await page.keyboard.press("l");
 
-    // Add second locator
-    await page.mouse.dblclick(
-      timelineBox.x + 480,
+    // Seek to beat 4 and add second locator
+    await page.mouse.click(
+      timelineBox.x + 320,
       timelineBox.y + timelineBox.height / 2,
     );
+    await page.keyboard.press("l");
 
     // Check that both locators exist
     const locators = page.locator("[data-testid^='locator-']");
@@ -55,42 +44,23 @@ test.describe("Locators", () => {
   });
 
   test("select locator", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
     // Add a locator
-    const locatorX = timelineBox.x + 320;
-    await page.mouse.dblclick(locatorX, timelineBox.y + timelineBox.height / 2);
+    await page.keyboard.press("l");
 
     const locator = page.locator("[data-testid^='locator-']").first();
     await expect(locator).toBeVisible();
 
-    // Click on the locator to select it
-    await locator.click();
-
-    // Locator should be highlighted (amber color when selected)
-    // We can check this by verifying the element has the amber class
+    // Locator is auto-selected after creation, verify it's highlighted
     const triangleDiv = locator.locator("div").first();
     await expect(triangleDiv).toHaveClass(/border-t-amber-400/);
   });
 
   test("delete locator with Delete key", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
-    // Add a locator
-    await page.mouse.dblclick(
-      timelineBox.x + 320,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    // Add a locator (auto-selected)
+    await page.keyboard.press("l");
 
     const locator = page.locator("[data-testid^='locator-']");
     await expect(locator).toHaveCount(1);
-
-    // Click to select the locator
-    await locator.click();
 
     // Press Delete key
     await page.keyboard.press("Delete");
@@ -100,21 +70,11 @@ test.describe("Locators", () => {
   });
 
   test("delete locator with Backspace key", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
-    // Add a locator
-    await page.mouse.dblclick(
-      timelineBox.x + 320,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    // Add a locator (auto-selected)
+    await page.keyboard.press("l");
 
     const locator = page.locator("[data-testid^='locator-']");
     await expect(locator).toHaveCount(1);
-
-    // Click to select the locator
-    await locator.click();
 
     // Press Backspace key
     await page.keyboard.press("Backspace");
@@ -124,20 +84,10 @@ test.describe("Locators", () => {
   });
 
   test("deselect locator with Escape key", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
-    // Add a locator
-    await page.mouse.dblclick(
-      timelineBox.x + 320,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    // Add a locator (auto-selected)
+    await page.keyboard.press("l");
 
     const locator = page.locator("[data-testid^='locator-']").first();
-
-    // Click to select
-    await locator.click();
 
     // Verify selected (amber color)
     const triangleDiv = locator.locator("div").first();
@@ -151,16 +101,8 @@ test.describe("Locators", () => {
   });
 
   test("locators persist across zoom", async ({ page }) => {
-    const timeline = page.getByTestId("timeline");
-    const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
-
     // Add a locator
-    await page.mouse.dblclick(
-      timelineBox.x + 320,
-      timelineBox.y + timelineBox.height / 2,
-    );
-
+    await page.keyboard.press("l");
     await expect(page.getByText("Section 1")).toBeVisible();
 
     // Zoom in (Ctrl+Wheel)
@@ -169,7 +111,7 @@ test.describe("Locators", () => {
     if (!gridBox) throw new Error("Grid not found");
 
     await page.mouse.move(gridBox.x + 100, gridBox.y + 100);
-    await page.mouse.wheel(0, -100); // Zoom in with Ctrl held
+    await page.mouse.wheel(0, -100);
 
     // Locator should still be visible
     await expect(page.getByText("Section 1")).toBeVisible();
@@ -180,17 +122,17 @@ test.describe("Locators", () => {
     const timelineBox = await timeline.boundingBox();
     if (!timelineBox) throw new Error("Timeline not found");
 
-    // Add two locators
-    await page.mouse.dblclick(
+    // Add first locator at beat 0
+    await page.keyboard.press("l");
+
+    // Seek to beat 4 and add second locator
+    await page.mouse.click(
       timelineBox.x + 320,
       timelineBox.y + timelineBox.height / 2,
     );
-    await page.mouse.dblclick(
-      timelineBox.x + 640,
-      timelineBox.y + timelineBox.height / 2,
-    );
+    await page.keyboard.press("l");
 
-    // Wait for auto-save (debounced, should be quick now)
+    // Wait for auto-save
     await page.waitForTimeout(1000);
 
     // Verify locators exist
