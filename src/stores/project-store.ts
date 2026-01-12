@@ -1,11 +1,5 @@
 import { create } from "zustand";
-import {
-  getLastProjectId,
-  getProjectKey,
-  setLastProjectId,
-  updateProjectMetadata,
-} from "../lib/project-list";
-import { GridSnap, Note, TimeSignature } from "../types";
+import type { GridSnap, Note, TimeSignature } from "../types";
 
 export interface ProjectState {
   // project
@@ -333,73 +327,10 @@ export function fromSavedProject(
   };
 }
 
-export function saveProject(): void {
-  const state = useProjectStore.getState();
-
-  // Need a project ID to save
-  if (!state.currentProjectId) {
-    console.warn(
-      "Cannot save project: no current project ID set. Create a new project first.",
-    );
-    return;
-  }
-
-  const saved = toSavedProject(state);
-  try {
-    const storageKey = getProjectKey(state.currentProjectId);
-    localStorage.setItem(storageKey, JSON.stringify(saved));
-
-    // Update project metadata (updatedAt)
-    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
-
-    // Update last project ID
-    setLastProjectId(state.currentProjectId);
-  } catch (e) {
-    console.warn("Failed to save project:", e);
-  }
-}
-
 // Expose store for E2E testing in dev mode
 export function exposeStoreForE2E(): void {
   if (import.meta.env.DEV) {
     (window as Window & { __store?: typeof useProjectStore }).__store =
       useProjectStore;
-  }
-}
-
-// Check if any projects exist (new multi-project system)
-export function hasSavedProject(): boolean {
-  // Check for old single-project system
-  const OLD_STORAGE_KEY = "toy-midi-project";
-  if (localStorage.getItem(OLD_STORAGE_KEY) !== null) {
-    return true;
-  }
-
-  // Check for new multi-project system
-  return getLastProjectId() !== null;
-}
-
-export function loadProject(projectId: string) {
-  try {
-    const storageKey = getProjectKey(projectId);
-    const json = localStorage.getItem(storageKey);
-    if (!json) {
-      console.warn(`Project ${projectId} not found in storage`);
-      return null;
-    }
-
-    const saved = JSON.parse(json) as Partial<SavedProject>;
-    const projectState = fromSavedProject(saved);
-
-    useProjectStore.setState({
-      currentProjectId: projectId,
-      ...projectState,
-    });
-
-    // Update last project ID
-    setLastProjectId(projectId);
-  } catch (e) {
-    console.warn("Failed to load project:", e);
-    return null;
   }
 }

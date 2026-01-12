@@ -251,8 +251,32 @@ After this, the architecture becomes clearer and we can decide if further separa
 - [x] Options documented
 - [x] Discuss approach
 - [x] Add toSavedProject/fromSavedProject pure functions
-- [ ] Move saveProject/loadProject to app.tsx (future)
+- [x] Move saveProject/loadProject/hasSavedProject to app.tsx
+- [x] Remove localStorage from project-store.ts
 - [ ] Documentation update
+
+## Summary
+
+Refactor complete. The layer separation is now:
+
+```
+src/app.tsx (orchestration)
+  ├── hasSavedProject()      - checks localStorage + project-list
+  ├── saveProject()          - toSavedProject → localStorage + metadata
+  └── loadProject()          - localStorage → fromSavedProject → store
+
+src/stores/project-store.ts (pure state)
+  ├── useProjectStore        - Zustand store
+  ├── toSavedProject()       - state → saved data (pure)
+  └── fromSavedProject()     - saved data → state (pure)
+
+src/lib/project-list.ts (metadata only)
+  ├── createProject()        - project list management
+  ├── getProjectKey()        - storage key helper
+  └── setLastProjectId()     - last project tracking
+```
+
+`project-store.ts` no longer touches localStorage or project-list.ts.
 
 ## Related
 

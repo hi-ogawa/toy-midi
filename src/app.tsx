@@ -12,20 +12,74 @@ import {
   createProject,
   deleteProject,
   getLastProjectId,
+  getProjectKey,
   getProjectMetadata,
   listProjects,
   migrateFromSingleProject,
+  setLastProjectId,
   updateProjectMetadata,
 } from "./lib/project-list";
 import {
-  hasSavedProject,
-  loadProject,
-  saveProject,
+  fromSavedProject,
+  toSavedProject,
   useProjectStore,
 } from "./stores/project-store";
 
 // Migrate old single-project storage if needed
 migrateFromSingleProject();
+
+// Check if any projects exist
+function hasSavedProject(): boolean {
+  const OLD_STORAGE_KEY = "toy-midi-project";
+  if (localStorage.getItem(OLD_STORAGE_KEY) !== null) {
+    return true;
+  }
+  return getLastProjectId() !== null;
+}
+
+function saveProject(): void {
+  const state = useProjectStore.getState();
+
+  if (!state.currentProjectId) {
+    console.warn("Cannot save project: no current project ID set.");
+    return;
+  }
+
+  const saved = toSavedProject(state);
+  try {
+    const storageKey = getProjectKey(state.currentProjectId);
+    localStorage.setItem(storageKey, JSON.stringify(saved));
+    updateProjectMetadata(state.currentProjectId, { updatedAt: Date.now() });
+    setLastProjectId(state.currentProjectId);
+  } catch (e) {
+    console.warn("Failed to save project:", e);
+  }
+}
+
+function loadProject(projectId: string): boolean {
+  try {
+    const storageKey = getProjectKey(projectId);
+    const json = localStorage.getItem(storageKey);
+    if (!json) {
+      console.warn(`Project ${projectId} not found in storage`);
+      return false;
+    }
+
+    const saved = JSON.parse(json);
+    const projectState = fromSavedProject(saved);
+
+    useProjectStore.setState({
+      currentProjectId: projectId,
+      ...projectState,
+    });
+
+    setLastProjectId(projectId);
+    return true;
+  } catch (e) {
+    console.warn("Failed to load project:", e);
+    return false;
+  }
+}
 
 // Check once at module load - doesn't change during session
 const savedProjectExists = hasSavedProject();
