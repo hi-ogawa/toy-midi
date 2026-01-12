@@ -119,6 +119,7 @@ _Audio/Playback_
   - eliminates subscription/sync complexity
   - enables incremental updates (addNote adds to Part, not rebuild all)
   - may not need zustand - could be simpler custom store
+- [ ] preview note on/off should follow mouse down/up
 
 _Project management_
 
