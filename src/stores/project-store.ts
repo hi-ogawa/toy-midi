@@ -70,7 +70,7 @@ export interface ProjectState {
 
   // Copy/Paste actions
   copyNotes: () => void;
-  pasteNotes: () => void;
+  pasteNotes: (insertBeat: number) => void;
 
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
@@ -397,28 +397,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
   },
 
-  pasteNotes: () => {
+  pasteNotes: (insertBeat: number) => {
     const state = get();
     if (state.clipboard.length === 0) return;
 
     // Find the earliest start time in clipboard to calculate offset
-    // Safety: clipboard.length > 0 guaranteed by early return above
     const minStart = Math.min(...state.clipboard.map((n) => n.start));
-
-    // Find the latest end time of selected notes, or use 0 if nothing selected
-    let pasteOffset = 0;
-    if (state.selectedNoteIds.size > 0) {
-      const selectedNotes = state.notes.filter((n) =>
-        state.selectedNoteIds.has(n.id),
-      );
-      // Safety check: only calculate offset if we actually found matching notes
-      if (selectedNotes.length > 0) {
-        const maxEnd = Math.max(
-          ...selectedNotes.map((n) => n.start + n.duration),
-        );
-        pasteOffset = maxEnd - minStart;
-      }
-    }
+    const pasteOffset = insertBeat - minStart;
 
     // Create new notes with new IDs and offset positions
     const newNotes = state.clipboard.map((n) => ({

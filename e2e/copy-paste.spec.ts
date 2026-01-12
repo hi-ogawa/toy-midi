@@ -5,19 +5,38 @@ import { clickNewProject } from "./helpers";
 const BEAT_WIDTH = 80;
 const ROW_HEIGHT = 20;
 
+// Helper to seek playhead by clicking on timeline
+async function seekTobeat(
+  page: import("@playwright/test").Page,
+  beat: number,
+): Promise<void> {
+  const timeline = page.getByTestId("timeline");
+  const timelineBox = await timeline.boundingBox();
+  if (!timelineBox) throw new Error("Timeline not found");
+
+  // Click at the position corresponding to the beat
+  // Timeline x = beat * BEAT_WIDTH (since scrollX starts at 0)
+  const clickX = timelineBox.x + beat * BEAT_WIDTH;
+  const clickY = timelineBox.y + timelineBox.height / 2;
+  await page.mouse.click(clickX, clickY);
+
+  // Wait for transport state to sync after seek
+  await page.waitForTimeout(100);
+}
+
 test.describe("Copy/Paste", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await clickNewProject(page);
   });
 
-  test("copy and paste single note", async ({ page }) => {
+  test("paste at playhead position", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
-    // Create a note at beat 0, pitch G3 (top row)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    // Create a note starting at beat 0 (click near left edge to snap to 0)
+    const startX = gridBox.x + BEAT_WIDTH * 0.05;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
@@ -25,38 +44,74 @@ test.describe("Copy/Paste", () => {
     await page.mouse.move(startX + BEAT_WIDTH, startY);
     await page.mouse.up();
 
-    // Note should be created and selected
     const notes = page.locator("[data-testid^='note-']");
     await expect(notes).toHaveCount(1);
 
     // Copy with Ctrl+C
     await page.keyboard.press("Control+c");
 
-    // Paste with Ctrl+V
+    // Move playhead to beat 2
+    await seekTobeat(page, 2);
+
+    // Paste with Ctrl+V - should paste at playhead (beat 2)
     await page.keyboard.press("Control+v");
 
-    // Should now have 2 notes
     await expect(notes).toHaveCount(2);
 
-    // Wait for selection state to update
-    await page.waitForTimeout(100);
-
-    // The pasted note (second note) should be selected, first should not
-    const note1 = notes.nth(0);
-    const note2 = notes.nth(1);
-    await expect(note1).toHaveAttribute("data-selected", "false");
-    await expect(note2).toHaveAttribute("data-selected", "true");
-
-    // The second note should be positioned after the first
+    // Get note positions
     const note1Box = await notes.nth(0).boundingBox();
     const note2Box = await notes.nth(1).boundingBox();
     if (!note1Box || !note2Box) throw new Error("Notes not found");
-    expect(note2Box.x).toBeGreaterThan(note1Box.x);
+
+    // Note 1 is at beat 0, Note 2 at beat 2 = 2 beats offset
+    const expectedOffset = 2 * BEAT_WIDTH;
+    expect(note2Box.x - note1Box.x).toBeCloseTo(expectedOffset, -1);
+
     // Same pitch (same y position)
     expect(Math.abs(note2Box.y - note1Box.y)).toBeLessThan(2);
   });
 
-  test("copy and paste multiple notes", async ({ page }) => {
+  test("paste snaps to grid", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a note starting at beat 0
+    const startX = gridBox.x + BEAT_WIDTH * 0.05;
+    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    const notes = page.locator("[data-testid^='note-']");
+    await expect(notes).toHaveCount(1);
+
+    // Copy
+    await page.keyboard.press("Control+c");
+
+    // Move playhead to beat 1.5 (exactly on 1/8 grid)
+    await seekTobeat(page, 1.5);
+
+    // Paste
+    await page.keyboard.press("Control+v");
+
+    await expect(notes).toHaveCount(2);
+
+    // Get note positions
+    const note1Box = await notes.nth(0).boundingBox();
+    const note2Box = await notes.nth(1).boundingBox();
+    if (!note1Box || !note2Box) throw new Error("Notes not found");
+
+    // Note1 at beat 0, playhead at 1.5 → note2 at beat 1.5
+    const expectedOffset = 1.5 * BEAT_WIDTH;
+    expect(note2Box.x - note1Box.x).toBeCloseTo(expectedOffset, -1);
+  });
+
+  test("copy and paste multiple notes preserves relative positions", async ({
+    page,
+  }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -72,10 +127,10 @@ test.describe("Copy/Paste", () => {
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
-    // Press Escape to deselect
+    // Deselect
     await page.keyboard.press("Escape");
 
-    // Create second note at beat 2, different pitch
+    // Create second note at beat 2, different pitch (2 rows down)
     const note2X = gridBox.x + BEAT_WIDTH * 2.5;
     const note2Y = gridBox.y + ROW_HEIGHT * 2.5;
     await page.mouse.move(note2X, note2Y);
@@ -84,7 +139,7 @@ test.describe("Copy/Paste", () => {
     await page.mouse.up();
     await expect(notes).toHaveCount(2);
 
-    // Escape to deselect
+    // Deselect
     await page.keyboard.press("Escape");
 
     // Box select both notes
@@ -100,73 +155,38 @@ test.describe("Copy/Paste", () => {
     await page.mouse.up();
     await page.keyboard.up("Shift");
 
-    // Both notes should be selected - check individually
-    const note1 = notes.nth(0);
-    const note2 = notes.nth(1);
-    await expect(note1).toHaveAttribute("data-selected", "true");
-    await expect(note2).toHaveAttribute("data-selected", "true");
+    // Both notes should be selected
+    await expect(notes.nth(0)).toHaveAttribute("data-selected", "true");
+    await expect(notes.nth(1)).toHaveAttribute("data-selected", "true");
+
+    // Get original positions
+    const orig1 = await notes.nth(0).boundingBox();
+    const orig2 = await notes.nth(1).boundingBox();
+    if (!orig1 || !orig2) throw new Error("Original notes not found");
+    const originalGap = orig2.x - orig1.x;
 
     // Copy
     await page.keyboard.press("Control+c");
 
-    // Paste
+    // Move playhead to beat 4 and paste
+    await seekTobeat(page, 4);
     await page.keyboard.press("Control+v");
 
-    // Should now have 4 notes total
     await expect(notes).toHaveCount(4);
 
-    // Wait for selection state to update
-    await page.waitForTimeout(100);
-
-    // The 2 pasted notes should be selected (notes 2 and 3)
+    // The 2 pasted notes should be selected
     await expect(notes.nth(0)).toHaveAttribute("data-selected", "false");
     await expect(notes.nth(1)).toHaveAttribute("data-selected", "false");
     await expect(notes.nth(2)).toHaveAttribute("data-selected", "true");
     await expect(notes.nth(3)).toHaveAttribute("data-selected", "true");
-  });
 
-  test("paste multiple times creates incremental offsets", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Pasted notes should have same relative gap
+    const pasted1 = await notes.nth(2).boundingBox();
+    const pasted2 = await notes.nth(3).boundingBox();
+    if (!pasted1 || !pasted2) throw new Error("Pasted notes not found");
+    const pastedGap = pasted2.x - pasted1.x;
 
-    const notes = page.locator("[data-testid^='note-']");
-
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-    await expect(notes).toHaveCount(1);
-
-    // Get initial note position
-    const note1Box = await notes.nth(0).boundingBox();
-    if (!note1Box) throw new Error("Note not found");
-
-    // Copy
-    await page.keyboard.press("Control+c");
-
-    // Paste first time
-    await page.keyboard.press("Control+v");
-    await expect(notes).toHaveCount(2);
-
-    const note2Box = await notes.nth(1).boundingBox();
-    if (!note2Box) throw new Error("Second note not found");
-    const offset1 = note2Box.x - note1Box.x;
-    expect(offset1).toBeGreaterThan(0);
-
-    // Paste second time (pasted note is now selected)
-    await page.keyboard.press("Control+v");
-    await expect(notes).toHaveCount(3);
-
-    const note3Box = await notes.nth(2).boundingBox();
-    if (!note3Box) throw new Error("Third note not found");
-    const offset2 = note3Box.x - note2Box.x;
-
-    // Second paste should have same offset as first
-    expect(Math.abs(offset2 - offset1)).toBeLessThan(2);
+    expect(Math.abs(pastedGap - originalGap)).toBeLessThan(2);
   });
 
   test("paste with undo/redo", async ({ page }) => {
@@ -185,8 +205,9 @@ test.describe("Copy/Paste", () => {
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
-    // Copy and paste
+    // Copy, move playhead, and paste
     await page.keyboard.press("Control+c");
+    await seekTobeat(page, 2);
     await page.keyboard.press("Control+v");
     await expect(notes).toHaveCount(2);
 
@@ -199,14 +220,14 @@ test.describe("Copy/Paste", () => {
     await expect(notes).toHaveCount(2);
   });
 
-  test("copy preserves note properties", async ({ page }) => {
+  test("copy preserves note properties (duration, pitch)", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
     const notes = page.locator("[data-testid^='note-']");
 
-    // Create a note with specific duration (2 beats)
+    // Create a note with specific duration (2 beats) at a specific pitch
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 2.5; // Different row
     await page.mouse.move(startX, startY);
@@ -219,8 +240,9 @@ test.describe("Copy/Paste", () => {
     const note1Box = await notes.nth(0).boundingBox();
     if (!note1Box) throw new Error("Note not found");
 
-    // Copy and paste
+    // Copy, move playhead, and paste
     await page.keyboard.press("Control+c");
+    await seekTobeat(page, 4);
     await page.keyboard.press("Control+v");
     await expect(notes).toHaveCount(2);
 
@@ -230,21 +252,21 @@ test.describe("Copy/Paste", () => {
 
     // Width (duration) should be the same
     expect(Math.abs(note2Box.width - note1Box.width)).toBeLessThan(2);
-    // Height (pitch) should be the same
+    // Height (pitch row height) should be the same
     expect(Math.abs(note2Box.height - note1Box.height)).toBeLessThan(2);
     // Y position (pitch) should be the same
     expect(Math.abs(note2Box.y - note1Box.y)).toBeLessThan(2);
   });
 
-  test("paste when no notes selected", async ({ page }) => {
+  test("paste at playhead 0 overlaps original note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
     const notes = page.locator("[data-testid^='note-']");
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    // Create a note at beat 0 (click near left edge to snap to 0)
+    const startX = gridBox.x + BEAT_WIDTH * 0.05;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
@@ -252,24 +274,22 @@ test.describe("Copy/Paste", () => {
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
-    // Get original note position
     const note1Box = await notes.nth(0).boundingBox();
     if (!note1Box) throw new Error("Note not found");
 
-    // Copy
+    // Copy (playhead is at 0)
     await page.keyboard.press("Control+c");
 
-    // Deselect all
-    await page.keyboard.press("Escape");
-
-    // Paste (when nothing is selected, should paste at beat 0 offset)
+    // Paste without moving playhead - should paste at beat 0 (overlapping)
     await page.keyboard.press("Control+v");
     await expect(notes).toHaveCount(2);
 
-    // The pasted note should be at or near the original position (no offset when nothing selected)
     const note2Box = await notes.nth(1).boundingBox();
     if (!note2Box) throw new Error("Pasted note not found");
-    expect(note2Box.x).toBeGreaterThanOrEqual(note1Box.x);
+
+    // Both notes should be at the same position (overlapping)
+    expect(Math.abs(note2Box.x - note1Box.x)).toBeLessThan(2);
+    expect(Math.abs(note2Box.y - note1Box.y)).toBeLessThan(2);
   });
 
   test("copy with no selection does nothing", async ({ page }) => {
@@ -283,5 +303,35 @@ test.describe("Copy/Paste", () => {
 
     // Should still have no notes
     await expect(notes).toHaveCount(0);
+  });
+
+  test("pasted notes become selected", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    // Create a note
+    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.up();
+
+    const notes = page.locator("[data-testid^='note-']");
+    await expect(notes).toHaveCount(1);
+
+    // Copy
+    await page.keyboard.press("Control+c");
+
+    // Move playhead and paste
+    await seekTobeat(page, 2);
+    await page.keyboard.press("Control+v");
+
+    await expect(notes).toHaveCount(2);
+
+    // Original note should be deselected, pasted note should be selected
+    await expect(notes.nth(0)).toHaveAttribute("data-selected", "false");
+    await expect(notes.nth(1)).toHaveAttribute("data-selected", "true");
   });
 });

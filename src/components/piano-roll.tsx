@@ -366,9 +366,11 @@ export function PianoRoll() {
       e.preventDefault();
       copyNotes();
     } else if (e.key === "v" && (e.ctrlKey || e.metaKey)) {
-      // Ctrl+V or Cmd+V: Paste
+      // Ctrl+V or Cmd+V: Paste at snapped playhead position
       e.preventDefault();
-      pasteNotes();
+      const playheadBeat = secondsToBeats(position, tempo);
+      const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
+      pasteNotes(snappedBeat);
     } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
       e.preventDefault();
