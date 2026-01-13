@@ -218,6 +218,7 @@ class AudioManager {
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
         const endTime = time + durationSeconds;
+        // TODO: velocity default?
         this.midiSynth.scheduleNoteOnOff(event.pitch, time, endTime, 100);
       },
       [],
@@ -230,7 +231,7 @@ class AudioManager {
 
     // Audio track
     this.player = new Tone.Player();
-    this.audioChannel = new Tone.Channel(0.8).toDestination();
+    this.audioChannel = new Tone.Channel(Tone.gainToDb(0.8)).toDestination();
     this.player.connect(this.audioChannel);
 
     // Metronome synth (high pitched click)
@@ -238,13 +239,16 @@ class AudioManager {
       oscillator: { type: "sine" },
       envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
     });
-    this.metronomeChannel = new Tone.Channel(0.5).toDestination();
+    this.metronomeChannel = new Tone.Channel(
+      Tone.gainToDb(0.5),
+    ).toDestination();
     this.metronome.connect(this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
     // 1 = accent (high), 0 = normal (lower)
     this.metronomeSeq = new Tone.Sequence(
       (time, note) => {
+        // TODO: what's velocity default
         // const pitch = beat === 1 ? "C7" : "G6";
         this.metronome.triggerAttackRelease(note, "32n", time);
       },
@@ -272,6 +276,7 @@ class AudioManager {
           if (abs > this.peakLevels[ch]) this.peakLevels[ch] = abs;
         }
       }
+      // TODO: to be precie to exactly cover all frames
     }, 0.05);
   }
 
