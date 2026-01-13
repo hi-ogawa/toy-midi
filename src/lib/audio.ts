@@ -171,17 +171,23 @@ export const GM_PROGRAMS = [
  */
 class AudioManager {
   private midiSynth!: OxiSynthSynth;
-  private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
-
-  // audio track
-  player!: Tone.Player;
-  private audioChannel!: Tone.Channel;
-
-  // metronome
   private metronome!: Tone.Synth;
   private metronomeSeq!: Tone.Sequence;
-  private metronomeChannel!: Tone.Channel;
+
+  // Public for audio routing
+  player!: Tone.Player;
+  midiChannel!: Tone.Channel;
+  audioChannel!: Tone.Channel;
+  metronomeChannel!: Tone.Channel;
+
+  // For E2E testing
+  analysers!: {
+    midi: Tone.Waveform;
+    audio: Tone.Waveform;
+    metronome: Tone.Waveform;
+  };
+  peakLevels = { midi: 0, audio: 0, metronome: 0 };
 
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
@@ -212,6 +218,7 @@ class AudioManager {
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
         const endTime = time + durationSeconds;
+        // TODO: velocity default?
         this.midiSynth.scheduleNoteOnOff(event.pitch, time, endTime, 100);
       },
       [],
@@ -224,7 +231,7 @@ class AudioManager {
 
     // Audio track
     this.player = new Tone.Player();
-    this.audioChannel = new Tone.Channel(0.8).toDestination();
+    this.audioChannel = new Tone.Channel(Tone.gainToDb(0.8)).toDestination();
     this.player.connect(this.audioChannel);
 
     // Metronome synth (high pitched click)
@@ -232,13 +239,16 @@ class AudioManager {
       oscillator: { type: "sine" },
       envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
     });
-    this.metronomeChannel = new Tone.Channel(0.5).toDestination();
+    this.metronomeChannel = new Tone.Channel(
+      Tone.gainToDb(0.5),
+    ).toDestination();
     this.metronome.connect(this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
     // 1 = accent (high), 0 = normal (lower)
     this.metronomeSeq = new Tone.Sequence(
       (time, note) => {
+        // TODO: what's velocity default
         // const pitch = beat === 1 ? "C7" : "G6";
         this.metronome.triggerAttackRelease(note, "32n", time);
       },
@@ -246,6 +256,28 @@ class AudioManager {
       "4n",
     );
     this.metronomeSeq.start(0);
+
+    // Waveform analysers for E2E testing
+    this.analysers = {
+      midi: new Tone.Waveform(1024),
+      audio: new Tone.Waveform(1024),
+      metronome: new Tone.Waveform(1024),
+    };
+    this.midiChannel.connect(this.analysers.midi);
+    this.audioChannel.connect(this.analysers.audio);
+    this.metronomeChannel.connect(this.analysers.metronome);
+
+    // Peak-hold tracking for E2E testing (updates every 50ms during playback)
+    Tone.getTransport().scheduleRepeat(() => {
+      for (const ch of ["midi", "audio", "metronome"] as const) {
+        const samples = this.analysers[ch].getValue() as Float32Array;
+        for (const s of samples) {
+          const abs = Math.abs(s);
+          if (abs > this.peakLevels[ch]) this.peakLevels[ch] = abs;
+        }
+      }
+      // TODO: to be precie to exactly cover all frames
+    }, 0.05);
   }
 
   /**
@@ -421,4 +453,10 @@ export async function loadAudioFile(file: File): Promise<{
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+// Expose for E2E testing
+if (import.meta.env.DEV) {
+  (globalThis as { __audioManager?: AudioManager }).__audioManager =
+    audioManager;
 }
