@@ -175,11 +175,18 @@ class AudioManager {
   private metronome!: Tone.Synth;
   private metronomeSeq!: Tone.Sequence;
 
-  // Public for audio routing and E2E testing
+  // Public for audio routing
   player!: Tone.Player;
   midiChannel!: Tone.Channel;
   audioChannel!: Tone.Channel;
   metronomeChannel!: Tone.Channel;
+
+  // For E2E testing
+  analysers!: {
+    midi: Tone.Waveform;
+    audio: Tone.Waveform;
+    metronome: Tone.Waveform;
+  };
 
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
@@ -244,6 +251,16 @@ class AudioManager {
       "4n",
     );
     this.metronomeSeq.start(0);
+
+    // Waveform analysers for E2E testing
+    this.analysers = {
+      midi: new Tone.Waveform(1024),
+      audio: new Tone.Waveform(1024),
+      metronome: new Tone.Waveform(1024),
+    };
+    this.midiChannel.connect(this.analysers.midi);
+    this.audioChannel.connect(this.analysers.audio);
+    this.metronomeChannel.connect(this.analysers.metronome);
   }
 
   /**
@@ -421,27 +438,8 @@ export async function loadAudioFile(file: File): Promise<{
   }
 }
 
-// Expose debug interface for E2E testing (analysers connected lazily on first use)
-export interface AudioDebugInterface {
-  getWaveform: (channel: "midi" | "audio" | "metronome") => Float32Array;
-}
-
+// Expose for E2E testing
 if (import.meta.env.DEV) {
-  let analysers: Record<string, Tone.Waveform> | null = null;
-
-  (window as Window & { __audioDebug?: AudioDebugInterface }).__audioDebug = {
-    getWaveform: (channel) => {
-      if (!analysers) {
-        analysers = {
-          midi: new Tone.Waveform(1024),
-          audio: new Tone.Waveform(1024),
-          metronome: new Tone.Waveform(1024),
-        };
-        audioManager.midiChannel.connect(analysers.midi);
-        audioManager.audioChannel.connect(analysers.audio);
-        audioManager.metronomeChannel.connect(analysers.metronome);
-      }
-      return analysers[channel].getValue() as Float32Array;
-    },
-  };
+  (globalThis as { __audioManager?: AudioManager }).__audioManager =
+    audioManager;
 }

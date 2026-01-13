@@ -1,5 +1,4 @@
 import type { Page } from "@playwright/test";
-import type { AudioDebugInterface } from "../src/lib/audio";
 import type { useProjectStore } from "../src/stores/project-store";
 
 // Type for the exposed store on window
@@ -60,21 +59,24 @@ export async function evaluateStore<T>(
   }, fn.toString());
 }
 
-// Audio debug helpers
-
-export type AudioChannel = "midi" | "audio" | "metronome";
+// Audio test helpers
 
 export async function isChannelPlaying(
   page: Page,
-  channel: AudioChannel,
+  channel: "midi" | "audio" | "metronome",
 ): Promise<boolean> {
   const THRESHOLD = 0.01;
   return page.evaluate(
     ({ ch, threshold }) => {
-      const debug = (window as Window & { __audioDebug?: AudioDebugInterface })
-        .__audioDebug;
-      if (!debug) throw new Error("__audioDebug not available");
-      const samples = debug.getWaveform(ch);
+      const mgr = (
+        globalThis as {
+          __audioManager?: {
+            analysers: Record<string, { getValue: () => Float32Array }>;
+          };
+        }
+      ).__audioManager;
+      if (!mgr) throw new Error("__audioManager not available");
+      const samples = mgr.analysers[ch].getValue();
       return samples.some((s) => Math.abs(s) > threshold);
     },
     { ch: channel, threshold: THRESHOLD },
