@@ -13,8 +13,9 @@ import {
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
+import * as Tone from "tone";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import {
@@ -86,6 +87,62 @@ function formatBarBeat(seconds: number, tempo: number): string {
   return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
 }
 
+// Separate component to isolate position-based re-renders
+function TimeDisplay({ tempo }: { tempo: number }) {
+  const { position } = useTransport();
+  return (
+    <div
+      data-testid="time-display"
+      className="font-mono text-muted-foreground tabular-nums"
+    >
+      {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
+    </div>
+  );
+}
+
+function togglePlayback() {
+  if (Tone.getTransport().state === "started") {
+    audioManager.pause();
+  } else {
+    audioManager.play();
+  }
+}
+
+// Separate component to isolate isPlaying-based re-renders
+function PlayPauseButton() {
+  const { isPlaying } = useTransport();
+
+  // Space key shortcut
+  useWindowEvent("keydown", (e) => {
+    if (
+      (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
+    if (e.code === "Space" && !e.repeat) {
+      e.preventDefault();
+      togglePlayback();
+    }
+  });
+
+  return (
+    <Button
+      data-testid="play-pause-button"
+      onClick={togglePlayback}
+      variant={isPlaying ? "default" : "ghost"}
+      size="icon"
+      title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+    >
+      {isPlaying ? (
+        <PauseIcon data-testid="pause-icon" className="size-5" />
+      ) : (
+        <PlayIcon data-testid="play-icon" className="size-5" />
+      )}
+    </Button>
+  );
+}
+
 type TransportProps = {
   onHelpClick: () => void;
   onProjectsClick: () => void;
@@ -126,9 +183,6 @@ export function Transport({
     setAudioPeaks,
     clearAudioFile,
   } = useProjectStore();
-
-  // Transport state from hook (source of truth: Tone.js Transport)
-  const { isPlaying, position } = useTransport();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
@@ -173,34 +227,17 @@ export function Transport({
     clearAudioFile();
   };
 
-  const handlePlayPause = useCallback(() => {
-    if (isPlaying) {
-      audioManager.pause();
-    } else {
-      audioManager.play();
-    }
-  }, [isPlaying]);
-
-  const handleAutoScrollToggle = useCallback(() => {
-    setAutoScrollEnabled(!autoScrollEnabled);
-  }, [autoScrollEnabled, setAutoScrollEnabled]);
-
-  // Keyboard shortcuts: Space=play/pause, Ctrl+F=auto-scroll
+  // Keyboard shortcut: Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
-    // Don't trigger if typing in an input
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
       e.target instanceof HTMLTextAreaElement
     ) {
       return;
     }
-
-    if (e.code === "Space" && !e.repeat) {
+    if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
       e.preventDefault();
-      handlePlayPause();
-    } else if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
-      e.preventDefault();
-      handleAutoScrollToggle();
+      setAutoScrollEnabled(!autoScrollEnabled);
     }
   });
 
@@ -312,19 +349,7 @@ export function Transport({
       />
 
       {/* Play/Pause button */}
-      <Button
-        data-testid="play-pause-button"
-        onClick={handlePlayPause}
-        variant={isPlaying ? "default" : "ghost"}
-        size="icon"
-        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
-      >
-        {isPlaying ? (
-          <PauseIcon data-testid="pause-icon" className="size-5" />
-        ) : (
-          <PlayIcon data-testid="play-icon" className="size-5" />
-        )}
-      </Button>
+      <PlayPauseButton />
 
       {/* Metronome toggle */}
       <Button
@@ -342,12 +367,7 @@ export function Transport({
       <div className="w-px h-5 bg-border" />
 
       {/* Time display: Bar|Beat - MM:SS.frac */}
-      <div
-        data-testid="time-display"
-        className="font-mono text-muted-foreground tabular-nums"
-      >
-        {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
-      </div>
+      <TimeDisplay tempo={tempo} />
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />

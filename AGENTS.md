@@ -114,3 +114,4 @@ Audio sync can be tested manually during development.
 2. Commit logical changes separately
 3. **Run `pnpm lint` before every commit** (formats .ts, .tsx, .md, .json, etc.)
 4. Confirm with user before committing
+5. **Avoid force push** - accumulate commits instead (non-destructive)

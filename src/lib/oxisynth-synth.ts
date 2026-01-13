@@ -134,11 +134,13 @@ export class OxiSynthSynth {
   /**
    * Trigger note on immediately and schedule note off after duration.
    * Uses audio-frame accurate timing in the worklet.
+   * Note: Use scheduleNoteOnOff() for sequenced playback to ensure proper
+   * ordering of note-off/note-on for adjacent same-pitch notes.
    */
   triggerAttackRelease(
     noteNumber: number,
     duration: number,
-    velocity: number = 100,
+    velocity = 100,
   ): void {
     const durationSamples = Math.round(duration * this.context.sampleRate);
     this.postMessage({
@@ -146,6 +148,29 @@ export class OxiSynthSynth {
       key: noteNumber,
       velocity,
       durationSamples,
+    });
+  }
+
+  /**
+   * Schedule note-on and note-off at absolute audio context times.
+   * Both times are converted to absolute frames, ensuring that adjacent
+   * same-pitch notes share the exact same frame boundary (no float drift).
+   * The worklet processes note-offs before note-ons at the same frame.
+   */
+  scheduleNoteOnOff(
+    noteNumber: number,
+    startTime: number,
+    endTime: number,
+    velocity = 100,
+  ): void {
+    const startFrame = Math.round(startTime * this.context.sampleRate);
+    const endFrame = Math.round(endTime * this.context.sampleRate);
+    this.postMessage({
+      type: "scheduleNoteOnOff",
+      key: noteNumber,
+      velocity,
+      startFrame,
+      endFrame,
     });
   }
 
