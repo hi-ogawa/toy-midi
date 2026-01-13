@@ -113,7 +113,7 @@ _Timeline/Viewport_
 _Audio/Playback_
 
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
-- [ ] feat: remove audio track
+- [x] feat: remove audio track (menu + select + Delete key)
 - [ ] feat: trim audio track length (start and end)
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
@@ -160,6 +160,10 @@ _Chores/Refactoring_
   - `src/components/piano-roll.tsx:315` - `screenToGrid`
   - `src/components/piano-roll.tsx:333` - `gridToScreen`
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
+- [ ] chore: consolidate E2E tests into user flows (reduce setup overhead)
+  - locators.spec.ts: 10 tests → ~4 (combine add/select/delete/deselect)
+  - undo-redo.spec.ts: 9 tests → ~4 (combine create/delete/move/resize undo+redo)
+  - copy-paste.spec.ts: 8 tests → ~4 (combine paste/snap/preserve/selection)
 - [ ] chore: code organization review
 - [ ] test: test audio context playback (docs/2026-01-11-e2e-audio-context-testing.md)
 - [ ] refactor: refactor debug panel
