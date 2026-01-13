@@ -327,6 +327,15 @@ class AudioManager {
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
   }
 
+  // Note preview with manual control (for keyboard interaction)
+  noteOn(pitch: number): void {
+    this.midiSynth.noteOn(pitch, 100);
+  }
+
+  noteOff(pitch: number): void {
+    this.midiSynth.noteOff(pitch);
+  }
+
   // Volume controls (0-1)
   setAudioVolume(volume: number): void {
     this.audioChannel.volume.rampTo(

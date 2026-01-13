@@ -1334,14 +1334,20 @@ function Keyboard({
   const lastPlayedPitch = useRef<number | null>(null);
 
   useWindowEvent("mouseup", () => {
+    if (lastPlayedPitch.current !== null) {
+      audioManager.noteOff(lastPlayedPitch.current);
+    }
     setIsDragging(false);
     lastPlayedPitch.current = null;
   });
 
   const playPitch = useCallback((pitch: number) => {
     if (lastPlayedPitch.current !== pitch) {
+      if (lastPlayedPitch.current !== null) {
+        audioManager.noteOff(lastPlayedPitch.current);
+      }
       lastPlayedPitch.current = pitch;
-      audioManager.playNote(pitch);
+      audioManager.noteOn(pitch);
     }
   }, []);
 

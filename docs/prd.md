@@ -126,7 +126,7 @@ _Audio/Playback_
   - eliminates subscription/sync complexity
   - enables incremental updates (addNote adds to Part, not rebuild all)
   - may not need zustand - could be simpler custom store
-- [ ] preview note on/off should follow mouse down/up
+- [x] preview note on/off should follow mouse down/up
 
 _Project management_
 
@@ -145,11 +145,11 @@ _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [x] fix: "No audio loaded" label scroll behavior
-- [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
+- [x] fix: press "Space" to continue on startup screen isntead of "Enter"
 
 _Misc_
 
-- [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
+- [x] feat: export ABC notation (file export + clipbaord for quick LLM usage)
 - [ ] feat: support fret position annotation metadata
 - [x] feat: full review quick reference and what's missing
 
