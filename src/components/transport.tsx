@@ -13,8 +13,9 @@ import {
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import { toast } from "sonner";
+import * as Tone from "tone";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import {
@@ -99,17 +100,17 @@ function TimeDisplay({ tempo }: { tempo: number }) {
   );
 }
 
+function togglePlayback() {
+  if (Tone.getTransport().state === "started") {
+    audioManager.pause();
+  } else {
+    audioManager.play();
+  }
+}
+
 // Separate component to isolate isPlaying-based re-renders
 function PlayPauseButton() {
   const { isPlaying } = useTransport();
-
-  const handlePlayPause = useCallback(() => {
-    if (isPlaying) {
-      audioManager.pause();
-    } else {
-      audioManager.play();
-    }
-  }, [isPlaying]);
 
   // Space key shortcut
   useWindowEvent("keydown", (e) => {
@@ -121,14 +122,14 @@ function PlayPauseButton() {
     }
     if (e.code === "Space" && !e.repeat) {
       e.preventDefault();
-      handlePlayPause();
+      togglePlayback();
     }
   });
 
   return (
     <Button
       data-testid="play-pause-button"
-      onClick={handlePlayPause}
+      onClick={togglePlayback}
       variant={isPlaying ? "default" : "ghost"}
       size="icon"
       title={isPlaying ? "Pause (Space)" : "Play (Space)"}
@@ -226,10 +227,6 @@ export function Transport({
     clearAudioFile();
   };
 
-  const handleAutoScrollToggle = useCallback(() => {
-    setAutoScrollEnabled(!autoScrollEnabled);
-  }, [autoScrollEnabled, setAutoScrollEnabled]);
-
   // Keyboard shortcut: Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
@@ -240,7 +237,7 @@ export function Transport({
     }
     if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
       e.preventDefault();
-      handleAutoScrollToggle();
+      setAutoScrollEnabled(!autoScrollEnabled);
     }
   });
 
