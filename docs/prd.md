@@ -112,6 +112,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
+- [ ] fix: when paused, clicking timeline jumps with a lag. (maybe same during playing, but perceptually worse when it lags when paused.)
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [x] feat: remove audio track (menu + select + Delete key)
 - [ ] feat: undo/redo audio track operations (move, remove)
