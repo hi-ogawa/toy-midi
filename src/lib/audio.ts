@@ -298,6 +298,12 @@ class AudioManager {
     this.player.sync().start(offset);
   }
 
+  clearAudioBuffer(): void {
+    this.player.stop();
+    this.player.unsync();
+    this.player.buffer = new Tone.ToneAudioBuffer();
+  }
+
   // TODO: incremental add / remove
   setNotes(notes: Note[]): void {
     this.midiPart.clear();
