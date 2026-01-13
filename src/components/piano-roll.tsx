@@ -246,6 +246,7 @@ export function PianoRoll() {
     audioDuration,
     audioOffset,
     audioFileName,
+    isAudioTrackSelected,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -254,6 +255,8 @@ export function PianoRoll() {
     selectNotes,
     deselectAll,
     setAudioOffset,
+    setAudioTrackSelected,
+    clearAudioFile,
     audioPeaks,
     undo,
     redo,
@@ -386,10 +389,13 @@ export function PianoRoll() {
         deleteNotes(Array.from(selectedNoteIds));
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
+      } else if (isAudioTrackSelected) {
+        clearAudioFile();
       }
     } else if (e.key === "Escape") {
       deselectAll();
       selectLocator(null);
+      setAudioTrackSelected(false);
     } else if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
       // Ctrl+C or Cmd+C: Copy
       e.preventDefault();
@@ -510,6 +516,7 @@ export function PianoRoll() {
   const handleGridMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.button !== 0) return;
+      setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue);
       const rect = gridRef.current!.getBoundingClientRect();
@@ -680,6 +687,7 @@ export function PianoRoll() {
       gridToScreen,
       selectNotes,
       deselectAll,
+      setAudioTrackSelected,
     ],
   );
 
@@ -1053,8 +1061,14 @@ export function PianoRoll() {
             audioPeaks={audioPeaks}
             height={waveformHeight}
             beatsPerBar={beatsPerBar}
+            isSelected={isAudioTrackSelected}
             onOffsetChange={setAudioOffset}
             onHeightChange={setWaveformHeight}
+            onSelect={() => {
+              deselectAll();
+              selectLocator(null);
+              setAudioTrackSelected(true);
+            }}
           />
           {/* Note grid with CSS background */}
           <div
@@ -1603,8 +1617,10 @@ function WaveformArea({
   audioPeaks,
   height,
   beatsPerBar,
+  isSelected,
   onOffsetChange,
   onHeightChange,
+  onSelect,
 }: {
   pixelsPerBeat: number;
   gridSnap: GridSnap;
@@ -1618,8 +1634,10 @@ function WaveformArea({
   audioPeaks: number[];
   height: number;
   beatsPerBar: number;
+  isSelected: boolean;
   onOffsetChange: (offset: number) => void;
   onHeightChange: (height: number) => void;
+  onSelect: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -1661,6 +1679,7 @@ function WaveformArea({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (audioDuration === 0) return;
+    onSelect();
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, startOffset: audioOffset };
   };
@@ -1719,11 +1738,11 @@ function WaveformArea({
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-85 ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"
-          }`}
+          } ${isSelected ? "ring-2 ring-sky-400" : "opacity-85"}`}
           style={{
             left: audioStartX,
             width: Math.max(audioWidth, 4),
