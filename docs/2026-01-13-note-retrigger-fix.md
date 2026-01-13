@@ -274,6 +274,7 @@ case "scheduleNoteOnOff":
 ```
 
 **When this helps:**
+
 - Tempo changes during playback (absolute frames computed at old tempo)
 - Transport seeking (stale scheduled events)
 - Any race condition we haven't anticipated
@@ -294,6 +295,7 @@ After implementing Option 4, the remaining question: could float precision error
 ### The Math
 
 At 48kHz sample rate:
+
 - 1 frame = ~0.0000208 seconds (20.8 microseconds)
 
 JavaScript uses IEEE 754 double-precision floats with ~15-17 significant decimal digits.
@@ -310,6 +312,7 @@ Note 2: start=2 beats
 ```
 
 For a frame flip to occur:
+
 ```
 Math.round(endTime1 * 48000) > Math.round(time2 * 48000)
 ```
@@ -319,6 +322,7 @@ Math.round(endTime1 * 48000) > Math.round(time2 * 48000)
 For a 1-frame difference, we'd need ~20μs (1e-5 seconds) of error.
 
 Float precision errors are typically ~1e-15 relative. For a 1-second value:
+
 - Float error ≈ 1e-15 seconds
 - Required error for 1-frame flip ≈ 1e-5 seconds
 - **Difference: 10 orders of magnitude**
