@@ -205,20 +205,14 @@ class AudioManager {
     this.midiSynth.output.connect(this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
-      (_time, event) => {
+      (time, event) => {
+        // Use absolute times (from Tone.Part's `time` parameter) to schedule
+        // both note-on and note-off. This ensures adjacent same-pitch notes
+        // share the exact same frame boundary, preventing timing drift.
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
-
-        // TODO:
-        // our synth doesn't seem to handle note-off to immediate note-on well. (i.e. repeating same notes)
-        // likely our sample/duration convetions are lossy and losing precision of exact note-on/off timing and flipping two.
-        this.midiSynth.triggerAttackRelease(event.pitch, durationSeconds, 100);
-
-        // TODO: this doesn't work either
-        // this.midiSynth.noteOn(event.pitch, 100);
-        // Tone.getContext().transport.scheduleOnce(() => {
-        //   this.midiSynth.noteOff(event.pitch);
-        // }, `+${durationSeconds}`);
+        const endTime = time + durationSeconds;
+        this.midiSynth.scheduleNoteOnOff(event.pitch, time, endTime, 100);
       },
       [],
     );

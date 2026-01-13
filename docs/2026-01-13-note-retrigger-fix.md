@@ -50,6 +50,7 @@ Note 2: start=1, duration=1
 **Actual**: Due to float scheduling drift, F2 might be F1 + 23999 or F1 + 24001
 
 If F2 < (F1 + 24000):
+
 1. Note 2's `note_on` fires first (when message received)
 2. Note 1's `note_off` fires later (in `process()` when frame threshold reached)
 3. Result: **note_on(pitch) → note_off(pitch)** = sound stops immediately
@@ -57,6 +58,7 @@ If F2 < (F1 + 24000):
 ### Why This Happens
 
 The two notes' timings are computed **independently**:
+
 - Note 1's note_off frame: based on when Note 1's message was received + duration
 - Note 2's note_on frame: based on when Note 2's message is received
 
@@ -131,11 +133,13 @@ case "noteOnOff":
 ```
 
 **Pros**:
+
 - Single location fix
 - Handles all edge cases
 - Matches real synthesizer behavior
 
 **Cons**:
+
 - Slightly different behavior (abruptly cuts previous note's release)
 
 ### Option 2: Add Gap Between Adjacent Notes
@@ -159,9 +163,75 @@ Build explicit event list with on/off events, sorted by time then type (off befo
 
 **Cons**: Major refactor of scheduling approach
 
+### Option 4: Use Absolute Frame Scheduling from `time` Parameter
+
+Currently we ignore the `_time` parameter in the Tone.Part callback. This is the **precise audio context time** (in seconds) when the event should occur. By using it to compute absolute frames for both note-on and note-off, we ensure they share the same source of truth.
+
+**Changes required**:
+
+1. **audio.ts** - Pass absolute times instead of duration:
+
+```typescript
+(time, event) => {
+  const endTime = time + (event.duration / Tone.getTransport().bpm.value) * 60;
+  this.midiSynth.scheduleNoteOnOff(event.pitch, time, endTime, 100);
+};
+```
+
+2. **oxisynth-synth.ts** - Convert to absolute frames:
+
+```typescript
+scheduleNoteOnOff(noteNumber: number, startTime: number, endTime: number, velocity: number): void {
+  const startFrame = Math.round(startTime * this.context.sampleRate);
+  const endFrame = Math.round(endTime * this.context.sampleRate);
+  this.postMessage({
+    type: "scheduleNoteOnOff",
+    key: noteNumber,
+    velocity,
+    startFrame,
+    endFrame,
+  });
+}
+```
+
+3. **worklet.js** - Schedule both note-on and note-off:
+
+```js
+case "scheduleNoteOnOff":
+  this.scheduledNoteOns.push({ key: msg.key, velocity: msg.velocity, frame: msg.startFrame });
+  this.scheduledNoteOffs.push({ key: msg.key, frame: msg.endFrame });
+  break;
+
+// In process(), handle both queues with proper ordering:
+// Process note-offs BEFORE note-ons at the same frame
+```
+
+**Result**:
+
+- Note 1 at beat 0-1: startFrame=0, endFrame=24000
+- Note 2 at beat 1-2: startFrame=24000, endFrame=48000
+- Both computed from `time`, ensuring note-off and next note-on share exact same frame
+
+**Pros**:
+
+- Fixes root cause (single source of truth for timing)
+- Sample-accurate scheduling
+- Proper MIDI-style timing
+
+**Cons**:
+
+- Requires changes in 3 files
+- Worklet must process note-offs before note-ons at same frame (ordering guarantee needed)
+- Lookahead needed: Tone.Part fires callbacks ~100ms early, so we're scheduling future frames
+
+**Note**: Even with this fix, the worklet needs to guarantee note-off before note-on ordering at the same frame. This can be done by:
+
+- Processing scheduled note-offs first in `process()`
+- Sorting events by frame, then type (off < on) when multiple events at same frame
+
 ## Implementation Plan
 
-1. Implement Option 1 (voice stealing in worklet)
+1. ~~Implement Option 1 (voice stealing in worklet)~~ → Implemented Option 4 instead
 2. Add comment explaining the behavior
 3. Test with repeated same-pitch notes
 4. Remove TODO comment from `audio.ts`
@@ -176,13 +246,42 @@ Build explicit event list with on/off events, sorted by time then type (off befo
 
 ## Reference Files
 
-- `src/lib/audio.ts` - AudioManager, TODO comment location
-- `src/lib/oxisynth-synth.ts` - OxiSynthSynth wrapper
-- `src/assets/oxisynth/worklet.js` - AudioWorklet processor (fix location)
+- `src/lib/audio.ts` - AudioManager, uses `scheduleNoteOnOff()` with absolute times
+- `src/lib/oxisynth-synth.ts` - OxiSynthSynth wrapper, new `scheduleNoteOnOff()` method
+- `src/assets/oxisynth/worklet.js` - AudioWorklet processor, `scheduleNoteOnOff` handler
 
 ## Status
 
 - [x] Investigation complete
-- [ ] Implementation
+- [x] Implementation (Option 4: absolute frame scheduling)
 - [ ] Testing
-- [ ] TODO comment cleanup
+- [x] TODO comment cleanup
+
+## Additional Notes (2026-01-13)
+
+### Defense-in-Depth: Voice Stealing
+
+The current implementation handles the ordering correctly for the `scheduleNoteOnOff` path by processing note-offs before note-ons at the same frame. However, consider adding **voice stealing** as a belt-and-suspenders measure:
+
+```js
+case "scheduleNoteOnOff":
+  // Voice stealing: cancel pending note-off for same key
+  // This handles edge cases like tempo changes or transport seeking
+  this.scheduledNoteOffs = this.scheduledNoteOffs.filter(e => e.key !== msg.key);
+  this.scheduledNoteOns.push({ ... });
+  this.scheduledNoteOffs.push({ ... });
+  break;
+```
+
+**When this helps:**
+- Tempo changes during playback (absolute frames computed at old tempo)
+- Transport seeking (stale scheduled events)
+- Any race condition we haven't anticipated
+
+**Trade-off:** Abruptly cuts previous note's release tail instead of letting it complete. For most instruments this is imperceptible or even desirable (re-trigger behavior).
+
+### Legacy `noteOnOff` Path
+
+The `noteOnOff` message type (used by `triggerAttackRelease()` for note preview) still has the original race condition. This is acceptable for preview (single notes), but if it's ever used for sequenced playback, the issue would resurface. Consider:
+1. Documenting this limitation in the code
+2. Or applying voice stealing to `noteOnOff` as well
