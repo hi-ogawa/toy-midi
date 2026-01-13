@@ -283,5 +283,52 @@ case "scheduleNoteOnOff":
 ### Legacy `noteOnOff` Path
 
 The `noteOnOff` message type (used by `triggerAttackRelease()` for note preview) still has the original race condition. This is acceptable for preview (single notes), but if it's ever used for sequenced playback, the issue would resurface. Consider:
+
 1. Documenting this limitation in the code
 2. Or applying voice stealing to `noteOnOff` as well
+
+## Float Precision Analysis
+
+After implementing Option 4, the remaining question: could float precision errors in the `Math.round(seconds * sampleRate)` conversion cause a 1-frame flip?
+
+### The Math
+
+At 48kHz sample rate:
+- 1 frame = ~0.0000208 seconds (20.8 microseconds)
+
+JavaScript uses IEEE 754 double-precision floats with ~15-17 significant decimal digits.
+
+### Conversion Chain (Post-Fix)
+
+```
+Note 1: start=1 beat, duration=1 beat (at 120 BPM)
+  time1 = T (from Tone.Part, e.g., 0.5 seconds)
+  endTime1 = T + (1 / 120) * 60 = T + 0.5
+
+Note 2: start=2 beats
+  time2 = scheduled by Tone.js for beat 2
+```
+
+For a frame flip to occur:
+```
+Math.round(endTime1 * 48000) > Math.round(time2 * 48000)
+```
+
+### Why It's Practically Impossible
+
+For a 1-frame difference, we'd need ~20μs (1e-5 seconds) of error.
+
+Float precision errors are typically ~1e-15 relative. For a 1-second value:
+- Float error ≈ 1e-15 seconds
+- Required error for 1-frame flip ≈ 1e-5 seconds
+- **Difference: 10 orders of magnitude**
+
+The float error would need to be ~10 billion times larger than typical IEEE 754 double precision errors to cause a 1-frame flip.
+
+### Remaining Theoretical Risk
+
+The only potential issue is if Tone.js's beat→seconds conversion differs from our duration→seconds calculation. But this would be a **consistent offset** (a bug in the math), not random float drift. Such a bug would be immediately obvious in testing.
+
+### Conclusion
+
+**Float precision cannot practically cause frame flips.** The original bug was caused by using completely independent timing sources (worklet's `currentFrame` at message receipt vs. scheduled note-off frame). The fix using absolute times from Tone.Part's `time` parameter eliminates this by deriving both times from the same source.
