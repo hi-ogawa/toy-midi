@@ -239,6 +239,80 @@ test.describe("Transport Controls", () => {
   });
 });
 
+test.describe("Audio Track", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await clickNewProject(page);
+  });
+
+  async function loadAudioFile(page: import("@playwright/test").Page) {
+    const fileInput = page.getByTestId("audio-file-input");
+    const testAudioPath = path.join(
+      import.meta.dirname,
+      "../public/test-audio.wav",
+    );
+    await fileInput.setInputFiles(testAudioPath);
+    await page.waitForTimeout(500); // Wait for audio to load
+  }
+
+  test("remove audio via settings menu", async ({ page }) => {
+    // Remove button should be disabled when no audio loaded
+    await page.getByTestId("settings-button").click();
+    const removeButton = page.getByTestId("remove-audio-button");
+    await expect(removeButton).toBeDisabled();
+    await page.keyboard.press("Escape");
+
+    // Load audio file
+    await loadAudioFile(page);
+
+    // Verify waveform is visible
+    const audioRegion = page
+      .locator(".bg-emerald-700, .bg-emerald-600")
+      .first();
+    await expect(audioRegion).toBeVisible();
+
+    // Remove button should now be enabled
+    await page.getByTestId("settings-button").click();
+    await expect(removeButton).toBeEnabled();
+    await removeButton.click();
+
+    // Verify audio region is gone
+    await expect(audioRegion).not.toBeVisible();
+  });
+
+  test("select, deselect, and delete audio track", async ({ page }) => {
+    await loadAudioFile(page);
+
+    const audioRegion = page
+      .locator(".bg-emerald-700, .bg-emerald-600")
+      .first();
+    const pianoRoll = page.getByTestId("piano-roll-grid");
+
+    // Click to select - should show ring
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+
+    // Escape to deselect - ring gone but audio still there
+    await page.keyboard.press("Escape");
+    await expect(audioRegion).not.toHaveClass(/ring-2/);
+    await expect(audioRegion).toBeVisible();
+
+    // Click to select again
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+
+    // Click grid to deselect
+    await pianoRoll.click({ position: { x: 200, y: 100 } });
+    await expect(audioRegion).not.toHaveClass(/ring-2/);
+
+    // Click to select and delete with Delete key
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+    await page.keyboard.press("Delete");
+    await expect(audioRegion).not.toBeVisible();
+  });
+});
+
 test.describe("Timeline Seek", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");

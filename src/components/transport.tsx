@@ -9,6 +9,7 @@ import {
   PencilIcon,
   PlayIcon,
   SettingsIcon,
+  Trash2Icon,
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
@@ -21,7 +22,7 @@ import {
   downloadABCFile,
   exportABC,
 } from "../lib/abc-export";
-import { saveAsset } from "../lib/asset-store";
+import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, GM_PROGRAMS, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { useProjectStore } from "../stores/project-store";
@@ -98,6 +99,7 @@ export function Transport({
 }: TransportProps) {
   const {
     audioFileName,
+    audioAssetKey,
     tempo,
     timeSignature,
     notes,
@@ -122,6 +124,7 @@ export function Transport({
     setAudioFile,
     setAudioOffset,
     setAudioPeaks,
+    clearAudioFile,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -157,6 +160,17 @@ export function Transport({
     }
     // Reset input so same file can be selected again
     e.target.value = "";
+  };
+
+  const handleRemoveAudio = async () => {
+    // Delete from IndexedDB if we have a key
+    if (audioAssetKey) {
+      await deleteAsset(audioAssetKey);
+    }
+    // Clear the audio buffer in the player
+    audioManager.clearAudioBuffer();
+    // Clear store state
+    clearAudioFile();
   };
 
   const handlePlayPause = useCallback(() => {
@@ -684,6 +698,16 @@ export function Transport({
           >
             <UploadIcon className="size-4" />
             {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
+          </DropdownMenuItem>
+
+          {/* Remove Audio */}
+          <DropdownMenuItem
+            data-testid="remove-audio-button"
+            onClick={handleRemoveAudio}
+            disabled={!audioFileName}
+          >
+            <Trash2Icon className="size-4" />
+            Remove Audio
           </DropdownMenuItem>
 
           {/* Export MIDI */}
