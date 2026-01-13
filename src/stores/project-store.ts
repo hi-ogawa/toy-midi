@@ -85,6 +85,7 @@ export interface ProjectState {
   // Audio actions
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
+  clearAudioFile: () => void;
 
   // Mixer actions
   setAudioVolume: (volume: number) => void;
@@ -309,6 +310,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }),
 
   setAudioOffset: (offset) => set({ audioOffset: offset }),
+
+  clearAudioFile: () =>
+    set({
+      audioFileName: null,
+      audioAssetKey: null,
+      audioDuration: 0,
+      audioOffset: 0,
+      audioPeaks: [],
+    }),
 
   // Mixer actions
   setAudioVolume: (volume) => set({ audioVolume: volume }),
