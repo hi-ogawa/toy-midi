@@ -1,6 +1,10 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { clickNewProject, evaluateStore, isChannelPlaying } from "./helpers";
+import {
+  clickNewProject,
+  evaluateAudioManager,
+  evaluateStore,
+} from "./helpers";
 
 test.describe("Audio Output", () => {
   test.beforeEach(async ({ page }) => {
@@ -8,22 +12,33 @@ test.describe("Audio Output", () => {
     await clickNewProject(page);
   });
 
-  test("all channels silent when playing empty project", async ({ page }) => {
-    await page.getByTestId("play-pause-button").click();
-    await page.waitForTimeout(500);
+  const silent = expect.closeTo(0, 5);
+  const audible = {
+    asymmetricMatch: (actual: number) => actual > 0.001,
+    toString: () => "audible (> 0.001)",
+  };
 
-    expect(await isChannelPlaying(page, "midi")).toBe(false);
-    expect(await isChannelPlaying(page, "audio")).toBe(false);
-    expect(await isChannelPlaying(page, "metronome")).toBe(false);
+  test("all channels silent when playing empty project", async ({ page }) => {
+    await evaluateAudioManager(page, (mgr) => {
+      mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
+    });
+    await page.getByTestId("play-pause-button").click();
+    await page.waitForTimeout(600);
+
+    const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+    expect(peaks).toEqual({ midi: silent, audio: silent, metronome: silent });
   });
 
   test("metronome produces audio when enabled", async ({ page }) => {
+    await evaluateAudioManager(page, (mgr) => {
+      mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
+    });
     await page.getByTestId("metronome-toggle").click();
     await page.getByTestId("play-pause-button").click();
+    await page.waitForTimeout(600);
 
-    await expect
-      .poll(() => isChannelPlaying(page, "metronome"), { timeout: 3000 })
-      .toBe(true);
+    const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+    expect(peaks).toEqual({ midi: silent, audio: silent, metronome: audible });
   });
 
   test("MIDI note produces audio when playing", async ({ page }) => {
@@ -36,12 +51,14 @@ test.describe("Audio Output", () => {
         velocity: 100,
       });
     });
-
+    await evaluateAudioManager(page, (mgr) => {
+      mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
+    });
     await page.getByTestId("play-pause-button").click();
+    await page.waitForTimeout(500);
 
-    await expect
-      .poll(() => isChannelPlaying(page, "midi"), { timeout: 2000 })
-      .toBe(true);
+    const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+    expect(peaks).toEqual({ midi: audible, audio: silent, metronome: silent });
   });
 
   test("audio track produces audio when playing", async ({ page }) => {
@@ -53,10 +70,13 @@ test.describe("Audio Output", () => {
     await fileInput.setInputFiles(testAudioPath);
     await page.waitForTimeout(500);
 
+    await evaluateAudioManager(page, (mgr) => {
+      mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
+    });
     await page.getByTestId("play-pause-button").click();
+    await page.waitForTimeout(500);
 
-    await expect
-      .poll(() => isChannelPlaying(page, "audio"), { timeout: 2000 })
-      .toBe(true);
+    const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+    expect(peaks).toEqual({ midi: silent, audio: audible, metronome: silent });
   });
 });

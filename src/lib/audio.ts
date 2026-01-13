@@ -187,6 +187,7 @@ class AudioManager {
     audio: Tone.Waveform;
     metronome: Tone.Waveform;
   };
+  peakLevels = { midi: 0, audio: 0, metronome: 0 };
 
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
@@ -261,6 +262,17 @@ class AudioManager {
     this.midiChannel.connect(this.analysers.midi);
     this.audioChannel.connect(this.analysers.audio);
     this.metronomeChannel.connect(this.analysers.metronome);
+
+    // Peak-hold tracking for E2E testing (updates every 50ms during playback)
+    Tone.getTransport().scheduleRepeat(() => {
+      for (const ch of ["midi", "audio", "metronome"] as const) {
+        const samples = this.analysers[ch].getValue() as Float32Array;
+        for (const s of samples) {
+          const abs = Math.abs(s);
+          if (abs > this.peakLevels[ch]) this.peakLevels[ch] = abs;
+        }
+      }
+    }, 0.05);
   }
 
   /**

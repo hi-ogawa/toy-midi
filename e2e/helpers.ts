@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import type { audioManager } from "../src/lib/audio";
 import type { useProjectStore } from "../src/stores/project-store";
 
 // Type for the exposed store on window
@@ -61,24 +62,27 @@ export async function evaluateStore<T>(
 
 // Audio test helpers
 
-export async function isChannelPlaying(
+type AudioManagerType = typeof audioManager;
+
+/**
+ * Evaluate a function against the AudioManager in the browser context.
+ * Only available in dev mode where globalThis.__audioManager is exposed.
+ *
+ * @example
+ * const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+ */
+export async function evaluateAudioManager<T>(
   page: Page,
-  channel: "midi" | "audio" | "metronome",
-): Promise<boolean> {
-  const THRESHOLD = 0.01;
-  return page.evaluate(
-    ({ ch, threshold }) => {
-      const mgr = (
-        globalThis as {
-          __audioManager?: {
-            analysers: Record<string, { getValue: () => Float32Array }>;
-          };
-        }
-      ).__audioManager;
-      if (!mgr) throw new Error("__audioManager not available");
-      const samples = mgr.analysers[ch].getValue();
-      return samples.some((s) => Math.abs(s) > threshold);
-    },
-    { ch: channel, threshold: THRESHOLD },
-  );
+  fn: (mgr: AudioManagerType) => T,
+): Promise<T> {
+  return page.evaluate((fnStr) => {
+    const mgr = (globalThis as { __audioManager?: AudioManagerType })
+      .__audioManager;
+    if (!mgr) {
+      throw new Error("__audioManager not available. Is the app running?");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const evalFn = new Function("mgr", `return (${fnStr})(mgr)`);
+    return evalFn(mgr) as T;
+  }, fn.toString());
 }
