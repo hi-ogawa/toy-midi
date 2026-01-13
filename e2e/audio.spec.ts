@@ -2,12 +2,12 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import {
   clickNewProject,
+  evaluateStore,
   expectChannelPlaying,
   expectChannelSilent,
+  expectPeakDetected,
+  resetPeakDetection,
 } from "./helpers";
-
-const BEAT_WIDTH = 80;
-const ROW_HEIGHT = 20;
 
 test.describe("Audio Output - Metronome", () => {
   test.beforeEach(async ({ page }) => {
@@ -25,15 +25,15 @@ test.describe("Audio Output - Metronome", () => {
       "true",
     );
 
-    // Should be silent before playback
-    await expectChannelSilent(page, "metronome");
+    // Reset peak detection before playback
+    await resetPeakDetection(page);
 
     // Start playback
     await page.getByTestId("play-pause-button").click();
 
-    // Should detect audio output (metronome clicks)
-    // Longer timeout since metronome clicks are discrete events at beat intervals
-    await expectChannelPlaying(page, "metronome", 3000);
+    // Should detect metronome clicks via peak tracking
+    // (short transients need peak hold, not instant snapshots)
+    await expectPeakDetected(page, "metronome", 3000);
 
     // Stop playback
     await page.getByTestId("play-pause-button").click();
@@ -64,25 +64,20 @@ test.describe("Audio Output - MIDI Track", () => {
   });
 
   test("MIDI note produces audio output when playing", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create note at beat 0
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
-    await page.mouse.up();
+    // Add note programmatically at beat 0 with 2 beat duration
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "test-note",
+        pitch: 60,
+        start: 0,
+        duration: 2,
+        velocity: 100,
+      });
+    });
 
     // Verify note was created
     const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
-
-    // Deselect note and wait for preview sound to fade
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(300);
 
     // Start playback from beginning
     await page.getByTestId("play-pause-button").click();

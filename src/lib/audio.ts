@@ -449,6 +449,10 @@ export async function loadAudioFile(file: File): Promise<{
 
 // Expose debug interface for E2E testing
 if (import.meta.env.DEV) {
+  // Peak tracking for detecting short transient sounds (like metronome clicks)
+  const peakDetected = { midi: false, audio: false, metronome: false };
+  const THRESHOLD = 0.01;
+
   (window as Window & { __audioDebug?: AudioDebugInterface }).__audioDebug = {
     getState: () => ({
       contextState: Tone.getContext().state,
@@ -460,9 +464,22 @@ if (import.meta.env.DEV) {
       audioManager.getWaveformSamples(channel),
     isChannelPlaying: (channel: "midi" | "audio" | "metronome") => {
       const samples = audioManager.getWaveformSamples(channel);
-      const threshold = 0.01;
-      return samples.some((s) => Math.abs(s) > threshold);
+      return samples.some((s) => Math.abs(s) > THRESHOLD);
     },
+    // Peak tracking for transient detection
+    resetPeakDetection: () => {
+      peakDetected.midi = false;
+      peakDetected.audio = false;
+      peakDetected.metronome = false;
+    },
+    updatePeakDetection: (channel: "midi" | "audio" | "metronome") => {
+      const samples = audioManager.getWaveformSamples(channel);
+      if (samples.some((s) => Math.abs(s) > THRESHOLD)) {
+        peakDetected[channel] = true;
+      }
+    },
+    wasPeakDetected: (channel: "midi" | "audio" | "metronome") =>
+      peakDetected[channel],
   };
 }
 
@@ -475,4 +492,7 @@ export interface AudioDebugInterface {
   };
   getWaveform: (channel: "midi" | "audio" | "metronome") => Float32Array;
   isChannelPlaying: (channel: "midi" | "audio" | "metronome") => boolean;
+  resetPeakDetection: () => void;
+  updatePeakDetection: (channel: "midi" | "audio" | "metronome") => void;
+  wasPeakDetected: (channel: "midi" | "audio" | "metronome") => boolean;
 }

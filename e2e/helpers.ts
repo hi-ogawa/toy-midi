@@ -107,3 +107,44 @@ export async function expectChannelSilent(page: Page, channel: AudioChannel) {
   const playing = await isChannelPlaying(page, channel);
   expect(playing).toBe(false);
 }
+
+// Peak detection helpers for transient sounds (like metronome clicks)
+
+export async function resetPeakDetection(page: Page) {
+  await page.evaluate(() => {
+    const debug = (window as Window & { __audioDebug?: AudioDebugInterface })
+      .__audioDebug;
+    if (!debug) throw new Error("__audioDebug not available");
+    debug.resetPeakDetection();
+  });
+}
+
+export async function wasPeakDetected(
+  page: Page,
+  channel: AudioChannel,
+): Promise<boolean> {
+  return page.evaluate((ch) => {
+    const debug = (window as Window & { __audioDebug?: AudioDebugInterface })
+      .__audioDebug;
+    if (!debug) throw new Error("__audioDebug not available");
+    debug.updatePeakDetection(ch);
+    return debug.wasPeakDetected(ch);
+  }, channel);
+}
+
+/**
+ * Wait for peak audio to be detected on a channel.
+ * Uses peak tracking which persists across polls - better for short transients.
+ */
+export async function expectPeakDetected(
+  page: Page,
+  channel: AudioChannel,
+  timeout = 2000,
+) {
+  await expect
+    .poll(() => wasPeakDetected(page, channel), {
+      timeout,
+      message: `Expected peak audio on ${channel} channel`,
+    })
+    .toBe(true);
+}
