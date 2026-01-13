@@ -210,8 +210,8 @@ Tone.js provides `Tone.getDraw()` - a RAF-backed audio→UI sync mechanism. Curr
 ### How Draw works
 
 ```typescript
-Tone.getDraw().schedule(callback, time)  // Schedule at audio time
-Tone.getDraw().cancel(after)              // Cancel events
+Tone.getDraw().schedule(callback, time); // Schedule at audio time
+Tone.getDraw().cancel(after); // Cancel events
 ```
 
 - `anticipation` (8ms): Look-ahead window before scheduled time
@@ -220,11 +220,11 @@ Tone.getDraw().cancel(after)              // Cancel events
 
 ### Draw vs RAF polling
 
-| Aspect              | Current (RAF polling)        | Draw                                |
-| ------------------- | ---------------------------- | ----------------------------------- |
-| Model               | Poll position every frame    | Schedule callback at specific time  |
-| Time reference      | `Transport.seconds`          | `AudioContext.currentTime`          |
-| Use case            | Continuous (playhead)        | Discrete events (note triggers)     |
+| Aspect         | Current (RAF polling)     | Draw                               |
+| -------------- | ------------------------- | ---------------------------------- |
+| Model          | Poll position every frame | Schedule callback at specific time |
+| Time reference | `Transport.seconds`       | `AudioContext.currentTime`         |
+| Use case       | Continuous (playhead)     | Discrete events (note triggers)    |
 
 ### Would Draw help useTransport?
 
