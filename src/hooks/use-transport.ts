@@ -38,6 +38,12 @@ export function useTransport() {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      // TODO: some state isn't synchronously updated before event is fired
+      if (!state.isPlaying) {
+        queueMicrotask(() => {
+          setTransportState(deriveState());
+        });
+      }
     }
 
     const disposes: (() => void)[] = [];
@@ -47,15 +53,10 @@ export function useTransport() {
       disposes.push(() => Tone.getTransport().off(e, handler));
     }
 
-    // Listen for seek events (fired by audioManager.seek())
-    const seekHandler = () => setTransportState(deriveState());
-    window.addEventListener("transport-seek", seekHandler);
-
     return () => {
       for (const dispose of disposes) {
         dispose();
       }
-      window.removeEventListener("transport-seek", seekHandler);
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
       }

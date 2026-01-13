@@ -290,7 +290,6 @@ class AudioManager {
 
   seek(seconds: number): void {
     Tone.getTransport().seconds = Math.max(0, seconds);
-    window.dispatchEvent(new Event("transport-seek"));
   }
 
   syncAudioTrack(offset: number): void {
