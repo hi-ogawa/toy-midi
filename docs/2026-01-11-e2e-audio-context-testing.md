@@ -430,6 +430,8 @@ test("loaded audio produces output when playing", async ({ page }) => {
 ## Status
 
 - [x] Research complete
-- [ ] Awaiting user feedback on approach
-- [ ] Implementation
-- [ ] Tests passing
+- [x] Awaiting user feedback on approach
+- [x] Implementation (metronome channel)
+- [x] Tests passing (metronome)
+- [ ] MIDI track audio tests
+- [ ] Audio track tests

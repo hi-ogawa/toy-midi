@@ -183,6 +183,11 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence;
   private metronomeChannel!: Tone.Channel;
 
+  // Per-channel analysers for E2E testing
+  private midiAnalyser!: Tone.Waveform;
+  private audioAnalyser!: Tone.Waveform;
+  private metronomeAnalyser!: Tone.Waveform;
+
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
 
@@ -246,6 +251,25 @@ class AudioManager {
       "4n",
     );
     this.metronomeSeq.start(0);
+
+    // Per-channel waveform analysers for E2E audio testing
+    this.midiAnalyser = new Tone.Waveform(1024);
+    this.audioAnalyser = new Tone.Waveform(1024);
+    this.metronomeAnalyser = new Tone.Waveform(1024);
+    this.midiChannel.connect(this.midiAnalyser);
+    this.audioChannel.connect(this.audioAnalyser);
+    this.metronomeChannel.connect(this.metronomeAnalyser);
+  }
+
+  // For E2E testing - get current waveform samples per channel
+  getWaveformSamples(channel: "midi" | "audio" | "metronome"): Float32Array {
+    const analyser =
+      channel === "midi"
+        ? this.midiAnalyser
+        : channel === "audio"
+          ? this.audioAnalyser
+          : this.metronomeAnalyser;
+    return analyser.getValue() as Float32Array;
   }
 
   /**
@@ -421,4 +445,34 @@ export async function loadAudioFile(file: File): Promise<{
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+// Expose debug interface for E2E testing
+if (import.meta.env.DEV) {
+  (window as Window & { __audioDebug?: AudioDebugInterface }).__audioDebug = {
+    getState: () => ({
+      contextState: Tone.getContext().state,
+      transportState: Tone.getTransport().state,
+      position: Tone.getTransport().seconds,
+      bpm: Tone.getTransport().bpm.value,
+    }),
+    getWaveform: (channel: "midi" | "audio" | "metronome") =>
+      audioManager.getWaveformSamples(channel),
+    isChannelPlaying: (channel: "midi" | "audio" | "metronome") => {
+      const samples = audioManager.getWaveformSamples(channel);
+      const threshold = 0.01;
+      return samples.some((s) => Math.abs(s) > threshold);
+    },
+  };
+}
+
+export interface AudioDebugInterface {
+  getState: () => {
+    contextState: AudioContextState;
+    transportState: Tone.PlaybackState;
+    position: number;
+    bpm: number;
+  };
+  getWaveform: (channel: "midi" | "audio" | "metronome") => Float32Array;
+  isChannelPlaying: (channel: "midi" | "audio" | "metronome") => boolean;
 }

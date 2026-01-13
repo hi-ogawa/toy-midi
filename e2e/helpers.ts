@@ -1,4 +1,6 @@
 import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import type { AudioDebugInterface } from "../src/lib/audio";
 import type { useProjectStore } from "../src/stores/project-store";
 
 // Type for the exposed store on window
@@ -57,4 +59,51 @@ export async function evaluateStore<T>(
     const evalFn = new Function("store", `return (${fnStr})(store)`);
     return evalFn(store) as T;
   }, fn.toString());
+}
+
+// Audio debug helpers
+
+type AudioChannel = "midi" | "audio" | "metronome";
+
+export async function getAudioState(page: Page) {
+  return page.evaluate(() => {
+    const debug = (window as Window & { __audioDebug?: AudioDebugInterface })
+      .__audioDebug;
+    if (!debug) throw new Error("__audioDebug not available");
+    return debug.getState();
+  });
+}
+
+export async function isChannelPlaying(
+  page: Page,
+  channel: AudioChannel,
+): Promise<boolean> {
+  return page.evaluate((ch) => {
+    const debug = (window as Window & { __audioDebug?: AudioDebugInterface })
+      .__audioDebug;
+    if (!debug) throw new Error("__audioDebug not available");
+    return debug.isChannelPlaying(ch);
+  }, channel);
+}
+
+/**
+ * Wait for audio to be detected on a specific channel (non-silent output).
+ * Polls repeatedly since audio may take time to start.
+ */
+export async function expectChannelPlaying(
+  page: Page,
+  channel: AudioChannel,
+  timeout = 2000,
+) {
+  await expect
+    .poll(() => isChannelPlaying(page, channel), {
+      timeout,
+      message: `Expected ${channel} channel to be playing (non-silent)`,
+    })
+    .toBe(true);
+}
+
+export async function expectChannelSilent(page: Page, channel: AudioChannel) {
+  const playing = await isChannelPlaying(page, channel);
+  expect(playing).toBe(false);
 }
