@@ -479,6 +479,7 @@ let soundfontPlayer = null;
 class OxiSynthProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
+    this.scheduledNoteOns = []; // [{key, velocity, frame}, ...]
     this.scheduledNoteOffs = []; // [{key, frame}, ...]
     this.port.onmessage = (e) => this.handleMessage(e.data);
   }
@@ -498,11 +499,24 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
         soundfontPlayer?.note_off(msg.key);
         break;
       case "noteOnOff":
-        // Note on immediately, schedule note off
+        // Note on immediately, schedule note off (legacy - used for preview)
         soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
         this.scheduledNoteOffs.push({
           key: msg.key,
           frame: currentFrame + msg.durationSamples,
+        });
+        break;
+      case "scheduleNoteOnOff":
+        // Schedule both note-on and note-off at absolute frames
+        // This ensures proper ordering for adjacent same-pitch notes
+        this.scheduledNoteOns.push({
+          key: msg.key,
+          velocity: msg.velocity ?? 127,
+          frame: msg.startFrame,
+        });
+        this.scheduledNoteOffs.push({
+          key: msg.key,
+          frame: msg.endFrame,
         });
         break;
       case "addSoundfont":
@@ -532,10 +546,20 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     const out_r = outputs[0]?.[1];
     if (!soundfontPlayer || !out_l || !out_r) return true;
 
-    // Process scheduled noteOffs
+    // Process note-offs FIRST to ensure proper ordering when
+    // note-off and note-on occur at the same frame
     this.scheduledNoteOffs = this.scheduledNoteOffs.filter((event) => {
       if (currentFrame >= event.frame) {
         soundfontPlayer.note_off(event.key);
+        return false;
+      }
+      return true;
+    });
+
+    // Then process note-ons
+    this.scheduledNoteOns = this.scheduledNoteOns.filter((event) => {
+      if (currentFrame >= event.frame) {
+        soundfontPlayer.note_on(event.key, event.velocity);
         return false;
       }
       return true;

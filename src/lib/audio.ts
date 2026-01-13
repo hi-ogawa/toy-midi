@@ -205,10 +205,14 @@ class AudioManager {
     this.midiSynth.output.connect(this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
-      (_time, event) => {
+      (time, event) => {
+        // Use absolute times (from Tone.Part's `time` parameter) to schedule
+        // both note-on and note-off. This ensures adjacent same-pitch notes
+        // share the exact same frame boundary, preventing timing drift.
         const durationSeconds =
           (event.duration / Tone.getTransport().bpm.value) * 60;
-        this.midiSynth.triggerAttackRelease(event.pitch, durationSeconds, 100);
+        const endTime = time + durationSeconds;
+        this.midiSynth.scheduleNoteOnOff(event.pitch, time, endTime, 100);
       },
       [],
     );
@@ -322,6 +326,15 @@ class AudioManager {
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
+  }
+
+  // Note preview with manual control (for keyboard interaction)
+  noteOn(pitch: number): void {
+    this.midiSynth.noteOn(pitch, 100);
+  }
+
+  noteOff(pitch: number): void {
+    this.midiSynth.noteOff(pitch);
   }
 
   // Volume controls (0-1)
