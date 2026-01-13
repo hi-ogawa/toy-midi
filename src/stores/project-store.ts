@@ -25,6 +25,7 @@ export interface ProjectState {
   audioAssetKey: string | null; // Reference to IndexedDB asset
   audioDuration: number; // in seconds
   audioOffset: number; // in seconds - timeline position where audio starts (>= 0)
+  isAudioTrackSelected: boolean;
 
   // Mixer state
   audioVolume: number; // 0-1
@@ -86,6 +87,7 @@ export interface ProjectState {
   setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
   setAudioOffset: (offset: number) => void;
   clearAudioFile: () => void;
+  setAudioTrackSelected: (selected: boolean) => void;
 
   // Mixer actions
   setAudioVolume: (volume: number) => void;
@@ -137,6 +139,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   audioAssetKey: null,
   audioDuration: 0,
   audioOffset: 0,
+  isAudioTrackSelected: false,
 
   // Mixer state
   audioVolume: 0.8,
@@ -318,7 +321,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       audioDuration: 0,
       audioOffset: 0,
       audioPeaks: [],
+      isAudioTrackSelected: false,
     }),
+
+  setAudioTrackSelected: (selected) => set({ isAudioTrackSelected: selected }),
 
   // Mixer actions
   setAudioVolume: (volume) => set({ audioVolume: volume }),

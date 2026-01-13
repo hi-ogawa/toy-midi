@@ -3,9 +3,12 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   webServer: {
-    command: "VITE_AUTO_SAVE_DEBOUNCE_MS=50 pnpm dev --port 5183",
+    command: "pnpm dev --port 5183",
     url: "http://localhost:5183",
     reuseExistingServer: false,
+    env: {
+      VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
+    },
   },
   use: {
     baseURL: "http://localhost:5183",
