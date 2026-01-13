@@ -171,22 +171,15 @@ export const GM_PROGRAMS = [
  */
 class AudioManager {
   private midiSynth!: OxiSynthSynth;
-  private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
-
-  // audio track
-  player!: Tone.Player;
-  private audioChannel!: Tone.Channel;
-
-  // metronome
   private metronome!: Tone.Synth;
   private metronomeSeq!: Tone.Sequence;
-  private metronomeChannel!: Tone.Channel;
 
-  // Per-channel analysers for E2E testing
-  private midiAnalyser!: Tone.Waveform;
-  private audioAnalyser!: Tone.Waveform;
-  private metronomeAnalyser!: Tone.Waveform;
+  // Public for audio routing and E2E testing
+  player!: Tone.Player;
+  midiChannel!: Tone.Channel;
+  audioChannel!: Tone.Channel;
+  metronomeChannel!: Tone.Channel;
 
   async init(): Promise<void> {
     await Tone.start(); // Resume audio context (browser autoplay policy)
@@ -251,25 +244,6 @@ class AudioManager {
       "4n",
     );
     this.metronomeSeq.start(0);
-
-    // Per-channel waveform analysers for E2E audio testing
-    this.midiAnalyser = new Tone.Waveform(1024);
-    this.audioAnalyser = new Tone.Waveform(1024);
-    this.metronomeAnalyser = new Tone.Waveform(1024);
-    this.midiChannel.connect(this.midiAnalyser);
-    this.audioChannel.connect(this.audioAnalyser);
-    this.metronomeChannel.connect(this.metronomeAnalyser);
-  }
-
-  // For E2E testing - get current waveform samples per channel
-  getWaveformSamples(channel: "midi" | "audio" | "metronome"): Float32Array {
-    const analyser =
-      channel === "midi"
-        ? this.midiAnalyser
-        : channel === "audio"
-          ? this.audioAnalyser
-          : this.metronomeAnalyser;
-    return analyser.getValue() as Float32Array;
   }
 
   /**
@@ -447,52 +421,27 @@ export async function loadAudioFile(file: File): Promise<{
   }
 }
 
-// Expose debug interface for E2E testing
-if (import.meta.env.DEV) {
-  // Peak tracking for detecting short transient sounds (like metronome clicks)
-  const peakDetected = { midi: false, audio: false, metronome: false };
-  const THRESHOLD = 0.01;
-
-  (window as Window & { __audioDebug?: AudioDebugInterface }).__audioDebug = {
-    getState: () => ({
-      contextState: Tone.getContext().state,
-      transportState: Tone.getTransport().state,
-      position: Tone.getTransport().seconds,
-      bpm: Tone.getTransport().bpm.value,
-    }),
-    getWaveform: (channel: "midi" | "audio" | "metronome") =>
-      audioManager.getWaveformSamples(channel),
-    isChannelPlaying: (channel: "midi" | "audio" | "metronome") => {
-      const samples = audioManager.getWaveformSamples(channel);
-      return samples.some((s) => Math.abs(s) > THRESHOLD);
-    },
-    // Peak tracking for transient detection
-    resetPeakDetection: () => {
-      peakDetected.midi = false;
-      peakDetected.audio = false;
-      peakDetected.metronome = false;
-    },
-    updatePeakDetection: (channel: "midi" | "audio" | "metronome") => {
-      const samples = audioManager.getWaveformSamples(channel);
-      if (samples.some((s) => Math.abs(s) > THRESHOLD)) {
-        peakDetected[channel] = true;
-      }
-    },
-    wasPeakDetected: (channel: "midi" | "audio" | "metronome") =>
-      peakDetected[channel],
-  };
+// Expose debug interface for E2E testing (analysers connected lazily on first use)
+export interface AudioDebugInterface {
+  getWaveform: (channel: "midi" | "audio" | "metronome") => Float32Array;
 }
 
-export interface AudioDebugInterface {
-  getState: () => {
-    contextState: AudioContextState;
-    transportState: Tone.PlaybackState;
-    position: number;
-    bpm: number;
+if (import.meta.env.DEV) {
+  let analysers: Record<string, Tone.Waveform> | null = null;
+
+  (window as Window & { __audioDebug?: AudioDebugInterface }).__audioDebug = {
+    getWaveform: (channel) => {
+      if (!analysers) {
+        analysers = {
+          midi: new Tone.Waveform(1024),
+          audio: new Tone.Waveform(1024),
+          metronome: new Tone.Waveform(1024),
+        };
+        audioManager.midiChannel.connect(analysers.midi);
+        audioManager.audioChannel.connect(analysers.audio);
+        audioManager.metronomeChannel.connect(analysers.metronome);
+      }
+      return analysers[channel].getValue() as Float32Array;
+    },
   };
-  getWaveform: (channel: "midi" | "audio" | "metronome") => Float32Array;
-  isChannelPlaying: (channel: "midi" | "audio" | "metronome") => boolean;
-  resetPeakDetection: () => void;
-  updatePeakDetection: (channel: "midi" | "audio" | "metronome") => void;
-  wasPeakDetected: (channel: "midi" | "audio" | "metronome") => boolean;
 }

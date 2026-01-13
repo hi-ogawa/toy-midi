@@ -1,13 +1,6 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import {
-  clickNewProject,
-  evaluateStore,
-  expectChannelPlaying,
-  expectChannelSilent,
-  expectPeakDetected,
-  resetPeakDetection,
-} from "./helpers";
+import { clickNewProject, evaluateStore, isChannelPlaying } from "./helpers";
 
 test.describe("Audio Output", () => {
   test.beforeEach(async ({ page }) => {
@@ -16,27 +9,21 @@ test.describe("Audio Output", () => {
   });
 
   test("all channels silent when playing empty project", async ({ page }) => {
-    // Default state: no notes, no audio file, metronome disabled
     await page.getByTestId("play-pause-button").click();
     await page.waitForTimeout(500);
 
-    await expectChannelSilent(page, "midi");
-    await expectChannelSilent(page, "audio");
-    await expectChannelSilent(page, "metronome");
+    expect(await isChannelPlaying(page, "midi")).toBe(false);
+    expect(await isChannelPlaying(page, "audio")).toBe(false);
+    expect(await isChannelPlaying(page, "metronome")).toBe(false);
   });
 
   test("metronome produces audio when enabled", async ({ page }) => {
     await page.getByTestId("metronome-toggle").click();
-    await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-
-    await resetPeakDetection(page);
     await page.getByTestId("play-pause-button").click();
 
-    // Peak tracking for short transient clicks
-    await expectPeakDetected(page, "metronome", 3000);
+    await expect
+      .poll(() => isChannelPlaying(page, "metronome"), { timeout: 3000 })
+      .toBe(true);
   });
 
   test("MIDI note produces audio when playing", async ({ page }) => {
@@ -51,7 +38,10 @@ test.describe("Audio Output", () => {
     });
 
     await page.getByTestId("play-pause-button").click();
-    await expectChannelPlaying(page, "midi");
+
+    await expect
+      .poll(() => isChannelPlaying(page, "midi"), { timeout: 2000 })
+      .toBe(true);
   });
 
   test("audio track produces audio when playing", async ({ page }) => {
@@ -64,6 +54,9 @@ test.describe("Audio Output", () => {
     await page.waitForTimeout(500);
 
     await page.getByTestId("play-pause-button").click();
-    await expectChannelPlaying(page, "audio");
+
+    await expect
+      .poll(() => isChannelPlaying(page, "audio"), { timeout: 2000 })
+      .toBe(true);
   });
 });
