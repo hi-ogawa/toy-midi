@@ -16,6 +16,7 @@ When paused, clicking the timeline to jump to a position has noticeable lag (~30
 **Fix**: Isolate `useTransport()` into small leaf components (`PlayPauseButton`, `TimeDisplay`). Transport no longer subscribes, so the expensive Select doesn't re-render on position changes.
 
 **Future considerations**:
+
 - React Compiler could auto-memoize and prevent this class of issues
 - Selector pattern `useTransport(s => s.isPlaying)` would also help
 
@@ -234,11 +235,13 @@ Tone.js Transport (source of truth)
 **Why this wasn't visible during playback**: RAF updates at 60fps during playback work fine because React batches rapid updates. The seek event while paused triggered a single expensive re-render that wasn't batched.
 
 **Fix**: Isolate `useTransport()` subscriptions into small leaf components:
+
 - `PlayPauseButton` - subscribes to `isPlaying`, handles Space key
 - `TimeDisplay` - subscribes to `position`
 - `Transport` - no longer uses `useTransport()`, expensive Select doesn't re-render
 
 **Future considerations**:
+
 - React Compiler could auto-memoize and prevent this class of issues
 - Selector pattern for `useTransport(s => s.isPlaying)` would also help
 - Split hooks (`useTransportIsPlaying()`, `useTransportPosition()`) as alternative
