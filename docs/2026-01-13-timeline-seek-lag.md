@@ -2,9 +2,30 @@
 
 ## Problem
 
-When paused, clicking the timeline to jump to a position has noticeable lag before the playhead updates. The issue is less perceptible during playback due to the RAF loop.
+When paused, clicking the timeline to jump to a position has noticeable lag (~300ms) before the playhead updates.
 
-## Root Cause
+## Actual Root Cause
+
+**The initial analysis below was wrong.** The real issue was re-render performance:
+
+- `Transport` component used `useTransport()` which returns `{ isPlaying, position }`
+- Even destructuring only `isPlaying`, the component re-renders when `position` changes (new object reference)
+- Transport contains instrument `Select` with **128 GM_PROGRAMS items**
+- Every seek → Transport re-renders → 128 SelectItems re-render → ~300ms lag
+
+**Fix**: Isolate `useTransport()` into small leaf components (`PlayPauseButton`, `TimeDisplay`). Transport no longer subscribes, so the expensive Select doesn't re-render on position changes.
+
+**Future considerations**:
+- React Compiler could auto-memoize and prevent this class of issues
+- Selector pattern `useTransport(s => s.isPlaying)` would also help
+
+---
+
+## Initial Analysis (incorrect)
+
+_The analysis below was our initial hypothesis, but testing showed the lag was from re-renders, not missing events._
+
+### Original Hypothesis
 
 The `useTransport` hook (`src/hooks/use-transport.ts`) relies on Tone.js transport events to detect position changes:
 
@@ -203,6 +224,25 @@ Tone.js Transport (source of truth)
 
 **2026-01-13**: Clarified paradigm. Transport position uses Tone.js as source of truth (not store). RAF is already a "poke" mechanism during playback. Adding a seek event is completing this paradigm, not breaking store principles. `lastPlayheadPosition` (for persistence) is a separate concern.
 
+**2026-01-13**: Found the real performance issue. After implementing Option B, there was still ~300ms lag. Chrome Performance + React 19 component tree revealed:
+
+- `Transport` component used `useTransport()` which returns `{ isPlaying, position }`
+- Even destructuring only `isPlaying`, the component re-renders when `position` changes (new object reference)
+- Transport contains instrument `Select` with **128 GM_PROGRAMS items** (16 groups × 8 items)
+- Every position change → Transport re-renders → 128 SelectItems re-render
+
+**Why this wasn't visible during playback**: RAF updates at 60fps during playback work fine because React batches rapid updates. The seek event while paused triggered a single expensive re-render that wasn't batched.
+
+**Fix**: Isolate `useTransport()` subscriptions into small leaf components:
+- `PlayPauseButton` - subscribes to `isPlaying`, handles Space key
+- `TimeDisplay` - subscribes to `position`
+- `Transport` - no longer uses `useTransport()`, expensive Select doesn't re-render
+
+**Future considerations**:
+- React Compiler could auto-memoize and prevent this class of issues
+- Selector pattern for `useTransport(s => s.isPlaying)` would also help
+- Split hooks (`useTransportIsPlaying()`, `useTransportPosition()`) as alternative
+
 ## Future: Tone.getDraw() API
 
 Tone.js provides `Tone.getDraw()` - a RAF-backed audio→UI sync mechanism. Currently `useTransport` rolls its own RAF loop.
@@ -244,6 +284,9 @@ transport.scheduleRepeat((time) => {
 
 ## Status
 
-- **Done**: Root cause analysis, paradigm clarification, implementation (Option B)
-- **Remaining**: Manual testing
+- **Done**:
+  - Root cause analysis, paradigm clarification
+  - Implementation (Option B - seek event)
+  - Performance fix (isolate Transport re-renders)
+- **Remaining**: None
 - **Blockers**: None

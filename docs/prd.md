@@ -172,6 +172,7 @@ _Chores/Refactoring_
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
 - [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
+- [ ] chore: setup React Compiler for automatic memoization (reduce manual re-render optimization)
 
 ### Backlog
 
