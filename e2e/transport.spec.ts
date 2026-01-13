@@ -256,18 +256,23 @@ test.describe("Audio Track", () => {
   }
 
   test("remove audio via settings menu", async ({ page }) => {
+    // Remove button should be disabled when no audio loaded
+    await page.getByTestId("settings-button").click();
+    const removeButton = page.getByTestId("remove-audio-button");
+    await expect(removeButton).toBeDisabled();
+    await page.keyboard.press("Escape");
+
     // Load audio file
     await loadAudioFile(page);
 
-    // Verify waveform is visible (audio region exists)
+    // Verify waveform is visible
     const audioRegion = page
       .locator(".bg-emerald-700, .bg-emerald-600")
       .first();
     await expect(audioRegion).toBeVisible();
 
-    // Open settings and click Remove Audio
+    // Remove button should now be enabled
     await page.getByTestId("settings-button").click();
-    const removeButton = page.getByTestId("remove-audio-button");
     await expect(removeButton).toBeEnabled();
     await removeButton.click();
 
@@ -275,79 +280,36 @@ test.describe("Audio Track", () => {
     await expect(audioRegion).not.toBeVisible();
   });
 
-  test("remove audio button is disabled when no audio loaded", async ({
-    page,
-  }) => {
-    await page.getByTestId("settings-button").click();
-    const removeButton = page.getByTestId("remove-audio-button");
-    await expect(removeButton).toBeDisabled();
-  });
-
-  test("select audio track by clicking", async ({ page }) => {
+  test("select, deselect, and delete audio track", async ({ page }) => {
     await loadAudioFile(page);
 
-    // Click on the audio region to select it
     const audioRegion = page
       .locator(".bg-emerald-700, .bg-emerald-600")
       .first();
-    await audioRegion.click();
-
-    // Should have ring-2 class when selected
-    await expect(audioRegion).toHaveClass(/ring-2/);
-  });
-
-  test("delete selected audio track with Delete key", async ({ page }) => {
-    await loadAudioFile(page);
-
-    // Click on the audio region to select it
-    const audioRegion = page
-      .locator(".bg-emerald-700, .bg-emerald-600")
-      .first();
-    await audioRegion.click();
-    await expect(audioRegion).toHaveClass(/ring-2/);
-
-    // Press Delete to remove the audio
-    await page.keyboard.press("Delete");
-
-    // Verify audio region is gone
-    await expect(audioRegion).not.toBeVisible();
-  });
-
-  test("deselect audio track with Escape key", async ({ page }) => {
-    await loadAudioFile(page);
-
-    // Click on the audio region to select it
-    const audioRegion = page
-      .locator(".bg-emerald-700, .bg-emerald-600")
-      .first();
-    await audioRegion.click();
-    await expect(audioRegion).toHaveClass(/ring-2/);
-
-    // Press Escape to deselect
-    await page.keyboard.press("Escape");
-
-    // Should no longer have ring-2 class
-    await expect(audioRegion).not.toHaveClass(/ring-2/);
-    // Audio should still be there (opacity-85 instead of ring-2)
-    await expect(audioRegion).toBeVisible();
-  });
-
-  test("clicking piano roll grid deselects audio track", async ({ page }) => {
-    await loadAudioFile(page);
-
-    // Click on the audio region to select it
-    const audioRegion = page
-      .locator(".bg-emerald-700, .bg-emerald-600")
-      .first();
-    await audioRegion.click();
-    await expect(audioRegion).toHaveClass(/ring-2/);
-
-    // Click on the piano roll grid
     const pianoRoll = page.getByTestId("piano-roll-grid");
-    await pianoRoll.click({ position: { x: 200, y: 100 } });
 
-    // Audio track should be deselected
+    // Click to select - should show ring
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+
+    // Escape to deselect - ring gone but audio still there
+    await page.keyboard.press("Escape");
     await expect(audioRegion).not.toHaveClass(/ring-2/);
+    await expect(audioRegion).toBeVisible();
+
+    // Click to select again
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+
+    // Click grid to deselect
+    await pianoRoll.click({ position: { x: 200, y: 100 } });
+    await expect(audioRegion).not.toHaveClass(/ring-2/);
+
+    // Click to select and delete with Delete key
+    await audioRegion.click();
+    await expect(audioRegion).toHaveClass(/ring-2/);
+    await page.keyboard.press("Delete");
+    await expect(audioRegion).not.toBeVisible();
   });
 });
 
