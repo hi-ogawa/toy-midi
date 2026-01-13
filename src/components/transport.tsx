@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   CircleHelpIcon,
+  ClipboardIcon,
   DownloadIcon,
   FolderIcon,
   MusicIcon,
@@ -12,8 +13,14 @@ import {
   Volume2Icon,
 } from "lucide-react";
 import { useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
+import {
+  copyABCToClipboard,
+  downloadABCFile,
+  exportABC,
+} from "../lib/abc-export";
 import { saveAsset } from "../lib/asset-store";
 import { audioManager, GM_PROGRAMS, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
@@ -235,6 +242,44 @@ export function Transport({
     const fileName = `toy-midi-export-${timestamp}.mid`;
 
     downloadMidiFile(midiData, fileName);
+  };
+
+  const handleExportABC = () => {
+    const abcText = exportABC({
+      notes,
+      tempo,
+      timeSignature,
+      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
+    });
+
+    // Generate filename with timestamp
+    const now = new Date();
+    const timestamp = now
+      .toISOString()
+      .replace(/[T:]/g, "-")
+      .replace(/\.\d+Z$/, "");
+    const fileName = `toy-midi-export-${timestamp}.abc`;
+
+    downloadABCFile(abcText, fileName);
+  };
+
+  const handleCopyABCToClipboard = async () => {
+    try {
+      const abcText = exportABC({
+        notes,
+        tempo,
+        timeSignature,
+        title: audioFileName
+          ? audioFileName.replace(/\.[^.]+$/, "")
+          : "Untitled",
+      });
+
+      await copyABCToClipboard(abcText);
+      toast.success("ABC notation copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy ABC notation:", error);
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   return (
@@ -649,6 +694,26 @@ export function Transport({
           >
             <DownloadIcon className="size-4" />
             Export MIDI
+          </DropdownMenuItem>
+
+          {/* Export ABC - File */}
+          <DropdownMenuItem
+            data-testid="export-abc-button"
+            onClick={handleExportABC}
+            disabled={notes.length === 0}
+          >
+            <DownloadIcon className="size-4" />
+            Export ABC
+          </DropdownMenuItem>
+
+          {/* Export ABC - Clipboard */}
+          <DropdownMenuItem
+            data-testid="copy-abc-button"
+            onClick={handleCopyABCToClipboard}
+            disabled={notes.length === 0}
+          >
+            <ClipboardIcon className="size-4" />
+            Copy ABC to Clipboard
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />
