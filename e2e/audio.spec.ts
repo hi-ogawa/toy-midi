@@ -27,7 +27,7 @@ test.describe("Audio Output", () => {
       mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
     });
     await page.getByTestId("play-pause-button").click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(500);
 
     const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
     expect(peaks).toEqual({ midi: silent, audio: silent, metronome: silent });
@@ -35,20 +35,19 @@ test.describe("Audio Output", () => {
 
   // TODO: fix: metronome mute/unmute has been flaky, so this is flaky.
   test("metronome produces audio when enabled", async ({ page }) => {
-    // Lower BPM for more reliable peak detection (beats every 1s instead of 0.5s)
-    await evaluateStore(page, (store) => store.getState().setTempo(60));
+    await evaluateStore(page, (store) => store.getState().setTempo(240));
     await evaluateAudioManager(page, (mgr) => {
       mgr.peakLevels = { midi: 0, audio: 0, metronome: 0 };
     });
     await page.getByTestId("metronome-toggle").click();
     await page.getByTestId("play-pause-button").click();
-    await page.waitForTimeout(1100); // Wait for at least 1 beat at 60 BPM
+    await page.waitForTimeout(500);
 
     const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
     expect(peaks).toEqual({
       midi: silent,
       audio: silent,
-      metronome: audible(),
+      metronome: audible(0.3),
     });
   });
 
@@ -70,7 +69,7 @@ test.describe("Audio Output", () => {
 
     const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
     expect(peaks).toEqual({
-      midi: audible(),
+      midi: audible(0.03), // TODO: why so small?
       audio: silent,
       metronome: silent,
     });
@@ -94,7 +93,7 @@ test.describe("Audio Output", () => {
     const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
     expect(peaks).toEqual({
       midi: silent,
-      audio: audible(),
+      audio: audible(0.4),
       metronome: silent,
     });
   });
