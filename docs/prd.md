@@ -112,7 +112,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
-- [ ] fix: when paused, clicking timeline jumps with a lag. (maybe same during playing, but perceptually worse when it lags when paused.)
+- [x] fix: when paused, clicking timeline jumps with a lag. (see docs/2026-01-13-timeline-seek-lag.md)
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [x] feat: remove audio track (menu + select + Delete key)
 - [ ] feat: undo/redo audio track operations (move, remove)
@@ -147,6 +147,10 @@ _UI polish_
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
 - [x] fix: "No audio loaded" label scroll behavior
 - [x] fix: press "Space" to continue on startup screen isntead of "Enter"
+
+_Keyboard shortcuts_
+
+- [ ] reconsider: Ctrl+F for auto-scroll conflicts with browser Find (see docs/2026-01-14-use-keyboard-shortcut.md)
 
 _Misc_
 
