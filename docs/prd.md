@@ -112,6 +112,7 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
+- [x] fix: when paused, clicking timeline jumps with a lag. (see docs/2026-01-13-timeline-seek-lag.md)
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [x] feat: remove audio track (menu + select + Delete key)
 - [ ] feat: undo/redo audio track operations (move, remove)
@@ -147,6 +148,10 @@ _UI polish_
 - [x] fix: "No audio loaded" label scroll behavior
 - [x] fix: press "Space" to continue on startup screen isntead of "Enter"
 
+_Keyboard shortcuts_
+
+- [ ] reconsider: Ctrl+F for auto-scroll conflicts with browser Find (see docs/2026-01-14-use-keyboard-shortcut.md)
+
 _Misc_
 
 - [x] feat: export ABC notation (file export + clipbaord for quick LLM usage)
@@ -171,6 +176,7 @@ _Chores/Refactoring_
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
 - [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
+- [ ] chore: setup React Compiler for automatic memoization (reduce manual re-render optimization)
 
 ### Backlog
 
