@@ -20,6 +20,7 @@ import {
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
+  generateLocatorId,
   generateNoteId,
   secondsToBeats,
   useProjectStore,
@@ -28,7 +29,7 @@ import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 
 // Layout constants (exported for tests)
 export const KEYBOARD_WIDTH = 60;
-export const TIMELINE_HEIGHT = 32;
+export const TIMELINE_HEIGHT = 40;
 export const DEFAULT_WAVEFORM_HEIGHT = 60;
 export const MIN_WAVEFORM_HEIGHT = 40;
 export const MAX_WAVEFORM_HEIGHT = 200;
@@ -197,6 +198,24 @@ type DragMode =
       originalStates: Array<{ id: string; start: number; pitch: number }>;
     }
   | {
+      type: "duplicating";
+      noteId: string; // The primary duplicate note being tracked
+      startBeat: number;
+      startPitch: number;
+      cellOffset: number; // which grid cell within the note was grabbed
+      offsetPitch: number;
+      // Original notes that were duplicated (for reference, not modified)
+      originalNotes: Array<{
+        id: string;
+        start: number;
+        pitch: number;
+        duration: number;
+        velocity: number;
+      }>;
+      // IDs of the newly created duplicate notes
+      duplicateNoteIds: string[];
+    }
+  | {
       type: "resizing-start";
       noteId: string;
       originalStart: number;
@@ -240,6 +259,13 @@ export function PianoRoll() {
     redo,
     canUndo,
     canRedo,
+    // Locator state and actions
+    locators,
+    selectedLocatorId,
+    addLocator,
+    updateLocator,
+    deleteLocator,
+    selectLocator,
     copyNotes,
     pasteNotes,
     // Viewport state from store
@@ -358,9 +384,12 @@ export function PianoRoll() {
     if (e.key === "Delete" || e.key === "Backspace") {
       if (selectedNoteIds.size > 0) {
         deleteNotes(Array.from(selectedNoteIds));
+      } else if (selectedLocatorId) {
+        deleteLocator(selectedLocatorId);
       }
     } else if (e.key === "Escape") {
       deselectAll();
+      selectLocator(null);
     } else if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
       // Ctrl+C or Cmd+C: Copy
       e.preventDefault();
@@ -389,6 +418,11 @@ export function PianoRoll() {
       if (canUndo()) {
         undo();
       }
+    } else if (e.key === "l" || e.key === "L") {
+      // L: Add locator at current playhead position
+      const playheadBeat = secondsToBeats(position, tempo);
+      const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
+      handleAddLocator(snappedBeat);
     }
   });
 
@@ -525,37 +559,93 @@ export function PianoRoll() {
       );
 
       if (clickedNote) {
-        // Select and maybe drag
-        if (e.shiftKey) {
-          selectNotes([clickedNote.id], false);
-        } else if (!selectedNoteIds.has(clickedNote.id)) {
-          selectNotes([clickedNote.id], true);
+        // Check if Ctrl+clicking on already selected note -> duplicate mode
+        const isAlreadySelected = selectedNoteIds.has(clickedNote.id);
+        const shouldDuplicate = (e.ctrlKey || e.metaKey) && isAlreadySelected;
+
+        if (shouldDuplicate) {
+          // Duplicate all selected notes
+          const notesToDuplicate = notes.filter((n) =>
+            selectedNoteIds.has(n.id),
+          );
+          const duplicateNoteIds: string[] = [];
+          const originalNotes = notesToDuplicate.map((n) => ({
+            id: n.id,
+            start: n.start,
+            pitch: n.pitch,
+            duration: n.duration,
+            velocity: n.velocity,
+          }));
+
+          // Create duplicates at the same position as originals
+          notesToDuplicate.forEach((originalNote) => {
+            const duplicateNote: Note = {
+              id: generateNoteId(),
+              pitch: originalNote.pitch,
+              start: originalNote.start,
+              duration: originalNote.duration,
+              velocity: originalNote.velocity,
+            };
+            addNote(duplicateNote);
+            duplicateNoteIds.push(duplicateNote.id);
+          });
+
+          // Select the duplicates instead of the originals
+          selectNotes(duplicateNoteIds, true);
+
+          // Preview note sound on drag start
+          audioManager.playNote(clickedNote.pitch);
+
+          // Find the duplicate that corresponds to the clicked note
+          const clickedIndex = notesToDuplicate.findIndex(
+            (n) => n.id === clickedNote.id,
+          );
+          const duplicateClickedNoteId = duplicateNoteIds[clickedIndex];
+
+          historyStore.startDrag();
+          setDragMode({
+            type: "duplicating",
+            noteId: duplicateClickedNoteId,
+            startBeat: clickedNote.start,
+            startPitch: clickedNote.pitch,
+            cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
+            offsetPitch: 0,
+            originalNotes,
+            duplicateNoteIds,
+          });
+        } else {
+          // Normal selection and move behavior
+          if (e.shiftKey) {
+            selectNotes([clickedNote.id], false);
+          } else if (!isAlreadySelected) {
+            selectNotes([clickedNote.id], true);
+          }
+          // Preview note sound on drag start
+          audioManager.playNote(clickedNote.pitch);
+
+          // Capture original states of all selected notes for undo
+          // Note: if clicked note wasn't selected, it's now the only selected one
+          const notesToMove = selectedNoteIds.has(clickedNote.id)
+            ? notes.filter((n) => selectedNoteIds.has(n.id))
+            : [clickedNote];
+          const originalStates = notesToMove.map((n) => ({
+            id: n.id,
+            start: n.start,
+            pitch: n.pitch,
+          }));
+
+          historyStore.startDrag();
+          setDragMode({
+            type: "moving",
+            noteId: clickedNote.id,
+            startBeat: clickedNote.start,
+            startPitch: clickedNote.pitch,
+            // Cell offset: which grid cell within the note was grabbed
+            cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
+            offsetPitch: 0,
+            originalStates,
+          });
         }
-        // Preview note sound on drag start
-        audioManager.playNote(clickedNote.pitch);
-
-        // Capture original states of all selected notes for undo
-        // Note: if clicked note wasn't selected, it's now the only selected one
-        const notesToMove = selectedNoteIds.has(clickedNote.id)
-          ? notes.filter((n) => selectedNoteIds.has(n.id))
-          : [clickedNote];
-        const originalStates = notesToMove.map((n) => ({
-          id: n.id,
-          start: n.start,
-          pitch: n.pitch,
-        }));
-
-        historyStore.startDrag();
-        setDragMode({
-          type: "moving",
-          noteId: clickedNote.id,
-          startBeat: clickedNote.start,
-          startPitch: clickedNote.pitch,
-          // Cell offset: which grid cell within the note was grabbed
-          cellOffset: Math.floor((beat - clickedNote.start) / gridSnapValue),
-          offsetPitch: 0,
-          originalStates,
-        });
       } else {
         // Start creating a new note or box select
         if (e.shiftKey) {
@@ -620,6 +710,32 @@ export function PianoRoll() {
           const deltaStart = newStart - dragMode.startBeat;
           const deltaPitch = newPitch - dragMode.startPitch;
           selectedNoteIds.forEach((id) => {
+            if (id !== dragMode.noteId) {
+              const note = notes.find((n) => n.id === id);
+              if (note) {
+                updateNote(id, {
+                  start: Math.max(0, note.start + deltaStart),
+                  pitch: clampPitch(note.pitch + deltaPitch),
+                });
+              }
+            }
+          });
+        }
+        setDragMode({ ...dragMode, startBeat: newStart, startPitch: newPitch });
+      } else if (dragMode.type === "duplicating") {
+        // Cell-based snapping: duplicate notes move when cursor crosses grid lines
+        const cursorCell = Math.floor(beat / gridSnapValue);
+        const newStart = Math.max(
+          0,
+          (cursorCell - dragMode.cellOffset) * gridSnapValue,
+        );
+        const newPitch = clampPitch(pitch);
+        updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
+        // Update other duplicate notes too
+        if (dragMode.duplicateNoteIds.length > 1) {
+          const deltaStart = newStart - dragMode.startBeat;
+          const deltaPitch = newPitch - dragMode.startPitch;
+          dragMode.duplicateNoteIds.forEach((id) => {
             if (id !== dragMode.noteId) {
               const note = notes.find((n) => n.id === id);
               if (note) {
@@ -706,6 +822,23 @@ export function PianoRoll() {
           updates,
         });
       }
+    } else if (dragMode.type === "duplicating") {
+      // End drag - record the duplication as an add-notes operation
+      historyStore.endDrag();
+
+      // Get the current state of all duplicate notes
+      const currentDuplicates = notes.filter((n) =>
+        dragMode.duplicateNoteIds.includes(n.id),
+      );
+
+      if (currentDuplicates.length > 0) {
+        historyStore.pushOperation({
+          type: "add-notes",
+          notes: currentDuplicates,
+        });
+      }
+
+      // The duplicates are already selected, so nothing more to do
     } else if (dragMode.type === "resizing-start") {
       // End drag and push history for resize
       historyStore.endDrag();
@@ -823,6 +956,38 @@ export function PianoRoll() {
     return inHorizontalRange && inVerticalRange;
   });
 
+  // Locator handlers
+  const handleAddLocator = (position: number) => {
+    const locatorNumber = locators.length + 1;
+    const newLocator = {
+      id: generateLocatorId(),
+      position,
+      label: `Section ${locatorNumber}`,
+    };
+    addLocator(newLocator);
+    selectLocator(newLocator.id);
+  };
+
+  const handleSelectLocator = (id: string) => {
+    selectLocator(id);
+    deselectAll(); // Deselect notes when selecting a locator
+  };
+
+  const handleUpdateLocator = (id: string, position: number) => {
+    updateLocator(id, { position });
+  };
+
+  const handleRenameLocator = (id: string, currentLabel: string) => {
+    const newLabel = window.prompt("Rename locator:", currentLabel);
+    if (newLabel !== null && newLabel.trim() !== "") {
+      updateLocator(id, { label: newLabel.trim() });
+    }
+  };
+
+  const handleDeleteLocator = (id: string) => {
+    deleteLocator(id);
+  };
+
   return (
     <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Main content area - fixed layout, no native scroll */}
@@ -862,10 +1027,17 @@ export function PianoRoll() {
             viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
             beatsPerBar={beatsPerBar}
+            gridSnapValue={gridSnapValue}
             onSeek={(beat) => {
               const seconds = beatsToSeconds(beat, tempo);
               audioManager.seek(seconds);
             }}
+            locators={locators}
+            selectedLocatorId={selectedLocatorId}
+            onSelectLocator={handleSelectLocator}
+            onRenameLocator={handleRenameLocator}
+            onUpdateLocator={handleUpdateLocator}
+            onDeleteLocator={handleDeleteLocator}
           />
           {/* Waveform / Audio region */}
           <WaveformArea
@@ -1214,14 +1386,28 @@ function Timeline({
   viewportWidth,
   playheadBeat,
   beatsPerBar,
+  gridSnapValue,
   onSeek,
+  locators,
+  selectedLocatorId,
+  onSelectLocator,
+  onRenameLocator,
+  onUpdateLocator: _onUpdateLocator,
+  onDeleteLocator: _onDeleteLocator,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   viewportWidth: number;
   playheadBeat: number;
   beatsPerBar: number;
+  gridSnapValue: number;
   onSeek: (beat: number) => void;
+  locators: Array<{ id: string; position: number; label: string }>;
+  selectedLocatorId: string | null;
+  onSelectLocator: (id: string) => void;
+  onRenameLocator: (id: string, currentLabel: string) => void;
+  onUpdateLocator: (id: string, position: number) => void;
+  onDeleteLocator: (id: string) => void;
 }) {
   const markers = [];
 
@@ -1254,8 +1440,8 @@ function Timeline({
         />
         {/* Bar number label */}
         <div
-          className="absolute text-xs text-neutral-400"
-          style={{ left: x + 6, top: 8 }}
+          className="absolute text-[10px] text-neutral-500"
+          style={{ left: x + 4, top: 2 }}
         >
           {barNumber}
         </div>
@@ -1267,12 +1453,19 @@ function Timeline({
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const beat = x / pixelsPerBeat + scrollX;
-    onSeek(Math.max(0, beat));
+    const snappedBeat = snapToGrid(beat, gridSnapValue);
+    onSeek(Math.max(0, snappedBeat));
   };
 
   // Playhead position on timeline
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  // Filter visible locators
+  const visibleLocators = locators.filter((locator) => {
+    const x = (locator.position - scrollX) * beatWidth;
+    return x >= -50 && x <= viewportWidth + 50; // Add margin for labels
+  });
 
   return (
     <div
@@ -1282,6 +1475,50 @@ function Timeline({
       onClick={handleClick}
     >
       {markers}
+      {/* Locators
+          Geometry: CSS triangle using border trick on a 0×0 element.
+          - border-l/r: half of triangle width (6px each = 12px wide)
+          - border-t: triangle height (10px)
+          - Container left: x - 5 to center the 12px triangle on position
+          - Container top: 28 so triangle (10px tall) ends at 38px near bottom
+      */}
+      {visibleLocators.map((locator) => {
+        const x = (locator.position - scrollX) * beatWidth;
+        const isSelected = locator.id === selectedLocatorId;
+        return (
+          <div
+            key={locator.id}
+            data-testid={`locator-${locator.id}`}
+            className="absolute group"
+            style={{ left: x - 5, top: 28 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectLocator(locator.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onRenameLocator(locator.id, locator.label);
+            }}
+          >
+            {/* Triangle: w=12px (6+6), h=10px */}
+            <div
+              className={`w-0 h-0 border-l-[6px] border-r-[6px] border-t-[10px] border-l-transparent border-r-transparent cursor-pointer ${
+                isSelected ? "border-t-amber-400" : "border-neutral-500"
+              } group-hover:border-t-amber-300`}
+            />
+            {/* Label */}
+            <div
+              className={`absolute -top-2 left-[12px] text-[10px] whitespace-nowrap px-1 rounded cursor-pointer ${
+                isSelected
+                  ? "bg-amber-400 text-neutral-900"
+                  : "bg-neutral-600 text-neutral-100"
+              } group-hover:bg-amber-300 group-hover:text-neutral-900`}
+            >
+              {locator.label}
+            </div>
+          </div>
+        );
+      })}
       {/* Playhead indicator */}
       {showPlayhead && (
         <div

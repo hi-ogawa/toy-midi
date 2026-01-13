@@ -95,7 +95,7 @@ export function App() {
     },
   });
 
-  // Enter to continue saved project (startup screen only)
+  // Space to continue saved project (startup screen only)
   useWindowEvent(
     "keydown",
     (e) => {
@@ -105,7 +105,7 @@ export function App() {
         initMutation.isPending
       )
         return;
-      if (e.key === "Enter") {
+      if (e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
         const lastProjectId = getLastProjectId();
@@ -381,7 +381,7 @@ function ProjectListView({
           <div className="text-neutral-500 text-sm">
             Press{" "}
             <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
-              Enter
+              Space
             </kbd>{" "}
             to continue
           </div>

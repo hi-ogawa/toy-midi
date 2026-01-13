@@ -206,7 +206,7 @@ test.describe("Multiple Projects", () => {
     );
   });
 
-  test("Enter key continues last project", async ({ page }) => {
+  test("Space key continues last project", async ({ page }) => {
     // Create a project
     await clickNewProject(page);
     await evaluateStore(page, (store) => {
@@ -214,10 +214,10 @@ test.describe("Multiple Projects", () => {
     });
     await page.waitForTimeout(600);
 
-    // Reload and press Enter
+    // Reload and press Space
     await page.reload();
     await expect(page.getByTestId("continue-button")).toBeVisible();
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
 
     await expect(page.getByTestId("transport")).toBeVisible();
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);

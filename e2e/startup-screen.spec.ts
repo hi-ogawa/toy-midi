@@ -76,10 +76,10 @@ test.describe("Startup Screen", () => {
     expect(tempo).toBe(140);
   });
 
-  test("Enter key shortcut", async ({ page }) => {
-    // Without saved project, Enter should do nothing
+  test("Space key shortcut", async ({ page }) => {
+    // Without saved project, Space should do nothing
     await expect(page.getByTestId("startup-screen")).toBeVisible();
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
     await page.waitForTimeout(200);
     await expect(page.getByTestId("startup-screen")).toBeVisible();
     await expect(page.getByTestId("transport")).not.toBeVisible();
@@ -97,10 +97,10 @@ test.describe("Startup Screen", () => {
     });
     await page.waitForTimeout(600);
 
-    // With saved project, Enter should continue
+    // With saved project, Space should continue
     await page.reload();
     await expect(page.getByTestId("continue-button")).toBeVisible();
-    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
     await expect(page.getByTestId("transport")).toBeVisible();
 
     const notes = await evaluateStore(page, (store) => store.getState().notes);

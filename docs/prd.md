@@ -86,21 +86,24 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] fix: timeline bar label is not aligned at bar grid
 - [x] chore: deploy (vercel)
 - [x] feat: undo/redo for note operations (create, delete, move, resize)
+- [x] feat: select+shift+drag should duplicate notes and move
+- [x] feat: copy/paste notes
+- [x] feat: extend note (right edge) without select
+- [x] fix: extend note dragging grid snap
+- [x] fix: default pitch range shouldn't be for bass
+- [x] fix: timeline click should also snap
+- [x] feat: soundfont player for midi synth
+- [x] feat: save multiple projects
+- [x] feat: locators to mark parts
+- [x] refactor: reduce auto-save debounce timeout
 
 ### TODO
 
-🟢 priority
-
 _Note editing_
 
-- [ ] 🟢 feat: select+shift+drag should duplicate notes and move
 - [ ] feat: undo/redo UI indicators (disabled state when stack empty, optional toast showing action name)
 - [ ] test: add E2E test for resize batching (drag through many steps creates single undo entry)
-- [ ] 🟢 feat: copy/paste notes https://github.com/hi-ogawa/toy-midi/pull/49
-- [x] feat: extend note (right edge) without select
-- [x] fix: extend note dragging grid snap
 - [ ] fix: draw mode and select mode?
-- [x] fix: default pitch range shouldn't be for bass
 - [ ] feat: toggle snap
 
 _Timeline/Viewport_
@@ -109,11 +112,9 @@ _Timeline/Viewport_
 
 _Audio/Playback_
 
-- [ ] 🟢 fix: timeline click should also snap https://github.com/hi-ogawa/toy-midi/pull/55
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [ ] feat: remove audio track
 - [ ] feat: trim audio track length (start and end)
-- [x] feat: soundfont player for midi synth
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
   - [ ] feat: persist lastPlayheadPosition
@@ -128,7 +129,6 @@ _Audio/Playback_
 
 _Project management_
 
-- [x] feat: save multiple project
 - [ ] refactor: app initialization and project switching architecture (docs/2026-01-12-app-initialization-architecture.md)
   - current: initMutation conflates app init with project loading, forces page reload for switching
   - short-term: use localStorage flag instead of URL hash for cleaner reload pattern
@@ -138,20 +138,19 @@ _Project management_
   - works for different projects in different tabs, but no conflict detection
   - issues: same project in multiple tabs risks data loss (last write wins on debounced save)
   - needs: conflict detection/warning, storage event listener for cross-tab sync, locking or merge strategy
-- [ ] 🟢 feat: locators to mark parts https://github.com/hi-ogawa/toy-midi/pull/47
 - [ ] feat: add demo project (good for quick dev test case too)
 
 _UI polish_
 
 - [ ] fix: keyboard sidebar initial height truncation (smelly viewportSize code)
-- [ ] fix: "No audio loaded" label scroll behavior
+- [x] fix: "No audio loaded" label scroll behavior
 - [ ] fix: press "Space" to continue on startup screen isntead of "Enter"
 
 _Misc_
 
 - [ ] feat: export ABC notation (file export + clipbaord for quick LLM usage)
 - [ ] feat: support fret position annotation metadata
-- [ ] 🟢 feat: full review quick reference and what's missing
+- [x] feat: full review quick reference and what's missing
 
 _Chores/Refactoring_
 
@@ -167,7 +166,6 @@ _Chores/Refactoring_
 - [ ] refactor: use UI library for common components
 - [ ] refactor: don't swallow error. use toast with log.
 - [ ] refactor: simplify pixelsPerBeat/pixelsPerKey to discrete integer levels (e.g. 1,2,3,4,6,8,12,16,24,32,48,64,96,128,192) for simpler state and guaranteed zoom roundtrip
-- [x] refactor: reduce auto-save debounce timeout (currently 500ms) to speed up E2E tests that still need waitForTimeout after state changes
 
 ### Backlog
 

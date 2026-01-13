@@ -22,6 +22,12 @@ export interface TimeSignature {
   denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)
 }
 
+export interface Locator {
+  id: string;
+  position: number; // Position on timeline in beats
+  label: string; // User-defined label (e.g., "Verse", "Chorus")
+}
+
 // Common time signatures
 export const COMMON_TIME_SIGNATURES: TimeSignature[] = [
   { numerator: 3, denominator: 4 }, // 3/4 (waltz)

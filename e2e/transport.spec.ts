@@ -274,6 +274,43 @@ test.describe("Timeline Seek", () => {
     await expect(timeDisplay).not.toContainText("1|1.00");
   });
 
+  test("clicking timeline snaps to grid", async ({ page }) => {
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) throw new Error("Timeline not found");
+
+    // Default grid snap is 1/8 note = 0.5 beats
+    // Click at beat 2.2 (should snap to beat 2.0 - rounds down)
+    const clickX = timelineBox.x + BEAT_WIDTH * 2.2;
+    const clickY = timelineBox.y + timelineBox.height / 2;
+    await page.mouse.click(clickX, clickY);
+
+    // Wait for React state update
+    await page.waitForTimeout(100);
+
+    // Playhead should be at exactly beat 2.0 (nearest grid line)
+    const playhead = page.getByTestId("timeline-playhead");
+    const playheadBox = await playhead.boundingBox();
+    if (!playheadBox) throw new Error("Playhead not found");
+
+    // Calculate expected position for beat 2.0
+    const expectedX = timelineBox.x + BEAT_WIDTH * 2;
+    // Allow 2px tolerance for rounding
+    expect(Math.abs(playheadBox.x - expectedX)).toBeLessThan(2);
+
+    // Click at beat 2.3 (should snap to beat 2.5 - rounds up to nearest)
+    const clickX2 = timelineBox.x + BEAT_WIDTH * 2.3;
+    await page.mouse.click(clickX2, clickY);
+    await page.waitForTimeout(100);
+
+    const playheadBox2 = await playhead.boundingBox();
+    if (!playheadBox2) throw new Error("Playhead not found after second click");
+
+    // Calculate expected position for beat 2.5
+    const expectedX2 = timelineBox.x + BEAT_WIDTH * 2.5;
+    expect(Math.abs(playheadBox2.x - expectedX2)).toBeLessThan(2);
+  });
+
   test("MIDI plays from seeked position", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
