@@ -1,0 +1,8 @@
+{
+  "$schema": "https://www.unpkg.com/wrangler@4.58.0/config-schema.json",
+  "name": "toy-midi",
+  "compatibility_date": "2026-01-14",
+  "assets": {
+    "directory": "dist",
+  }
+}
