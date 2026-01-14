@@ -8,7 +8,6 @@ import {
   FolderIcon,
   MusicIcon,
   PauseIcon,
-  PencilIcon,
   PlayIcon,
   SettingsIcon,
   Trash2Icon,
@@ -230,15 +229,15 @@ function InstrumentCombobox({
 }
 
 type TransportProps = {
+  onProjectSettingsClick: () => void;
   onHelpClick: () => void;
   onProjectsClick: () => void;
-  onRenameProject: () => void;
 };
 
 export function Transport({
+  onProjectSettingsClick,
   onHelpClick,
   onProjectsClick,
-  onRenameProject,
 }: TransportProps) {
   const {
     audioFileName,
@@ -571,13 +570,13 @@ export function Transport({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          {/* Rename Project */}
+          {/* Project Settings */}
           <DropdownMenuItem
-            data-testid="rename-project-button"
-            onClick={onRenameProject}
+            data-testid="project-settings-button"
+            onClick={onProjectSettingsClick}
           >
-            <PencilIcon className="size-4" />
-            Rename Project
+            <SettingsIcon className="size-4" />
+            Project Settings
           </DropdownMenuItem>
 
           {/* Projects */}
