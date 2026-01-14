@@ -18,6 +18,7 @@ import {
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import * as Tone from "tone";
+import { useDraftInput } from "../hooks/use-draft-input";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import {
@@ -272,6 +273,13 @@ export function Transport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
+  const tempoInput = useDraftInput({
+    value: tempo,
+    onCommit: setTempo,
+    min: 30,
+    max: 300,
+  });
+
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
       const { buffer, peaks, peaksPerSecond } = await loadAudioFile(file);
@@ -462,22 +470,9 @@ export function Transport({
         <span className="text-muted-foreground">BPM:</span>
         <input
           data-testid="tempo-input"
-          type="number"
-          min={30}
-          max={300}
-          value={tempo}
-          onChange={(e) => {
-            const value = Number.parseInt(e.target.value, 10);
-            if (!Number.isNaN(value)) {
-              setTempo(value);
-            }
-          }}
-          onBlur={(e) => {
-            const value = Number.parseInt(e.target.value, 10);
-            if (!Number.isNaN(value)) {
-              setTempo(Math.min(300, Math.max(30, value)));
-            }
-          }}
+          type="text"
+          inputMode="numeric"
+          {...tempoInput.props}
           className="w-14 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
         />
         <Button
