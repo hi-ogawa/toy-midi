@@ -26,9 +26,6 @@ import {
   useProjectStore,
 } from "./stores/project-store";
 
-// Check once at module load - doesn't change during session
-const savedProjectExists = getLastProjectId() !== null;
-
 export function App() {
   const initMutation = useMutation({
     mutationFn: async (options: {
@@ -96,22 +93,19 @@ export function App() {
     },
   });
 
-  // Space to continue saved project (startup screen only)
+  // Space to continue/start project (startup screen only)
   useWindowEvent(
     "keydown",
     (e) => {
-      if (
-        !savedProjectExists ||
-        initMutation.isSuccess ||
-        initMutation.isPending
-      )
-        return;
+      if (initMutation.isSuccess || initMutation.isPending) return;
       if (e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
         const lastProjectId = getLastProjectId();
         if (lastProjectId) {
           initMutation.mutate({ projectId: lastProjectId });
+        } else {
+          initMutation.mutate({});
         }
       }
     },
@@ -305,7 +299,7 @@ function ProjectListView({
                                 handleRenameCancel();
                               }
                             }}
-                            className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-600 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
+                            className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
                             onFocus={(e) => e.target.select()}
                           />
                           <button
@@ -398,7 +392,7 @@ function ProjectListView({
               </div>
               <p className="text-neutral-600 text-sm">
                 Press{" "}
-                <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs">
+                <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
                   Space
                 </kbd>{" "}
                 to continue
@@ -406,14 +400,23 @@ function ProjectListView({
             </div>
           </>
         ) : (
-          <button
-            type="button"
-            data-testid="new-project-button"
-            onClick={onNewProject}
-            className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
-          >
-            Create Your First Project
-          </button>
+          <div className="flex flex-col items-center gap-4">
+            <button
+              type="button"
+              data-testid="new-project-button"
+              onClick={onNewProject}
+              className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
+            >
+              Create Your First Project
+            </button>
+            <p className="text-neutral-600 text-sm">
+              Press{" "}
+              <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+                Space
+              </kbd>{" "}
+              to start
+            </p>
+          </div>
         )}
       </div>
     </div>
