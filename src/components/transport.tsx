@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  CheckIcon,
+  ChevronsUpDownIcon,
   CircleHelpIcon,
   ClipboardIcon,
   DownloadIcon,
@@ -12,7 +14,7 @@ import {
   UploadIcon,
   Volume2Icon,
 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import * as Tone from "tone";
 import { useDraftInput } from "../hooks/use-draft-input";
@@ -30,6 +32,14 @@ import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -40,15 +50,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Slider } from "./ui/slider";
 
 function MetronomeIcon({ className }: { className?: string }) {
@@ -140,6 +142,89 @@ function PlayPauseButton() {
         <PlayIcon data-testid="play-icon" className="size-5" />
       )}
     </Button>
+  );
+}
+
+// GM instrument groups for organized display
+const INSTRUMENT_GROUPS = [
+  { label: "Piano", start: 0, end: 8 },
+  { label: "Chromatic Percussion", start: 8, end: 16 },
+  { label: "Organ", start: 16, end: 24 },
+  { label: "Guitar", start: 24, end: 32 },
+  { label: "Bass", start: 32, end: 40 },
+  { label: "Strings", start: 40, end: 48 },
+  { label: "Ensemble", start: 48, end: 56 },
+  { label: "Brass", start: 56, end: 64 },
+  { label: "Reed", start: 64, end: 72 },
+  { label: "Pipe", start: 72, end: 80 },
+  { label: "Synth Lead", start: 80, end: 88 },
+  { label: "Synth Pad", start: 88, end: 96 },
+  { label: "Synth Effects", start: 96, end: 104 },
+  { label: "Ethnic", start: 104, end: 112 },
+  { label: "Percussive", start: 112, end: 120 },
+  { label: "Sound Effects", start: 120, end: 128 },
+] as const;
+
+function InstrumentCombobox({
+  value,
+  onValueChange,
+}: {
+  value: number;
+  onValueChange: (value: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          data-testid="instrument-select"
+          variant="ghost"
+          size="sm"
+          role="combobox"
+          aria-expanded={open}
+          className="w-44 justify-between font-normal"
+        >
+          <span className="truncate">
+            {value}: {GM_PROGRAMS[value]}
+          </span>
+          <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search instruments..." />
+          <CommandList>
+            <CommandEmpty>No instrument found.</CommandEmpty>
+            {INSTRUMENT_GROUPS.map((group) => (
+              <CommandGroup key={group.label} heading={group.label}>
+                {GM_PROGRAMS.slice(group.start, group.end).map((name, i) => {
+                  const program = group.start + i;
+                  return (
+                    <CommandItem
+                      key={program}
+                      value={`${program}: ${name}`}
+                      onSelect={() => {
+                        onValueChange(program);
+                        setOpen(false);
+                      }}
+                      className="text-xs"
+                    >
+                      <CheckIcon
+                        className={`mr-2 size-4 ${
+                          value === program ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      {program}: {name}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -467,206 +552,7 @@ export function Transport({
       <div className="w-px h-5 bg-border" />
 
       {/* Instrument selector */}
-      <Select
-        value={String(midiProgram)}
-        onValueChange={(v) => setMidiProgram(Number(v))}
-      >
-        <SelectTrigger
-          data-testid="instrument-select"
-          className="h-8 w-44 text-xs"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent
-          position="popper"
-          className="max-h-64 [&>[data-slot=select-scroll-up-button]]:hidden [&>[data-slot=select-scroll-down-button]]:hidden"
-        >
-          <SelectGroup>
-            <SelectLabel>Piano</SelectLabel>
-            {GM_PROGRAMS.slice(0, 8).map((name, i) => (
-              <SelectItem key={i} value={String(i)} className="text-xs">
-                {i}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Chromatic Percussion</SelectLabel>
-            {GM_PROGRAMS.slice(8, 16).map((name, i) => (
-              <SelectItem key={i + 8} value={String(i + 8)} className="text-xs">
-                {i + 8}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Organ</SelectLabel>
-            {GM_PROGRAMS.slice(16, 24).map((name, i) => (
-              <SelectItem
-                key={i + 16}
-                value={String(i + 16)}
-                className="text-xs"
-              >
-                {i + 16}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Guitar</SelectLabel>
-            {GM_PROGRAMS.slice(24, 32).map((name, i) => (
-              <SelectItem
-                key={i + 24}
-                value={String(i + 24)}
-                className="text-xs"
-              >
-                {i + 24}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Bass</SelectLabel>
-            {GM_PROGRAMS.slice(32, 40).map((name, i) => (
-              <SelectItem
-                key={i + 32}
-                value={String(i + 32)}
-                className="text-xs"
-              >
-                {i + 32}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Strings</SelectLabel>
-            {GM_PROGRAMS.slice(40, 48).map((name, i) => (
-              <SelectItem
-                key={i + 40}
-                value={String(i + 40)}
-                className="text-xs"
-              >
-                {i + 40}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Ensemble</SelectLabel>
-            {GM_PROGRAMS.slice(48, 56).map((name, i) => (
-              <SelectItem
-                key={i + 48}
-                value={String(i + 48)}
-                className="text-xs"
-              >
-                {i + 48}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Brass</SelectLabel>
-            {GM_PROGRAMS.slice(56, 64).map((name, i) => (
-              <SelectItem
-                key={i + 56}
-                value={String(i + 56)}
-                className="text-xs"
-              >
-                {i + 56}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Reed</SelectLabel>
-            {GM_PROGRAMS.slice(64, 72).map((name, i) => (
-              <SelectItem
-                key={i + 64}
-                value={String(i + 64)}
-                className="text-xs"
-              >
-                {i + 64}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Pipe</SelectLabel>
-            {GM_PROGRAMS.slice(72, 80).map((name, i) => (
-              <SelectItem
-                key={i + 72}
-                value={String(i + 72)}
-                className="text-xs"
-              >
-                {i + 72}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Synth Lead</SelectLabel>
-            {GM_PROGRAMS.slice(80, 88).map((name, i) => (
-              <SelectItem
-                key={i + 80}
-                value={String(i + 80)}
-                className="text-xs"
-              >
-                {i + 80}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Synth Pad</SelectLabel>
-            {GM_PROGRAMS.slice(88, 96).map((name, i) => (
-              <SelectItem
-                key={i + 88}
-                value={String(i + 88)}
-                className="text-xs"
-              >
-                {i + 88}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Synth Effects</SelectLabel>
-            {GM_PROGRAMS.slice(96, 104).map((name, i) => (
-              <SelectItem
-                key={i + 96}
-                value={String(i + 96)}
-                className="text-xs"
-              >
-                {i + 96}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Ethnic</SelectLabel>
-            {GM_PROGRAMS.slice(104, 112).map((name, i) => (
-              <SelectItem
-                key={i + 104}
-                value={String(i + 104)}
-                className="text-xs"
-              >
-                {i + 104}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Percussive</SelectLabel>
-            {GM_PROGRAMS.slice(112, 120).map((name, i) => (
-              <SelectItem
-                key={i + 112}
-                value={String(i + 112)}
-                className="text-xs"
-              >
-                {i + 112}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-          <SelectGroup>
-            <SelectLabel>Sound Effects</SelectLabel>
-            {GM_PROGRAMS.slice(120, 128).map((name, i) => (
-              <SelectItem
-                key={i + 120}
-                value={String(i + 120)}
-                className="text-xs"
-              >
-                {i + 120}: {name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <InstrumentCombobox value={midiProgram} onValueChange={setMidiProgram} />
 
       {/* Spacer */}
       <div className="flex-1" />
