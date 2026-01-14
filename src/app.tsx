@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { PianoRoll } from "./components/piano-roll";
+import { ProjectSettingsDialog } from "./components/project-settings-dialog";
 import { Transport } from "./components/transport";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
@@ -148,13 +149,26 @@ type EditorProps = {
 
 function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [projectName, setProjectName] = useState(
+    () => getProjectMetadata(projectId)?.name ?? "Untitled",
+  );
 
-  // Escape to close help overlay
+  // Update document title when project name changes
+  useEffect(() => {
+    document.title = `${projectName} - Toy MIDI`;
+  }, [projectName]);
+
+  // Escape to close overlays
   useWindowEvent(
     "keydown",
     (e) => {
-      if (!isHelpOpen) return;
-      if (e.key === "Escape") {
+      if (e.key !== "Escape") return;
+      if (isSettingsOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsSettingsOpen(false);
+      } else if (isHelpOpen) {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);
@@ -166,26 +180,25 @@ function Editor({ projectId }: EditorProps) {
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
+        onProjectSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onProjectsClick={() => {
           // TODO: modal project list view and allow switch project?
           // for now, open startup page in new tab.
           window.open("/", "_blank");
         }}
-        onRenameProject={() => {
-          const metadata = getProjectMetadata(projectId);
-          if (!metadata) return;
-
-          const newName = prompt("Rename project:", metadata.name);
-          if (newName?.trim() && newName.trim() !== metadata.name) {
-            updateProjectMetadata(projectId, {
-              name: newName.trim(),
-            });
-          }
-        }}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <ProjectSettingsDialog
+        isOpen={isSettingsOpen}
+        projectName={projectName}
+        onSave={(name) => {
+          updateProjectMetadata(projectId, { name });
+          setProjectName(name);
+        }}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }
@@ -248,7 +261,7 @@ function ProjectListView({
       className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
     >
       <div className="flex flex-col items-center gap-6 max-w-2xl w-full px-4">
-        <h1 className="text-2xl font-semibold text-neutral-200">toy-midi</h1>
+        <h1 className="text-2xl font-semibold text-neutral-200">Toy MIDI</h1>
 
         {hasProjects && (
           <div className="w-full max-h-96 overflow-y-auto bg-neutral-800 rounded-lg p-4">
