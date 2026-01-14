@@ -351,6 +351,9 @@ test.describe("Multiple Projects", () => {
 
     const projectId = await getLastProjectId(page);
 
+    // Verify initial document title
+    await expect(page).toHaveTitle("Untitled - Toy MIDI");
+
     // Open settings dropdown and click project settings
     await page.getByTestId("settings-button").click();
     await page.getByTestId("project-settings-button").click();
@@ -360,6 +363,9 @@ test.describe("Multiple Projects", () => {
     await expect(nameInput).toHaveValue("Untitled");
     await nameInput.fill("My Bass Track");
     await nameInput.press("Enter");
+
+    // Verify document title updated
+    await expect(page).toHaveTitle("My Bass Track - Toy MIDI");
 
     // Verify the name was changed by going to startup screen
     await page.reload();
