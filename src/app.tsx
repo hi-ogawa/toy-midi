@@ -258,146 +258,162 @@ function ProjectListView({
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50 overflow-hidden"
     >
-      <div className="flex flex-col items-center gap-6 max-w-2xl w-full px-4">
-        <h1 className="text-2xl font-semibold text-neutral-200">Toy MIDI</h1>
+      {/* Gradient glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_center,#10b98125_0%,transparent_70%)] pointer-events-none" />
 
-        {hasProjects && (
-          <div className="w-full max-h-96 overflow-y-auto bg-neutral-800 rounded-lg p-4">
-            <h2 className="text-lg font-medium text-neutral-300 mb-3">
-              Recent Projects
-            </h2>
-            <div className="space-y-2">
-              {projects.map((project) => {
-                const isLastProject = project.id === lastProjectId;
-                return (
-                  <div
-                    key={project.id}
-                    data-testid={`project-card-${project.id}`}
-                    aria-current={isLastProject ? "true" : undefined}
-                    className={`w-full px-4 py-3 rounded-lg transition-colors ${
-                      isLastProject
-                        ? "bg-emerald-900/30 hover:bg-emerald-900/40 border-2 border-emerald-700/50"
-                        : "bg-neutral-700 hover:bg-neutral-600"
-                    }`}
-                  >
-                    {renamingProjectId === project.id ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          data-testid={`rename-input-${project.id}`}
-                          type="text"
-                          value={renameValue}
-                          onChange={(e) => setRenameValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleRenameSubmit(project.id);
-                            } else if (e.key === "Escape") {
-                              handleRenameCancel();
-                            }
-                          }}
-                          className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-600 rounded text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                          onFocus={(e) => e.target.select()}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRenameSubmit(project.id)}
-                          className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleRenameCancel}
-                          className="px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-neutral-200 rounded text-sm"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex justify-between items-start">
-                        <button
-                          type="button"
-                          onClick={() => onSelectProject(project.id)}
-                          className="flex-1 text-left"
-                        >
-                          <div className="text-neutral-200 font-medium">
-                            {project.name}
-                          </div>
-                          <div className="text-neutral-500 text-sm">
-                            {new Date(project.updatedAt).toLocaleDateString()}{" "}
-                            {new Date(project.updatedAt).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )}
-                          </div>
-                        </button>
-                        <div className="flex items-center gap-1">
+      <div className="flex flex-col items-center gap-8 w-full px-6 relative">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
+            Toy MIDI
+          </h1>
+          <p className="text-neutral-500 mt-2">A simple piano roll editor</p>
+        </div>
+
+        {hasProjects ? (
+          <>
+            <div className="w-full max-w-lg">
+              <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+                Your Projects
+              </h2>
+              <div className="space-y-3 max-h-80 overflow-y-auto">
+                {projects.map((project) => {
+                  const isLastProject = project.id === lastProjectId;
+                  return (
+                    <div
+                      key={project.id}
+                      data-testid={`project-card-${project.id}`}
+                      aria-current={isLastProject ? "true" : undefined}
+                      className={`group w-full h-20 px-5 rounded-xl border transition-colors flex items-center ${
+                        isLastProject
+                          ? "bg-emerald-900/25 hover:bg-emerald-900/35 border-emerald-700/50"
+                          : "bg-neutral-800/60 hover:bg-neutral-800 border-neutral-700/50"
+                      }`}
+                    >
+                      {renamingProjectId === project.id ? (
+                        <div className="flex items-center gap-3 flex-1">
+                          <input
+                            data-testid={`rename-input-${project.id}`}
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleRenameSubmit(project.id);
+                              } else if (e.key === "Escape") {
+                                handleRenameCancel();
+                              }
+                            }}
+                            className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-600 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
+                            onFocus={(e) => e.target.select()}
+                          />
                           <button
                             type="button"
-                            data-testid={`rename-button-${project.id}`}
-                            onClick={(e) =>
-                              handleRenameStart(e, project.id, project.name)
-                            }
-                            className="p-1.5 hover:bg-neutral-500 rounded transition-colors"
-                            title="Rename project"
+                            onClick={() => handleRenameSubmit(project.id)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
                           >
-                            <Pencil className="size-4 text-neutral-300" />
+                            Save
                           </button>
                           <button
                             type="button"
-                            data-testid={`delete-button-${project.id}`}
-                            onClick={(e) => handleDelete(e, project.id)}
-                            className="p-1.5 hover:bg-red-600 rounded transition-colors"
-                            title="Delete project"
+                            onClick={handleRenameCancel}
+                            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
                           >
-                            <Trash2 className="size-4 text-neutral-300" />
+                            Cancel
                           </button>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      ) : (
+                        <div className="flex justify-between items-center flex-1">
+                          <button
+                            type="button"
+                            onClick={() => onSelectProject(project.id)}
+                            className="flex-1 text-left"
+                          >
+                            <div className="text-neutral-100 font-medium text-lg">
+                              {project.name}
+                            </div>
+                            <div className="text-neutral-500 text-sm mt-1">
+                              Last edited{" "}
+                              {new Date(project.updatedAt).toLocaleDateString(
+                                undefined,
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )}
+                            </div>
+                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              data-testid={`rename-button-${project.id}`}
+                              onClick={(e) =>
+                                handleRenameStart(e, project.id, project.name)
+                              }
+                              className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
+                              title="Rename"
+                            >
+                              <Pencil className="size-4 text-neutral-400" />
+                            </button>
+                            <button
+                              type="button"
+                              data-testid={`delete-button-${project.id}`}
+                              onClick={(e) => handleDelete(e, project.id)}
+                              className="p-2 hover:bg-red-600/30 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="size-4 text-neutral-400" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
 
-        <div className="flex gap-3">
-          {hasProjects && (
-            <button
-              type="button"
-              data-testid="continue-button"
-              onClick={() => lastProjectId && onSelectProject(lastProjectId)}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium"
-            >
-              Continue Last
-            </button>
-          )}
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  data-testid="continue-button"
+                  onClick={() =>
+                    lastProjectId && onSelectProject(lastProjectId)
+                  }
+                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
+                >
+                  Continue
+                </button>
+                <button
+                  type="button"
+                  data-testid="new-project-button"
+                  onClick={onNewProject}
+                  className="px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl font-medium text-lg"
+                >
+                  New Project
+                </button>
+              </div>
+              <p className="text-neutral-600 text-sm">
+                Press{" "}
+                <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs">
+                  Space
+                </kbd>{" "}
+                to continue
+              </p>
+            </div>
+          </>
+        ) : (
           <button
             type="button"
             data-testid="new-project-button"
             onClick={onNewProject}
-            className={`px-6 py-3 rounded-lg font-medium ${
-              hasProjects
-                ? "bg-neutral-700 hover:bg-neutral-600 text-neutral-200"
-                : "bg-emerald-600 hover:bg-emerald-500 text-white"
-            }`}
+            className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
           >
-            New Project
+            Create Your First Project
           </button>
-        </div>
-        {hasProjects && (
-          <div className="text-neutral-500 text-sm">
-            Press{" "}
-            <kbd className="px-2 py-1 bg-neutral-800 rounded text-neutral-400 font-mono text-xs border border-neutral-700">
-              Space
-            </kbd>{" "}
-            to continue
-          </div>
         )}
       </div>
     </div>
