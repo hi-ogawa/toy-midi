@@ -351,17 +351,15 @@ test.describe("Multiple Projects", () => {
 
     const projectId = await getLastProjectId(page);
 
-    // Open settings dropdown and click rename
+    // Open settings dropdown and click project settings
     await page.getByTestId("settings-button").click();
+    await page.getByTestId("project-settings-button").click();
 
-    // Set up prompt dialog handler
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toContain("Rename project");
-      expect(dialog.defaultValue()).toBe("Untitled");
-      await dialog.accept("My Bass Track");
-    });
-
-    await page.getByTestId("rename-project-button").click();
+    // Fill in the new name in the dialog
+    const nameInput = page.getByTestId("project-name-input");
+    await expect(nameInput).toHaveValue("Untitled");
+    await nameInput.fill("My Bass Track");
+    await nameInput.press("Enter");
 
     // Verify the name was changed by going to startup screen
     await page.reload();
