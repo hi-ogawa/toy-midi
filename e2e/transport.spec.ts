@@ -133,7 +133,7 @@ test.describe("Transport Controls", () => {
 
     // Open and select a different instrument
     await instrumentSelect.click();
-    await page.getByRole("option", { name: /24:.*Acoustic Guitar/ }).click();
+    await page.locator('[data-slot="command-item"]', { hasText: "24: Acoustic Guitar" }).click();
 
     // Should show new instrument
     await expect(instrumentSelect).toContainText("Acoustic Guitar");
@@ -144,6 +144,34 @@ test.describe("Transport Controls", () => {
     await expect(page.getByTestId("instrument-select")).toContainText(
       "Acoustic Guitar",
     );
+  });
+
+  test("instrument selector search", async ({ page }) => {
+    const instrumentSelect = page.getByTestId("instrument-select");
+
+    // Open selector
+    await instrumentSelect.click();
+
+    // Type to search
+    const searchInput = page.locator('[data-slot="command-input"]');
+    await searchInput.fill("violin");
+
+    // Should filter to show only violin
+    const items = page.locator('[data-slot="command-item"]');
+    await expect(items).toHaveCount(1);
+    await expect(items.first()).toContainText("Violin");
+
+    // Select it
+    await items.first().click();
+    await expect(instrumentSelect).toContainText("Violin");
+
+    // Open again and search for something else
+    await instrumentSelect.click();
+    await searchInput.fill("synth");
+
+    // Should show multiple synth instruments
+    const synthItems = page.locator('[data-slot="command-item"]');
+    expect(await synthItems.count()).toBeGreaterThan(5);
   });
 
   test("export MIDI workflow", async ({ page }) => {
