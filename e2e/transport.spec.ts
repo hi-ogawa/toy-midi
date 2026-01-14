@@ -133,7 +133,9 @@ test.describe("Transport Controls", () => {
 
     // Open and select a different instrument
     await instrumentSelect.click();
-    await page.locator('[data-slot="command-item"]', { hasText: "24: Acoustic Guitar" }).click();
+    await page
+      .locator('[data-slot="command-item"]', { hasText: "24: Acoustic Guitar" })
+      .click();
 
     // Should show new instrument
     await expect(instrumentSelect).toContainText("Acoustic Guitar");
