@@ -179,10 +179,11 @@ function InstrumentCombobox({
       <PopoverTrigger asChild>
         <Button
           data-testid="instrument-select"
-          variant="outline"
+          variant="ghost"
+          size="sm"
           role="combobox"
           aria-expanded={open}
-          className="h-8 w-44 justify-between text-xs font-normal"
+          className="w-44 justify-between font-normal"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}
