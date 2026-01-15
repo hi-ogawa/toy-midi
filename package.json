@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "preview": "vite preview",
     "tsc": "tsc -b",
     "lint": "oxfmt",
     "lint-check": "oxfmt --check",
