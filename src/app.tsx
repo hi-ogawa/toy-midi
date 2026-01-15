@@ -93,17 +93,19 @@ export function App() {
     },
   });
 
-  // Space to continue project (startup screen only)
+  // Space to continue/start project (startup screen only)
   useWindowEvent(
     "keydown",
     (e) => {
       if (initMutation.isSuccess || initMutation.isPending) return;
       if (e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
         const lastProjectId = getLastProjectId();
         if (lastProjectId) {
-          e.preventDefault();
-          e.stopPropagation();
           initMutation.mutate({ projectId: lastProjectId });
+        } else {
+          initMutation.mutate({});
         }
       }
     },
@@ -375,7 +377,7 @@ function ProjectListView({
                   onClick={() =>
                     lastProjectId && onSelectProject(lastProjectId)
                   }
-                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
                 >
                   Continue
                 </button>
@@ -383,7 +385,7 @@ function ProjectListView({
                   type="button"
                   data-testid="new-project-button"
                   onClick={onNewProject}
-                  className="px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-xl font-medium text-lg"
+                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg font-medium"
                 >
                   New Project
                 </button>
@@ -403,7 +405,7 @@ function ProjectListView({
               type="button"
               data-testid="new-project-button"
               onClick={onNewProject}
-              className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-emerald-900/30"
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
             >
               Create Your First Project
             </button>
