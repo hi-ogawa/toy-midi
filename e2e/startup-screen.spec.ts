@@ -77,15 +77,12 @@ test.describe("Startup Screen", () => {
   });
 
   test("Space key shortcut", async ({ page }) => {
-    // Without saved project, Space should do nothing
+    // Without saved project, Space should start new project
     await expect(page.getByTestId("startup-screen")).toBeVisible();
     await page.keyboard.press("Space");
-    await page.waitForTimeout(200);
-    await expect(page.getByTestId("startup-screen")).toBeVisible();
-    await expect(page.getByTestId("transport")).not.toBeVisible();
+    await expect(page.getByTestId("transport")).toBeVisible();
 
-    // Create a project
-    await page.getByTestId("new-project-button").click();
+    // Add a note and reload
     await evaluateStore(page, (store) => {
       store.getState().addNote({
         id: "test-note-enter",
