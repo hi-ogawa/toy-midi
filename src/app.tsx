@@ -93,19 +93,17 @@ export function App() {
     },
   });
 
-  // Space to continue/start project (startup screen only)
+  // Space to continue project (startup screen only)
   useWindowEvent(
     "keydown",
     (e) => {
       if (initMutation.isSuccess || initMutation.isPending) return;
       if (e.key === " ") {
-        e.preventDefault();
-        e.stopPropagation();
         const lastProjectId = getLastProjectId();
         if (lastProjectId) {
+          e.preventDefault();
+          e.stopPropagation();
           initMutation.mutate({ projectId: lastProjectId });
-        } else {
-          initMutation.mutate({});
         }
       }
     },
