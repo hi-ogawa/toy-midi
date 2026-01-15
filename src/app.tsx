@@ -112,19 +112,10 @@ export function App() {
     true,
   );
 
-  if (initMutation.isPending) {
-    return (
-      <div className="h-screen flex flex-col bg-neutral-900">
-        <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50">
-          <div className="text-neutral-400 text-sm">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   if (!initMutation.isSuccess) {
     return (
       <ProjectListView
+        isLoading={initMutation.isPending}
         onSelectProject={(projectId) => initMutation.mutate({ projectId })}
         onNewProject={() => initMutation.mutate({})}
       />
@@ -200,11 +191,13 @@ function Editor({ projectId }: EditorProps) {
 // === Project List View ===
 
 type ProjectListViewProps = {
+  isLoading: boolean;
   onSelectProject: (projectId: string) => void;
   onNewProject: () => void;
 };
 
 function ProjectListView({
+  isLoading,
   onSelectProject,
   onNewProject,
 }: ProjectListViewProps) {
@@ -374,28 +367,36 @@ function ProjectListView({
                 <button
                   type="button"
                   data-testid="continue-button"
+                  disabled={isLoading}
                   onClick={() =>
                     lastProjectId && onSelectProject(lastProjectId)
                   }
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
                 >
                   Continue
                 </button>
                 <button
                   type="button"
                   data-testid="new-project-button"
+                  disabled={isLoading}
                   onClick={onNewProject}
-                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg font-medium"
+                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
                 >
                   New Project
                 </button>
               </div>
               <p className="text-neutral-600 text-sm">
-                Press{" "}
-                <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                  Space
-                </kbd>{" "}
-                to continue
+                {isLoading ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    Press{" "}
+                    <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+                      Space
+                    </kbd>{" "}
+                    to continue
+                  </>
+                )}
               </p>
             </div>
           </>
@@ -404,17 +405,24 @@ function ProjectListView({
             <button
               type="button"
               data-testid="new-project-button"
+              disabled={isLoading}
               onClick={onNewProject}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
             >
               Create Your First Project
             </button>
             <p className="text-neutral-600 text-sm">
-              Press{" "}
-              <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                Space
-              </kbd>{" "}
-              to start
+              {isLoading ? (
+                "Loading..."
+              ) : (
+                <>
+                  Press{" "}
+                  <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+                    Space
+                  </kbd>{" "}
+                  to start
+                </>
+              )}
             </p>
           </div>
         )}
