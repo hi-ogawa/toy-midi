@@ -1,33 +1,21 @@
-import { useMutation } from "@tanstack/react-query";
 import {
   CheckIcon,
   ChevronsUpDownIcon,
   CircleHelpIcon,
-  ClipboardIcon,
-  DownloadIcon,
   FolderIcon,
   MusicIcon,
   PauseIcon,
   PlayIcon,
   SettingsIcon,
-  Trash2Icon,
-  UploadIcon,
   Volume2Icon,
 } from "lucide-react";
+import { ArrowLeftRightIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { toast } from "sonner";
 import * as Tone from "tone";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
-import {
-  copyABCToClipboard,
-  downloadABCFile,
-  exportABC,
-} from "../lib/abc-export";
-import { deleteAsset, saveAsset } from "../lib/asset-store";
-import { audioManager, GM_PROGRAMS, loadAudioFile } from "../lib/audio";
-import { downloadMidiFile, exportMidi } from "../lib/midi-export";
+import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
@@ -232,19 +220,18 @@ type TransportProps = {
   onProjectSettingsClick: () => void;
   onHelpClick: () => void;
   onProjectsClick: () => void;
+  onImportExportClick: () => void;
 };
 
 export function Transport({
   onProjectSettingsClick,
   onHelpClick,
   onProjectsClick,
+  onImportExportClick,
 }: TransportProps) {
   const {
-    audioFileName,
-    audioAssetKey,
     tempo,
     timeSignature,
-    notes,
     midiVolume,
     midiProgram,
     audioVolume,
@@ -263,13 +250,8 @@ export function Transport({
     setAutoScrollEnabled,
     setGridSnap,
     setShowDebug,
-    setAudioFile,
-    setAudioOffset,
-    setAudioPeaks,
-    clearAudioFile,
   } = useProjectStore();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const tapTimesRef = useRef<number[]>([]);
 
   const tempoInput = useDraftInput({
@@ -278,46 +260,6 @@ export function Transport({
     min: 30,
     max: 300,
   });
-
-  const loadAudioMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const { buffer, peaks, peaksPerSecond } = await loadAudioFile(file);
-
-      // Save audio to IndexedDB for persistence
-      const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
-
-      audioManager.player.buffer = buffer;
-      audioManager.player.sync().start(0);
-      setAudioOffset(0);
-
-      setAudioPeaks(peaks, peaksPerSecond);
-    },
-  });
-
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      loadAudioMutation.mutate(file);
-    }
-    // Reset input so same file can be selected again
-    e.target.value = "";
-  };
-
-  const handleRemoveAudio = async () => {
-    // Delete from IndexedDB if we have a key
-    if (audioAssetKey) {
-      await deleteAsset(audioAssetKey);
-    }
-    // Clear the audio buffer in the player
-    audioManager.clearAudioBuffer();
-    // Clear store state
-    clearAudioFile();
-  };
 
   // Keyboard shortcut: Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
@@ -366,80 +308,11 @@ export function Transport({
     }
   };
 
-  const handleExportMidi = () => {
-    const midiData = exportMidi({
-      notes,
-      tempo,
-      timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
-        : "Piano Roll",
-    });
-
-    // Generate filename with timestamp
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/[T:]/g, "-")
-      .replace(/\.\d+Z$/, "");
-    const fileName = `toy-midi-export-${timestamp}.mid`;
-
-    downloadMidiFile(midiData, fileName);
-  };
-
-  const handleExportABC = () => {
-    const abcText = exportABC({
-      notes,
-      tempo,
-      timeSignature,
-      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
-    });
-
-    // Generate filename with timestamp
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/[T:]/g, "-")
-      .replace(/\.\d+Z$/, "");
-    const fileName = `toy-midi-export-${timestamp}.abc`;
-
-    downloadABCFile(abcText, fileName);
-  };
-
-  const handleCopyABCToClipboard = async () => {
-    try {
-      const abcText = exportABC({
-        notes,
-        tempo,
-        timeSignature,
-        title: audioFileName
-          ? audioFileName.replace(/\.[^.]+$/, "")
-          : "Untitled",
-      });
-
-      await copyABCToClipboard(abcText);
-      toast.success("ABC notation copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy ABC notation:", error);
-      toast.error("Failed to copy to clipboard");
-    }
-  };
-
   return (
     <div
       data-testid="transport"
       className="flex items-center gap-2 px-3 py-2 bg-neutral-800 border-b border-neutral-700"
     >
-      {/* Hidden file input */}
-      <input
-        data-testid="audio-file-input"
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
       {/* Play/Pause button */}
       <PlayPauseButton />
 
@@ -590,54 +463,13 @@ export function Transport({
 
           <DropdownMenuSeparator />
 
-          {/* Load Audio */}
+          {/* Import/Export */}
           <DropdownMenuItem
-            data-testid="load-audio-button"
-            onClick={handleLoadClick}
-            disabled={loadAudioMutation.isPending}
+            data-testid="import-export-button"
+            onClick={onImportExportClick}
           >
-            <UploadIcon className="size-4" />
-            {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
-          </DropdownMenuItem>
-
-          {/* Remove Audio */}
-          <DropdownMenuItem
-            data-testid="remove-audio-button"
-            onClick={handleRemoveAudio}
-            disabled={!audioFileName}
-          >
-            <Trash2Icon className="size-4" />
-            Remove Audio
-          </DropdownMenuItem>
-
-          {/* Export MIDI */}
-          <DropdownMenuItem
-            data-testid="export-midi-button"
-            onClick={handleExportMidi}
-            disabled={notes.length === 0}
-          >
-            <DownloadIcon className="size-4" />
-            Export MIDI
-          </DropdownMenuItem>
-
-          {/* Export ABC - File */}
-          <DropdownMenuItem
-            data-testid="export-abc-button"
-            onClick={handleExportABC}
-            disabled={notes.length === 0}
-          >
-            <DownloadIcon className="size-4" />
-            Export ABC
-          </DropdownMenuItem>
-
-          {/* Export ABC - Clipboard */}
-          <DropdownMenuItem
-            data-testid="copy-abc-button"
-            onClick={handleCopyABCToClipboard}
-            disabled={notes.length === 0}
-          >
-            <ClipboardIcon className="size-4" />
-            Copy ABC to Clipboard
+            <ArrowLeftRightIcon className="size-4" />
+            Import / Export...
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

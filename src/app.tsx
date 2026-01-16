@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
+import { ImportExportModal } from "./components/import-export-modal";
 import { PianoRoll } from "./components/piano-roll";
 import { ProjectSettingsDialog } from "./components/project-settings-dialog";
 import { Transport } from "./components/transport";
@@ -135,6 +136,7 @@ type EditorProps = {
 function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [projectName, setProjectName] = useState(
     () => getProjectMetadata(projectId)?.name ?? "Untitled",
   );
@@ -149,7 +151,11 @@ function Editor({ projectId }: EditorProps) {
     "keydown",
     (e) => {
       if (e.key !== "Escape") return;
-      if (isSettingsOpen) {
+      if (isImportExportOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsImportExportOpen(false);
+      } else if (isSettingsOpen) {
         e.preventDefault();
         e.stopPropagation();
         setIsSettingsOpen(false);
@@ -172,6 +178,7 @@ function Editor({ projectId }: EditorProps) {
           // for now, open startup page in new tab.
           window.open("/", "_blank");
         }}
+        onImportExportClick={() => setIsImportExportOpen(true)}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -183,6 +190,16 @@ function Editor({ projectId }: EditorProps) {
           setProjectName(name);
         }}
         onClose={() => setIsSettingsOpen(false)}
+      />
+      <ImportExportModal
+        isOpen={isImportExportOpen}
+        projectId={projectId}
+        onClose={() => setIsImportExportOpen(false)}
+        onProjectImported={(newProjectId) => {
+          // Reload page to switch to imported project
+          setLastProjectId(newProjectId);
+          window.location.reload();
+        }}
       />
     </div>
   );
