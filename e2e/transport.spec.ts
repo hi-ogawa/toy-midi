@@ -16,17 +16,6 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled();
 
-    // Load audio via hidden file input
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-
-    // Wait for audio to load
-    await page.waitForTimeout(500);
-
     // Should show play icon initially
     await expect(page.getByTestId("play-icon")).toBeVisible();
 
@@ -176,97 +165,7 @@ test.describe("Transport Controls", () => {
     expect(await synthItems.count()).toBeGreaterThan(5);
   });
 
-  test("export MIDI workflow", async ({ page }) => {
-    // Open settings dropdown to access export button
-    await page.getByTestId("settings-button").click();
-    const exportButton = page.getByTestId("export-midi-button");
-
-    // Button disabled when no notes
-    await expect(exportButton).toBeDisabled();
-
-    // Close dropdown, add a note
-    await page.keyboard.press("Escape");
-    const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
-    await pianoRoll.click({ position: { x: 100, y: 100 } });
-
-    // Open settings dropdown again
-    await page.getByTestId("settings-button").click();
-
-    // Button enabled when notes exist
-    await expect(exportButton).toBeEnabled();
-
-    // Click export and verify download
-    const downloadPromise = page.waitForEvent("download");
-    await exportButton.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.mid$/);
-  });
-
-  test("export ABC file workflow", async ({ page }) => {
-    // Open settings dropdown to access export button
-    await page.getByTestId("settings-button").click();
-    const exportButton = page.getByTestId("export-abc-button");
-
-    // Button disabled when no notes
-    await expect(exportButton).toBeDisabled();
-
-    // Close dropdown, add a note
-    await page.keyboard.press("Escape");
-    const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
-    await pianoRoll.click({ position: { x: 100, y: 100 } });
-
-    // Open settings dropdown again
-    await page.getByTestId("settings-button").click();
-
-    // Button enabled when notes exist
-    await expect(exportButton).toBeEnabled();
-
-    // Click export and verify download
-    const downloadPromise = page.waitForEvent("download");
-    await exportButton.click();
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.abc$/);
-  });
-
-  test("copy ABC to clipboard workflow", async ({ page, context }) => {
-    // Grant clipboard permissions
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-
-    // Open settings dropdown to access copy button
-    await page.getByTestId("settings-button").click();
-    const copyButton = page.getByTestId("copy-abc-button");
-
-    // Button disabled when no notes
-    await expect(copyButton).toBeDisabled();
-
-    // Close dropdown, add a note
-    await page.keyboard.press("Escape");
-    const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
-    await pianoRoll.click({ position: { x: 100, y: 100 } });
-
-    // Open settings dropdown again
-    await page.getByTestId("settings-button").click();
-
-    // Button enabled when notes exist
-    await expect(copyButton).toBeEnabled();
-
-    // Click copy button
-    await copyButton.click();
-
-    // Wait for success toast
-    await expect(
-      page.getByText("ABC notation copied to clipboard"),
-    ).toBeVisible();
-
-    // Verify clipboard content
-    const clipboardText = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
-    expect(clipboardText).toContain("X:1"); // ABC header
-    expect(clipboardText).toContain("M:4/4"); // Time signature
-    expect(clipboardText).toContain("Q:1/4=120"); // Tempo
-    expect(clipboardText).toContain("K:C"); // Key signature
-  });
+  // Note: Export MIDI/ABC tests moved to import-export.spec.ts
 });
 
 test.describe("Audio Track", () => {
@@ -276,39 +175,34 @@ test.describe("Audio Track", () => {
   });
 
   async function loadAudioFile(page: import("@playwright/test").Page) {
-    const fileInput = page.getByTestId("audio-file-input");
+    // Load audio via Import/Export modal
+    await page.getByTestId("settings-button").click();
+    await page.getByTestId("import-export-button").click();
+    await page.getByTestId("import-export-modal").waitFor({ state: "visible" });
+
+    // Switch to import tab
+    await page
+      .getByRole("button", { name: /Import/i })
+      .first()
+      .click();
+
+    // Import audio file
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByText("Drop file here or click to browse").click(),
+    ]);
+
     const testAudioPath = path.join(
       import.meta.dirname,
       "../public/test-audio.wav",
     );
-    await fileInput.setInputFiles(testAudioPath);
-    await page.waitForTimeout(500); // Wait for audio to load
+    await fileChooser.setFiles(testAudioPath);
+    await page.getByRole("button", { name: "Import" }).nth(1).click();
+
+    // Wait for modal to close and audio to load
+    await expect(page.getByTestId("import-export-modal")).not.toBeVisible();
+    await page.waitForTimeout(500);
   }
-
-  test("remove audio via settings menu", async ({ page }) => {
-    // Remove button should be disabled when no audio loaded
-    await page.getByTestId("settings-button").click();
-    const removeButton = page.getByTestId("remove-audio-button");
-    await expect(removeButton).toBeDisabled();
-    await page.keyboard.press("Escape");
-
-    // Load audio file
-    await loadAudioFile(page);
-
-    // Verify waveform is visible
-    const audioRegion = page
-      .locator(".bg-emerald-700, .bg-emerald-600")
-      .first();
-    await expect(audioRegion).toBeVisible();
-
-    // Remove button should now be enabled
-    await page.getByTestId("settings-button").click();
-    await expect(removeButton).toBeEnabled();
-    await removeButton.click();
-
-    // Verify audio region is gone
-    await expect(audioRegion).not.toBeVisible();
-  });
 
   test("select, deselect, and delete audio track", async ({ page }) => {
     await loadAudioFile(page);
