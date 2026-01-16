@@ -298,3 +298,4 @@ No breaking changes needed. The `.toymidi` format is additive:
   - Export: Project (.toymidi), MIDI (.mid), ABC (.abc) formats
   - Import: .toymidi project files, .mid MIDI files (with track selection), audio files (.wav, .mp3)
   - Consolidated all import/export from transport menu into single modal
+- 2026-01-17: E2E tests complete. Added 17 tests covering export tab, import tab, and modal behavior. Updated existing transport/persistence tests to use modal flow.
