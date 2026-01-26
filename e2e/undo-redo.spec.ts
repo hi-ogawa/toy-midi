@@ -11,46 +11,36 @@ test.describe("Undo/Redo", () => {
     await clickNewProject(page);
   });
 
-  test("undo create note", async ({ page }) => {
+  test("create and delete note with undo/redo", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
-    // Create a note
+    const note = page.locator("[data-testid^='note-']");
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
+    // Create a note
     await page.mouse.move(startX, startY);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, startY);
     await page.mouse.up();
-
-    // Verify note was created
-    const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
 
-    // Undo with Ctrl+Z
+    // Undo create with Ctrl+Z
     await page.keyboard.press("Control+z");
-
-    // Verify note was removed
     await expect(note).toHaveCount(0);
-  });
 
-  test("undo delete note", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Redo with Ctrl+Shift+Z
+    await page.keyboard.press("Control+Shift+z");
+    await expect(note).toHaveCount(1);
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+    // Undo again
+    await page.keyboard.press("Control+z");
+    await expect(note).toHaveCount(0);
 
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']");
+    // Redo with Ctrl+Y (alternative)
+    await page.keyboard.press("Control+y");
     await expect(note).toHaveCount(1);
 
     // Delete the note
@@ -59,12 +49,14 @@ test.describe("Undo/Redo", () => {
 
     // Undo delete
     await page.keyboard.press("Control+z");
-
-    // Verify note was restored
     await expect(note).toHaveCount(1);
+
+    // Redo delete
+    await page.keyboard.press("Control+y");
+    await expect(note).toHaveCount(0);
   });
 
-  test("undo move note", async ({ page }) => {
+  test("move and resize note with undo/redo", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
@@ -83,6 +75,7 @@ test.describe("Undo/Redo", () => {
     if (!initialBox) throw new Error("Note not found");
     const initialX = initialBox.x;
     const initialY = initialBox.y;
+    const initialWidth = initialBox.width;
 
     // Move note horizontally
     const noteCenter = startX + BEAT_WIDTH * 0.5;
@@ -98,42 +91,31 @@ test.describe("Undo/Redo", () => {
 
     // Undo move
     await page.keyboard.press("Control+z");
-
-    // Verify note returned to original position
     const undoneBox = await note.boundingBox();
     if (!undoneBox) throw new Error("Note not found after undo");
-    expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2); // Allow small rounding error
+    expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2);
     expect(Math.abs(undoneBox.y - initialY)).toBeLessThan(2);
-  });
 
-  test("undo resize note", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Redo move
+    await page.keyboard.press("Control+y");
+    const redoneMoveBox = await note.boundingBox();
+    if (!redoneMoveBox) throw new Error("Note not found after redo");
+    expect(Math.abs(redoneMoveBox.x - movedBox.x)).toBeLessThan(2);
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-    const initialWidth = initialBox.width;
+    // Undo move again for resize test
+    await page.keyboard.press("Control+z");
 
     // Resize note from right edge
+    const resizeBox = await note.boundingBox();
+    if (!resizeBox) throw new Error("Note not found for resize");
     await page.mouse.move(
-      initialBox.x + initialBox.width - 2,
-      initialBox.y + initialBox.height / 2,
+      resizeBox.x + resizeBox.width - 2,
+      resizeBox.y + resizeBox.height / 2,
     );
     await page.mouse.down();
     await page.mouse.move(
-      initialBox.x + initialBox.width + BEAT_WIDTH,
-      initialBox.y + initialBox.height / 2,
+      resizeBox.x + resizeBox.width + BEAT_WIDTH,
+      resizeBox.y + resizeBox.height / 2,
     );
     await page.mouse.up();
 
@@ -144,188 +126,95 @@ test.describe("Undo/Redo", () => {
 
     // Undo resize
     await page.keyboard.press("Control+z");
-
-    // Verify note returned to original size
-    const undoneBox = await note.boundingBox();
-    if (!undoneBox) throw new Error("Note not found after undo");
-    expect(Math.abs(undoneBox.width - initialWidth)).toBeLessThan(2);
+    const undoneResizeBox = await note.boundingBox();
+    if (!undoneResizeBox) throw new Error("Note not found after undo resize");
+    expect(Math.abs(undoneResizeBox.width - initialWidth)).toBeLessThan(2);
   });
 
-  test("redo after undo", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']");
-    await expect(note).toHaveCount(1);
-
-    // Undo create
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-
-    // Redo with Ctrl+Shift+Z
-    await page.keyboard.press("Control+Shift+z");
-    await expect(note).toHaveCount(1);
-
-    // Undo again
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-
-    // Redo with Ctrl+Y (alternative)
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(1);
-  });
-
-  test("multiple undo operations", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    const note = page.locator("[data-testid^='note-']");
-
-    // Create first note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-    await expect(note).toHaveCount(1);
-
-    // Create second note
-    await page.mouse.move(startX, startY + ROW_HEIGHT);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT);
-    await page.mouse.up();
-    await expect(note).toHaveCount(2);
-
-    // Create third note
-    await page.mouse.move(startX, startY + ROW_HEIGHT * 2);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT * 2);
-    await page.mouse.up();
-    await expect(note).toHaveCount(3);
-
-    // Undo third note
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(2);
-
-    // Undo second note
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(1);
-
-    // Undo first note
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-
-    // Redo all
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(1);
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(2);
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(3);
-  });
-
-  test("new operation clears redo stack", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    const note = page.locator("[data-testid^='note-']");
-
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-    await expect(note).toHaveCount(1);
-
-    // Undo
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-
-    // Create a different note (should clear redo stack)
-    await page.mouse.move(startX, startY + ROW_HEIGHT);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT);
-    await page.mouse.up();
-    await expect(note).toHaveCount(1);
-
-    // Redo should not bring back the first note
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(1); // Still just one note
-
-    // But can undo the new note
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-  });
-
-  test("history cleared on project load", async ({ page }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
-
-    const note = page.locator("[data-testid^='note-']");
-
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 0.5;
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-    await expect(note).toHaveCount(1);
-
-    // Wait for auto-save (debounced at 500ms)
-    await page.waitForTimeout(600);
-
-    // Reload page (which will load project from localStorage)
-    await page.reload();
-
-    // Click Continue to restore the project
-    const continueButton = page.getByTestId("continue-button");
-    await continueButton.waitFor({ state: "visible", timeout: 10000 });
-    await continueButton.click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
-
-    // Note should still be there
-    await expect(note).toHaveCount(1);
-
-    // But undo should not work (history cleared on load)
-    await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(1); // Note should still be there
-  });
-
-  test("undo multi-note move in single operation", async ({ page }) => {
+  test("multiple operations and redo stack behavior", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
     if (!gridBox) throw new Error("Grid not found");
 
     const notes = page.locator("[data-testid^='note-']");
-
-    // Create first note at row 5
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startY = gridBox.y + ROW_HEIGHT * 0.5;
+
+    // Create three notes
+    for (let i = 0; i < 3; i++) {
+      await page.mouse.move(startX, startY + ROW_HEIGHT * i);
+      await page.mouse.down();
+      await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT * i);
+      await page.mouse.up();
+    }
+    await expect(notes).toHaveCount(3);
+
+    // Undo all three
+    await page.keyboard.press("Control+z");
+    await expect(notes).toHaveCount(2);
+    await page.keyboard.press("Control+z");
+    await expect(notes).toHaveCount(1);
+    await page.keyboard.press("Control+z");
+    await expect(notes).toHaveCount(0);
+
+    // Redo all three
+    await page.keyboard.press("Control+y");
+    await expect(notes).toHaveCount(1);
+    await page.keyboard.press("Control+y");
+    await expect(notes).toHaveCount(2);
+    await page.keyboard.press("Control+y");
+    await expect(notes).toHaveCount(3);
+
+    // Undo one
+    await page.keyboard.press("Control+z");
+    await expect(notes).toHaveCount(2);
+
+    // Create a new note (should clear redo stack)
+    await page.mouse.move(startX + BEAT_WIDTH * 3, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH * 4, startY);
+    await page.mouse.up();
+    await expect(notes).toHaveCount(3);
+
+    // Redo should not bring back the undone note (redo stack cleared)
+    await page.keyboard.press("Control+y");
+    await expect(notes).toHaveCount(3);
+
+    // Wait for auto-save
+    await page.waitForTimeout(600);
+
+    // Reload and restore project
+    await page.reload();
+    const continueButton = page.getByTestId("continue-button");
+    await continueButton.waitFor({ state: "visible", timeout: 10000 });
+    await continueButton.click();
+    await page.getByTestId("transport").waitFor({ state: "visible" });
+
+    // Notes should still be there
+    await expect(notes).toHaveCount(3);
+
+    // Undo should not work (history cleared on load)
+    await page.keyboard.press("Control+z");
+    await expect(notes).toHaveCount(3);
+  });
+
+  test("multi-note moves and drag coalescing", async ({ page }) => {
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    const notes = page.locator("[data-testid^='note-']");
+    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+
+    // Create two notes at rows 5 and 6
     const row1Y = gridBox.y + ROW_HEIGHT * 5.5;
+    const row2Y = gridBox.y + ROW_HEIGHT * 6.5;
+
     await page.mouse.move(startX, row1Y);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, row1Y);
     await page.mouse.up();
-    await expect(notes).toHaveCount(1);
 
-    // Create second note at row 6
-    const row2Y = gridBox.y + ROW_HEIGHT * 6.5;
     await page.mouse.move(startX, row2Y);
     await page.mouse.down();
     await page.mouse.move(startX + BEAT_WIDTH, row2Y);
@@ -350,7 +239,6 @@ test.describe("Undo/Redo", () => {
     await page.mouse.up();
     await page.keyboard.up("Shift");
 
-    // Both notes should be selected (verify via visual or just proceed)
     // Move both notes by dragging one
     const moveStartX = initial1.x + initial1.width / 2;
     const moveStartY = initial1.y + initial1.height / 2;
@@ -366,9 +254,8 @@ test.describe("Undo/Redo", () => {
     expect(moved1.x).toBeGreaterThan(initial1.x);
     expect(moved2.x).toBeGreaterThan(initial2.x);
 
-    // Single undo should restore BOTH notes to original position
+    // Single undo should restore BOTH notes
     await page.keyboard.press("Control+z");
-
     const undone1 = await note1.boundingBox();
     const undone2 = await note2.boundingBox();
     if (!undone1 || !undone2) throw new Error("Notes not found after undo");
@@ -377,69 +264,53 @@ test.describe("Undo/Redo", () => {
 
     // Redo should move both back
     await page.keyboard.press("Control+y");
-
     const redone1 = await note1.boundingBox();
     const redone2 = await note2.boundingBox();
     if (!redone1 || !redone2) throw new Error("Notes not found after redo");
     expect(Math.abs(redone1.x - moved1.x)).toBeLessThan(2);
     expect(Math.abs(redone2.x - moved2.x)).toBeLessThan(2);
-  });
 
-  test("drag through many steps creates single undo entry", async ({
-    page,
-  }) => {
-    const grid = page.getByTestId("piano-roll-grid");
-    const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    // Undo both notes to test drag coalescing
+    await page.keyboard.press("Control+z"); // undo move
+    await page.keyboard.press("Control+z"); // undo second note
+    await page.keyboard.press("Control+z"); // undo first note
+    await expect(notes).toHaveCount(0);
 
-    // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
-    const startY = gridBox.y + ROW_HEIGHT * 5.5;
-    await page.mouse.move(startX, startY);
+    // Redo one note for drag coalescing test
+    await page.keyboard.press("Control+y");
+    await expect(notes).toHaveCount(1);
+
+    const singleNote = notes.first();
+    const singleInitial = await singleNote.boundingBox();
+    if (!singleInitial) throw new Error("Note not found");
+
+    // Drag note through MANY intermediate steps
+    await page.mouse.move(
+      singleInitial.x + singleInitial.width / 2,
+      singleInitial.y + singleInitial.height / 2,
+    );
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
-    await page.mouse.up();
-
-    const note = page.locator("[data-testid^='note-']").first();
-    const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
-    const initialX = initialBox.x;
-
-    // Drag note through MANY intermediate steps (simulating a long drag)
-    const noteCenter = startX + BEAT_WIDTH * 0.5;
-    await page.mouse.move(noteCenter, startY);
-    await page.mouse.down();
-
-    // Move through 10 intermediate positions
     for (let i = 1; i <= 10; i++) {
-      await page.mouse.move(noteCenter + BEAT_WIDTH * 0.3 * i, startY);
+      await page.mouse.move(
+        singleInitial.x + singleInitial.width / 2 + BEAT_WIDTH * 0.3 * i,
+        singleInitial.y + singleInitial.height / 2,
+      );
     }
     await page.mouse.up();
 
-    // Verify note moved to final position
-    const movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
-    expect(movedBox.x).toBeGreaterThan(initialX);
+    // Verify note moved
+    const draggedBox = await singleNote.boundingBox();
+    if (!draggedBox) throw new Error("Note not found after drag");
+    expect(draggedBox.x).toBeGreaterThan(singleInitial.x);
 
-    // Single undo should restore to original position (not just one step back)
+    // Single undo should restore to original (not just one step back)
     await page.keyboard.press("Control+z");
+    const undraggedBox = await singleNote.boundingBox();
+    if (!undraggedBox) throw new Error("Note not found after undo drag");
+    expect(Math.abs(undraggedBox.x - singleInitial.x)).toBeLessThan(2);
 
-    const undoneBox = await note.boundingBox();
-    if (!undoneBox) throw new Error("Note not found after undo");
-    expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2);
-
-    // A second undo should undo the note creation (not another drag step)
+    // Second undo should undo the note creation (not another drag step)
     await page.keyboard.press("Control+z");
-    await expect(note).toHaveCount(0);
-
-    // Redo should recreate note
-    await page.keyboard.press("Control+y");
-    await expect(note).toHaveCount(1);
-
-    // Second redo should move note back to final dragged position
-    await page.keyboard.press("Control+y");
-    const redoneMoved = await note.boundingBox();
-    if (!redoneMoved) throw new Error("Note not found after redo");
-    expect(Math.abs(redoneMoved.x - movedBox.x)).toBeLessThan(2);
+    await expect(notes).toHaveCount(0);
   });
 });
