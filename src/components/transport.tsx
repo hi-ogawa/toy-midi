@@ -319,13 +319,23 @@ export function Transport({
     clearAudioFile();
   };
 
-  // Keyboard shortcut: Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
+  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
       e.target instanceof HTMLTextAreaElement
     ) {
       return;
+    }
+    if (
+      e.code === "KeyM" &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      !e.repeat
+    ) {
+      e.preventDefault();
+      setMetronomeEnabled(!metronomeEnabled);
     }
     if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
       e.preventDefault();
@@ -449,7 +459,7 @@ export function Transport({
         onClick={() => setMetronomeEnabled(!metronomeEnabled)}
         variant={metronomeEnabled ? "default" : "ghost"}
         size="icon"
-        title="Toggle metronome"
+        title="Toggle metronome (M)"
         aria-pressed={metronomeEnabled}
       >
         <MetronomeIcon className="size-5" />

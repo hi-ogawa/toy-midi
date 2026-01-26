@@ -21,6 +21,11 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     category: "playback",
   },
   {
+    key: "M",
+    description: "Toggle metronome",
+    category: "playback",
+  },
+  {
     key: "Ctrl+F",
     description: "Toggle auto-scroll",
     category: "playback",
