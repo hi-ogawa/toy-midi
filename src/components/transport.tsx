@@ -327,7 +327,13 @@ export function Transport({
     ) {
       return;
     }
-    if (e.code === "KeyM" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat) {
+    if (
+      e.code === "KeyM" &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      !e.repeat
+    ) {
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
