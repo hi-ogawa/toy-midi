@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import type { audioManager } from "../src/lib/audio";
 import type { useProjectStore } from "../src/stores/project-store";
 
 // Type for the exposed store on window
@@ -56,5 +57,32 @@ export async function evaluateStore<T>(
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const evalFn = new Function("store", `return (${fnStr})(store)`);
     return evalFn(store) as T;
+  }, fn.toString());
+}
+
+// Audio test helpers
+
+type AudioManagerType = typeof audioManager;
+
+/**
+ * Evaluate a function against the AudioManager in the browser context.
+ * Only available in dev mode where globalThis.__audioManager is exposed.
+ *
+ * @example
+ * const peaks = await evaluateAudioManager(page, (mgr) => mgr.peakLevels);
+ */
+export async function evaluateAudioManager<T>(
+  page: Page,
+  fn: (mgr: AudioManagerType) => T,
+): Promise<T> {
+  return page.evaluate((fnStr) => {
+    const mgr = (globalThis as { __audioManager?: AudioManagerType })
+      .__audioManager;
+    if (!mgr) {
+      throw new Error("__audioManager not available. Is the app running?");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const evalFn = new Function("mgr", `return (${fnStr})(mgr)`);
+    return evalFn(mgr) as T;
   }, fn.toString());
 }

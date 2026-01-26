@@ -430,6 +430,9 @@ test("loaded audio produces output when playing", async ({ page }) => {
 ## Status
 
 - [x] Research complete
-- [ ] Awaiting user feedback on approach
-- [ ] Implementation
-- [ ] Tests passing
+- [x] Awaiting user feedback on approach
+- [x] Implementation (all channels)
+- [x] Tests passing (all 6 tests)
+  - Metronome: enabled/disabled
+  - MIDI: note playback/empty project
+  - Audio: file loaded/no file
