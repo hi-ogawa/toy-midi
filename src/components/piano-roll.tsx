@@ -1781,58 +1781,154 @@ function WaveformArea({
   );
 }
 
-// Waveform SVG component - renders peaks as a filled polygon
-// Downsamples peaks to max ~500 points to avoid SVG lag
-function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
+// Waveform Canvas component - renders peaks with dynamic resolution based on zoom
+// Uses canvas for pixel-level control and viewport-aware rendering
+// Threshold for switching between aggregation and detail modes
+const PEAK_AGGREGATION_THRESHOLD = 1;
+
+function Waveform({
+  peaks,
+}: {
+  peaks: number[];
+  height: number; // Not used - canvas auto-sizes via ResizeObserver
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+
   if (peaks.length === 0) return null;
 
-  // Downsample to max 500 points for performance
-  const maxPoints = 500;
-  const step = Math.max(1, Math.floor(peaks.length / maxPoints));
-  const sampledPeaks: number[] = [];
+  // Update canvas size to match container
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  for (let i = 0; i < peaks.length; i += step) {
-    // Take max of this chunk for accuracy
-    let max = 0;
-    for (let j = i; j < Math.min(i + step, peaks.length); j++) {
-      if (peaks[j] > max) max = peaks[j];
+    const updateSize = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      // Set canvas buffer size (device pixels for sharp rendering)
+      // CSS handles display size via w-full h-full class
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      setCanvasSize({
+        width: Math.round(rect.width * dpr),
+        height: Math.round(rect.height * dpr),
+      });
+    };
+
+    updateSize();
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(canvas);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Render waveform on canvas
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvasSize.width;
+    const height = canvasSize.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+
+    // Calculate dimensions in CSS pixels (before scaling)
+    const cssWidth = width / dpr;
+    const cssHeight = height / dpr;
+
+    // Guard against zero or very small dimensions
+    if (cssWidth < 1 || cssHeight < 1) return;
+
+    const centerY = cssHeight / 2;
+    const maxAmplitude = centerY * 0.9;
+
+    // Scale context for device pixel ratio (after coordinate calculations)
+    ctx.save();
+    ctx.scale(dpr, dpr);
+
+    // Calculate peaks per pixel - determines if we aggregate or show detail
+    const peaksPerPixel = peaks.length / cssWidth;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    ctx.lineWidth = 1;
+
+    if (peaksPerPixel > PEAK_AGGREGATION_THRESHOLD) {
+      // Zoomed out: aggregate multiple peaks per pixel
+      // Pre-calculate max peaks for each pixel column to avoid duplication
+      const aggregatedPeaks: number[] = [];
+      const cssWidthInt = Math.floor(cssWidth);
+      for (let x = 0; x < cssWidthInt; x++) {
+        const peakStart = Math.floor(x * peaksPerPixel);
+        const peakEnd = Math.min(
+          Math.floor((x + 1) * peaksPerPixel),
+          peaks.length,
+        );
+
+        // Find max peak in this pixel range
+        let maxPeak = 0;
+        for (let i = peakStart; i < peakEnd; i++) {
+          if (peaks[i] > maxPeak) maxPeak = peaks[i];
+        }
+        aggregatedPeaks.push(maxPeak);
+      }
+
+      // Draw path using pre-calculated peaks
+      ctx.beginPath();
+      // Upper half
+      for (let x = 0; x < aggregatedPeaks.length; x++) {
+        const amplitude = aggregatedPeaks[x] * maxAmplitude;
+        if (x === 0) {
+          ctx.moveTo(x, centerY - amplitude);
+        } else {
+          ctx.lineTo(x, centerY - amplitude);
+        }
+      }
+      // Lower half (mirrored)
+      for (let x = aggregatedPeaks.length - 1; x >= 0; x--) {
+        const amplitude = aggregatedPeaks[x] * maxAmplitude;
+        ctx.lineTo(x, centerY + amplitude);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      // Zoomed in: show individual peaks with more detail
+      // Each peak gets multiple pixels
+      const pixelsPerPeak = 1 / peaksPerPixel;
+
+      // Build both upper and lower paths in a single loop
+      ctx.beginPath();
+      // Upper half
+      for (let i = 0; i < peaks.length; i++) {
+        const x = i * pixelsPerPeak;
+        const amplitude = peaks[i] * maxAmplitude;
+
+        if (i === 0) {
+          ctx.moveTo(x, centerY - amplitude);
+        } else {
+          ctx.lineTo(x, centerY - amplitude);
+        }
+      }
+      // Lower half (mirrored)
+      for (let i = peaks.length - 1; i >= 0; i--) {
+        const x = i * pixelsPerPeak;
+        const amplitude = peaks[i] * maxAmplitude;
+        ctx.lineTo(x, centerY + amplitude);
+      }
+
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
     }
-    sampledPeaks.push(max);
-  }
 
-  // Use viewBox coordinates (0-1000 for x, 0-height for y)
-  const viewBoxWidth = 1000;
-  const centerY = height / 2;
-  const maxAmplitude = centerY * 0.9; // Leave some margin
+    ctx.restore();
+  }, [peaks, canvasSize]);
 
-  // Create path points for upper and lower halves
-  const upperPoints: string[] = [];
-  const lowerPoints: string[] = [];
-
-  for (let i = 0; i < sampledPeaks.length; i++) {
-    // X position scaled to viewBox width
-    const x = (i / (sampledPeaks.length - 1 || 1)) * viewBoxWidth;
-    const amplitude = sampledPeaks[i] * maxAmplitude;
-
-    upperPoints.push(`${x},${centerY - amplitude}`);
-    lowerPoints.unshift(`${x},${centerY + amplitude}`);
-  }
-
-  // Close the path by connecting upper and lower halves
-  const pathData = `M ${upperPoints.join(" L ")} L ${lowerPoints.join(" L ")} Z`;
-
-  return (
-    <svg
-      className="absolute inset-0 w-full h-full"
-      viewBox={`0 0 ${viewBoxWidth} ${height}`}
-      preserveAspectRatio="none"
-    >
-      <path
-        d={pathData}
-        fill="rgba(255, 255, 255, 0.3)"
-        stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth="1"
-      />
-    </svg>
-  );
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />;
 }
