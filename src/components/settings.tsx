@@ -17,6 +17,7 @@ import {
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
+import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import { toSavedProject, useProjectStore } from "../stores/project-store";
 import { Button } from "./ui/button";
@@ -50,6 +51,46 @@ export function Settings({
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const midiFileInputRef = useRef<HTMLInputElement>(null);
+
+  const importMidiMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // First parse to get available tracks
+      const parsed = await import("../lib/midi-import").then((m) =>
+        m.parseMidiFile(file),
+      );
+
+      // Import all tracks
+      const options: MidiImportOptions = {
+        trackIndices: parsed.tracks.map((t) => t.index),
+        replaceExisting: true, // Replace existing notes by default
+        importTempo: true,
+        importTimeSignature: true,
+      };
+
+      const result = await importMidiNotes(file, options);
+
+      // Replace all notes
+      useProjectStore.setState({ notes: result.notes });
+
+      // Apply tempo and time signature
+      if (result.tempo) {
+        useProjectStore.getState().setTempo(result.tempo);
+      }
+      if (result.timeSignature) {
+        useProjectStore.getState().setTimeSignature(result.timeSignature);
+      }
+
+      return result.notes.length;
+    },
+    onSuccess: (noteCount) => {
+      toast.success(`Imported ${noteCount} notes from MIDI file`);
+    },
+    onError: (error) => {
+      console.error("Failed to import MIDI:", error);
+      toast.error("Failed to import MIDI file");
+    },
+  });
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -75,6 +116,19 @@ export function Settings({
     const file = e.target.files?.[0];
     if (file) {
       loadAudioMutation.mutate(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleImportMidiClick = () => {
+    midiFileInputRef.current?.click();
+  };
+
+  const handleMidiFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importMidiMutation.mutate(file);
     }
     // Reset input so same file can be selected again
     e.target.value = "";
@@ -171,6 +225,13 @@ export function Settings({
         onChange={handleFileChange}
         className="hidden"
       />
+      <input
+        ref={midiFileInputRef}
+        type="file"
+        accept=".mid,.midi"
+        onChange={handleMidiFileChange}
+        className="hidden"
+      />
 
       {/* Project Section */}
       <section className="space-y-3">
@@ -249,6 +310,30 @@ export function Settings({
               </Button>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* MIDI Import Section */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
+          <UploadIcon className="size-4" />
+          Import MIDI
+        </h3>
+        <div className="pl-6 space-y-2">
+          <Button
+            data-testid="import-midi-button"
+            variant="outline"
+            size="sm"
+            onClick={handleImportMidiClick}
+            disabled={importMidiMutation.isPending}
+            className="w-full justify-start"
+          >
+            <UploadIcon className="size-4" />
+            {importMidiMutation.isPending ? "Importing..." : "Import MIDI File"}
+          </Button>
+          <p className="text-xs text-neutral-500">
+            Import notes from MIDI file (replaces existing notes)
+          </p>
         </div>
       </section>
 
