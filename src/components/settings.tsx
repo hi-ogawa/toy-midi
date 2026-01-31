@@ -17,20 +17,35 @@ import {
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
-import { useProjectStore } from "../stores/project-store";
+import {
+  downloadProjectFile,
+  exportProjectFile,
+  importProjectAudio,
+  parseProjectFile,
+} from "../lib/project-file";
+import {
+  createProject,
+  saveProjectData,
+  setLastProjectId,
+} from "../lib/project-manager";
+import { toSavedProject, useProjectStore } from "../stores/project-store";
 import { Button } from "./ui/button";
 
 type SettingsProps = {
   // Project section
+  projectId: string;
   projectName: string;
   onProjectNameChange: (name: string) => void;
   onProjectsClick: () => void;
+  onProjectImported?: (projectId: string) => void;
 };
 
 export function Settings({
+  projectId: _projectId,
   projectName,
   onProjectNameChange,
   onProjectsClick,
+  onProjectImported,
 }: SettingsProps) {
   const {
     audioFileName,
@@ -49,6 +64,33 @@ export function Settings({
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const projectFileInputRef = useRef<HTMLInputElement>(null);
+
+  const importProjectMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const parsed = await parseProjectFile(file);
+      const projectWithAudio = await importProjectAudio(parsed);
+
+      // Create new project
+      const newProjectId = createProject(parsed.manifest.name);
+      saveProjectData(newProjectId, projectWithAudio);
+
+      return newProjectId;
+    },
+    onSuccess: (newProjectId) => {
+      if (onProjectImported) {
+        onProjectImported(newProjectId);
+      } else {
+        // Default behavior: reload page with new project
+        setLastProjectId(newProjectId);
+        window.location.reload();
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to import project:", error);
+      toast.error("Failed to import project");
+    },
+  });
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -149,14 +191,45 @@ export function Settings({
     }
   };
 
+  const handleExportProject = async () => {
+    try {
+      const projectData = toSavedProject(useProjectStore.getState());
+      const blob = await exportProjectFile(projectName, projectData);
+      downloadProjectFile(blob, projectName);
+    } catch (error) {
+      console.error("Failed to export project:", error);
+      toast.error("Failed to export project");
+    }
+  };
+
+  const handleImportProjectClick = () => {
+    projectFileInputRef.current?.click();
+  };
+
+  const handleProjectFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importProjectMutation.mutate(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
   return (
     <div className="space-y-6">
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
         accept="audio/*"
         onChange={handleFileChange}
+        className="hidden"
+      />
+      <input
+        ref={projectFileInputRef}
+        type="file"
+        accept=".toymidi"
+        onChange={handleProjectFileChange}
         className="hidden"
       />
 
@@ -183,6 +256,19 @@ export function Settings({
               placeholder="Enter project name"
             />
           </div>
+          <Button
+            data-testid="import-project-button"
+            variant="outline"
+            size="sm"
+            onClick={handleImportProjectClick}
+            disabled={importProjectMutation.isPending}
+            className="w-full justify-start"
+          >
+            <UploadIcon className="size-4" />
+            {importProjectMutation.isPending
+              ? "Importing..."
+              : "Import Project"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -247,6 +333,16 @@ export function Settings({
           Export
         </h3>
         <div className="pl-6 space-y-2">
+          <Button
+            data-testid="export-project-button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportProject}
+            className="w-full justify-start"
+          >
+            <DownloadIcon className="size-4" />
+            Export Project
+          </Button>
           <Button
             data-testid="export-midi-button"
             variant="outline"

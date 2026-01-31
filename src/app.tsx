@@ -200,6 +200,7 @@ function Editor({ projectId }: EditorProps) {
         testId="settings-dialog"
       >
         <Settings
+          projectId={projectId}
           projectName={projectName}
           onProjectNameChange={(name) => {
             const trimmed = name.trim();
