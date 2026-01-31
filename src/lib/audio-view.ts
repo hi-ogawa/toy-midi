@@ -77,11 +77,26 @@ export function queryAudioView(
 
   if (endIdx <= startIdx) return emptySlice;
 
-  // Calculate actual time bounds (aligned to data point boundaries)
-  const actualStart = (startIdx * samplesPerPoint) / sampleRate;
-  const actualEnd = (endIdx * samplesPerPoint) / sampleRate;
+  // Align boundaries to coarser grid to prevent jiggling during scroll.
+  // The alignment step is based on how many source points per output point.
+  const rawLength = endIdx - startIdx;
+  const alignmentStep = Math.max(1, Math.ceil(rawLength / targetPoints));
+  const alignedStartIdx = Math.max(
+    0,
+    Math.floor(startIdx / alignmentStep) * alignmentStep,
+  );
+  const alignedEndIdx = Math.min(
+    data.length,
+    Math.ceil(endIdx / alignmentStep) * alignmentStep,
+  );
 
-  const visible = data.slice(startIdx, endIdx);
+  if (alignedEndIdx <= alignedStartIdx) return emptySlice;
+
+  // Calculate actual time bounds (aligned to coarse grid boundaries)
+  const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
+  const actualEnd = (alignedEndIdx * samplesPerPoint) / sampleRate;
+
+  const visible = data.slice(alignedStartIdx, alignedEndIdx);
 
   // If fewer points than target, return as-is
   if (visible.length <= targetPoints) {
