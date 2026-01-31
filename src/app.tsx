@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { ImportExport } from "./components/import-export";
@@ -12,6 +12,7 @@ import { Dialog, SimpleDialog } from "./components/ui/dialog";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
+import { importProjectAudio, parseProjectFile } from "./lib/project-file";
 import {
   createProject,
   deleteProject,
@@ -254,9 +255,31 @@ function ProjectListView({
   );
   const [renameValue, setRenameValue] = useState("");
   const [projects, setProjects] = useState(listProjects());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
   const lastProjectId = getLastProjectId();
+
+  const importProjectMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const parsed = await parseProjectFile(file);
+      const projectWithAudio = await importProjectAudio(parsed);
+
+      // Create new project
+      const newProjectId = createProject(parsed.manifest.name);
+      saveProjectData(newProjectId, projectWithAudio);
+
+      return newProjectId;
+    },
+    onSuccess: (newProjectId) => {
+      // Select the newly imported project
+      onSelectProject(newProjectId);
+    },
+    onError: (error) => {
+      console.error("Failed to import project:", error);
+      toast.error("Failed to import project");
+    },
+  });
 
   const handleRenameStart = (
     e: React.MouseEvent,
@@ -290,11 +313,33 @@ function ProjectListView({
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importProjectMutation.mutate(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
   return (
     <div
       data-testid="startup-screen"
       className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50 overflow-hidden"
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".toymidi"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Gradient glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_center,#10b98125_0%,transparent_70%)] pointer-events-none" />
 
@@ -432,6 +477,17 @@ function ProjectListView({
                 >
                   New Project
                 </button>
+                <button
+                  type="button"
+                  data-testid="import-project-button"
+                  disabled={isLoading || importProjectMutation.isPending}
+                  onClick={handleImportClick}
+                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+                >
+                  {importProjectMutation.isPending
+                    ? "Importing..."
+                    : "Import Project"}
+                </button>
               </div>
               <p className="text-neutral-600 text-sm">
                 {isLoading ? (
@@ -450,15 +506,28 @@ function ProjectListView({
           </>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <button
-              type="button"
-              data-testid="new-project-button"
-              disabled={isLoading}
-              onClick={onNewProject}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
-            >
-              Create Your First Project
-            </button>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                data-testid="new-project-button"
+                disabled={isLoading}
+                onClick={onNewProject}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+              >
+                Create Your First Project
+              </button>
+              <button
+                type="button"
+                data-testid="import-project-button"
+                disabled={isLoading || importProjectMutation.isPending}
+                onClick={handleImportClick}
+                className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+              >
+                {importProjectMutation.isPending
+                  ? "Importing..."
+                  : "Import Project"}
+              </button>
+            </div>
             <p className="text-neutral-600 text-sm">
               {isLoading ? (
                 "Loading..."
