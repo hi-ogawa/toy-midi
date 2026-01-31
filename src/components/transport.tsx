@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRightIcon,
   CheckIcon,
   ChevronsUpDownIcon,
   CircleHelpIcon,
@@ -212,12 +213,14 @@ type TransportProps = {
   onSettingsClick: () => void;
   onHelpClick: () => void;
   onMixerClick: () => void;
+  onImportExportClick: () => void;
 };
 
 export function Transport({
   onSettingsClick,
   onHelpClick,
   onMixerClick,
+  onImportExportClick,
 }: TransportProps) {
   const {
     tempo,
@@ -447,6 +450,17 @@ export function Transport({
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Import/Export button */}
+      <Button
+        data-testid="import-export-button"
+        onClick={onImportExportClick}
+        variant="ghost"
+        size="icon"
+        title="Import / Export"
+      >
+        <ArrowLeftRightIcon className="size-5" />
+      </Button>
 
       {/* Settings button */}
       <Button

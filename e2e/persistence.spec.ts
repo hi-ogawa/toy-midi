@@ -104,21 +104,32 @@ test.describe("Project Persistence", () => {
   });
 
   test("audio file persists after reload", async ({ page }) => {
-    // Open settings dropdown and load audio file
+    // Load audio via Import/Export modal
     await page.getByTestId("settings-button").click();
+    await page.getByTestId("import-export-button").click();
+    await page.getByTestId("import-export-modal").waitFor({ state: "visible" });
+
+    // Switch to import tab
+    await page
+      .getByRole("button", { name: /Import/i })
+      .first()
+      .click();
+
+    // Import audio file
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
-      page.getByTestId("load-audio-button").click(),
+      page.getByText("Drop file here or click to browse").click(),
     ]);
     await fileChooser.setFiles("public/test-audio.wav");
+    await page.getByRole("button", { name: "Import" }).nth(1).click();
 
-    // Close settings dialog and wait for audio to load
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(1000);
+    // Wait for modal to close
+    await expect(page.getByTestId("import-export-modal")).not.toBeVisible();
 
-    // Check waveform is visible (audio loaded)
-    const waveform = page.locator(".bg-emerald-700, .bg-emerald-600").first();
-    await expect(waveform).toBeVisible();
+    // Wait for audio to load - filename should appear in waveform area
+    await expect(
+      page.getByText("test-audio.wav", { exact: true }),
+    ).toBeVisible();
 
     // Wait for auto-save
     await page.waitForTimeout(100);
@@ -127,8 +138,10 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Audio should be restored - waveform should be visible
-    await expect(waveform).toBeVisible();
+    // Audio should be restored - filename should appear in waveform area
+    await expect(
+      page.getByText("test-audio.wav", { exact: true }),
+    ).toBeVisible();
   });
 
   test("settings persist after reload", async ({ page }) => {
