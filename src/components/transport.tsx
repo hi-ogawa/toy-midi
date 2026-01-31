@@ -6,13 +6,12 @@ import {
   ClipboardIcon,
   DownloadIcon,
   FolderIcon,
-  MusicIcon,
   PauseIcon,
   PlayIcon,
   SettingsIcon,
+  SlidersHorizontalIcon,
   Trash2Icon,
   UploadIcon,
-  Volume2Icon,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -51,7 +50,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Slider } from "./ui/slider";
 
 function MetronomeIcon({ className }: { className?: string }) {
   return (
@@ -232,12 +230,14 @@ type TransportProps = {
   onProjectSettingsClick: () => void;
   onHelpClick: () => void;
   onProjectsClick: () => void;
+  onMixerClick: () => void;
 };
 
 export function Transport({
   onProjectSettingsClick,
   onHelpClick,
   onProjectsClick,
+  onMixerClick,
 }: TransportProps) {
   const {
     audioFileName,
@@ -245,24 +245,18 @@ export function Transport({
     tempo,
     timeSignature,
     notes,
-    midiVolume,
     midiProgram,
     midiMuted,
-    audioVolume,
     audioMuted,
-    metronomeVolume,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
     showDebug,
     setTempo,
     setTimeSignature,
-    setMidiVolume,
     setMidiProgram,
     setMidiMuted,
-    setAudioVolume,
     setAudioMuted,
-    setMetronomeVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
@@ -678,43 +672,6 @@ export function Transport({
 
           <DropdownMenuSeparator />
 
-          {/* Volume sliders */}
-          <div className="px-2 py-1.5 flex items-center gap-2">
-            <MusicIcon className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground text-sm w-12">MIDI</span>
-            <Slider
-              value={[midiVolume * 100]}
-              onValueChange={([v]) => setMidiVolume(v / 100)}
-              max={100}
-              step={1}
-              className="flex-1"
-            />
-          </div>
-          <div className="px-2 py-1.5 flex items-center gap-2">
-            <Volume2Icon className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground text-sm w-12">Audio</span>
-            <Slider
-              value={[audioVolume * 100]}
-              onValueChange={([v]) => setAudioVolume(v / 100)}
-              max={100}
-              step={1}
-              className="flex-1"
-            />
-          </div>
-          <div className="px-2 py-1.5 flex items-center gap-2">
-            <MetronomeIcon className="size-4 text-muted-foreground" />
-            <span className="text-muted-foreground text-sm w-12">Metro</span>
-            <Slider
-              value={[metronomeVolume * 100]}
-              onValueChange={([v]) => setMetronomeVolume(v / 100)}
-              max={100}
-              step={1}
-              className="flex-1"
-            />
-          </div>
-
-          <DropdownMenuSeparator />
-
           {/* Auto-scroll toggle */}
           <DropdownMenuCheckboxItem
             data-testid="auto-scroll-toggle"
@@ -738,6 +695,17 @@ export function Transport({
           </DropdownMenuCheckboxItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Mixer button */}
+      <Button
+        data-testid="mixer-button"
+        onClick={onMixerClick}
+        variant="ghost"
+        size="icon"
+        title="Mixer"
+      >
+        <SlidersHorizontalIcon className="size-5" />
+      </Button>
 
       {/* Help button */}
       <Button

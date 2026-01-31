@@ -3,9 +3,11 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
+import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
 import { ProjectSettingsDialog } from "./components/project-settings-dialog";
 import { Transport } from "./components/transport";
+import { SimpleDialog } from "./components/ui/dialog";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
@@ -135,6 +137,7 @@ type EditorProps = {
 function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [projectName, setProjectName] = useState(
     () => getProjectMetadata(projectId)?.name ?? "Untitled",
   );
@@ -153,6 +156,10 @@ function Editor({ projectId }: EditorProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsSettingsOpen(false);
+      } else if (isMixerOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsMixerOpen(false);
       } else if (isHelpOpen) {
         e.preventDefault();
         e.stopPropagation();
@@ -167,6 +174,7 @@ function Editor({ projectId }: EditorProps) {
       <Transport
         onProjectSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
+        onMixerClick={() => setIsMixerOpen(true)}
         onProjectsClick={() => {
           // TODO: modal project list view and allow switch project?
           // for now, open startup page in new tab.
@@ -175,6 +183,14 @@ function Editor({ projectId }: EditorProps) {
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <SimpleDialog
+        isOpen={isMixerOpen}
+        onClose={() => setIsMixerOpen(false)}
+        title="Mixer"
+        testId="mixer-dialog"
+      >
+        <Mixer />
+      </SimpleDialog>
       <ProjectSettingsDialog
         isOpen={isSettingsOpen}
         projectName={projectName}
