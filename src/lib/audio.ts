@@ -257,6 +257,8 @@ class AudioManager {
     // Cheap operations - always apply
     this.setAudioVolume(state.audioVolume);
     this.setMidiVolume(state.midiVolume);
+    this.setMidiMuted(state.midiMuted);
+    this.setAudioMuted(state.audioMuted);
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
     Tone.getTransport().bpm.value = state.tempo;
@@ -357,6 +359,14 @@ class AudioManager {
 
   setMetronomeEnabled(enabled: boolean): void {
     this.metronomeChannel.mute = !enabled;
+  }
+
+  setMidiMuted(muted: boolean): void {
+    this.midiChannel.mute = muted;
+  }
+
+  setAudioMuted(muted: boolean): void {
+    this.audioChannel.mute = muted;
   }
 
   setMetronomeSequence(beatsPerBar: number): void {

@@ -30,6 +30,16 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Toggle auto-scroll",
     category: "playback",
   },
+  {
+    key: "Shift+1",
+    description: "Toggle MIDI mute",
+    category: "playback",
+  },
+  {
+    key: "Shift+2",
+    description: "Toggle audio mute",
+    category: "playback",
+  },
 
   // Editing
   {

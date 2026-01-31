@@ -5,10 +5,12 @@
 Implement keyboard shortcuts to toggle mute for MIDI and audio tracks.
 
 **Shortcuts:**
+
 - `Shift+1` → Toggle MIDI track mute
 - `Shift+2` → Toggle audio track mute
 
 **Scope:**
+
 - MIDI and audio tracks only (metronome not considered a track)
 - No solo functionality needed
 - Visual feedback in mixer UI for mute state
@@ -16,12 +18,14 @@ Implement keyboard shortcuts to toggle mute for MIDI and audio tracks.
 ## Current State
 
 **File locations:**
+
 - State: `src/stores/project-store.ts`
 - Audio: `src/lib/audio.ts`
 - UI: `src/components/transport.tsx` (mixer controls)
 - Shortcuts: `src/lib/keybindings.ts`
 
 **Current implementation:**
+
 - Volume sliders exist for MIDI and audio (`midiVolume`, `audioVolume`)
 - Audio channels exist (`midiChannel`, `audioChannel`)
 - Metronome has mute via `metronomeEnabled` toggle
@@ -34,18 +38,20 @@ Implement keyboard shortcuts to toggle mute for MIDI and audio tracks.
 **File:** `src/stores/project-store.ts`
 
 Add to mixer state section:
+
 ```typescript
 // Mixer state
-audioVolume: number;       // 0-1
-midiVolume: number;        // 0-1
-midiMuted: boolean;        // NEW
-audioMuted: boolean;       // NEW
+audioVolume: number; // 0-1
+midiVolume: number; // 0-1
+midiMuted: boolean; // NEW
+audioMuted: boolean; // NEW
 midiProgram: number;
 metronomeEnabled: boolean;
 metronomeVolume: number;
 ```
 
 Add actions:
+
 ```typescript
 // Mixer actions
 setMidiMuted: (muted: boolean) => void;
@@ -53,12 +59,14 @@ setAudioMuted: (muted: boolean) => void;
 ```
 
 Default values (in `createProjectStore` function):
+
 ```typescript
 midiMuted: false,
 audioMuted: false,
 ```
 
 Action implementations:
+
 ```typescript
 setMidiMuted: (muted) => {
   set({ midiMuted: muted });
@@ -195,17 +203,17 @@ Update `syncFromStore` method to sync mute state (around line 323-338):
 ```typescript
 syncFromStore(snapshot: ProjectSnapshot): void {
   const state = snapshot.data;
-  
+
   // ... existing volume sync code ...
   this.setMidiVolume(state.midiVolume);
   this.setAudioVolume(state.audioVolume);
   this.setMetronomeVolume(state.metronomeVolume);
   this.setMetronomeEnabled(state.metronomeEnabled);
-  
+
   // NEW: Sync mute state
   this.setMidiMuted(state.midiMuted);
   this.setAudioMuted(state.audioMuted);
-  
+
   // ... rest of method ...
 }
 ```
@@ -227,6 +235,7 @@ syncFromStore(snapshot: ProjectSnapshot): void {
 **File:** `e2e/mute-shortcuts.spec.ts` (new file)
 
 Test coverage:
+
 - Toggle MIDI mute with `Shift+1`
 - Toggle audio mute with `Shift+2`
 - Verify mute state persists after save/load
