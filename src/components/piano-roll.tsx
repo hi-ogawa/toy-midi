@@ -1768,7 +1768,6 @@ function WaveformArea({
               visibleStart={audioVisibleStart}
               visibleEnd={audioVisibleEnd}
               pixelWidth={Math.max(1, Math.round(audioWidth))}
-              height={height - 8} // Account for top-1 bottom-1 padding
             />
           )}
           {/* File name and offset indicator */}
@@ -1804,14 +1803,12 @@ function Waveform({
   visibleStart,
   visibleEnd,
   pixelWidth,
-  height,
 }: {
   audioView: AudioView;
   audioDuration: number; // total audio duration in seconds
   visibleStart: number; // seconds
   visibleEnd: number; // seconds
   pixelWidth: number;
-  height: number;
 }) {
   if (audioView.data.length === 0) return null;
 
@@ -1837,25 +1834,18 @@ function Waveform({
   const widthPercent =
     ((slice.actualEnd - slice.actualStart) / audioDuration) * 100;
 
-  // Use viewBox coordinates (0-1000 for x, 0-height for y)
-  const viewBoxWidth = 1000;
-  const centerY = height / 2;
-  const maxAmplitude = centerY * 0.9; // Leave some margin
-
-  // Create path points for upper and lower halves
+  // Build path using normalized data (0-1), let viewBox handle scaling
+  // viewBox: x=[0, numPoints], y=[-1, 1] (center at 0, amplitude up/down)
+  const n = slice.data.length;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
 
-  for (let i = 0; i < slice.data.length; i++) {
-    // X position scaled to viewBox width
-    const x = (i / (slice.data.length - 1 || 1)) * viewBoxWidth;
-    const amplitude = slice.data[i] * maxAmplitude;
-
-    upperPoints.push(`${x},${centerY - amplitude}`);
-    lowerPoints.unshift(`${x},${centerY + amplitude}`);
+  for (let i = 0; i < n; i++) {
+    const amp = slice.data[i]; // Already 0-1 normalized
+    upperPoints.push(`${i},${-amp}`);
+    lowerPoints.unshift(`${i},${amp}`);
   }
 
-  // Close the path by connecting upper and lower halves
   const pathData = `M ${upperPoints.join(" L ")} L ${lowerPoints.join(" L ")} Z`;
 
   return (
@@ -1864,17 +1854,17 @@ function Waveform({
       style={{
         left: `${leftPercent}%`,
         width: `${widthPercent}%`,
-        top: 0,
-        height: "100%",
+        top: "5%",
+        height: "90%",
       }}
-      viewBox={`0 0 ${viewBoxWidth} ${height}`}
+      viewBox={`0 -1 ${n - 1 || 1} 2`}
       preserveAspectRatio="none"
     >
       <path
         d={pathData}
         fill="rgba(255, 255, 255, 0.3)"
         stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth="1"
+        strokeWidth="0.02"
       />
     </svg>
   );
