@@ -96,10 +96,11 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] feat: save multiple projects
 - [x] feat: locators to mark parts
 - [x] refactor: reduce auto-save debounce timeout
+- [x] feat: shortcut for mute/solo track for each audio / midi
 
 ### TODO: Priority
 
-- [ ] feat: shortcut for mute/solo track for each audio / midi
+- [x] feat: shortcut for mute/solo track for each audio / midi
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 
 ### TODO: Backlog

@@ -247,7 +247,9 @@ export function Transport({
     notes,
     midiVolume,
     midiProgram,
+    midiMuted,
     audioVolume,
+    audioMuted,
     metronomeVolume,
     metronomeEnabled,
     autoScrollEnabled,
@@ -257,7 +259,9 @@ export function Transport({
     setTimeSignature,
     setMidiVolume,
     setMidiProgram,
+    setMidiMuted,
     setAudioVolume,
+    setAudioMuted,
     setMetronomeVolume,
     setMetronomeEnabled,
     setAutoScrollEnabled,
@@ -319,7 +323,7 @@ export function Transport({
     clearAudioFile();
   };
 
-  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll (Space is handled by PlayPauseButton)
+  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
@@ -340,6 +344,28 @@ export function Transport({
     if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
+    }
+    // Shift+1 - Toggle MIDI mute
+    if (
+      e.code === "Digit1" &&
+      e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.repeat
+    ) {
+      e.preventDefault();
+      setMidiMuted(!midiMuted);
+    }
+    // Shift+2 - Toggle audio mute
+    if (
+      e.code === "Digit2" &&
+      e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.repeat
+    ) {
+      e.preventDefault();
+      setAudioMuted(!audioMuted);
     }
   });
 
