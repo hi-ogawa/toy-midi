@@ -72,7 +72,29 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 
 ---
 
-## Ideal Data Flow
+## Data Flow
+
+### Current (broken)
+
+```
+Load time:
+  AudioBuffer → peaks[] at 100/sec (entire file)
+
+Render time:
+  peaks[] (entire file)
+      ↓
+  downsample to 500 points (fixed, regardless of viewport)
+      ↓
+  Renderer
+```
+
+**Problems:**
+
+- No viewport awareness - processes entire file
+- Fixed 500 output - longer files get worse quality
+- Output resolution unrelated to display pixels
+
+### Ideal
 
 ### Core Question
 
