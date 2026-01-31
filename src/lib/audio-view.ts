@@ -13,6 +13,13 @@ export const EMPTY_AUDIO_VIEW: AudioView = {
   sampleRate: 0,
 };
 
+// Result of querying AudioView - includes geometry info for renderer positioning
+export interface AudioViewSlice {
+  data: number[]; // culled and downsampled peaks
+  actualStart: number; // actual start time in seconds (aligned to data boundaries)
+  actualEnd: number; // actual end time in seconds (aligned to data boundaries)
+}
+
 // Build AudioView from raw samples
 export function createAudioView(
   samples: Float32Array,
@@ -44,16 +51,19 @@ export function createAudioView(
 }
 
 // Query visible range, downsample to pixel width
+// Returns data plus actual time bounds (aligned to data boundaries) for renderer positioning
 export function queryAudioView(
   view: AudioView,
   startTime: number, // seconds
   endTime: number, // seconds
   targetPoints: number, // pixels
-): number[] {
+): AudioViewSlice {
   const { data, samplesPerPoint, sampleRate } = view;
 
+  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
+
   if (data.length === 0 || targetPoints <= 0 || samplesPerPoint <= 0) {
-    return [];
+    return emptySlice;
   }
 
   // Convert seconds to data indices via sample indices (exact math)
@@ -65,12 +75,18 @@ export function queryAudioView(
     Math.min(data.length, Math.ceil(endSample / samplesPerPoint)),
   );
 
-  if (endIdx <= startIdx) return [];
+  if (endIdx <= startIdx) return emptySlice;
+
+  // Calculate actual time bounds (aligned to data point boundaries)
+  const actualStart = (startIdx * samplesPerPoint) / sampleRate;
+  const actualEnd = (endIdx * samplesPerPoint) / sampleRate;
 
   const visible = data.slice(startIdx, endIdx);
 
   // If fewer points than target, return as-is
-  if (visible.length <= targetPoints) return visible;
+  if (visible.length <= targetPoints) {
+    return { data: visible, actualStart, actualEnd };
+  }
 
   // Downsample to target points
   const step = visible.length / targetPoints;
@@ -84,5 +100,5 @@ export function queryAudioView(
     }
     result.push(max);
   }
-  return result;
+  return { data: result, actualStart, actualEnd };
 }

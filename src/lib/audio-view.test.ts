@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type AudioView,
+  type AudioViewSlice,
   createAudioView,
   EMPTY_AUDIO_VIEW,
   queryAudioView,
@@ -99,35 +100,41 @@ describe("queryAudioView", () => {
     sampleRate: 1000,
   });
 
-  it("returns empty array for empty data", () => {
+  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
+
+  it("returns empty slice for empty data", () => {
     const result = queryAudioView(EMPTY_AUDIO_VIEW, 0, 5, 500);
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty array for zero target points", () => {
+  it("returns empty slice for zero target points", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, 0);
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty array for negative target points", () => {
+  it("returns empty slice for negative target points", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, -100);
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 
-  it("slices to visible range", () => {
+  it("slices to visible range and returns actual bounds", () => {
     // 100 points at 10 points/sec = 10 seconds
     // View seconds 2-4 (indices 20-40)
     const view = createTestView(100);
     const result = queryAudioView(view, 2, 4, 1000); // Large targetPoints to avoid downsampling
 
     // Should get ~20 points (indices 20-40)
-    expect(result.length).toBeGreaterThanOrEqual(19);
-    expect(result.length).toBeLessThanOrEqual(21);
+    expect(result.data.length).toBeGreaterThanOrEqual(19);
+    expect(result.data.length).toBeLessThanOrEqual(21);
 
     // First point should be around index 20 value
-    expect(result[0]).toBeCloseTo(view.data[20], 1);
+    expect(result.data[0]).toBeCloseTo(view.data[20], 1);
+
+    // Actual bounds should be aligned to data boundaries
+    expect(result.actualStart).toBeCloseTo(2, 1);
+    expect(result.actualEnd).toBeCloseTo(4, 1);
   });
 
   it("clamps start index to 0 for negative startTime", () => {
@@ -135,7 +142,8 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, -5, 2, 1000);
 
     // Should start from index 0
-    expect(result[0]).toBeCloseTo(view.data[0], 1);
+    expect(result.data[0]).toBeCloseTo(view.data[0], 1);
+    expect(result.actualStart).toBe(0);
   });
 
   it("clamps end index to data length", () => {
@@ -144,8 +152,9 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 8, 15, 1000);
 
     // Should get points from index 80 to 99
-    expect(result.length).toBe(20);
-    expect(result[result.length - 1]).toBeCloseTo(view.data[99], 1);
+    expect(result.data.length).toBe(20);
+    expect(result.data[result.data.length - 1]).toBeCloseTo(view.data[99], 1);
+    expect(result.actualEnd).toBe(10); // Clamped to audio duration
   });
 
   it("returns points as-is when fewer than target", () => {
@@ -157,7 +166,9 @@ describe("queryAudioView", () => {
     // 5 points, 1000 target points - no downsampling needed
     const result = queryAudioView(view, 0, 0.5, 1000);
 
-    expect(result).toEqual(view.data);
+    expect(result.data).toEqual(view.data);
+    expect(result.actualStart).toBe(0);
+    expect(result.actualEnd).toBe(0.5);
   });
 
   it("downsamples to target points when more points than targets", () => {
@@ -165,7 +176,7 @@ describe("queryAudioView", () => {
     const view = createTestView(1000);
     const result = queryAudioView(view, 0, 100, 100);
 
-    expect(result).toHaveLength(100);
+    expect(result.data).toHaveLength(100);
   });
 
   it("preserves max values when downsampling", () => {
@@ -178,9 +189,9 @@ describe("queryAudioView", () => {
     // Spike at index 50 should appear in pixel 5
     const result = queryAudioView(view, 0, 10, 10);
 
-    expect(result).toHaveLength(10);
-    expect(result[5]).toBe(1.0); // Max preserved
-    expect(result[0]).toBe(0.1); // No spike here
+    expect(result.data).toHaveLength(10);
+    expect(result.data[5]).toBe(1.0); // Max preserved
+    expect(result.data[0]).toBe(0.1); // No spike here
   });
 
   it("handles query starting partway through audio", () => {
@@ -190,8 +201,9 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 3, 5, 500);
 
     // Should get points from index 30-50
-    expect(result.length).toBeGreaterThanOrEqual(19);
-    expect(result[0]).toBeCloseTo(view.data[30], 1);
+    expect(result.data.length).toBeGreaterThanOrEqual(19);
+    expect(result.data[0]).toBeCloseTo(view.data[30], 1);
+    expect(result.actualStart).toBeCloseTo(3, 1);
   });
 
   it("handles empty visible range (endTime <= startTime)", () => {
@@ -199,7 +211,7 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 5, 5, 100);
 
     // startIdx = 50, endIdx = 50, slice is empty
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 
   it("handles visible range entirely before audio", () => {
@@ -208,7 +220,7 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, -5, -2, 100);
 
     // startIdx clamped to 0, endIdx = 0, slice is empty
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 
   it("handles visible range entirely after audio", () => {
@@ -217,6 +229,6 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 15, 20, 100);
 
     // startIdx = 150, endIdx = 200, both beyond length, slice is empty
-    expect(result).toEqual([]);
+    expect(result).toEqual(emptySlice);
   });
 });

@@ -1764,6 +1764,7 @@ function WaveformArea({
           {audioView && audioView.data.length > 0 && (
             <Waveform
               audioView={audioView}
+              audioDuration={audioDuration}
               visibleStart={audioVisibleStart}
               visibleEnd={audioVisibleEnd}
               pixelWidth={Math.max(1, Math.round(audioWidth))}
@@ -1799,12 +1800,14 @@ function WaveformArea({
 // Uses viewport culling and downsamples to pixel width for optimal performance
 function Waveform({
   audioView,
+  audioDuration,
   visibleStart,
   visibleEnd,
   pixelWidth,
   height,
 }: {
   audioView: AudioView;
+  audioDuration: number; // total audio duration in seconds
   visibleStart: number; // seconds
   visibleEnd: number; // seconds
   pixelWidth: number;
@@ -1812,15 +1815,27 @@ function Waveform({
 }) {
   if (audioView.data.length === 0) return null;
 
+  // Estimate visible portion's pixel width for downsampling target
+  const visibleDuration = visibleEnd - visibleStart;
+  const visiblePixelWidth = Math.max(
+    1,
+    Math.round((visibleDuration / audioDuration) * pixelWidth),
+  );
+
   // Use viewport-aware processing: slice to visible range, downsample to pixel width
-  const visiblePoints = queryAudioView(
+  const slice = queryAudioView(
     audioView,
     visibleStart,
     visibleEnd,
-    pixelWidth,
+    visiblePixelWidth,
   );
 
-  if (visiblePoints.length === 0) return null;
+  if (slice.data.length === 0) return null;
+
+  // Calculate SVG position within the audio container based on actual bounds
+  const leftPercent = (slice.actualStart / audioDuration) * 100;
+  const widthPercent =
+    ((slice.actualEnd - slice.actualStart) / audioDuration) * 100;
 
   // Use viewBox coordinates (0-1000 for x, 0-height for y)
   const viewBoxWidth = 1000;
@@ -1831,10 +1846,10 @@ function Waveform({
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
 
-  for (let i = 0; i < visiblePoints.length; i++) {
+  for (let i = 0; i < slice.data.length; i++) {
     // X position scaled to viewBox width
-    const x = (i / (visiblePoints.length - 1 || 1)) * viewBoxWidth;
-    const amplitude = visiblePoints[i] * maxAmplitude;
+    const x = (i / (slice.data.length - 1 || 1)) * viewBoxWidth;
+    const amplitude = slice.data[i] * maxAmplitude;
 
     upperPoints.push(`${x},${centerY - amplitude}`);
     lowerPoints.unshift(`${x},${centerY + amplitude}`);
@@ -1845,7 +1860,13 @@ function Waveform({
 
   return (
     <svg
-      className="absolute inset-0 w-full h-full"
+      className="absolute"
+      style={{
+        left: `${leftPercent}%`,
+        width: `${widthPercent}%`,
+        top: 0,
+        height: "100%",
+      }}
       viewBox={`0 0 ${viewBoxWidth} ${height}`}
       preserveAspectRatio="none"
     >
