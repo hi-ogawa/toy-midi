@@ -50,12 +50,12 @@ export function App() {
       if (project.audioAssetKey) {
         const asset = await loadAsset(project.audioAssetKey);
         if (asset) {
-          const { buffer, peaks, peaksPerSecond } = await loadAudioFile(
+          const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
           audioManager.player.buffer = buffer;
           audioManager.syncAudioTrack(project.audioOffset);
-          project.setAudioPeaks(peaks, peaksPerSecond);
+          project.setAudioView(audioView);
         } else {
           toast.warning(
             "Audio asset not found. The audio track will be cleared.",
