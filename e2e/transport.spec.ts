@@ -1,6 +1,5 @@
-import path from "path";
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject } from "./helpers";
+import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -16,16 +15,8 @@ test.describe("Transport Controls", () => {
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled();
 
-    // Load audio via hidden file input
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-
-    // Wait for audio to load
-    await page.waitForTimeout(500);
+    // Load audio via Settings dialog
+    await loadAudioFile(page);
 
     // Should show play icon initially
     await expect(page.getByTestId("play-icon")).toBeVisible();
@@ -87,21 +78,28 @@ test.describe("Transport Controls", () => {
   });
 
   test("auto-scroll toggle", async ({ page }) => {
-    // Open settings dropdown to access auto-scroll toggle
+    // Open settings dialog to access auto-scroll toggle
     await page.getByTestId("settings-button").click();
+    const settingsDialog = page.getByTestId("settings-dialog");
 
-    const autoScrollToggle = page.getByTestId("auto-scroll-toggle");
+    // Find the auto-scroll checkbox in Preferences section
+    const autoScrollCheckbox = settingsDialog
+      .locator('input[type="checkbox"]')
+      .first(); // Auto-scroll is first checkbox
 
-    // Should be on by default (checked state)
-    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
+    // Should be checked by default
+    await expect(autoScrollCheckbox).toBeChecked();
 
-    // Toggle off (dropdown stays open)
-    await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("data-state", "unchecked");
+    // Toggle off
+    await autoScrollCheckbox.click();
+    await expect(autoScrollCheckbox).not.toBeChecked();
 
     // Toggle on
-    await autoScrollToggle.click();
-    await expect(autoScrollToggle).toHaveAttribute("data-state", "checked");
+    await autoScrollCheckbox.click();
+    await expect(autoScrollCheckbox).toBeChecked();
+
+    // Close settings dialog
+    await page.keyboard.press("Escape");
   });
 
   test("tap tempo", async ({ page }) => {
@@ -177,20 +175,21 @@ test.describe("Transport Controls", () => {
   });
 
   test("export MIDI workflow", async ({ page }) => {
-    // Open settings dropdown to access export button
+    // Open settings dialog to access export button
     await page.getByTestId("settings-button").click();
-    const exportButton = page.getByTestId("export-midi-button");
+    let exportButton = page.getByTestId("export-midi-button");
 
     // Button disabled when no notes
     await expect(exportButton).toBeDisabled();
 
-    // Close dropdown, add a note
+    // Close dialog, add a note
     await page.keyboard.press("Escape");
     const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
     await pianoRoll.click({ position: { x: 100, y: 100 } });
 
-    // Open settings dropdown again
+    // Open settings dialog again and get fresh button reference
     await page.getByTestId("settings-button").click();
+    exportButton = page.getByTestId("export-midi-button");
 
     // Button enabled when notes exist
     await expect(exportButton).toBeEnabled();
@@ -203,20 +202,21 @@ test.describe("Transport Controls", () => {
   });
 
   test("export ABC file workflow", async ({ page }) => {
-    // Open settings dropdown to access export button
+    // Open settings dialog to access export button
     await page.getByTestId("settings-button").click();
-    const exportButton = page.getByTestId("export-abc-button");
+    let exportButton = page.getByTestId("export-abc-button");
 
     // Button disabled when no notes
     await expect(exportButton).toBeDisabled();
 
-    // Close dropdown, add a note
+    // Close dialog, add a note
     await page.keyboard.press("Escape");
     const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
     await pianoRoll.click({ position: { x: 100, y: 100 } });
 
-    // Open settings dropdown again
+    // Open settings dialog again and get fresh button reference
     await page.getByTestId("settings-button").click();
+    exportButton = page.getByTestId("export-abc-button");
 
     // Button enabled when notes exist
     await expect(exportButton).toBeEnabled();
@@ -232,20 +232,21 @@ test.describe("Transport Controls", () => {
     // Grant clipboard permissions
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
-    // Open settings dropdown to access copy button
+    // Open settings dialog to access copy button
     await page.getByTestId("settings-button").click();
-    const copyButton = page.getByTestId("copy-abc-button");
+    let copyButton = page.getByTestId("copy-abc-button");
 
     // Button disabled when no notes
     await expect(copyButton).toBeDisabled();
 
-    // Close dropdown, add a note
+    // Close dialog, add a note
     await page.keyboard.press("Escape");
     const pianoRoll = page.locator('[data-testid="piano-roll-grid"]');
     await pianoRoll.click({ position: { x: 100, y: 100 } });
 
-    // Open settings dropdown again
+    // Open settings dialog again and get fresh button reference
     await page.getByTestId("settings-button").click();
+    copyButton = page.getByTestId("copy-abc-button");
 
     // Button enabled when notes exist
     await expect(copyButton).toBeEnabled();
@@ -275,21 +276,11 @@ test.describe("Audio Track", () => {
     await clickNewProject(page);
   });
 
-  async function loadAudioFile(page: import("@playwright/test").Page) {
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-    await page.waitForTimeout(500); // Wait for audio to load
-  }
-
   test("remove audio via settings menu", async ({ page }) => {
-    // Remove button should be disabled when no audio loaded
+    // Remove button should not exist when no audio loaded
     await page.getByTestId("settings-button").click();
     const removeButton = page.getByTestId("remove-audio-button");
-    await expect(removeButton).toBeDisabled();
+    await expect(removeButton).not.toBeVisible();
     await page.keyboard.press("Escape");
 
     // Load audio file
@@ -301,10 +292,11 @@ test.describe("Audio Track", () => {
       .first();
     await expect(audioRegion).toBeVisible();
 
-    // Remove button should now be enabled
+    // Remove button should now be visible and enabled
     await page.getByTestId("settings-button").click();
-    await expect(removeButton).toBeEnabled();
-    await removeButton.click();
+    const removeButtonAfterLoad = page.getByTestId("remove-audio-button");
+    await expect(removeButtonAfterLoad).toBeVisible();
+    await removeButtonAfterLoad.click();
 
     // Verify audio region is gone
     await expect(audioRegion).not.toBeVisible();

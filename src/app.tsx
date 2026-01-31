@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
-import { ProjectSettingsDialog } from "./components/project-settings-dialog";
+import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { SimpleDialog } from "./components/ui/dialog";
 import { useWindowEvent } from "./hooks/use-window-event";
@@ -172,14 +172,9 @@ function Editor({ projectId }: EditorProps) {
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
-        onProjectSettingsClick={() => setIsSettingsOpen(true)}
+        onSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onMixerClick={() => setIsMixerOpen(true)}
-        onProjectsClick={() => {
-          // TODO: modal project list view and allow switch project?
-          // for now, open startup page in new tab.
-          window.open("/", "_blank");
-        }}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -191,15 +186,28 @@ function Editor({ projectId }: EditorProps) {
       >
         <Mixer />
       </SimpleDialog>
-      <ProjectSettingsDialog
+      <SimpleDialog
         isOpen={isSettingsOpen}
-        projectName={projectName}
-        onSave={(name) => {
-          updateProjectMetadata(projectId, { name });
-          setProjectName(name);
-        }}
         onClose={() => setIsSettingsOpen(false)}
-      />
+        title="Settings"
+        testId="settings-dialog"
+      >
+        <Settings
+          projectName={projectName}
+          onProjectNameChange={(name) => {
+            const trimmed = name.trim();
+            if (trimmed && trimmed !== projectName) {
+              updateProjectMetadata(projectId, { name: trimmed });
+              setProjectName(trimmed);
+            }
+          }}
+          onProjectsClick={() => {
+            // TODO: modal project list view and allow switch project?
+            // for now, open startup page in new tab.
+            window.open("/", "_blank");
+          }}
+        />
+      </SimpleDialog>
     </div>
   );
 }
