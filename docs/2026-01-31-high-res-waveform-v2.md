@@ -107,20 +107,34 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 
 All cheap. Even 800/sec is < 1 MB.
 
-### Extraction Cost (one-time at load)
+### Why Pre-compute? Render Cost Comparison
 
-From 8.6M samples to N peaks = 8.6M comparisons regardless of N.
+**Without pre-compute (scan raw samples per render):**
 
-- JavaScript: ~10-50ms
-- Acceptable for one-time load
+| Zoom      | Samples to Scan | Cost      |
+| --------- | --------------- | --------- |
+| Full song | 8.6M            | 10-50ms ✗ |
+| 32 beats  | 921K            | 5-10ms ✗  |
+| 4 beats   | 115K            | <1ms ✓    |
 
-### Render Cost (per frame)
+Zoomed-out views would cost 10-50ms **per frame** - unacceptable for 60fps.
 
-With pre-computed peaks + viewport slicing:
+**With pre-compute (scan once at load, slice at render):**
 
-- Slice array: O(1)
-- Downsample visible peaks to pixels: O(visible_peaks)
-- At 800/sec, 4-beat view: 800 × 2.4 = 1,920 peaks → trivial
+| Step                                | When        | Cost             |
+| ----------------------------------- | ----------- | ---------------- |
+| Extract 8.6M → 144K peaks (800/sec) | Load (once) | 10-50ms          |
+| Slice to visible range              | Render      | O(1)             |
+| Downsample to pixels                | Render      | O(visible_peaks) |
+
+At 800/sec, worst case render (full song):
+
+- Slice: O(1)
+- Downsample 144K → 1920: ~144K comparisons → <1ms ✓
+
+**Pre-compute buys:** Move 8.6M-sample scan from render-time to load-time.
+
+Without it, zoomed-out renders would block UI. With it, all renders are <1ms.
 
 ### Ideal Robust System (for hours of audio)
 
