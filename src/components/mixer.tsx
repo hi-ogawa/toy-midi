@@ -1,6 +1,7 @@
-import { MusicIcon, Volume2Icon } from "lucide-react";
+import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useProjectStore } from "../stores/project-store";
 import { Slider } from "./ui/slider";
+import { Toggle } from "./ui/toggle";
 
 function MetronomeIcon({ className }: { className?: string }) {
   return (
@@ -28,9 +29,15 @@ export function Mixer() {
     midiVolume,
     audioVolume,
     metronomeVolume,
+    midiMuted,
+    audioMuted,
+    metronomeEnabled,
     setMidiVolume,
     setAudioVolume,
     setMetronomeVolume,
+    setMidiMuted,
+    setAudioMuted,
+    setMetronomeEnabled,
   } = useProjectStore();
 
   return (
@@ -43,13 +50,24 @@ export function Mixer() {
             MIDI Volume
           </label>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Toggle
+            pressed={midiMuted}
+            onPressedChange={setMidiMuted}
+            aria-label="Toggle MIDI mute"
+            title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
+            size="sm"
+            variant="outline"
+          >
+            <VolumeXIcon className="size-4" />
+          </Toggle>
           <Slider
             value={[midiVolume * 100]}
             onValueChange={([v]) => setMidiVolume(v / 100)}
             max={100}
             step={1}
             className="flex-1"
+            disabled={midiMuted}
           />
           <span className="text-sm text-muted-foreground w-12 text-right tabular-nums">
             {Math.round(midiVolume * 100)}%
@@ -65,13 +83,24 @@ export function Mixer() {
             Audio Volume
           </label>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Toggle
+            pressed={audioMuted}
+            onPressedChange={setAudioMuted}
+            aria-label="Toggle audio mute"
+            title={audioMuted ? "Unmute audio" : "Mute audio"}
+            size="sm"
+            variant="outline"
+          >
+            <VolumeXIcon className="size-4" />
+          </Toggle>
           <Slider
             value={[audioVolume * 100]}
             onValueChange={([v]) => setAudioVolume(v / 100)}
             max={100}
             step={1}
             className="flex-1"
+            disabled={audioMuted}
           />
           <span className="text-sm text-muted-foreground w-12 text-right tabular-nums">
             {Math.round(audioVolume * 100)}%
@@ -87,13 +116,24 @@ export function Mixer() {
             Metronome Volume
           </label>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Toggle
+            pressed={!metronomeEnabled}
+            onPressedChange={(muted) => setMetronomeEnabled(!muted)}
+            aria-label="Toggle metronome mute"
+            title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
+            size="sm"
+            variant="outline"
+          >
+            <VolumeXIcon className="size-4" />
+          </Toggle>
           <Slider
             value={[metronomeVolume * 100]}
             onValueChange={([v]) => setMetronomeVolume(v / 100)}
             max={100}
             step={1}
             className="flex-1"
+            disabled={!metronomeEnabled}
           />
           <span className="text-sm text-muted-foreground w-12 text-right tabular-nums">
             {Math.round(metronomeVolume * 100)}%
