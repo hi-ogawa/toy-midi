@@ -97,7 +97,12 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] feat: locators to mark parts
 - [x] refactor: reduce auto-save debounce timeout
 
-### TODO
+### TODO: Priority
+
+- [ ] feat: shortcut for mute/solo track for each audio / midi
+- [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
+
+### TODO: Backlog
 
 _Note editing_
 
@@ -117,7 +122,6 @@ _Audio/Playback_
 - [x] feat: remove audio track (menu + select + Delete key)
 - [ ] feat: undo/redo audio track operations (move, remove)
 - [ ] feat: trim audio track length (start and end)
-- [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
   - [ ] feat: persist lastPlayheadPosition
   - [ ] refactor: align naming with Tone.js (e.g. position -> seconds, etc.)
