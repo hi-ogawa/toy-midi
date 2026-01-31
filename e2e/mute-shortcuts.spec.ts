@@ -21,8 +21,9 @@ test.describe("Track Mute Shortcuts", () => {
   // Helper to get mute state from store
   async function getMuteState(page: import("@playwright/test").Page) {
     return await page.evaluate(() => {
-      const store = (window as Window & { __store: { getState: () => unknown } })
-        .__store;
+      const store = (
+        window as Window & { __store: { getState: () => unknown } }
+      ).__store;
       const state = store.getState() as {
         midiMuted: boolean;
         audioMuted: boolean;

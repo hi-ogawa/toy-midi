@@ -261,6 +261,7 @@ None - straightforward implementation.
 ## Implementation Complete
 
 All core functionality has been implemented and tested:
+
 - `midiMuted` and `audioMuted` state in store
 - Keyboard shortcuts: Shift+1 (MIDI mute), Shift+2 (audio mute)
 - State persistence across page reloads
