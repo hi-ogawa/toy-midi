@@ -1864,7 +1864,8 @@ function Waveform({
         d={pathData}
         fill="rgba(255, 255, 255, 0.3)"
         stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth="0.02"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
