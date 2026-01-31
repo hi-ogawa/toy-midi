@@ -104,6 +104,7 @@ See [architecture.md](architecture.md) for implementation details.
   - [ ] feat: indicate mute toggle in main view
 - [ ] feat: higher resolution waveform at zoom (canvas instead of svg?)
 - [ ] feat: add mixer view (modal?)
+- [ ] fix: metronome toggle doesn't work always (e.g. require playback pause/play)
 
 ### TODO: Backlog
 
