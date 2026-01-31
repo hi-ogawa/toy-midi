@@ -9,6 +9,7 @@ import {
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
+import { type AudioView, queryAudioView } from "../lib/audio-view";
 import {
   isBlackKey,
   MAX_PITCH,
@@ -257,7 +258,7 @@ export function PianoRoll() {
     setAudioOffset,
     setAudioTrackSelected,
     clearAudioFile,
-    audioPeaks,
+    audioView,
     undo,
     redo,
     canUndo,
@@ -1058,7 +1059,7 @@ export function PianoRoll() {
             audioFileName={audioFileName}
             tempo={tempo}
             playheadBeat={secondsToBeats(position, tempo)}
-            audioPeaks={audioPeaks}
+            audioView={audioView}
             height={waveformHeight}
             beatsPerBar={beatsPerBar}
             isSelected={isAudioTrackSelected}
@@ -1614,7 +1615,7 @@ function WaveformArea({
   audioFileName,
   tempo,
   playheadBeat,
-  audioPeaks,
+  audioView,
   height,
   beatsPerBar,
   isSelected,
@@ -1631,7 +1632,7 @@ function WaveformArea({
   audioFileName: string | null;
   tempo: number;
   playheadBeat: number;
-  audioPeaks: number[];
+  audioView: AudioView | null;
   height: number;
   beatsPerBar: number;
   isSelected: boolean;
@@ -1672,6 +1673,16 @@ function WaveformArea({
   // Calculate screen positions
   const audioStartX = (audioOffsetBeats - scrollX) * pixelsPerBeat;
   const audioWidth = audioDurationBeats * pixelsPerBeat;
+
+  // Calculate visible portion of audio for waveform rendering
+  // visibleStart/End are in seconds relative to audio start (0 = audio beginning)
+  const visibleStartBeats = scrollX;
+  const visibleEndBeats = scrollX + viewportWidth / pixelsPerBeat;
+  const visibleStartSeconds = beatsToSeconds(visibleStartBeats, tempo);
+  const visibleEndSeconds = beatsToSeconds(visibleEndBeats, tempo);
+  // Adjust for audio offset (convert viewport time to audio-relative time)
+  const audioVisibleStart = Math.max(0, visibleStartSeconds - audioOffset);
+  const audioVisibleEnd = Math.max(0, visibleEndSeconds - audioOffset);
 
   // Playhead position
   const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
@@ -1750,9 +1761,12 @@ function WaveformArea({
           onMouseDown={handleMouseDown}
         >
           {/* Waveform SVG */}
-          {audioPeaks.length > 0 && (
+          {audioView && audioView.data.length > 0 && (
             <Waveform
-              peaks={audioPeaks}
+              audioView={audioView}
+              visibleStart={audioVisibleStart}
+              visibleEnd={audioVisibleEnd}
+              pixelWidth={Math.max(1, Math.round(audioWidth))}
               height={height - 8} // Account for top-1 bottom-1 padding
             />
           )}
@@ -1782,23 +1796,31 @@ function WaveformArea({
 }
 
 // Waveform SVG component - renders peaks as a filled polygon
-// Downsamples peaks to max ~500 points to avoid SVG lag
-function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
-  if (peaks.length === 0) return null;
+// Uses viewport culling and downsamples to pixel width for optimal performance
+function Waveform({
+  audioView,
+  visibleStart,
+  visibleEnd,
+  pixelWidth,
+  height,
+}: {
+  audioView: AudioView;
+  visibleStart: number; // seconds
+  visibleEnd: number; // seconds
+  pixelWidth: number;
+  height: number;
+}) {
+  if (audioView.data.length === 0) return null;
 
-  // Downsample to max 500 points for performance
-  const maxPoints = 500;
-  const step = Math.max(1, Math.floor(peaks.length / maxPoints));
-  const sampledPeaks: number[] = [];
+  // Use viewport-aware processing: slice to visible range, downsample to pixel width
+  const visiblePoints = queryAudioView(
+    audioView,
+    visibleStart,
+    visibleEnd,
+    pixelWidth,
+  );
 
-  for (let i = 0; i < peaks.length; i += step) {
-    // Take max of this chunk for accuracy
-    let max = 0;
-    for (let j = i; j < Math.min(i + step, peaks.length); j++) {
-      if (peaks[j] > max) max = peaks[j];
-    }
-    sampledPeaks.push(max);
-  }
+  if (visiblePoints.length === 0) return null;
 
   // Use viewBox coordinates (0-1000 for x, 0-height for y)
   const viewBoxWidth = 1000;
@@ -1809,10 +1831,10 @@ function Waveform({ peaks, height }: { peaks: number[]; height: number }) {
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
 
-  for (let i = 0; i < sampledPeaks.length; i++) {
+  for (let i = 0; i < visiblePoints.length; i++) {
     // X position scaled to viewBox width
-    const x = (i / (sampledPeaks.length - 1 || 1)) * viewBoxWidth;
-    const amplitude = sampledPeaks[i] * maxAmplitude;
+    const x = (i / (visiblePoints.length - 1 || 1)) * viewBoxWidth;
+    const amplitude = visiblePoints[i] * maxAmplitude;
 
     upperPoints.push(`${x},${centerY - amplitude}`);
     lowerPoints.unshift(`${x},${centerY + amplitude}`);

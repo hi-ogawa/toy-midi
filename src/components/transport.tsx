@@ -269,7 +269,7 @@ export function Transport({
     setShowDebug,
     setAudioFile,
     setAudioOffset,
-    setAudioPeaks,
+    setAudioView,
     clearAudioFile,
   } = useProjectStore();
 
@@ -285,7 +285,7 @@ export function Transport({
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
-      const { buffer, peaks, peaksPerSecond } = await loadAudioFile(file);
+      const { buffer, audioView } = await loadAudioFile(file);
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
@@ -295,7 +295,7 @@ export function Transport({
       audioManager.player.sync().start(0);
       setAudioOffset(0);
 
-      setAudioPeaks(peaks, peaksPerSecond);
+      setAudioView(audioView);
     },
   });
 

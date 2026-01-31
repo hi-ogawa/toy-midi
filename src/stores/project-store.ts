@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { AudioView } from "../lib/audio-view";
 import type { GridSnap, Locator, Note, TimeSignature } from "../types";
 import { historyStore } from "./history-store";
 
@@ -52,8 +53,7 @@ export interface ProjectState {
   waveformHeight: number; // resizable waveform area height in pixels
 
   // Waveform state
-  audioPeaks: number[]; // Peak values 0-1 for waveform display
-  peaksPerSecond: number; // Resolution of peaks array
+  audioView: AudioView | null; // Pre-computed audio data for waveform display
 
   // Actions
   addNote: (note: Note) => void;
@@ -112,7 +112,7 @@ export interface ProjectState {
   setWaveformHeight: (height: number) => void;
 
   // Waveform actions
-  setAudioPeaks: (peaks: number[], peaksPerSecond: number) => void;
+  setAudioView: (view: AudioView | null) => void;
 }
 
 let noteIdCounter = 0;
@@ -166,8 +166,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
 
   // Waveform state
-  audioPeaks: [],
-  peaksPerSecond: 100,
+  audioView: null,
 
   addNote: (note) => {
     // Track in history
@@ -326,7 +325,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       audioAssetKey: null,
       audioDuration: 0,
       audioOffset: 0,
-      audioPeaks: [],
+      audioView: null,
       isAudioTrackSelected: false,
     }),
 
@@ -353,8 +352,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setWaveformHeight: (height) => set({ waveformHeight: height }),
 
   // Waveform actions
-  setAudioPeaks: (peaks, peaksPerSecond) =>
-    set({ audioPeaks: peaks, peaksPerSecond }),
+  setAudioView: (view) => set({ audioView: view }),
 
   // Undo/Redo actions
   undo: () => {
@@ -640,7 +638,7 @@ export function fromSavedProject(
     // Reset transient state
     selectedNoteIds: new Set(),
     selectedLocatorId: null,
-    audioPeaks: [],
+    audioView: null,
   };
 }
 

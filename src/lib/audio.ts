@@ -1,5 +1,11 @@
+import { toast } from "sonner";
 import * as Tone from "tone";
 import type { Note } from "../types";
+import {
+  type AudioView,
+  createAudioView,
+  EMPTY_AUDIO_VIEW,
+} from "./audio-view";
 import { OxiSynthSynth } from "./oxisynth-synth";
 import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "@/assets/oxisynth/worklet.js?url";
@@ -385,47 +391,54 @@ class AudioManager {
 
 export const audioManager = new AudioManager();
 
-// Extract peaks from audio buffer for waveform display
-// Returns array of peak values (0-1) at specified resolution
-export function getAudioBufferPeaks(
-  buffer: Tone.ToneAudioBuffer,
-  peaksPerSecond: number,
-): number[] {
-  const samples = buffer.getChannelData(0); // Use left/mono channel
-  const sampleRate = buffer.sampleRate;
-  const samplesPerPeak = Math.floor(sampleRate / peaksPerSecond);
-  const peaks: number[] = [];
+// Derive POINTS_PER_SECOND from max zoom level we want to support
+// Goal: 1 point per pixel at max zoom
+//
+// At 100 BPM, 4 beats visible (1 bar) in 1920px viewport:
+//   duration = 4 beats × 0.6 sec/beat = 2.4 sec
+//   points needed = 1920 px / 2.4 sec = 800 points/sec
+//
+// Formula: POINTS_PER_SECOND = viewportWidth / (beatsAtMaxZoom × secPerBeat)
+// With viewportWidth=1920, beatsAtMaxZoom=4, BPM=100:
+//   = 1920 / (4 × 60/100) = 1920 / 2.4 = 800
+const POINTS_PER_SECOND = 800;
 
-  for (let i = 0; i < samples.length; i += samplesPerPeak) {
-    let max = 0;
-    const end = Math.min(i + samplesPerPeak, samples.length);
-    for (let j = i; j < end; j++) {
-      const abs = Math.abs(samples[j]);
-      if (abs > max) max = abs;
-    }
-    peaks.push(max);
-  }
+// Bailout threshold: avoid freezing on very long audio
+// At 48kHz, 10 min = 28.8M samples → ~50-100ms extraction (acceptable)
+// At 48kHz, 60 min = 172.8M samples → ~300-600ms extraction (too slow)
+const MAX_AUDIO_DURATION_SECONDS = 600; // 10 minutes
 
-  return peaks;
-}
-
-const PEAKS_PER_SECOND = 100;
-
-// Load audio file and extract metadata + peaks for waveform display
+// Load audio file and create AudioView for waveform display
 export async function loadAudioFile(file: File): Promise<{
   buffer: Tone.ToneAudioBuffer;
-  peaks: number[];
-  peaksPerSecond: number;
+  audioView: AudioView;
   duration: number;
 }> {
   const url = URL.createObjectURL(file);
   try {
     const buffer = await Tone.ToneAudioBuffer.fromUrl(url);
-    const peaks = getAudioBufferPeaks(buffer, PEAKS_PER_SECOND);
+
+    // Bailout for very long audio
+    if (buffer.duration > MAX_AUDIO_DURATION_SECONDS) {
+      toast.warning(
+        `Audio too long (${Math.round(buffer.duration / 60)} min). Waveform disabled.`,
+      );
+      return {
+        buffer,
+        audioView: EMPTY_AUDIO_VIEW,
+        duration: buffer.duration,
+      };
+    }
+
+    const samples = buffer.getChannelData(0); // Use left/mono channel
+    const audioView = createAudioView(
+      samples,
+      buffer.sampleRate,
+      POINTS_PER_SECOND,
+    );
     return {
       buffer,
-      peaks,
-      peaksPerSecond: PEAKS_PER_SECOND,
+      audioView,
       duration: buffer.duration,
     };
   } finally {
