@@ -74,46 +74,69 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 
 ## Computation Analysis
 
-### Raw Numbers (3 min, 48kHz, mono)
+### What Pre-compute Resolution Do We Need?
 
-| Data              | Size                      |
-| ----------------- | ------------------------- |
-| Raw samples       | 8,640,000 floats (~35 MB) |
-| Viewport (1920px) | 1,920 output peaks needed |
+**Constraint:** Pre-computed resolution limits max zoom quality. Can't show more detail than we have.
 
-### Peak Extraction Cost
+**Goal:** 1-2 peaks per pixel for smooth waveform.
 
-For each output peak: scan N samples, find max.
+**Derive from zoom levels** (100 BPM, 1920px viewport):
 
-| Zoom Level | Visible Duration | Samples | Samples/Peak | Total Comparisons |
-| ---------- | ---------------- | ------- | ------------ | ----------------- |
-| Full song  | 180 sec          | 8.6M    | 4,500        | 8.6M              |
-| 24 beats   | 14.4 sec         | 691K    | 360          | 691K              |
-| 4 beats    | 2.4 sec          | 115K    | 60           | 115K              |
+| Zoom Level        | Beats Visible | Duration | Peaks/sec for 1 peak/px |
+| ----------------- | ------------- | -------- | ----------------------- |
+| Full song         | 300           | 180 sec  | 11                      |
+| 32 beats (8 bars) | 32            | 19.2 sec | 100                     |
+| 8 beats (2 bars)  | 8             | 4.8 sec  | 400                     |
+| 4 beats (1 bar)   | 4             | 2.4 sec  | 800                     |
+| 1 beat            | 1             | 0.6 sec  | 3,200                   |
 
-**Is this expensive?**
+**Current 100 peaks/sec:**
 
-- JavaScript: tens of millions of simple ops/sec
-- 8.6M comparisons ≈ 10-50ms (acceptable)
-- 115K comparisons < 1ms (trivial)
+- Good for ≥32 beats visible
+- At 4 beats zoom: 100 × 2.4 = 240 peaks for 1920 pixels = 0.125 peaks/pixel (blocky)
 
-### Ideal Robust System
+**If we want smooth waveform at 4-beat zoom:** need ~800 peaks/sec
 
-For very long audio (hours), you'd want:
+### Storage Cost (3-min song)
 
-1. **Background processing** (Web Worker) - don't block UI
-2. **Multi-resolution cache** (mipmap) - pre-compute at 2x, 4x, 8x... downsampling
-3. **Chunked processing** - process in segments, parallelize
+| Resolution | Total Peaks | Size (Float32) |
+| ---------- | ----------- | -------------- |
+| 100/sec    | 18,000      | 72 KB          |
+| 400/sec    | 72,000      | 288 KB         |
+| 800/sec    | 144,000     | 576 KB         |
 
-### Practical Heuristic (≤10 min audio)
+All cheap. Even 800/sec is < 1 MB.
 
-For typical use case (3-min song):
+### Extraction Cost (one-time at load)
 
-- Raw sample scan is fast enough (<50ms worst case)
-- Could compute on-demand from raw buffer
-- Or pre-compute once at load, slice at render (current approach, just fix the bug)
+From 8.6M samples to N peaks = 8.6M comparisons regardless of N.
 
-**Simplest fix:** Keep pre-computed peaks, just add viewport slicing. No architectural changes needed.
+- JavaScript: ~10-50ms
+- Acceptable for one-time load
+
+### Render Cost (per frame)
+
+With pre-computed peaks + viewport slicing:
+
+- Slice array: O(1)
+- Downsample visible peaks to pixels: O(visible_peaks)
+- At 800/sec, 4-beat view: 800 × 2.4 = 1,920 peaks → trivial
+
+### Ideal Robust System (for hours of audio)
+
+1. **Background processing** (Web Worker) - don't block UI during load
+2. **Multi-resolution cache** (mipmap) - store at multiple resolutions
+3. **Chunked processing** - for progress indication on very long files
+
+### Practical Decision
+
+For ≤10 min audio with max zoom of 4 beats:
+
+- Pre-compute at **800 peaks/sec** (or 1000 for round number)
+- One-time cost: ~50ms + 0.5 MB
+- Render: slice + optional downsample, trivial
+
+**Current 100/sec is too low** for zoomed-in views. Should increase to 800-1000.
 
 ---
 
