@@ -72,6 +72,51 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 
 ---
 
+## Computation Analysis
+
+### Raw Numbers (3 min, 48kHz, mono)
+
+| Data              | Size                      |
+| ----------------- | ------------------------- |
+| Raw samples       | 8,640,000 floats (~35 MB) |
+| Viewport (1920px) | 1,920 output peaks needed |
+
+### Peak Extraction Cost
+
+For each output peak: scan N samples, find max.
+
+| Zoom Level | Visible Duration | Samples | Samples/Peak | Total Comparisons |
+| ---------- | ---------------- | ------- | ------------ | ----------------- |
+| Full song  | 180 sec          | 8.6M    | 4,500        | 8.6M              |
+| 24 beats   | 14.4 sec         | 691K    | 360          | 691K              |
+| 4 beats    | 2.4 sec          | 115K    | 60           | 115K              |
+
+**Is this expensive?**
+
+- JavaScript: tens of millions of simple ops/sec
+- 8.6M comparisons ≈ 10-50ms (acceptable)
+- 115K comparisons < 1ms (trivial)
+
+### Ideal Robust System
+
+For very long audio (hours), you'd want:
+
+1. **Background processing** (Web Worker) - don't block UI
+2. **Multi-resolution cache** (mipmap) - pre-compute at 2x, 4x, 8x... downsampling
+3. **Chunked processing** - process in segments, parallelize
+
+### Practical Heuristic (≤10 min audio)
+
+For typical use case (3-min song):
+
+- Raw sample scan is fast enough (<50ms worst case)
+- Could compute on-demand from raw buffer
+- Or pre-compute once at load, slice at render (current approach, just fix the bug)
+
+**Simplest fix:** Keep pre-computed peaks, just add viewport slicing. No architectural changes needed.
+
+---
+
 ## Data Flow
 
 ### Current (broken)
