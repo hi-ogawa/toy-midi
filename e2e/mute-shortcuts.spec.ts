@@ -1,22 +1,11 @@
-import path from "path";
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject } from "./helpers";
+import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
 
 test.describe("Track Mute Shortcuts", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await clickNewProject(page);
   });
-
-  async function loadAudioFile(page: import("@playwright/test").Page) {
-    const fileInput = page.getByTestId("audio-file-input");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "../public/test-audio.wav",
-    );
-    await fileInput.setInputFiles(testAudioPath);
-    await page.waitForTimeout(500); // Wait for audio to load
-  }
 
   // Helper to get mute state from store
   async function getMuteState(page: import("@playwright/test").Page) {
@@ -113,24 +102,21 @@ test.describe("Track Mute Shortcuts", () => {
   });
 
   test("mute shortcuts don't trigger in text input", async ({ page }) => {
-    // Open settings dropdown where there's a textarea
+    // Open settings dialog
     await page.getByTestId("settings-button").click();
+    const settingsDialog = page.getByTestId("settings-dialog");
 
-    // Find the project settings button and click to open dialog
-    const projectSettingsButton = page.getByTestId("project-settings-button");
-    await projectSettingsButton.click();
-
-    // Find the project name input (a text field)
-    const projectNameInput = page.getByTestId("project-name-input");
-    await projectNameInput.click();
-    await projectNameInput.fill("");
+    // Find the project name input (a text field in the Settings dialog)
+    const projectNameInput = settingsDialog.locator("#settings-project-name");
 
     // Get initial mute state
     let muteState = await getMuteState(page);
     const initialMidiMuted = muteState.midiMuted;
     const initialAudioMuted = muteState.audioMuted;
 
-    // Type text that includes Shift+1 and Shift+2 characters
+    // Click and select all, then type text that includes Shift+1 and Shift+2 characters
+    await projectNameInput.click();
+    await page.keyboard.press("Control+A");
     await projectNameInput.type("Test!@");
 
     // Should have typed the text

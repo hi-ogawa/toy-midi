@@ -112,8 +112,13 @@ test.describe("Project Persistence", () => {
     ]);
     await fileChooser.setFiles("public/test-audio.wav");
 
-    // Wait for audio to load - filename should appear in waveform area
-    await expect(page.getByText("test-audio.wav")).toBeVisible();
+    // Close settings dialog and wait for audio to load
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(1000);
+
+    // Check waveform is visible (audio loaded)
+    const waveform = page.locator(".bg-emerald-700, .bg-emerald-600").first();
+    await expect(waveform).toBeVisible();
 
     // Wait for auto-save
     await page.waitForTimeout(100);
@@ -122,8 +127,8 @@ test.describe("Project Persistence", () => {
     await page.reload();
     await clickContinue(page);
 
-    // Audio should be restored - filename should appear in waveform area
-    await expect(page.getByText("test-audio.wav")).toBeVisible();
+    // Audio should be restored - waveform should be visible
+    await expect(waveform).toBeVisible();
   });
 
   test("settings persist after reload", async ({ page }) => {

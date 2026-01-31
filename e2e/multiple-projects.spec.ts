@@ -354,15 +354,17 @@ test.describe("Multiple Projects", () => {
     // Verify initial document title
     await expect(page).toHaveTitle("Untitled - Toy MIDI");
 
-    // Open settings dropdown and click project settings
+    // Open settings dialog
     await page.getByTestId("settings-button").click();
-    await page.getByTestId("project-settings-button").click();
+    const settingsDialog = page.getByTestId("settings-dialog");
 
-    // Fill in the new name in the dialog
-    const nameInput = page.getByTestId("project-name-input");
+    // Fill in the new name in the Project section
+    const nameInput = settingsDialog.locator("#settings-project-name");
     await expect(nameInput).toHaveValue("Untitled");
     await nameInput.fill("My Bass Track");
-    await nameInput.press("Enter");
+
+    // Close settings dialog to save
+    await page.keyboard.press("Escape");
 
     // Verify document title updated
     await expect(page).toHaveTitle("My Bass Track - Toy MIDI");

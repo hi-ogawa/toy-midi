@@ -30,6 +30,31 @@ export async function clickContinue(page: Page): Promise<void> {
 export const clickThroughStartup = clickNewProject;
 
 /**
+ * Load an audio file via Settings dialog.
+ * Opens Settings, uploads test-audio.wav, waits for load, then closes Settings.
+ */
+export async function loadAudioFile(page: Page): Promise<void> {
+  // Open settings dialog
+  await page.getByTestId("settings-button").click();
+  await page.waitForTimeout(100);
+
+  // Find file input within settings dialog
+  const settingsDialog = page.getByTestId("settings-dialog");
+  const fileInput = settingsDialog.locator('input[type="file"]');
+  const path = await import("path");
+  const testAudioPath = path.join(
+    import.meta.dirname,
+    "../public/test-audio.wav",
+  );
+  await fileInput.setInputFiles(testAudioPath);
+  await page.waitForTimeout(500); // Wait for audio to load
+
+  // Close settings dialog
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(100);
+}
+
+/**
  * Evaluate a function against the Zustand store in the browser context.
  * Only available in dev mode where window.__store is exposed.
  *
