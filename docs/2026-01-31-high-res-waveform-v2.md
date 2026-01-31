@@ -72,67 +72,74 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 
 ---
 
-## Current Implementation
+## Ideal Data Flow
 
-### Data Flow
+### Core Question
+
+Given visible time range and pixel width, what peaks do we need?
+
+### Flow
 
 ```
-File Load                              Render
-─────────                              ──────
-AudioBuffer (48kHz)                    peaks[] + viewport params
-    │                                       │
-    ▼                                       ▼
-getAudioBufferPeaks()                  downsample to 500 points (BUG)
-    │ 480 samples/peak                      │
-    ▼                                       ▼
-peaks[] (100/sec)                      SVG/Canvas (renderer-agnostic)
-    │
-    ▼
-stored in project-store
+Render time inputs:
+  - visibleStart (seconds)
+  - visibleEnd (seconds)
+  - pixelWidth (pixels)
+
+          ↓
+
+getPeaksForViewport(audioData, visibleStart, visibleEnd, pixelWidth)
+
+          ↓
+
+peaks[] with length ≈ pixelWidth (1-2 peaks per pixel)
+
+          ↓
+
+Renderer (SVG, Canvas, etc.)
 ```
 
-### The Bug
+### Where Does `audioData` Come From?
 
-Current downsampling happens at render time with no viewport awareness:
+Two options:
+
+**A. Raw AudioBuffer**
+
+- Compute peaks on-demand from samples
+- Pro: Maximum flexibility, no pre-computation
+- Con: CPU-intensive on every render
+
+**B. Pre-computed peaks at fixed resolution**
+
+- Extract once at load time (e.g., 100 peaks/sec)
+- Slice + downsample at render time
+- Pro: Fast render, small storage
+- Con: Can't exceed pre-computed resolution when zoomed in
+
+**Recommendation:** Option B for now. 100 peaks/sec = 15 peaks per 16th note at 100 BPM, which is plenty for most zoom levels.
+
+### Processing Function
 
 ```typescript
-// Current: always 500 points regardless of visible range
-const maxPoints = 500;
-const step = Math.max(1, Math.floor(peaks.length / maxPoints));
-```
-
-### Fix: Pure Data Processing Function
-
-Extract a viewport-aware culling function (renderer-agnostic):
-
-```typescript
-function getVisiblePeaks(
+function getPeaksForViewport(
   peaks: number[],
   peaksPerSecond: number,
-  // Viewport params (in seconds, not beats - keep it audio-domain)
   visibleStart: number, // seconds
   visibleEnd: number, // seconds
-  targetWidth: number, // pixels - determines output resolution
+  pixelWidth: number, // target output length
 ): number[] {
-  // 1. Calculate peak indices for visible range
-  const startIndex = Math.floor(visibleStart * peaksPerSecond);
-  const endIndex = Math.ceil(visibleEnd * peaksPerSecond);
+  // Slice to visible range
+  const startIdx = Math.floor(visibleStart * peaksPerSecond);
+  const endIdx = Math.ceil(visibleEnd * peaksPerSecond);
+  const visible = peaks.slice(startIdx, endIdx);
 
-  // 2. Slice to visible range
-  const visiblePeaks = peaks.slice(startIndex, endIndex);
-
-  // 3. Downsample to ~1 peak per pixel (if needed)
-  const targetPeaks = Math.min(visiblePeaks.length, targetWidth);
-  return downsample(visiblePeaks, targetPeaks);
+  // Downsample if more peaks than pixels, otherwise return as-is
+  if (visible.length <= pixelWidth) return visible;
+  return downsample(visible, pixelWidth);
 }
 ```
 
-**Key design decisions:**
-
-- Input viewport in **seconds** (audio domain), not beats (music domain)
-- Caller converts beats→seconds before calling
-- Output resolution based on **pixel width**, not arbitrary constant
-- Returns array ready for any renderer (SVG, Canvas, etc.)
+**Key:** Output length ≈ pixelWidth, not arbitrary constant.
 
 ---
 
