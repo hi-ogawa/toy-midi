@@ -78,9 +78,14 @@ export function queryAudioView(
   if (endIdx <= startIdx) return emptySlice;
 
   // Align boundaries to coarser grid to prevent jiggling during scroll.
-  // The alignment step is based on how many source points per output point.
-  const rawLength = endIdx - startIdx;
-  const alignmentStep = Math.max(1, Math.ceil(rawLength / targetPoints));
+  // Compute alignment step from TIME (constant during scroll), not indices (which shift).
+  // Use Math.round (not ceil) for floating-point stability.
+  const viewportDuration = endTime - startTime;
+  const pointsPerSec = sampleRate / samplesPerPoint;
+  const alignmentStep = Math.max(
+    1,
+    Math.round((viewportDuration * pointsPerSec) / targetPoints),
+  );
   const alignedStartIdx = Math.max(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
@@ -96,22 +101,26 @@ export function queryAudioView(
   const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
   const actualEnd = (alignedEndIdx * samplesPerPoint) / sampleRate;
 
-  const visible = data.slice(alignedStartIdx, alignedEndIdx);
+  const visibleLength = alignedEndIdx - alignedStartIdx;
 
   // If fewer points than target, return as-is
-  if (visible.length <= targetPoints) {
-    return { data: visible, actualStart, actualEnd };
+  if (visibleLength <= targetPoints) {
+    return {
+      data: data.slice(alignedStartIdx, alignedEndIdx),
+      actualStart,
+      actualEnd,
+    };
   }
 
-  // Downsample to target points
-  const step = visible.length / targetPoints;
+  // Downsample using ABSOLUTE indices (aligned to global grid).
+  // Each output point covers exactly `alignmentStep` source points,
+  // and windows are aligned to global multiples of alignmentStep.
   const result: number[] = [];
-  for (let i = 0; i < targetPoints; i++) {
-    const start = Math.floor(i * step);
-    const end = Math.floor((i + 1) * step);
+  for (let idx = alignedStartIdx; idx < alignedEndIdx; idx += alignmentStep) {
+    const windowEnd = Math.min(idx + alignmentStep, alignedEndIdx);
     let max = 0;
-    for (let j = start; j < end && j < visible.length; j++) {
-      if (visible[j] > max) max = visible[j];
+    for (let j = idx; j < windowEnd; j++) {
+      if (data[j] > max) max = data[j];
     }
     result.push(max);
   }

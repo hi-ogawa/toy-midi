@@ -231,4 +231,50 @@ describe("queryAudioView", () => {
     // startIdx = 150, endIdx = 200, both beyond length, slice is empty
     expect(result).toEqual(emptySlice);
   });
+
+  it("scroll stability: adjacent queries have consistent overlapping data", () => {
+    // Simulate realistic scenario: 3 min audio at 800 pts/sec
+    // Viewport showing ~2 seconds, rendered to 200 pixels
+    const pointsPerSec = 800;
+    const duration = 180; // 3 minutes
+    const viewportDuration = 2; // 2 seconds visible
+    const targetPoints = 200; // pixels
+
+    // Create view with distinct values so we can detect changes
+    const view: AudioView = {
+      data: Array.from(
+        { length: duration * pointsPerSec },
+        (_, i) => (i % 100) / 100,
+      ),
+      samplesPerPoint: 60, // 48000 / 800
+      sampleRate: 48000,
+    };
+
+    // Query at different scroll positions (small increments)
+    const results: Array<{ data: number[] }> = [];
+    for (let scrollSec = 30; scrollSec < 30.1; scrollSec += 0.01) {
+      const result = queryAudioView(
+        view,
+        scrollSec,
+        scrollSec + viewportDuration,
+        targetPoints,
+      );
+      results.push({ data: result.data });
+    }
+
+    // Verify: adjacent queries should have consistent overlapping data
+    // When data shifts by 1, current[1] should equal next[0]
+    let shiftsMatch = 0;
+    for (let i = 0; i < results.length - 1; i++) {
+      const curr = results[i].data;
+      const next = results[i + 1].data;
+      // Check if first element of next matches second element of curr
+      if (Math.abs(next[0] - curr[1]) < 0.0001) {
+        shiftsMatch++;
+      }
+    }
+
+    // With stable grid alignment, most adjacent shifts should match
+    expect(shiftsMatch).toBeGreaterThanOrEqual(results.length - 2);
+  });
 });
