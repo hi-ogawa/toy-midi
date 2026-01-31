@@ -3,12 +3,11 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
-import { ImportExport } from "./components/import-export";
 import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
-import { Dialog, SimpleDialog } from "./components/ui/dialog";
+import { SimpleDialog } from "./components/ui/dialog";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
@@ -140,7 +139,6 @@ function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
-  const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [projectName, setProjectName] = useState(
     () => getProjectMetadata(projectId)?.name ?? "Untitled",
   );
@@ -155,11 +153,7 @@ function Editor({ projectId }: EditorProps) {
     "keydown",
     (e) => {
       if (e.key !== "Escape") return;
-      if (isImportExportOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsImportExportOpen(false);
-      } else if (isSettingsOpen) {
+      if (isSettingsOpen) {
         e.preventDefault();
         e.stopPropagation();
         setIsSettingsOpen(false);
@@ -182,7 +176,6 @@ function Editor({ projectId }: EditorProps) {
         onSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onMixerClick={() => setIsMixerOpen(true)}
-        onImportExportClick={() => setIsImportExportOpen(true)}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -201,7 +194,6 @@ function Editor({ projectId }: EditorProps) {
         testId="settings-dialog"
       >
         <Settings
-          projectId={projectId}
           projectName={projectName}
           onProjectNameChange={(name) => {
             const trimmed = name.trim();
@@ -217,22 +209,6 @@ function Editor({ projectId }: EditorProps) {
           }}
         />
       </SimpleDialog>
-      <Dialog
-        isOpen={isImportExportOpen}
-        onClose={() => setIsImportExportOpen(false)}
-        title="Import / Export"
-        testId="import-export-modal"
-      >
-        <ImportExport
-          projectId={projectId}
-          onClose={() => setIsImportExportOpen(false)}
-          onProjectImported={(newProjectId: string) => {
-            // Reload page to switch to imported project
-            setLastProjectId(newProjectId);
-            window.location.reload();
-          }}
-        />
-      </Dialog>
     </div>
   );
 }
