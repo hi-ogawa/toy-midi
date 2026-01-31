@@ -77,89 +77,62 @@ At 1920px viewport, 500 peaks is marginal for full-song view and terrible for zo
 ### Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  File Load (src/lib/audio.ts)                                           │
-│                                                                         │
-│  loadAudioFile(file)                                                    │
-│    └─> getAudioBufferPeaks(buffer, 100)    ← Stage 1: 480 samples/peak │
-│          └─> peaks[] stored in project-store                            │
-└─────────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Render (src/components/piano-roll.tsx)                                 │
-│                                                                         │
-│  WaveformArea                                                           │
-│    ├─ receives: audioPeaks[], scrollX, pixelsPerBeat                    │
-│    ├─ positions audio block based on offset/duration                    │
-│    └─> Waveform component                                               │
-│          └─> Downsample to 500 points      ← Stage 2: THE BUG          │
-│          └─> SVG <path> with viewBox 0-1000                             │
-│          └─> CSS stretches to container width                           │
-└─────────────────────────────────────────────────────────────────────────┘
+File Load                              Render
+─────────                              ──────
+AudioBuffer (48kHz)                    peaks[] + viewport params
+    │                                       │
+    ▼                                       ▼
+getAudioBufferPeaks()                  downsample to 500 points (BUG)
+    │ 480 samples/peak                      │
+    ▼                                       ▼
+peaks[] (100/sec)                      SVG/Canvas (renderer-agnostic)
+    │
+    ▼
+stored in project-store
 ```
 
-### Key Code Locations
+### The Bug
 
-| File                                 | Function                | What it does                            |
-| ------------------------------------ | ----------------------- | --------------------------------------- |
-| `src/lib/audio.ts:390`               | `getAudioBufferPeaks()` | Stage 1: Extract peaks at 100/sec       |
-| `src/lib/audio.ts:415`               | `loadAudioFile()`       | Orchestrates load + peak extraction     |
-| `src/components/piano-roll.tsx:1786` | `Waveform()`            | Stage 2: Downsample to 500 + render SVG |
-| `src/components/piano-roll.tsx:1607` | `WaveformArea()`        | Container, positions waveform block     |
-
-### Current Waveform Component (the bug)
+Current downsampling happens at render time with no viewport awareness:
 
 ```typescript
-function Waveform({ peaks, height }) {
-  // BUG: Fixed 500 points regardless of audio length or zoom
-  const maxPoints = 500;
-  const step = Math.max(1, Math.floor(peaks.length / maxPoints));
+// Current: always 500 points regardless of visible range
+const maxPoints = 500;
+const step = Math.max(1, Math.floor(peaks.length / maxPoints));
+```
 
-  // Downsample by taking max of each chunk
-  for (let i = 0; i < peaks.length; i += step) { ... }
+### Fix: Pure Data Processing Function
 
-  // Render to fixed viewBox, CSS stretches to fit
-  <svg viewBox="0 0 1000 {height}" preserveAspectRatio="none">
-    <path d={pathData} />
-  </svg>
+Extract a viewport-aware culling function (renderer-agnostic):
+
+```typescript
+function getVisiblePeaks(
+  peaks: number[],
+  peaksPerSecond: number,
+  // Viewport params (in seconds, not beats - keep it audio-domain)
+  visibleStart: number, // seconds
+  visibleEnd: number, // seconds
+  targetWidth: number, // pixels - determines output resolution
+): number[] {
+  // 1. Calculate peak indices for visible range
+  const startIndex = Math.floor(visibleStart * peaksPerSecond);
+  const endIndex = Math.ceil(visibleEnd * peaksPerSecond);
+
+  // 2. Slice to visible range
+  const visiblePeaks = peaks.slice(startIndex, endIndex);
+
+  // 3. Downsample to ~1 peak per pixel (if needed)
+  const targetPeaks = Math.min(visiblePeaks.length, targetWidth);
+  return downsample(visiblePeaks, targetPeaks);
 }
 ```
 
-**Problems:**
+**Key design decisions:**
 
-1. `peaks.length / 500` = more aggressive downsampling for longer audio
-2. No awareness of `scrollX` or visible viewport
-3. SVG covers entire audio duration, CSS scales it
-
-### What WaveformArea Already Has
-
-The parent component `WaveformArea` receives:
-
-- `scrollX` - current horizontal scroll position (in beats)
-- `pixelsPerBeat` - current zoom level
-- `viewportWidth` - visible area width
-- `audioPeaks` - full peaks array
-- `audioOffset` / `audioDuration` - timing info
-
-**It already calculates visible region** for positioning the audio block:
-
-```typescript
-const audioStartX = (audioOffsetBeats - scrollX) * pixelsPerBeat;
-```
-
-But it passes the **entire** `audioPeaks` array to `Waveform`, which then:
-
-1. Downsamples to 500 points (losing detail)
-2. Renders all of it (even off-screen parts)
-
-### Fix Strategy
-
-Pass viewport info to `Waveform`, so it can:
-
-1. Calculate which peaks are visible based on `scrollX` and `viewportWidth`
-2. Slice `peaks[]` to visible range only
-3. Remove or adjust the 500-point limit (may not be needed for visible-only data)
+- Input viewport in **seconds** (audio domain), not beats (music domain)
+- Caller converts beats→seconds before calling
+- Output resolution based on **pixel width**, not arbitrary constant
+- Returns array ready for any renderer (SVG, Canvas, etc.)
 
 ---
 
