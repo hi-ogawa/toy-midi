@@ -1,0 +1,6 @@
+pre-commit:
+  commands:
+    format-md:
+      glob: "*"
+      run: oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
