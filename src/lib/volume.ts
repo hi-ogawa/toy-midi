@@ -1,15 +1,9 @@
 const MIN_DB = -60;
 const MAX_DB = 6;
-const UNITY_DB = 0;
-const UNITY_PERCENT = 75;
+const LOG2 = Math.log(2);
 
 function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
-}
-
-function gainToDb(gain: number): number {
-  if (gain <= 0) return MIN_DB;
-  return 20 * Math.log10(gain);
 }
 
 const MAX_GAIN = dbToGain(MAX_DB);
@@ -22,30 +16,19 @@ export function clampGain(gain: number): number {
   return clamp(gain, 0, MAX_GAIN);
 }
 
-function percentToDb(percent: number): number {
-  const clamped = clamp(percent, 0, 100);
-  if (clamped <= UNITY_PERCENT) {
-    const t = clamped / UNITY_PERCENT;
-    return MIN_DB + (UNITY_DB - MIN_DB) * t;
-  }
-  const t = (clamped - UNITY_PERCENT) / (100 - UNITY_PERCENT);
-  return UNITY_DB + (MAX_DB - UNITY_DB) * t;
+export function percentToGain(percent: number): number {
+  const position = clamp(percent / 100, 0, 1);
+  if (position === 0) return 0;
+  return Math.exp(((Math.pow(position, 1 / 8) * 198 - 192) / 6) * LOG2);
+}
+
+export function gainToPercent(gain: number): number {
+  if (gain <= 0) return 0;
+  const position = Math.pow(((6 * Math.log(gain)) / LOG2 + 192) / 198, 8);
+  return clamp(position * 100, 0, 100);
 }
 
 export function dbToPercent(db: number): number {
   const clamped = clamp(db, MIN_DB, MAX_DB);
-  if (clamped <= UNITY_DB) {
-    const t = (clamped - MIN_DB) / (UNITY_DB - MIN_DB);
-    return UNITY_PERCENT * t;
-  }
-  const t = (clamped - UNITY_DB) / (MAX_DB - UNITY_DB);
-  return UNITY_PERCENT + (100 - UNITY_PERCENT) * t;
-}
-
-export function percentToGain(percent: number): number {
-  return dbToGain(percentToDb(percent));
-}
-
-export function gainToPercent(gain: number): number {
-  return dbToPercent(gainToDb(gain));
+  return gainToPercent(dbToGain(clamped));
 }
