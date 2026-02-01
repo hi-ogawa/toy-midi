@@ -77,6 +77,24 @@ test.describe("Transport Controls", () => {
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("mixer dB input", async ({ page }) => {
+    await page.getByTestId("mixer-button").click();
+    const mixerDialog = page.getByTestId("mixer-dialog");
+    const midiDbInput = mixerDialog.getByLabel("MIDI level in dB");
+
+    await midiDbInput.fill("-12.0");
+    await midiDbInput.press("Enter");
+    await expect(midiDbInput).toHaveValue("-12.0");
+
+    await midiDbInput.fill("10");
+    await midiDbInput.press("Enter");
+    await expect(midiDbInput).toHaveValue("6.0");
+
+    await midiDbInput.fill("-100");
+    await midiDbInput.press("Enter");
+    await expect(midiDbInput).toHaveValue("-60.0");
+  });
+
   test("auto-scroll toggle", async ({ page }) => {
     // Open settings dialog to access auto-scroll toggle
     await page.getByTestId("settings-button").click();

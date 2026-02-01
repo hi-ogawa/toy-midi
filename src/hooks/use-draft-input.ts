@@ -6,6 +6,8 @@ type UseDraftInputOptions = {
   min?: number;
   max?: number;
   step?: number;
+  parse?: "int" | "float";
+  format?: (value: number) => string;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -35,23 +37,28 @@ export function useDraftInput({
   min = -Infinity,
   max = Infinity,
   step = 1,
+  parse = "int",
+  format = String,
 }: UseDraftInputOptions) {
-  const [draft, setDraft] = useState(String(value));
+  const [draft, setDraft] = useState(format(value));
 
   useEffect(() => {
-    setDraft(String(value));
-  }, [value]);
+    setDraft(format(value));
+  }, [format, value]);
+
+  const parseNumber = (text: string) =>
+    parse === "float" ? Number.parseFloat(text) : Number.parseInt(text, 10);
 
   const commit = () => {
-    const n = Number.parseInt(draft, 10);
+    const n = parseNumber(draft);
     if (!Number.isNaN(n)) {
       onCommit(clamp(n, min, max));
     } else {
-      setDraft(String(value)); // Reset on invalid input
+      setDraft(format(value)); // Reset on invalid input
     }
   };
 
-  const reset = () => setDraft(String(value));
+  const reset = () => setDraft(format(value));
 
   const increment = () => onCommit(clamp(value + step, min, max));
   const decrement = () => onCommit(clamp(value - step, min, max));
