@@ -80,21 +80,18 @@ describe("parseShortcut", () => {
     `);
   });
 
-  it("rejects unsupported modifiers", () => {
-    expect(() => parseShortcut("Cmd+L")).toThrowError(
-      "Unsupported shortcut token: L",
+  it("invalid", () => {
+    expect(() => parseShortcut("Cmd+L")).toThrowErrorMatchingInlineSnapshot(
+      `[Error: Invalid shortcut 'Cmd+L']`,
     );
-  });
-
-  it("rejects alias tokens", () => {
-    expect(() => parseShortcut("Esc")).toThrowError(
-      "Unsupported shortcut token: Esc",
+    expect(() => parseShortcut("Esc")).toThrowErrorMatchingInlineSnapshot(
+      `[Error: Invalid shortcut 'Esc']`,
     );
-    expect(() => parseShortcut("Del")).toThrowError(
-      "Unsupported shortcut token: Del",
+    expect(() => parseShortcut("Del")).toThrowErrorMatchingInlineSnapshot(
+      `[Error: Invalid shortcut 'Del']`,
     );
-    expect(() => parseShortcut("Bs")).toThrowError(
-      "Unsupported shortcut token: Bs",
+    expect(() => parseShortcut("Bs")).toThrowErrorMatchingInlineSnapshot(
+      `[Error: Invalid shortcut 'Bs']`,
     );
   });
 });

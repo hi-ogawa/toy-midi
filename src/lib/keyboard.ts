@@ -17,45 +17,22 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
-function normalizeKeyToken(token: string): { code?: string; key?: string } {
-  if (!token) {
-    return {};
-  }
-  if (token.length === 1) {
-    const char = token.toUpperCase();
-    if (char >= "A" && char <= "Z") {
-      return { code: `Key${char}` };
-    }
-    if (char >= "0" && char <= "9") {
-      return { code: `Digit${char}` };
-    }
-  }
+const SPECIAL_KEYS: Record<string, { code: string; key: string }> = {
+  Space: { code: "Space", key: " " },
+  Escape: { code: "Escape", key: "Escape" },
+  Enter: { code: "Enter", key: "Enter" },
+  ArrowUp: { code: "ArrowUp", key: "ArrowUp" },
+  ArrowDown: { code: "ArrowDown", key: "ArrowDown" },
+  Delete: { code: "Delete", key: "Delete" },
+  Backspace: { code: "Backspace", key: "Backspace" },
+};
 
-  const lower = token.toLowerCase();
-  if (lower === "space") {
-    return { code: "Space", key: " " };
-  }
-  if (lower === "escape") {
-    return { code: "Escape", key: "Escape" };
-  }
-  if (lower === "enter") {
-    return { code: "Enter", key: "Enter" };
-  }
-  if (lower === "arrowup") {
-    return { code: "ArrowUp", key: "ArrowUp" };
-  }
-  if (lower === "arrowdown") {
-    return { code: "ArrowDown", key: "ArrowDown" };
-  }
-  if (lower === "delete") {
-    return { code: "Delete", key: "Delete" };
-  }
-  if (lower === "backspace") {
-    return { code: "Backspace", key: "Backspace" };
-  }
-
-  throw new Error(`Unsupported shortcut token: ${token}`);
-}
+const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
+  ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    .split("")
+    .map((char) => [char, { code: `Key${char}` }]),
+  ..."0123456789".split("").map((char) => [char, { code: `Digit${char}` }]),
+]);
 
 export function parseShortcut(shortcut: string): ParsedShortcut {
   const modifiers = {
@@ -88,15 +65,16 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
       keyToken = token;
       continue;
     }
-    throw new Error(`Unsupported shortcut token: ${token}`);
+    throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
-  if (!keyToken) {
-    throw new Error("Shortcut must include key");
+  const match = CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
+  if (!match) {
+    throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
   return {
-    ...normalizeKeyToken(keyToken),
+    ...match,
     modifiers,
   };
 }
