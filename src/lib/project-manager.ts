@@ -13,7 +13,7 @@ export interface ProjectMetadata {
 }
 
 // Generate unique project ID
-export function generateProjectId(): string {
+function generateProjectId(): string {
   // Use crypto.randomUUID() if available, otherwise fallback to timestamp + random
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return `project-${crypto.randomUUID()}`;
@@ -22,7 +22,7 @@ export function generateProjectId(): string {
 }
 
 // Get storage key for a specific project
-export function getProjectKey(projectId: string): string {
+function getProjectKey(projectId: string): string {
   return `toy-midi-project-${projectId}`;
 }
 
@@ -42,7 +42,7 @@ export function getProjectMetadata(projectId: string): ProjectMetadata | null {
 }
 
 // Get default project name with sequential numbering
-export function getDefaultProjectName(): string {
+function getDefaultProjectName(): string {
   const projects = listProjects();
   const untitledCount = projects.filter((p) =>
     p.name.match(/^Untitled( \d+)?$/),
@@ -112,11 +112,6 @@ export function getLastProjectId(): string | null {
 // Set last opened project ID
 export function setLastProjectId(projectId: string): void {
   localStorage.setItem(LAST_PROJECT_ID_KEY, projectId);
-}
-
-// Check if any projects exist
-export function hasProjects(): boolean {
-  return listProjects().length > 0;
 }
 
 // Save project data to localStorage (pure - no Zustand)
