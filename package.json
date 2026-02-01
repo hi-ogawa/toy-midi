@@ -10,6 +10,7 @@
     "tsc": "tsc -b",
     "lint": "oxfmt",
     "lint-check": "oxfmt --check",
+    "knip": "knip",
     "test": "vitest",
     "test-e2e": "playwright test"
   },
@@ -40,6 +41,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
+    "knip": "^5.82.1",
     "oxfmt": "^0.23.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
