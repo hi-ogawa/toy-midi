@@ -8,6 +8,7 @@ import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { SimpleDialog } from "./components/ui/dialog";
+import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
@@ -19,6 +20,7 @@ import {
   getProjectMetadata,
   listProjects,
   loadProjectData,
+  type ProjectMetadata,
   saveProjectData,
   setLastProjectId,
   updateProjectMetadata,
@@ -101,6 +103,14 @@ export function App() {
     "keydown",
     (e) => {
       if (initMutation.isSuccess || initMutation.isPending) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
       if (e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
@@ -196,10 +206,9 @@ function Editor({ projectId }: EditorProps) {
         <Settings
           projectName={projectName}
           onProjectNameChange={(name) => {
-            const trimmed = name.trim();
-            if (trimmed && trimmed !== projectName) {
-              updateProjectMetadata(projectId, { name: trimmed });
-              setProjectName(trimmed);
+            if (name && name !== projectName) {
+              updateProjectMetadata(projectId, { name });
+              setProjectName(name);
             }
           }}
           onProjectsClick={() => {
@@ -221,6 +230,57 @@ type ProjectListViewProps = {
   onNewProject: () => void;
 };
 
+type ProjectRenameInputProps = {
+  project: ProjectMetadata;
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+};
+
+function ProjectRenameInput({
+  project,
+  onSubmit,
+  onCancel,
+}: ProjectRenameInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const renameInput = useDraftTextInput({
+    value: project.name,
+    onCommit: onSubmit,
+    normalize: (value) => value.trim(),
+    isValid: (value) => value.length > 0,
+  });
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 flex-1">
+      <input
+        data-testid={`rename-input-${project.id}`}
+        type="text"
+        {...renameInput.props}
+        ref={inputRef}
+        className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
+      />
+      <button
+        type="button"
+        onClick={renameInput.commit}
+        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 function ProjectListView({
   isLoading,
   onSelectProject,
@@ -229,7 +289,6 @@ function ProjectListView({
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
     null,
   );
-  const [renameValue, setRenameValue] = useState("");
   const [projects, setProjects] = useState(listProjects());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -257,28 +316,19 @@ function ProjectListView({
     },
   });
 
-  const handleRenameStart = (
-    e: React.MouseEvent,
-    projectId: string,
-    currentName: string,
-  ) => {
+  const handleRenameStart = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
     setRenamingProjectId(projectId);
-    setRenameValue(currentName);
   };
 
-  const handleRenameSubmit = (projectId: string) => {
-    if (renameValue.trim()) {
-      updateProjectMetadata(projectId, { name: renameValue.trim() });
-      setRenamingProjectId(null);
-      setRenameValue("");
-      setProjects(listProjects());
-    }
+  const handleRenameSubmit = (projectId: string, nextName: string) => {
+    updateProjectMetadata(projectId, { name: nextName });
+    setRenamingProjectId(null);
+    setProjects(listProjects());
   };
 
   const handleRenameCancel = () => {
     setRenamingProjectId(null);
-    setRenameValue("");
   };
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
@@ -348,37 +398,13 @@ function ProjectListView({
                       }`}
                     >
                       {renamingProjectId === project.id ? (
-                        <div className="flex items-center gap-3 flex-1">
-                          <input
-                            data-testid={`rename-input-${project.id}`}
-                            type="text"
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleRenameSubmit(project.id);
-                              } else if (e.key === "Escape") {
-                                handleRenameCancel();
-                              }
-                            }}
-                            className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleRenameSubmit(project.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRenameCancel}
-                            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <ProjectRenameInput
+                          project={project}
+                          onSubmit={(nextName) =>
+                            handleRenameSubmit(project.id, nextName)
+                          }
+                          onCancel={handleRenameCancel}
+                        />
                       ) : (
                         <div className="flex justify-between items-center flex-1">
                           <button
@@ -405,9 +431,7 @@ function ProjectListView({
                             <button
                               type="button"
                               data-testid={`rename-button-${project.id}`}
-                              onClick={(e) =>
-                                handleRenameStart(e, project.id, project.name)
-                              }
+                              onClick={(e) => handleRenameStart(e, project.id)}
                               className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
                               title="Rename"
                             >

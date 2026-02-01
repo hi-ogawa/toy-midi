@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
+import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import {
   copyABCToClipboard,
   downloadABCFile,
@@ -34,6 +35,12 @@ export function Settings({
   onProjectNameChange,
   onProjectsClick,
 }: SettingsProps) {
+  const projectNameInput = useDraftTextInput({
+    value: projectName,
+    onCommit: onProjectNameChange,
+    normalize: (value) => value.trim(),
+    isValid: (value) => value.length > 0,
+  });
   const {
     audioFileName,
     audioAssetKey,
@@ -250,8 +257,7 @@ export function Settings({
             <input
               id="settings-project-name"
               type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange(e.target.value)}
+              {...projectNameInput.props}
               className="w-full h-8 px-2 text-sm bg-neutral-900 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:border-neutral-500"
               placeholder="Enter project name"
             />
