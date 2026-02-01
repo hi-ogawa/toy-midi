@@ -44,7 +44,8 @@ MIDI             |            |
                  |
 ```
 
-- [ ] don't disable fader when muted
+- [x] don't disable fader when muted
+- [ ] add line at 0 decibel in fader range
 
 ## Status
 
