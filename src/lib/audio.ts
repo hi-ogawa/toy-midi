@@ -1,5 +1,9 @@
 import { toast } from "sonner";
 import * as Tone from "tone";
+import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
+import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
+import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
+import type { ProjectState } from "../stores/project-store";
 import type { Note } from "../types";
 import {
   type AudioView,
@@ -7,10 +11,6 @@ import {
   EMPTY_AUDIO_VIEW,
 } from "./audio-view";
 import { OxiSynthSynth } from "./oxisynth-synth";
-import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
-import oxisynthWorkletUrl from "@/assets/oxisynth/worklet.js?url";
-import soundfontUrl from "@/assets/soundfonts/A320U.sf2?url";
-import type { ProjectState } from "@/stores/project-store";
 
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [

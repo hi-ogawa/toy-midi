@@ -1,7 +1,7 @@
 import type { Note } from "../types";
 
 // History entry types for different operations
-export type HistoryEntry =
+type HistoryEntry =
   | {
       type: "add-note";
       note: Note; // Store full note for redo

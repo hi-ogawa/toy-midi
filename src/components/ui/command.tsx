@@ -4,7 +4,7 @@ import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 function Command({
   className,
@@ -104,19 +104,6 @@ function CommandItem({
   );
 }
 
-function CommandSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
-  return (
-    <CommandPrimitive.Separator
-      data-slot="command-separator"
-      className={cn("bg-border -mx-1 h-px", className)}
-      {...props}
-    />
-  );
-}
-
 export {
   Command,
   CommandEmpty,
@@ -124,5 +111,4 @@ export {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
 };
