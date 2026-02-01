@@ -17,6 +17,7 @@ import {
 } from "../lib/abc-export";
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
+import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
@@ -162,14 +163,10 @@ export function Settings({
         : "Piano Roll",
     });
 
-    // Generate filename with timestamp
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/[T:]/g, "-")
-      .replace(/\.\d+Z$/, "");
-    const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, "_");
-    const fileName = `${safeName}-${timestamp}.mid`;
+    const fileName = buildExportFileName({
+      baseName: projectName,
+      extension: ".mid",
+    });
 
     downloadMidiFile(midiData, fileName);
   };
@@ -182,14 +179,10 @@ export function Settings({
       title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
     });
 
-    // Generate filename with timestamp
-    const now = new Date();
-    const timestamp = now
-      .toISOString()
-      .replace(/[T:]/g, "-")
-      .replace(/\.\d+Z$/, "");
-    const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, "_");
-    const fileName = `${safeName}-${timestamp}.abc`;
+    const fileName = buildExportFileName({
+      baseName: projectName,
+      extension: ".abc",
+    });
 
     downloadABCFile(abcText, fileName);
   };

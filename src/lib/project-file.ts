@@ -3,6 +3,7 @@
 import JSZip from "jszip";
 import type { SavedProject } from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
+import { buildExportFileName } from "./export-utils";
 
 // Manifest schema for .toymidi files
 export interface ProjectManifest {
@@ -71,12 +72,10 @@ export async function exportProjectFile(
  * Download a .toymidi file
  */
 export function downloadProjectFile(blob: Blob, projectName: string): void {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[T:]/g, "-")
-    .replace(/\.\d+Z$/, "");
-  const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, "_");
-  const fileName = `${safeName}-${timestamp}.toymidi`;
+  const fileName = buildExportFileName({
+    baseName: projectName,
+    extension: ".toymidi",
+  });
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
