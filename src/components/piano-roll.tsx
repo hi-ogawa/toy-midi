@@ -1043,7 +1043,6 @@ export function PianoRoll() {
                 onValueChange={([v]) => setAudioVolume(v / 100)}
                 max={100}
                 step={1}
-                disabled={audioMuted}
               />
             </div>
             {/* MIDI controls */}
@@ -1073,7 +1072,6 @@ export function PianoRoll() {
                 onValueChange={([v]) => setMidiVolume(v / 100)}
                 max={100}
                 step={1}
-                disabled={midiMuted}
               />
             </div>
           </div>
