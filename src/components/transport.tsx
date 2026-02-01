@@ -83,7 +83,7 @@ function PlayPauseButton() {
     ) {
       return;
     }
-    if (e.code === "Space" && !e.repeat) {
+    if (matchKeyboardEvent(e, "Space") && !e.repeat) {
       e.preventDefault();
       togglePlayback();
     }
@@ -242,29 +242,17 @@ export function Transport({
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
-    if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
+    if (matchKeyboardEvent(e, "Ctrl+F") && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
     }
     // Shift+1 - Toggle MIDI mute
-    if (
-      e.code === "Digit1" &&
-      e.shiftKey &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "Shift+1") && !e.repeat) {
       e.preventDefault();
       setMidiMuted(!midiMuted);
     }
     // Shift+2 - Toggle audio mute
-    if (
-      e.code === "Digit2" &&
-      e.shiftKey &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "Shift+2") && !e.repeat) {
       e.preventDefault();
       setAudioMuted(!audioMuted);
     }

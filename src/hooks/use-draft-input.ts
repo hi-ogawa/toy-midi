@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { matchKeyboardEvent } from "../lib/keyboard";
 
 type UseDraftInputOptions = {
   value: number;
@@ -75,16 +76,16 @@ export function useDraftInput({
       onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
         setDraft(e.target.value),
       onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
+        if (matchKeyboardEvent(e, "Enter")) {
           commit();
           e.currentTarget.blur();
-        } else if (e.key === "Escape") {
+        } else if (matchKeyboardEvent(e, "Escape")) {
           reset();
           e.currentTarget.blur();
-        } else if (e.key === "ArrowUp") {
+        } else if (matchKeyboardEvent(e, "ArrowUp")) {
           e.preventDefault();
           increment();
-        } else if (e.key === "ArrowDown") {
+        } else if (matchKeyboardEvent(e, "ArrowDown")) {
           e.preventDefault();
           decrement();
         }

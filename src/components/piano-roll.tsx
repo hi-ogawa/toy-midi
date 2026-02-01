@@ -390,7 +390,7 @@ export function PianoRoll() {
       return;
     }
 
-    if (e.key === "Delete" || e.key === "Backspace") {
+    if (matchKeyboardEvent(e, "Delete") || matchKeyboardEvent(e, "Backspace")) {
       if (selectedNoteIds.size > 0) {
         deleteNotes(Array.from(selectedNoteIds));
       } else if (selectedLocatorId) {
@@ -398,34 +398,34 @@ export function PianoRoll() {
       } else if (isAudioTrackSelected) {
         clearAudioFile();
       }
-    } else if (e.key === "Escape") {
+    } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
       selectLocator(null);
       setAudioTrackSelected(false);
-    } else if (e.key === "c" && (e.ctrlKey || e.metaKey)) {
-      // Ctrl+C or Cmd+C: Copy
+    } else if (matchKeyboardEvent(e, "Ctrl+C")) {
+      // Ctrl+C: Copy
       e.preventDefault();
       copyNotes();
-    } else if (e.key === "v" && (e.ctrlKey || e.metaKey)) {
-      // Ctrl+V or Cmd+V: Paste at snapped playhead position
+    } else if (matchKeyboardEvent(e, "Ctrl+V")) {
+      // Ctrl+V: Paste at snapped playhead position
       e.preventDefault();
       const playheadBeat = secondsToBeats(position, tempo);
       const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
       pasteNotes(snappedBeat);
-    } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) {
-      // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
+    } else if (matchKeyboardEvent(e, "Ctrl+Shift+Z")) {
+      // Ctrl+Shift+Z: Redo
       e.preventDefault();
       if (canRedo()) {
         redo();
       }
-    } else if (e.key === "y" && (e.ctrlKey || e.metaKey)) {
-      // Ctrl+Y or Cmd+Y: Redo (alternative)
+    } else if (matchKeyboardEvent(e, "Ctrl+Y")) {
+      // Ctrl+Y: Redo (alternative)
       e.preventDefault();
       if (canRedo()) {
         redo();
       }
-    } else if (e.key === "z" && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-      // Ctrl+Z or Cmd+Z: Undo
+    } else if (matchKeyboardEvent(e, "Ctrl+Z")) {
+      // Ctrl+Z: Undo
       e.preventDefault();
       if (canUndo()) {
         undo();

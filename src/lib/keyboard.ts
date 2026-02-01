@@ -8,6 +8,15 @@ type ParsedShortcut = {
   };
 };
 
+type KeyboardLikeEvent = {
+  key: string;
+  code: string;
+  shiftKey: boolean;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+};
+
 function normalizeKeyToken(token: string): { code?: string; key?: string } {
   if (!token) {
     return {};
@@ -28,6 +37,15 @@ function normalizeKeyToken(token: string): { code?: string; key?: string } {
   }
   if (lower === "escape") {
     return { code: "Escape", key: "Escape" };
+  }
+  if (lower === "enter") {
+    return { code: "Enter", key: "Enter" };
+  }
+  if (lower === "arrowup") {
+    return { code: "ArrowUp", key: "ArrowUp" };
+  }
+  if (lower === "arrowdown") {
+    return { code: "ArrowDown", key: "ArrowDown" };
   }
   if (lower === "delete") {
     return { code: "Delete", key: "Delete" };
@@ -84,7 +102,7 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
 }
 
 export function matchKeyboardEvent(
-  e: KeyboardEvent,
+  e: KeyboardLikeEvent,
   shortcut: string,
 ): boolean {
   const parsed = parseShortcut(shortcut);

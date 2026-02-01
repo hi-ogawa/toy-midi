@@ -44,6 +44,42 @@ describe("parseShortcut", () => {
     `);
   });
 
+  it("parses special keys", () => {
+    expect(parseShortcut("Enter")).toMatchInlineSnapshot(`
+      {
+        "code": "Enter",
+        "key": "Enter",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+    expect(parseShortcut("ArrowUp")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowUp",
+        "key": "ArrowUp",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+    expect(parseShortcut("ArrowDown")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowDown",
+        "key": "ArrowDown",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+  });
+
   it("rejects unsupported modifiers", () => {
     expect(() => parseShortcut("Cmd+L")).toThrowError(
       "Unsupported shortcut token: L",
