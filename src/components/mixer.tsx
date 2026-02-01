@@ -35,7 +35,6 @@ export function Mixer() {
           step={1}
           orientation="vertical"
           className="h-48"
-          disabled={midiMuted}
         />
         <span className="text-xs text-muted-foreground tabular-nums">
           {Math.round(midiVolume * 100)}%
@@ -70,7 +69,6 @@ export function Mixer() {
           step={1}
           orientation="vertical"
           className="h-48"
-          disabled={audioMuted}
         />
         <span className="text-xs text-muted-foreground tabular-nums">
           {Math.round(audioVolume * 100)}%
