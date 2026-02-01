@@ -6,6 +6,11 @@ function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
 }
 
+export function gainToDb(gain: number): number {
+  if (gain <= 0) return MIN_DB;
+  return 20 * Math.log10(gain);
+}
+
 const MAX_GAIN = dbToGain(MAX_DB);
 
 function clamp(value: number, min: number, max: number): number {

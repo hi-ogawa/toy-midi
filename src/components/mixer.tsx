@@ -1,5 +1,10 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
-import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
+import {
+  dbToPercent,
+  gainToDb,
+  gainToPercent,
+  percentToGain,
+} from "../lib/volume";
 import { useProjectStore } from "../stores/project-store";
 import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
@@ -45,7 +50,7 @@ export function Mixer() {
           />
         </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(gainToPercent(midiVolume))}%
+          {gainToDb(midiVolume).toFixed(1)} dB
         </span>
         <Toggle
           pressed={midiMuted}
@@ -85,7 +90,7 @@ export function Mixer() {
           />
         </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(gainToPercent(audioVolume))}%
+          {gainToDb(audioVolume).toFixed(1)} dB
         </span>
         <Toggle
           pressed={audioMuted}
@@ -126,7 +131,7 @@ export function Mixer() {
           />
         </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(gainToPercent(metronomeVolume))}%
+          {gainToDb(metronomeVolume).toFixed(1)} dB
         </span>
         <Toggle
           pressed={!metronomeEnabled}
