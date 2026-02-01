@@ -26,17 +26,17 @@ function normalizeKeyToken(token: string): { code?: string; key?: string } {
   if (lower === "space") {
     return { code: "Space", key: " " };
   }
-  if (lower === "escape" || lower === "esc") {
+  if (lower === "escape") {
     return { code: "Escape", key: "Escape" };
   }
-  if (lower === "delete" || lower === "del") {
+  if (lower === "delete") {
     return { code: "Delete", key: "Delete" };
   }
-  if (lower === "backspace" || lower === "bs") {
+  if (lower === "backspace") {
     return { code: "Backspace", key: "Backspace" };
   }
 
-  return { key: token };
+  throw new Error(`Unsupported shortcut token: ${token}`);
 }
 
 export function parseShortcut(shortcut: string): ParsedShortcut {
