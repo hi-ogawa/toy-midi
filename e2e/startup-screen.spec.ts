@@ -44,6 +44,7 @@ test.describe("Startup Screen", () => {
     // First, create a project with some data via store
     const newProjectButton = page.getByTestId("new-project-button");
     await newProjectButton.click();
+    await page.getByTestId("transport").waitFor({ state: "visible" });
 
     await evaluateStore(page, (store) => {
       store.getState().addNote({
