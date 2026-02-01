@@ -2,13 +2,13 @@
 
 ## Quick Reference
 
-| Command                   | When                         |
-| ------------------------- | ---------------------------- |
-| `pnpm dev`                | Start dev server             |
-| `pnpm tsc && pnpm lint`   | After changes                |
-| `pnpm test`               | Unit tests (src/, vitest)    |
-| `pnpm test-e2e`           | E2E tests (e2e/, playwright) |
-| `pnpm lint && pnpm build` | **Before commit**            |
+| Command                               | When                         |
+| ------------------------------------- | ---------------------------- |
+| `pnpm dev`                            | Start dev server             |
+| `pnpm lint && pnpm tsc`               | After changes                |
+| `pnpm test`                           | Unit tests (src/, vitest)    |
+| `pnpm test-e2e`                       | E2E tests (e2e/, playwright) |
+| `pnpm lint && pnpm tsc && pnpm build` | **Before commit**            |
 
 ## Key Docs
 
