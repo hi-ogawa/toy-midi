@@ -1,6 +1,6 @@
 import path from "path";
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { clickNewProject, evaluateStore } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -51,6 +51,65 @@ test.describe("Settings Dialog - Project Export", () => {
 
     // Project export should be enabled (empty project is valid)
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
+  });
+
+  test("export and import .toymidi restores project data", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "note-1",
+        pitch: 60,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      });
+      store.getState().addNote({
+        id: "note-2",
+        pitch: 64,
+        start: 1,
+        duration: 0.5,
+        velocity: 90,
+      });
+      store.getState().setTempo(123);
+      store.getState().setTimeSignature({ numerator: 3, denominator: 4 });
+    });
+
+    await openSettings(page);
+    const nameInput = page.locator("#settings-project-name");
+    await nameInput.fill("Export Import Test");
+    await nameInput.press("Enter");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-project-button").click();
+    const download = await downloadPromise;
+    const downloadPath = test.info().outputPath("export.toymidi");
+    await download.saveAs(downloadPath);
+
+    await page.keyboard.press("Escape");
+    await page.reload();
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByTestId("import-project-button").click(),
+    ]);
+    await fileChooser.setFiles(downloadPath);
+
+    await expect(page.getByTestId("transport")).toBeVisible();
+    await expect(page).toHaveTitle("Export Import Test - Toy MIDI");
+
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes).toHaveLength(2);
+    expect(notes[0].pitch).toBe(60);
+    expect(notes[1].pitch).toBe(64);
+
+    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
+    expect(tempo).toBe(123);
+
+    const timeSignature = await evaluateStore(
+      page,
+      (store) => store.getState().timeSignature,
+    );
+    expect(timeSignature).toEqual({ numerator: 3, denominator: 4 });
   });
 
   test("import audio file via settings", async ({ page }) => {
