@@ -28,17 +28,13 @@ import {
 } from "../stores/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 
-// Layout constants (exported for tests)
-export const KEYBOARD_WIDTH = 60;
-export const TIMELINE_HEIGHT = 40;
-export const DEFAULT_WAVEFORM_HEIGHT = 60;
-export const MIN_WAVEFORM_HEIGHT = 40;
-export const MAX_WAVEFORM_HEIGHT = 200;
-export const BEATS_PER_BAR = 4;
+// Layout constants
+const KEYBOARD_WIDTH = 60;
+const TIMELINE_HEIGHT = 40;
+const MIN_WAVEFORM_HEIGHT = 40;
+const MAX_WAVEFORM_HEIGHT = 200;
 
-// Default zoom levels (pixels per beat/key)
-const DEFAULT_PIXELS_PER_BEAT = 80;
-const DEFAULT_PIXELS_PER_KEY = 20;
+// Zoom limits (pixels per beat/key)
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
 const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
@@ -97,12 +93,6 @@ function generateVerticalGridLayers(
 
   return layers;
 }
-
-// Deprecated: kept for E2E test compatibility
-export const BASE_ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
-export const BASE_BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
-export const ROW_HEIGHT = DEFAULT_PIXELS_PER_KEY;
-export const BEAT_WIDTH = DEFAULT_PIXELS_PER_BEAT;
 
 // Generate CSS background for grid (returns style object)
 // Uses linear-gradient + background-size instead of repeating-linear-gradient

@@ -1,13 +1,13 @@
 // Centralized keybindings configuration
 // Used to generate help overlay and maintain consistency
 
-export type KeyBinding = {
+type KeyBinding = {
   key: string;
   description: string;
   category: "playback" | "editing" | "navigation";
 };
 
-export type MouseAction = {
+type MouseAction = {
   action: string;
   description: string;
   category: "editing" | "navigation";
