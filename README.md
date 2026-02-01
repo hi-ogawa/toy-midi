@@ -1,6 +1,8 @@
 # toy-midi
 
-A minimal web-based MIDI piano roll for bass line transcription.
+A web-based MIDI piano roll for simple transcription workflow.
+
+![Demo](docs/assets/demo.png)
 
 ## Development
 
@@ -11,5 +13,5 @@ pnpm dev
 
 ## Docs
 
-- [PRD](docs/prd.md) - Requirements and features
-- [Architecture](docs/architecture.md) - Technical architecture
+- [docs/prd.md](docs/prd.md)
+- [docs/architecture.md](docs/architecture.md)
