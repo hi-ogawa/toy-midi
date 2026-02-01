@@ -1076,7 +1076,7 @@ export function PianoRoll() {
             </div>
           </div>
           <div
-            className="shrink-0 flex flex-col bg-neutral-900"
+            className="shrink-0 flex flex-col bg-neutral-900 border-r border-neutral-700"
             style={{ width: KEYBOARD_WIDTH }}
           >
             {/* Timeline spacer */}
