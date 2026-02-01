@@ -7,7 +7,7 @@ import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
-import { SimpleDialog } from "./components/ui/dialog";
+import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
@@ -189,15 +189,15 @@ function Editor({ projectId }: EditorProps) {
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      <SimpleDialog
+      <Dialog
         isOpen={isMixerOpen}
         onClose={() => setIsMixerOpen(false)}
         title="Mixer"
         testId="mixer-dialog"
       >
         <Mixer />
-      </SimpleDialog>
-      <SimpleDialog
+      </Dialog>
+      <Dialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         title="Settings"
@@ -217,7 +217,7 @@ function Editor({ projectId }: EditorProps) {
             window.open("/", "_blank");
           }}
         />
-      </SimpleDialog>
+      </Dialog>
     </div>
   );
 }
