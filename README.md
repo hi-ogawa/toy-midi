@@ -11,5 +11,5 @@ pnpm dev
 
 ## Docs
 
-- [PRD](docs/prd.md) - Requirements and features
-- [Architecture](docs/architecture.md) - Technical architecture
+- [docs/prd.md](docs/prd.md)
+- [docs/architecture.md](docs/architecture.md)
