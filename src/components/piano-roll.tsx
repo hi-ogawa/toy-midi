@@ -18,6 +18,7 @@ import {
   snapToGrid,
   clampPitch,
 } from "../lib/music";
+import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
@@ -304,6 +305,7 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
+  const zeroDbPercent = dbToPercent(0);
 
   // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
   const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
@@ -1038,12 +1040,18 @@ export function PianoRoll() {
                   M
                 </Toggle>
               </div>
-              <Slider
-                value={[audioVolume * 100]}
-                onValueChange={([v]) => setAudioVolume(v / 100)}
-                max={100}
-                step={1}
-              />
+              <div className="relative">
+                <div
+                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+                  style={{ left: `${zeroDbPercent}%` }}
+                />
+                <Slider
+                  value={[gainToPercent(audioVolume)]}
+                  onValueChange={([v]) => setAudioVolume(percentToGain(v))}
+                  max={100}
+                  step={1}
+                />
+              </div>
             </div>
             {/* MIDI controls */}
             <div className="flex-1 px-2 pt-3">
@@ -1067,12 +1075,18 @@ export function PianoRoll() {
                   M
                 </Toggle>
               </div>
-              <Slider
-                value={[midiVolume * 100]}
-                onValueChange={([v]) => setMidiVolume(v / 100)}
-                max={100}
-                step={1}
-              />
+              <div className="relative">
+                <div
+                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+                  style={{ left: `${zeroDbPercent}%` }}
+                />
+                <Slider
+                  value={[gainToPercent(midiVolume)]}
+                  onValueChange={([v]) => setMidiVolume(percentToGain(v))}
+                  max={100}
+                  step={1}
+                />
+              </div>
             </div>
           </div>
           <div
