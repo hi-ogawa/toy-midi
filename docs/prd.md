@@ -173,6 +173,7 @@ _Chores/Refactoring_
   - `src/components/piano-roll.tsx:640` - `handleMouseUp`
   - `src/components/piano-roll.tsx:315` - `screenToGrid`
   - `src/components/piano-roll.tsx:333` - `gridToScreen`
+- [ ] refactor: consolidate keyboard shortcut guard logic (inputs/contenteditable) for Space handlers
 - [ ] chore: refactor E2E tests to use evaluateStore helper (docs/2026-01-10-e2e-testing.md)
 - [ ] chore: consolidate E2E tests into user flows (reduce setup overhead)
   - locators.spec.ts: 10 tests → ~4 (combine add/select/delete/deselect)

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import { toast } from "sonner";
+import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import {
   copyABCToClipboard,
   downloadABCFile,
@@ -17,7 +18,9 @@ import {
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
-import { useProjectStore } from "../stores/project-store";
+import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
+import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
+import { toSavedProject, useProjectStore } from "../stores/project-store";
 import { Button } from "./ui/button";
 
 type SettingsProps = {
@@ -32,6 +35,12 @@ export function Settings({
   onProjectNameChange,
   onProjectsClick,
 }: SettingsProps) {
+  const projectNameInput = useDraftTextInput({
+    value: projectName,
+    onCommit: onProjectNameChange,
+    normalize: (value) => value.trim(),
+    isValid: (value) => value.length > 0,
+  });
   const {
     audioFileName,
     audioAssetKey,
@@ -49,6 +58,46 @@ export function Settings({
   } = useProjectStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const midiFileInputRef = useRef<HTMLInputElement>(null);
+
+  const importMidiMutation = useMutation({
+    mutationFn: async (file: File) => {
+      // First parse to get available tracks
+      const parsed = await import("../lib/midi-import").then((m) =>
+        m.parseMidiFile(file),
+      );
+
+      // Import all tracks
+      const options: MidiImportOptions = {
+        trackIndices: parsed.tracks.map((t) => t.index),
+        replaceExisting: true, // Replace existing notes by default
+        importTempo: true,
+        importTimeSignature: true,
+      };
+
+      const result = await importMidiNotes(file, options);
+
+      // Replace all notes
+      useProjectStore.setState({ notes: result.notes });
+
+      // Apply tempo and time signature
+      if (result.tempo) {
+        useProjectStore.getState().setTempo(result.tempo);
+      }
+      if (result.timeSignature) {
+        useProjectStore.getState().setTimeSignature(result.timeSignature);
+      }
+
+      return result.notes.length;
+    },
+    onSuccess: (noteCount) => {
+      toast.success(`Imported ${noteCount} notes from MIDI file`);
+    },
+    onError: (error) => {
+      console.error("Failed to import MIDI:", error);
+      toast.error("Failed to import MIDI file");
+    },
+  });
 
   const loadAudioMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -74,6 +123,19 @@ export function Settings({
     const file = e.target.files?.[0];
     if (file) {
       loadAudioMutation.mutate(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleImportMidiClick = () => {
+    midiFileInputRef.current?.click();
+  };
+
+  const handleMidiFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importMidiMutation.mutate(file);
     }
     // Reset input so same file can be selected again
     e.target.value = "";
@@ -149,14 +211,34 @@ export function Settings({
     }
   };
 
+  const handleExportProject = async () => {
+    try {
+      const projectData = toSavedProject(useProjectStore.getState());
+      const blob = await exportProjectFile(projectName, projectData);
+      downloadProjectFile(blob, projectName);
+    } catch (error) {
+      console.error("Failed to export project:", error);
+      toast.error("Failed to export project");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
+        data-testid="audio-file-input"
         ref={fileInputRef}
         type="file"
         accept="audio/*"
         onChange={handleFileChange}
+        className="hidden"
+      />
+      <input
+        data-testid="midi-file-input"
+        ref={midiFileInputRef}
+        type="file"
+        accept=".mid,.midi"
+        onChange={handleMidiFileChange}
         className="hidden"
       />
 
@@ -177,8 +259,7 @@ export function Settings({
             <input
               id="settings-project-name"
               type="text"
-              value={projectName}
-              onChange={(e) => onProjectNameChange(e.target.value)}
+              {...projectNameInput.props}
               className="w-full h-8 px-2 text-sm bg-neutral-900 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:border-neutral-500"
               placeholder="Enter project name"
             />
@@ -240,6 +321,30 @@ export function Settings({
         </div>
       </section>
 
+      {/* MIDI Import Section */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
+          <UploadIcon className="size-4" />
+          Import MIDI
+        </h3>
+        <div className="pl-6 space-y-2">
+          <Button
+            data-testid="import-midi-button"
+            variant="outline"
+            size="sm"
+            onClick={handleImportMidiClick}
+            disabled={importMidiMutation.isPending}
+            className="w-full justify-start"
+          >
+            <UploadIcon className="size-4" />
+            {importMidiMutation.isPending ? "Importing..." : "Import MIDI File"}
+          </Button>
+          <p className="text-xs text-neutral-500">
+            Import notes from MIDI file (replaces existing notes)
+          </p>
+        </div>
+      </section>
+
       {/* Export Section */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
@@ -247,6 +352,16 @@ export function Settings({
           Export
         </h3>
         <div className="pl-6 space-y-2">
+          <Button
+            data-testid="export-project-button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportProject}
+            className="w-full justify-start"
+          >
+            <DownloadIcon className="size-4" />
+            Export Project
+          </Button>
           <Button
             data-testid="export-midi-button"
             variant="outline"

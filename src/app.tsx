@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { Mixer } from "./components/mixer";
@@ -8,9 +8,11 @@ import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { SimpleDialog } from "./components/ui/dialog";
+import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
+import { importProjectAudio, parseProjectFile } from "./lib/project-file";
 import {
   createProject,
   deleteProject,
@@ -18,6 +20,7 @@ import {
   getProjectMetadata,
   listProjects,
   loadProjectData,
+  type ProjectMetadata,
   saveProjectData,
   setLastProjectId,
   updateProjectMetadata,
@@ -100,6 +103,14 @@ export function App() {
     "keydown",
     (e) => {
       if (initMutation.isSuccess || initMutation.isPending) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
       if (e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
@@ -195,10 +206,9 @@ function Editor({ projectId }: EditorProps) {
         <Settings
           projectName={projectName}
           onProjectNameChange={(name) => {
-            const trimmed = name.trim();
-            if (trimmed && trimmed !== projectName) {
-              updateProjectMetadata(projectId, { name: trimmed });
-              setProjectName(trimmed);
+            if (name && name !== projectName) {
+              updateProjectMetadata(projectId, { name });
+              setProjectName(name);
             }
           }}
           onProjectsClick={() => {
@@ -220,6 +230,81 @@ type ProjectListViewProps = {
   onNewProject: () => void;
 };
 
+type ProjectRenameInputProps = {
+  project: ProjectMetadata;
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+};
+
+function ProjectRenameInput({
+  project,
+  onSubmit,
+  onCancel,
+}: ProjectRenameInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isCancelingRef = useRef(false);
+  const renameInput = useDraftTextInput({
+    value: project.name,
+    onCommit: onSubmit,
+    normalize: (value) => value.trim(),
+    isValid: (value) => value.length > 0,
+  });
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      isCancelingRef.current = true;
+      renameInput.reset();
+      onCancel();
+      return;
+    }
+    renameInput.props.onKeyDown(e);
+  };
+
+  const handleBlur = () => {
+    if (isCancelingRef.current) {
+      isCancelingRef.current = false;
+      return;
+    }
+    renameInput.commit();
+  };
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 flex-1">
+      <input
+        data-testid={`rename-input-${project.id}`}
+        type="text"
+        value={renameInput.draft}
+        onChange={renameInput.props.onChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        ref={inputRef}
+        className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
+      />
+      <button
+        type="button"
+        onClick={renameInput.commit}
+        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
+      >
+        Save
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 function ProjectListView({
   isLoading,
   onSelectProject,
@@ -228,34 +313,46 @@ function ProjectListView({
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
     null,
   );
-  const [renameValue, setRenameValue] = useState("");
   const [projects, setProjects] = useState(listProjects());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
   const lastProjectId = getLastProjectId();
 
-  const handleRenameStart = (
-    e: React.MouseEvent,
-    projectId: string,
-    currentName: string,
-  ) => {
+  const importProjectMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const parsed = await parseProjectFile(file);
+      const projectWithAudio = await importProjectAudio(parsed);
+
+      // Create new project
+      const newProjectId = createProject(parsed.manifest.name);
+      saveProjectData(newProjectId, projectWithAudio);
+
+      return newProjectId;
+    },
+    onSuccess: (newProjectId) => {
+      // Select the newly imported project
+      onSelectProject(newProjectId);
+    },
+    onError: (error) => {
+      console.error("Failed to import project:", error);
+      toast.error("Failed to import project");
+    },
+  });
+
+  const handleRenameStart = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
     setRenamingProjectId(projectId);
-    setRenameValue(currentName);
   };
 
-  const handleRenameSubmit = (projectId: string) => {
-    if (renameValue.trim()) {
-      updateProjectMetadata(projectId, { name: renameValue.trim() });
-      setRenamingProjectId(null);
-      setRenameValue("");
-      setProjects(listProjects());
-    }
+  const handleRenameSubmit = (projectId: string, nextName: string) => {
+    updateProjectMetadata(projectId, { name: nextName });
+    setRenamingProjectId(null);
+    setProjects(listProjects());
   };
 
   const handleRenameCancel = () => {
     setRenamingProjectId(null);
-    setRenameValue("");
   };
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
@@ -266,11 +363,33 @@ function ProjectListView({
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importProjectMutation.mutate(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
   return (
     <div
       data-testid="startup-screen"
       className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50 overflow-hidden"
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".toymidi"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       {/* Gradient glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_center,#10b98125_0%,transparent_70%)] pointer-events-none" />
 
@@ -303,37 +422,13 @@ function ProjectListView({
                       }`}
                     >
                       {renamingProjectId === project.id ? (
-                        <div className="flex items-center gap-3 flex-1">
-                          <input
-                            data-testid={`rename-input-${project.id}`}
-                            type="text"
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                handleRenameSubmit(project.id);
-                              } else if (e.key === "Escape") {
-                                handleRenameCancel();
-                              }
-                            }}
-                            className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
-                            onFocus={(e) => e.target.select()}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleRenameSubmit(project.id)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRenameCancel}
-                            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                        <ProjectRenameInput
+                          project={project}
+                          onSubmit={(nextName) =>
+                            handleRenameSubmit(project.id, nextName)
+                          }
+                          onCancel={handleRenameCancel}
+                        />
                       ) : (
                         <div className="flex justify-between items-center flex-1">
                           <button
@@ -360,9 +455,7 @@ function ProjectListView({
                             <button
                               type="button"
                               data-testid={`rename-button-${project.id}`}
-                              onClick={(e) =>
-                                handleRenameStart(e, project.id, project.name)
-                              }
+                              onClick={(e) => handleRenameStart(e, project.id)}
                               className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
                               title="Rename"
                             >
@@ -408,6 +501,17 @@ function ProjectListView({
                 >
                   New Project
                 </button>
+                <button
+                  type="button"
+                  data-testid="import-project-button"
+                  disabled={isLoading || importProjectMutation.isPending}
+                  onClick={handleImportClick}
+                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+                >
+                  {importProjectMutation.isPending
+                    ? "Importing..."
+                    : "Import Project"}
+                </button>
               </div>
               <p className="text-neutral-600 text-sm">
                 {isLoading ? (
@@ -426,15 +530,28 @@ function ProjectListView({
           </>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <button
-              type="button"
-              data-testid="new-project-button"
-              disabled={isLoading}
-              onClick={onNewProject}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
-            >
-              Create Your First Project
-            </button>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                data-testid="new-project-button"
+                disabled={isLoading}
+                onClick={onNewProject}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+              >
+                Create Your First Project
+              </button>
+              <button
+                type="button"
+                data-testid="import-project-button"
+                disabled={isLoading || importProjectMutation.isPending}
+                onClick={handleImportClick}
+                className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+              >
+                {importProjectMutation.isPending
+                  ? "Importing..."
+                  : "Import Project"}
+              </button>
+            </div>
             <p className="text-neutral-600 text-sm">
               {isLoading ? (
                 "Loading..."
