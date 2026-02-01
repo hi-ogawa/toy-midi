@@ -30,9 +30,10 @@ Approach:
 
 - 2026-02-01: Request to implement -60 dB to +6 dB fader scale and correct 0 dB marker.
 - 2026-02-01: Request a DAW-style fader taper (Ardour curve).
+- 2026-02-01: Add direct dB input in mixer.
 
 ## Status
 
-- What's done: dB fader mapping implemented with Ardour-style taper; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing; PR created.
+- What's done: dB fader mapping implemented with Ardour-style taper; mixer and track controls updated; volume clamping allows +6 dB; direct dB inputs added in mixer; `pnpm test-e2e` passing; PR created.
 - What's remaining: none.
 - Blockers or open questions: none.

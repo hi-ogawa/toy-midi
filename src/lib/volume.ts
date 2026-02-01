@@ -1,8 +1,8 @@
-const MIN_DB = -60;
-const MAX_DB = 6;
+export const MIN_DB = -60;
+export const MAX_DB = 6;
 const LOG2 = Math.log(2);
 
-function dbToGain(db: number): number {
+export function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
 }
 

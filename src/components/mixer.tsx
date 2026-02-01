@@ -1,5 +1,9 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { useDraftInput } from "../hooks/use-draft-input";
 import {
+  MAX_DB,
+  MIN_DB,
+  dbToGain,
   dbToPercent,
   gainToDb,
   gainToPercent,
@@ -26,6 +30,33 @@ export function Mixer() {
     setMetronomeEnabled,
   } = useProjectStore();
   const zeroDbPercent = dbToPercent(0);
+  const midiDbInput = useDraftInput({
+    value: gainToDb(midiVolume),
+    onCommit: (db) => setMidiVolume(dbToGain(db)),
+    min: MIN_DB,
+    max: MAX_DB,
+    step: 0.5,
+    parse: "float",
+    format: (value) => value.toFixed(1),
+  });
+  const audioDbInput = useDraftInput({
+    value: gainToDb(audioVolume),
+    onCommit: (db) => setAudioVolume(dbToGain(db)),
+    min: MIN_DB,
+    max: MAX_DB,
+    step: 0.5,
+    parse: "float",
+    format: (value) => value.toFixed(1),
+  });
+  const metronomeDbInput = useDraftInput({
+    value: gainToDb(metronomeVolume),
+    onCommit: (db) => setMetronomeVolume(dbToGain(db)),
+    min: MIN_DB,
+    max: MAX_DB,
+    step: 0.5,
+    parse: "float",
+    format: (value) => value.toFixed(1),
+  });
 
   return (
     <div className="flex justify-center gap-8 py-4">
@@ -49,9 +80,16 @@ export function Mixer() {
             className="h-48"
           />
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {gainToDb(midiVolume).toFixed(1)} dB
-        </span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label="MIDI level in dB"
+            className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
+            {...midiDbInput.props}
+          />
+          <span>dB</span>
+        </div>
         <Toggle
           pressed={midiMuted}
           onPressedChange={setMidiMuted}
@@ -89,9 +127,16 @@ export function Mixer() {
             className="h-48"
           />
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {gainToDb(audioVolume).toFixed(1)} dB
-        </span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label="Audio level in dB"
+            className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
+            {...audioDbInput.props}
+          />
+          <span>dB</span>
+        </div>
         <Toggle
           pressed={audioMuted}
           onPressedChange={setAudioMuted}
@@ -130,9 +175,17 @@ export function Mixer() {
             disabled={!metronomeEnabled}
           />
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {gainToDb(metronomeVolume).toFixed(1)} dB
-        </span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label="Metronome level in dB"
+            className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
+            {...metronomeDbInput.props}
+            disabled={!metronomeEnabled}
+          />
+          <span>dB</span>
+        </div>
         <Toggle
           pressed={!metronomeEnabled}
           onPressedChange={(muted) => setMetronomeEnabled(!muted)}
