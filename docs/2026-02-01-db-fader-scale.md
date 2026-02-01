@@ -32,6 +32,6 @@ Approach:
 
 ## Status
 
-- What's done: dB fader mapping implemented with 0 dB markers; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing.
-- What's remaining: create PR.
+- What's done: dB fader mapping implemented with 0 dB markers; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing; PR created.
+- What's remaining: none.
 - Blockers or open questions: none.
