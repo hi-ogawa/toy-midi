@@ -31,8 +31,9 @@ import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 
 // Layout constants
-const KEYBOARD_WIDTH = 60;
-const TRACK_CONTROL_WIDTH = 120;
+const KEYBOARD_WIDTH = 50;
+const TRACK_CONTROL_WIDTH = 130;
+const LEFT_PANEL_WIDTH = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
 const TIMELINE_HEIGHT = 40;
 const MIN_WAVEFORM_HEIGHT = 40;
 const MAX_WAVEFORM_HEIGHT = 200;
@@ -303,7 +304,6 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
-  const leftPanelWidth = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
 
   // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
   const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
@@ -1013,10 +1013,10 @@ export function PianoRoll() {
             <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
             {/* Audio controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 px-2 py-2"
+              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
               style={{ height: waveformHeight }}
             >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   pressed={audioMuted}
@@ -1031,8 +1031,8 @@ export function PianoRoll() {
                   variant="outline"
                   className={
                     audioMuted
-                      ? "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
-                      : ""
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      : "h-5 min-w-5 px-0 text-[10px]"
                   }
                 >
                   M
@@ -1047,8 +1047,8 @@ export function PianoRoll() {
               />
             </div>
             {/* MIDI controls */}
-            <div className="flex-1 px-2 py-2">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
+            <div className="flex-1 px-2 pt-3">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
                   pressed={midiMuted}
@@ -1061,8 +1061,8 @@ export function PianoRoll() {
                   variant="outline"
                   className={
                     midiMuted
-                      ? "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
-                      : ""
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      : "h-5 min-w-5 px-0 text-[10px]"
                   }
                 >
                   M
@@ -1107,7 +1107,7 @@ export function PianoRoll() {
           <Timeline
             pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
-            viewportWidth={viewportSize.width - leftPanelWidth}
+            viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
             playheadBeat={secondsToBeats(position, tempo)}
             beatsPerBar={beatsPerBar}
             gridSnapValue={gridSnapValue}
@@ -1127,7 +1127,7 @@ export function PianoRoll() {
             pixelsPerBeat={roundedPixelsPerBeat}
             gridSnap={gridSnap}
             scrollX={scrollX}
-            viewportWidth={viewportSize.width - leftPanelWidth}
+            viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
             audioDuration={audioDuration}
             audioOffset={audioOffset}
             audioFileName={audioFileName}

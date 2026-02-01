@@ -32,6 +32,7 @@ Approach:
 
 - 2026-02-01: Add process: create PR after implementation, run `pnpm test-e2e`, iterate until it passes.
 - 2026-02-01: Move to left-side track control strip with faders + mute buttons.
+- [x] redesign control
 
 ```
 Audio                         |
@@ -42,6 +43,8 @@ MIDI             |            |
                  |  roll      |      midi notes
                  |
 ```
+
+- [ ] don't disable fader when muted
 
 ## Status
 
