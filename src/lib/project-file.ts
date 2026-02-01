@@ -169,15 +169,3 @@ export async function importProjectAudio(
 
   return updatedProject;
 }
-
-/**
- * Validate that a file appears to be a valid .toymidi file (quick check)
- */
-export async function isValidProjectFile(file: File): Promise<boolean> {
-  try {
-    const zip = await JSZip.loadAsync(file);
-    return zip.file("manifest.json") !== null;
-  } catch {
-    return false;
-  }
-}

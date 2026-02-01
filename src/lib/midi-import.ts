@@ -127,15 +127,3 @@ export async function importMidiNotes(
     timeSignature: options.importTimeSignature ? timeSignature : undefined,
   };
 }
-
-/**
- * Check if a file is likely a MIDI file
- */
-export function isMidiFile(file: File): boolean {
-  return (
-    file.name.toLowerCase().endsWith(".mid") ||
-    file.name.toLowerCase().endsWith(".midi") ||
-    file.type === "audio/midi" ||
-    file.type === "audio/x-midi"
-  );
-}
