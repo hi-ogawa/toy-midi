@@ -5,8 +5,6 @@ type ParsedShortcut = {
     shift: boolean;
     alt: boolean;
     ctrl: boolean;
-    meta: boolean;
-    ctrlOrMeta: boolean;
   };
 };
 
@@ -41,13 +39,11 @@ function normalizeKeyToken(token: string): { code?: string; key?: string } {
   return { key: token };
 }
 
-function parseShortcut(shortcut: string): ParsedShortcut {
+export function parseShortcut(shortcut: string): ParsedShortcut {
   const modifiers = {
     shift: false,
     alt: false,
     ctrl: false,
-    meta: false,
-    ctrlOrMeta: false,
   };
   let keyToken = "";
 
@@ -62,19 +58,23 @@ function parseShortcut(shortcut: string): ParsedShortcut {
       modifiers.shift = true;
       continue;
     }
-    if (lower === "alt" || lower === "option") {
+    if (lower === "alt") {
       modifiers.alt = true;
       continue;
     }
-    if (lower === "ctrl" || lower === "control") {
-      modifiers.ctrlOrMeta = true;
+    if (lower === "ctrl") {
+      modifiers.ctrl = true;
       continue;
     }
-    if (lower === "cmd" || lower === "command" || lower === "meta") {
-      modifiers.meta = true;
+    if (!keyToken) {
+      keyToken = token;
       continue;
     }
-    keyToken = token;
+    throw new Error(`Unsupported shortcut token: ${token}`);
+  }
+
+  if (!keyToken) {
+    throw new Error("Shortcut must include key");
   }
 
   return {
@@ -92,19 +92,12 @@ export function matchKeyboardEvent(
     return false;
   }
 
-  if (parsed.modifiers.ctrlOrMeta) {
-    if (!e.ctrlKey && !e.metaKey) {
-      return false;
-    }
-  } else {
-    if (e.ctrlKey !== parsed.modifiers.ctrl) {
-      return false;
-    }
-    if (e.metaKey !== parsed.modifiers.meta) {
-      return false;
-    }
+  if (e.metaKey) {
+    return false;
   }
-
+  if (e.ctrlKey !== parsed.modifiers.ctrl) {
+    return false;
+  }
   if (e.shiftKey !== parsed.modifiers.shift) {
     return false;
   }
