@@ -1,5 +1,4 @@
 import { type ReactNode } from "react";
-import { Button } from "./button";
 
 type DialogProps = {
   isOpen: boolean;
@@ -10,7 +9,7 @@ type DialogProps = {
   testId?: string;
 };
 
-function Dialog({
+export function Dialog({
   isOpen,
   onClose,
   title,
@@ -53,22 +52,5 @@ function Dialog({
         )}
       </div>
     </div>
-  );
-}
-
-// Convenience wrapper for simple close-only footer
-type SimpleDialogProps = Omit<DialogProps, "footer"> & {
-  closeLabel?: string;
-};
-
-export function SimpleDialog({
-  closeLabel = "Close",
-  ...props
-}: SimpleDialogProps) {
-  return (
-    <Dialog
-      {...props}
-      footer={<Button onClick={props.onClose}>{closeLabel}</Button>}
-    />
   );
 }
