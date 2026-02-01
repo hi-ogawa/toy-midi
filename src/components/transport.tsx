@@ -192,12 +192,14 @@ type TransportProps = {
   onSettingsClick: () => void;
   onHelpClick: () => void;
   onMixerClick: () => void;
+  projectName: string;
 };
 
 export function Transport({
   onSettingsClick,
   onHelpClick,
   onMixerClick,
+  projectName,
 }: TransportProps) {
   const {
     tempo,
@@ -419,14 +421,22 @@ export function Transport({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Divider */}
-      <div className="w-px h-5 bg-border" />
-
       {/* Instrument selector */}
       <InstrumentCombobox value={midiProgram} onValueChange={setMidiProgram} />
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      <div
+        data-testid="project-name-header"
+        title={projectName}
+        className="text-sm text-neutral-300 truncate max-w-[220px]"
+      >
+        {projectName}
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
 
       {/* Settings button */}
       <Button

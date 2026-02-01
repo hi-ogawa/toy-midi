@@ -186,6 +186,7 @@ function Editor({ projectId }: EditorProps) {
         onSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onMixerClick={() => setIsMixerOpen(true)}
+        projectName={projectName}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
