@@ -27,9 +27,12 @@ import {
   useProjectStore,
 } from "../stores/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { Slider } from "./ui/slider";
+import { Toggle } from "./ui/toggle";
 
 // Layout constants
 const KEYBOARD_WIDTH = 60;
+const TRACK_CONTROL_WIDTH = 120;
 const TIMELINE_HEIGHT = 40;
 const MIN_WAVEFORM_HEIGHT = 40;
 const MAX_WAVEFORM_HEIGHT = 200;
@@ -238,6 +241,10 @@ export function PianoRoll() {
     audioOffset,
     audioFileName,
     isAudioTrackSelected,
+    audioVolume,
+    midiVolume,
+    audioMuted,
+    midiMuted,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -273,6 +280,10 @@ export function PianoRoll() {
     setPixelsPerBeat,
     setPixelsPerKey,
     setWaveformHeight,
+    setAudioVolume,
+    setMidiVolume,
+    setAudioMuted,
+    setMidiMuted,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -292,6 +303,7 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
+  const leftPanelWidth = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
 
   // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
   const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
@@ -991,29 +1003,101 @@ export function PianoRoll() {
     <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Main content area - fixed layout, no native scroll */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
-        {/* Left column: keyboard labels */}
-        <div
-          className="shrink-0 flex flex-col bg-neutral-900"
-          style={{ width: KEYBOARD_WIDTH }}
-        >
-          {/* Timeline spacer */}
-          <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
-          {/* Waveform spacer */}
+        {/* Left column: track controls + keyboard labels */}
+        <div className="shrink-0 flex bg-neutral-900">
           <div
-            className="shrink-0 border-b border-neutral-700 flex items-center justify-center text-xs text-neutral-500"
-            style={{ height: waveformHeight }}
+            className="shrink-0 flex flex-col"
+            style={{ width: TRACK_CONTROL_WIDTH }}
           >
-            Audio
+            {/* Timeline spacer */}
+            <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
+            {/* Audio controls */}
+            <div
+              className="shrink-0 border-b border-neutral-700 px-2 py-2"
+              style={{ height: waveformHeight }}
+            >
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
+                <span className="uppercase tracking-wide">Audio</span>
+                <Toggle
+                  pressed={audioMuted}
+                  onPressedChange={setAudioMuted}
+                  aria-label="Toggle audio mute"
+                  title={
+                    audioMuted
+                      ? "Unmute audio (Shift+2)"
+                      : "Mute audio (Shift+2)"
+                  }
+                  size="sm"
+                  variant="outline"
+                  className={
+                    audioMuted
+                      ? "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      : ""
+                  }
+                >
+                  M
+                </Toggle>
+              </div>
+              <Slider
+                value={[audioVolume * 100]}
+                onValueChange={([v]) => setAudioVolume(v / 100)}
+                max={100}
+                step={1}
+                disabled={audioMuted}
+              />
+            </div>
+            {/* MIDI controls */}
+            <div className="flex-1 px-2 py-2">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-2">
+                <span className="uppercase tracking-wide">MIDI</span>
+                <Toggle
+                  pressed={midiMuted}
+                  onPressedChange={setMidiMuted}
+                  aria-label="Toggle MIDI mute"
+                  title={
+                    midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
+                  }
+                  size="sm"
+                  variant="outline"
+                  className={
+                    midiMuted
+                      ? "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      : ""
+                  }
+                >
+                  M
+                </Toggle>
+              </div>
+              <Slider
+                value={[midiVolume * 100]}
+                onValueChange={([v]) => setMidiVolume(v / 100)}
+                max={100}
+                step={1}
+                disabled={midiMuted}
+              />
+            </div>
           </div>
-          {/* Piano keyboard */}
-          <div className="flex-1 overflow-hidden">
-            <Keyboard
-              pixelsPerKey={roundedPixelsPerKey}
-              scrollY={scrollY}
-              viewportHeight={
-                viewportSize.height - TIMELINE_HEIGHT - waveformHeight
-              }
-            />
+          <div
+            className="shrink-0 flex flex-col bg-neutral-900"
+            style={{ width: KEYBOARD_WIDTH }}
+          >
+            {/* Timeline spacer */}
+            <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
+            {/* Waveform spacer */}
+            <div
+              className="shrink-0 border-b border-neutral-700 flex items-center justify-center text-xs text-neutral-500"
+              style={{ height: waveformHeight }}
+            ></div>
+            {/* Piano keyboard */}
+            <div className="flex-1 overflow-hidden">
+              <Keyboard
+                pixelsPerKey={roundedPixelsPerKey}
+                scrollY={scrollY}
+                viewportHeight={
+                  viewportSize.height - TIMELINE_HEIGHT - waveformHeight
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -1023,7 +1107,7 @@ export function PianoRoll() {
           <Timeline
             pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
-            viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
+            viewportWidth={viewportSize.width - leftPanelWidth}
             playheadBeat={secondsToBeats(position, tempo)}
             beatsPerBar={beatsPerBar}
             gridSnapValue={gridSnapValue}
@@ -1043,7 +1127,7 @@ export function PianoRoll() {
             pixelsPerBeat={roundedPixelsPerBeat}
             gridSnap={gridSnap}
             scrollX={scrollX}
-            viewportWidth={viewportSize.width - KEYBOARD_WIDTH}
+            viewportWidth={viewportSize.width - leftPanelWidth}
             audioDuration={audioDuration}
             audioOffset={audioOffset}
             audioFileName={audioFileName}
