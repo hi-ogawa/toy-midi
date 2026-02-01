@@ -10,6 +10,7 @@ import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
+import { matchKeyboardEvent } from "../lib/keyboard";
 import {
   isBlackKey,
   MAX_PITCH,
@@ -429,7 +430,7 @@ export function PianoRoll() {
       if (canUndo()) {
         undo();
       }
-    } else if (e.key === "l" || e.key === "L") {
+    } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
       const playheadBeat = secondsToBeats(position, tempo);
       const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);

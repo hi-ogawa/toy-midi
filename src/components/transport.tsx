@@ -13,6 +13,7 @@ import { useDraftInput } from "../hooks/use-draft-input";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
+import { matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { MetronomeIcon } from "./icons";
@@ -237,13 +238,7 @@ export function Transport({
     ) {
       return;
     }
-    if (
-      e.code === "KeyM" &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "M") && !e.repeat) {
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
