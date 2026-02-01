@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "tsc": "tsc -b",
-    "lint": "oxfmt",
-    "lint-check": "oxfmt --check",
+    "lint": "oxfmt && knip --fix",
+    "lint-check": "oxfmt --check && knip",
     "test": "vitest",
     "test-e2e": "playwright test"
   },
