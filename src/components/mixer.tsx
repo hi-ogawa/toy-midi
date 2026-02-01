@@ -1,4 +1,5 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { useCallback } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import {
   MAX_DB,
@@ -30,6 +31,7 @@ export function Mixer() {
     setMetronomeEnabled,
   } = useProjectStore();
   const zeroDbPercent = dbToPercent(0);
+  const formatDb = useCallback((value: number) => value.toFixed(1), []);
   const midiDbInput = useDraftInput({
     value: gainToDb(midiVolume),
     onCommit: (db) => setMidiVolume(dbToGain(db)),
@@ -37,7 +39,7 @@ export function Mixer() {
     max: MAX_DB,
     step: 0.5,
     parse: "float",
-    format: (value) => value.toFixed(1),
+    format: formatDb,
   });
   const audioDbInput = useDraftInput({
     value: gainToDb(audioVolume),
@@ -46,7 +48,7 @@ export function Mixer() {
     max: MAX_DB,
     step: 0.5,
     parse: "float",
-    format: (value) => value.toFixed(1),
+    format: formatDb,
   });
   const metronomeDbInput = useDraftInput({
     value: gainToDb(metronomeVolume),
@@ -55,7 +57,7 @@ export function Mixer() {
     max: MAX_DB,
     step: 0.5,
     parse: "float",
-    format: (value) => value.toFixed(1),
+    format: formatDb,
   });
 
   return (
