@@ -48,14 +48,17 @@ export function Mixer() {
           <MusicIcon className="size-4 text-muted-foreground" />
           <label className="text-xs font-medium text-neutral-300">MIDI</label>
         </div>
-        <Slider
-          value={[midiVolume * 100]}
-          onValueChange={([v]) => setMidiVolume(v / 100)}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-        />
+        <div className="relative h-48">
+          <div className="pointer-events-none absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-neutral-500/70" />
+          <Slider
+            value={[midiVolume * 100]}
+            onValueChange={([v]) => setMidiVolume(v / 100)}
+            max={100}
+            step={1}
+            orientation="vertical"
+            className="h-48"
+          />
+        </div>
         <span className="text-xs text-muted-foreground tabular-nums">
           {Math.round(midiVolume * 100)}%
         </span>
@@ -82,14 +85,17 @@ export function Mixer() {
           <Volume2Icon className="size-4 text-muted-foreground" />
           <label className="text-xs font-medium text-neutral-300">Audio</label>
         </div>
-        <Slider
-          value={[audioVolume * 100]}
-          onValueChange={([v]) => setAudioVolume(v / 100)}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-        />
+        <div className="relative h-48">
+          <div className="pointer-events-none absolute left-1/2 top-0 h-px w-3 -translate-x-1/2 bg-neutral-500/70" />
+          <Slider
+            value={[audioVolume * 100]}
+            onValueChange={([v]) => setAudioVolume(v / 100)}
+            max={100}
+            step={1}
+            orientation="vertical"
+            className="h-48"
+          />
+        </div>
         <span className="text-xs text-muted-foreground tabular-nums">
           {Math.round(audioVolume * 100)}%
         </span>

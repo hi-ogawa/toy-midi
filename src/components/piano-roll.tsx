@@ -1038,12 +1038,15 @@ export function PianoRoll() {
                   M
                 </Toggle>
               </div>
-              <Slider
-                value={[audioVolume * 100]}
-                onValueChange={([v]) => setAudioVolume(v / 100)}
-                max={100}
-                step={1}
-              />
+              <div className="relative">
+                <div className="pointer-events-none absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70" />
+                <Slider
+                  value={[audioVolume * 100]}
+                  onValueChange={([v]) => setAudioVolume(v / 100)}
+                  max={100}
+                  step={1}
+                />
+              </div>
             </div>
             {/* MIDI controls */}
             <div className="flex-1 px-2 pt-3">
@@ -1067,12 +1070,15 @@ export function PianoRoll() {
                   M
                 </Toggle>
               </div>
-              <Slider
-                value={[midiVolume * 100]}
-                onValueChange={([v]) => setMidiVolume(v / 100)}
-                max={100}
-                step={1}
-              />
+              <div className="relative">
+                <div className="pointer-events-none absolute right-0 top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70" />
+                <Slider
+                  value={[midiVolume * 100]}
+                  onValueChange={([v]) => setMidiVolume(v / 100)}
+                  max={100}
+                  step={1}
+                />
+              </div>
             </div>
           </div>
           <div
