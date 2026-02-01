@@ -174,7 +174,6 @@ export function Mixer() {
             step={1}
             orientation="vertical"
             className="h-48"
-            disabled={!metronomeEnabled}
           />
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
@@ -184,7 +183,6 @@ export function Mixer() {
             aria-label="Metronome level in dB"
             className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
             {...metronomeDbInput.props}
-            disabled={!metronomeEnabled}
           />
           <span>dB</span>
         </div>
