@@ -5,7 +5,6 @@ type DialogProps = {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  footer?: ReactNode;
   testId?: string;
 };
 
@@ -14,7 +13,6 @@ export function Dialog({
   onClose,
   title,
   children,
-  footer,
   testId,
 }: DialogProps) {
   if (!isOpen) return null;
@@ -43,13 +41,6 @@ export function Dialog({
 
         {/* Content */}
         <div className="p-6">{children}</div>
-
-        {/* Footer */}
-        {footer && (
-          <div className="border-t border-neutral-700 px-6 py-4 flex justify-end gap-3">
-            {footer}
-          </div>
-        )}
       </div>
     </div>
   );
