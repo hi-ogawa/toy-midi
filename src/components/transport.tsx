@@ -421,6 +421,9 @@ export function Transport({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
+
       {/* Instrument selector */}
       <InstrumentCombobox value={midiProgram} onValueChange={setMidiProgram} />
 
