@@ -10,8 +10,6 @@
     "tsc": "tsc -b",
     "lint": "oxfmt",
     "lint-check": "oxfmt --check",
-    "shadcn:add": "node scripts/shadcn-add.mjs",
-    "shadcn:rewrite-imports": "node scripts/rewrite-src-imports.mjs",
     "test": "vitest",
     "test-e2e": "playwright test"
   },

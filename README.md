@@ -9,12 +9,6 @@ pnpm install
 pnpm dev
 ```
 
-## shadcn
-
-```bash
-pnpm shadcn:add badge
-```
-
 ## Docs
 
 - [PRD](docs/prd.md) - Requirements and features
