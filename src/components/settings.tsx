@@ -168,7 +168,8 @@ export function Settings({
       .toISOString()
       .replace(/[T:]/g, "-")
       .replace(/\.\d+Z$/, "");
-    const fileName = `toy-midi-export-${timestamp}.mid`;
+    const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileName = `${safeName}-${timestamp}.mid`;
 
     downloadMidiFile(midiData, fileName);
   };
@@ -187,7 +188,8 @@ export function Settings({
       .toISOString()
       .replace(/[T:]/g, "-")
       .replace(/\.\d+Z$/, "");
-    const fileName = `toy-midi-export-${timestamp}.abc`;
+    const safeName = projectName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileName = `${safeName}-${timestamp}.abc`;
 
     downloadABCFile(abcText, fileName);
   };
