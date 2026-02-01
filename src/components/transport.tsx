@@ -13,6 +13,7 @@ import { useDraftInput } from "../hooks/use-draft-input";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
+import { matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { MetronomeIcon } from "./icons";
@@ -82,7 +83,7 @@ function PlayPauseButton() {
     ) {
       return;
     }
-    if (e.code === "Space" && !e.repeat) {
+    if (matchKeyboardEvent(e, "Space") && !e.repeat) {
       e.preventDefault();
       togglePlayback();
     }
@@ -237,39 +238,21 @@ export function Transport({
     ) {
       return;
     }
-    if (
-      e.code === "KeyM" &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "M") && !e.repeat) {
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
-    if (e.code === "KeyF" && (e.ctrlKey || e.metaKey) && !e.repeat) {
+    if (matchKeyboardEvent(e, "Ctrl+F") && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
     }
     // Shift+1 - Toggle MIDI mute
-    if (
-      e.code === "Digit1" &&
-      e.shiftKey &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "Shift+1") && !e.repeat) {
       e.preventDefault();
       setMidiMuted(!midiMuted);
     }
     // Shift+2 - Toggle audio mute
-    if (
-      e.code === "Digit2" &&
-      e.shiftKey &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.repeat
-    ) {
+    if (matchKeyboardEvent(e, "Shift+2") && !e.repeat) {
       e.preventDefault();
       setAudioMuted(!audioMuted);
     }

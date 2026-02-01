@@ -12,6 +12,7 @@ import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
+import { matchKeyboardEvent } from "./lib/keyboard";
 import { importProjectAudio, parseProjectFile } from "./lib/project-file";
 import {
   createProject,
@@ -111,7 +112,7 @@ export function App() {
       ) {
         return;
       }
-      if (e.key === " ") {
+      if (matchKeyboardEvent(e, "Space")) {
         e.preventDefault();
         e.stopPropagation();
         const lastProjectId = getLastProjectId();
@@ -162,7 +163,7 @@ function Editor({ projectId }: EditorProps) {
   useWindowEvent(
     "keydown",
     (e) => {
-      if (e.key !== "Escape") return;
+      if (!matchKeyboardEvent(e, "Escape")) return;
       if (isSettingsOpen) {
         e.preventDefault();
         e.stopPropagation();
@@ -252,7 +253,7 @@ function ProjectRenameInput({
   });
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
+    if (matchKeyboardEvent(e, "Escape")) {
       e.preventDefault();
       e.stopPropagation();
       isCancelingRef.current = true;
