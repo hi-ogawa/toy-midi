@@ -1,6 +1,6 @@
 # toy-midi
 
-A minimal web-based MIDI piano roll for bass line transcription.
+A web-based MIDI piano roll for simple transcription workflow.
 
 ## Development
 
