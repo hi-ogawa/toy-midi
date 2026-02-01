@@ -9,12 +9,6 @@ pnpm install
 pnpm dev
 ```
 
-## Tooling
-
-```bash
-pnpm knip
-```
-
 ## Docs
 
 - [PRD](docs/prd.md) - Requirements and features

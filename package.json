@@ -10,7 +10,6 @@
     "tsc": "tsc -b",
     "lint": "oxfmt",
     "lint-check": "oxfmt --check",
-    "knip": "knip",
     "test": "vitest",
     "test-e2e": "playwright test"
   },
