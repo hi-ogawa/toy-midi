@@ -26,6 +26,6 @@ Feedback log
 
 Status
 
-- What's done: added knip dependency, config, script, and README note.
+- What's done: updated knip entry to `src/main.tsx`, removed unused UI select and dependency, trimmed unused exports, and ignored `tailwindcss` for CSS import usage.
 - What's remaining: none.
 - Blockers/open questions: none.

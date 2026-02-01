@@ -10,7 +10,7 @@ type DialogProps = {
   testId?: string;
 };
 
-export function Dialog({
+function Dialog({
   isOpen,
   onClose,
   title,
