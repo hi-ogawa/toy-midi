@@ -3,4 +3,3 @@ dist/
 *.tsbuildinfo
 test-results/
 refs/
-demo.*
