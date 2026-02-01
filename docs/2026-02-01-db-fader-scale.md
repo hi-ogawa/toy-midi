@@ -7,9 +7,9 @@ Current faders use a linear 0–1 gain value with a placeholder 0 dB marker. The
 Approach:
 
 - Define a shared mapping between slider percent (0–100) and dB range (-60 to +6), plus conversion to linear gain.
-- Update fader controls (left track strip and mixer) to use the dB mapping.
+- Apply a DAW-style taper with a unity breakpoint at 75% of the slider travel.
+- Update fader controls (left track strip and mixer) to use the tapered mapping.
 - Place the 0 dB marker at the correct percent position.
-- Ensure existing state values persist correctly (migrate if needed or map on render).
 
 ## Reference files/patterns to follow
 
@@ -20,18 +20,19 @@ Approach:
 
 ## Implementation steps
 
-1. Add dB conversion helpers (percent↔dB, dB↔gain) in a shared utility (likely `src/lib/music.ts` or `src/lib/utils.ts`).
-2. Update fader components to use dB percent mapping while preserving stored gain state.
-3. Place 0 dB marker based on the mapping (0 dB percent).
-4. Verify muted behavior remains unchanged and no regressions in E2E tests.
-5. Update docs/status and run `pnpm test-e2e` after implementation.
+1. Add dB conversion helpers (percent↔dB, dB↔gain) in a shared utility.
+2. Implement a unity breakpoint taper in the conversion functions.
+3. Update fader components to use dB percent mapping while preserving stored gain state.
+4. Place 0 dB marker based on the mapping (0 dB percent).
+5. Verify muted behavior remains unchanged and no regressions in E2E tests.
 
 ## Feedback log
 
 - 2026-02-01: Request to implement -60 dB to +6 dB fader scale and correct 0 dB marker.
+- 2026-02-01: Request a DAW-style fader taper (more travel around 0 dB).
 
 ## Status
 
-- What's done: dB fader mapping implemented with 0 dB markers; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing; PR created.
+- What's done: dB fader mapping implemented with a tapered curve at 75% unity; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing; PR created.
 - What's remaining: none.
 - Blockers or open questions: none.

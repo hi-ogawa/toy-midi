@@ -1,5 +1,7 @@
 const MIN_DB = -60;
 const MAX_DB = 6;
+const UNITY_DB = 0;
+const UNITY_PERCENT = 75;
 
 function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
@@ -22,12 +24,22 @@ export function clampGain(gain: number): number {
 
 function percentToDb(percent: number): number {
   const clamped = clamp(percent, 0, 100);
-  return MIN_DB + (MAX_DB - MIN_DB) * (clamped / 100);
+  if (clamped <= UNITY_PERCENT) {
+    const t = clamped / UNITY_PERCENT;
+    return MIN_DB + (UNITY_DB - MIN_DB) * t;
+  }
+  const t = (clamped - UNITY_PERCENT) / (100 - UNITY_PERCENT);
+  return UNITY_DB + (MAX_DB - UNITY_DB) * t;
 }
 
 export function dbToPercent(db: number): number {
   const clamped = clamp(db, MIN_DB, MAX_DB);
-  return ((clamped - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
+  if (clamped <= UNITY_DB) {
+    const t = (clamped - MIN_DB) / (UNITY_DB - MIN_DB);
+    return UNITY_PERCENT * t;
+  }
+  const t = (clamped - UNITY_DB) / (MAX_DB - UNITY_DB);
+  return UNITY_PERCENT + (100 - UNITY_PERCENT) * t;
 }
 
 export function percentToGain(percent: number): number {
