@@ -38,9 +38,8 @@ export async function loadAudioFile(page: Page): Promise<void> {
   await page.getByTestId("settings-button").click();
   await page.waitForTimeout(100);
 
-  // Find file input within settings dialog
-  const settingsDialog = page.getByTestId("settings-dialog");
-  const fileInput = settingsDialog.locator('input[type="file"]');
+  // Find audio file input within settings dialog
+  const fileInput = page.getByTestId("audio-file-input");
   const path = await import("path");
   const testAudioPath = path.join(
     import.meta.dirname,

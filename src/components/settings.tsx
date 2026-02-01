@@ -226,6 +226,7 @@ export function Settings({
     <div className="space-y-6">
       {/* Hidden file inputs */}
       <input
+        data-testid="audio-file-input"
         ref={fileInputRef}
         type="file"
         accept="audio/*"
@@ -233,6 +234,7 @@ export function Settings({
         className="hidden"
       />
       <input
+        data-testid="midi-file-input"
         ref={midiFileInputRef}
         type="file"
         accept=".mid,.midi"

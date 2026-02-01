@@ -242,12 +242,33 @@ function ProjectRenameInput({
   onCancel,
 }: ProjectRenameInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const isCancelingRef = useRef(false);
   const renameInput = useDraftTextInput({
     value: project.name,
     onCommit: onSubmit,
     normalize: (value) => value.trim(),
     isValid: (value) => value.length > 0,
   });
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      isCancelingRef.current = true;
+      renameInput.reset();
+      onCancel();
+      return;
+    }
+    renameInput.props.onKeyDown(e);
+  };
+
+  const handleBlur = () => {
+    if (isCancelingRef.current) {
+      isCancelingRef.current = false;
+      return;
+    }
+    renameInput.commit();
+  };
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -259,7 +280,10 @@ function ProjectRenameInput({
       <input
         data-testid={`rename-input-${project.id}`}
         type="text"
-        {...renameInput.props}
+        value={renameInput.draft}
+        onChange={renameInput.props.onChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         ref={inputRef}
         className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
       />

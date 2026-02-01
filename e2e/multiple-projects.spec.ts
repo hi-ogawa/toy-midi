@@ -363,8 +363,10 @@ test.describe("Multiple Projects", () => {
     await expect(nameInput).toHaveValue("Untitled");
     await nameInput.fill("My Bass Track");
 
-    // Close settings dialog to save
+    // Commit the change and close the dialog
+    await nameInput.press("Enter");
     await page.keyboard.press("Escape");
+    await expect(settingsDialog).not.toBeVisible();
 
     // Verify document title updated
     await expect(page).toHaveTitle("My Bass Track - Toy MIDI");
