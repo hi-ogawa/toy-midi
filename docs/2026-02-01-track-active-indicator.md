@@ -45,6 +45,6 @@ MIDI             |            |
 
 ## Status
 
-- What's done: left track control strip implemented with faders and mute buttons.
-- What's remaining: verify layout, run `pnpm test-e2e`, create PR.
+- What's done: left track control strip implemented; PR created; `pnpm test-e2e` passing.
+- What's remaining: none.
 - Blockers or open questions: none.
