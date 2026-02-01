@@ -4,10 +4,10 @@ import { createRoot } from "react-dom/client";
 import { Toaster, toast } from "sonner";
 import { App } from "./app";
 import "./index.css";
+import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
+import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
+import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
 import { exposeStoreForE2E } from "./stores/project-store";
-import oxisynthWasmUrl from "@/assets/oxisynth/oxisynth.wasm?url";
-import oxisynthWorkletUrl from "@/assets/oxisynth/worklet.js?url";
-import soundfontUrl from "@/assets/soundfonts/A320U.sf2?url";
 
 exposeStoreForE2E();
 
