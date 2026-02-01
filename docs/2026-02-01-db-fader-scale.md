@@ -32,6 +32,6 @@ Approach:
 
 ## Status
 
-- What's done: task doc created.
-- What's remaining: implement dB fader mapping, update UI markers, test.
-- Blockers or open questions: confirm if stored volume should remain linear gain or migrate to dB values.
+- What's done: dB fader mapping implemented with 0 dB markers; mixer and track controls updated; volume clamping allows +6 dB; `pnpm test-e2e` passing.
+- What's remaining: create PR.
+- Blockers or open questions: none.

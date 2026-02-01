@@ -1,4 +1,5 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { useProjectStore } from "../stores/project-store";
 import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
@@ -19,6 +20,7 @@ export function Mixer() {
     setAudioMuted,
     setMetronomeEnabled,
   } = useProjectStore();
+  const zeroDbPercent = dbToPercent(0);
 
   return (
     <div className="flex justify-center gap-8 py-4">
@@ -28,16 +30,22 @@ export function Mixer() {
           <MusicIcon className="size-4 text-muted-foreground" />
           <label className="text-xs font-medium text-neutral-300">MIDI</label>
         </div>
-        <Slider
-          value={[midiVolume * 100]}
-          onValueChange={([v]) => setMidiVolume(v / 100)}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-        />
+        <div className="relative h-48">
+          <div
+            className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            style={{ bottom: `${zeroDbPercent}%` }}
+          />
+          <Slider
+            value={[gainToPercent(midiVolume)]}
+            onValueChange={([v]) => setMidiVolume(percentToGain(v))}
+            max={100}
+            step={1}
+            orientation="vertical"
+            className="h-48"
+          />
+        </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(midiVolume * 100)}%
+          {Math.round(gainToPercent(midiVolume))}%
         </span>
         <Toggle
           pressed={midiMuted}
@@ -62,16 +70,22 @@ export function Mixer() {
           <Volume2Icon className="size-4 text-muted-foreground" />
           <label className="text-xs font-medium text-neutral-300">Audio</label>
         </div>
-        <Slider
-          value={[audioVolume * 100]}
-          onValueChange={([v]) => setAudioVolume(v / 100)}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-        />
+        <div className="relative h-48">
+          <div
+            className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            style={{ bottom: `${zeroDbPercent}%` }}
+          />
+          <Slider
+            value={[gainToPercent(audioVolume)]}
+            onValueChange={([v]) => setAudioVolume(percentToGain(v))}
+            max={100}
+            step={1}
+            orientation="vertical"
+            className="h-48"
+          />
+        </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(audioVolume * 100)}%
+          {Math.round(gainToPercent(audioVolume))}%
         </span>
         <Toggle
           pressed={audioMuted}
@@ -96,17 +110,23 @@ export function Mixer() {
           <MetronomeIcon className="size-4 text-muted-foreground" />
           <label className="text-xs font-medium text-neutral-300">Metro</label>
         </div>
-        <Slider
-          value={[metronomeVolume * 100]}
-          onValueChange={([v]) => setMetronomeVolume(v / 100)}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-          disabled={!metronomeEnabled}
-        />
+        <div className="relative h-48">
+          <div
+            className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            style={{ bottom: `${zeroDbPercent}%` }}
+          />
+          <Slider
+            value={[gainToPercent(metronomeVolume)]}
+            onValueChange={([v]) => setMetronomeVolume(percentToGain(v))}
+            max={100}
+            step={1}
+            orientation="vertical"
+            className="h-48"
+            disabled={!metronomeEnabled}
+          />
+        </div>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {Math.round(metronomeVolume * 100)}%
+          {Math.round(gainToPercent(metronomeVolume))}%
         </span>
         <Toggle
           pressed={!metronomeEnabled}

@@ -11,6 +11,7 @@ import {
   EMPTY_AUDIO_VIEW,
 } from "./audio-view";
 import { OxiSynthSynth } from "./oxisynth-synth";
+import { clampGain } from "./volume";
 
 // General MIDI Program Names (0-127)
 export const GM_PROGRAMS = [
@@ -344,23 +345,17 @@ class AudioManager {
     this.midiSynth.noteOff(pitch);
   }
 
-  // Volume controls (0-1)
+  // Volume controls (linear gain)
   setAudioVolume(volume: number): void {
-    this.audioChannel.volume.rampTo(
-      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
-    );
+    this.audioChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
   }
 
   setMidiVolume(volume: number): void {
-    this.midiChannel.volume.rampTo(
-      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
-    );
+    this.midiChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
   }
 
   setMetronomeVolume(volume: number): void {
-    this.metronomeChannel.volume.rampTo(
-      Tone.gainToDb(Math.max(0, Math.min(1, volume))),
-    );
+    this.metronomeChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
   }
 
   setMetronomeEnabled(enabled: boolean): void {
