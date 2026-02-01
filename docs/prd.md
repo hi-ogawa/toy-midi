@@ -97,14 +97,17 @@ See [architecture.md](architecture.md) for implementation details.
 - [x] feat: locators to mark parts
 - [x] refactor: reduce auto-save debounce timeout
 - [x] feat: shortcut for mute/solo track for each audio / midi
+  - [x] feat: indicate mute toggle in main view
+- [x] feat: higher resolution waveform at zoom (canvas instead of svg?)
+- [x] feat: add mixer view (modal?)
 
 ### TODO: Priority
 
-- [x] feat: shortcut for mute/solo track for each audio / midi
-  - [ ] feat: indicate mute toggle in main view
-- [x] feat: higher resolution waveform at zoom (canvas instead of svg?)
-- [ ] feat: add mixer view (modal?)
 - [ ] fix: metronome toggle doesn't work always (e.g. require playback pause/play)
+- [ ] refactor: app initialization and project switching architecture (docs/2026-01-12-app-initialization-architecture.md)
+  - current: initMutation conflates app init with project loading, forces page reload for switching
+  - short-term: use localStorage flag instead of URL hash for cleaner reload pattern
+  - long-term: separate app initialization from project loading, enable in-app project switching
 
 ### TODO: Backlog
 
