@@ -149,10 +149,10 @@ test.describe("Project Persistence", () => {
     await expect(gridSelect).toContainText("1/16");
 
     // Enable metronome
-    const metronomeToggle = page.getByTestId("metronome-toggle");
-    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
-    await metronomeToggle.click();
+    const metronomeToggle = page.getByTestId("metronome-mute-toggle");
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
+    await metronomeToggle.click();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
     // Wait for auto-save
     await page.waitForTimeout(100);
@@ -164,9 +164,9 @@ test.describe("Project Persistence", () => {
     // All settings should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
     await expect(page.getByTestId("grid-snap-select")).toContainText("1/16");
-    await expect(page.getByTestId("metronome-toggle")).toHaveAttribute(
+    await expect(page.getByTestId("metronome-mute-toggle")).toHaveAttribute(
       "aria-pressed",
-      "true",
+      "false",
     );
   });
 
