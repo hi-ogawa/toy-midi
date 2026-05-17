@@ -31,6 +31,15 @@ export function snapToGrid(value: number, gridSize: number): number {
   return Math.round(value / gridSize) * gridSize;
 }
 
+const GRID_DURATION_EPSILON = 1e-9;
+
+export function hasMinimumGridDuration(
+  duration: number,
+  gridSize: number,
+): boolean {
+  return duration >= gridSize - GRID_DURATION_EPSILON;
+}
+
 export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }

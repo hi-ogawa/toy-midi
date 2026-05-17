@@ -13,6 +13,7 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import {
   isBlackKey,
+  hasMinimumGridDuration,
   MAX_PITCH,
   midiToNoteName,
   MIN_PITCH,
@@ -798,12 +799,15 @@ export function PianoRoll() {
   const handleMouseUp = useCallback(() => {
     if (dragMode.type === "creating") {
       const duration = dragMode.currentBeat - dragMode.startBeat;
-      if (duration >= gridSnapValue) {
+      if (hasMinimumGridDuration(duration, gridSnapValue)) {
         const newNote: Note = {
           id: generateNoteId(),
           pitch: dragMode.pitch,
           start: dragMode.startBeat,
-          duration,
+          duration: Math.max(
+            gridSnapValue,
+            snapToGrid(duration, gridSnapValue),
+          ),
           velocity: 100,
         };
         addNote(newNote);
