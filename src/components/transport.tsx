@@ -16,7 +16,6 @@ import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
-import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -230,7 +229,7 @@ export function Transport({
     max: 300,
   });
 
-  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
+  // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
@@ -242,7 +241,7 @@ export function Transport({
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
-    if (matchKeyboardEvent(e, "Ctrl+F") && !e.repeat) {
+    if (matchKeyboardEvent(e, "F") && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
     }
@@ -298,18 +297,6 @@ export function Transport({
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
-
-      {/* Metronome toggle */}
-      <Button
-        data-testid="metronome-toggle"
-        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
-        variant={metronomeEnabled ? "default" : "ghost"}
-        size="icon"
-        title="Toggle metronome (M)"
-        aria-pressed={metronomeEnabled}
-      >
-        <MetronomeIcon className="size-5" />
-      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
