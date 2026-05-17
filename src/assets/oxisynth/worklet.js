@@ -546,26 +546,60 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     const out_r = outputs[0]?.[1];
     if (!soundfontPlayer || !out_l || !out_r) return true;
 
-    // Process note-offs FIRST to ensure proper ordering when
-    // note-off and note-on occur at the same frame
+    const blockStart = currentFrame;
+    const blockEnd = blockStart + out_l.length;
+
+    const dueNoteOffs = [];
     this.scheduledNoteOffs = this.scheduledNoteOffs.filter((event) => {
-      if (currentFrame >= event.frame) {
-        soundfontPlayer.note_off(event.key);
+      if (event.frame < blockEnd) {
+        dueNoteOffs.push(event);
         return false;
       }
       return true;
     });
 
-    // Then process note-ons
+    const dueNoteOns = [];
     this.scheduledNoteOns = this.scheduledNoteOns.filter((event) => {
-      if (currentFrame >= event.frame) {
-        soundfontPlayer.note_on(event.key, event.velocity);
+      if (event.frame < blockEnd) {
+        dueNoteOns.push(event);
         return false;
       }
       return true;
     });
 
-    soundfontPlayer.process(out_l, out_r);
+    const dueEvents = [
+      ...dueNoteOffs.map((event) => ({ ...event, type: "off" })),
+      ...dueNoteOns.map((event) => ({ ...event, type: "on" })),
+    ];
+    dueEvents.sort((a, b) => {
+      if (a.frame !== b.frame) return a.frame - b.frame;
+      if (a.type === b.type) return 0;
+      return a.type === "off" ? -1 : 1;
+    });
+
+    let pos = 0;
+    for (const event of dueEvents) {
+      const eventPos = Math.min(
+        out_l.length,
+        Math.max(0, event.frame - blockStart),
+      );
+      if (eventPos > pos) {
+        soundfontPlayer.process(
+          out_l.subarray(pos, eventPos),
+          out_r.subarray(pos, eventPos),
+        );
+      }
+      if (event.type === "off") {
+        soundfontPlayer.note_off(event.key);
+      } else {
+        soundfontPlayer.note_on(event.key, event.velocity);
+      }
+      pos = eventPos;
+    }
+
+    if (pos < out_l.length) {
+      soundfontPlayer.process(out_l.subarray(pos), out_r.subarray(pos));
+    }
     return true;
   }
 }
