@@ -211,7 +211,8 @@ class AudioManager {
     this.midiChannel = new Tone.Channel(0).toDestination();
     this.midiSynth.output.connect(this.midiChannel);
 
-    // Pre-warm first voice allocation to avoid cold-start click on first note
+    // Pre-warm first voice allocation to avoid cold-start click on first note.
+    // Use C4 (MIDI 60) at minimal velocity 1 to trigger allocation with minimal audibility.
     this.midiSynth.noteOn(60, 1);
     this.midiSynth.noteOff(60);
 
