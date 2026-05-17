@@ -211,6 +211,10 @@ class AudioManager {
     this.midiChannel = new Tone.Channel(0).toDestination();
     this.midiSynth.output.connect(this.midiChannel);
 
+    // Pre-warm first voice allocation to avoid cold-start click on first note
+    this.midiSynth.noteOn(60, 1);
+    this.midiSynth.noteOff(60);
+
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {
         // Use absolute times (from Tone.Part's `time` parameter) to schedule
