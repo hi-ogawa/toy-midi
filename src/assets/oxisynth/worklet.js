@@ -490,6 +490,9 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
         initSync(msg.wasmBytes);
         soundfontPlayer = SoundfontPlayer.new(sampleRate);
         soundfontPlayer.set_gain(0.5);
+        // Pre-warm: force first voice allocation before real playback
+        soundfontPlayer.note_on(60, 1);
+        soundfontPlayer.note_off(60);
         this.port.postMessage({ type: "ready" });
         break;
       case "noteOn":
