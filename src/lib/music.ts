@@ -31,6 +31,10 @@ export function snapToGrid(value: number, gridSize: number): number {
   return Math.round(value / gridSize) * gridSize;
 }
 
+export function snapToGridFloor(value: number, gridSize: number): number {
+  return Math.floor(value / gridSize) * gridSize;
+}
+
 export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }

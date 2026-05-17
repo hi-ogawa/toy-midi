@@ -17,6 +17,7 @@ import {
   midiToNoteName,
   MIN_PITCH,
   snapToGrid,
+  snapToGridFloor,
   clampPitch,
 } from "../lib/music";
 import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
@@ -524,7 +525,7 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
-      const snappedBeat = snapToGrid(beat, gridSnapValue);
+      const creationStartBeat = snapToGridFloor(beat, gridSnapValue);
       const rect = gridRef.current!.getBoundingClientRect();
       const clickScreenX = e.clientX - rect.left;
 
@@ -677,9 +678,9 @@ export function PianoRoll() {
           audioManager.playNote(pitch);
           setDragMode({
             type: "creating",
-            startBeat: snappedBeat,
+            startBeat: creationStartBeat,
             pitch,
-            currentBeat: snappedBeat + gridSnapValue,
+            currentBeat: creationStartBeat + gridSnapValue,
           });
         }
       }
