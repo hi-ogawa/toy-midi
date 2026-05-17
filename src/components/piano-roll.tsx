@@ -29,7 +29,6 @@ import {
   useProjectStore,
 } from "../stores/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
-import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 
