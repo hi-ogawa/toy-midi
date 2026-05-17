@@ -1029,9 +1029,7 @@ export function PianoRoll() {
                   onPressedChange={(muted) => setMetronomeEnabled(!muted)}
                   aria-label="Toggle metronome mute"
                   title={
-                    metronomeEnabled
-                      ? "Mute metronome"
-                      : "Unmute metronome"
+                    metronomeEnabled ? "Mute metronome" : "Unmute metronome"
                   }
                   size="sm"
                   variant="outline"
