@@ -408,8 +408,7 @@ export function Settings({
               className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
             />
             <span className="text-sm text-neutral-300">
-              Auto-scroll{" "}
-              <span className="text-xs text-neutral-500">(Ctrl+F)</span>
+              Auto-scroll <span className="text-xs text-neutral-500">(F)</span>
             </span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">

@@ -229,7 +229,7 @@ export function Transport({
     max: 300,
   });
 
-  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
+  // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
@@ -241,7 +241,7 @@ export function Transport({
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
-    if (matchKeyboardEvent(e, "Ctrl+F") && !e.repeat) {
+    if (matchKeyboardEvent(e, "F") && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
     }

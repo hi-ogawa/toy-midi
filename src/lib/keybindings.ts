@@ -26,7 +26,7 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     category: "playback",
   },
   {
-    key: "Ctrl+F",
+    key: "F",
     description: "Toggle auto-scroll",
     category: "playback",
   },
