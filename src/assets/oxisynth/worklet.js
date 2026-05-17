@@ -577,16 +577,16 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
       return a.type === "off" ? -1 : 1;
     });
 
-    let pos = 0;
+    let bufferPos = 0;
     for (const event of dueEvents) {
       const eventPos = Math.min(
         out_l.length,
         Math.max(0, event.frame - blockStart),
       );
-      if (eventPos > pos) {
+      if (eventPos > bufferPos) {
         soundfontPlayer.process(
-          out_l.subarray(pos, eventPos),
-          out_r.subarray(pos, eventPos),
+          out_l.subarray(bufferPos, eventPos),
+          out_r.subarray(bufferPos, eventPos),
         );
       }
       if (event.type === "off") {
@@ -594,11 +594,14 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
       } else {
         soundfontPlayer.note_on(event.key, event.velocity);
       }
-      pos = eventPos;
+      bufferPos = eventPos;
     }
 
-    if (pos < out_l.length) {
-      soundfontPlayer.process(out_l.subarray(pos), out_r.subarray(pos));
+    if (bufferPos < out_l.length) {
+      soundfontPlayer.process(
+        out_l.subarray(bufferPos),
+        out_r.subarray(bufferPos),
+      );
     }
     return true;
   }
