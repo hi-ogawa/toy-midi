@@ -16,7 +16,6 @@ import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
-import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -298,18 +297,6 @@ export function Transport({
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
-
-      {/* Metronome toggle */}
-      <Button
-        data-testid="metronome-toggle"
-        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
-        variant={metronomeEnabled ? "default" : "ghost"}
-        size="icon"
-        title="Toggle metronome (M)"
-        aria-pressed={metronomeEnabled}
-      >
-        <MetronomeIcon className="size-5" />
-      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />

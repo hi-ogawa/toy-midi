@@ -1024,6 +1024,7 @@ export function PianoRoll() {
               <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">Metro</span>
                 <Toggle
+                  data-testid="metronome-mute-toggle"
                   pressed={!metronomeEnabled}
                   onPressedChange={(muted) => setMetronomeEnabled(!muted)}
                   aria-label="Toggle metronome mute"
