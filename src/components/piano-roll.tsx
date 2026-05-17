@@ -37,8 +37,8 @@ import { Toggle } from "./ui/toggle";
 const KEYBOARD_WIDTH = 50;
 const TRACK_CONTROL_WIDTH = 130;
 const LEFT_PANEL_WIDTH = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
-const TIMELINE_HEIGHT = 40;
-const MIN_WAVEFORM_HEIGHT = 40;
+const TIMELINE_HEIGHT = 60;
+const MIN_WAVEFORM_HEIGHT = 60;
 const MAX_WAVEFORM_HEIGHT = 200;
 
 // Zoom limits (pixels per beat/key)
