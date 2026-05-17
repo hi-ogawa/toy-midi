@@ -29,6 +29,7 @@ import {
   useProjectStore,
 } from "../stores/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 
@@ -246,8 +247,10 @@ export function PianoRoll() {
     isAudioTrackSelected,
     audioVolume,
     midiVolume,
+    metronomeVolume,
     audioMuted,
     midiMuted,
+    metronomeEnabled,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -285,8 +288,10 @@ export function PianoRoll() {
     setWaveformHeight,
     setAudioVolume,
     setMidiVolume,
+    setMetronomeVolume,
     setAudioMuted,
     setMidiMuted,
+    setMetronomeEnabled,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -1012,8 +1017,46 @@ export function PianoRoll() {
             className="shrink-0 flex flex-col"
             style={{ width: TRACK_CONTROL_WIDTH }}
           >
-            {/* Timeline spacer */}
-            <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
+            {/* Metronome controls */}
+            <div
+              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
+              style={{ height: TIMELINE_HEIGHT }}
+            >
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+                <span className="uppercase tracking-wide">Metro</span>
+                <Toggle
+                  pressed={!metronomeEnabled}
+                  onPressedChange={(muted) => setMetronomeEnabled(!muted)}
+                  aria-label="Toggle metronome mute"
+                  title={
+                    metronomeEnabled
+                      ? "Mute metronome"
+                      : "Unmute metronome"
+                  }
+                  size="sm"
+                  variant="outline"
+                  className={
+                    !metronomeEnabled
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      : "h-5 min-w-5 px-0 text-[10px]"
+                  }
+                >
+                  M
+                </Toggle>
+              </div>
+              <div className="relative">
+                <div
+                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+                  style={{ left: `${zeroDbPercent}%` }}
+                />
+                <Slider
+                  value={[gainToPercent(metronomeVolume)]}
+                  onValueChange={([v]) => setMetronomeVolume(percentToGain(v))}
+                  max={100}
+                  step={1}
+                />
+              </div>
+            </div>
             {/* Audio controls */}
             <div
               className="shrink-0 border-b border-neutral-700 px-2 pt-3"
