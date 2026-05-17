@@ -1019,10 +1019,10 @@ export function PianoRoll() {
           >
             {/* Metronome controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
+              className="shrink-0 border-b border-neutral-700 px-2"
               style={{ height: TIMELINE_HEIGHT }}
             >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 mb-2">
                 <span className="uppercase tracking-wide">Metro</span>
                 <Toggle
                   pressed={!metronomeEnabled}
