@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
@@ -12,7 +10,7 @@ type ToggleProps = Omit<
   onPressedChange: (pressed: boolean) => void;
 };
 
-function Toggle({
+export function Toggle({
   className,
   onClick,
   onPressedChange,
@@ -38,5 +36,3 @@ function Toggle({
     />
   );
 }
-
-export { Toggle };
