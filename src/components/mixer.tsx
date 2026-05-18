@@ -99,7 +99,7 @@ export function Mixer() {
           aria-label="Toggle MIDI mute"
           title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
           className={cn(
-            "inline-flex h-8 min-w-8 items-center justify-center px-1.5",
+            "h-8 min-w-8 px-1.5",
             midiMuted &&
               "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
           )}
@@ -144,7 +144,7 @@ export function Mixer() {
           aria-label="Toggle audio mute"
           title={audioMuted ? "Unmute audio" : "Mute audio"}
           className={cn(
-            "inline-flex h-8 min-w-8 items-center justify-center px-1.5",
+            "h-8 min-w-8 px-1.5",
             audioMuted &&
               "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
           )}
@@ -189,7 +189,7 @@ export function Mixer() {
           aria-label="Toggle metronome mute"
           title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
           className={cn(
-            "inline-flex h-8 min-w-8 items-center justify-center px-1.5",
+            "h-8 min-w-8 px-1.5",
             !metronomeEnabled &&
               "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
           )}
