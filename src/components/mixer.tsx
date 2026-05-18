@@ -1,6 +1,7 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
+import { cn } from "../lib/utils";
 import {
   MAX_DB,
   MIN_DB,
@@ -97,11 +98,11 @@ export function Mixer() {
           onPressedChange={setMidiMuted}
           aria-label="Toggle MIDI mute"
           title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
-          className={
-            midiMuted
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
-              : "h-8 px-1.5 min-w-8"
-          }
+          className={cn(
+            "h-8 px-1.5 min-w-8",
+            midiMuted &&
+              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+          )}
         >
           <VolumeXIcon className="size-4" />
         </Toggle>
@@ -142,11 +143,11 @@ export function Mixer() {
           onPressedChange={setAudioMuted}
           aria-label="Toggle audio mute"
           title={audioMuted ? "Unmute audio" : "Mute audio"}
-          className={
-            audioMuted
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
-              : "h-8 px-1.5 min-w-8"
-          }
+          className={cn(
+            "h-8 px-1.5 min-w-8",
+            audioMuted &&
+              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+          )}
         >
           <VolumeXIcon className="size-4" />
         </Toggle>
@@ -187,11 +188,11 @@ export function Mixer() {
           onPressedChange={(muted) => setMetronomeEnabled(!muted)}
           aria-label="Toggle metronome mute"
           title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
-          className={
-            !metronomeEnabled
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
-              : "h-8 px-1.5 min-w-8"
-          }
+          className={cn(
+            "h-8 px-1.5 min-w-8",
+            !metronomeEnabled &&
+              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+          )}
         >
           <VolumeXIcon className="size-4" />
         </Toggle>

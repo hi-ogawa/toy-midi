@@ -19,6 +19,7 @@ import {
   snapToGrid,
   clampPitch,
 } from "../lib/music";
+import { cn } from "../lib/utils";
 import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
@@ -1033,11 +1034,11 @@ export function PianoRoll() {
                       ? "Mute metronome (M)"
                       : "Unmute metronome (M)"
                   }
-                  className={
-                    !metronomeEnabled
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
-                      : "h-5 min-w-5 px-0 text-[10px]"
-                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    !metronomeEnabled &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
                 >
                   M
                 </Toggle>
@@ -1071,11 +1072,11 @@ export function PianoRoll() {
                       ? "Unmute audio (Shift+2)"
                       : "Mute audio (Shift+2)"
                   }
-                  className={
-                    audioMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
-                      : "h-5 min-w-5 px-0 text-[10px]"
-                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    audioMuted &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
                 >
                   M
                 </Toggle>
@@ -1104,11 +1105,11 @@ export function PianoRoll() {
                   title={
                     midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
                   }
-                  className={
-                    midiMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
-                      : "h-5 min-w-5 px-0 text-[10px]"
-                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    midiMuted &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
                 >
                   M
                 </Toggle>
