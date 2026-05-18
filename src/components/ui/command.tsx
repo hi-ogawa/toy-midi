@@ -1,12 +1,9 @@
-"use client";
-
 import { Command as CommandPrimitive } from "cmdk";
 import { SearchIcon } from "lucide-react";
 import * as React from "react";
-
 import { cn } from "../../lib/utils";
 
-function Command({
+export function Command({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive>) {
@@ -22,7 +19,7 @@ function Command({
   );
 }
 
-function CommandInput({
+export function CommandInput({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
@@ -44,7 +41,7 @@ function CommandInput({
   );
 }
 
-function CommandList({
+export function CommandList({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.List>) {
@@ -60,7 +57,7 @@ function CommandList({
   );
 }
 
-function CommandEmpty({
+export function CommandEmpty({
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
@@ -72,7 +69,7 @@ function CommandEmpty({
   );
 }
 
-function CommandGroup({
+export function CommandGroup({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Group>) {
@@ -88,7 +85,7 @@ function CommandGroup({
   );
 }
 
-function CommandItem({
+export function CommandItem({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Item>) {
@@ -103,12 +100,3 @@ function CommandItem({
     />
   );
 }
-
-export {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-};
