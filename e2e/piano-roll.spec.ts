@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { clickNewProject, evaluateStore } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -91,6 +91,34 @@ test.describe("Piano Roll", () => {
 
     const expectedStartX = gridBox.x + 4 * BEAT_WIDTH;
     expect(noteBox.x).toBeCloseTo(expectedStartX, 1);
+  });
+
+  test("creates short-duration note at late bar", async ({ page }) => {
+    const bar50StartBeat = (50 - 1) * 4;
+    const tripletGridSize = 1 / 6;
+
+    await evaluateStore(page, (store) => {
+      const state = store.getState();
+      state.setGridSnap("1/8T");
+      state.setScrollX((50 - 1) * 4);
+    });
+
+    const grid = page.getByTestId("piano-roll-grid");
+    const gridBox = await grid.boundingBox();
+    if (!gridBox) throw new Error("Grid not found");
+
+    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startY = gridBox.y + ROW_HEIGHT * 2.5;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + BEAT_WIDTH * tripletGridSize, startY);
+    await page.mouse.up();
+
+    const notes = await evaluateStore(page, (store) => store.getState().notes);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].start).toBeCloseTo(bar50StartBeat + 0.5, 10);
+    expect(notes[0].duration).toBeCloseTo(tripletGridSize, 10);
   });
 
   test("move note", async ({ page }) => {
