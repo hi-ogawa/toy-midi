@@ -10,6 +10,7 @@ import {
   createAudioView,
   EMPTY_AUDIO_VIEW,
 } from "./audio-view";
+import { Metronome } from "./metronome";
 import { OxiSynthSynth } from "./oxisynth-synth";
 import { clampGain } from "./volume";
 
@@ -186,8 +187,8 @@ class AudioManager {
   private audioChannel!: Tone.Channel;
 
   // metronome
-  private metronome!: Tone.Synth;
-  private metronomeSeq!: Tone.Sequence;
+  private metronome!: Metronome;
+  private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
   async init(): Promise<void> {
@@ -234,22 +235,18 @@ class AudioManager {
     this.audioChannel = new Tone.Channel(0.8).toDestination();
     this.player.connect(this.audioChannel);
 
-    // Metronome synth (high pitched click)
-    this.metronome = new Tone.Synth({
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.01 },
-    });
+    // Metronome click generator with native Web Audio nodes.
+    this.metronome = new Metronome(context);
     this.metronomeChannel = new Tone.Channel(0.5).toDestination();
-    this.metronome.connect(this.metronomeChannel);
+    Tone.connect(this.metronome.output, this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
     // 1 = accent (high), 0 = normal (lower)
-    this.metronomeSeq = new Tone.Sequence(
-      (time, note) => {
-        // const pitch = beat === 1 ? "C7" : "G6";
-        this.metronome.triggerAttackRelease(note, "32n", time);
+    this.metronomeSeq = new Tone.Sequence<number>(
+      (time, accent) => {
+        this.metronome.click(time, accent === 1);
       },
-      ["C7", "G6", "G6", "G6"],
+      [1, 0, 0, 0],
       "4n",
     );
     this.metronomeSeq.start(0);
@@ -374,7 +371,7 @@ class AudioManager {
     // Create new sequence with updated beats per bar
     this.metronomeSeq.clear();
     this.metronomeSeq.events = Array.from({ length: beatsPerBar }, (_, i) =>
-      i === 0 ? "C7" : "G6",
+      i === 0 ? 1 : 0,
     );
   }
 
