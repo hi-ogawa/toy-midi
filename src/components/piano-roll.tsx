@@ -17,7 +17,6 @@ import {
   midiToNoteName,
   MIN_PITCH,
   snapToGrid,
-  snapToGridFloor,
   clampPitch,
 } from "../lib/music";
 import { cn } from "../lib/utils";
@@ -530,7 +529,9 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
-      const creationStartBeat = snapToGridFloor(beat, gridSnapValue);
+      const creationStartBeat = snapToGrid(beat, gridSnapValue, {
+        floor: true,
+      });
       const rect = gridRef.current!.getBoundingClientRect();
       const clickScreenX = e.clientX - rect.left;
 
