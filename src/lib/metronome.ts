@@ -7,26 +7,6 @@ const NORMAL_FREQUENCY = 1568; // G6
 const ATTACK_SECONDS = 0.001;
 const DECAY_SECONDS = 0.03;
 
-function createVoice(
-  context: ToneContext,
-  frequency: number,
-  output: AudioNode,
-): {
-  oscillator: OscillatorNode;
-  envelope: GainNode;
-} {
-  const oscillator = context.createOscillator();
-  const envelope = context.createGain();
-
-  oscillator.type = "sine";
-  oscillator.frequency.value = frequency;
-  envelope.gain.value = 0;
-  oscillator.connect(envelope);
-  envelope.connect(output);
-
-  return { oscillator, envelope };
-}
-
 export class Metronome {
   readonly output: GainNode;
 
@@ -67,4 +47,21 @@ export class Metronome {
     gain.setTargetAtTime(0, attackEndTime, decayTimeConstant);
     gain.linearRampToValueAtTime(0, decayEndTime);
   }
+}
+
+function createVoice(
+  context: ToneContext,
+  frequency: number,
+  output: AudioNode,
+) {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = frequency;
+  envelope.gain.value = 0;
+  oscillator.connect(envelope);
+  envelope.connect(output);
+
+  return { oscillator, envelope };
 }
