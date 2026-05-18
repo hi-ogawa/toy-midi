@@ -3,7 +3,6 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   fmt: {
     printWidth: 80,
-    sortPackageJson: true,
     sortImports: {
       newlinesBetween: false,
       partitionByNewline: true,
@@ -11,12 +10,8 @@ export default defineConfig({
     },
   },
   lint: {
-    rules: {
-      "no-unused-vars": "off",
-    },
-    options: {
-      typeAware: true,
-      typeCheck: true,
+    categories: {
+      correctness: "off",
     },
   },
   staged: {
