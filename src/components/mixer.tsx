@@ -97,12 +97,10 @@ export function Mixer() {
           onPressedChange={setMidiMuted}
           aria-label="Toggle MIDI mute"
           title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
-          size="sm"
-          variant="outline"
           className={
             midiMuted
-              ? "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
-              : ""
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              : "h-8 px-1.5 min-w-8"
           }
         >
           <VolumeXIcon className="size-4" />
@@ -144,12 +142,10 @@ export function Mixer() {
           onPressedChange={setAudioMuted}
           aria-label="Toggle audio mute"
           title={audioMuted ? "Unmute audio" : "Mute audio"}
-          size="sm"
-          variant="outline"
           className={
             audioMuted
-              ? "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
-              : ""
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              : "h-8 px-1.5 min-w-8"
           }
         >
           <VolumeXIcon className="size-4" />
@@ -191,12 +187,10 @@ export function Mixer() {
           onPressedChange={(muted) => setMetronomeEnabled(!muted)}
           aria-label="Toggle metronome mute"
           title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
-          size="sm"
-          variant="outline"
           className={
             !metronomeEnabled
-              ? "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
-              : ""
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              : "h-8 px-1.5 min-w-8"
           }
         >
           <VolumeXIcon className="size-4" />

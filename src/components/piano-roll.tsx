@@ -1033,8 +1033,6 @@ export function PianoRoll() {
                       ? "Mute metronome (M)"
                       : "Unmute metronome (M)"
                   }
-                  size="sm"
-                  variant="outline"
                   className={
                     !metronomeEnabled
                       ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
@@ -1073,8 +1071,6 @@ export function PianoRoll() {
                       ? "Unmute audio (Shift+2)"
                       : "Mute audio (Shift+2)"
                   }
-                  size="sm"
-                  variant="outline"
                   className={
                     audioMuted
                       ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
@@ -1108,8 +1104,6 @@ export function PianoRoll() {
                   title={
                     midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
                   }
-                  size="sm"
-                  variant="outline"
                   className={
                     midiMuted
                       ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
