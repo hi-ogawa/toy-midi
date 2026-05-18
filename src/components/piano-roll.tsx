@@ -529,7 +529,9 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
-      const snappedBeat = snapToGrid(beat, gridSnapValue);
+      const snappedBeat = snapToGrid(beat, gridSnapValue, {
+        floor: true,
+      });
       const rect = gridRef.current!.getBoundingClientRect();
       const clickScreenX = e.clientX - rect.left;
 
