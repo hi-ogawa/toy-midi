@@ -27,16 +27,14 @@ export function isBlackKey(midi: number): boolean {
   return [1, 3, 6, 8, 10].includes(note);
 }
 
-type SnapToGridOptions = {
-  floor?: boolean;
-};
-
 export function snapToGrid(
   value: number,
   gridSize: number,
-  options: SnapToGridOptions = {},
+  options?: {
+    floor?: boolean;
+  },
 ): number {
-  const round = options.floor ? Math.floor : Math.round;
+  const round = options?.floor ? Math.floor : Math.round;
   return round(value / gridSize) * gridSize;
 }
 
