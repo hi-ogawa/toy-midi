@@ -529,7 +529,7 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
-      const creationStartBeat = snapToGrid(beat, gridSnapValue, {
+      const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
       });
       const rect = gridRef.current!.getBoundingClientRect();
@@ -684,9 +684,9 @@ export function PianoRoll() {
           audioManager.playNote(pitch);
           setDragMode({
             type: "creating",
-            startBeat: creationStartBeat,
+            startBeat: snappedBeat,
             pitch,
-            currentBeat: creationStartBeat + gridSnapValue,
+            currentBeat: snappedBeat + gridSnapValue,
           });
         }
       }
