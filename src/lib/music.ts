@@ -27,8 +27,15 @@ export function isBlackKey(midi: number): boolean {
   return [1, 3, 6, 8, 10].includes(note);
 }
 
-export function snapToGrid(value: number, gridSize: number): number {
-  return Math.round(value / gridSize) * gridSize;
+export function snapToGrid(
+  value: number,
+  gridSize: number,
+  options?: {
+    floor?: boolean;
+  },
+): number {
+  const round = options?.floor ? Math.floor : Math.round;
+  return round(value / gridSize) * gridSize;
 }
 
 const GRID_DURATION_EPSILON = 1e-9;

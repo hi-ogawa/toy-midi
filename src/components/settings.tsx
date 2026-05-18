@@ -260,10 +260,8 @@ export function Settings({
             />
           </div>
           <Button
-            variant="outline"
-            size="sm"
             onClick={onProjectsClick}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <FolderIcon className="size-4" />
             Manage Projects
@@ -291,11 +289,9 @@ export function Settings({
           <div className="flex gap-2">
             <Button
               data-testid="load-audio-button"
-              variant="outline"
-              size="sm"
               onClick={handleLoadClick}
               disabled={loadAudioMutation.isPending}
-              className="flex-1"
+              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
             >
               <UploadIcon className="size-4" />
               {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
@@ -303,10 +299,8 @@ export function Settings({
             {audioFileName && (
               <Button
                 data-testid="remove-audio-button"
-                variant="outline"
-                size="sm"
                 onClick={handleRemoveAudio}
-                className="flex-1"
+                className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
                 <Trash2Icon className="size-4" />
                 Remove
@@ -325,11 +319,9 @@ export function Settings({
         <div className="pl-6 space-y-2">
           <Button
             data-testid="import-midi-button"
-            variant="outline"
-            size="sm"
             onClick={handleImportMidiClick}
             disabled={importMidiMutation.isPending}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <UploadIcon className="size-4" />
             {importMidiMutation.isPending ? "Importing..." : "Import MIDI File"}
@@ -349,43 +341,35 @@ export function Settings({
         <div className="pl-6 space-y-2">
           <Button
             data-testid="export-project-button"
-            variant="outline"
-            size="sm"
             onClick={handleExportProject}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export Project
           </Button>
           <Button
             data-testid="export-midi-button"
-            variant="outline"
-            size="sm"
             onClick={handleExportMidi}
             disabled={notes.length === 0}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export MIDI
           </Button>
           <Button
             data-testid="export-abc-button"
-            variant="outline"
-            size="sm"
             onClick={handleExportABC}
             disabled={notes.length === 0}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export ABC
           </Button>
           <Button
             data-testid="copy-abc-button"
-            variant="outline"
-            size="sm"
             onClick={handleCopyABCToClipboard}
             disabled={notes.length === 0}
-            className="w-full justify-start"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <ClipboardIcon className="size-4" />
             Copy ABC to Clipboard
@@ -408,8 +392,7 @@ export function Settings({
               className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
             />
             <span className="text-sm text-neutral-300">
-              Auto-scroll{" "}
-              <span className="text-xs text-neutral-500">(Ctrl+F)</span>
+              Auto-scroll <span className="text-xs text-neutral-500">(F)</span>
             </span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
