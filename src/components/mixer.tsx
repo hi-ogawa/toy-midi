@@ -99,7 +99,7 @@ export function Mixer() {
           title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
           className={
             midiMuted
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
               : "h-8 px-1.5 min-w-8"
           }
         >
@@ -144,7 +144,7 @@ export function Mixer() {
           title={audioMuted ? "Unmute audio" : "Mute audio"}
           className={
             audioMuted
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
               : "h-8 px-1.5 min-w-8"
           }
         >
@@ -189,7 +189,7 @@ export function Mixer() {
           title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
           className={
             !metronomeEnabled
-              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-400"
+              ? "h-8 px-1.5 min-w-8 bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-400"
               : "h-8 px-1.5 min-w-8"
           }
         >

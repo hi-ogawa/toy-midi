@@ -1035,7 +1035,7 @@ export function PianoRoll() {
                   }
                   className={
                     !metronomeEnabled
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
                       : "h-5 min-w-5 px-0 text-[10px]"
                   }
                 >
@@ -1073,7 +1073,7 @@ export function PianoRoll() {
                   }
                   className={
                     audioMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
                       : "h-5 min-w-5 px-0 text-[10px]"
                   }
                 >
@@ -1106,7 +1106,7 @@ export function PianoRoll() {
                   }
                   className={
                     midiMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
+                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 aria-[pressed=true]:bg-red-900/50 aria-[pressed=true]:text-red-300"
                       : "h-5 min-w-5 px-0 text-[10px]"
                   }
                 >
