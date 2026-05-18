@@ -1,7 +1,25 @@
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  fmt: {
+    printWidth: 80,
+    sortPackageJson: true,
+    sortImports: {
+      newlinesBetween: false,
+      partitionByNewline: true,
+      groups: [["builtin"], ["external"]],
+    },
+  },
+  lint: {
+    rules: {
+      "no-unused-vars": "off",
+    },
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+  },
+  staged: {
+    "*": "vp check --fix",
+  },
 });
