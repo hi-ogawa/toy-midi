@@ -804,13 +804,15 @@ export function PianoRoll() {
 
   const handleMouseUp = useCallback(() => {
     if (dragMode.type === "creating") {
+      // TODO: handle dragging from right to left?
       const duration = dragMode.currentBeat - dragMode.startBeat;
-      if (duration >= gridSnapValue) {
+      const snappedDuration = snapToGrid(duration, gridSnapValue);
+      if (snappedDuration >= gridSnapValue) {
         const newNote: Note = {
           id: generateNoteId(),
           pitch: dragMode.pitch,
           start: dragMode.startBeat,
-          duration,
+          duration: snappedDuration,
           velocity: 100,
         };
         addNote(newNote);
