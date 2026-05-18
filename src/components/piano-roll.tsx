@@ -1026,8 +1026,8 @@ export function PianoRoll() {
                 <span className="uppercase tracking-wide">Metro</span>
                 <Toggle
                   data-testid="metronome-mute-toggle"
-                  pressed={!metronomeEnabled}
-                  onPressedChange={(muted) => setMetronomeEnabled(!muted)}
+                  value={!metronomeEnabled}
+                  onChange={(muted) => setMetronomeEnabled(!muted)}
                   aria-label="Toggle metronome mute"
                   title={
                     metronomeEnabled
@@ -1064,8 +1064,8 @@ export function PianoRoll() {
               <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
-                  pressed={audioMuted}
-                  onPressedChange={setAudioMuted}
+                  value={audioMuted}
+                  onChange={setAudioMuted}
                   aria-label="Toggle audio mute"
                   title={
                     audioMuted
@@ -1099,8 +1099,8 @@ export function PianoRoll() {
               <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
-                  pressed={midiMuted}
-                  onPressedChange={setMidiMuted}
+                  value={midiMuted}
+                  onChange={setMidiMuted}
                   aria-label="Toggle MIDI mute"
                   title={
                     midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"

@@ -94,8 +94,8 @@ export function Mixer() {
           <span>dB</span>
         </div>
         <Toggle
-          pressed={midiMuted}
-          onPressedChange={setMidiMuted}
+          value={midiMuted}
+          onChange={setMidiMuted}
           aria-label="Toggle MIDI mute"
           title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
           className={cn(
@@ -139,8 +139,8 @@ export function Mixer() {
           <span>dB</span>
         </div>
         <Toggle
-          pressed={audioMuted}
-          onPressedChange={setAudioMuted}
+          value={audioMuted}
+          onChange={setAudioMuted}
           aria-label="Toggle audio mute"
           title={audioMuted ? "Unmute audio" : "Mute audio"}
           className={cn(
@@ -184,8 +184,8 @@ export function Mixer() {
           <span>dB</span>
         </div>
         <Toggle
-          pressed={!metronomeEnabled}
-          onPressedChange={(muted) => setMetronomeEnabled(!muted)}
+          value={!metronomeEnabled}
+          onChange={(muted) => setMetronomeEnabled(!muted)}
           aria-label="Toggle metronome mute"
           title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
           className={cn(
