@@ -2,8 +2,8 @@ import * as Tone from "tone";
 
 type ToneContext = ReturnType<typeof Tone.getContext>;
 
-const ACCENT_FREQUENCY = 2093; // C7
-const NORMAL_FREQUENCY = 1568; // G6
+const ACCENT_FREQUENCY = Tone.Frequency("C7").toFrequency();
+const NORMAL_FREQUENCY = Tone.Frequency("G6").toFrequency();
 const ATTACK_SECONDS = 0.001;
 const DECAY_SECONDS = 0.03;
 
