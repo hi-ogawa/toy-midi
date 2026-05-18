@@ -1,13 +1,31 @@
-interface MetronomeContext {
-  currentTime: number;
-  createGain(): GainNode;
-  createOscillator(): OscillatorNode;
-}
+import * as Tone from "tone";
+
+type ToneContext = ReturnType<typeof Tone.getContext>;
 
 const ACCENT_FREQUENCY = 2093; // C7
 const NORMAL_FREQUENCY = 1568; // G6
 const ATTACK_SECONDS = 0.001;
 const DECAY_SECONDS = 0.03;
+
+function createVoice(
+  context: ToneContext,
+  frequency: number,
+  output: AudioNode,
+): {
+  oscillator: OscillatorNode;
+  envelope: GainNode;
+} {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = frequency;
+  envelope.gain.value = 0;
+  oscillator.connect(envelope);
+  envelope.connect(output);
+
+  return { oscillator, envelope };
+}
 
 export class Metronome {
   readonly output: GainNode;
@@ -17,15 +35,15 @@ export class Metronome {
   private normalOscillator: OscillatorNode;
   private normalEnvelope: GainNode;
 
-  constructor(private context: MetronomeContext) {
+  constructor(private context: ToneContext) {
     this.output = this.context.createGain();
     this.output.gain.value = 1;
 
-    const accent = this.createVoice(ACCENT_FREQUENCY);
+    const accent = createVoice(this.context, ACCENT_FREQUENCY, this.output);
     this.accentOscillator = accent.oscillator;
     this.accentEnvelope = accent.envelope;
 
-    const normal = this.createVoice(NORMAL_FREQUENCY);
+    const normal = createVoice(this.context, NORMAL_FREQUENCY, this.output);
     this.normalOscillator = normal.oscillator;
     this.normalEnvelope = normal.envelope;
 
@@ -43,35 +61,10 @@ export class Metronome {
     gain.cancelScheduledValues(startTime);
     gain.setValueAtTime(0, startTime);
     gain.linearRampToValueAtTime(1, attackEndTime);
-    this.exponentialApproachValueAtTime(gain, 0, attackEndTime, DECAY_SECONDS);
+    // Match Tone.Envelope's exponentialApproachValueAtTime shape closely enough
+    // without keeping Tone.Synth in the metronome audio path.
+    const decayTimeConstant = Math.log(DECAY_SECONDS + 1) / Math.log(200);
+    gain.setTargetAtTime(0, attackEndTime, decayTimeConstant);
     gain.linearRampToValueAtTime(0, decayEndTime);
-  }
-
-  private createVoice(frequency: number): {
-    oscillator: OscillatorNode;
-    envelope: GainNode;
-  } {
-    const oscillator = this.context.createOscillator();
-    const envelope = this.context.createGain();
-
-    oscillator.type = "sine";
-    oscillator.frequency.value = frequency;
-    envelope.gain.value = 0;
-    oscillator.connect(envelope);
-    envelope.connect(this.output);
-
-    return { oscillator, envelope };
-  }
-
-  // Match Tone.Envelope's exponentialApproachValueAtTime shape closely enough
-  // without keeping Tone.Synth in the metronome audio path.
-  private exponentialApproachValueAtTime(
-    param: AudioParam,
-    value: number,
-    time: number,
-    rampTime: number,
-  ): void {
-    const timeConstant = Math.log(rampTime + 1) / Math.log(200);
-    param.setTargetAtTime(value, time, timeConstant);
   }
 }
