@@ -261,7 +261,7 @@ export function Settings({
           </div>
           <Button
             onClick={onProjectsClick}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <FolderIcon className="size-4" />
             Manage Projects
@@ -291,7 +291,7 @@ export function Settings({
               data-testid="load-audio-button"
               onClick={handleLoadClick}
               disabled={loadAudioMutation.isPending}
-              className="h-8 flex-1 gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
             >
               <UploadIcon className="size-4" />
               {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
@@ -300,7 +300,7 @@ export function Settings({
               <Button
                 data-testid="remove-audio-button"
                 onClick={handleRemoveAudio}
-                className="h-8 flex-1 gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
                 <Trash2Icon className="size-4" />
                 Remove
@@ -321,7 +321,7 @@ export function Settings({
             data-testid="import-midi-button"
             onClick={handleImportMidiClick}
             disabled={importMidiMutation.isPending}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <UploadIcon className="size-4" />
             {importMidiMutation.isPending ? "Importing..." : "Import MIDI File"}
@@ -342,7 +342,7 @@ export function Settings({
           <Button
             data-testid="export-project-button"
             onClick={handleExportProject}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export Project
@@ -351,7 +351,7 @@ export function Settings({
             data-testid="export-midi-button"
             onClick={handleExportMidi}
             disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export MIDI
@@ -360,7 +360,7 @@ export function Settings({
             data-testid="export-abc-button"
             onClick={handleExportABC}
             disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export ABC
@@ -369,7 +369,7 @@ export function Settings({
             data-testid="copy-abc-button"
             onClick={handleCopyABCToClipboard}
             disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <ClipboardIcon className="size-4" />
             Copy ABC to Clipboard

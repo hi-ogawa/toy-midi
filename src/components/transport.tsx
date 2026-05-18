@@ -146,7 +146,7 @@ function InstrumentCombobox({
           data-testid="instrument-select"
           role="combobox"
           aria-expanded={open}
-          className="h-8 w-44 justify-between gap-1.5 px-3 font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}
