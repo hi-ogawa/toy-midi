@@ -1,16 +1,15 @@
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { CircleIcon } from "lucide-react";
 import * as React from "react";
-
 import { cn } from "../../lib/utils";
 
-function DropdownMenu({
+export function DropdownMenu({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
   return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
 }
 
-function DropdownMenuTrigger({
+export function DropdownMenuTrigger({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
   return (
@@ -21,7 +20,7 @@ function DropdownMenuTrigger({
   );
 }
 
-function DropdownMenuContent({
+export function DropdownMenuContent({
   className,
   sideOffset = 4,
   ...props
@@ -41,7 +40,7 @@ function DropdownMenuContent({
   );
 }
 
-function DropdownMenuRadioGroup({
+export function DropdownMenuRadioGroup({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioGroup>) {
   return (
@@ -52,7 +51,7 @@ function DropdownMenuRadioGroup({
   );
 }
 
-function DropdownMenuRadioItem({
+export function DropdownMenuRadioItem({
   className,
   children,
   ...props
@@ -75,11 +74,3 @@ function DropdownMenuRadioItem({
     </DropdownMenuPrimitive.RadioItem>
   );
 }
-
-export {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-};

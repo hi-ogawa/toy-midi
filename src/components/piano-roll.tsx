@@ -19,6 +19,7 @@ import {
   snapToGrid,
   clampPitch,
 } from "../lib/music";
+import { cn } from "../lib/utils";
 import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
@@ -36,8 +37,8 @@ import { Toggle } from "./ui/toggle";
 const KEYBOARD_WIDTH = 50;
 const TRACK_CONTROL_WIDTH = 130;
 const LEFT_PANEL_WIDTH = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
-const TIMELINE_HEIGHT = 40;
-const MIN_WAVEFORM_HEIGHT = 40;
+const TIMELINE_HEIGHT = 60;
+const MIN_WAVEFORM_HEIGHT = 60;
 const MAX_WAVEFORM_HEIGHT = 200;
 
 // Zoom limits (pixels per beat/key)
@@ -246,8 +247,10 @@ export function PianoRoll() {
     isAudioTrackSelected,
     audioVolume,
     midiVolume,
+    metronomeVolume,
     audioMuted,
     midiMuted,
+    metronomeEnabled,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -285,8 +288,10 @@ export function PianoRoll() {
     setWaveformHeight,
     setAudioVolume,
     setMidiVolume,
+    setMetronomeVolume,
     setAudioMuted,
     setMidiMuted,
+    setMetronomeEnabled,
   } = useProjectStore();
 
   // Transport state from hook (source of truth: Tone.js Transport)
@@ -524,7 +529,9 @@ export function PianoRoll() {
       if (e.button !== 0) return;
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
-      const snappedBeat = snapToGrid(beat, gridSnapValue);
+      const snappedBeat = snapToGrid(beat, gridSnapValue, {
+        floor: true,
+      });
       const rect = gridRef.current!.getBoundingClientRect();
       const clickScreenX = e.clientX - rect.left;
 
@@ -797,13 +804,15 @@ export function PianoRoll() {
 
   const handleMouseUp = useCallback(() => {
     if (dragMode.type === "creating") {
+      // TODO: handle dragging from right to left?
       const duration = dragMode.currentBeat - dragMode.startBeat;
-      if (duration >= gridSnapValue) {
+      const snappedDuration = snapToGrid(duration, gridSnapValue);
+      if (snappedDuration >= gridSnapValue) {
         const newNote: Note = {
           id: generateNoteId(),
           pitch: dragMode.pitch,
           start: dragMode.startBeat,
-          duration,
+          duration: snappedDuration,
           velocity: 100,
         };
         addNote(newNote);
@@ -1012,8 +1021,45 @@ export function PianoRoll() {
             className="shrink-0 flex flex-col"
             style={{ width: TRACK_CONTROL_WIDTH }}
           >
-            {/* Timeline spacer */}
-            <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
+            {/* Metronome controls */}
+            <div
+              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
+              style={{ height: TIMELINE_HEIGHT }}
+            >
+              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+                <span className="uppercase tracking-wide">Metro</span>
+                <Toggle
+                  data-testid="metronome-mute-toggle"
+                  value={!metronomeEnabled}
+                  onChange={(muted) => setMetronomeEnabled(!muted)}
+                  aria-label="Toggle metronome mute"
+                  title={
+                    metronomeEnabled
+                      ? "Mute metronome (M)"
+                      : "Unmute metronome (M)"
+                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    !metronomeEnabled &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
+                >
+                  M
+                </Toggle>
+              </div>
+              <div className="relative">
+                <div
+                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+                  style={{ left: `${zeroDbPercent}%` }}
+                />
+                <Slider
+                  value={[gainToPercent(metronomeVolume)]}
+                  onValueChange={([v]) => setMetronomeVolume(percentToGain(v))}
+                  max={100}
+                  step={1}
+                />
+              </div>
+            </div>
             {/* Audio controls */}
             <div
               className="shrink-0 border-b border-neutral-700 px-2 pt-3"
@@ -1022,21 +1068,19 @@ export function PianoRoll() {
               <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
-                  pressed={audioMuted}
-                  onPressedChange={setAudioMuted}
+                  value={audioMuted}
+                  onChange={setAudioMuted}
                   aria-label="Toggle audio mute"
                   title={
                     audioMuted
                       ? "Unmute audio (Shift+2)"
                       : "Mute audio (Shift+2)"
                   }
-                  size="sm"
-                  variant="outline"
-                  className={
-                    audioMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
-                      : "h-5 min-w-5 px-0 text-[10px]"
-                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    audioMuted &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
                 >
                   M
                 </Toggle>
@@ -1059,19 +1103,17 @@ export function PianoRoll() {
               <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
-                  pressed={midiMuted}
-                  onPressedChange={setMidiMuted}
+                  value={midiMuted}
+                  onChange={setMidiMuted}
                   aria-label="Toggle MIDI mute"
                   title={
                     midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
                   }
-                  size="sm"
-                  variant="outline"
-                  className={
-                    midiMuted
-                      ? "h-5 min-w-5 px-0 text-[10px] bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200 data-[state=on]:bg-red-900/50 data-[state=on]:text-red-300"
-                      : "h-5 min-w-5 px-0 text-[10px]"
-                  }
+                  className={cn(
+                    "h-5 min-w-5 px-0 text-[10px]",
+                    midiMuted &&
+                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                  )}
                 >
                   M
                 </Toggle>

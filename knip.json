@@ -1,9 +1,0 @@
-{
-  "entry": ["src/main.tsx"],
-  "project": ["src/**/*.{ts,tsx}"],
-  "ignore": ["dist/**", "test-results/**"],
-  "ignoreDependencies": ["tailwindcss"],
-  "paths": {
-    "@/*": ["src/*"]
-  }
-}

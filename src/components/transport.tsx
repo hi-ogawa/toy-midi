@@ -14,9 +14,9 @@ import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { matchKeyboardEvent } from "../lib/keyboard";
+import { cn } from "../lib/utils";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
-import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -93,9 +93,13 @@ function PlayPauseButton() {
     <Button
       data-testid="play-pause-button"
       onClick={togglePlayback}
-      variant={isPlaying ? "default" : "ghost"}
-      size="icon"
       title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+      className={cn(
+        "size-9",
+        isPlaying
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+      )}
     >
       {isPlaying ? (
         <PauseIcon data-testid="pause-icon" className="size-5" />
@@ -140,11 +144,9 @@ function InstrumentCombobox({
       <PopoverTrigger asChild>
         <Button
           data-testid="instrument-select"
-          variant="ghost"
-          size="sm"
           role="combobox"
           aria-expanded={open}
-          className="w-44 justify-between font-normal"
+          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}
@@ -230,7 +232,7 @@ export function Transport({
     max: 300,
   });
 
-  // Keyboard shortcuts: M=metronome, Ctrl+F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
+  // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
     if (
       (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
@@ -242,7 +244,7 @@ export function Transport({
       e.preventDefault();
       setMetronomeEnabled(!metronomeEnabled);
     }
-    if (matchKeyboardEvent(e, "Ctrl+F") && !e.repeat) {
+    if (matchKeyboardEvent(e, "F") && !e.repeat) {
       e.preventDefault();
       setAutoScrollEnabled(!autoScrollEnabled);
     }
@@ -299,18 +301,6 @@ export function Transport({
       {/* Play/Pause button */}
       <PlayPauseButton />
 
-      {/* Metronome toggle */}
-      <Button
-        data-testid="metronome-toggle"
-        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
-        variant={metronomeEnabled ? "default" : "ghost"}
-        size="icon"
-        title="Toggle metronome (M)"
-        aria-pressed={metronomeEnabled}
-      >
-        <MetronomeIcon className="size-5" />
-      </Button>
-
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
 
@@ -333,10 +323,8 @@ export function Transport({
         <Button
           data-testid="tap-tempo-button"
           onClick={handleTapTempo}
-          variant="ghost"
-          size="sm"
           title="Tap tempo"
-          className="text-xs px-1.5"
+          className="h-8 gap-1.5 px-1.5 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           TAP
         </Button>
@@ -350,9 +338,7 @@ export function Transport({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="time-signature-select"
-            variant="ghost"
-            size="sm"
-            className="gap-1 font-mono"
+            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             {timeSignature.numerator}/{timeSignature.denominator}
           </Button>
@@ -382,9 +368,7 @@ export function Transport({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            variant="ghost"
-            size="sm"
-            className="gap-1 font-mono"
+            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
             {gridSnap}
           </Button>
@@ -428,9 +412,8 @@ export function Transport({
       <Button
         data-testid="settings-button"
         onClick={onSettingsClick}
-        variant="ghost"
-        size="icon"
         title="Settings"
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
       >
         <SettingsIcon className="size-5" />
       </Button>
@@ -439,9 +422,8 @@ export function Transport({
       <Button
         data-testid="mixer-button"
         onClick={onMixerClick}
-        variant="ghost"
-        size="icon"
         title="Mixer"
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
       >
         <SlidersHorizontalIcon className="size-5" />
       </Button>
@@ -450,9 +432,8 @@ export function Transport({
       <Button
         data-testid="help-button"
         onClick={onHelpClick}
-        variant="ghost"
-        size="icon"
         title="Show keyboard shortcuts (?)"
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
       >
         <CircleHelpIcon className="size-5" />
       </Button>
