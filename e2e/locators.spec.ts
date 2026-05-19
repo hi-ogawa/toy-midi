@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { clickNewProject } from "./helpers";
 
+const LOCATOR_TRIANGLE_HEIGHT = 10;
+const LOCATOR_BOTTOM_GAP = 2;
+
 test.describe("Locators", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -39,7 +42,9 @@ test.describe("Locators", () => {
 
     await expect(timeline).toBeVisible();
     await expect(locator).toBeVisible();
-    expect(locatorTop).toBe(timelineHeight - 12);
+    expect(locatorTop).toBe(
+      timelineHeight - LOCATOR_TRIANGLE_HEIGHT - LOCATOR_BOTTOM_GAP,
+    );
   });
 
   test("add multiple locators", async ({ page }) => {
