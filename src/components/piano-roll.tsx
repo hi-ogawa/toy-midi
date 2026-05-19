@@ -725,6 +725,9 @@ export function PianoRoll() {
           (cursorCell - dragMode.cellOffset) * gridSnapValue,
         );
         const newPitch = clampPitch(pitch);
+        if (newPitch !== dragMode.startPitch) {
+          audioManager.playNote(newPitch);
+        }
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other selected notes too
         if (selectedNoteIds.size > 1) {
@@ -751,6 +754,9 @@ export function PianoRoll() {
           (cursorCell - dragMode.cellOffset) * gridSnapValue,
         );
         const newPitch = clampPitch(pitch);
+        if (newPitch !== dragMode.startPitch) {
+          audioManager.playNote(newPitch);
+        }
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other duplicate notes too
         if (dragMode.duplicateNoteIds.length > 1) {
