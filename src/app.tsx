@@ -181,6 +181,25 @@ function Editor({ projectId }: EditorProps) {
     true,
   );
 
+  // ? to toggle help overlay
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      if (e.key !== "?") return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+      setIsHelpOpen((prev) => !prev);
+    },
+    true,
+  );
+
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
