@@ -19,6 +19,29 @@ test.describe("Locators", () => {
     await expect(locator.getByText("Section 1")).toBeVisible();
   });
 
+  test("locator marker sits near bottom of timeline", async ({ page }) => {
+    await page.keyboard.press("l");
+
+    const timeline = page.getByTestId("timeline");
+    const locator = page.locator("[data-testid^='locator-']").first();
+
+    const { timelineHeight, locatorTop } = await page.evaluate(() => {
+      const timeline = document.querySelector('[data-testid="timeline"]');
+      const locator = document.querySelector('[data-testid^="locator-"]');
+      if (!(timeline instanceof HTMLElement) || !(locator instanceof HTMLElement)) {
+        throw new Error("Timeline or locator not found");
+      }
+      return {
+        timelineHeight: Number.parseFloat(getComputedStyle(timeline).height),
+        locatorTop: Number.parseFloat(locator.style.top),
+      };
+    });
+
+    await expect(timeline).toBeVisible();
+    await expect(locator).toBeVisible();
+    expect(locatorTop).toBe(timelineHeight - 12);
+  });
+
   test("add multiple locators", async ({ page }) => {
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();

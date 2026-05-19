@@ -1529,6 +1529,8 @@ function Keyboard({
 
 // Minimum pixel spacing for timeline labels to avoid overlap
 const MIN_LABEL_SPACING = 30;
+const LOCATOR_TRIANGLE_HEIGHT = 10;
+const LOCATOR_BOTTOM_GAP = 2;
 
 function Timeline({
   pixelsPerBeat,
@@ -1628,9 +1630,10 @@ function Timeline({
       {/* Locators
           Geometry: CSS triangle using border trick on a 0×0 element.
           - border-l/r: half of triangle width (6px each = 12px wide)
-          - border-t: triangle height (10px)
+          - border-t: triangle height (LOCATOR_TRIANGLE_HEIGHT)
           - Container left: x - 5 to center the 12px triangle on position
-          - Container top: 28 so triangle (10px tall) ends at 38px near bottom
+          - Container top: TIMELINE_HEIGHT - LOCATOR_TRIANGLE_HEIGHT - LOCATOR_BOTTOM_GAP
+            so the triangle stays near the bottom of the timeline with a small gap
       */}
       {visibleLocators.map((locator) => {
         const x = (locator.position - scrollX) * beatWidth;
@@ -1640,7 +1643,13 @@ function Timeline({
             key={locator.id}
             data-testid={`locator-${locator.id}`}
             className="absolute group"
-            style={{ left: x - 5, top: 28 }}
+            style={{
+              left: x - 5,
+              top:
+                TIMELINE_HEIGHT -
+                LOCATOR_TRIANGLE_HEIGHT -
+                LOCATOR_BOTTOM_GAP,
+            }}
             onClick={(e) => {
               e.stopPropagation();
               onSelectLocator(locator.id);
