@@ -17,13 +17,6 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
-export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
-  return (
-    (target instanceof HTMLInputElement && target.type !== "range") ||
-    target instanceof HTMLTextAreaElement
-  );
-}
-
 const SPECIAL_KEYS: Record<string, { code: string; key: string }> = {
   Space: { code: "Space", key: " " },
   Escape: { code: "Escape", key: "Escape" },
@@ -116,4 +109,11 @@ export function matchKeyboardEvent(
   }
 
   return false;
+}
+
+export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
+  return (
+    (target instanceof HTMLInputElement && target.type !== "range") ||
+    target instanceof HTMLTextAreaElement
+  );
 }
