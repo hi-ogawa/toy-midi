@@ -13,7 +13,7 @@ import { useDraftInput } from "../hooks/use-draft-input";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
-import { matchKeyboardEvent } from "../lib/keyboard";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { cn } from "../lib/utils";
 import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
@@ -77,10 +77,7 @@ function PlayPauseButton() {
 
   // Space key shortcut
   useWindowEvent("keydown", (e) => {
-    if (
-      (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-      e.target instanceof HTMLTextAreaElement
-    ) {
+    if (isShortcutTextInputTarget(e.target)) {
       return;
     }
     if (matchKeyboardEvent(e, "Space") && !e.repeat) {
@@ -234,10 +231,7 @@ export function Transport({
 
   // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
   useWindowEvent("keydown", (e) => {
-    if (
-      (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-      e.target instanceof HTMLTextAreaElement
-    ) {
+    if (isShortcutTextInputTarget(e.target)) {
       return;
     }
     if (matchKeyboardEvent(e, "M") && !e.repeat) {

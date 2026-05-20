@@ -82,6 +82,13 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Add locator at playhead",
     category: "editing",
   },
+
+  // Navigation
+  {
+    key: "?",
+    description: "Show keyboard shortcuts",
+    category: "navigation",
+  },
 ];
 
 export const MOUSE_ACTIONS: MouseAction[] = [
