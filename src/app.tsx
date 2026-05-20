@@ -12,7 +12,7 @@ import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
-import { matchKeyboardEvent } from "./lib/keyboard";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { importProjectAudio, parseProjectFile } from "./lib/project-file";
 import {
   createProject,
@@ -159,11 +159,13 @@ function Editor({ projectId }: EditorProps) {
     document.title = `${projectName} - Toy MIDI`;
   }, [projectName]);
 
-  // Escape to close overlays
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      if (!matchKeyboardEvent(e, "Escape")) return;
+  // Keyboard shortcuts for overlays
+  useWindowEvent("keydown", (e) => {
+    if (isShortcutTextInputTarget(e.target)) {
+      return;
+    }
+
+    if (matchKeyboardEvent(e, "Escape")) {
       if (isSettingsOpen) {
         e.preventDefault();
         e.stopPropagation();
@@ -177,28 +179,12 @@ function Editor({ projectId }: EditorProps) {
         e.stopPropagation();
         setIsHelpOpen(false);
       }
-    },
-    true,
-  );
-
-  // ? to toggle help overlay
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      if (e.key !== "?") return;
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
+    }
+    if (e.key === "?" && !e.repeat) {
       e.preventDefault();
       setIsHelpOpen((prev) => !prev);
-    },
-    true,
-  );
+    }
+  });
 
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
