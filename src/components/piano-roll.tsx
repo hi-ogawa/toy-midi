@@ -1057,10 +1057,10 @@ export function PianoRoll() {
           >
             {/* Metronome controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-2"
+              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
               style={{ height: TIMELINE_HEIGHT }}
             >
-              <div className="flex items-center justify-between text-[10px] text-neutral-400">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
                 <span className="uppercase tracking-wide">Metro</span>
                 <Toggle
                   data-testid="metronome-mute-toggle"
@@ -1096,10 +1096,10 @@ export function PianoRoll() {
             </div>
             {/* Audio controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-2"
+              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
               style={{ height: waveformHeight }}
             >
-              <div className="flex items-center justify-between text-[10px] text-neutral-400">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   value={audioMuted}
@@ -1133,8 +1133,8 @@ export function PianoRoll() {
               </div>
             </div>
             {/* MIDI controls */}
-            <div className="flex-1 p-2 flex flex-col gap-2">
-              <div className="flex items-center justify-between text-[10px] text-neutral-400">
+            <div className="flex-1 p-2 flex flex-col gap-3">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
                   value={midiMuted}
