@@ -49,5 +49,13 @@ test.describe("Help Overlay", () => {
     await expect(page.getByTestId("help-overlay")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
+
+    // Open with ? shortcut
+    await page.keyboard.press("?");
+    await expect(page.getByTestId("help-overlay")).toBeVisible();
+
+    // Toggle closed with ? shortcut
+    await page.keyboard.press("?");
+    await expect(page.getByTestId("help-overlay")).not.toBeVisible();
   });
 });

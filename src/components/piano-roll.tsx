@@ -10,7 +10,7 @@ import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
-import { matchKeyboardEvent } from "../lib/keyboard";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
   isBlackKey,
   MAX_PITCH,
@@ -388,10 +388,7 @@ export function PianoRoll() {
   // Handle keyboard events
   useWindowEvent("keydown", (e) => {
     // Don't trigger shortcuts if typing in an input
-    if (
-      (e.target instanceof HTMLInputElement && e.target.type !== "range") ||
-      e.target instanceof HTMLTextAreaElement
-    ) {
+    if (isShortcutTextInputTarget(e.target)) {
       return;
     }
 

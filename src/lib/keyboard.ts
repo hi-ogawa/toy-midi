@@ -110,3 +110,10 @@ export function matchKeyboardEvent(
 
   return false;
 }
+
+export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
+  return (
+    (target instanceof HTMLInputElement && target.type !== "range") ||
+    target instanceof HTMLTextAreaElement
+  );
+}
