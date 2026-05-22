@@ -3,8 +3,8 @@ import { Button } from "./ui/button";
 
 interface FileDropInputProps extends React.ComponentProps<typeof Button> {
   accept: string;
-  inputProps?: React.ComponentProps<"input">;
   onFile: (file: File) => void;
+  inputProps?: React.ComponentProps<"input"> & { "data-testid"?: string };
 }
 
 export function FileDropInput({
