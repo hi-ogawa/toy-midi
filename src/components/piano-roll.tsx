@@ -35,11 +35,11 @@ import { Toggle } from "./ui/toggle";
 
 // Layout constants
 const KEYBOARD_WIDTH = 50;
-const TRACK_CONTROL_WIDTH = 130;
+const TRACK_CONTROL_WIDTH = 140;
 const LEFT_PANEL_WIDTH = TRACK_CONTROL_WIDTH + KEYBOARD_WIDTH;
-const TIMELINE_HEIGHT = 60;
-const MIN_WAVEFORM_HEIGHT = 60;
-const MAX_WAVEFORM_HEIGHT = 200;
+const TIMELINE_HEIGHT = 56;
+const MIN_WAVEFORM_HEIGHT = 56;
+const MAX_WAVEFORM_HEIGHT = 300;
 
 // Zoom limits (pixels per beat/key)
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
@@ -1050,17 +1050,17 @@ export function PianoRoll() {
       {/* Main content area - fixed layout, no native scroll */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: track controls + keyboard labels */}
-        <div className="shrink-0 flex bg-neutral-900">
+        <div className="shrink-0 flex gap-1 bg-neutral-900">
           <div
             className="shrink-0 flex flex-col"
             style={{ width: TRACK_CONTROL_WIDTH }}
           >
             {/* Metronome controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
+              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-2"
               style={{ height: TIMELINE_HEIGHT }}
             >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+              <div className="flex items-center justify-between text-[10px] text-neutral-400">
                 <span className="uppercase tracking-wide">Metro</span>
                 <Toggle
                   data-testid="metronome-mute-toggle"
@@ -1073,7 +1073,7 @@ export function PianoRoll() {
                       : "Unmute metronome (M)"
                   }
                   className={cn(
-                    "h-5 min-w-5 px-0 text-[10px]",
+                    "size-4.5",
                     !metronomeEnabled &&
                       "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
                   )}
@@ -1096,10 +1096,10 @@ export function PianoRoll() {
             </div>
             {/* Audio controls */}
             <div
-              className="shrink-0 border-b border-neutral-700 px-2 pt-3"
+              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-2"
               style={{ height: waveformHeight }}
             >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   value={audioMuted}
@@ -1133,8 +1133,8 @@ export function PianoRoll() {
               </div>
             </div>
             {/* MIDI controls */}
-            <div className="flex-1 px-2 pt-3">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-3">
+            <div className="flex-1 p-2 flex flex-col gap-2">
+              <div className="flex items-center justify-between text-[11px] text-neutral-400">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
                   value={midiMuted}
