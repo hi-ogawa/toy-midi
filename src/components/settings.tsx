@@ -270,7 +270,7 @@ export function Settings({
               accept="audio/*"
               data-testid="load-audio-button"
               disabled={loadAudioMutation.isPending}
-              inputProps={{ "data-testid": "audio-file-input" }}
+              inputProps={{ "data-testid": "audio-file-input" } as any}
               className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               onFile={(file) => loadAudioMutation.mutate(file)}
             >

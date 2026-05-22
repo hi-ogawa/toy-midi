@@ -1,39 +1,17 @@
 import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 
-type DataAttributes = {
-  [key: `data-${string}`]: string | undefined;
-};
-
-type FileDropInputProps = {
+interface FileDropInputProps extends React.ComponentProps<typeof Button> {
   accept: string;
-  disabled?: boolean;
-  inputProps?: Omit<
-    React.ComponentProps<"input">,
-    "accept" | "className" | "disabled" | "onChange" | "ref" | "type"
-  > &
-    DataAttributes;
+  inputProps?: React.ComponentProps<"input">;
   onFile: (file: File) => void;
-  children: React.ReactNode;
-} & Omit<
-  React.ComponentProps<typeof Button>,
-  | "children"
-  | "disabled"
-  | "onClick"
-  | "onDragEnter"
-  | "onDragLeave"
-  | "onDragOver"
-  | "onDrop"
-  | "type"
->;
+}
 
 export function FileDropInput({
   accept,
-  disabled = false,
+  disabled,
   inputProps,
   onFile,
-  children,
-  className,
   ...buttonProps
 }: FileDropInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -87,10 +65,7 @@ export function FileDropInput({
           event.preventDefault();
         }}
         onDrop={handleDrop}
-        className={className}
-      >
-        {children}
-      </Button>
+      />
     </>
   );
 }
