@@ -7,7 +7,6 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useRef } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import {
@@ -22,6 +21,7 @@ import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import { toSavedProject, useProjectStore } from "../stores/project-store";
+import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
 type SettingsProps = {
@@ -57,9 +57,6 @@ export function Settings({
     setAudioView,
     clearAudioFile,
   } = useProjectStore();
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const midiFileInputRef = useRef<HTMLInputElement>(null);
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -115,32 +112,6 @@ export function Settings({
       setAudioView(audioView);
     },
   });
-
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      loadAudioMutation.mutate(file);
-    }
-    // Reset input so same file can be selected again
-    e.target.value = "";
-  };
-
-  const handleImportMidiClick = () => {
-    midiFileInputRef.current?.click();
-  };
-
-  const handleMidiFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      importMidiMutation.mutate(file);
-    }
-    // Reset input so same file can be selected again
-    e.target.value = "";
-  };
 
   const handleRemoveAudio = async () => {
     // Delete from IndexedDB if we have a key
@@ -219,24 +190,6 @@ export function Settings({
 
   return (
     <div className="space-y-6">
-      {/* Hidden file inputs */}
-      <input
-        data-testid="audio-file-input"
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-      <input
-        data-testid="midi-file-input"
-        ref={midiFileInputRef}
-        type="file"
-        accept=".mid,.midi"
-        onChange={handleMidiFileChange}
-        className="hidden"
-      />
-
       {/* Project Section */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
@@ -287,15 +240,17 @@ export function Settings({
             </div>
           )}
           <div className="flex gap-2">
-            <Button
+            <FileDropInput
+              accept="audio/*"
               data-testid="load-audio-button"
-              onClick={handleLoadClick}
               disabled={loadAudioMutation.isPending}
-              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+              inputProps={{ "data-testid": "audio-file-input" }}
+              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+              onFile={(file) => loadAudioMutation.mutate(file)}
             >
               <UploadIcon className="size-4" />
               {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
-            </Button>
+            </FileDropInput>
             {audioFileName && (
               <Button
                 data-testid="remove-audio-button"
@@ -317,15 +272,17 @@ export function Settings({
           Import MIDI
         </h3>
         <div className="pl-6 space-y-2">
-          <Button
+          <FileDropInput
+            accept=".mid,.midi"
             data-testid="import-midi-button"
-            onClick={handleImportMidiClick}
             disabled={importMidiMutation.isPending}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            inputProps={{ "data-testid": "midi-file-input" }}
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+            onFile={(file) => importMidiMutation.mutate(file)}
           >
             <UploadIcon className="size-4" />
             {importMidiMutation.isPending ? "Importing..." : "Import MIDI File"}
-          </Button>
+          </FileDropInput>
           <p className="text-xs text-neutral-500">
             Import notes from MIDI file (replaces existing notes)
           </p>
