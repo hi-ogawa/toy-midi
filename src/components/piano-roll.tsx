@@ -300,7 +300,6 @@ export function PianoRoll() {
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
-  const previewPitchRef = useRef<number | null>(null);
 
   // Track viewport size
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
@@ -386,24 +385,24 @@ export function PianoRoll() {
     [pixelsPerBeat, pixelsPerKey, scrollX, scrollY],
   );
 
-  const previewPitch = useCallback((pitch: number) => {
-    if (previewPitchRef.current !== pitch) {
-      if (previewPitchRef.current !== null) {
-        audioManager.noteOff(previewPitchRef.current);
-      }
-      previewPitchRef.current = pitch;
+  const prevewNotePitchRef = useRef<number>(null);
+
+  const previewNote = useCallback((pitch: number) => {
+    if (prevewNotePitchRef.current !== pitch) {
+      stopPreviewNote();
+      prevewNotePitchRef.current = pitch;
       audioManager.noteOn(pitch);
     }
   }, []);
 
-  const stopPreview = useCallback(() => {
-    if (previewPitchRef.current !== null) {
-      audioManager.noteOff(previewPitchRef.current);
-      previewPitchRef.current = null;
+  const stopPreviewNote = useCallback(() => {
+    if (prevewNotePitchRef.current !== null) {
+      audioManager.noteOff(prevewNotePitchRef.current);
+      prevewNotePitchRef.current = null;
     }
   }, []);
 
-  useEffect(() => stopPreview, [stopPreview]);
+  useEffect(() => () => stopPreviewNote(), [stopPreviewNote]);
 
   // Handle keyboard events
   useWindowEvent("keydown", (e) => {
@@ -631,7 +630,7 @@ export function PianoRoll() {
           selectNotes(duplicateNoteIds, true);
 
           // Preview note sound on drag start
-          previewPitch(clickedNote.pitch);
+          previewNote(clickedNote.pitch);
 
           // Find the duplicate that corresponds to the clicked note
           const clickedIndex = notesToDuplicate.findIndex(
@@ -658,7 +657,7 @@ export function PianoRoll() {
             selectNotes([clickedNote.id], true);
           }
           // Preview note sound on drag start
-          previewPitch(clickedNote.pitch);
+          previewNote(clickedNote.pitch);
 
           // Capture original states of all selected notes for undo
           // Note: if clicked note wasn't selected, it's now the only selected one
@@ -698,7 +697,7 @@ export function PianoRoll() {
         } else {
           deselectAll();
           // Preview note sound on creation start
-          previewPitch(pitch);
+          previewNote(pitch);
           setDragMode({
             type: "creating",
             startBeat: snappedBeat,
@@ -718,7 +717,7 @@ export function PianoRoll() {
       selectNotes,
       deselectAll,
       setAudioTrackSelected,
-      previewPitch,
+      previewNote,
     ],
   );
 
@@ -744,7 +743,7 @@ export function PianoRoll() {
         );
         const newPitch = clampPitch(pitch);
         if (newPitch !== dragMode.startPitch) {
-          previewPitch(newPitch);
+          previewNote(newPitch);
         }
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other selected notes too
@@ -773,7 +772,7 @@ export function PianoRoll() {
         );
         const newPitch = clampPitch(pitch);
         if (newPitch !== dragMode.startPitch) {
-          previewPitch(newPitch);
+          previewNote(newPitch);
         }
         updateNote(dragMode.noteId, { start: newStart, pitch: newPitch });
         // Update other duplicate notes too
@@ -830,7 +829,7 @@ export function PianoRoll() {
       updateNote,
       selectedNoteIds,
       notes,
-      previewPitch,
+      previewNote,
     ],
   );
 
@@ -988,7 +987,7 @@ export function PianoRoll() {
     if (dragMode.type !== "none") {
       handleMouseUp();
     }
-    stopPreview();
+    stopPreviewNote();
   });
 
   // Generate grid background with scroll offset (use rounded values)
