@@ -385,24 +385,26 @@ export function PianoRoll() {
     [pixelsPerBeat, pixelsPerKey, scrollX, scrollY],
   );
 
-  const prevewNotePitchRef = useRef<number>(null);
+  const previewNoteRef = useRef<number>(null);
 
   const previewNote = useCallback((pitch: number) => {
-    if (prevewNotePitchRef.current !== pitch) {
+    if (previewNoteRef.current !== pitch) {
       stopPreviewNote();
-      prevewNotePitchRef.current = pitch;
+      previewNoteRef.current = pitch;
       audioManager.noteOn(pitch);
     }
   }, []);
 
   const stopPreviewNote = useCallback(() => {
-    if (prevewNotePitchRef.current !== null) {
-      audioManager.noteOff(prevewNotePitchRef.current);
-      prevewNotePitchRef.current = null;
+    if (previewNoteRef.current !== null) {
+      audioManager.noteOff(previewNoteRef.current);
+      previewNoteRef.current = null;
     }
   }, []);
 
-  useEffect(() => () => stopPreviewNote(), [stopPreviewNote]);
+  useEffect(() => {
+    return () => stopPreviewNote();
+  }, [stopPreviewNote]);
 
   // Handle keyboard events
   useWindowEvent("keydown", (e) => {
