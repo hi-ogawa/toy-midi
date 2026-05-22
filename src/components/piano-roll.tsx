@@ -1099,7 +1099,7 @@ export function PianoRoll() {
               className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-2"
               style={{ height: waveformHeight }}
             >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
+              <div className="flex items-center justify-between text-[10px] text-neutral-400">
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   value={audioMuted}
@@ -1111,7 +1111,7 @@ export function PianoRoll() {
                       : "Mute audio (Shift+2)"
                   }
                   className={cn(
-                    "h-5 min-w-5 px-0 text-[10px]",
+                    "size-4.5",
                     audioMuted &&
                       "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
                   )}
@@ -1134,7 +1134,7 @@ export function PianoRoll() {
             </div>
             {/* MIDI controls */}
             <div className="flex-1 p-2 flex flex-col gap-2">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
+              <div className="flex items-center justify-between text-[10px] text-neutral-400">
                 <span className="uppercase tracking-wide">MIDI</span>
                 <Toggle
                   value={midiMuted}
@@ -1144,7 +1144,7 @@ export function PianoRoll() {
                     midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
                   }
                   className={cn(
-                    "h-5 min-w-5 px-0 text-[10px]",
+                    "size-4.5",
                     midiMuted &&
                       "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
                   )}
