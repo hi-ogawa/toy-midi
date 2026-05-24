@@ -36,7 +36,13 @@ describe("MusicXML export integration", () => {
         velocity: 100,
       },
     ];
-    const xml = exportMusicXML({ notes, tempo: 120, title: "OSMD Smoke" });
+    const xml = exportMusicXML({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "OSMD Smoke",
+      partName: "Bass",
+    });
     const container = document.createElement("div");
     document.body.appendChild(container);
     const osmd = new OpenSheetMusicDisplay(container, {

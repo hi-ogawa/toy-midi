@@ -14,7 +14,13 @@ describe("MusicXML export", () => {
       },
     ];
 
-    const xml = exportMusicXML({ notes, tempo: 120 });
+    const xml = exportMusicXML({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+      partName: "Bass",
+    });
 
     expect(xml).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
@@ -75,7 +81,13 @@ describe("MusicXML export", () => {
   });
 
   it("exports a full-measure rest for an empty score", () => {
-    const xml = exportMusicXML({ notes: [], tempo: 120 });
+    const xml = exportMusicXML({
+      notes: [],
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+      partName: "Bass",
+    });
 
     expect(xml).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
@@ -143,7 +155,13 @@ describe("MusicXML export", () => {
       },
     ];
 
-    const xml = exportMusicXML({ notes, tempo: 120 });
+    const xml = exportMusicXML({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+      partName: "Bass",
+    });
 
     expect(xml).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
@@ -235,7 +253,13 @@ describe("MusicXML export", () => {
       },
     ];
 
-    const xml = exportMusicXML({ notes, tempo: 120 });
+    const xml = exportMusicXML({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+      partName: "Bass",
+    });
 
     expect(xml).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
@@ -316,7 +340,13 @@ describe("MusicXML export", () => {
       },
     ];
 
-    const xml = exportMusicXML({ notes, tempo: 120 });
+    const xml = exportMusicXML({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+      partName: "Bass",
+    });
 
     expect(xml).toMatchInlineSnapshot(`
       "<?xml version="1.0" encoding="UTF-8"?>
@@ -417,6 +447,8 @@ describe("MusicXML export", () => {
       notes,
       tempo: 120,
       timeSignature: { numerator: 6, denominator: 8 },
+      title: "Untitled",
+      partName: "Bass",
     });
 
     expect(xml).toMatchInlineSnapshot(`

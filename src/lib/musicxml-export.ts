@@ -3,13 +3,12 @@ import { Note, TimeSignature } from "../types";
 export interface MusicXMLExportOptions {
   notes: Note[];
   tempo: number;
-  timeSignature?: TimeSignature;
-  title?: string;
-  partName?: string;
+  timeSignature: TimeSignature;
+  title: string;
+  partName: string;
 }
 
 const DIVISIONS_PER_QUARTER = 24;
-const DEFAULT_TIME_SIGNATURE: TimeSignature = { numerator: 4, denominator: 4 };
 
 type PitchInfo = {
   step: string;
@@ -332,13 +331,7 @@ function pushMeasure(
 }
 
 export function exportMusicXML(options: MusicXMLExportOptions): string {
-  const {
-    notes,
-    tempo,
-    timeSignature = DEFAULT_TIME_SIGNATURE,
-    title = "Untitled",
-    partName = "Bass",
-  } = options;
+  const { notes, tempo, timeSignature, title, partName } = options;
   const sortedNotes = [...notes].sort((a, b) => {
     if (a.start !== b.start) {
       return a.start - b.start;
