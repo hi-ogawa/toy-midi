@@ -41,7 +41,7 @@ export function ScorePreview({ projectName }: ScorePreviewProps) {
         });
       }
     },
-    [notes, projectName, renderMutation, tempo, timeSignature],
+    [notes, projectName, renderMutation.mutate, tempo, timeSignature],
   );
 
   return (
