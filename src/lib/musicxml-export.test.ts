@@ -315,7 +315,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 
@@ -374,7 +375,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 
@@ -474,7 +476,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 
@@ -570,7 +573,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 
@@ -675,7 +679,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 
@@ -753,7 +758,8 @@ describe("MusicXML export", () => {
             </note>
           </measure>
         </part>
-      </score-partwise>"
+      </score-partwise>
+      "
     `);
   });
 });

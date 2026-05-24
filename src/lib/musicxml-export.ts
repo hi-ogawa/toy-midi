@@ -76,15 +76,6 @@ type MusicXMLNote = {
   tieStop?: boolean;
 };
 
-type XmlNode =
-  | string
-  | {
-      name: string;
-      attrs?: Record<string, string | number>;
-      children?: XmlNode[];
-    };
-type XmlChild = XmlNode | false | null | undefined | XmlChild[];
-
 const PITCH_STEPS: Array<{ step: string; alter?: number }> = [
   { step: "C" },
   { step: "C", alter: 1 },
@@ -147,39 +138,6 @@ function measureDurationDivisions(timeSignature: TimeSignature): number {
   );
 }
 
-function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function serializeXmlNode(node: XmlNode, indent: string = ""): string {
-  if (typeof node === "string") {
-    return `${indent}${xmlEscape(node)}`;
-  }
-
-  const attrs = Object.entries(node.attrs ?? {})
-    .map(([key, value]) => ` ${key}="${xmlEscape(String(value))}"`)
-    .join("");
-  const children = node.children ?? [];
-
-  if (children.length === 0) {
-    return `${indent}<${node.name}${attrs}/>`;
-  }
-
-  if (children.length === 1 && typeof children[0] === "string") {
-    return `${indent}<${node.name}${attrs}>${xmlEscape(children[0])}</${node.name}>`;
-  }
-  return [
-    `${indent}<${node.name}${attrs}>`,
-    ...children.map((child) => serializeXmlNode(child, `${indent}  `)),
-    `${indent}</${node.name}>`,
-  ].join("\n");
-}
-
 function midiToPitch(pitch: number): PitchInfo {
   const pitchClass = pitch % 12;
   const pitchStep = PITCH_STEPS[pitchClass];
@@ -189,127 +147,6 @@ function midiToPitch(pitch: number): PitchInfo {
     alter: pitchStep.alter,
     octave: Math.floor(pitch / 12) - 1,
   };
-}
-
-function serializeMusicXMLScore(score: MusicXMLScore): string {
-  function normalizeChildren(children: XmlChild[]): XmlNode[] {
-    return children.flatMap((child): XmlNode[] => {
-      if (child === false || child === null || child === undefined) {
-        return [];
-      }
-      if (Array.isArray(child)) {
-        return normalizeChildren(child);
-      }
-      return [child];
-    });
-  }
-
-  function h(
-    name: string,
-    attrsOrChildren?: Record<string, string | number> | XmlChild[],
-    children?: XmlChild[],
-  ): XmlNode {
-    if (Array.isArray(attrsOrChildren)) {
-      return { name, children: normalizeChildren(attrsOrChildren) };
-    }
-    return {
-      name,
-      attrs: attrsOrChildren,
-      children: normalizeChildren(children ?? []),
-    };
-  }
-
-  const documentNode = h("score-partwise", { version: "4.0" }, [
-    h("work", [h("work-title", [score.title])]),
-    h("movement-title", [score.title]),
-    h("part-list", [
-      h("score-part", { id: score.part.id }, [
-        h("part-name", [score.part.name]),
-      ]),
-    ]),
-    h(
-      "part",
-      { id: score.part.id },
-      score.part.measures.map((measure) => {
-        return h("measure", { number: measure.number }, [
-          measure.attributes &&
-            h("attributes", [
-              h("divisions", [String(measure.attributes.divisions)]),
-              h("key", [h("fifths", [String(measure.attributes.keyFifths)])]),
-              h("time", [
-                h("beats", [
-                  String(measure.attributes.timeSignature.numerator),
-                ]),
-                h("beat-type", [
-                  String(measure.attributes.timeSignature.denominator),
-                ]),
-              ]),
-              h("clef", [
-                h("sign", [measure.attributes.clef.sign]),
-                h("line", [String(measure.attributes.clef.line)]),
-              ]),
-            ]),
-          measure.direction &&
-            h("direction", { placement: "above" }, [
-              h("direction-type", [
-                h("metronome", [
-                  h("beat-unit", ["quarter"]),
-                  h("per-minute", [String(measure.direction.tempo)]),
-                ]),
-              ]),
-              h("sound", { tempo: measure.direction.tempo }),
-            ]),
-          measure.notes.map((note) =>
-            h("note", [
-              note.chord && h("chord"),
-              note.rest && h("rest"),
-              note.pitch &&
-                h("pitch", [
-                  h("step", [note.pitch.step]),
-                  note.pitch.alter !== undefined &&
-                    h("alter", [String(note.pitch.alter)]),
-                  h("octave", [String(note.pitch.octave)]),
-                ]),
-              h("duration", [String(note.durationDivisions)]),
-              note.tieStop && h("tie", { type: "stop" }),
-              note.tieStart && h("tie", { type: "start" }),
-              h("voice", [String(note.voice)]),
-              note.notationDuration && [
-                h("type", [note.notationDuration.type]),
-                Array.from({ length: note.notationDuration.dots }, () =>
-                  h("dot"),
-                ),
-                note.notationDuration.timeModification &&
-                  h("time-modification", [
-                    h("actual-notes", [
-                      String(
-                        note.notationDuration.timeModification.actualNotes,
-                      ),
-                    ]),
-                    h("normal-notes", [
-                      String(
-                        note.notationDuration.timeModification.normalNotes,
-                      ),
-                    ]),
-                  ]),
-              ],
-              (note.tieStop || note.tieStart) &&
-                h("notations", [
-                  note.tieStop && h("tied", { type: "stop" }),
-                  note.tieStart && h("tied", { type: "start" }),
-                ]),
-            ]),
-          ),
-        ]);
-      }),
-    ),
-  ]);
-
-  return [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
-    serializeXmlNode(documentNode),
-  ].join("\n");
 }
 
 function getNotationDuration(
@@ -480,4 +317,170 @@ export function buildMusicXMLScore(
 
 export function exportMusicXML(options: MusicXMLExportOptions): string {
   return serializeMusicXMLScore(buildMusicXMLScore(options));
+}
+
+function serializeMusicXMLScore(score: MusicXMLScore): string {
+  const documentNode = h("score-partwise", { version: "4.0" }, [
+    h("work", [h("work-title", [score.title])]),
+    h("movement-title", [score.title]),
+    h("part-list", [
+      h("score-part", { id: score.part.id }, [
+        h("part-name", [score.part.name]),
+      ]),
+    ]),
+    h(
+      "part",
+      { id: score.part.id },
+      score.part.measures.map((measure) => {
+        return h("measure", { number: measure.number }, [
+          measure.attributes &&
+            h("attributes", [
+              h("divisions", [String(measure.attributes.divisions)]),
+              h("key", [h("fifths", [String(measure.attributes.keyFifths)])]),
+              h("time", [
+                h("beats", [
+                  String(measure.attributes.timeSignature.numerator),
+                ]),
+                h("beat-type", [
+                  String(measure.attributes.timeSignature.denominator),
+                ]),
+              ]),
+              h("clef", [
+                h("sign", [measure.attributes.clef.sign]),
+                h("line", [String(measure.attributes.clef.line)]),
+              ]),
+            ]),
+          measure.direction &&
+            h("direction", { placement: "above" }, [
+              h("direction-type", [
+                h("metronome", [
+                  h("beat-unit", ["quarter"]),
+                  h("per-minute", [String(measure.direction.tempo)]),
+                ]),
+              ]),
+              h("sound", { tempo: measure.direction.tempo }),
+            ]),
+          measure.notes.map((note) =>
+            h("note", [
+              note.chord && h("chord"),
+              note.rest && h("rest"),
+              note.pitch &&
+                h("pitch", [
+                  h("step", [note.pitch.step]),
+                  note.pitch.alter !== undefined &&
+                    h("alter", [String(note.pitch.alter)]),
+                  h("octave", [String(note.pitch.octave)]),
+                ]),
+              h("duration", [String(note.durationDivisions)]),
+              note.tieStop && h("tie", { type: "stop" }),
+              note.tieStart && h("tie", { type: "start" }),
+              h("voice", [String(note.voice)]),
+              note.notationDuration && [
+                h("type", [note.notationDuration.type]),
+                Array.from({ length: note.notationDuration.dots }, () =>
+                  h("dot"),
+                ),
+                note.notationDuration.timeModification &&
+                  h("time-modification", [
+                    h("actual-notes", [
+                      String(
+                        note.notationDuration.timeModification.actualNotes,
+                      ),
+                    ]),
+                    h("normal-notes", [
+                      String(
+                        note.notationDuration.timeModification.normalNotes,
+                      ),
+                    ]),
+                  ]),
+              ],
+              (note.tieStop || note.tieStart) &&
+                h("notations", [
+                  note.tieStop && h("tied", { type: "stop" }),
+                  note.tieStart && h("tied", { type: "start" }),
+                ]),
+            ]),
+          ),
+        ]);
+      }),
+    ),
+  ]);
+
+  return `\
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+${serializeXmlNode(documentNode)}
+`;
+}
+
+// xml utils
+
+type XmlNode =
+  | string
+  | {
+      name: string;
+      attrs?: Record<string, string | number>;
+      children?: XmlNode[];
+    };
+
+type XmlChild = XmlNode | false | null | undefined | XmlChild[];
+
+function h(
+  name: string,
+  attrsOrChildren?: Record<string, string | number> | XmlChild[],
+  children?: XmlChild[],
+): XmlNode {
+  if (Array.isArray(attrsOrChildren)) {
+    return { name, children: normalizeXmlChildren(attrsOrChildren) };
+  }
+  return {
+    name,
+    attrs: attrsOrChildren,
+    children: normalizeXmlChildren(children ?? []),
+  };
+}
+
+function normalizeXmlChildren(children: XmlChild[]): XmlNode[] {
+  return children.flatMap((child): XmlNode[] => {
+    if (child === false || child === null || child === undefined) {
+      return [];
+    }
+    if (Array.isArray(child)) {
+      return normalizeXmlChildren(child);
+    }
+    return [child];
+  });
+}
+
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function serializeXmlNode(node: XmlNode, indent: string = ""): string {
+  if (typeof node === "string") {
+    return `${indent}${xmlEscape(node)}`;
+  }
+
+  const attrs = Object.entries(node.attrs ?? {})
+    .map(([key, value]) => ` ${key}="${xmlEscape(String(value))}"`)
+    .join("");
+  const children = node.children ?? [];
+
+  if (children.length === 0) {
+    return `${indent}<${node.name}${attrs}/>`;
+  }
+
+  if (children.length === 1 && typeof children[0] === "string") {
+    return `${indent}<${node.name}${attrs}>${xmlEscape(children[0])}</${node.name}>`;
+  }
+  return [
+    `${indent}<${node.name}${attrs}>`,
+    ...children.map((child) => serializeXmlNode(child, `${indent}  `)),
+    `${indent}</${node.name}>`,
+  ].join("\n");
 }
