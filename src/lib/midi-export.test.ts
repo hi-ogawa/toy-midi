@@ -22,7 +22,12 @@ describe("MIDI Export", () => {
     ];
 
     const tempo = 120;
-    const midiData = exportMidi({ notes, tempo });
+    const midiData = exportMidi({
+      notes,
+      tempo,
+      timeSignature: { numerator: 4, denominator: 4 },
+      trackName: "Piano Roll",
+    });
 
     // Check that we got a Uint8Array
     expect(midiData).toBeInstanceOf(Uint8Array);
@@ -39,7 +44,12 @@ describe("MIDI Export", () => {
   });
 
   it("should handle empty notes array", () => {
-    const midiData = exportMidi({ notes: [], tempo: 120 });
+    const midiData = exportMidi({
+      notes: [],
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      trackName: "Piano Roll",
+    });
 
     expect(midiData).toBeInstanceOf(Uint8Array);
     expect(midiData.byteLength).toBeGreaterThan(0);
@@ -63,7 +73,12 @@ describe("MIDI Export", () => {
       },
     ];
 
-    const midiData = exportMidi({ notes, tempo: 120 });
+    const midiData = exportMidi({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      trackName: "Piano Roll",
+    });
     expect(midiData).toBeInstanceOf(Uint8Array);
   });
 
@@ -78,8 +93,18 @@ describe("MIDI Export", () => {
       },
     ];
 
-    const tempo60 = exportMidi({ notes, tempo: 60 });
-    const tempo240 = exportMidi({ notes, tempo: 240 });
+    const tempo60 = exportMidi({
+      notes,
+      tempo: 60,
+      timeSignature: { numerator: 4, denominator: 4 },
+      trackName: "Piano Roll",
+    });
+    const tempo240 = exportMidi({
+      notes,
+      tempo: 240,
+      timeSignature: { numerator: 4, denominator: 4 },
+      trackName: "Piano Roll",
+    });
 
     // Both should produce valid MIDI files
     expect(tempo60).toBeInstanceOf(Uint8Array);
@@ -105,6 +130,7 @@ describe("MIDI Export", () => {
     const midiData = exportMidi({
       notes,
       tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
       trackName: "My Custom Track",
     });
 
@@ -128,6 +154,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature34,
+      trackName: "Piano Roll",
     });
     expect(midiData34).toBeInstanceOf(Uint8Array);
     expect(midiData34.byteLength).toBeGreaterThan(0);
@@ -138,6 +165,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature54,
+      trackName: "Piano Roll",
     });
     expect(midiData54).toBeInstanceOf(Uint8Array);
     expect(midiData54.byteLength).toBeGreaterThan(0);
@@ -148,29 +176,10 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature68,
+      trackName: "Piano Roll",
     });
     expect(midiData68).toBeInstanceOf(Uint8Array);
     expect(midiData68.byteLength).toBeGreaterThan(0);
   });
 
-  it("should default to 4/4 time signature when not specified", () => {
-    const notes: Note[] = [
-      {
-        id: "note-1",
-        pitch: 60,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      },
-    ];
-
-    const midiData = exportMidi({
-      notes,
-      tempo: 120,
-      // timeSignature not provided, should default to 4/4
-    });
-
-    expect(midiData).toBeInstanceOf(Uint8Array);
-    expect(midiData.byteLength).toBeGreaterThan(0);
-  });
 });
