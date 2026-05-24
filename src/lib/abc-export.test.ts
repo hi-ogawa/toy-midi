@@ -14,7 +14,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -52,7 +57,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -83,7 +93,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -121,7 +136,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -152,7 +172,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -166,7 +191,12 @@ describe("ABC Export", () => {
   });
 
   it("should handle empty notes array", () => {
-    const abc = exportABC({ notes: [], tempo: 120 });
+    const abc = exportABC({
+      notes: [],
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -193,6 +223,7 @@ describe("ABC Export", () => {
     const abc = exportABC({
       notes,
       tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
       title: "My Custom Song",
     });
 
@@ -223,6 +254,7 @@ describe("ABC Export", () => {
       notes,
       tempo: 120,
       timeSignature: { numerator: 3, denominator: 4 },
+      title: "Untitled",
     });
     expect(abc34).toMatchInlineSnapshot(`
       "X:1
@@ -239,6 +271,7 @@ describe("ABC Export", () => {
       notes,
       tempo: 120,
       timeSignature: { numerator: 6, denominator: 8 },
+      title: "Untitled",
     });
     expect(abc68).toMatchInlineSnapshot(`
       "X:1
@@ -262,7 +295,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc60 = exportABC({ notes, tempo: 60 });
+    const abc60 = exportABC({
+      notes,
+      tempo: 60,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
     expect(abc60).toMatchInlineSnapshot(`
       "X:1
       T:Untitled
@@ -273,7 +311,12 @@ describe("ABC Export", () => {
       c |"
     `);
 
-    const abc180 = exportABC({ notes, tempo: 180 });
+    const abc180 = exportABC({
+      notes,
+      tempo: 180,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
     expect(abc180).toMatchInlineSnapshot(`
       "X:1
       T:Untitled
@@ -303,7 +346,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -334,7 +382,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -365,7 +418,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -396,7 +454,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
@@ -427,7 +490,12 @@ describe("ABC Export", () => {
       },
     ];
 
-    const abc = exportABC({ notes, tempo: 120 });
+    const abc = exportABC({
+      notes,
+      tempo: 120,
+      timeSignature: { numerator: 4, denominator: 4 },
+      title: "Untitled",
+    });
 
     expect(abc).toMatchInlineSnapshot(`
       "X:1
