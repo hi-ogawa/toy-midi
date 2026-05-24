@@ -164,72 +164,6 @@ function getNotationDuration(
   return DURATION_BY_DIVISIONS.get(durationDivisions);
 }
 
-function pushNotationDuration(
-  lines: string[],
-  notationDuration: NotationDuration | undefined,
-): void {
-  if (!notationDuration) {
-    return;
-  }
-
-  lines.push(`        <type>${notationDuration.type}</type>`);
-  for (let i = 0; i < notationDuration.dots; i++) {
-    lines.push("        <dot/>");
-  }
-  if (notationDuration.timeModification) {
-    lines.push("        <time-modification>");
-    lines.push(
-      `          <actual-notes>${notationDuration.timeModification.actualNotes}</actual-notes>`,
-    );
-    lines.push(
-      `          <normal-notes>${notationDuration.timeModification.normalNotes}</normal-notes>`,
-    );
-    lines.push("        </time-modification>");
-  }
-}
-
-function pushPitch(lines: string[], pitch: PitchInfo): void {
-  lines.push("        <pitch>");
-  lines.push(`          <step>${pitch.step}</step>`);
-  if (pitch.alter !== undefined) {
-    lines.push(`          <alter>${pitch.alter}</alter>`);
-  }
-  lines.push(`          <octave>${pitch.octave}</octave>`);
-  lines.push("        </pitch>");
-}
-
-function pushMusicXMLNote(lines: string[], note: MusicXMLNote): void {
-  lines.push("      <note>");
-  if (note.chord) {
-    lines.push("        <chord/>");
-  }
-  if (note.rest) {
-    lines.push("        <rest/>");
-  } else if (note.pitch) {
-    pushPitch(lines, note.pitch);
-  }
-  lines.push(`        <duration>${note.durationDivisions}</duration>`);
-  if (note.tieStop) {
-    lines.push('        <tie type="stop"/>');
-  }
-  if (note.tieStart) {
-    lines.push('        <tie type="start"/>');
-  }
-  lines.push(`        <voice>${note.voice}</voice>`);
-  pushNotationDuration(lines, note.notationDuration);
-  if (note.tieStop || note.tieStart) {
-    lines.push("        <notations>");
-    if (note.tieStop) {
-      lines.push('          <tied type="stop"/>');
-    }
-    if (note.tieStart) {
-      lines.push('          <tied type="start"/>');
-    }
-    lines.push("        </notations>");
-  }
-  lines.push("      </note>");
-}
-
 function buildMeasureFragments(
   notes: Note[],
   measureStartDivisions: number,
@@ -443,7 +377,56 @@ function serializeMusicXMLScore(score: MusicXMLScore): string {
       lines.push("      </direction>");
     }
     for (const note of measure.notes) {
-      pushMusicXMLNote(lines, note);
+      lines.push("      <note>");
+      if (note.chord) {
+        lines.push("        <chord/>");
+      }
+      if (note.rest) {
+        lines.push("        <rest/>");
+      } else if (note.pitch) {
+        lines.push("        <pitch>");
+        lines.push(`          <step>${note.pitch.step}</step>`);
+        if (note.pitch.alter !== undefined) {
+          lines.push(`          <alter>${note.pitch.alter}</alter>`);
+        }
+        lines.push(`          <octave>${note.pitch.octave}</octave>`);
+        lines.push("        </pitch>");
+      }
+      lines.push(`        <duration>${note.durationDivisions}</duration>`);
+      if (note.tieStop) {
+        lines.push('        <tie type="stop"/>');
+      }
+      if (note.tieStart) {
+        lines.push('        <tie type="start"/>');
+      }
+      lines.push(`        <voice>${note.voice}</voice>`);
+      if (note.notationDuration) {
+        lines.push(`        <type>${note.notationDuration.type}</type>`);
+        for (let i = 0; i < note.notationDuration.dots; i++) {
+          lines.push("        <dot/>");
+        }
+        if (note.notationDuration.timeModification) {
+          lines.push("        <time-modification>");
+          lines.push(
+            `          <actual-notes>${note.notationDuration.timeModification.actualNotes}</actual-notes>`,
+          );
+          lines.push(
+            `          <normal-notes>${note.notationDuration.timeModification.normalNotes}</normal-notes>`,
+          );
+          lines.push("        </time-modification>");
+        }
+      }
+      if (note.tieStop || note.tieStart) {
+        lines.push("        <notations>");
+        if (note.tieStop) {
+          lines.push('          <tied type="stop"/>');
+        }
+        if (note.tieStart) {
+          lines.push('          <tied type="start"/>');
+        }
+        lines.push("        </notations>");
+      }
+      lines.push("      </note>");
     }
     lines.push("    </measure>");
   }
