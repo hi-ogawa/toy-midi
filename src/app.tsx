@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
 import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
+import { ScorePreview } from "./components/score-preview";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
@@ -239,9 +240,7 @@ function Editor({ projectId }: EditorProps) {
         title="Score Preview"
         testId="score-preview-dialog"
       >
-        <div className="min-h-64 rounded-md border border-neutral-700 bg-neutral-900 p-4 text-sm text-neutral-400">
-          Score preview renderer placeholder.
-        </div>
+        <ScorePreview projectName={projectName} />
       </Dialog>
     </div>
   );
