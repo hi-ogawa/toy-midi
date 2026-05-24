@@ -13,6 +13,9 @@ export default defineConfig({
     categories: {
       correctness: "off",
     },
+    rules: {
+      curly: "error",
+    },
   },
   staged: {
     "*": "vp check --fix",

@@ -17,7 +17,9 @@ type HelpItem = {
 };
 
 export function HelpOverlay({ isOpen, onClose }: HelpOverlayProps) {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   // Combine keyboard and mouse actions by category
   const categories = ["playback", "editing", "navigation"] as const;

@@ -24,10 +24,11 @@
   x.prototype.decode = function (g) {
     if (!C(g)) {
       var l = v.call(g);
-      if (l !== D && l !== A && l !== B)
+      if (l !== D && l !== A && l !== B) {
         throw TypeError(
           "Failed to execute 'decode' on 'TextDecoder': The provided value is not of type '(ArrayBuffer or ArrayBufferView)'",
         );
+      }
       g = q ? new t(g) : g || [];
     }
     for (
@@ -130,9 +131,12 @@
       );
       32 > k && (f = f.slice(0, (k - 32) | 0));
       if (b < c) {
-        if (((a[0] = n), (k = ~n >>> 31), (n = -1), f.length < l.length))
+        if (((a[0] = n), (k = ~n >>> 31), (n = -1), f.length < l.length)) {
           continue;
-      } else -1 !== n && (f += z(n));
+        }
+      } else {
+        -1 !== n && (f += z(n));
+      }
       l += f;
       f = "";
     }
@@ -147,12 +151,14 @@
       u = !q;
     for (b = 0; b < l; b = (b + 1) | 0, c = (c + 1) | 0) {
       var e = g.charCodeAt(b) | 0;
-      if (127 >= e) f[c] = e;
-      else {
-        if (2047 >= e) f[c] = 192 | (e >> 6);
-        else {
+      if (127 >= e) {
+        f[c] = e;
+      } else {
+        if (2047 >= e) {
+          f[c] = 192 | (e >> 6);
+        } else {
           a: {
-            if (55296 <= e)
+            if (55296 <= e) {
               if (56319 >= e) {
                 var d = g.charCodeAt((b = (b + 1) | 0)) | 0;
                 if (56320 <= d && 57343 >= d) {
@@ -167,7 +173,10 @@
                   break a;
                 }
                 e = 65533;
-              } else 57343 >= e && (e = 65533);
+              } else {
+                57343 >= e && (e = 65533);
+              }
+            }
             !u &&
               b << 1 < c &&
               b << 1 < ((c - 7) | 0) &&
@@ -193,8 +202,9 @@ const cachedTextDecoder = new TextDecoder("utf-8", {
 cachedTextDecoder.decode();
 let cachedUint8Memory0 = new Uint8Array();
 function getUint8Memory0() {
-  if (cachedUint8Memory0.byteLength === 0)
+  if (cachedUint8Memory0.byteLength === 0) {
     cachedUint8Memory0 = new Uint8Array(wasm.memory.buffer);
+  }
   return cachedUint8Memory0;
 }
 function getStringFromWasm0(ptr, len) {
@@ -204,7 +214,9 @@ const heap = new Array(32).fill(void 0);
 heap.push(void 0, null, true, false);
 let heap_next = heap.length;
 function addHeapObject(obj) {
-  if (heap_next === heap.length) heap.push(heap.length + 1);
+  if (heap_next === heap.length) {
+    heap.push(heap.length + 1);
+  }
   const idx = heap_next;
   heap_next = heap[idx];
   heap[idx] = obj;
@@ -212,15 +224,18 @@ function addHeapObject(obj) {
 }
 let cachedInt32Memory0 = new Int32Array();
 function getInt32Memory0() {
-  if (cachedInt32Memory0.byteLength === 0)
+  if (cachedInt32Memory0.byteLength === 0) {
     cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
+  }
   return cachedInt32Memory0;
 }
 function getObject(idx) {
   return heap[idx];
 }
 function dropObject(idx) {
-  if (idx < 36) return;
+  if (idx < 36) {
+    return;
+  }
   heap[idx] = heap_next;
   heap_next = idx;
 }
@@ -255,11 +270,15 @@ function passStringToWasm0(arg, malloc, realloc) {
   let offset = 0;
   for (; offset < len; offset++) {
     const code = arg.charCodeAt(offset);
-    if (code > 127) break;
+    if (code > 127) {
+      break;
+    }
     mem[ptr + offset] = code;
   }
   if (offset !== len) {
-    if (offset !== 0) arg = arg.slice(offset);
+    if (offset !== 0) {
+      arg = arg.slice(offset);
+    }
     ptr = realloc(ptr, len, (len = offset + arg.length * 3));
     const view = getUint8Memory0().subarray(ptr + offset, ptr + len);
     const ret = encodeString(arg, view);
@@ -276,8 +295,9 @@ function passArray8ToWasm0(arg, malloc) {
 }
 let cachedFloat32Memory0 = new Float32Array();
 function getFloat32Memory0() {
-  if (cachedFloat32Memory0.byteLength === 0)
+  if (cachedFloat32Memory0.byteLength === 0) {
     cachedFloat32Memory0 = new Float32Array(wasm.memory.buffer);
+  }
   return cachedFloat32Memory0;
 }
 function passArrayF32ToWasm0(arg, malloc) {
@@ -315,7 +335,9 @@ class SoundfontPlayer {
       var r0 = getInt32Memory0()[retptr / 4 + 0];
       var r1 = getInt32Memory0()[retptr / 4 + 1];
       var r2 = getInt32Memory0()[retptr / 4 + 2];
-      if (r2) throw takeObject(r1);
+      if (r2) {
+        throw takeObject(r1);
+      }
       return SoundfontPlayer.__wrap(r0);
     } finally {
       wasm.__wbindgen_add_to_stack_pointer(16);
@@ -342,7 +364,9 @@ class SoundfontPlayer {
       );
       var r0 = getInt32Memory0()[retptr / 4 + 0];
       var r1 = getInt32Memory0()[retptr / 4 + 1];
-      if (r1) throw takeObject(r0);
+      if (r1) {
+        throw takeObject(r0);
+      }
     } finally {
       wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -368,7 +392,9 @@ class SoundfontPlayer {
       );
       var r0 = getInt32Memory0()[retptr / 4 + 0];
       var r1 = getInt32Memory0()[retptr / 4 + 1];
-      if (r1) throw takeObject(r0);
+      if (r1) {
+        throw takeObject(r0);
+      }
     } finally {
       wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -391,7 +417,9 @@ class SoundfontPlayer {
       wasm.soundfontplayer_set_preset(retptr, this.ptr, ptr0, len0, ptr1, len1);
       var r0 = getInt32Memory0()[retptr / 4 + 0];
       var r1 = getInt32Memory0()[retptr / 4 + 1];
-      if (r1) throw takeObject(r0);
+      if (r1) {
+        throw takeObject(r0);
+      }
     } finally {
       wasm.__wbindgen_add_to_stack_pointer(16);
     }
@@ -403,7 +431,9 @@ class SoundfontPlayer {
       var r0 = getInt32Memory0()[retptr / 4 + 0];
       var r1 = getInt32Memory0()[retptr / 4 + 1];
       var r2 = getInt32Memory0()[retptr / 4 + 2];
-      if (r2) throw takeObject(r1);
+      if (r2) {
+        throw takeObject(r1);
+      }
       return takeObject(r0);
     } finally {
       wasm.__wbindgen_add_to_stack_pointer(16);
@@ -544,7 +574,9 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
   process(_inputs, outputs, _parameters) {
     const out_l = outputs[0]?.[0];
     const out_r = outputs[0]?.[1];
-    if (!soundfontPlayer || !out_l || !out_r) return true;
+    if (!soundfontPlayer || !out_l || !out_r) {
+      return true;
+    }
 
     // Process note-offs FIRST to ensure proper ordering when
     // note-off and note-on occur at the same frame

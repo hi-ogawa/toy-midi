@@ -29,7 +29,9 @@ function getProjectKey(projectId: string): string {
 // List all projects
 export function listProjects(): ProjectMetadata[] {
   const json = localStorage.getItem(PROJECT_LIST_KEY);
-  if (!json) return [];
+  if (!json) {
+    return [];
+  }
   const list = JSON.parse(json) as ProjectMetadata[];
   // Sort by updatedAt descending (most recent first)
   return list.sort((a, b) => b.updatedAt - a.updatedAt);

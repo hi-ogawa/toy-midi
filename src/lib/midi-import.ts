@@ -105,7 +105,9 @@ export async function importMidiNotes(
 
   for (const trackIndex of options.trackIndices) {
     const track = midi.tracks[trackIndex];
-    if (!track) continue;
+    if (!track) {
+      continue;
+    }
 
     for (const midiNote of track.notes) {
       notes.push({

@@ -183,7 +183,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   updateNote: (id, updates) => {
     const state = get();
     const note = state.notes.find((n) => n.id === id);
-    if (!note) return;
+    if (!note) {
+      return;
+    }
 
     // Track in history (only changed fields)
     const before: Partial<Omit<Note, "id">> = {};
@@ -209,7 +211,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const historyUpdates = updates
       .map(({ id, changes }) => {
         const note = state.notes.find((n) => n.id === id);
-        if (!note) return null;
+        if (!note) {
+          return null;
+        }
 
         const before: Partial<Omit<Note, "id">> = {};
         const after: Partial<Omit<Note, "id">> = {};
@@ -356,7 +360,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Undo/Redo actions
   undo: () => {
-    if (!historyStore.canUndo()) return;
+    if (!historyStore.canUndo()) {
+      return;
+    }
 
     const entry = historyStore.undoStack[historyStore.undoStack.length - 1];
 
@@ -400,7 +406,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   redo: () => {
-    if (!historyStore.canRedo()) return;
+    if (!historyStore.canRedo()) {
+      return;
+    }
 
     const entry = historyStore.redoStack[historyStore.redoStack.length - 1];
 
@@ -452,7 +460,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const selectedNotes = state.notes.filter((n) =>
       state.selectedNoteIds.has(n.id),
     );
-    if (selectedNotes.length === 0) return;
+    if (selectedNotes.length === 0) {
+      return;
+    }
 
     // Create new object instances to avoid reference issues when pasting
     set({
@@ -462,7 +472,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   pasteNotes: (insertBeat: number) => {
     const state = get();
-    if (state.clipboard.length === 0) return;
+    if (state.clipboard.length === 0) {
+      return;
+    }
 
     // Find the earliest start time in clipboard to calculate offset
     const minStart = Math.min(...state.clipboard.map((n) => n.start));

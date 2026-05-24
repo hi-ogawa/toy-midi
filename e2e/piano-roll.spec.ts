@@ -23,7 +23,9 @@ test.describe("Piano Roll", () => {
   test("create, select, and delete note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create note at beat 0, pitch G3 (top row)
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -72,7 +74,9 @@ test.describe("Piano Roll", () => {
 
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const clickBeat = 4.6;
     const clickX = gridBox.x + clickBeat * BEAT_WIDTH;
@@ -87,7 +91,9 @@ test.describe("Piano Roll", () => {
     await expect(note).toBeVisible();
 
     const noteBox = await note.boundingBox();
-    if (!noteBox) throw new Error("Note not found");
+    if (!noteBox) {
+      throw new Error("Note not found");
+    }
 
     const expectedStartX = gridBox.x + 4 * BEAT_WIDTH;
     expect(noteBox.x).toBeCloseTo(expectedStartX, 1);
@@ -105,7 +111,9 @@ test.describe("Piano Roll", () => {
 
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 2.5;
@@ -124,7 +132,9 @@ test.describe("Piano Roll", () => {
   test("move note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note at row 5 (to have room to move up)
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -136,7 +146,9 @@ test.describe("Piano Roll", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialX = initialBox.x;
     const initialY = initialBox.y;
 
@@ -148,7 +160,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     let movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
+    if (!movedBox) {
+      throw new Error("Note not found after move");
+    }
     expect(movedBox.x).toBeGreaterThan(initialX);
 
     // Drag note vertically (pitch)
@@ -164,14 +178,18 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after vertical move");
+    if (!finalBox) {
+      throw new Error("Note not found after vertical move");
+    }
     expect(finalBox.y).toBeLessThan(initialY);
   });
 
   test("resize note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note at beat 2 (so we have room to resize left)
     const startX = gridBox.x + BEAT_WIDTH * 2;
@@ -183,7 +201,9 @@ test.describe("Piano Roll", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialWidth = initialBox.width;
     const initialX = initialBox.x;
 
@@ -196,7 +216,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     let resizedBox = await note.boundingBox();
-    if (!resizedBox) throw new Error("Note not found after right resize");
+    if (!resizedBox) {
+      throw new Error("Note not found after right resize");
+    }
     expect(resizedBox.width).toBeGreaterThan(initialWidth);
 
     // Drag left edge to shrink
@@ -207,7 +229,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after left resize");
+    if (!finalBox) {
+      throw new Error("Note not found after left resize");
+    }
     expect(finalBox.x).toBeGreaterThan(initialX);
     expect(finalBox.width).toBeLessThan(resizedBox.width);
   });
@@ -238,7 +262,9 @@ test.describe("Piano Roll", () => {
   }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a 1-beat note at beat 1 (ends at beat 2)
     const noteStartBeat = 1;
@@ -252,7 +278,9 @@ test.describe("Piano Roll", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const noteY = initialBox.y + initialBox.height / 2;
 
     // Note ends at beat 2
@@ -265,7 +293,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     let resizedBox = await note.boundingBox();
-    if (!resizedBox) throw new Error("Note not found after resize");
+    if (!resizedBox) {
+      throw new Error("Note not found after resize");
+    }
     // End at 2.5 means duration = 1.5 beats = 120px
     expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH * 1.5, 1);
 
@@ -277,7 +307,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     resizedBox = await note.boundingBox();
-    if (!resizedBox) throw new Error("Note not found after resize");
+    if (!resizedBox) {
+      throw new Error("Note not found after resize");
+    }
     // End at 2.0 means duration = 1.0 beat = 80px
     expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH, 1);
 
@@ -289,7 +321,9 @@ test.describe("Piano Roll", () => {
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
-    if (!finalBox) throw new Error("Note not found after final resize");
+    if (!finalBox) {
+      throw new Error("Note not found after final resize");
+    }
     // End at 3.0 means duration = 2.0 beats = 160px
     expect(finalBox.width).toBeCloseTo(BEAT_WIDTH * 2, 1);
   });
@@ -297,7 +331,9 @@ test.describe("Piano Roll", () => {
   test("deselect with Escape", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note (auto-selected after creation)
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -318,7 +354,9 @@ test.describe("Piano Roll", () => {
   test("multi-select with Shift+click", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create first note at beat 0
     const note1X = gridBox.x + BEAT_WIDTH * 0.5;
@@ -361,7 +399,9 @@ test.describe("Piano Roll", () => {
   test("box select with Shift+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create two notes
     const note1X = gridBox.x + BEAT_WIDTH * 1;
@@ -432,7 +472,9 @@ test.describe("Piano Roll", () => {
 
     // Get the bounding box of the keyboard key
     const keyBox = await c3Label.boundingBox();
-    if (!keyBox) throw new Error("Keyboard key not found");
+    if (!keyBox) {
+      throw new Error("Keyboard key not found");
+    }
 
     // Click on the keyboard key to trigger preview
     // We can't directly test audio output in E2E, but we can verify the click works
@@ -447,7 +489,9 @@ test.describe("Piano Roll", () => {
   test("duplicate notes with Ctrl+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note at beat 1
     const startX = gridBox.x + BEAT_WIDTH * 1.5;
@@ -464,7 +508,9 @@ test.describe("Piano Roll", () => {
 
     // Get initial position of the note
     const initialBox = await notes.first().boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialX = initialBox.x;
     const initialY = initialBox.y;
 
@@ -485,14 +531,18 @@ test.describe("Piano Roll", () => {
     // The original note should still be at the original position
     const originalNote = notes.first();
     const originalBox = await originalNote.boundingBox();
-    if (!originalBox) throw new Error("Original note not found");
+    if (!originalBox) {
+      throw new Error("Original note not found");
+    }
     expect(originalBox.x).toBeCloseTo(initialX, 1);
     expect(originalBox.y).toBeCloseTo(initialY, 1);
 
     // The duplicate should be moved to the right
     const duplicateNote = notes.last();
     const duplicateBox = await duplicateNote.boundingBox();
-    if (!duplicateBox) throw new Error("Duplicate note not found");
+    if (!duplicateBox) {
+      throw new Error("Duplicate note not found");
+    }
     expect(duplicateBox.x).toBeGreaterThan(initialX);
     expect(duplicateBox.y).toBeCloseTo(initialY, 1); // Same pitch
 
@@ -504,7 +554,9 @@ test.describe("Piano Roll", () => {
   test("duplicate multiple selected notes with Ctrl+drag", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create first note
     const note1X = gridBox.x + BEAT_WIDTH * 1.5;
