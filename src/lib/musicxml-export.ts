@@ -83,6 +83,7 @@ type XmlNode =
       attrs?: Record<string, string | number>;
       children?: XmlNode[];
     };
+type XmlChild = XmlNode | false | null | undefined | XmlChild[];
 
 const PITCH_STEPS: Array<{ step: string; alter?: number }> = [
   { step: "C" },
@@ -191,15 +192,31 @@ function midiToPitch(pitch: number): PitchInfo {
 }
 
 function serializeMusicXMLScore(score: MusicXMLScore): string {
+  function normalizeChildren(children: XmlChild[]): XmlNode[] {
+    return children.flatMap((child): XmlNode[] => {
+      if (child === false || child === null || child === undefined) {
+        return [];
+      }
+      if (Array.isArray(child)) {
+        return normalizeChildren(child);
+      }
+      return [child];
+    });
+  }
+
   function h(
     name: string,
-    attrsOrChildren?: Record<string, string | number> | XmlNode[],
-    children?: XmlNode[],
+    attrsOrChildren?: Record<string, string | number> | XmlChild[],
+    children?: XmlChild[],
   ): XmlNode {
     if (Array.isArray(attrsOrChildren)) {
-      return { name, children: attrsOrChildren };
+      return { name, children: normalizeChildren(attrsOrChildren) };
     }
-    return { name, attrs: attrsOrChildren, children };
+    return {
+      name,
+      attrs: attrsOrChildren,
+      children: normalizeChildren(children ?? []),
+    };
   }
 
   const documentNode = h("score-partwise", { version: "4.0" }, [
@@ -214,10 +231,8 @@ function serializeMusicXMLScore(score: MusicXMLScore): string {
       "part",
       { id: score.part.id },
       score.part.measures.map((measure) => {
-        const children: XmlNode[] = [];
-
-        if (measure.attributes) {
-          children.push(
+        return h("measure", { number: measure.number }, [
+          measure.attributes &&
             h("attributes", [
               h("divisions", [String(measure.attributes.divisions)]),
               h("key", [h("fifths", [String(measure.attributes.keyFifths)])]),
@@ -234,11 +249,7 @@ function serializeMusicXMLScore(score: MusicXMLScore): string {
                 h("line", [String(measure.attributes.clef.line)]),
               ]),
             ]),
-          );
-        }
-
-        if (measure.direction) {
-          children.push(
+          measure.direction &&
             h("direction", { placement: "above" }, [
               h("direction-type", [
                 h("metronome", [
@@ -248,69 +259,48 @@ function serializeMusicXMLScore(score: MusicXMLScore): string {
               ]),
               h("sound", { tempo: measure.direction.tempo }),
             ]),
-          );
-        }
-
-        children.push(
-          ...measure.notes.map((note) =>
+          measure.notes.map((note) =>
             h("note", [
-              ...(note.chord ? [h("chord")] : []),
-              ...(note.rest
-                ? [h("rest")]
-                : note.pitch
-                  ? [
-                      h("pitch", [
-                        h("step", [note.pitch.step]),
-                        ...(note.pitch.alter !== undefined
-                          ? [h("alter", [String(note.pitch.alter)])]
-                          : []),
-                        h("octave", [String(note.pitch.octave)]),
-                      ]),
-                    ]
-                  : []),
+              note.chord && h("chord"),
+              note.rest && h("rest"),
+              note.pitch &&
+                h("pitch", [
+                  h("step", [note.pitch.step]),
+                  note.pitch.alter !== undefined &&
+                    h("alter", [String(note.pitch.alter)]),
+                  h("octave", [String(note.pitch.octave)]),
+                ]),
               h("duration", [String(note.durationDivisions)]),
-              ...(note.tieStop ? [h("tie", { type: "stop" })] : []),
-              ...(note.tieStart ? [h("tie", { type: "start" })] : []),
+              note.tieStop && h("tie", { type: "stop" }),
+              note.tieStart && h("tie", { type: "start" }),
               h("voice", [String(note.voice)]),
-              ...(note.notationDuration
-                ? [
-                    h("type", [note.notationDuration.type]),
-                    ...Array.from({ length: note.notationDuration.dots }, () =>
-                      h("dot"),
-                    ),
-                    ...(note.notationDuration.timeModification
-                      ? [
-                          h("time-modification", [
-                            h("actual-notes", [
-                              String(
-                                note.notationDuration.timeModification
-                                  .actualNotes,
-                              ),
-                            ]),
-                            h("normal-notes", [
-                              String(
-                                note.notationDuration.timeModification
-                                  .normalNotes,
-                              ),
-                            ]),
-                          ]),
-                        ]
-                      : []),
-                  ]
-                : []),
-              ...(note.tieStop || note.tieStart
-                ? [
-                    h("notations", [
-                      ...(note.tieStop ? [h("tied", { type: "stop" })] : []),
-                      ...(note.tieStart ? [h("tied", { type: "start" })] : []),
+              note.notationDuration && [
+                h("type", [note.notationDuration.type]),
+                Array.from({ length: note.notationDuration.dots }, () =>
+                  h("dot"),
+                ),
+                note.notationDuration.timeModification &&
+                  h("time-modification", [
+                    h("actual-notes", [
+                      String(
+                        note.notationDuration.timeModification.actualNotes,
+                      ),
                     ]),
-                  ]
-                : []),
+                    h("normal-notes", [
+                      String(
+                        note.notationDuration.timeModification.normalNotes,
+                      ),
+                    ]),
+                  ]),
+              ],
+              (note.tieStop || note.tieStart) &&
+                h("notations", [
+                  note.tieStop && h("tied", { type: "stop" }),
+                  note.tieStart && h("tied", { type: "start" }),
+                ]),
             ]),
           ),
-        );
-
-        return h("measure", { number: measure.number }, children);
+        ]);
       }),
     ),
   ]);
