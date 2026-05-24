@@ -240,7 +240,9 @@ function Editor({ projectId }: EditorProps) {
         title="Score Preview"
         testId="score-preview-dialog"
       >
-        <ScorePreview projectName={projectName} />
+        <div className="h-[80vh] overflow-auto bg-white text-neutral-900">
+          <ScorePreview projectName={projectName} />
+        </div>
       </Dialog>
     </div>
   );

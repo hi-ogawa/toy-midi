@@ -44,9 +44,5 @@ export function ScorePreview({ projectName }: ScorePreviewProps) {
     [notes, projectName, renderMutation.mutate, tempo, timeSignature],
   );
 
-  return (
-    <div className="min-h-64 max-h-[70vh] overflow-auto rounded-md border border-neutral-700 bg-white p-4 text-neutral-900">
-      <div ref={setContainerRef} data-testid="score-preview-renderer" />
-    </div>
-  );
+  return <div ref={setContainerRef} data-testid="score-preview-renderer" />;
 }
