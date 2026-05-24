@@ -18,7 +18,9 @@ export function FileDropInput({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFile = (file: File | undefined) => {
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     onFile(file);
   };
 
@@ -31,7 +33,9 @@ export function FileDropInput({
     event.preventDefault();
     setIsDragOver(false);
 
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
 
     handleFile(event.dataTransfer.files[0]);
   };
@@ -55,7 +59,9 @@ export function FileDropInput({
         onClick={() => inputRef.current?.click()}
         onDragEnter={(event) => {
           event.preventDefault();
-          if (!disabled) setIsDragOver(true);
+          if (!disabled) {
+            setIsDragOver(true);
+          }
         }}
         onDragLeave={(event) => {
           event.preventDefault();

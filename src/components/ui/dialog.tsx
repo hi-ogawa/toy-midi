@@ -15,7 +15,9 @@ export function Dialog({
   children,
   testId,
 }: DialogProps) {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div

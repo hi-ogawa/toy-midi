@@ -12,7 +12,9 @@ async function seekTobeat(
 ): Promise<void> {
   const timeline = page.getByTestId("timeline");
   const timelineBox = await timeline.boundingBox();
-  if (!timelineBox) throw new Error("Timeline not found");
+  if (!timelineBox) {
+    throw new Error("Timeline not found");
+  }
 
   // Click at the position corresponding to the beat
   // Timeline x = beat * BEAT_WIDTH (since scrollX starts at 0)
@@ -35,7 +37,9 @@ test.describe("Copy/Paste", () => {
   test("paste at playhead position", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note starting at beat 0 (click near left edge to snap to 0)
     const startX = gridBox.x + BEAT_WIDTH * 0.05;
@@ -63,7 +67,9 @@ test.describe("Copy/Paste", () => {
     // Get note positions
     const note1Box = await notes.nth(0).boundingBox();
     const note2Box = await notes.nth(1).boundingBox();
-    if (!note1Box || !note2Box) throw new Error("Notes not found");
+    if (!note1Box || !note2Box) {
+      throw new Error("Notes not found");
+    }
 
     // Note 1 is at beat 0, Note 2 at beat 2 = 2 beats offset
     const expectedOffset = 2 * BEAT_WIDTH;
@@ -76,7 +82,9 @@ test.describe("Copy/Paste", () => {
   test("paste snaps to grid", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note starting at beat 0
     const startX = gridBox.x + BEAT_WIDTH * 0.05;
@@ -104,7 +112,9 @@ test.describe("Copy/Paste", () => {
     // Get note positions
     const note1Box = await notes.nth(0).boundingBox();
     const note2Box = await notes.nth(1).boundingBox();
-    if (!note1Box || !note2Box) throw new Error("Notes not found");
+    if (!note1Box || !note2Box) {
+      throw new Error("Notes not found");
+    }
 
     // Note1 at beat 0, playhead at 1.5 → note2 at beat 1.5
     const expectedOffset = 1.5 * BEAT_WIDTH;
@@ -116,7 +126,9 @@ test.describe("Copy/Paste", () => {
   }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const notes = page.locator("[data-testid^='note-']");
 
@@ -164,7 +176,9 @@ test.describe("Copy/Paste", () => {
     // Get original positions
     const orig1 = await notes.nth(0).boundingBox();
     const orig2 = await notes.nth(1).boundingBox();
-    if (!orig1 || !orig2) throw new Error("Original notes not found");
+    if (!orig1 || !orig2) {
+      throw new Error("Original notes not found");
+    }
     const originalGap = orig2.x - orig1.x;
 
     // Copy
@@ -185,7 +199,9 @@ test.describe("Copy/Paste", () => {
     // Pasted notes should have same relative gap
     const pasted1 = await notes.nth(2).boundingBox();
     const pasted2 = await notes.nth(3).boundingBox();
-    if (!pasted1 || !pasted2) throw new Error("Pasted notes not found");
+    if (!pasted1 || !pasted2) {
+      throw new Error("Pasted notes not found");
+    }
     const pastedGap = pasted2.x - pasted1.x;
 
     expect(Math.abs(pastedGap - originalGap)).toBeLessThan(2);
@@ -194,7 +210,9 @@ test.describe("Copy/Paste", () => {
   test("paste with undo/redo", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const notes = page.locator("[data-testid^='note-']");
 
@@ -225,7 +243,9 @@ test.describe("Copy/Paste", () => {
   test("copy preserves note properties (duration, pitch)", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const notes = page.locator("[data-testid^='note-']");
 
@@ -240,7 +260,9 @@ test.describe("Copy/Paste", () => {
 
     // Get original note dimensions
     const note1Box = await notes.nth(0).boundingBox();
-    if (!note1Box) throw new Error("Note not found");
+    if (!note1Box) {
+      throw new Error("Note not found");
+    }
 
     // Copy, move playhead, and paste
     await page.keyboard.press("Control+c");
@@ -250,7 +272,9 @@ test.describe("Copy/Paste", () => {
 
     // Get pasted note dimensions
     const note2Box = await notes.nth(1).boundingBox();
-    if (!note2Box) throw new Error("Pasted note not found");
+    if (!note2Box) {
+      throw new Error("Pasted note not found");
+    }
 
     // Width (duration) should be the same
     expect(Math.abs(note2Box.width - note1Box.width)).toBeLessThan(2);
@@ -263,7 +287,9 @@ test.describe("Copy/Paste", () => {
   test("paste at playhead 0 overlaps original note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const notes = page.locator("[data-testid^='note-']");
 
@@ -277,7 +303,9 @@ test.describe("Copy/Paste", () => {
     await expect(notes).toHaveCount(1);
 
     const note1Box = await notes.nth(0).boundingBox();
-    if (!note1Box) throw new Error("Note not found");
+    if (!note1Box) {
+      throw new Error("Note not found");
+    }
 
     // Copy (playhead is at 0)
     await page.keyboard.press("Control+c");
@@ -287,7 +315,9 @@ test.describe("Copy/Paste", () => {
     await expect(notes).toHaveCount(2);
 
     const note2Box = await notes.nth(1).boundingBox();
-    if (!note2Box) throw new Error("Pasted note not found");
+    if (!note2Box) {
+      throw new Error("Pasted note not found");
+    }
 
     // Both notes should be at the same position (overlapping)
     expect(Math.abs(note2Box.x - note1Box.x)).toBeLessThan(2);
@@ -310,7 +340,9 @@ test.describe("Copy/Paste", () => {
   test("pasted notes become selected", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;

@@ -103,7 +103,9 @@ export function App() {
   useWindowEvent(
     "keydown",
     (e) => {
-      if (initMutation.isSuccess || initMutation.isPending) return;
+      if (initMutation.isSuccess || initMutation.isPending) {
+        return;
+      }
       const target = e.target as HTMLElement | null;
       if (
         target?.tagName === "INPUT" ||

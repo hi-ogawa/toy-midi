@@ -23,7 +23,9 @@ test.describe("Settings Dialog - Project Export", () => {
     // Add a note first
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     await page.mouse.move(
       gridBox.x + BEAT_WIDTH * 1.5,

@@ -44,7 +44,9 @@ export const historyStore = {
 
   pushOperation(entry: HistoryEntry): void {
     // Don't record operations during undo/redo or drag
-    if (this.isUndoing || this.isRedoing || this.isInDrag) return;
+    if (this.isUndoing || this.isRedoing || this.isInDrag) {
+      return;
+    }
 
     this.undoStack.push(entry);
     // Limit history depth

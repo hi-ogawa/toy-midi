@@ -7,7 +7,9 @@ export function dbToGain(db: number): number {
 }
 
 export function gainToDb(gain: number): number {
-  if (gain <= 0) return MIN_DB;
+  if (gain <= 0) {
+    return MIN_DB;
+  }
   return 20 * Math.log10(gain);
 }
 
@@ -23,12 +25,16 @@ export function clampGain(gain: number): number {
 
 export function percentToGain(percent: number): number {
   const position = clamp(percent / 100, 0, 1);
-  if (position === 0) return 0;
+  if (position === 0) {
+    return 0;
+  }
   return Math.exp(((Math.pow(position, 1 / 8) * 198 - 192) / 6) * LOG2);
 }
 
 export function gainToPercent(gain: number): number {
-  if (gain <= 0) return 0;
+  if (gain <= 0) {
+    return 0;
+  }
   const position = Math.pow(((6 * Math.log(gain)) / LOG2 + 192) / 198, 8);
   return clamp(position * 100, 0, 100);
 }

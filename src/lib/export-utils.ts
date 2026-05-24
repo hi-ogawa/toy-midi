@@ -13,13 +13,17 @@ function formatTimestamp(timestamp: Date): string {
 
 function normalizeExtension(extension: string): string {
   const trimmed = extension.trim().toLowerCase();
-  if (!trimmed) return "";
+  if (!trimmed) {
+    return "";
+  }
   return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
 }
 
 function sanitizeBaseName(baseName: string): string {
   const trimmed = baseName.trim();
-  if (!trimmed) return "toy-midi-export";
+  if (!trimmed) {
+    return "toy-midi-export";
+  }
   return trimmed.replace(/[^a-zA-Z0-9-_]/g, "_");
 }
 

@@ -14,7 +14,9 @@ test.describe("Undo/Redo", () => {
   test("undo create note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -39,7 +41,9 @@ test.describe("Undo/Redo", () => {
   test("undo delete note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -67,7 +71,9 @@ test.describe("Undo/Redo", () => {
   test("undo move note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note at row 5
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -80,7 +86,9 @@ test.describe("Undo/Redo", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialX = initialBox.x;
     const initialY = initialBox.y;
 
@@ -93,7 +101,9 @@ test.describe("Undo/Redo", () => {
 
     // Verify note moved
     const movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
+    if (!movedBox) {
+      throw new Error("Note not found after move");
+    }
     expect(movedBox.x).toBeGreaterThan(initialX);
 
     // Undo move
@@ -101,7 +111,9 @@ test.describe("Undo/Redo", () => {
 
     // Verify note returned to original position
     const undoneBox = await note.boundingBox();
-    if (!undoneBox) throw new Error("Note not found after undo");
+    if (!undoneBox) {
+      throw new Error("Note not found after undo");
+    }
     expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2); // Allow small rounding error
     expect(Math.abs(undoneBox.y - initialY)).toBeLessThan(2);
   });
@@ -109,7 +121,9 @@ test.describe("Undo/Redo", () => {
   test("undo resize note", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -122,7 +136,9 @@ test.describe("Undo/Redo", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialWidth = initialBox.width;
 
     // Resize note from right edge
@@ -139,7 +155,9 @@ test.describe("Undo/Redo", () => {
 
     // Verify note was resized
     const resizedBox = await note.boundingBox();
-    if (!resizedBox) throw new Error("Note not found after resize");
+    if (!resizedBox) {
+      throw new Error("Note not found after resize");
+    }
     expect(resizedBox.width).toBeGreaterThan(initialWidth);
 
     // Undo resize
@@ -147,14 +165,18 @@ test.describe("Undo/Redo", () => {
 
     // Verify note returned to original size
     const undoneBox = await note.boundingBox();
-    if (!undoneBox) throw new Error("Note not found after undo");
+    if (!undoneBox) {
+      throw new Error("Note not found after undo");
+    }
     expect(Math.abs(undoneBox.width - initialWidth)).toBeLessThan(2);
   });
 
   test("redo after undo", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -188,7 +210,9 @@ test.describe("Undo/Redo", () => {
   test("multiple undo operations", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const note = page.locator("[data-testid^='note-']");
 
@@ -239,7 +263,9 @@ test.describe("Undo/Redo", () => {
   test("new operation clears redo stack", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const note = page.locator("[data-testid^='note-']");
 
@@ -275,7 +301,9 @@ test.describe("Undo/Redo", () => {
   test("history cleared on project load", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const note = page.locator("[data-testid^='note-']");
 
@@ -311,7 +339,9 @@ test.describe("Undo/Redo", () => {
   test("undo multi-note move in single operation", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     const notes = page.locator("[data-testid^='note-']");
 
@@ -337,7 +367,9 @@ test.describe("Undo/Redo", () => {
     const note2 = notes.nth(1);
     const initial1 = await note1.boundingBox();
     const initial2 = await note2.boundingBox();
-    if (!initial1 || !initial2) throw new Error("Notes not found");
+    if (!initial1 || !initial2) {
+      throw new Error("Notes not found");
+    }
 
     // Box select both notes (shift+drag)
     await page.mouse.move(gridBox.x, gridBox.y + ROW_HEIGHT * 5);
@@ -362,7 +394,9 @@ test.describe("Undo/Redo", () => {
     // Verify both notes moved
     const moved1 = await note1.boundingBox();
     const moved2 = await note2.boundingBox();
-    if (!moved1 || !moved2) throw new Error("Notes not found after move");
+    if (!moved1 || !moved2) {
+      throw new Error("Notes not found after move");
+    }
     expect(moved1.x).toBeGreaterThan(initial1.x);
     expect(moved2.x).toBeGreaterThan(initial2.x);
 
@@ -371,7 +405,9 @@ test.describe("Undo/Redo", () => {
 
     const undone1 = await note1.boundingBox();
     const undone2 = await note2.boundingBox();
-    if (!undone1 || !undone2) throw new Error("Notes not found after undo");
+    if (!undone1 || !undone2) {
+      throw new Error("Notes not found after undo");
+    }
     expect(Math.abs(undone1.x - initial1.x)).toBeLessThan(2);
     expect(Math.abs(undone2.x - initial2.x)).toBeLessThan(2);
 
@@ -380,7 +416,9 @@ test.describe("Undo/Redo", () => {
 
     const redone1 = await note1.boundingBox();
     const redone2 = await note2.boundingBox();
-    if (!redone1 || !redone2) throw new Error("Notes not found after redo");
+    if (!redone1 || !redone2) {
+      throw new Error("Notes not found after redo");
+    }
     expect(Math.abs(redone1.x - moved1.x)).toBeLessThan(2);
     expect(Math.abs(redone2.x - moved2.x)).toBeLessThan(2);
   });
@@ -390,7 +428,9 @@ test.describe("Undo/Redo", () => {
   }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 0.5;
@@ -402,7 +442,9 @@ test.describe("Undo/Redo", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
     const initialX = initialBox.x;
 
     // Drag note through MANY intermediate steps (simulating a long drag)
@@ -418,14 +460,18 @@ test.describe("Undo/Redo", () => {
 
     // Verify note moved to final position
     const movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
+    if (!movedBox) {
+      throw new Error("Note not found after move");
+    }
     expect(movedBox.x).toBeGreaterThan(initialX);
 
     // Single undo should restore to original position (not just one step back)
     await page.keyboard.press("Control+z");
 
     const undoneBox = await note.boundingBox();
-    if (!undoneBox) throw new Error("Note not found after undo");
+    if (!undoneBox) {
+      throw new Error("Note not found after undo");
+    }
     expect(Math.abs(undoneBox.x - initialX)).toBeLessThan(2);
 
     // A second undo should undo the note creation (not another drag step)
@@ -439,7 +485,9 @@ test.describe("Undo/Redo", () => {
     // Second redo should move note back to final dragged position
     await page.keyboard.press("Control+y");
     const redoneMoved = await note.boundingBox();
-    if (!redoneMoved) throw new Error("Note not found after redo");
+    if (!redoneMoved) {
+      throw new Error("Note not found after redo");
+    }
     expect(Math.abs(redoneMoved.x - movedBox.x)).toBeLessThan(2);
   });
 });
