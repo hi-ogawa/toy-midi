@@ -33,6 +33,49 @@ type MeasureNoteFragment = {
   tieStop: boolean;
 };
 
+type MusicXMLScore = {
+  title: string;
+  part: MusicXMLPart;
+};
+
+type MusicXMLPart = {
+  id: string;
+  name: string;
+  measures: MusicXMLMeasure[];
+};
+
+type MusicXMLMeasure = {
+  number: number;
+  attributes?: MusicXMLAttributes;
+  direction?: MusicXMLDirection;
+  notes: MusicXMLNote[];
+};
+
+type MusicXMLAttributes = {
+  divisions: number;
+  keyFifths: number;
+  timeSignature: TimeSignature;
+  clef: {
+    sign: string;
+    line: number;
+  };
+};
+
+type MusicXMLDirection = {
+  tempo: number;
+};
+
+type MusicXMLNote = {
+  chord: boolean;
+  durationDivisions: number;
+  voice: number;
+  notationDuration?: NotationDuration;
+  rest?: true;
+  pitch?: PitchInfo;
+  tieStart?: boolean;
+  tieStop?: boolean;
+};
+
 const PITCH_STEPS: Array<{ step: string; alter?: number }> = [
   { step: "C" },
   { step: "C", alter: 1 },
@@ -123,10 +166,8 @@ function getNotationDuration(
 
 function pushNotationDuration(
   lines: string[],
-  durationDivisions: number,
+  notationDuration: NotationDuration | undefined,
 ): void {
-  const notationDuration = getNotationDuration(durationDivisions);
-
   if (!notationDuration) {
     return;
   }
@@ -147,52 +188,41 @@ function pushNotationDuration(
   }
 }
 
-function pushPitch(lines: string[], pitch: number): void {
-  const pitchInfo = midiToPitch(pitch);
-
+function pushPitch(lines: string[], pitch: PitchInfo): void {
   lines.push("        <pitch>");
-  lines.push(`          <step>${pitchInfo.step}</step>`);
-  if (pitchInfo.alter !== undefined) {
-    lines.push(`          <alter>${pitchInfo.alter}</alter>`);
+  lines.push(`          <step>${pitch.step}</step>`);
+  if (pitch.alter !== undefined) {
+    lines.push(`          <alter>${pitch.alter}</alter>`);
   }
-  lines.push(`          <octave>${pitchInfo.octave}</octave>`);
+  lines.push(`          <octave>${pitch.octave}</octave>`);
   lines.push("        </pitch>");
 }
 
-function pushRest(lines: string[], durationDivisions: number): void {
+function pushMusicXMLNote(lines: string[], note: MusicXMLNote): void {
   lines.push("      <note>");
-  lines.push("        <rest/>");
-  lines.push(`        <duration>${durationDivisions}</duration>`);
-  lines.push("        <voice>1</voice>");
-  pushNotationDuration(lines, durationDivisions);
-  lines.push("      </note>");
-}
-
-function pushNote(
-  lines: string[],
-  fragment: MeasureNoteFragment,
-  options: { chord: boolean },
-): void {
-  lines.push("      <note>");
-  if (options.chord) {
+  if (note.chord) {
     lines.push("        <chord/>");
   }
-  pushPitch(lines, fragment.note.pitch);
-  lines.push(`        <duration>${fragment.durationDivisions}</duration>`);
-  if (fragment.tieStop) {
+  if (note.rest) {
+    lines.push("        <rest/>");
+  } else if (note.pitch) {
+    pushPitch(lines, note.pitch);
+  }
+  lines.push(`        <duration>${note.durationDivisions}</duration>`);
+  if (note.tieStop) {
     lines.push('        <tie type="stop"/>');
   }
-  if (fragment.tieStart) {
+  if (note.tieStart) {
     lines.push('        <tie type="start"/>');
   }
-  lines.push("        <voice>1</voice>");
-  pushNotationDuration(lines, fragment.durationDivisions);
-  if (fragment.tieStop || fragment.tieStart) {
+  lines.push(`        <voice>${note.voice}</voice>`);
+  pushNotationDuration(lines, note.notationDuration);
+  if (note.tieStop || note.tieStart) {
     lines.push("        <notations>");
-    if (fragment.tieStop) {
+    if (note.tieStop) {
       lines.push('          <tied type="stop"/>');
     }
-    if (fragment.tieStart) {
+    if (note.tieStart) {
       lines.push('          <tied type="start"/>');
     }
     lines.push("        </notations>");
@@ -240,61 +270,42 @@ function buildMeasureFragments(
   });
 }
 
-function pushAttributes(
-  lines: string[],
-  timeSignature: TimeSignature,
-  options: { includeTime: boolean },
-): void {
-  lines.push("      <attributes>");
-  lines.push(`        <divisions>${DIVISIONS_PER_QUARTER}</divisions>`);
-  lines.push("        <key>");
-  lines.push("          <fifths>0</fifths>");
-  lines.push("        </key>");
-  if (options.includeTime) {
-    lines.push("        <time>");
-    lines.push(`          <beats>${timeSignature.numerator}</beats>`);
-    lines.push(`          <beat-type>${timeSignature.denominator}</beat-type>`);
-    lines.push("        </time>");
-  }
-  lines.push("        <clef>");
-  lines.push("          <sign>F</sign>");
-  lines.push("          <line>4</line>");
-  lines.push("        </clef>");
-  lines.push("      </attributes>");
+function createRest(durationDivisions: number): MusicXMLNote {
+  return {
+    chord: false,
+    durationDivisions,
+    voice: 1,
+    notationDuration: getNotationDuration(durationDivisions),
+    rest: true,
+  };
 }
 
-function pushTempoDirection(lines: string[], tempo: number): void {
-  lines.push('      <direction placement="above">');
-  lines.push("        <direction-type>");
-  lines.push("          <metronome>");
-  lines.push("            <beat-unit>quarter</beat-unit>");
-  lines.push(`            <per-minute>${tempo}</per-minute>`);
-  lines.push("          </metronome>");
-  lines.push("        </direction-type>");
-  lines.push('        <sound tempo="' + tempo + '"/>');
-  lines.push("      </direction>");
+function createPitchedNote(
+  fragment: MeasureNoteFragment,
+  options: { chord: boolean },
+): MusicXMLNote {
+  return {
+    chord: options.chord,
+    durationDivisions: fragment.durationDivisions,
+    voice: 1,
+    notationDuration: getNotationDuration(fragment.durationDivisions),
+    pitch: midiToPitch(fragment.note.pitch),
+    tieStart: fragment.tieStart,
+    tieStop: fragment.tieStop,
+  };
 }
 
-function pushMeasure(
-  lines: string[],
+function buildMeasureNotes(
   notes: Note[],
-  measureNumber: number,
-  measureDuration: number,
-  timeSignature: TimeSignature,
-  tempo: number,
-): void {
-  const measureStart = (measureNumber - 1) * measureDuration;
-  const measureEnd = measureStart + measureDuration;
+  measureStart: number,
+  measureEnd: number,
+): MusicXMLNote[] {
   const fragments = buildMeasureFragments(notes, measureStart, measureEnd);
-
-  lines.push(`    <measure number="${measureNumber}">`);
-  if (measureNumber === 1) {
-    pushAttributes(lines, timeSignature, { includeTime: true });
-    pushTempoDirection(lines, tempo);
-  }
-
+  const measureDuration = measureEnd - measureStart;
+  const measureNotes: MusicXMLNote[] = [];
   let currentDivisions = 0;
   let fragmentIndex = 0;
+
   while (fragmentIndex < fragments.length) {
     const groupStart = fragments[fragmentIndex].startDivisions;
     const group: MeasureNoteFragment[] = [];
@@ -308,11 +319,11 @@ function pushMeasure(
     }
 
     if (groupStart > currentDivisions) {
-      pushRest(lines, groupStart - currentDivisions);
+      measureNotes.push(createRest(groupStart - currentDivisions));
     }
 
     group.forEach((fragment, index) => {
-      pushNote(lines, fragment, { chord: index > 0 });
+      measureNotes.push(createPitchedNote(fragment, { chord: index > 0 }));
     });
 
     currentDivisions = Math.max(
@@ -324,13 +335,13 @@ function pushMeasure(
   }
 
   if (currentDivisions < measureDuration) {
-    pushRest(lines, measureDuration - currentDivisions);
+    measureNotes.push(createRest(measureDuration - currentDivisions));
   }
 
-  lines.push("    </measure>");
+  return measureNotes;
 }
 
-export function exportMusicXML(options: MusicXMLExportOptions): string {
+function buildMusicXMLScore(options: MusicXMLExportOptions): MusicXMLScore {
   const { notes, tempo, timeSignature, title, partName } = options;
   const sortedNotes = [...notes].sort((a, b) => {
     if (a.start !== b.start) {
@@ -345,33 +356,108 @@ export function exportMusicXML(options: MusicXMLExportOptions): string {
     0,
   );
   const measureCount = Math.max(1, Math.ceil(maxNoteEnd / measureDuration));
+  const measures: MusicXMLMeasure[] = [];
+
+  for (let measureNumber = 1; measureNumber <= measureCount; measureNumber++) {
+    const measureStart = (measureNumber - 1) * measureDuration;
+    const measureEnd = measureStart + measureDuration;
+
+    measures.push({
+      number: measureNumber,
+      attributes:
+        measureNumber === 1
+          ? {
+              divisions: DIVISIONS_PER_QUARTER,
+              keyFifths: 0,
+              timeSignature,
+              clef: { sign: "F", line: 4 },
+            }
+          : undefined,
+      direction: measureNumber === 1 ? { tempo } : undefined,
+      notes: buildMeasureNotes(sortedNotes, measureStart, measureEnd),
+    });
+  }
+
+  return {
+    title,
+    part: {
+      id: "P1",
+      name: partName,
+      measures,
+    },
+  };
+}
+
+function pushAttributes(lines: string[], attributes: MusicXMLAttributes): void {
+  lines.push("      <attributes>");
+  lines.push(`        <divisions>${attributes.divisions}</divisions>`);
+  lines.push("        <key>");
+  lines.push(`          <fifths>${attributes.keyFifths}</fifths>`);
+  lines.push("        </key>");
+  lines.push("        <time>");
+  lines.push(`          <beats>${attributes.timeSignature.numerator}</beats>`);
+  lines.push(
+    `          <beat-type>${attributes.timeSignature.denominator}</beat-type>`,
+  );
+  lines.push("        </time>");
+  lines.push("        <clef>");
+  lines.push(`          <sign>${attributes.clef.sign}</sign>`);
+  lines.push(`          <line>${attributes.clef.line}</line>`);
+  lines.push("        </clef>");
+  lines.push("      </attributes>");
+}
+
+function pushDirection(lines: string[], direction: MusicXMLDirection): void {
+  lines.push('      <direction placement="above">');
+  lines.push("        <direction-type>");
+  lines.push("          <metronome>");
+  lines.push("            <beat-unit>quarter</beat-unit>");
+  lines.push(`            <per-minute>${direction.tempo}</per-minute>`);
+  lines.push("          </metronome>");
+  lines.push("        </direction-type>");
+  lines.push(`        <sound tempo="${direction.tempo}"/>`);
+  lines.push("      </direction>");
+}
+
+function pushMeasure(lines: string[], measure: MusicXMLMeasure): void {
+  lines.push(`    <measure number="${measure.number}">`);
+  if (measure.attributes) {
+    pushAttributes(lines, measure.attributes);
+  }
+  if (measure.direction) {
+    pushDirection(lines, measure.direction);
+  }
+  for (const note of measure.notes) {
+    pushMusicXMLNote(lines, note);
+  }
+  lines.push("    </measure>");
+}
+
+function serializeMusicXMLScore(score: MusicXMLScore): string {
   const lines: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
     '<score-partwise version="4.0">',
-    `  <work><work-title>${xmlEscape(title)}</work-title></work>`,
-    `  <movement-title>${xmlEscape(title)}</movement-title>`,
+    `  <work><work-title>${xmlEscape(score.title)}</work-title></work>`,
+    `  <movement-title>${xmlEscape(score.title)}</movement-title>`,
     "  <part-list>",
-    '    <score-part id="P1">',
-    `      <part-name>${xmlEscape(partName)}</part-name>`,
+    `    <score-part id="${score.part.id}">`,
+    `      <part-name>${xmlEscape(score.part.name)}</part-name>`,
     "    </score-part>",
     "  </part-list>",
-    '  <part id="P1">',
+    `  <part id="${score.part.id}">`,
   ];
 
-  for (let measureNumber = 1; measureNumber <= measureCount; measureNumber++) {
-    pushMeasure(
-      lines,
-      sortedNotes,
-      measureNumber,
-      measureDuration,
-      timeSignature,
-      tempo,
-    );
+  for (const measure of score.part.measures) {
+    pushMeasure(lines, measure);
   }
 
   lines.push("  </part>");
   lines.push("</score-partwise>");
 
   return lines.join("\n");
+}
+
+export function exportMusicXML(options: MusicXMLExportOptions): string {
+  return serializeMusicXMLScore(buildMusicXMLScore(options));
 }
