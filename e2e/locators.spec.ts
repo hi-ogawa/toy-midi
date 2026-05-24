@@ -22,7 +22,9 @@ test.describe("Locators", () => {
   test("add multiple locators", async ({ page }) => {
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
 
     // Add first locator at beat 0
     await page.keyboard.press("l");
@@ -108,7 +110,9 @@ test.describe("Locators", () => {
     // Zoom in (Ctrl+Wheel)
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     await page.mouse.move(gridBox.x + 100, gridBox.y + 100);
     await page.mouse.wheel(0, -100);
@@ -120,7 +124,9 @@ test.describe("Locators", () => {
   test("locators persist after page reload", async ({ page }) => {
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
 
     // Add first locator at beat 0
     await page.keyboard.press("l");

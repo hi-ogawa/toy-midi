@@ -362,12 +362,16 @@ test.describe("Timeline Seek", () => {
   test("clicking timeline while paused moves playhead", async ({ page }) => {
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
 
     // Playhead should start at position 0 (left edge)
     const playhead = page.getByTestId("timeline-playhead");
     const initialPlayheadBox = await playhead.boundingBox();
-    if (!initialPlayheadBox) throw new Error("Playhead not found");
+    if (!initialPlayheadBox) {
+      throw new Error("Playhead not found");
+    }
     const initialX = initialPlayheadBox.x;
 
     // Click at beat 4 (4 * BEAT_WIDTH from left)
@@ -380,7 +384,9 @@ test.describe("Timeline Seek", () => {
 
     // Playhead should have moved right
     const movedPlayheadBox = await playhead.boundingBox();
-    if (!movedPlayheadBox) throw new Error("Playhead not found after seek");
+    if (!movedPlayheadBox) {
+      throw new Error("Playhead not found after seek");
+    }
     expect(movedPlayheadBox.x).toBeGreaterThan(initialX + BEAT_WIDTH * 3);
 
     // Time display should reflect new position (not at bar 1, beat 1)
@@ -391,7 +397,9 @@ test.describe("Timeline Seek", () => {
   test("clicking timeline snaps to grid", async ({ page }) => {
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
 
     // Default grid snap is 1/8 note = 0.5 beats
     // Click at beat 2.2 (should snap to beat 2.0 - rounds down)
@@ -405,7 +413,9 @@ test.describe("Timeline Seek", () => {
     // Playhead should be at exactly beat 2.0 (nearest grid line)
     const playhead = page.getByTestId("timeline-playhead");
     const playheadBox = await playhead.boundingBox();
-    if (!playheadBox) throw new Error("Playhead not found");
+    if (!playheadBox) {
+      throw new Error("Playhead not found");
+    }
 
     // Calculate expected position for beat 2.0
     const expectedX = timelineBox.x + BEAT_WIDTH * 2;
@@ -418,7 +428,9 @@ test.describe("Timeline Seek", () => {
     await page.waitForTimeout(100);
 
     const playheadBox2 = await playhead.boundingBox();
-    if (!playheadBox2) throw new Error("Playhead not found after second click");
+    if (!playheadBox2) {
+      throw new Error("Playhead not found after second click");
+    }
 
     // Calculate expected position for beat 2.5
     const expectedX2 = timelineBox.x + BEAT_WIDTH * 2.5;
@@ -428,7 +440,9 @@ test.describe("Timeline Seek", () => {
   test("MIDI plays from seeked position", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note at beat 2
     const noteX = gridBox.x + BEAT_WIDTH * 2;
@@ -441,7 +455,9 @@ test.describe("Timeline Seek", () => {
     // Seek to beat 4 (past the note)
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
-    if (!timelineBox) throw new Error("Timeline not found");
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
 
     const seekX = timelineBox.x + BEAT_WIDTH * 4;
     await page.mouse.click(seekX, timelineBox.y + timelineBox.height / 2);
@@ -460,7 +476,9 @@ test.describe("Timeline Seek", () => {
     // The playhead should have moved forward from beat 4, not from 0
     const playhead = page.getByTestId("timeline-playhead");
     const playheadBox = await playhead.boundingBox();
-    if (!playheadBox) throw new Error("Playhead not found");
+    if (!playheadBox) {
+      throw new Error("Playhead not found");
+    }
 
     // Playhead should still be around beat 4+ (not reset to 0)
     expect(playheadBox.x).toBeGreaterThan(timelineBox.x + BEAT_WIDTH * 3);

@@ -299,7 +299,9 @@ class AudioManager {
   }
 
   syncAudioTrack(offset: number): void {
-    if (!this.player.loaded) return;
+    if (!this.player.loaded) {
+      return;
+    }
     this.player.unsync();
     this.player.sync().start(offset);
   }

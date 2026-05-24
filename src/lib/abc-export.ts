@@ -71,15 +71,33 @@ function midiToABC(pitch: number): string {
  */
 function durationToABC(beats: number): string {
   // Common durations for 4/4 time
-  if (beats === 4) return "4"; // whole note
-  if (beats === 3) return "3"; // dotted half
-  if (beats === 2) return "2"; // half note
-  if (beats === 1.5) return "3/2"; // dotted quarter
-  if (beats === 1) return ""; // quarter note (default, no number needed)
-  if (beats === 0.75) return "3/4"; // dotted eighth
-  if (beats === 0.5) return "/2"; // eighth note
-  if (beats === 0.25) return "/4"; // sixteenth note
-  if (beats === 0.125) return "/8"; // thirty-second note
+  if (beats === 4) {
+    return "4";
+  } // whole note
+  if (beats === 3) {
+    return "3";
+  } // dotted half
+  if (beats === 2) {
+    return "2";
+  } // half note
+  if (beats === 1.5) {
+    return "3/2";
+  } // dotted quarter
+  if (beats === 1) {
+    return "";
+  } // quarter note (default, no number needed)
+  if (beats === 0.75) {
+    return "3/4";
+  } // dotted eighth
+  if (beats === 0.5) {
+    return "/2";
+  } // eighth note
+  if (beats === 0.25) {
+    return "/4";
+  } // sixteenth note
+  if (beats === 0.125) {
+    return "/8";
+  } // thirty-second note
 
   // Generic conversion for other durations
   // ABC default is quarter note = 1 beat

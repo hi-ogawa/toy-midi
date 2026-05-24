@@ -18,7 +18,9 @@ test.describe("Project Persistence", () => {
   test("notes persist after reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 1.5;
@@ -47,7 +49,9 @@ test.describe("Project Persistence", () => {
   test("multiple notes persist after reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create first note
     await page.mouse.move(
@@ -173,7 +177,9 @@ test.describe("Project Persistence", () => {
   test("note edits persist after reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note
     const startX = gridBox.x + BEAT_WIDTH * 1;
@@ -185,7 +191,9 @@ test.describe("Project Persistence", () => {
 
     const note = page.locator("[data-testid^='note-']").first();
     const initialBox = await note.boundingBox();
-    if (!initialBox) throw new Error("Note not found");
+    if (!initialBox) {
+      throw new Error("Note not found");
+    }
 
     // Move the note
     const noteCenter = initialBox.x + initialBox.width / 2;
@@ -199,7 +207,9 @@ test.describe("Project Persistence", () => {
 
     // Get new position
     const movedBox = await note.boundingBox();
-    if (!movedBox) throw new Error("Note not found after move");
+    if (!movedBox) {
+      throw new Error("Note not found after move");
+    }
 
     // Wait for auto-save
     await page.waitForTimeout(100);
@@ -211,7 +221,9 @@ test.describe("Project Persistence", () => {
     // Note should be at the moved position
     const restoredNote = page.locator("[data-testid^='note-']").first();
     const restoredBox = await restoredNote.boundingBox();
-    if (!restoredBox) throw new Error("Note not found after reload");
+    if (!restoredBox) {
+      throw new Error("Note not found after reload");
+    }
 
     // Position should match (within tolerance for rounding)
     expect(restoredBox.x).toBeCloseTo(movedBox.x, -1);
@@ -221,7 +233,9 @@ test.describe("Project Persistence", () => {
   test("deleted notes stay deleted after reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create two notes
     await page.mouse.move(
@@ -268,7 +282,9 @@ test.describe("Project Persistence", () => {
   test("transient state resets on reload", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
-    if (!gridBox) throw new Error("Grid not found");
+    if (!gridBox) {
+      throw new Error("Grid not found");
+    }
 
     // Create a note (auto-selected)
     const startX = gridBox.x + BEAT_WIDTH * 1;

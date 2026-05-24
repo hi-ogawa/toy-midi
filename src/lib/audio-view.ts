@@ -42,7 +42,9 @@ export function createAudioView(
     const end = Math.min(i + samplesPerPoint, samples.length);
     for (let j = i; j < end; j++) {
       const abs = Math.abs(samples[j]);
-      if (abs > max) max = abs;
+      if (abs > max) {
+        max = abs;
+      }
     }
     data.push(max);
   }
@@ -75,7 +77,9 @@ export function queryAudioView(
     Math.min(data.length, Math.ceil(endSample / samplesPerPoint)),
   );
 
-  if (endIdx <= startIdx) return emptySlice;
+  if (endIdx <= startIdx) {
+    return emptySlice;
+  }
 
   // Align boundaries to coarser grid to prevent jiggling during scroll.
   // Compute alignment step from TIME (constant during scroll), not indices (which shift).
@@ -95,7 +99,9 @@ export function queryAudioView(
     Math.ceil(endIdx / alignmentStep) * alignmentStep,
   );
 
-  if (alignedEndIdx <= alignedStartIdx) return emptySlice;
+  if (alignedEndIdx <= alignedStartIdx) {
+    return emptySlice;
+  }
 
   // Calculate actual time bounds (aligned to coarse grid boundaries)
   const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
@@ -120,7 +126,9 @@ export function queryAudioView(
     const windowEnd = Math.min(idx + alignmentStep, alignedEndIdx);
     let max = 0;
     for (let j = idx; j < windowEnd; j++) {
-      if (data[j] > max) max = data[j];
+      if (data[j] > max) {
+        max = data[j];
+      }
     }
     result.push(max);
   }

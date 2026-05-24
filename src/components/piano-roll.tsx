@@ -332,7 +332,9 @@ export function PianoRoll() {
 
   // Auto-scroll during playback to keep playhead visible
   useEffect(() => {
-    if (!isPlaying || !autoScrollEnabled) return;
+    if (!isPlaying || !autoScrollEnabled) {
+      return;
+    }
     const playheadBeat = secondsToBeats(position, tempo);
     const visibleBeatsNow = viewportSize.width / pixelsPerBeat;
     // If playhead is past 80% of visible area, scroll to put it at 20%
@@ -360,7 +362,9 @@ export function PianoRoll() {
   // Convert screen coordinates to grid coordinates (beat, pitch)
   const screenToGrid = useCallback(
     (clientX: number, clientY: number) => {
-      if (!gridRef.current) return { beat: 0, pitch: MIN_PITCH };
+      if (!gridRef.current) {
+        return { beat: 0, pitch: MIN_PITCH };
+      }
       const rect = gridRef.current.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = clientY - rect.top;
@@ -464,7 +468,9 @@ export function PianoRoll() {
   // Handle wheel for pan/zoom (2D: both deltaX and deltaY)
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -544,7 +550,9 @@ export function PianoRoll() {
   // Handle mouse events on the grid
   const handleGridMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0) {
+        return;
+      }
       setAudioTrackSelected(false);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
@@ -725,7 +733,9 @@ export function PianoRoll() {
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (dragMode.type === "none") return;
+      if (dragMode.type === "none") {
+        return;
+      }
 
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
 
@@ -859,7 +869,9 @@ export function PianoRoll() {
       const updates = dragMode.originalStates
         .map(({ id, start, pitch }) => {
           const currentNote = notes.find((n) => n.id === id);
-          if (!currentNote) return null;
+          if (!currentNote) {
+            return null;
+          }
           // Only record if actually changed
           if (currentNote.start === start && currentNote.pitch === pitch) {
             return null;
@@ -1318,7 +1330,9 @@ export function PianoRoll() {
               const playheadBeat = secondsToBeats(position, tempo);
               const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
               // Only render if visible
-              if (playheadX < 0 || playheadX > viewportSize.width) return null;
+              if (playheadX < 0 || playheadX > viewportSize.width) {
+                return null;
+              }
               return (
                 <div
                   className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
@@ -1852,14 +1866,18 @@ function WaveformArea({
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (audioDuration === 0) return;
+    if (audioDuration === 0) {
+      return;
+    }
     onSelect();
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, startOffset: audioOffset };
   };
 
   useWindowEvent("mousemove", (e) => {
-    if (!isDragging || !dragStartRef.current) return;
+    if (!isDragging || !dragStartRef.current) {
+      return;
+    }
     const deltaX = e.clientX - dragStartRef.current.x;
     // Moving right increases offset (audio moves right on timeline)
     const deltaBeats = deltaX / pixelsPerBeat;
@@ -1872,7 +1890,9 @@ function WaveformArea({
   });
 
   useWindowEvent("mouseup", () => {
-    if (!isDragging) return;
+    if (!isDragging) {
+      return;
+    }
     setIsDragging(false);
     dragStartRef.current = null;
   });
@@ -1885,7 +1905,9 @@ function WaveformArea({
   };
 
   useWindowEvent("mousemove", (e) => {
-    if (!isResizing || !resizeStartRef.current) return;
+    if (!isResizing || !resizeStartRef.current) {
+      return;
+    }
     const deltaY = e.clientY - resizeStartRef.current.y;
     const newHeight = Math.max(
       MIN_WAVEFORM_HEIGHT,
@@ -1898,7 +1920,9 @@ function WaveformArea({
   });
 
   useWindowEvent("mouseup", () => {
-    if (!isResizing) return;
+    if (!isResizing) {
+      return;
+    }
     setIsResizing(false);
     resizeStartRef.current = null;
   });
@@ -1973,7 +1997,9 @@ function Waveform({
   visibleEnd: number; // seconds
   pixelWidth: number;
 }) {
-  if (audioView.data.length === 0) return null;
+  if (audioView.data.length === 0) {
+    return null;
+  }
 
   // Estimate visible portion's pixel width for downsampling target
   const visibleDuration = visibleEnd - visibleStart;
@@ -1990,7 +2016,9 @@ function Waveform({
     visiblePixelWidth,
   );
 
-  if (slice.data.length === 0) return null;
+  if (slice.data.length === 0) {
+    return null;
+  }
 
   // Calculate SVG position within the audio container based on actual bounds
   const leftPercent = (slice.actualStart / audioDuration) * 100;
