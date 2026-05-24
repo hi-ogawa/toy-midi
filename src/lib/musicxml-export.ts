@@ -76,6 +76,14 @@ type MusicXMLNote = {
   tieStop?: boolean;
 };
 
+type XmlNode =
+  | string
+  | {
+      name: string;
+      attrs?: Record<string, string | number>;
+      children?: XmlNode[];
+    };
+
 const PITCH_STEPS: Array<{ step: string; alter?: number }> = [
   { step: "C" },
   { step: "C", alter: 1 },
@@ -147,6 +155,45 @@ function xmlEscape(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+function serializeXmlNode(node: XmlNode, indent: number = 0): string {
+  if (typeof node === "string") {
+    return `${" ".repeat(indent)}${xmlEscape(node)}`;
+  }
+
+  const attrs = Object.entries(node.attrs ?? {})
+    .map(([key, value]) => ` ${key}="${xmlEscape(String(value))}"`)
+    .join("");
+  const children = node.children ?? [];
+
+  if (children.length === 0) {
+    return `${" ".repeat(indent)}<${node.name}${attrs}/>`;
+  }
+
+  if (children.length === 1 && typeof children[0] === "string") {
+    return `${" ".repeat(indent)}<${node.name}${attrs}>${xmlEscape(children[0])}</${node.name}>`;
+  }
+  if (
+    node.name === "work" &&
+    children.length === 1 &&
+    typeof children[0] !== "string" &&
+    children[0].children?.length === 1 &&
+    typeof children[0].children[0] === "string"
+  ) {
+    const child = children[0];
+    const childAttrs = Object.entries(child.attrs ?? {})
+      .map(([key, value]) => ` ${key}="${xmlEscape(String(value))}"`)
+      .join("");
+
+    return `${" ".repeat(indent)}<${node.name}${attrs}><${child.name}${childAttrs}>${xmlEscape(children[0].children[0])}</${child.name}></${node.name}>`;
+  }
+
+  return [
+    `${" ".repeat(indent)}<${node.name}${attrs}>`,
+    ...children.map((child) => serializeXmlNode(child, indent + 2)),
+    `${" ".repeat(indent)}</${node.name}>`,
+  ].join("\n");
+}
+
 function midiToPitch(pitch: number): PitchInfo {
   const pitchClass = pitch % 12;
   const pitchStep = PITCH_STEPS[pitchClass];
@@ -156,6 +203,221 @@ function midiToPitch(pitch: number): PitchInfo {
     alter: pitchStep.alter,
     octave: Math.floor(pitch / 12) - 1,
   };
+}
+
+function serializeMusicXMLScore(score: MusicXMLScore): string {
+  const documentNode: XmlNode = {
+    name: "score-partwise",
+    attrs: { version: "4.0" },
+    children: [
+      {
+        name: "work",
+        children: [{ name: "work-title", children: [score.title] }],
+      },
+      { name: "movement-title", children: [score.title] },
+      {
+        name: "part-list",
+        children: [
+          {
+            name: "score-part",
+            attrs: { id: score.part.id },
+            children: [{ name: "part-name", children: [score.part.name] }],
+          },
+        ],
+      },
+      {
+        name: "part",
+        attrs: { id: score.part.id },
+        children: score.part.measures.map((measure) => {
+          const children: XmlNode[] = [];
+
+          if (measure.attributes) {
+            children.push({
+              name: "attributes",
+              children: [
+                {
+                  name: "divisions",
+                  children: [String(measure.attributes.divisions)],
+                },
+                {
+                  name: "key",
+                  children: [
+                    {
+                      name: "fifths",
+                      children: [String(measure.attributes.keyFifths)],
+                    },
+                  ],
+                },
+                {
+                  name: "time",
+                  children: [
+                    {
+                      name: "beats",
+                      children: [
+                        String(measure.attributes.timeSignature.numerator),
+                      ],
+                    },
+                    {
+                      name: "beat-type",
+                      children: [
+                        String(measure.attributes.timeSignature.denominator),
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: "clef",
+                  children: [
+                    {
+                      name: "sign",
+                      children: [measure.attributes.clef.sign],
+                    },
+                    {
+                      name: "line",
+                      children: [String(measure.attributes.clef.line)],
+                    },
+                  ],
+                },
+              ],
+            });
+          }
+
+          if (measure.direction) {
+            children.push({
+              name: "direction",
+              attrs: { placement: "above" },
+              children: [
+                {
+                  name: "direction-type",
+                  children: [
+                    {
+                      name: "metronome",
+                      children: [
+                        { name: "beat-unit", children: ["quarter"] },
+                        {
+                          name: "per-minute",
+                          children: [String(measure.direction.tempo)],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                { name: "sound", attrs: { tempo: measure.direction.tempo } },
+              ],
+            });
+          }
+
+          for (const note of measure.notes) {
+            const noteChildren: XmlNode[] = [];
+
+            if (note.chord) {
+              noteChildren.push({ name: "chord" });
+            }
+            if (note.rest) {
+              noteChildren.push({ name: "rest" });
+            } else if (note.pitch) {
+              const pitchChildren: XmlNode[] = [
+                { name: "step", children: [note.pitch.step] },
+              ];
+              if (note.pitch.alter !== undefined) {
+                pitchChildren.push({
+                  name: "alter",
+                  children: [String(note.pitch.alter)],
+                });
+              }
+              pitchChildren.push({
+                name: "octave",
+                children: [String(note.pitch.octave)],
+              });
+              noteChildren.push({ name: "pitch", children: pitchChildren });
+            }
+
+            noteChildren.push({
+              name: "duration",
+              children: [String(note.durationDivisions)],
+            });
+            if (note.tieStop) {
+              noteChildren.push({ name: "tie", attrs: { type: "stop" } });
+            }
+            if (note.tieStart) {
+              noteChildren.push({ name: "tie", attrs: { type: "start" } });
+            }
+            noteChildren.push({
+              name: "voice",
+              children: [String(note.voice)],
+            });
+
+            if (note.notationDuration) {
+              noteChildren.push({
+                name: "type",
+                children: [note.notationDuration.type],
+              });
+              for (let i = 0; i < note.notationDuration.dots; i++) {
+                noteChildren.push({ name: "dot" });
+              }
+              if (note.notationDuration.timeModification) {
+                noteChildren.push({
+                  name: "time-modification",
+                  children: [
+                    {
+                      name: "actual-notes",
+                      children: [
+                        String(
+                          note.notationDuration.timeModification.actualNotes,
+                        ),
+                      ],
+                    },
+                    {
+                      name: "normal-notes",
+                      children: [
+                        String(
+                          note.notationDuration.timeModification.normalNotes,
+                        ),
+                      ],
+                    },
+                  ],
+                });
+              }
+            }
+
+            if (note.tieStop || note.tieStart) {
+              const notationChildren: XmlNode[] = [];
+              if (note.tieStop) {
+                notationChildren.push({
+                  name: "tied",
+                  attrs: { type: "stop" },
+                });
+              }
+              if (note.tieStart) {
+                notationChildren.push({
+                  name: "tied",
+                  attrs: { type: "start" },
+                });
+              }
+              noteChildren.push({
+                name: "notations",
+                children: notationChildren,
+              });
+            }
+
+            children.push({ name: "note", children: noteChildren });
+          }
+
+          return {
+            name: "measure",
+            attrs: { number: measure.number },
+            children,
+          };
+        }),
+      },
+    ],
+  };
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
+    serializeXmlNode(documentNode),
+  ].join("\n");
 }
 
 function getNotationDuration(
@@ -322,119 +584,6 @@ export function buildMusicXMLScore(
       measures,
     },
   };
-}
-
-function serializeMusicXMLScore(score: MusicXMLScore): string {
-  const lines: string[] = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
-    '<score-partwise version="4.0">',
-    `  <work><work-title>${xmlEscape(score.title)}</work-title></work>`,
-    `  <movement-title>${xmlEscape(score.title)}</movement-title>`,
-    "  <part-list>",
-    `    <score-part id="${score.part.id}">`,
-    `      <part-name>${xmlEscape(score.part.name)}</part-name>`,
-    "    </score-part>",
-    "  </part-list>",
-    `  <part id="${score.part.id}">`,
-  ];
-
-  for (const measure of score.part.measures) {
-    lines.push(`    <measure number="${measure.number}">`);
-    if (measure.attributes) {
-      lines.push("      <attributes>");
-      lines.push(
-        `        <divisions>${measure.attributes.divisions}</divisions>`,
-      );
-      lines.push("        <key>");
-      lines.push(`          <fifths>${measure.attributes.keyFifths}</fifths>`);
-      lines.push("        </key>");
-      lines.push("        <time>");
-      lines.push(
-        `          <beats>${measure.attributes.timeSignature.numerator}</beats>`,
-      );
-      lines.push(
-        `          <beat-type>${measure.attributes.timeSignature.denominator}</beat-type>`,
-      );
-      lines.push("        </time>");
-      lines.push("        <clef>");
-      lines.push(`          <sign>${measure.attributes.clef.sign}</sign>`);
-      lines.push(`          <line>${measure.attributes.clef.line}</line>`);
-      lines.push("        </clef>");
-      lines.push("      </attributes>");
-    }
-    if (measure.direction) {
-      lines.push('      <direction placement="above">');
-      lines.push("        <direction-type>");
-      lines.push("          <metronome>");
-      lines.push("            <beat-unit>quarter</beat-unit>");
-      lines.push(
-        `            <per-minute>${measure.direction.tempo}</per-minute>`,
-      );
-      lines.push("          </metronome>");
-      lines.push("        </direction-type>");
-      lines.push(`        <sound tempo="${measure.direction.tempo}"/>`);
-      lines.push("      </direction>");
-    }
-    for (const note of measure.notes) {
-      lines.push("      <note>");
-      if (note.chord) {
-        lines.push("        <chord/>");
-      }
-      if (note.rest) {
-        lines.push("        <rest/>");
-      } else if (note.pitch) {
-        lines.push("        <pitch>");
-        lines.push(`          <step>${note.pitch.step}</step>`);
-        if (note.pitch.alter !== undefined) {
-          lines.push(`          <alter>${note.pitch.alter}</alter>`);
-        }
-        lines.push(`          <octave>${note.pitch.octave}</octave>`);
-        lines.push("        </pitch>");
-      }
-      lines.push(`        <duration>${note.durationDivisions}</duration>`);
-      if (note.tieStop) {
-        lines.push('        <tie type="stop"/>');
-      }
-      if (note.tieStart) {
-        lines.push('        <tie type="start"/>');
-      }
-      lines.push(`        <voice>${note.voice}</voice>`);
-      if (note.notationDuration) {
-        lines.push(`        <type>${note.notationDuration.type}</type>`);
-        for (let i = 0; i < note.notationDuration.dots; i++) {
-          lines.push("        <dot/>");
-        }
-        if (note.notationDuration.timeModification) {
-          lines.push("        <time-modification>");
-          lines.push(
-            `          <actual-notes>${note.notationDuration.timeModification.actualNotes}</actual-notes>`,
-          );
-          lines.push(
-            `          <normal-notes>${note.notationDuration.timeModification.normalNotes}</normal-notes>`,
-          );
-          lines.push("        </time-modification>");
-        }
-      }
-      if (note.tieStop || note.tieStart) {
-        lines.push("        <notations>");
-        if (note.tieStop) {
-          lines.push('          <tied type="stop"/>');
-        }
-        if (note.tieStart) {
-          lines.push('          <tied type="start"/>');
-        }
-        lines.push("        </notations>");
-      }
-      lines.push("      </note>");
-    }
-    lines.push("    </measure>");
-  }
-
-  lines.push("  </part>");
-  lines.push("</score-partwise>");
-
-  return lines.join("\n");
 }
 
 export function exportMusicXML(options: MusicXMLExportOptions): string {
