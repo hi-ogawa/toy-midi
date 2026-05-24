@@ -390,51 +390,6 @@ export function buildMusicXMLScore(
   };
 }
 
-function pushAttributes(lines: string[], attributes: MusicXMLAttributes): void {
-  lines.push("      <attributes>");
-  lines.push(`        <divisions>${attributes.divisions}</divisions>`);
-  lines.push("        <key>");
-  lines.push(`          <fifths>${attributes.keyFifths}</fifths>`);
-  lines.push("        </key>");
-  lines.push("        <time>");
-  lines.push(`          <beats>${attributes.timeSignature.numerator}</beats>`);
-  lines.push(
-    `          <beat-type>${attributes.timeSignature.denominator}</beat-type>`,
-  );
-  lines.push("        </time>");
-  lines.push("        <clef>");
-  lines.push(`          <sign>${attributes.clef.sign}</sign>`);
-  lines.push(`          <line>${attributes.clef.line}</line>`);
-  lines.push("        </clef>");
-  lines.push("      </attributes>");
-}
-
-function pushDirection(lines: string[], direction: MusicXMLDirection): void {
-  lines.push('      <direction placement="above">');
-  lines.push("        <direction-type>");
-  lines.push("          <metronome>");
-  lines.push("            <beat-unit>quarter</beat-unit>");
-  lines.push(`            <per-minute>${direction.tempo}</per-minute>`);
-  lines.push("          </metronome>");
-  lines.push("        </direction-type>");
-  lines.push(`        <sound tempo="${direction.tempo}"/>`);
-  lines.push("      </direction>");
-}
-
-function pushMeasure(lines: string[], measure: MusicXMLMeasure): void {
-  lines.push(`    <measure number="${measure.number}">`);
-  if (measure.attributes) {
-    pushAttributes(lines, measure.attributes);
-  }
-  if (measure.direction) {
-    pushDirection(lines, measure.direction);
-  }
-  for (const note of measure.notes) {
-    pushMusicXMLNote(lines, note);
-  }
-  lines.push("    </measure>");
-}
-
 function serializeMusicXMLScore(score: MusicXMLScore): string {
   const lines: string[] = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -451,7 +406,46 @@ function serializeMusicXMLScore(score: MusicXMLScore): string {
   ];
 
   for (const measure of score.part.measures) {
-    pushMeasure(lines, measure);
+    lines.push(`    <measure number="${measure.number}">`);
+    if (measure.attributes) {
+      lines.push("      <attributes>");
+      lines.push(
+        `        <divisions>${measure.attributes.divisions}</divisions>`,
+      );
+      lines.push("        <key>");
+      lines.push(`          <fifths>${measure.attributes.keyFifths}</fifths>`);
+      lines.push("        </key>");
+      lines.push("        <time>");
+      lines.push(
+        `          <beats>${measure.attributes.timeSignature.numerator}</beats>`,
+      );
+      lines.push(
+        `          <beat-type>${measure.attributes.timeSignature.denominator}</beat-type>`,
+      );
+      lines.push("        </time>");
+      lines.push("        <clef>");
+      lines.push(`          <sign>${measure.attributes.clef.sign}</sign>`);
+      lines.push(`          <line>${measure.attributes.clef.line}</line>`);
+      lines.push("        </clef>");
+      lines.push("      </attributes>");
+    }
+    if (measure.direction) {
+      lines.push('      <direction placement="above">');
+      lines.push("        <direction-type>");
+      lines.push("          <metronome>");
+      lines.push("            <beat-unit>quarter</beat-unit>");
+      lines.push(
+        `            <per-minute>${measure.direction.tempo}</per-minute>`,
+      );
+      lines.push("          </metronome>");
+      lines.push("        </direction-type>");
+      lines.push(`        <sound tempo="${measure.direction.tempo}"/>`);
+      lines.push("      </direction>");
+    }
+    for (const note of measure.notes) {
+      pushMusicXMLNote(lines, note);
+    }
+    lines.push("    </measure>");
   }
 
   lines.push("  </part>");
