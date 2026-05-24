@@ -8,9 +8,9 @@
     "dev": "vite dev --config vite.app.config.ts",
     "build": "vite build --config vite.app.config.ts",
     "preview": "vite preview --config vite.app.config.ts",
-    "tsc": "tsc -b",
-    "lint": "vp check --fix && pnpm lint-dead-code && pnpm tsc",
-    "lint-check": "vp check && pnpm lint-dead-code && pnpm tsc",
+    "typecheck": "tsc -b",
+    "lint": "vp check --fix && pnpm lint-dead-code && pnpm typecheck",
+    "lint-check": "vp check && pnpm lint-dead-code && pnpm typecheck",
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
     "test-e2e": "playwright test"
