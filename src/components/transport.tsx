@@ -2,6 +2,7 @@ import {
   CheckIcon,
   ChevronsUpDownIcon,
   CircleHelpIcon,
+  MusicIcon,
   PauseIcon,
   PlayIcon,
   SettingsIcon,
@@ -190,6 +191,7 @@ function InstrumentCombobox({
 
 type TransportProps = {
   onSettingsClick: () => void;
+  onScorePreviewClick: () => void;
   onHelpClick: () => void;
   onMixerClick: () => void;
   projectName: string;
@@ -197,6 +199,7 @@ type TransportProps = {
 
 export function Transport({
   onSettingsClick,
+  onScorePreviewClick,
   onHelpClick,
   onMixerClick,
   projectName,
@@ -401,6 +404,16 @@ export function Transport({
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
+
+      {/* Score preview button */}
+      <Button
+        data-testid="score-preview-button"
+        onClick={onScorePreviewClick}
+        title="Score preview"
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+      >
+        <MusicIcon className="size-5" />
+      </Button>
 
       {/* Settings button */}
       <Button

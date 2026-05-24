@@ -152,6 +152,7 @@ function Editor({ projectId }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
   const [projectName, setProjectName] = useState(
     () => getProjectMetadata(projectId)?.name ?? "Untitled",
   );
@@ -172,6 +173,10 @@ function Editor({ projectId }: EditorProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsSettingsOpen(false);
+      } else if (isScorePreviewOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsScorePreviewOpen(false);
       } else if (isMixerOpen) {
         e.preventDefault();
         e.stopPropagation();
@@ -192,6 +197,7 @@ function Editor({ projectId }: EditorProps) {
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
         onSettingsClick={() => setIsSettingsOpen(true)}
+        onScorePreviewClick={() => setIsScorePreviewOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onMixerClick={() => setIsMixerOpen(true)}
         projectName={projectName}
@@ -226,6 +232,16 @@ function Editor({ projectId }: EditorProps) {
             window.open("/", "_blank");
           }}
         />
+      </Dialog>
+      <Dialog
+        isOpen={isScorePreviewOpen}
+        onClose={() => setIsScorePreviewOpen(false)}
+        title="Score Preview"
+        testId="score-preview-dialog"
+      >
+        <div className="min-h-64 rounded-md border border-neutral-700 bg-neutral-900 p-4 text-sm text-neutral-400">
+          Score preview renderer placeholder.
+        </div>
       </Dialog>
     </div>
   );
