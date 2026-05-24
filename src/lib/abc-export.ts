@@ -3,8 +3,8 @@ import { Note, TimeSignature } from "../types";
 export interface ABCExportOptions {
   notes: Note[];
   tempo: number;
-  timeSignature?: TimeSignature;
-  title?: string;
+  timeSignature: TimeSignature;
+  title: string;
 }
 
 // Number of bars to display per line in ABC notation
@@ -136,16 +136,11 @@ function durationToABC(beats: number): string {
 
 /**
  * Export notes to ABC notation format
- * @param options - Notes, tempo, time signature, and optional title
+ * @param options - Notes, tempo, time signature, and title
  * @returns String containing ABC notation
  */
 export function exportABC(options: ABCExportOptions): string {
-  const {
-    notes,
-    tempo,
-    timeSignature = { numerator: 4, denominator: 4 },
-    title = "Untitled",
-  } = options;
+  const { notes, tempo, timeSignature, title } = options;
 
   const lines: string[] = [];
 
@@ -233,17 +228,9 @@ export async function copyABCToClipboard(abcText: string): Promise<void> {
 /**
  * Download ABC notation file to the user's computer
  * @param abcText - ABC notation string
- * @param fileName - Desired file name (default: "export.abc")
+ * @param fileName - Desired file name
  */
-export function downloadABCFile(
-  abcText: string,
-  fileName: string = "export.abc",
-): void {
-  // Ensure .abc extension
-  if (!fileName.endsWith(".abc")) {
-    fileName += ".abc";
-  }
-
+export function downloadABCFile(abcText: string, fileName: string): void {
   // Create a blob from the text
   const blob = new Blob([abcText], { type: "text/plain" });
 
