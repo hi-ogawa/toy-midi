@@ -172,21 +172,6 @@ function serializeXmlNode(node: XmlNode, indent: string = ""): string {
   if (children.length === 1 && typeof children[0] === "string") {
     return `${indent}<${node.name}${attrs}>${xmlEscape(children[0])}</${node.name}>`;
   }
-  if (
-    node.name === "work" &&
-    children.length === 1 &&
-    typeof children[0] !== "string" &&
-    children[0].children?.length === 1 &&
-    typeof children[0].children[0] === "string"
-  ) {
-    const child = children[0];
-    const childAttrs = Object.entries(child.attrs ?? {})
-      .map(([key, value]) => ` ${key}="${xmlEscape(String(value))}"`)
-      .join("");
-
-    return `${indent}<${node.name}${attrs}><${child.name}${childAttrs}>${xmlEscape(children[0].children[0])}</${child.name}></${node.name}>`;
-  }
-
   return [
     `${indent}<${node.name}${attrs}>`,
     ...children.map((child) => serializeXmlNode(child, `${indent}  `)),
