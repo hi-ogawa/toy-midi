@@ -181,5 +181,4 @@ describe("MIDI Export", () => {
     expect(midiData68).toBeInstanceOf(Uint8Array);
     expect(midiData68.byteLength).toBeGreaterThan(0);
   });
-
 });

@@ -230,10 +230,7 @@ export async function copyABCToClipboard(abcText: string): Promise<void> {
  * @param abcText - ABC notation string
  * @param fileName - Desired file name
  */
-export function downloadABCFile(
-  abcText: string,
-  fileName: string,
-): void {
+export function downloadABCFile(abcText: string, fileName: string): void {
   // Create a blob from the text
   const blob = new Blob([abcText], { type: "text/plain" });
 

@@ -59,10 +59,7 @@ export function exportMidi(options: MidiExportOptions): Uint8Array {
  * @param midiData - Uint8Array containing MIDI file data
  * @param fileName - Desired file name
  */
-export function downloadMidiFile(
-  midiData: Uint8Array,
-  fileName: string,
-): void {
+export function downloadMidiFile(midiData: Uint8Array, fileName: string): void {
   // Create a blob from the byte array
   // Cast to any to avoid TypeScript issues with ArrayBufferLike vs ArrayBuffer
   const blob = new Blob([midiData as any], { type: "audio/midi" });
