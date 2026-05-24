@@ -341,7 +341,9 @@ function buildMeasureNotes(
   return measureNotes;
 }
 
-function buildMusicXMLScore(options: MusicXMLExportOptions): MusicXMLScore {
+export function buildMusicXMLScore(
+  options: MusicXMLExportOptions,
+): MusicXMLScore {
   const { notes, tempo, timeSignature, title, partName } = options;
   const sortedNotes = [...notes].sort((a, b) => {
     if (a.start !== b.start) {
