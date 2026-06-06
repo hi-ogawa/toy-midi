@@ -232,7 +232,10 @@ class AudioManager {
 
     // Audio track
     this.player = new Tone.Player();
-    this.audioChannel = new Tone.Channel(0.8).toDestination();
+    this.audioChannel = new Tone.Channel({
+      volume: Tone.gainToDb(clampGain(0.8)),
+      channelCount: 2,
+    }).toDestination();
     this.player.connect(this.audioChannel);
 
     // Metronome click generator with native Web Audio nodes.
