@@ -20,6 +20,7 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        channel: "chromium",
         launchOptions: {
           args: ["--autoplay-policy=no-user-gesture-required"],
         },
