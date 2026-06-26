@@ -20,7 +20,11 @@ import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
-import { toSavedProject, useProjectStore } from "../stores/project-store";
+import {
+  generateAudioTrackId,
+  toSavedProject,
+  useProjectStore,
+} from "../stores/project-store";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -43,8 +47,7 @@ export function Settings({
     isValid: (value) => value.length > 0,
   });
   const {
-    audioFileName,
-    audioAssetKey,
+    audioTracks,
     tempo,
     timeSignature,
     notes,
@@ -52,11 +55,11 @@ export function Settings({
     showDebug,
     setAutoScrollEnabled,
     setShowDebug,
-    setAudioFile,
-    setAudioOffset,
-    setAudioView,
-    clearAudioFile,
+    addAudioTrack,
+    updateAudioTrack,
+    deleteAudioTrack,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -103,25 +106,35 @@ export function Settings({
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
+      const id = audioTrack?.id ?? generateAudioTrackId();
+      addAudioTrack({
+        id,
+        fileName: file.name,
+        assetKey,
+        duration: buffer.duration,
+        offset: 0,
+        volume: audioTrack?.volume ?? 0.8,
+        muted: audioTrack?.muted ?? false,
+      });
 
       audioManager.player.buffer = buffer;
       audioManager.player.sync().start(0);
-      setAudioOffset(0);
 
-      setAudioView(audioView);
+      updateAudioTrack(id, { audioView });
     },
   });
 
   const handleRemoveAudio = async () => {
     // Delete from IndexedDB if we have a key
-    if (audioAssetKey) {
-      await deleteAsset(audioAssetKey);
+    if (audioTrack?.assetKey) {
+      await deleteAsset(audioTrack.assetKey);
     }
     // Clear the audio buffer in the player
     audioManager.clearAudioBuffer();
     // Clear store state
-    clearAudioFile();
+    if (audioTrack) {
+      deleteAudioTrack(audioTrack.id);
+    }
   };
 
   const handleExportMidi = () => {
@@ -129,8 +142,8 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
+      trackName: audioTrack
+        ? audioTrack.fileName.replace(/\.[^.]+$/, "")
         : "Piano Roll",
     });
 
@@ -147,7 +160,9 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
+      title: audioTrack
+        ? audioTrack.fileName.replace(/\.[^.]+$/, "")
+        : "Untitled",
     });
 
     const fileName = buildExportFileName({
@@ -164,8 +179,8 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
-        title: audioFileName
-          ? audioFileName.replace(/\.[^.]+$/, "")
+        title: audioTrack
+          ? audioTrack.fileName.replace(/\.[^.]+$/, "")
           : "Untitled",
       });
 
@@ -229,13 +244,13 @@ export function Settings({
           Audio
         </h3>
         <div className="pl-6 space-y-2">
-          {audioFileName && (
+          {audioTrack && (
             <div>
               <label className="block text-xs text-neutral-400 mb-1">
                 Current File
               </label>
               <div className="text-sm text-neutral-200 truncate">
-                {audioFileName}
+                {audioTrack.fileName}
               </div>
             </div>
           )}
@@ -251,7 +266,7 @@ export function Settings({
               <UploadIcon className="size-4" />
               {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
             </FileDropInput>
-            {audioFileName && (
+            {audioTrack && (
               <Button
                 data-testid="remove-audio-button"
                 onClick={handleRemoveAudio}

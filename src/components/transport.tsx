@@ -202,11 +202,11 @@ export function Transport({
   projectName,
 }: TransportProps) {
   const {
+    audioTracks,
     tempo,
     timeSignature,
     midiProgram,
     midiMuted,
-    audioMuted,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
@@ -214,11 +214,13 @@ export function Transport({
     setTimeSignature,
     setMidiProgram,
     setMidiMuted,
-    setAudioMuted,
+    updateAudioTrack,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
+  const audioMuted = audioTrack?.muted ?? false;
 
   const tapTimesRef = useRef<number[]>([]);
 
@@ -250,7 +252,9 @@ export function Transport({
     // Shift+2 - Toggle audio mute
     if (matchKeyboardEvent(e, "Shift+2") && !e.repeat) {
       e.preventDefault();
-      setAudioMuted(!audioMuted);
+      if (audioTrack) {
+        updateAudioTrack(audioTrack.id, { muted: !audioMuted });
+      }
     }
   });
 

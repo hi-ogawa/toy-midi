@@ -21,18 +21,13 @@ export interface ProjectState {
   locators: Locator[];
   selectedLocatorId: string | null;
 
-  // Audio track
-  audioFileName: string | null;
-  audioAssetKey: string | null; // Reference to IndexedDB asset
-  audioDuration: number; // in seconds
-  audioOffset: number; // in seconds - timeline position where audio starts (>= 0)
-  isAudioTrackSelected: boolean;
+  // Audio tracks
+  audioTracks: AudioTrack[];
+  selectedAudioTrackId: string | null;
 
   // Mixer state
-  audioVolume: number; // 0-1
   midiVolume: number; // 0-1
   midiMuted: boolean;
-  audioMuted: boolean;
   midiProgram: number; // GM program number 0-127
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
@@ -51,9 +46,6 @@ export interface ProjectState {
   pixelsPerBeat: number; // horizontal scale: screen pixels per beat
   pixelsPerKey: number; // vertical scale: screen pixels per semitone row
   waveformHeight: number; // resizable waveform area height in pixels
-
-  // Waveform state
-  audioView: AudioView | null; // Pre-computed audio data for waveform display
 
   // Actions
   addNote: (note: Note) => void;
@@ -86,16 +78,17 @@ export interface ProjectState {
   pasteNotes: (insertBeat: number) => void;
 
   // Audio actions
-  setAudioFile: (fileName: string, duration: number, assetKey: string) => void;
-  setAudioOffset: (offset: number) => void;
-  clearAudioFile: () => void;
-  setAudioTrackSelected: (selected: boolean) => void;
+  addAudioTrack: (track: SavedAudioTrack) => void;
+  updateAudioTrack: (
+    id: string,
+    updates: Partial<Omit<AudioTrack, "id">>,
+  ) => void;
+  deleteAudioTrack: (id: string) => void;
+  selectAudioTrack: (id: string | null) => void;
 
   // Mixer actions
-  setAudioVolume: (volume: number) => void;
   setMidiVolume: (volume: number) => void;
   setMidiMuted: (muted: boolean) => void;
-  setAudioMuted: (muted: boolean) => void;
   setMidiProgram: (program: number) => void;
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
@@ -110,9 +103,20 @@ export interface ProjectState {
   setPixelsPerBeat: (pixelsPerBeat: number) => void;
   setPixelsPerKey: (pixelsPerKey: number) => void;
   setWaveformHeight: (height: number) => void;
+}
 
-  // Waveform actions
-  setAudioView: (view: AudioView | null) => void;
+export interface SavedAudioTrack {
+  id: string;
+  fileName: string;
+  assetKey: string | null; // null in exported .toymidi files before import regenerates it
+  duration: number; // in seconds
+  offset: number; // in seconds - timeline position where audio starts (>= 0)
+  volume: number; // 0-1
+  muted: boolean;
+}
+
+export interface AudioTrack extends SavedAudioTrack {
+  audioView: AudioView | null; // Pre-computed audio data for waveform display, not persisted
 }
 
 let noteIdCounter = 0;
@@ -123,6 +127,11 @@ export function generateNoteId(): string {
 let locatorIdCounter = 0;
 export function generateLocatorId(): string {
   return `locator-${++locatorIdCounter}`;
+}
+
+let audioTrackIdCounter = 0;
+export function generateAudioTrackId(): string {
+  return `audio-${++audioTrackIdCounter}`;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -139,17 +148,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedLocatorId: null,
 
   // Audio state
-  audioFileName: null,
-  audioAssetKey: null,
-  audioDuration: 0,
-  audioOffset: 0,
-  isAudioTrackSelected: false,
+  audioTracks: [],
+  selectedAudioTrackId: null,
 
   // Mixer state
-  audioVolume: 0.8,
   midiVolume: 0.8,
   midiMuted: false,
-  audioMuted: false,
   midiProgram: 0, // Acoustic Grand Piano
   metronomeEnabled: false,
   metronomeVolume: 0.5,
@@ -164,9 +168,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
   waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
-
-  // Waveform state
-  audioView: null,
 
   addNote: (note) => {
     // Track in history
@@ -313,33 +314,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectLocator: (id) => set({ selectedLocatorId: id }),
 
   // Audio actions
-  setAudioFile: (fileName, duration, assetKey) =>
+  addAudioTrack: (track) =>
     set({
-      audioFileName: fileName,
-      audioAssetKey: assetKey,
-      audioDuration: duration,
-      audioOffset: 0,
+      audioTracks: [{ ...track, audioView: null }],
+      selectedAudioTrackId: track.id,
     }),
 
-  setAudioOffset: (offset) => set({ audioOffset: offset }),
+  updateAudioTrack: (id, updates) =>
+    set((state) => ({
+      audioTracks: state.audioTracks.map((track) =>
+        track.id === id ? { ...track, ...updates } : track,
+      ),
+    })),
 
-  clearAudioFile: () =>
-    set({
-      audioFileName: null,
-      audioAssetKey: null,
-      audioDuration: 0,
-      audioOffset: 0,
-      audioView: null,
-      isAudioTrackSelected: false,
-    }),
+  deleteAudioTrack: (id) =>
+    set((state) => ({
+      audioTracks: state.audioTracks.filter((track) => track.id !== id),
+      selectedAudioTrackId:
+        state.selectedAudioTrackId === id ? null : state.selectedAudioTrackId,
+    })),
 
-  setAudioTrackSelected: (selected) => set({ isAudioTrackSelected: selected }),
+  selectAudioTrack: (id) => set({ selectedAudioTrackId: id }),
 
   // Mixer actions
-  setAudioVolume: (volume) => set({ audioVolume: volume }),
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMidiMuted: (muted) => set({ midiMuted: muted }),
-  setAudioMuted: (muted) => set({ audioMuted: muted }),
   setMidiProgram: (program) => set({ midiProgram: program }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
@@ -354,9 +353,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setPixelsPerBeat: (pixelsPerBeat) => set({ pixelsPerBeat }),
   setPixelsPerKey: (pixelsPerKey) => set({ pixelsPerKey }),
   setWaveformHeight: (height) => set({ waveformHeight: height }),
-
-  // Waveform actions
-  setAudioView: (view) => set({ audioView: view }),
 
   // Undo/Redo actions
   undo: () => {
@@ -513,7 +509,7 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 
 // === Project Persistence ===
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 export interface SavedProject {
   version: number;
@@ -522,14 +518,9 @@ export interface SavedProject {
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   locators?: Locator[]; // Optional for backward compatibility
-  audioFileName: string | null;
-  audioAssetKey: string | null; // Reference to IndexedDB asset
-  audioDuration: number;
-  audioOffset: number;
-  audioVolume: number;
+  audioTracks: SavedAudioTrack[];
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
-  audioMuted?: boolean; // Optional for backward compatibility
   midiProgram?: number; // Optional for backward compatibility
   metronomeEnabled: boolean;
   metronomeVolume: number;
@@ -540,6 +531,14 @@ export interface SavedProject {
   pixelsPerBeat?: number;
   pixelsPerKey?: number;
   waveformHeight?: number;
+
+  // Legacy singleton audio fields from version 1.
+  audioFileName?: string | null;
+  audioAssetKey?: string | null;
+  audioDuration?: number;
+  audioOffset?: number;
+  audioVolume?: number;
+  audioMuted?: boolean;
 }
 
 // Default values for new/missing fields
@@ -549,14 +548,9 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
   locators: [],
-  audioFileName: null,
-  audioAssetKey: null,
-  audioDuration: 0,
-  audioOffset: 0,
-  audioVolume: 0.8,
+  audioTracks: [],
   midiVolume: 0.8,
   midiMuted: false,
-  audioMuted: false,
   midiProgram: 0,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
@@ -578,14 +572,11 @@ export function toSavedProject(state: ProjectState): SavedProject {
     timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
     locators: state.locators,
-    audioFileName: state.audioFileName,
-    audioAssetKey: state.audioAssetKey,
-    audioDuration: state.audioDuration,
-    audioOffset: state.audioOffset,
-    audioVolume: state.audioVolume,
+    audioTracks: state.audioTracks.map(
+      ({ audioView: _audioView, ...track }) => track,
+    ),
     midiVolume: state.midiVolume,
     midiMuted: state.midiMuted,
-    audioMuted: state.audioMuted,
     midiProgram: state.midiProgram,
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
@@ -610,6 +601,8 @@ export function fromSavedProject(
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...data };
 
+  const audioTracks = migrateAudioTracks(data, merged.audioTracks);
+
   // Update note ID counter to avoid collisions
   const maxId = merged.notes.reduce((max, n) => {
     const match = n.id.match(/^note-(\d+)$/);
@@ -624,20 +617,22 @@ export function fromSavedProject(
   }, 0);
   locatorIdCounter = maxLocatorId;
 
+  // Update audio track ID counter to avoid collisions
+  const maxAudioTrackId = audioTracks.reduce((max, track) => {
+    const match = track.id.match(/^audio-(\d+)$/);
+    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
+  }, 0);
+  audioTrackIdCounter = maxAudioTrackId;
+
   return {
     notes: merged.notes,
     tempo: merged.tempo,
     timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
     gridSnap: merged.gridSnap,
     locators: merged.locators ?? DEFAULTS.locators,
-    audioFileName: merged.audioFileName,
-    audioAssetKey: merged.audioAssetKey,
-    audioDuration: merged.audioDuration,
-    audioOffset: merged.audioOffset,
-    audioVolume: merged.audioVolume,
+    audioTracks: audioTracks.map((track) => ({ ...track, audioView: null })),
     midiVolume: merged.midiVolume,
     midiMuted: merged.midiMuted ?? DEFAULTS.midiMuted,
-    audioMuted: merged.audioMuted ?? DEFAULTS.audioMuted,
     midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,
     metronomeEnabled: merged.metronomeEnabled,
     metronomeVolume: merged.metronomeVolume,
@@ -650,8 +645,31 @@ export function fromSavedProject(
     // Reset transient state
     selectedNoteIds: new Set(),
     selectedLocatorId: null,
-    audioView: null,
+    selectedAudioTrackId: null,
   };
+}
+
+function migrateAudioTracks(
+  data: Partial<SavedProject>,
+  mergedAudioTracks: SavedAudioTrack[],
+): SavedAudioTrack[] {
+  if (data.audioTracks) {
+    return data.audioTracks;
+  }
+  if (!data.audioAssetKey) {
+    return mergedAudioTracks;
+  }
+  return [
+    {
+      id: "audio-1",
+      fileName: data.audioFileName ?? "audio.wav",
+      assetKey: data.audioAssetKey,
+      duration: data.audioDuration ?? 0,
+      offset: data.audioOffset ?? 0,
+      volume: data.audioVolume ?? 0.8,
+      muted: data.audioMuted ?? false,
+    },
+  ];
 }
 
 // Expose store for E2E testing in dev mode

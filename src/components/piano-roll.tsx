@@ -241,14 +241,10 @@ export function PianoRoll() {
     totalBeats,
     tempo,
     timeSignature,
-    audioDuration,
-    audioOffset,
-    audioFileName,
-    isAudioTrackSelected,
-    audioVolume,
+    audioTracks,
+    selectedAudioTrackId,
     midiVolume,
     metronomeVolume,
-    audioMuted,
     midiMuted,
     metronomeEnabled,
     showDebug,
@@ -258,10 +254,9 @@ export function PianoRoll() {
     deleteNotes,
     selectNotes,
     deselectAll,
-    setAudioOffset,
-    setAudioTrackSelected,
-    clearAudioFile,
-    audioView,
+    updateAudioTrack,
+    deleteAudioTrack,
+    selectAudioTrack,
     undo,
     redo,
     canUndo,
@@ -286,13 +281,16 @@ export function PianoRoll() {
     setPixelsPerBeat,
     setPixelsPerKey,
     setWaveformHeight,
-    setAudioVolume,
     setMidiVolume,
     setMetronomeVolume,
-    setAudioMuted,
     setMidiMuted,
     setMetronomeEnabled,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
+  const isAudioTrackSelected =
+    Boolean(audioTrack) && selectedAudioTrackId === audioTrack.id;
+  const audioVolume = audioTrack?.volume ?? 0.8;
+  const audioMuted = audioTrack?.muted ?? false;
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -423,12 +421,14 @@ export function PianoRoll() {
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
       } else if (isAudioTrackSelected) {
-        clearAudioFile();
+        if (audioTrack) {
+          deleteAudioTrack(audioTrack.id);
+        }
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
       selectLocator(null);
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
       // Ctrl+C: Copy
       e.preventDefault();
@@ -553,7 +553,7 @@ export function PianoRoll() {
       if (e.button !== 0) {
         return;
       }
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
@@ -726,7 +726,7 @@ export function PianoRoll() {
       gridToScreen,
       selectNotes,
       deselectAll,
-      setAudioTrackSelected,
+      selectAudioTrack,
       previewNote,
     ],
   );
@@ -1115,7 +1115,11 @@ export function PianoRoll() {
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   value={audioMuted}
-                  onChange={setAudioMuted}
+                  onChange={(muted) => {
+                    if (audioTrack) {
+                      updateAudioTrack(audioTrack.id, { muted });
+                    }
+                  }}
                   aria-label="Toggle audio mute"
                   title={
                     audioMuted
@@ -1138,7 +1142,13 @@ export function PianoRoll() {
                 />
                 <Slider
                   value={[gainToPercent(audioVolume)]}
-                  onValueChange={([v]) => setAudioVolume(percentToGain(v))}
+                  onValueChange={([v]) => {
+                    if (audioTrack) {
+                      updateAudioTrack(audioTrack.id, {
+                        volume: percentToGain(v),
+                      });
+                    }
+                  }}
                   max={100}
                   step={1}
                 />
@@ -1229,21 +1239,25 @@ export function PianoRoll() {
             gridSnap={gridSnap}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
-            audioDuration={audioDuration}
-            audioOffset={audioOffset}
-            audioFileName={audioFileName}
+            audioDuration={audioTrack?.duration ?? 0}
+            audioOffset={audioTrack?.offset ?? 0}
+            audioFileName={audioTrack?.fileName ?? null}
             tempo={tempo}
             playheadBeat={secondsToBeats(position, tempo)}
-            audioView={audioView}
+            audioView={audioTrack?.audioView ?? null}
             height={waveformHeight}
             beatsPerBar={beatsPerBar}
             isSelected={isAudioTrackSelected}
-            onOffsetChange={setAudioOffset}
+            onOffsetChange={(offset) => {
+              if (audioTrack) {
+                updateAudioTrack(audioTrack.id, { offset });
+              }
+            }}
             onHeightChange={setWaveformHeight}
             onSelect={() => {
               deselectAll();
               selectLocator(null);
-              setAudioTrackSelected(true);
+              selectAudioTrack(audioTrack?.id ?? null);
             }}
           />
           {/* Note grid with CSS background */}

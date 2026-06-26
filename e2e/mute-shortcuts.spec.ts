@@ -15,11 +15,11 @@ test.describe("Track Mute Shortcuts", () => {
       ).__store;
       const state = store.getState() as {
         midiMuted: boolean;
-        audioMuted: boolean;
+        audioTracks: Array<{ muted: boolean }>;
       };
       return {
         midiMuted: state.midiMuted,
-        audioMuted: state.audioMuted,
+        audioMuted: state.audioTracks[0]?.muted ?? false,
       };
     });
   }
@@ -60,14 +60,14 @@ test.describe("Track Mute Shortcuts", () => {
   });
 
   test("mute shortcuts work without audio loaded", async ({ page }) => {
-    // Should be able to toggle mutes even without audio loaded
+    // MIDI can toggle without audio loaded; audio mute is track-scoped.
     await page.keyboard.press("Shift+1");
     let muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(true);
 
     await page.keyboard.press("Shift+2");
     muteState = await getMuteState(page);
-    expect(muteState.audioMuted).toBe(true);
+    expect(muteState.audioMuted).toBe(false);
 
     // Unmute both
     await page.keyboard.press("Shift+1");
