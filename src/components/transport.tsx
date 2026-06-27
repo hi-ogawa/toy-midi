@@ -15,7 +15,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { cn } from "../lib/utils";
-import { generateAudioTrackId, useProjectStore } from "../stores/project-store";
+import { useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
@@ -214,7 +214,6 @@ export function Transport({
     setTimeSignature,
     setMidiProgram,
     setMidiMuted,
-    addAudioTrack,
     updateAudioTrack,
     setMetronomeEnabled,
     setAutoScrollEnabled,
@@ -255,16 +254,6 @@ export function Transport({
       e.preventDefault();
       if (audioTrack) {
         updateAudioTrack(audioTrack.id, { muted: !audioMuted });
-      } else {
-        addAudioTrack({
-          id: generateAudioTrackId(),
-          fileName: "",
-          assetKey: "",
-          duration: 0,
-          offset: 0,
-          volume: 0.8,
-          muted: true,
-        });
       }
     }
   });

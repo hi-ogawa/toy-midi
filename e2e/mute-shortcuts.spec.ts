@@ -20,6 +20,7 @@ test.describe("Track Mute Shortcuts", () => {
       return {
         midiMuted: state.midiMuted,
         audioMuted: state.audioTracks[0]?.muted ?? false,
+        hasAudioTrack: state.audioTracks.length > 0,
       };
     });
   }
@@ -59,25 +60,29 @@ test.describe("Track Mute Shortcuts", () => {
     expect(muteState.audioMuted).toBe(false);
   });
 
-  test("mute shortcuts work without audio loaded", async ({ page }) => {
-    // Should be able to toggle mutes even without audio loaded
+  test("Shift+2 has no effect when no audio track exists", async ({ page }) => {
     await page.keyboard.press("Shift+1");
     let muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(true);
+    expect(muteState.audioMuted).toBe(false);
+    expect(muteState.hasAudioTrack).toBe(false);
 
     await page.keyboard.press("Shift+2");
     muteState = await getMuteState(page);
-    expect(muteState.audioMuted).toBe(true);
+    expect(muteState.audioMuted).toBe(false);
+    expect(muteState.hasAudioTrack).toBe(false);
 
-    // Unmute both
+    // Unmute MIDI
     await page.keyboard.press("Shift+1");
-    await page.keyboard.press("Shift+2");
     muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(false);
     expect(muteState.audioMuted).toBe(false);
   });
 
   test("mute state persists after reload", async ({ page }) => {
+    // Load audio so audio mute state is applicable
+    await loadAudioFile(page);
+
     // Mute both tracks
     await page.keyboard.press("Shift+1");
     await page.keyboard.press("Shift+2");

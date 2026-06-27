@@ -46,6 +46,9 @@ export async function exportProjectFile(
   // If there are audio files, include them
   const audioTracks = projectData.audioTracks ?? [];
   for (const track of audioTracks) {
+    if (!track.assetKey) {
+      continue;
+    }
     const asset = await loadAsset(track.assetKey);
     if (!asset) {
       continue;
@@ -64,7 +67,7 @@ export async function exportProjectFile(
     ...projectData,
     audioTracks: (projectData.audioTracks ?? []).map((track) => ({
       ...track,
-      assetKey: "",
+      assetKey: null,
     })),
   };
   zip.file("project.json", JSON.stringify(projectForExport, null, 2));
@@ -152,7 +155,7 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     const audioZipFile = zip.file(manifest.files.audio);
     if (audioZipFile) {
       const audioBlob = await audioZipFile.async("blob");
-      const legacyTrackId = project.audioTracks?.[0]?.id ?? "audio-track-1";
+      const legacyTrackId = project.audioTracks?.[0]?.id ?? "audio-track-0";
       const audioFileName =
         project.audioTracks?.[0]?.fileName ||
         manifest.files.audio.split("/").pop() ||
@@ -189,7 +192,22 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
 export async function importProjectAudio(
   parsed: ParsedProjectFile,
 ): Promise<SavedProject> {
-  const tracks = parsed.project.audioTracks ?? [];
+  const tracks =
+    parsed.project.audioTracks && parsed.project.audioTracks.length > 0
+      ? parsed.project.audioTracks
+      : parsed.project.audioFileName || (parsed.project.audioDuration ?? 0) > 0
+        ? [
+            {
+              id: Object.keys(parsed.audioFilesByTrackId)[0] ?? "audio-track-0",
+              fileName: parsed.project.audioFileName ?? "legacy-audio.wav",
+              assetKey: null,
+              duration: parsed.project.audioDuration ?? 0,
+              offset: parsed.project.audioOffset ?? 0,
+              volume: parsed.project.audioVolume ?? 0.8,
+              muted: parsed.project.audioMuted ?? false,
+            },
+          ]
+        : [];
   const updatedTracks = await Promise.all(
     tracks.map(async (track) => {
       const audioFile = parsed.audioFilesByTrackId[track.id];

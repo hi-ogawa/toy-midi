@@ -6,7 +6,7 @@ import { historyStore } from "./history-store";
 export interface SavedAudioTrack {
   id: string;
   fileName: string;
-  assetKey: string;
+  assetKey: string | null;
   duration: number; // in seconds
   offset: number; // in seconds - timeline position where audio starts (>= 0)
   volume: number; // 0-1
@@ -319,6 +319,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   addAudioTrack: (track) =>
     set((state) => {
       if (state.audioTracks.length >= 1) {
+        console.warn("Only one audio track is supported in phase 1.");
         return state;
       }
       return {
@@ -612,13 +613,13 @@ export function fromSavedProject(
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...data };
 
-  const legacyAudioTrack: SavedAudioTrack[] =
+  const legacyAudioTracks: SavedAudioTrack[] =
     data.audioAssetKey || data.audioFileName || (data.audioDuration ?? 0) > 0
       ? [
           {
             id: generateAudioTrackId(),
-            fileName: data.audioFileName ?? "audio.wav",
-            assetKey: data.audioAssetKey ?? "",
+            fileName: data.audioFileName ?? "legacy-audio.wav",
+            assetKey: data.audioAssetKey ?? null,
             duration: data.audioDuration ?? 0,
             offset: data.audioOffset ?? 0,
             volume: data.audioVolume ?? 0.8,
@@ -627,7 +628,7 @@ export function fromSavedProject(
         ]
       : [];
 
-  const savedAudioTracks = data.audioTracks ?? legacyAudioTrack;
+  const savedAudioTracks = data.audioTracks ?? legacyAudioTracks;
 
   const maxAudioTrackId = savedAudioTracks.reduce((max, track) => {
     const match = track.id.match(/^audio-track-(\d+)$/);
