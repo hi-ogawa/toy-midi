@@ -24,6 +24,7 @@ import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
+  type AudioTrack,
   generateLocatorId,
   generateNoteId,
   secondsToBeats,
@@ -241,14 +242,10 @@ export function PianoRoll() {
     totalBeats,
     tempo,
     timeSignature,
-    audioDuration,
-    audioOffset,
-    audioFileName,
-    isAudioTrackSelected,
-    audioVolume,
+    audioTracks,
+    selectedAudioTrackId,
     midiVolume,
     metronomeVolume,
-    audioMuted,
     midiMuted,
     metronomeEnabled,
     showDebug,
@@ -258,10 +255,9 @@ export function PianoRoll() {
     deleteNotes,
     selectNotes,
     deselectAll,
-    setAudioOffset,
-    setAudioTrackSelected,
-    clearAudioFile,
-    audioView,
+    selectAudioTrack,
+    updateAudioTrack,
+    deleteAudioTrack,
     undo,
     redo,
     canUndo,
@@ -286,13 +282,16 @@ export function PianoRoll() {
     setPixelsPerBeat,
     setPixelsPerKey,
     setWaveformHeight,
-    setAudioVolume,
     setMidiVolume,
     setMetronomeVolume,
-    setAudioMuted,
     setMidiMuted,
     setMetronomeEnabled,
   } = useProjectStore();
+  const audioTrack = audioTracks[0] ?? null;
+  const isAudioTrackSelected =
+    audioTrack !== null && selectedAudioTrackId === audioTrack.id;
+  const audioVolume = audioTrack?.volume ?? 0.8;
+  const audioMuted = audioTrack?.muted ?? false;
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -422,13 +421,13 @@ export function PianoRoll() {
         deleteNotes(Array.from(selectedNoteIds));
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
-      } else if (isAudioTrackSelected) {
-        clearAudioFile();
+      } else if (isAudioTrackSelected && audioTrack) {
+        deleteAudioTrack(audioTrack.id);
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
       selectLocator(null);
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
       // Ctrl+C: Copy
       e.preventDefault();
@@ -553,7 +552,7 @@ export function PianoRoll() {
       if (e.button !== 0) {
         return;
       }
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
@@ -726,7 +725,7 @@ export function PianoRoll() {
       gridToScreen,
       selectNotes,
       deselectAll,
-      setAudioTrackSelected,
+      selectAudioTrack,
       previewNote,
     ],
   );
@@ -1115,13 +1114,18 @@ export function PianoRoll() {
                 <span className="uppercase tracking-wide">Audio</span>
                 <Toggle
                   value={audioMuted}
-                  onChange={setAudioMuted}
+                  onChange={(muted) => {
+                    if (audioTrack) {
+                      updateAudioTrack(audioTrack.id, { muted });
+                    }
+                  }}
                   aria-label="Toggle audio mute"
                   title={
                     audioMuted
                       ? "Unmute audio (Shift+2)"
                       : "Mute audio (Shift+2)"
                   }
+                  disabled={!audioTrack}
                   className={cn(
                     "size-4.5",
                     audioMuted &&
@@ -1138,9 +1142,16 @@ export function PianoRoll() {
                 />
                 <Slider
                   value={[gainToPercent(audioVolume)]}
-                  onValueChange={([v]) => setAudioVolume(percentToGain(v))}
+                  onValueChange={([v]) => {
+                    if (audioTrack) {
+                      updateAudioTrack(audioTrack.id, {
+                        volume: percentToGain(v),
+                      });
+                    }
+                  }}
                   max={100}
                   step={1}
+                  disabled={!audioTrack}
                 />
               </div>
             </div>
@@ -1229,21 +1240,22 @@ export function PianoRoll() {
             gridSnap={gridSnap}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
-            audioDuration={audioDuration}
-            audioOffset={audioOffset}
-            audioFileName={audioFileName}
+            audioTrack={audioTrack}
             tempo={tempo}
             playheadBeat={secondsToBeats(position, tempo)}
-            audioView={audioView}
             height={waveformHeight}
             beatsPerBar={beatsPerBar}
             isSelected={isAudioTrackSelected}
-            onOffsetChange={setAudioOffset}
+            onOffsetChange={(offset) => {
+              if (audioTrack) {
+                updateAudioTrack(audioTrack.id, { offset });
+              }
+            }}
             onHeightChange={setWaveformHeight}
             onSelect={() => {
               deselectAll();
               selectLocator(null);
-              setAudioTrackSelected(true);
+              selectAudioTrack(audioTrack?.id ?? null);
             }}
           />
           {/* Note grid with CSS background */}
@@ -1787,12 +1799,9 @@ function WaveformArea({
   gridSnap,
   scrollX,
   viewportWidth,
-  audioDuration,
-  audioOffset,
-  audioFileName,
+  audioTrack,
   tempo,
   playheadBeat,
-  audioView,
   height,
   beatsPerBar,
   isSelected,
@@ -1804,12 +1813,9 @@ function WaveformArea({
   gridSnap: GridSnap;
   scrollX: number;
   viewportWidth: number;
-  audioDuration: number;
-  audioOffset: number;
-  audioFileName: string | null;
+  audioTrack: AudioTrack | null;
   tempo: number;
   playheadBeat: number;
-  audioView: AudioView | null;
   height: number;
   beatsPerBar: number;
   isSelected: boolean;
@@ -1817,6 +1823,10 @@ function WaveformArea({
   onHeightChange: (height: number) => void;
   onSelect: () => void;
 }) {
+  const audioDuration = audioTrack?.duration ?? 0;
+  const audioOffset = audioTrack?.offset ?? 0;
+  const audioFileName = audioTrack?.fileName ?? null;
+  const audioView = audioTrack?.audioView ?? null;
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);

@@ -13,13 +13,13 @@ test.describe("Track Mute Shortcuts", () => {
       const store = (
         window as Window & { __store: { getState: () => unknown } }
       ).__store;
-      const state = store.getState() as {
+      const state = store.getState() as unknown as {
         midiMuted: boolean;
-        audioMuted: boolean;
+        audioTracks: Array<{ muted: boolean }>;
       };
       return {
         midiMuted: state.midiMuted,
-        audioMuted: state.audioMuted,
+        audioMuted: state.audioTracks[0]?.muted ?? false,
       };
     });
   }

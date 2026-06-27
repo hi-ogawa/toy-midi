@@ -53,15 +53,16 @@ export function App() {
       }
 
       const project = useProjectStore.getState();
-      if (project.audioAssetKey) {
-        const asset = await loadAsset(project.audioAssetKey);
+      const audioTrack = project.audioTracks[0];
+      if (audioTrack?.assetKey) {
+        const asset = await loadAsset(audioTrack.assetKey);
         if (asset) {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
           audioManager.player.buffer = buffer;
-          audioManager.syncAudioTrack(project.audioOffset);
-          project.setAudioView(audioView);
+          audioManager.syncAudioTrack(audioTrack.offset);
+          project.setAudioView(audioTrack.id, audioView);
         } else {
           toast.warning(
             "Audio asset not found. The audio track will be cleared.",

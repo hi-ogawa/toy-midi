@@ -261,11 +261,14 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
+    const audioTrack = state.audioTracks[0];
+    const prevAudioTrack = prevState?.audioTracks[0];
+
     // Cheap operations - always apply
-    this.setAudioVolume(state.audioVolume);
+    this.setAudioVolume(audioTrack?.volume ?? 0.8);
     this.setMidiVolume(state.midiVolume);
     this.setMidiMuted(state.midiMuted);
-    this.setAudioMuted(state.audioMuted);
+    this.setAudioMuted(audioTrack?.muted ?? false);
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
     Tone.getTransport().bpm.value = state.tempo;
@@ -279,8 +282,8 @@ class AudioManager {
     if (state.notes !== prevState?.notes) {
       this.setNotes(state.notes);
     }
-    if (state.audioOffset !== prevState?.audioOffset) {
-      this.syncAudioTrack(state.audioOffset);
+    if (audioTrack?.offset !== prevAudioTrack?.offset) {
+      this.syncAudioTrack(audioTrack?.offset ?? 0);
     }
     if (state.timeSignature.numerator !== prevState?.timeSignature.numerator) {
       this.setMetronomeSequence(state.timeSignature.numerator);

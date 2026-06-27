@@ -20,7 +20,11 @@ import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
-import { toSavedProject, useProjectStore } from "../stores/project-store";
+import {
+  generateAudioTrackId,
+  toSavedProject,
+  useProjectStore,
+} from "../stores/project-store";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -43,8 +47,7 @@ export function Settings({
     isValid: (value) => value.length > 0,
   });
   const {
-    audioFileName,
-    audioAssetKey,
+    audioTracks,
     tempo,
     timeSignature,
     notes,
@@ -52,11 +55,14 @@ export function Settings({
     showDebug,
     setAutoScrollEnabled,
     setShowDebug,
-    setAudioFile,
-    setAudioOffset,
+    addAudioTrack,
+    updateAudioTrack,
     setAudioView,
-    clearAudioFile,
+    deleteAudioTrack,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
+  const audioFileName = audioTrack?.fileName ?? null;
+  const audioAssetKey = audioTrack?.assetKey ?? null;
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -103,13 +109,33 @@ export function Settings({
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
+      const existingTrackId = useProjectStore.getState().audioTracks[0]?.id;
+      if (existingTrackId) {
+        updateAudioTrack(existingTrackId, {
+          fileName: file.name,
+          assetKey,
+          duration: buffer.duration,
+          offset: 0,
+        });
+      } else {
+        const id = generateAudioTrackId();
+        addAudioTrack({
+          id,
+          fileName: file.name,
+          assetKey,
+          duration: buffer.duration,
+          offset: 0,
+          volume: 0.8,
+          muted: false,
+        });
+      }
 
       audioManager.player.buffer = buffer;
       audioManager.player.sync().start(0);
-      setAudioOffset(0);
-
-      setAudioView(audioView);
+      const trackId = useProjectStore.getState().audioTracks[0]?.id;
+      if (trackId) {
+        setAudioView(trackId, audioView);
+      }
     },
   });
 
@@ -121,7 +147,9 @@ export function Settings({
     // Clear the audio buffer in the player
     audioManager.clearAudioBuffer();
     // Clear store state
-    clearAudioFile();
+    if (audioTrack) {
+      deleteAudioTrack(audioTrack.id);
+    }
   };
 
   const handleExportMidi = () => {

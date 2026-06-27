@@ -18,19 +18,20 @@ import { Toggle } from "./ui/toggle";
 
 export function Mixer() {
   const {
+    audioTracks,
     midiVolume,
-    audioVolume,
     metronomeVolume,
     midiMuted,
-    audioMuted,
     metronomeEnabled,
     setMidiVolume,
-    setAudioVolume,
+    updateAudioTrack,
     setMetronomeVolume,
     setMidiMuted,
-    setAudioMuted,
     setMetronomeEnabled,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
+  const audioVolume = audioTrack?.volume ?? 0.8;
+  const audioMuted = audioTrack?.muted ?? false;
   const zeroDbPercent = dbToPercent(0);
   const formatDb = useCallback((value: number) => value.toFixed(1), []);
   const midiDbInput = useDraftInput({
@@ -44,7 +45,11 @@ export function Mixer() {
   });
   const audioDbInput = useDraftInput({
     value: gainToDb(audioVolume),
-    onCommit: (db) => setAudioVolume(dbToGain(db)),
+    onCommit: (db) => {
+      if (audioTrack) {
+        updateAudioTrack(audioTrack.id, { volume: dbToGain(db) });
+      }
+    },
     min: MIN_DB,
     max: MAX_DB,
     step: 0.5,
@@ -81,6 +86,7 @@ export function Mixer() {
             step={1}
             orientation="vertical"
             className="h-48"
+            disabled={!audioTrack}
           />
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
@@ -121,7 +127,11 @@ export function Mixer() {
           />
           <Slider
             value={[gainToPercent(audioVolume)]}
-            onValueChange={([v]) => setAudioVolume(percentToGain(v))}
+            onValueChange={([v]) => {
+              if (audioTrack) {
+                updateAudioTrack(audioTrack.id, { volume: percentToGain(v) });
+              }
+            }}
             max={100}
             step={1}
             orientation="vertical"
@@ -140,9 +150,14 @@ export function Mixer() {
         </div>
         <Toggle
           value={audioMuted}
-          onChange={setAudioMuted}
+          onChange={(muted) => {
+            if (audioTrack) {
+              updateAudioTrack(audioTrack.id, { muted });
+            }
+          }}
           aria-label="Toggle audio mute"
           title={audioMuted ? "Unmute audio" : "Mute audio"}
+          disabled={!audioTrack}
           className={cn(
             "h-8 min-w-8 px-1.5",
             audioMuted &&

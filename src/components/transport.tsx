@@ -15,7 +15,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { cn } from "../lib/utils";
-import { useProjectStore } from "../stores/project-store";
+import { generateAudioTrackId, useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
@@ -202,11 +202,11 @@ export function Transport({
   projectName,
 }: TransportProps) {
   const {
+    audioTracks,
     tempo,
     timeSignature,
     midiProgram,
     midiMuted,
-    audioMuted,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
@@ -214,11 +214,14 @@ export function Transport({
     setTimeSignature,
     setMidiProgram,
     setMidiMuted,
-    setAudioMuted,
+    addAudioTrack,
+    updateAudioTrack,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
   } = useProjectStore();
+  const audioTrack = audioTracks[0];
+  const audioMuted = audioTrack?.muted ?? false;
 
   const tapTimesRef = useRef<number[]>([]);
 
@@ -250,7 +253,19 @@ export function Transport({
     // Shift+2 - Toggle audio mute
     if (matchKeyboardEvent(e, "Shift+2") && !e.repeat) {
       e.preventDefault();
-      setAudioMuted(!audioMuted);
+      if (audioTrack) {
+        updateAudioTrack(audioTrack.id, { muted: !audioMuted });
+      } else {
+        addAudioTrack({
+          id: generateAudioTrackId(),
+          fileName: "",
+          assetKey: "",
+          duration: 0,
+          offset: 0,
+          volume: 0.8,
+          muted: true,
+        });
+      }
     }
   });
 
