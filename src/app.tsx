@@ -53,19 +53,23 @@ export function App() {
       }
 
       const project = useProjectStore.getState();
-      if (project.audioAssetKey) {
-        const asset = await loadAsset(project.audioAssetKey);
+      for (const track of project.audioTracks) {
+        if (!track.assetKey) {
+          continue;
+        }
+        const asset = await loadAsset(track.assetKey);
         if (asset) {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
-          audioManager.player.buffer = buffer;
-          audioManager.syncAudioTrack(project.audioOffset);
-          project.setAudioView(audioView);
+          audioManager.setTrackBuffer(track.id, buffer);
+          audioManager.syncAudioTrack(track.id, track.offset);
+          project.updateAudioTrack(track.id, { audioView });
         } else {
           toast.warning(
-            "Audio asset not found. The audio track will be cleared.",
+            `Audio asset not found for "${track.fileName}". The track will be cleared.`,
           );
+          project.deleteAudioTrack(track.id);
         }
       }
 

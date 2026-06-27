@@ -206,7 +206,7 @@ export function Transport({
     timeSignature,
     midiProgram,
     midiMuted,
-    audioMuted,
+    audioTracks,
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
@@ -214,7 +214,7 @@ export function Transport({
     setTimeSignature,
     setMidiProgram,
     setMidiMuted,
-    setAudioMuted,
+    updateAudioTrack,
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
@@ -247,10 +247,13 @@ export function Transport({
       e.preventDefault();
       setMidiMuted(!midiMuted);
     }
-    // Shift+2 - Toggle audio mute
+    // Shift+2 - Toggle first audio track mute
     if (matchKeyboardEvent(e, "Shift+2") && !e.repeat) {
       e.preventDefault();
-      setAudioMuted(!audioMuted);
+      const firstTrack = audioTracks[0];
+      if (firstTrack) {
+        updateAudioTrack(firstTrack.id, { muted: !firstTrack.muted });
+      }
     }
   });
 

@@ -20,7 +20,12 @@ import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
-import { toSavedProject, useProjectStore } from "../stores/project-store";
+import {
+  generateAudioTrackId,
+  MAX_AUDIO_TRACKS,
+  toSavedProject,
+  useProjectStore,
+} from "../stores/project-store";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -43,8 +48,7 @@ export function Settings({
     isValid: (value) => value.length > 0,
   });
   const {
-    audioFileName,
-    audioAssetKey,
+    audioTracks,
     tempo,
     timeSignature,
     notes,
@@ -52,11 +56,13 @@ export function Settings({
     showDebug,
     setAutoScrollEnabled,
     setShowDebug,
-    setAudioFile,
-    setAudioOffset,
-    setAudioView,
-    clearAudioFile,
+    addAudioTrack,
+    deleteAudioTrack,
   } = useProjectStore();
+
+  const canAddAudioTrack = audioTracks.length < MAX_AUDIO_TRACKS;
+  // Name used for MIDI/ABC export metadata (first audio track, if any)
+  const primaryAudioName = audioTracks[0]?.fileName ?? null;
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -103,25 +109,32 @@ export function Settings({
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
 
-      audioManager.player.buffer = buffer;
-      audioManager.player.sync().start(0);
-      setAudioOffset(0);
-
-      setAudioView(audioView);
+      const id = generateAudioTrackId();
+      // Assign the buffer before adding to the store so the state-sync
+      // subscription can immediately sync the loaded player to the Transport.
+      audioManager.setTrackBuffer(id, buffer);
+      addAudioTrack({
+        id,
+        fileName: file.name,
+        assetKey,
+        duration: buffer.duration,
+        offset: 0,
+        volume: 0.8,
+        muted: false,
+        audioView,
+      });
     },
   });
 
-  const handleRemoveAudio = async () => {
+  const handleRemoveAudio = async (id: string) => {
+    const track = audioTracks.find((t) => t.id === id);
     // Delete from IndexedDB if we have a key
-    if (audioAssetKey) {
-      await deleteAsset(audioAssetKey);
+    if (track?.assetKey) {
+      await deleteAsset(track.assetKey);
     }
-    // Clear the audio buffer in the player
-    audioManager.clearAudioBuffer();
-    // Clear store state
-    clearAudioFile();
+    // Removing from the store disposes the player via the state-sync subscription
+    deleteAudioTrack(id);
   };
 
   const handleExportMidi = () => {
@@ -129,8 +142,8 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
+      trackName: primaryAudioName
+        ? primaryAudioName.replace(/\.[^.]+$/, "")
         : "Piano Roll",
     });
 
@@ -147,7 +160,9 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
+      title: primaryAudioName
+        ? primaryAudioName.replace(/\.[^.]+$/, "")
+        : "Untitled",
     });
 
     const fileName = buildExportFileName({
@@ -164,8 +179,8 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
-        title: audioFileName
-          ? audioFileName.replace(/\.[^.]+$/, "")
+        title: primaryAudioName
+          ? primaryAudioName.replace(/\.[^.]+$/, "")
           : "Untitled",
       });
 
@@ -227,41 +242,42 @@ export function Settings({
         <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
           <UploadIcon className="size-4" />
           Audio
+          <span className="text-xs font-normal text-neutral-500">
+            ({audioTracks.length}/{MAX_AUDIO_TRACKS})
+          </span>
         </h3>
         <div className="pl-6 space-y-2">
-          {audioFileName && (
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1">
-                Current File
-              </label>
-              <div className="text-sm text-neutral-200 truncate">
-                {audioFileName}
+          {audioTracks.map((track) => (
+            <div key={track.id} className="flex items-center gap-2">
+              <div className="flex-1 text-sm text-neutral-200 truncate">
+                {track.fileName}
               </div>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <FileDropInput
-              accept="audio/*"
-              data-testid="load-audio-button"
-              disabled={loadAudioMutation.isPending}
-              inputProps={{ "data-testid": "audio-file-input" }}
-              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-              onFile={(file) => loadAudioMutation.mutate(file)}
-            >
-              <UploadIcon className="size-4" />
-              {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
-            </FileDropInput>
-            {audioFileName && (
               <Button
                 data-testid="remove-audio-button"
-                onClick={handleRemoveAudio}
-                className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                onClick={() => handleRemoveAudio(track.id)}
+                title={`Remove ${track.fileName}`}
+                className="h-8 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
                 <Trash2Icon className="size-4" />
                 Remove
               </Button>
-            )}
-          </div>
+            </div>
+          ))}
+          <FileDropInput
+            accept="audio/*"
+            data-testid="load-audio-button"
+            disabled={loadAudioMutation.isPending || !canAddAudioTrack}
+            inputProps={{ "data-testid": "audio-file-input" }}
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 disabled:opacity-50"
+            onFile={(file) => loadAudioMutation.mutate(file)}
+          >
+            <UploadIcon className="size-4" />
+            {loadAudioMutation.isPending
+              ? "Loading..."
+              : canAddAudioTrack
+                ? "Load Audio"
+                : `Max ${MAX_AUDIO_TRACKS} tracks`}
+          </FileDropInput>
         </div>
       </section>
 

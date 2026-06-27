@@ -31,9 +31,13 @@ export const clickThroughStartup = clickNewProject;
 
 /**
  * Load an audio file via Settings dialog.
- * Opens Settings, uploads test-audio.wav, waits for load, then closes Settings.
+ * Opens Settings, uploads the given fixture (default test-audio.wav), waits for
+ * load, then closes Settings.
  */
-export async function loadAudioFile(page: Page): Promise<void> {
+export async function loadAudioFile(
+  page: Page,
+  fixture = "test-audio.wav",
+): Promise<void> {
   // Open settings dialog
   await page.getByTestId("settings-button").click();
   await page.waitForTimeout(100);
@@ -41,10 +45,7 @@ export async function loadAudioFile(page: Page): Promise<void> {
   // Find audio file input within settings dialog
   const fileInput = page.getByTestId("audio-file-input");
   const path = await import("path");
-  const testAudioPath = path.join(
-    import.meta.dirname,
-    "../public/test-audio.wav",
-  );
+  const testAudioPath = path.join(import.meta.dirname, "../public", fixture);
   await fileInput.setInputFiles(testAudioPath);
   await page.waitForTimeout(500); // Wait for audio to load
 

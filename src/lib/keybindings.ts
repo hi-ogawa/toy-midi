@@ -37,7 +37,7 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
   },
   {
     key: "Shift+2",
-    description: "Toggle audio mute",
+    description: "Toggle audio mute (first track)",
     category: "playback",
   },
 

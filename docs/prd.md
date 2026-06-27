@@ -127,6 +127,7 @@ _Audio/Playback_
 - [x] fix: when paused, clicking timeline jumps with a lag. (see docs/2026-01-13-timeline-seek-lag.md)
 - [ ] fix: drag timeline (currently cannot even move timeline bar at exact zero)
 - [x] feat: remove audio track (menu + select + Delete key)
+- [x] feat: support two audio tracks (#136, see docs/2026-06-27-two-audio-tracks.md)
 - [ ] feat: undo/redo audio track operations (move, remove)
 - [ ] feat: trim audio track length (start and end)
 - [ ] follow up docs/2026-01-11-audio-seek-sync-fix.md, docs/2026-01-10-audio-state-sync-refactor.md
