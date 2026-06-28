@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Pencil, Trash2 } from "lucide-react";
+import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { HelpOverlay } from "./components/help-overlay";
@@ -408,6 +408,15 @@ function ProjectListView({
             Toy MIDI
           </h1>
           <p className="text-neutral-500 mt-2">A simple piano roll editor</p>
+          <a
+            href="https://github.com/hi-ogawa/toy-midi/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 mt-3 text-sm text-neutral-500 hover:text-emerald-400 transition-colors"
+          >
+            <Github className="size-4" />
+            GitHub
+          </a>
         </div>
 
         {hasProjects ? (
