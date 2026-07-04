@@ -590,6 +590,46 @@ export function toSavedProject(state: ProjectState): SavedProject {
   };
 }
 
+export function migrateSavedProject(data: AnySavedProject): SavedProject {
+  if (data.version === STORAGE_VERSION) {
+    return data;
+  }
+
+  return {
+    version: STORAGE_VERSION,
+    notes: data.notes,
+    tempo: data.tempo,
+    timeSignature: data.timeSignature,
+    gridSnap: data.gridSnap,
+    locators: data.locators,
+    audioTracks:
+      data.audioFileName && data.audioAssetKey
+        ? [
+            {
+              id: "audio-1",
+              fileName: data.audioFileName,
+              assetKey: data.audioAssetKey,
+              duration: data.audioDuration,
+              offset: data.audioOffset,
+              volume: data.audioVolume,
+              muted: data.audioMuted ?? false,
+            },
+          ]
+        : [],
+    midiVolume: data.midiVolume,
+    midiMuted: data.midiMuted,
+    midiProgram: data.midiProgram,
+    metronomeEnabled: data.metronomeEnabled,
+    metronomeVolume: data.metronomeVolume,
+    autoScrollEnabled: data.autoScrollEnabled,
+    scrollX: data.scrollX,
+    scrollY: data.scrollY,
+    pixelsPerBeat: data.pixelsPerBeat,
+    pixelsPerKey: data.pixelsPerKey,
+    waveformHeight: data.waveformHeight,
+  };
+}
+
 // Pure deserialization: SavedProject -> Partial<ProjectState>
 export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
   // Version check: only reject if major breaking change
@@ -597,8 +637,10 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     console.warn("Project from newer version, some data may be lost");
   }
 
+  const migrated = migrateSavedProject(data);
+
   // Merge with defaults (handles new fields gracefully)
-  const merged = { ...DEFAULTS, ...data };
+  const merged = { ...DEFAULTS, ...migrated };
 
   // Update note ID counter to avoid collisions
   const maxId = merged.notes.reduce((max, n) => {
@@ -614,25 +656,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
   }, 0);
   locatorIdCounter = maxLocatorId;
 
-  const savedAudioTracks: SavedAudioTrack[] =
-    data.version === 2
-      ? data.audioTracks
-      : data.audioFileName && data.audioAssetKey
-        ? [
-            {
-              id: "audio-1",
-              fileName: data.audioFileName,
-              assetKey: data.audioAssetKey,
-              duration: data.audioDuration,
-              offset: data.audioOffset,
-              volume: data.audioVolume,
-              muted: data.audioMuted ?? false,
-            },
-          ]
-        : [];
-
   // Update audio track ID counter to avoid collisions
-  audioTrackIdCounter = savedAudioTracks.reduce((max, t) => {
+  audioTrackIdCounter = merged.audioTracks.reduce((max, t) => {
     const match = t.id.match(/^audio-(\d+)$/);
     return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
   }, 0);
@@ -644,7 +669,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     gridSnap: merged.gridSnap,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
-    audioTracks: savedAudioTracks.map((t) => ({ ...t, audioView: null })),
+    audioTracks: merged.audioTracks.map((t) => ({ ...t, audioView: null })),
     midiVolume: merged.midiVolume,
     midiMuted: merged.midiMuted ?? DEFAULTS.midiMuted,
     midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,

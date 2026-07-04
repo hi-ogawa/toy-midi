@@ -2,9 +2,9 @@
 
 import JSZip from "jszip";
 import {
-  type SavedAudioTrack,
+  type AnySavedProject,
+  migrateSavedProject,
   type SavedProject,
-  type SavedProjectV1,
 } from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
@@ -27,29 +27,10 @@ export interface ProjectManifest {
 
 const CURRENT_FORMAT_VERSION = 2;
 
-type ProjectFileAudioTrack = Omit<SavedAudioTrack, "assetKey"> & {
-  // Bundled .toymidi files store audio blobs in the zip, not IndexedDB.
-  assetKey?: string | null;
-};
-
-type ProjectFileProjectV2 = Omit<SavedProject, "audioTracks"> & {
-  audioTracks?: ProjectFileAudioTrack[];
-};
-
-type ProjectFileProject = SavedProjectV1 | ProjectFileProjectV2;
-
-type ParsedProjectTrack = ProjectFileAudioTrack & { assetKey?: string | null };
-
-type ParsedProjectData = Omit<SavedProject, "audioTracks"> & {
-  audioTracks: ParsedProjectTrack[];
-};
-
 // Result of parsing a .toymidi file
 export interface ParsedProjectFile {
   manifest: ProjectManifest;
-  project: ParsedProjectData; // normalized to project-file shape (audioTracks array)
-  // Reconstructed audio File objects keyed by track id
-  audioFiles: Map<string, File>;
+  project: SavedProject;
 }
 
 // Build a File object from a blob, inferring MIME type from the file extension
@@ -108,11 +89,14 @@ export async function exportProjectFile(
   // Add manifest
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
-  // Add project data (strip asset keys since we're bundling the files)
-  const projectForExport: ProjectFileProjectV2 = {
+  const bundledTrackIds = new Set(audioEntries.map((entry) => entry.trackId));
+  const projectForExport: SavedProject = {
     ...projectData,
-    audioTracks: tracks.map(({ assetKey: _assetKey, ...track }) => track),
+    audioTracks: projectData.audioTracks.filter((track) =>
+      bundledTrackIds.has(track.id),
+    ),
   };
+
   zip.file("project.json", JSON.stringify(projectForExport, null, 2));
 
   // Generate ZIP
@@ -165,78 +149,59 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: missing project.json");
   }
   const projectText = await projectFile.async("text");
-  const rawProject = JSON.parse(projectText) as ProjectFileProject;
+  const rawProject = JSON.parse(projectText) as AnySavedProject;
 
-  // Normalize to current shape (migrate legacy singleton audio fields)
-  const audioTracks: ProjectFileAudioTrack[] =
-    rawProject.version === 1
-      ? rawProject.audioFileName && rawProject.audioAssetKey
-        ? [
-            {
-              id: "audio-1",
-              fileName: rawProject.audioFileName,
-              duration: rawProject.audioDuration,
-              offset: rawProject.audioOffset,
-              volume: rawProject.audioVolume,
-              muted: rawProject.audioMuted ?? false,
-            },
-          ]
-        : []
-      : (rawProject.audioTracks ?? []);
-  const project: ParsedProjectData = {
-    ...rawProject,
-    version: CURRENT_FORMAT_VERSION,
-    audioTracks,
-  };
-
-  // Reconstruct audio files keyed by track id
-  const audioFiles = new Map<string, File>();
   const manifestAudio = manifest.files.audio;
+  let projectWithAudio = rawProject;
 
   if (Array.isArray(manifestAudio)) {
-    // v2: explicit per-track entries
+    if (rawProject.version !== 2) {
+      throw new Error(
+        "Invalid project file: v2 audio manifest with v1 project",
+      );
+    }
+
+    const audioAssetKeys = new Map<string, string>();
     for (const entry of manifestAudio) {
       const audioZipFile = zip.file(entry.path);
       if (!audioZipFile) {
-        continue;
+        throw new Error(`Invalid project file: missing ${entry.path}`);
       }
       const blob = await audioZipFile.async("blob");
-      const track = audioTracks.find((t) => t.id === entry.trackId);
+      const track = rawProject.audioTracks.find((t) => t.id === entry.trackId);
       const fileName =
         track?.fileName || entry.path.split("/").pop() || "audio.wav";
-      audioFiles.set(entry.trackId, fileFromBlob(blob, fileName));
+      const assetKey = await saveAsset(fileFromBlob(blob, fileName));
+      audioAssetKeys.set(entry.trackId, assetKey);
     }
+
+    projectWithAudio = {
+      ...rawProject,
+      audioTracks: rawProject.audioTracks.flatMap((track) => {
+        const assetKey = audioAssetKeys.get(track.id);
+        return assetKey ? [{ ...track, assetKey }] : [];
+      }),
+    };
   } else if (typeof manifestAudio === "string") {
-    // v1 (legacy): single audio path maps to the migrated single track
     const audioZipFile = zip.file(manifestAudio);
-    const track = audioTracks[0];
-    if (audioZipFile && track) {
+    if (!audioZipFile) {
+      throw new Error(`Invalid project file: missing ${manifestAudio}`);
+    }
+
+    if (rawProject.version === 1) {
       const blob = await audioZipFile.async("blob");
       const fileName =
-        track.fileName || manifestAudio.split("/").pop() || "audio.wav";
-      audioFiles.set(track.id, fileFromBlob(blob, fileName));
+        rawProject.audioFileName ||
+        manifestAudio.split("/").pop() ||
+        "audio.wav";
+      const audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
+      projectWithAudio = { ...rawProject, audioAssetKey };
+    } else {
+      throw new Error(
+        "Invalid project file: v1 audio manifest with v2 project",
+      );
     }
   }
 
-  return { manifest, project, audioFiles };
-}
-
-/**
- * Import a parsed project file: save audio files to IndexedDB and return
- * updated project data with fresh asset keys.
- */
-export async function importProjectAudio(
-  parsed: ParsedProjectFile,
-): Promise<SavedProject> {
-  const audioTracks: SavedAudioTrack[] = [];
-  for (const track of parsed.project.audioTracks) {
-    const file = parsed.audioFiles.get(track.id);
-    if (!file) {
-      continue;
-    }
-    const assetKey = await saveAsset(file);
-    audioTracks.push({ ...track, assetKey });
-  }
-
-  return { ...parsed.project, audioTracks };
+  return { manifest, project: migrateSavedProject(projectWithAudio) };
 }

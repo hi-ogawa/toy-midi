@@ -13,7 +13,7 @@ import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
-import { importProjectAudio, parseProjectFile } from "./lib/project-file";
+import { parseProjectFile } from "./lib/project-file";
 import {
   createProject,
   deleteProject,
@@ -335,11 +335,10 @@ function ProjectListView({
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseProjectFile(file);
-      const projectWithAudio = await importProjectAudio(parsed);
 
       // Create new project
       const newProjectId = createProject(parsed.manifest.name);
-      saveProjectData(newProjectId, projectWithAudio);
+      saveProjectData(newProjectId, parsed.project);
 
       return newProjectId;
     },
