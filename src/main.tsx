@@ -8,17 +8,17 @@ import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
 import { seedProjectV1 } from "./lib/project-manager";
-import { exposeStoreForE2E } from "./stores/project-store";
+import { useProjectStore } from "./stores/project-store";
 
-// E2E host route: expose test-only storage helpers without mounting the app,
-// so seeding never races the running app's boot reads or auto-save. The spec
-// seeds here, then navigates to "/" for a fresh boot against seeded storage.
-if (import.meta.env.DEV && window.location.pathname.startsWith("/__e2e__/")) {
-  (
-    window as Window & { __e2e?: { seedProjectV1: typeof seedProjectV1 } }
-  ).__e2e = { seedProjectV1 };
-} else {
-  exposeStoreForE2E();
+function main() {
+  // expose utility for e2e
+  if (import.meta.env.DEV) {
+    (window as any).__store = useProjectStore;
+    (window as any).__e2e = { seedProjectV1 };
+    if (window.location.pathname.startsWith("/__e2e__/")) {
+      return;
+    }
+  }
 
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -52,3 +52,5 @@ if (import.meta.env.DEV && window.location.pathname.startsWith("/__e2e__/")) {
     }
   });
 }
+
+main();

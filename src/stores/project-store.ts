@@ -672,11 +672,3 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     selectedAudioTrackId: null,
   };
 }
-
-// Expose store for E2E testing in dev mode
-export function exposeStoreForE2E(): void {
-  if (import.meta.env.DEV) {
-    (window as Window & { __store?: typeof useProjectStore }).__store =
-      useProjectStore;
-  }
-}
