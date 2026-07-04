@@ -51,7 +51,7 @@ export async function exportProjectFile(
   for (const track of tracks) {
     const asset = await loadAsset(track.assetKey);
     if (!asset) {
-      continue;
+      throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
     const fileName = track.fileName || "audio.wav";
     // Prefix with track id to keep paths unique across tracks
@@ -74,15 +74,7 @@ export async function exportProjectFile(
   // Add manifest
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
-  const bundledTrackIds = new Set(audioEntries.map((entry) => entry.trackId));
-  const projectForExport: SavedProject = {
-    ...projectData,
-    audioTracks: projectData.audioTracks.filter((track) =>
-      bundledTrackIds.has(track.id),
-    ),
-  };
-
-  zip.file("project.json", JSON.stringify(projectForExport, null, 2));
+  zip.file("project.json", JSON.stringify(projectData, null, 2));
 
   // Generate ZIP
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
