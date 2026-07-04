@@ -1,5 +1,10 @@
-import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import {
+  clickContinue,
+  clickNewProject,
+  evaluateStore,
+  loadAudioFile,
+} from "./helpers";
 
 test.describe("Track Mute Shortcuts", () => {
   test.beforeEach(async ({ page }) => {
@@ -7,19 +12,14 @@ test.describe("Track Mute Shortcuts", () => {
     await clickNewProject(page);
   });
 
-  // Helper to get mute state from store
-  async function getMuteState(page: import("@playwright/test").Page) {
-    return await page.evaluate(() => {
-      const store = (
-        window as Window & { __store: { getState: () => unknown } }
-      ).__store;
-      const state = store.getState() as {
-        midiMuted: boolean;
-        audioMuted: boolean;
-      };
+  // Helper to get mute state from store.
+  // Audio mute now lives per-track; Shift+2 toggles the first audio track.
+  async function getMuteState(page: Page) {
+    return await evaluateStore(page, (store) => {
+      const state = store.getState();
       return {
         midiMuted: state.midiMuted,
-        audioMuted: state.audioMuted,
+        audioMuted: state.audioTracks[0]?.muted ?? false,
       };
     });
   }
@@ -59,25 +59,27 @@ test.describe("Track Mute Shortcuts", () => {
     expect(muteState.audioMuted).toBe(false);
   });
 
-  test("mute shortcuts work without audio loaded", async ({ page }) => {
-    // Should be able to toggle mutes even without audio loaded
+  test("MIDI mute shortcut works without audio loaded", async ({ page }) => {
+    // MIDI mute works regardless of audio; audio mute is a no-op with no track
     await page.keyboard.press("Shift+1");
     let muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(true);
 
+    // Shift+2 has no audio track to act on - stays unmuted
     await page.keyboard.press("Shift+2");
     muteState = await getMuteState(page);
-    expect(muteState.audioMuted).toBe(true);
+    expect(muteState.audioMuted).toBe(false);
 
-    // Unmute both
+    // Unmute MIDI
     await page.keyboard.press("Shift+1");
-    await page.keyboard.press("Shift+2");
     muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(false);
-    expect(muteState.audioMuted).toBe(false);
   });
 
   test("mute state persists after reload", async ({ page }) => {
+    // Audio mute is per-track, so load audio before muting it
+    await loadAudioFile(page);
+
     // Mute both tracks
     await page.keyboard.press("Shift+1");
     await page.keyboard.press("Shift+2");
