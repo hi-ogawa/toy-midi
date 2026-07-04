@@ -59,8 +59,9 @@ export function App() {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
-          audioManager.setAudioTrackBuffer(track.id, buffer);
-          audioManager.syncAudioTrack(track.id, track.offset);
+          const playback = audioManager.getAudioTrack(track.id);
+          playback.setBuffer(buffer);
+          playback.sync(track.offset);
           project.updateAudioTrack(track.id, { audioView });
         } else {
           toast.warning(

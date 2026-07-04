@@ -183,10 +183,7 @@ class AudioManager {
   private midiPart!: Tone.Part;
 
   // Audio tracks, keyed by track id
-  private audioTracks = new Map<
-    string,
-    { player: Tone.Player; channel: Tone.Channel }
-  >();
+  private audioTracks = new Map<string, AudioTrackPlayback>();
 
   // metronome
   private metronome!: Metronome;
@@ -294,58 +291,13 @@ class AudioManager {
   }
 
   // Lazily create a player/channel pair for a track id
-  private ensureAudioTrack(id: string): {
-    player: Tone.Player;
-    channel: Tone.Channel;
-  } {
+  getAudioTrack(id: string): AudioTrackPlayback {
     let entry = this.audioTracks.get(id);
     if (!entry) {
-      const player = new Tone.Player();
-      const channel = new Tone.Channel({
-        volume: Tone.gainToDb(clampGain(0.8)),
-        channelCount: 2,
-      }).toDestination();
-      player.connect(channel);
-      entry = { player, channel };
+      entry = new AudioTrackPlayback();
       this.audioTracks.set(id, entry);
     }
     return entry;
-  }
-
-  // Assign the decoded buffer for a track (called once after loading the file)
-  setAudioTrackBuffer(id: string, buffer: Tone.ToneAudioBuffer): void {
-    this.ensureAudioTrack(id).player.buffer = buffer;
-  }
-
-  syncAudioTrack(id: string, offset: number): void {
-    const entry = this.audioTracks.get(id);
-    if (!entry || !entry.player.loaded) {
-      return;
-    }
-    entry.player.unsync();
-    entry.player.sync().start(offset);
-  }
-
-  setAudioTrackVolume(id: string, volume: number): void {
-    this.ensureAudioTrack(id).channel.volume.rampTo(
-      Tone.gainToDb(clampGain(volume)),
-    );
-  }
-
-  setAudioTrackMuted(id: string, muted: boolean): void {
-    this.ensureAudioTrack(id).channel.mute = muted;
-  }
-
-  removeAudioTrack(id: string): void {
-    const entry = this.audioTracks.get(id);
-    if (!entry) {
-      return;
-    }
-    entry.player.stop();
-    entry.player.unsync();
-    entry.player.dispose();
-    entry.channel.dispose();
-    this.audioTracks.delete(id);
   }
 
   // Reconcile the player map with the store's audio tracks
@@ -357,21 +309,22 @@ class AudioManager {
     const currentIds = new Set(tracks.map((t) => t.id));
 
     // Dispose players for removed tracks
-    for (const id of [...this.audioTracks.keys()]) {
+    for (const [id, playback] of this.audioTracks) {
       if (!currentIds.has(id)) {
-        this.removeAudioTrack(id);
+        playback.dispose();
+        this.audioTracks.delete(id);
       }
     }
 
     // Create/update players for current tracks
     for (const track of tracks) {
       const prev = prevById.get(track.id);
-      this.ensureAudioTrack(track.id);
-      this.setAudioTrackVolume(track.id, track.volume);
-      this.setAudioTrackMuted(track.id, track.muted);
+      const playback = this.getAudioTrack(track.id);
+      playback.setVolume(track.volume);
+      playback.setMuted(track.muted);
       // Re-sync to Transport when newly added or offset changed
       if (!prev || prev.offset !== track.offset) {
-        this.syncAudioTrack(track.id, track.offset);
+        playback.sync(track.offset);
       }
     }
   }
@@ -436,6 +389,45 @@ class AudioManager {
   setProgram(programNumber: number): void {
     // Fire and forget - programChange is async but we don't need to wait
     void this.midiSynth.programChange(programNumber);
+  }
+}
+
+class AudioTrackPlayback {
+  readonly player = new Tone.Player();
+  readonly channel = new Tone.Channel({
+    volume: Tone.gainToDb(clampGain(0.8)),
+    channelCount: 2,
+  }).toDestination();
+
+  constructor() {
+    this.player.connect(this.channel);
+  }
+
+  setBuffer(buffer: Tone.ToneAudioBuffer): void {
+    this.player.buffer = buffer;
+  }
+
+  sync(offset: number): void {
+    if (!this.player.loaded) {
+      return;
+    }
+    this.player.unsync();
+    this.player.sync().start(offset);
+  }
+
+  setVolume(volume: number): void {
+    this.channel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
+  }
+
+  setMuted(muted: boolean): void {
+    this.channel.mute = muted;
+  }
+
+  dispose(): void {
+    this.player.stop();
+    this.player.unsync();
+    this.player.dispose();
+    this.channel.dispose();
   }
 }
 
