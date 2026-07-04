@@ -7,38 +7,48 @@ import "./index.css";
 import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
+import { seedProjectV1 } from "./lib/project-manager";
 import { exposeStoreForE2E } from "./stores/project-store";
 
-exposeStoreForE2E();
+// E2E host route: expose test-only storage helpers without mounting the app,
+// so seeding never races the running app's boot reads or auto-save. The spec
+// seeds here, then navigates to "/" for a fresh boot against seeded storage.
+if (import.meta.env.DEV && window.location.pathname.startsWith("/__e2e__/")) {
+  (
+    window as Window & { __e2e?: { seedProjectV1: typeof seedProjectV1 } }
+  ).__e2e = { seedProjectV1 };
+} else {
+  exposeStoreForE2E();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    mutations: {
-      onError: (error) => {
-        console.error(error);
-        toast.error(error.message);
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: {
+        onError: (error) => {
+          console.error(error);
+          toast.error(error.message);
+        },
       },
     },
-  },
-});
+  });
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-      <Toaster position="top-right" richColors />
-    </QueryClientProvider>
-  </StrictMode>,
-);
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+        <Toaster position="top-right" richColors />
+      </QueryClientProvider>
+    </StrictMode>,
+  );
 
-// Preload large assets after initial render
-requestIdleCallback(() => {
-  for (const href of [oxisynthWasmUrl, oxisynthWorkletUrl, soundfontUrl]) {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.as = "fetch";
-    link.crossOrigin = "anonymous";
-    link.href = href;
-    document.head.appendChild(link);
-  }
-});
+  // Preload large assets after initial render
+  requestIdleCallback(() => {
+    for (const href of [oxisynthWasmUrl, oxisynthWorkletUrl, soundfontUrl]) {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "fetch";
+      link.crossOrigin = "anonymous";
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  });
+}

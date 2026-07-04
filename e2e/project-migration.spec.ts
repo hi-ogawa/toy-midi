@@ -2,8 +2,16 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
+import { seedProjectV1 } from "../src/lib/project-manager";
 import type { SavedProjectV1 } from "../src/stores/project-store";
 import { evaluateStore } from "./helpers";
+
+declare global {
+  interface Window {
+    // Test-only helper exposed on the /__e2e__/ host route (see main.tsx).
+    __e2e?: { seedProjectV1: typeof seedProjectV1 };
+  }
+}
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
@@ -40,74 +48,20 @@ test.describe("Project Migration", () => {
   test("migrates v1 localStorage project with audio track", async ({
     page,
   }) => {
+    // Seed a v1 project on the /__e2e__/ host route (app not mounted, so this
+    // can't race boot reads or auto-save), then boot the app against it.
+    await page.goto("/__e2e__/setup");
+    const { assetKey } = await page.evaluate(async (project) => {
+      const response = await fetch("/test-audio.wav");
+      const audio = await response.arrayBuffer();
+      return window.__e2e!.seedProjectV1(
+        "Legacy Project",
+        project,
+        new Uint8Array(audio),
+      );
+    }, LEGACY_PROJECT);
     await page.goto("/");
-    await page.evaluate(async () => {
-      localStorage.clear();
-      await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase("toy-midi");
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-        request.onblocked = () => reject(new Error("IndexedDB delete blocked"));
-      });
-    });
-    await page.reload();
 
-    const audioBytes = await readFile(TEST_AUDIO_PATH);
-    const assetKey = `${LEGACY_PROJECT.audioFileName}-${audioBytes.byteLength}-12345`;
-
-    await page.evaluate(
-      async ({ project, assetKey, audioBytes }) => {
-        const projectId = "project-legacy";
-        const now = Date.now();
-        localStorage.setItem(
-          "toy-midi-project-list",
-          JSON.stringify([
-            {
-              id: projectId,
-              name: "Legacy Project",
-              createdAt: now,
-              updatedAt: now,
-            },
-          ]),
-        );
-        localStorage.setItem("toy-midi-last-project-id", projectId);
-        localStorage.setItem(
-          `toy-midi-project-${projectId}`,
-          JSON.stringify({ ...project, audioAssetKey: assetKey }),
-        );
-
-        await new Promise<void>((resolve, reject) => {
-          const request = indexedDB.open("toy-midi", 1);
-          request.onupgradeneeded = () => {
-            request.result.createObjectStore("assets", { keyPath: "key" });
-          };
-          request.onerror = () => reject(request.error);
-          request.onsuccess = () => {
-            const blob = new Blob([new Uint8Array(audioBytes)], {
-              type: "audio/wav",
-            });
-            const tx = request.result.transaction("assets", "readwrite");
-            tx.objectStore("assets").put({
-              key: assetKey,
-              blob,
-              name: project.audioFileName,
-              size: blob.size,
-              type: "audio/wav",
-              addedAt: now,
-            });
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-          };
-        });
-      },
-      {
-        project: LEGACY_PROJECT,
-        assetKey,
-        audioBytes: [...audioBytes],
-      },
-    );
-
-    await page.reload();
     await page.getByTestId("continue-button").click();
     await page.getByTestId("transport").waitFor({ state: "visible" });
 

@@ -1,6 +1,11 @@
 // Project management for multiple project support
 
-import type { AnySavedProject, SavedProject } from "../stores/project-store";
+import type {
+  AnySavedProject,
+  SavedProject,
+  SavedProjectV1,
+} from "../stores/project-store";
+import { saveAsset } from "./asset-store";
 
 const PROJECT_LIST_KEY = "toy-midi-project-list";
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
@@ -134,4 +139,37 @@ export function loadProjectData(projectId: string): AnySavedProject {
     throw new Error(`Project ${projectId} not found in storage`);
   }
   return JSON.parse(json) as AnySavedProject;
+}
+
+// Test-only: seed a v1 project into localStorage + IndexedDB the way the *old*
+// app persisted it, so migration-on-load can be exercised against a realistic
+// fixture. Exposed on `window.__e2e` from the `/__e2e__/` host route (see
+// main.tsx), where the app is not mounted, so this never races the running
+// app's boot reads or auto-save.
+//
+// The v1 payload is written directly rather than through saveProjectData: the
+// current app only ever persists the current version, so its writer stays
+// typed for that — this simulates a version it no longer produces.
+export async function seedProjectV1(
+  name: string,
+  project: SavedProjectV1,
+  audioData: Uint8Array<ArrayBuffer>,
+): Promise<{ projectId: string; assetKey: string }> {
+  if (!project.audioFileName) {
+    throw new Error("Cannot seed v1 project without audio file name");
+  }
+
+  const file = new File([audioData], project.audioFileName, {
+    type: "audio/wav",
+  });
+  const assetKey = await saveAsset(file);
+
+  const projectId = createProject(name);
+  localStorage.setItem(
+    getProjectKey(projectId),
+    JSON.stringify({ ...project, audioAssetKey: assetKey }),
+  );
+  setLastProjectId(projectId);
+
+  return { projectId, assetKey };
 }
