@@ -9,15 +9,20 @@
 // - Zustand store (project-store): the open document in memory — never storage
 //
 // Invariants:
+// - A project = document + metadata entry (metadata is the cheap-enumeration
+//   index for the list view). create() writes both; delete() removes both, so
+//   every listed project has a loadable document.
+// - load() migrates old document versions and returns the current schema.
 // - Asset keys are derived from the source file, so the same file imported into
 //   multiple projects shares one asset; delete() does NOT remove assets
 //   referenced by the deleted project (no garbage collection).
 // - save() also bumps updatedAt and lastProjectId.
 
-import type {
-  AnySavedProject,
-  SavedProject,
-  SavedProjectV1,
+import {
+  type AnySavedProject,
+  migrateSavedProject,
+  type SavedProject,
+  type SavedProjectV1,
 } from "../stores/project-store";
 
 export interface ProjectMetadata {
@@ -60,8 +65,8 @@ class ProjectStorage {
     return this.list().find((p) => p.id === projectId) || null;
   }
 
-  // Create new project, returns its ID
-  create(name?: string): string {
+  // Create new project (metadata entry + initial document), returns its ID
+  create(name: string | undefined, data: SavedProject): string {
     const projectId = generateProjectId();
     const now = Date.now();
     const metadata: ProjectMetadata = {
@@ -75,6 +80,7 @@ class ProjectStorage {
     projects.push(metadata);
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
+    this.save(projectId, data);
     return projectId;
   }
 
@@ -124,14 +130,14 @@ class ProjectStorage {
 
   // === document data — localStorage "toy-midi-project-<id>" ===
 
-  // Load project document (pure - no Zustand)
+  // Load project document, migrated to the current schema (pure - no Zustand)
   // Throws if not found or on parse error - caller should handle
-  load(projectId: string): AnySavedProject {
+  load(projectId: string): SavedProject {
     const json = localStorage.getItem(getProjectKey(projectId));
     if (!json) {
       throw new Error(`Project ${projectId} not found in storage`);
     }
-    return JSON.parse(json) as AnySavedProject;
+    return migrateSavedProject(JSON.parse(json) as AnySavedProject);
   }
 
   // Save project document (pure - no Zustand); also bumps updatedAt + lastProjectId
@@ -271,7 +277,6 @@ export async function seedProjectV1(
   });
   const assetKey = await projectStorage.saveAsset(file);
 
-  const projectId = projectStorage.create(name);
   project = { ...project, audioAssetKey: assetKey };
-  projectStorage.save(projectId, project as any);
+  projectStorage.create(name, project as any);
 }

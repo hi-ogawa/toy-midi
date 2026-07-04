@@ -27,18 +27,16 @@ export function App() {
     }): Promise<{ projectId: string }> => {
       await audioManager.init();
 
-      // Get or create project ID
-      const projectId = options.projectId ?? projectStorage.create();
-      projectStorage.setLastProjectId(projectId);
-
-      // Load project data if existing project, otherwise use defaults (new project)
+      // Load existing project, or create a new one from the default state
+      let projectId: string;
       if (options.projectId) {
+        projectId = options.projectId;
+        projectStorage.setLastProjectId(projectId);
         const data = projectStorage.load(projectId);
         useProjectStore.setState(fromSavedProject(data));
       } else {
-        // save new project on startup
-        projectStorage.save(
-          projectId,
+        projectId = projectStorage.create(
+          undefined,
           toSavedProject(useProjectStore.getState()),
         );
       }
@@ -326,10 +324,7 @@ function ProjectListView({
       const parsed = await parseProjectFile(file);
 
       // Create new project
-      const newProjectId = projectStorage.create(parsed.name);
-      projectStorage.save(newProjectId, parsed.project);
-
-      return newProjectId;
+      return projectStorage.create(parsed.name, parsed.project);
     },
     onSuccess: (newProjectId) => {
       // Select the newly imported project
