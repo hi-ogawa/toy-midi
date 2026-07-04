@@ -1,5 +1,10 @@
-import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import {
+  clickContinue,
+  clickNewProject,
+  evaluateStore,
+  loadAudioFile,
+} from "./helpers";
 
 test.describe("Track Mute Shortcuts", () => {
   test.beforeEach(async ({ page }) => {
@@ -9,15 +14,9 @@ test.describe("Track Mute Shortcuts", () => {
 
   // Helper to get mute state from store.
   // Audio mute now lives per-track; Shift+2 toggles the first audio track.
-  async function getMuteState(page: import("@playwright/test").Page) {
-    return await page.evaluate(() => {
-      const store = (
-        window as Window & { __store: { getState: () => unknown } }
-      ).__store;
-      const state = store.getState() as {
-        midiMuted: boolean;
-        audioTracks: Array<{ muted: boolean }>;
-      };
+  async function getMuteState(page: Page) {
+    return await evaluateStore(page, (store) => {
+      const state = store.getState();
       return {
         midiMuted: state.midiMuted,
         audioMuted: state.audioTracks[0]?.muted ?? false,

@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { clickNewProject, loadAudioFile } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import { clickNewProject, evaluateStore, loadAudioFile } from "./helpers";
 
 test.describe("Multiple Audio Tracks", () => {
   test.beforeEach(async ({ page }) => {
@@ -8,14 +8,9 @@ test.describe("Multiple Audio Tracks", () => {
   });
 
   // Read audio tracks from the store
-  async function getAudioTracks(page: import("@playwright/test").Page) {
-    return await page.evaluate(() => {
-      const store = (
-        window as Window & { __store: { getState: () => unknown } }
-      ).__store;
-      const state = store.getState() as {
-        audioTracks: Array<{ id: string; fileName: string; muted: boolean }>;
-      };
+  async function getAudioTracks(page: Page) {
+    return await evaluateStore(page, (store) => {
+      const state = store.getState();
       return state.audioTracks.map((t) => ({
         id: t.id,
         fileName: t.fileName,
