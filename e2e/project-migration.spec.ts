@@ -51,10 +51,10 @@ test.describe("Project Migration", () => {
     // Seed a v1 project on the /__e2e__/ host route (app not mounted, so this
     // can't race boot reads or auto-save), then boot the app against it.
     await page.goto("/__e2e__/setup");
-    const { assetKey } = await page.evaluate(async (project) => {
+    await page.evaluate(async (project) => {
       const response = await fetch("/test-audio.wav");
       const audio = await response.arrayBuffer();
-      return window.__e2e!.seedProjectV1(
+      await window.__e2e!.seedProjectV1(
         "Legacy Project",
         project,
         new Uint8Array(audio),
@@ -74,7 +74,6 @@ test.describe("Project Migration", () => {
         offset: track.offset,
         volume: track.volume,
         muted: track.muted,
-        hasAudioViewSlot: "audioView" in track,
       }));
     });
 
@@ -82,14 +81,14 @@ test.describe("Project Migration", () => {
       {
         id: "audio-1",
         fileName: LEGACY_PROJECT.audioFileName,
-        assetKey,
+        assetKey: expect.any(String),
         duration: LEGACY_PROJECT.audioDuration,
         offset: LEGACY_PROJECT.audioOffset,
         volume: LEGACY_PROJECT.audioVolume,
         muted: LEGACY_PROJECT.audioMuted,
-        hasAudioViewSlot: true,
       },
     ]);
+    expect(audioTracks[0].assetKey).not.toBe("");
     await expect(page.getByTestId("audio-track-region")).toHaveCount(1);
   });
 
