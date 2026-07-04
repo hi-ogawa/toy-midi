@@ -60,9 +60,6 @@ export function Settings({
     deleteAudioTrack,
   } = useProjectStore();
 
-  // Name used for MIDI/ABC export metadata (first audio track, if any)
-  const primaryAudioName = audioTracks[0]?.fileName ?? null;
-
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       // First parse to get available tracks
@@ -138,9 +135,8 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: primaryAudioName
-        ? primaryAudioName.replace(/\.[^.]+$/, "")
-        : "Piano Roll",
+      name: projectName,
+      trackName: projectName,
     });
 
     const fileName = buildExportFileName({
@@ -156,9 +152,7 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      title: primaryAudioName
-        ? primaryAudioName.replace(/\.[^.]+$/, "")
-        : "Untitled",
+      title: projectName,
     });
 
     const fileName = buildExportFileName({
@@ -175,9 +169,7 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
-        title: primaryAudioName
-          ? primaryAudioName.replace(/\.[^.]+$/, "")
-          : "Untitled",
+        title: projectName,
       });
 
       await copyABCToClipboard(abcText);
