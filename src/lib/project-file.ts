@@ -15,21 +15,33 @@ import { buildExportFileName } from "./export-utils";
 //   1 - single audio file at `files.audio` (string)
 //   2 - multiple audio files at `files.audio` (array of { trackId, path })
 export interface ProjectManifest {
-  formatVersion: 1 | 2;
+  formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
   files: {
     project: "project.json";
-    // v2: per-track audio entries; v1 (legacy): single path string
-    audio?: Array<{ trackId: string; path: string }> | string;
+    audio?: Array<{ trackId: string; path: string }>;
   };
 }
 
-const CURRENT_FORMAT_VERSION = 2;
+export type ProjectManifestV1 = Omit<
+  ProjectManifest,
+  "formatVersion" | "files"
+> & {
+  formatVersion: 1;
+  files: {
+    project: "project.json";
+    audio?: string;
+  };
+};
+
+export type AnyProjectManifest = ProjectManifestV1 | ProjectManifest;
+
+const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
 
 // Result of parsing a .toymidi file
 export interface ParsedProjectFile {
-  manifest: ProjectManifest;
+  manifest: AnyProjectManifest;
   project: SavedProject;
 }
 
@@ -131,7 +143,7 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: missing manifest.json");
   }
   const manifestText = await manifestFile.async("text");
-  const manifest = JSON.parse(manifestText) as ProjectManifest;
+  const manifest = JSON.parse(manifestText) as AnyProjectManifest;
 
   // Validate manifest version
   if (manifest.formatVersion > CURRENT_FORMAT_VERSION) {
@@ -148,10 +160,9 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
   const projectText = await projectFile.async("text");
   const rawProject = JSON.parse(projectText) as AnySavedProject;
 
-  const manifestAudio = manifest.files.audio;
   let projectWithAudio = rawProject;
 
-  if (Array.isArray(manifestAudio)) {
+  if (manifest.formatVersion === 2) {
     if (rawProject.version !== 2) {
       throw new Error(
         "Invalid project file: v2 audio manifest with v1 project",
@@ -159,7 +170,7 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     }
 
     const audioAssetKeys = new Map<string, string>();
-    for (const entry of manifestAudio) {
+    for (const entry of manifest.files.audio ?? []) {
       const audioZipFile = zip.file(entry.path);
       if (!audioZipFile) {
         throw new Error(`Invalid project file: missing ${entry.path}`);
@@ -179,7 +190,8 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
         return assetKey ? [{ ...track, assetKey }] : [];
       }),
     };
-  } else if (typeof manifestAudio === "string") {
+  } else if (manifest.files.audio) {
+    const manifestAudio = manifest.files.audio;
     const audioZipFile = zip.file(manifestAudio);
     if (!audioZipFile) {
       throw new Error(`Invalid project file: missing ${manifestAudio}`);
