@@ -68,16 +68,19 @@ class ProjectStorage {
 
   // Create new project with the default empty document, returns its ID
   createNew(name?: string): string {
-    return this.create(name, defaultSavedProject());
+    return this.create(
+      name ?? this.getDefaultProjectName(),
+      defaultSavedProject(),
+    );
   }
 
   // Create new project (metadata entry + initial document), returns its ID
-  create(name: string | undefined, data: SavedProject): string {
+  create(name: string, data: SavedProject): string {
     const projectId = generateProjectId();
     const now = Date.now();
     const metadata: ProjectMetadata = {
       id: projectId,
-      name: name || this.getDefaultProjectName(),
+      name,
       createdAt: now,
       updatedAt: now,
     };
