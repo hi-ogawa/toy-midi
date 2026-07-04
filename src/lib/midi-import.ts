@@ -95,12 +95,11 @@ export async function importMidiNotes(
         }
       : { numerator: 4, denominator: 4 };
 
-  // Convert seconds to beats
-  const secondsToBeats = (seconds: number): number => {
-    return (seconds / 60) * tempo;
-  };
-
   // Collect notes from selected tracks
+  // Reading ticks directly (instead of the seconds @tonejs/midi derives
+  // from the tempo map) keeps positions exact and independent of any
+  // mid-song tempo changes
+  const ppq = midi.header.ppq;
   const notes: Note[] = [];
 
   for (const trackIndex of options.trackIndices) {
@@ -113,8 +112,8 @@ export async function importMidiNotes(
       notes.push({
         id: generateNoteId(),
         pitch: midiNote.midi,
-        start: secondsToBeats(midiNote.time),
-        duration: secondsToBeats(midiNote.duration),
+        start: midiNote.ticks / ppq,
+        duration: midiNote.durationTicks / ppq,
         velocity: Math.round(midiNote.velocity * 127),
       });
     }
