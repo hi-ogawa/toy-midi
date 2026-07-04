@@ -44,7 +44,7 @@ test.describe("Project Migration", () => {
     await page.evaluate(async (project) => {
       const response = await fetch("/test-audio.wav");
       const audio = await response.arrayBuffer();
-      await (window as any).__e2e!.seedProjectV1(
+      await window.__e2e!.seedProjectV1(
         "Legacy Project",
         project,
         new Uint8Array(audio),
