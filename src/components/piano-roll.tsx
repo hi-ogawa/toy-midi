@@ -477,10 +477,12 @@ export function PianoRoll() {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
 
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left - KEYBOARD_WIDTH;
-      const mouseY =
-        e.clientY - rect.top - TIMELINE_HEIGHT - totalWaveformHeight;
+      const gridRect = gridRef.current?.getBoundingClientRect();
+      if (!gridRect) {
+        return;
+      }
+      const mouseX = e.clientX - gridRect.left;
+      const mouseY = e.clientY - gridRect.top;
 
       // Ctrl + wheel = horizontal zoom, Shift + wheel = vertical zoom
       if (e.ctrlKey || e.shiftKey) {
@@ -547,7 +549,6 @@ export function PianoRoll() {
     scrollY,
     visibleKeys,
     viewportSize.height,
-    totalWaveformHeight,
   ]);
 
   // Handle mouse events on the grid
