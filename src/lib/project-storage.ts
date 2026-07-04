@@ -34,42 +34,48 @@ interface StoredAsset {
 interface MainEntry {
   version: 1;
   projects: ProjectMetadata[];
-  lastProjectId: string | null;
+  lastProjectId?: string;
 }
 
+const DEFAULT_MAIN_ENTRY: MainEntry = {
+  version: 1,
+  projects: [],
+};
+
 const MAIN_KEY = "toy-midi-main";
+
 // legacy unversioned keys, folded into the main entry on first read
-const LEGACY_PROJECT_LIST_KEY = "toy-midi-project-list";
-const LEGACY_LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
+const MAIN_LEGACY_PROJECT_LIST_KEY = "toy-midi-project-list";
+const MAIN_LEGACY_LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
+
 // saved project, one localStorage entry per project
 const PROJECT_KEY_PREFIX = "toy-midi-project-";
 
 class ProjectStorage {
   private readMain(): MainEntry {
-    const json = localStorage.getItem(MAIN_KEY);
-    if (json === null) {
-      const legacyList = localStorage.getItem(LEGACY_PROJECT_LIST_KEY);
-      const legacyLastProjectId = localStorage.getItem(
-        LEGACY_LAST_PROJECT_ID_KEY,
-      );
-      if (legacyList !== null || legacyLastProjectId !== null) {
-        const entry: MainEntry = {
-          version: 1,
-          projects: legacyList
-            ? (JSON.parse(legacyList) as ProjectMetadata[])
-            : [],
-          lastProjectId: legacyLastProjectId,
-        };
-        this.writeMain(entry);
-        localStorage.removeItem(LEGACY_PROJECT_LIST_KEY);
-        localStorage.removeItem(LEGACY_LAST_PROJECT_ID_KEY);
-        return entry;
+    // migrate legacy keys to version 1
+    const legacyList = localStorage.getItem(MAIN_LEGACY_PROJECT_LIST_KEY);
+    const legacyLastProjectId = localStorage.getItem(
+      MAIN_LEGACY_LAST_PROJECT_ID_KEY,
+    );
+    if (legacyList !== null || legacyLastProjectId !== null) {
+      const entry: MainEntry = { ...DEFAULT_MAIN_ENTRY };
+      if (legacyList) {
+        entry.projects = JSON.parse(legacyList) as ProjectMetadata[];
       }
-      return { version: 1, projects: [], lastProjectId: null };
+      if (legacyLastProjectId) {
+        entry.lastProjectId = legacyLastProjectId;
+      }
+      this.writeMain(entry);
+      localStorage.removeItem(MAIN_LEGACY_PROJECT_LIST_KEY);
+      localStorage.removeItem(MAIN_LEGACY_LAST_PROJECT_ID_KEY);
     }
 
-    // future versions: migrate here, like migrateSavedProject
-    return JSON.parse(json) as MainEntry;
+    const json = localStorage.getItem(MAIN_KEY);
+    if (json) {
+      return JSON.parse(json) as MainEntry;
+    }
+    return { ...DEFAULT_MAIN_ENTRY };
   }
 
   private writeMain(entry: MainEntry): void {
@@ -130,7 +136,7 @@ class ProjectStorage {
     const entry = this.readMain();
     entry.projects = entry.projects.filter((p) => p.id !== projectId);
     if (entry.lastProjectId === projectId) {
-      entry.lastProjectId = null;
+      entry.lastProjectId = undefined;
     }
     this.writeMain(entry);
 
@@ -158,7 +164,7 @@ class ProjectStorage {
     this.updateMetadata(projectId, { updatedAt: Date.now() });
   }
 
-  getLastProjectId(): string | null {
+  getLastProjectId(): string | undefined {
     return this.readMain().lastProjectId;
   }
 
@@ -220,8 +226,11 @@ export function seedLegacyProjectKeys(
   metadata: ProjectMetadata,
   project: AnySavedProject,
 ): void {
-  localStorage.setItem(LEGACY_PROJECT_LIST_KEY, JSON.stringify([metadata]));
-  localStorage.setItem(LEGACY_LAST_PROJECT_ID_KEY, metadata.id);
+  localStorage.setItem(
+    MAIN_LEGACY_PROJECT_LIST_KEY,
+    JSON.stringify([metadata]),
+  );
+  localStorage.setItem(MAIN_LEGACY_LAST_PROJECT_ID_KEY, metadata.id);
   localStorage.setItem(getProjectKey(metadata.id), JSON.stringify(project));
 }
 
