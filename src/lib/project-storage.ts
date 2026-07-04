@@ -4,12 +4,14 @@
 // - localStorage "toy-midi-project-list": project metadata (cheap enumeration for list view)
 // - localStorage "toy-midi-project-<id>": full project document (notes, tracks, settings)
 // - localStorage "toy-midi-last-project-id": last opened project pointer
-// - IndexedDB "toy-midi" / "assets": binary audio assets, keyed by content hash
+// - IndexedDB "toy-midi" / "assets": binary audio assets, keyed by
+//   file name + size + lastModified
 // - Zustand store (project-store): the open document in memory — never storage
 //
 // Invariants:
-// - Assets are hash-keyed and potentially shared across projects; delete() does
-//   NOT remove assets referenced by the deleted project (no garbage collection).
+// - Asset keys are derived from the source file, so the same file imported into
+//   multiple projects shares one asset; delete() does NOT remove assets
+//   referenced by the deleted project (no garbage collection).
 // - save() also bumps updatedAt and lastProjectId.
 
 import type {
