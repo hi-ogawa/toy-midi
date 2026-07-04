@@ -24,6 +24,7 @@ import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
 type SettingsProps = {
+  // Project section
   projectName: string;
   onProjectNameChange: (name: string) => void;
   onProjectsClick: () => void;
@@ -34,6 +35,13 @@ export function Settings({
   onProjectNameChange,
   onProjectsClick,
 }: SettingsProps) {
+  const projectNameInput = useDraftTextInput({
+    value: projectName,
+    onCommit: onProjectNameChange,
+    normalize: (value) => value.trim(),
+    isValid: (value) => value.length > 0,
+  });
+
   const {
     audioTracks,
     tempo,
@@ -46,13 +54,6 @@ export function Settings({
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
-
-  const projectNameInput = useDraftTextInput({
-    value: projectName,
-    onCommit: onProjectNameChange,
-    normalize: (value) => value.trim(),
-    isValid: (value) => value.length > 0,
-  });
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
