@@ -211,6 +211,7 @@ export function Transport({
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
+    playbackSpeed,
     setTempo,
     setTimeSignature,
     setMidiProgram,
@@ -219,6 +220,7 @@ export function Transport({
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
+    setPlaybackSpeed,
   } = useProjectStore();
 
   const tapTimesRef = useRef<number[]>([]);
@@ -379,6 +381,28 @@ export function Transport({
             <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Playback speed selector (audio pitch shifts down at 0.5x) */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="playback-speed-select"
+            title="Playback speed"
+            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            {playbackSpeed}x
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={String(playbackSpeed)}
+            onValueChange={(v) => setPlaybackSpeed(Number(v))}
+          >
+            <DropdownMenuRadioItem value="0.5">0.5x</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="1">1x</DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -288,6 +288,65 @@ test.describe("Transport Controls", () => {
   });
 });
 
+test.describe("Playback Speed", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await clickNewProject(page);
+  });
+
+  test("speed selector updates label", async ({ page }) => {
+    const speedSelect = page.getByTestId("playback-speed-select");
+    await expect(speedSelect).toHaveText("1x");
+
+    await speedSelect.click();
+    await page
+      .getByRole("menuitemradio", { name: "0.5x", exact: true })
+      .click();
+    await expect(speedSelect).toHaveText("0.5x");
+
+    await speedSelect.click();
+    await page.getByRole("menuitemradio", { name: "1x", exact: true }).click();
+    await expect(speedSelect).toHaveText("1x");
+  });
+
+  test("seek position is speed-independent", async ({ page }) => {
+    // Switch to 0.5x
+    const speedSelect = page.getByTestId("playback-speed-select");
+    await speedSelect.click();
+    await page
+      .getByRole("menuitemradio", { name: "0.5x", exact: true })
+      .click();
+
+    // Seek to beat 4 on the timeline
+    const timeline = page.getByTestId("timeline");
+    const timelineBox = await timeline.boundingBox();
+    if (!timelineBox) {
+      throw new Error("Timeline not found");
+    }
+    const clickX = timelineBox.x + BEAT_WIDTH * 4;
+    await page.mouse.click(clickX, timelineBox.y + timelineBox.height / 2);
+    await page.waitForTimeout(100);
+
+    // Playhead lands at beat 4 and bar|beat display shows bar 2 beat 1,
+    // regardless of playback speed
+    const playhead = page.getByTestId("timeline-playhead");
+    const playheadBox = await playhead.boundingBox();
+    if (!playheadBox) {
+      throw new Error("Playhead not found");
+    }
+    const expectedX = timelineBox.x + BEAT_WIDTH * 4;
+    expect(Math.abs(playheadBox.x - expectedX)).toBeLessThan(2);
+    await expect(page.getByTestId("time-display")).toContainText("02|01");
+  });
+
+  // TODO: timing-sensitive; iterate with a running browser before enabling
+  test.skip("playhead advances at half rate at 0.5x", async () => {
+    // At 0.5x with default 120 BPM the effective BPM is 60: after ~1s of
+    // playback the playhead should be near beat 1 (it would be near beat 2
+    // at 1x). Compare playhead x positions after equal playback durations.
+  });
+});
+
 test.describe("Audio Track", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");

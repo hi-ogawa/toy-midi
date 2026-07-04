@@ -37,6 +37,11 @@ export interface ProjectState {
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
 
+  // Playback state (session-only, not persisted)
+  // Scales the transport speed without changing the musical tempo.
+  // Audio pitch shifts with speed for now (0.5 = one octave down).
+  playbackSpeed: number; // e.g. 0.5, 1
+
   // UI state
   showDebug: boolean;
   autoScrollEnabled: boolean;
@@ -100,6 +105,9 @@ export interface ProjectState {
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
 
+  // Playback actions
+  setPlaybackSpeed: (speed: number) => void;
+
   // UI actions
   setShowDebug: (show: boolean) => void;
   setAutoScrollEnabled: (enabled: boolean) => void;
@@ -153,6 +161,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   midiProgram: 0, // Acoustic Grand Piano
   metronomeEnabled: false,
   metronomeVolume: 0.5,
+
+  // Playback state
+  playbackSpeed: 1,
 
   // UI state
   showDebug: false,
@@ -343,6 +354,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setMidiProgram: (program) => set({ midiProgram: program }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
+
+  // Playback actions
+  setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
 
   // UI actions
   setShowDebug: (show) => set({ showDebug: show }),

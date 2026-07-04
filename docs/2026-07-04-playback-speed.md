@@ -47,6 +47,8 @@ Both break once effective BPM != tempo:
 
 ### Phase 1 — beats-based playhead refactor (own PR, correct today)
 
+**Status: implemented (statically verified only).**
+
 Make the UI speed-independent by construction instead of threading
 `playbackSpeed` through every seconds→beats conversion.
 
@@ -61,17 +63,33 @@ Make the UI speed-independent by construction instead of threading
 
 ### Phase 2 — playbackSpeed MVP (no worklet)
 
+**Status: implemented (statically verified only — `pnpm lint`; manual/E2E
+verification pending).**
+
 - `playbackSpeed` in the store (session-only), UI selector `0.5x` / `1x` in
-  the transport bar.
+  the transport bar (`data-testid="playback-speed-select"`).
 - `applyState`: `bpm.value = tempo * playbackSpeed`;
   `player.playbackRate = playbackSpeed`.
-- Fix `syncAudioTrack` to `start(audioOffset / playbackSpeed)`; re-sync when
-  speed changes (speed change while playing may simply re-seek, or pause —
-  decide during implementation, simplest acceptable behavior wins).
-- Manual check: imported song at 0.5x plays one octave down, notes/metronome/
-  playhead/waveform-vs-audio all aligned; seek works.
-- E2E: state + playhead behavior at 0.5x (audio quality is manual-only per
-  testing strategy in AGENTS.md).
+- **Design deviation from the sketch above**: reading Tone.js v15 source
+  (`Source.sync()` / `Player._start`) showed that synced-Player restarts
+  compute buffer offsets in raw transport seconds, never scaled by
+  `playbackRate` — so `player.sync().start(offset / speed)` would still
+  misalign on every pause→resume and seek. Instead the player is now
+  **unsynced** and `AudioManager` schedules it explicitly:
+  - `startAudioPlayback()` computes the buffer offset from the transport
+    position (`transport.seconds * playbackSpeed - audioOffset`) on every
+    `play()`, `seek()`, speed change, and audio-offset change;
+  - transport `stop`/`pause` events stop the player (alongside the existing
+    `allNotesOff`);
+  - `syncAudioTrack(offset)` now just records the offset and re-aligns if
+    playing; `settings.tsx` no longer calls `player.sync()` directly.
+- Manual check (TODO): imported song at 0.5x plays one octave down,
+  notes/metronome/playhead/waveform-vs-audio all aligned; seek and
+  pause→resume work; changing speed mid-playback stays aligned.
+- E2E: selector + speed-independent seek tests added in
+  `e2e/transport.spec.ts` ("Playback Speed" describe block, not yet run);
+  the playhead-rate-at-0.5x test is a `test.skip` skeleton pending
+  iteration against a running browser.
 
 ### Phase 3 — pitch-preserving worklet (arbitrary speeds)
 

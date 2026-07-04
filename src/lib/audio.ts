@@ -183,8 +183,14 @@ class AudioManager {
   private midiPart!: Tone.Part;
 
   // audio track
+  // The player is NOT synced to the transport: Tone's synced-Player computes
+  // buffer offsets in raw transport seconds, unscaled by playbackRate, which
+  // breaks alignment at playbackSpeed != 1. Instead the player is started or
+  // stopped explicitly on play/pause/seek and parameter changes.
   player!: Tone.Player;
   private audioChannel!: Tone.Channel;
+  private playbackSpeed = 1;
+  private audioOffset = 0;
 
   // metronome
   private metronome!: Metronome;
@@ -226,9 +232,15 @@ class AudioManager {
     );
     this.midiPart.start(0);
 
-    // Stop all notes when transport stops/pauses
-    Tone.getTransport().on("stop", () => this.midiSynth.allNotesOff());
-    Tone.getTransport().on("pause", () => this.midiSynth.allNotesOff());
+    // Stop all notes and the audio track when transport stops/pauses
+    Tone.getTransport().on("stop", () => {
+      this.midiSynth.allNotesOff();
+      this.player.stop();
+    });
+    Tone.getTransport().on("pause", () => {
+      this.midiSynth.allNotesOff();
+      this.player.stop();
+    });
 
     // Audio track
     this.player = new Tone.Player();
@@ -268,11 +280,19 @@ class AudioManager {
     this.setAudioMuted(state.audioMuted);
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
-    Tone.getTransport().bpm.value = state.tempo;
+    // Effective BPM scales beat-based scheduling (MIDI notes, metronome)
+    // with playback speed while note positions stay in beats
+    Tone.getTransport().bpm.value = state.tempo * state.playbackSpeed;
 
     // Program change - only when changed
     if (state.midiProgram !== prevState?.midiProgram) {
       this.setProgram(state.midiProgram);
+    }
+
+    if (state.playbackSpeed !== prevState?.playbackSpeed) {
+      this.playbackSpeed = state.playbackSpeed;
+      this.player.playbackRate = state.playbackSpeed;
+      this.restartAudioIfPlaying();
     }
 
     // Expensive operations - only when changed (or on initial sync)
@@ -290,6 +310,7 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
+    this.startAudioPlayback();
     Tone.getTransport().start();
   }
 
@@ -300,19 +321,52 @@ class AudioManager {
   seek(beats: number): void {
     const transport = Tone.getTransport();
     transport.ticks = Math.round(Math.max(0, beats) * transport.PPQ);
+    this.restartAudioIfPlaying();
   }
 
+  /**
+   * Update the audio track's timeline offset (in musical seconds at the
+   * project tempo) and re-align playback if currently playing.
+   */
   syncAudioTrack(offset: number): void {
+    this.audioOffset = offset;
+    this.restartAudioIfPlaying();
+  }
+
+  /**
+   * Start the audio track from the buffer position matching the current
+   * transport position. With transport BPM at `tempo * playbackSpeed`,
+   * musical (project tempo) seconds = transport seconds * playbackSpeed,
+   * and the buffer plays at `playbackRate = playbackSpeed`, so buffer
+   * position and musical position advance in lockstep.
+   */
+  private startAudioPlayback(): void {
+    this.player.stop();
     if (!this.player.loaded) {
       return;
     }
-    this.player.unsync();
-    this.player.sync().start(offset);
+    const songSeconds = Tone.getTransport().seconds * this.playbackSpeed;
+    const bufferOffset = songSeconds - this.audioOffset;
+    if (bufferOffset >= 0) {
+      if (bufferOffset < this.player.buffer.duration) {
+        this.player.start(undefined, bufferOffset);
+      }
+    } else {
+      // Audio starts later on the timeline: delay in real (transport) seconds
+      this.player.start(Tone.now() - bufferOffset / this.playbackSpeed, 0);
+    }
+  }
+
+  private restartAudioIfPlaying(): void {
+    if (Tone.getTransport().state === "started") {
+      this.startAudioPlayback();
+    } else {
+      this.player.stop();
+    }
   }
 
   clearAudioBuffer(): void {
     this.player.stop();
-    this.player.unsync();
     this.player.buffer = new Tone.ToneAudioBuffer();
   }
 

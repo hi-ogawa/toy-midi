@@ -106,7 +106,7 @@ export function Settings({
       setAudioFile(file.name, buffer.duration, assetKey);
 
       audioManager.player.buffer = buffer;
-      audioManager.player.sync().start(0);
+      audioManager.syncAudioTrack(0);
       setAudioOffset(0);
 
       setAudioView(audioView);
