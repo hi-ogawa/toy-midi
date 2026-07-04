@@ -3,9 +3,6 @@ import type { AudioView } from "../lib/audio-view";
 import type { GridSnap, Locator, Note, TimeSignature } from "../types";
 import { historyStore } from "./history-store";
 
-// Maximum number of audio tracks (e.g. for stem-split transcription)
-export const MAX_AUDIO_TRACKS = 2;
-
 export interface ProjectState {
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
@@ -24,7 +21,7 @@ export interface ProjectState {
   locators: Locator[];
   selectedLocatorId: string | null;
 
-  // Audio tracks (up to MAX_AUDIO_TRACKS)
+  // Audio tracks
   audioTracks: AudioTrack[];
   selectedAudioTrackId: string | null; // not persisted
 
@@ -315,11 +312,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Audio track actions
   addAudioTrack: (track) =>
-    set((state) =>
-      state.audioTracks.length >= MAX_AUDIO_TRACKS
-        ? state
-        : { audioTracks: [...state.audioTracks, track] },
-    ),
+    set((state) => ({ audioTracks: [...state.audioTracks, track] })),
 
   updateAudioTrack: (id, updates) =>
     set((state) => ({

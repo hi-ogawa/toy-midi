@@ -22,7 +22,6 @@ import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import {
   generateAudioTrackId,
-  MAX_AUDIO_TRACKS,
   toSavedProject,
   useProjectStore,
 } from "../stores/project-store";
@@ -60,7 +59,6 @@ export function Settings({
     deleteAudioTrack,
   } = useProjectStore();
 
-  const canAddAudioTrack = audioTracks.length < MAX_AUDIO_TRACKS;
   // Name used for MIDI/ABC export metadata (first audio track, if any)
   const primaryAudioName = audioTracks[0]?.fileName ?? null;
 
@@ -243,7 +241,7 @@ export function Settings({
           <UploadIcon className="size-4" />
           Audio
           <span className="text-xs font-normal text-neutral-500">
-            ({audioTracks.length}/{MAX_AUDIO_TRACKS})
+            ({audioTracks.length})
           </span>
         </h3>
         <div className="pl-6 space-y-2">
@@ -266,17 +264,13 @@ export function Settings({
           <FileDropInput
             accept="audio/*"
             data-testid="load-audio-button"
-            disabled={loadAudioMutation.isPending || !canAddAudioTrack}
+            disabled={loadAudioMutation.isPending}
             inputProps={{ "data-testid": "audio-file-input" }}
             className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 disabled:opacity-50"
             onFile={(file) => loadAudioMutation.mutate(file)}
           >
             <UploadIcon className="size-4" />
-            {loadAudioMutation.isPending
-              ? "Loading..."
-              : canAddAudioTrack
-                ? "Load Audio"
-                : `Max ${MAX_AUDIO_TRACKS} tracks`}
+            {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
           </FileDropInput>
         </div>
       </section>

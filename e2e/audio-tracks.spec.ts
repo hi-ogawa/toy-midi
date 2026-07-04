@@ -38,18 +38,18 @@ test.describe("Multiple Audio Tracks", () => {
     await expect(regions).toHaveCount(2);
   });
 
-  test("third track cannot be added (max 2)", async ({ page }) => {
+  test("more than two tracks can be added", async ({ page }) => {
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
+    await loadAudioFile(page, "test-audio.wav");
 
-    // Load button is disabled once at the limit
     await page.getByTestId("settings-button").click();
     const loadButton = page.getByTestId("load-audio-button");
-    await expect(loadButton).toBeDisabled();
+    await expect(loadButton).toBeEnabled();
     await page.keyboard.press("Escape");
 
     const tracks = await getAudioTracks(page);
-    expect(tracks).toHaveLength(2);
+    expect(tracks).toHaveLength(3);
   });
 
   test("tracks can be muted independently", async ({ page }) => {
