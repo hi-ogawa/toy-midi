@@ -158,29 +158,36 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: v1 manifest with v2 project");
   }
 
-  const audioAssetKeys = new Map<string, string>();
+  if (project.audioTracks.length !== manifest.files.audio.length) {
+    throw new Error(
+      "Invalid project file: audio manifest does not match project",
+    );
+  }
+
+  const audioTracks: SavedProject["audioTracks"] = [];
 
   for (const entry of manifest.files.audio) {
+    const track = project.audioTracks.find((t) => t.id === entry.trackId);
+    if (!track) {
+      throw new Error(
+        `Invalid project file: audio entry references missing track ${entry.trackId}`,
+      );
+    }
+
     const audioZipFile = zip.file(entry.path);
     if (!audioZipFile) {
       throw new Error(`Invalid project file: missing ${entry.path}`);
     }
     const blob = await audioZipFile.async("blob");
-    const track = project.audioTracks.find((t) => t.id === entry.trackId);
-    const fileName =
-      track?.fileName || entry.path.split("/").pop() || "audio.wav";
-    const assetKey = await saveAsset(fileFromBlob(blob, fileName));
-    audioAssetKeys.set(entry.trackId, assetKey);
+    const assetKey = await saveAsset(fileFromBlob(blob, track.fileName));
+    audioTracks.push({ ...track, assetKey });
   }
 
   return {
     name: manifest.name,
     project: {
       ...project,
-      audioTracks: project.audioTracks.flatMap((track) => {
-        const assetKey = audioAssetKeys.get(track.id);
-        return assetKey ? [{ ...track, assetKey }] : [];
-      }),
+      audioTracks,
     },
   };
 }
