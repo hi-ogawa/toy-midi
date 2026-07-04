@@ -129,6 +129,7 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
+      name: projectName,
       trackName: projectName,
     });
 
