@@ -53,7 +53,7 @@ class ProjectStorage {
   // === metadata — localStorage "toy-midi-project-list" ===
 
   // List all projects, sorted by updatedAt descending (most recent first)
-  list(): ProjectMetadata[] {
+  listMetadata(): ProjectMetadata[] {
     const json = localStorage.getItem(PROJECT_LIST_KEY);
     if (!json) {
       return [];
