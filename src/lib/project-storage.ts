@@ -1,22 +1,10 @@
-// Persistence facade for all project storage.
+// Persistence facade for all project storage: localStorage for project
+// metadata (cheap enumeration for the list view) and documents, IndexedDB for
+// binary audio assets.
 //
-// Storage map:
-// - localStorage "toy-midi-project-list": project metadata (cheap enumeration for list view)
-// - localStorage "toy-midi-project-<id>": full project document (notes, tracks, settings)
-// - localStorage "toy-midi-last-project-id": last opened project pointer
-// - IndexedDB "toy-midi" / "assets": binary audio assets, keyed by
-//   file name + size + lastModified
-// - Zustand store (project-store): the open document in memory — never storage
-//
-// Invariants:
-// - A project = document + metadata entry (metadata is the cheap-enumeration
-//   index for the list view). create() writes both; delete() removes both, so
-//   every listed project has a loadable document.
-// - load() migrates old document versions and returns the current schema.
-// - Asset keys are derived from the source file, so the same file imported into
-//   multiple projects shares one asset; delete() does NOT remove assets
-//   referenced by the deleted project (no garbage collection).
-// - save() also bumps updatedAt and lastProjectId.
+// Assets are keyed by source file (name + size + lastModified), so the same
+// file imported into multiple projects shares one asset; delete() does NOT
+// remove assets referenced by the deleted project (no garbage collection).
 
 import {
   type AnySavedProject,
@@ -29,8 +17,8 @@ import {
 export interface ProjectMetadata {
   id: string;
   name: string;
-  createdAt: number; // timestamp
-  updatedAt: number; // timestamp
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface StoredAsset {
@@ -39,7 +27,7 @@ interface StoredAsset {
   name: string;
   size: number;
   type: string;
-  addedAt: number; // timestamp
+  addedAt: number;
 }
 
 const PROJECT_LIST_KEY = "toy-midi-project-list";
@@ -50,9 +38,6 @@ const DB_VERSION = 1;
 const STORE_NAME = "assets";
 
 class ProjectStorage {
-  // === metadata — localStorage "toy-midi-project-list" ===
-
-  // List all projects, sorted by updatedAt descending (most recent first)
   listMetadata(): ProjectMetadata[] {
     const json = localStorage.getItem(PROJECT_LIST_KEY);
     if (!json) {
@@ -66,7 +51,6 @@ class ProjectStorage {
     return this.listMetadata().find((p) => p.id === projectId) || null;
   }
 
-  // Create new project with the default empty document, returns its ID
   createNew(): string {
     return this.create(
       this.getDefaultProjectName(),
@@ -74,7 +58,6 @@ class ProjectStorage {
     );
   }
 
-  // Create new project (metadata entry + initial document), returns its ID
   create(name: string, data: SavedProject): string {
     const projectId = generateProjectId();
     const now = Date.now();
@@ -93,8 +76,6 @@ class ProjectStorage {
     return projectId;
   }
 
-  // Update project metadata (name, updatedAt)
-  // Throws if project not found or on storage error
   updateMetadata(
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
@@ -113,8 +94,6 @@ class ProjectStorage {
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
   }
 
-  // Delete project (metadata and document; referenced assets are kept)
-  // Throws on storage error
   delete(projectId: string): void {
     const projects = this.listMetadata();
     const filtered = projects.filter((p) => p.id !== projectId);
@@ -122,13 +101,11 @@ class ProjectStorage {
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(filtered));
     localStorage.removeItem(getProjectKey(projectId));
 
-    // If deleting last project, clear that too
     if (this.getLastProjectId() === projectId) {
       localStorage.removeItem(LAST_PROJECT_ID_KEY);
     }
   }
 
-  // Get default project name with sequential numbering
   private getDefaultProjectName(): string {
     const untitledCount = this.listMetadata().filter((p) =>
       p.name.match(/^Untitled( \d+)?$/),
@@ -137,10 +114,6 @@ class ProjectStorage {
     return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
   }
 
-  // === document data — localStorage "toy-midi-project-<id>" ===
-
-  // Load project document, migrated to the current schema (pure - no Zustand)
-  // Throws if not found or on parse error - caller should handle
   load(projectId: string): SavedProject {
     const json = localStorage.getItem(getProjectKey(projectId));
     if (!json) {
@@ -149,15 +122,11 @@ class ProjectStorage {
     return migrateSavedProject(JSON.parse(json) as AnySavedProject);
   }
 
-  // Save project document (pure - no Zustand); also bumps updatedAt + lastProjectId
-  // Throws on error - caller should handle with toast
   save(projectId: string, data: SavedProject): void {
     localStorage.setItem(getProjectKey(projectId), JSON.stringify(data));
     this.updateMetadata(projectId, { updatedAt: Date.now() });
     this.setLastProjectId(projectId);
   }
-
-  // === session pointer — localStorage "toy-midi-last-project-id" ===
 
   getLastProjectId(): string | null {
     return localStorage.getItem(LAST_PROJECT_ID_KEY);
@@ -166,8 +135,6 @@ class ProjectStorage {
   setLastProjectId(projectId: string): void {
     localStorage.setItem(LAST_PROJECT_ID_KEY, projectId);
   }
-
-  // === binary assets — IndexedDB "toy-midi" / "assets" ===
 
   private dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -248,30 +215,22 @@ class ProjectStorage {
 
 export const projectStorage = new ProjectStorage();
 
-// === private helpers ===
-
-// Generate unique project ID
 function generateProjectId(): string {
-  // Use crypto.randomUUID() if available, otherwise fallback to timestamp + random
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return `project-${crypto.randomUUID()}`;
   }
   return `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// Get storage key for a specific project
 function getProjectKey(projectId: string): string {
   return `toy-midi-project-${projectId}`;
 }
 
-// Generate a simple hash key from file name + size + last modified
 function generateAssetKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
-// === e2e-only ===
-
-// for testing migration
+// e2e-only: seed an old-schema project to test migration on load
 export async function seedProjectV1(
   name: string,
   project: SavedProjectV1,
