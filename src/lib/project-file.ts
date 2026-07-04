@@ -2,9 +2,9 @@
 
 import JSZip from "jszip";
 import {
-  migrateSavedAudioTracks,
   type SavedAudioTrack,
   type SavedProject,
+  type SavedProjectV1,
 } from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
@@ -32,9 +32,11 @@ type ProjectFileAudioTrack = Omit<SavedAudioTrack, "assetKey"> & {
   assetKey?: string | null;
 };
 
-type ProjectFileProject = Omit<SavedProject, "audioTracks"> & {
+type ProjectFileProjectV2 = Omit<SavedProject, "audioTracks"> & {
   audioTracks?: ProjectFileAudioTrack[];
 };
+
+type ProjectFileProject = SavedProjectV1 | ProjectFileProjectV2;
 
 type ParsedProjectTrack = ProjectFileAudioTrack & { assetKey?: string | null };
 
@@ -76,7 +78,7 @@ export async function exportProjectFile(
   const audioEntries: Array<{ trackId: string; path: string }> = [];
 
   // Bundle each track's audio asset and record its path in the manifest
-  const tracks = migrateSavedAudioTracks(projectData);
+  const tracks = projectData.audioTracks;
   for (const track of tracks) {
     if (!track.assetKey) {
       continue;
@@ -107,7 +109,7 @@ export async function exportProjectFile(
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
   // Add project data (strip asset keys since we're bundling the files)
-  const projectForExport: ProjectFileProject = {
+  const projectForExport: ProjectFileProjectV2 = {
     ...projectData,
     audioTracks: tracks.map(({ assetKey: _assetKey, ...track }) => track),
   };
@@ -166,17 +168,26 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
   const rawProject = JSON.parse(projectText) as ProjectFileProject;
 
   // Normalize to current shape (migrate legacy singleton audio fields)
-  const audioTracks = Array.isArray(rawProject.audioTracks)
-    ? rawProject.audioTracks
-    : migrateSavedAudioTracks({
-        audioFileName: rawProject.audioFileName,
-        audioAssetKey: rawProject.audioAssetKey,
-        audioDuration: rawProject.audioDuration,
-        audioOffset: rawProject.audioOffset,
-        audioVolume: rawProject.audioVolume,
-        audioMuted: rawProject.audioMuted,
-      });
-  const project: ParsedProjectData = { ...rawProject, audioTracks };
+  const audioTracks: ProjectFileAudioTrack[] =
+    rawProject.version === 1
+      ? rawProject.audioFileName && rawProject.audioAssetKey
+        ? [
+            {
+              id: "audio-1",
+              fileName: rawProject.audioFileName,
+              duration: rawProject.audioDuration,
+              offset: rawProject.audioOffset,
+              volume: rawProject.audioVolume,
+              muted: rawProject.audioMuted ?? false,
+            },
+          ]
+        : []
+      : (rawProject.audioTracks ?? []);
+  const project: ParsedProjectData = {
+    ...rawProject,
+    version: CURRENT_FORMAT_VERSION,
+    audioTracks,
+  };
 
   // Reconstruct audio files keyed by track id
   const audioFiles = new Map<string, File>();

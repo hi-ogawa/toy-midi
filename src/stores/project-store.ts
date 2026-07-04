@@ -517,18 +517,8 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 
 const STORAGE_VERSION = 2;
 
-// Legacy (v1) singleton audio fields, kept for migration only
-interface LegacyAudioFields {
-  audioFileName?: string | null;
-  audioAssetKey?: string | null;
-  audioDuration?: number;
-  audioOffset?: number;
-  audioVolume?: number;
-  audioMuted?: boolean;
-}
-
-export interface SavedProject extends LegacyAudioFields {
-  version: number;
+export interface SavedProject {
+  version: 2;
   notes: Note[];
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
@@ -549,8 +539,20 @@ export interface SavedProject extends LegacyAudioFields {
   waveformHeight?: number;
 }
 
+export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
+  version: 1;
+  audioFileName: string | null;
+  audioAssetKey: string | null;
+  audioDuration: number;
+  audioOffset: number;
+  audioVolume: number;
+  audioMuted?: boolean; // Optional for backward compatibility
+};
+
+export type AnySavedProject = SavedProjectV1 | SavedProject;
+
 // Default values for new/missing fields
-const DEFAULTS: Omit<SavedProject, "version" | keyof LegacyAudioFields> = {
+const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
@@ -570,32 +572,6 @@ const DEFAULTS: Omit<SavedProject, "version" | keyof LegacyAudioFields> = {
   pixelsPerKey: 20,
   waveformHeight: 60,
 };
-
-// Migrate persisted audio data into the id-based array shape.
-// Handles both the current `audioTracks` array and legacy singleton fields.
-export function migrateSavedAudioTracks(
-  data: Partial<SavedProject>,
-): SavedAudioTrack[] {
-  if (Array.isArray(data.audioTracks)) {
-    return data.audioTracks.filter(
-      (track) => typeof track.assetKey === "string",
-    );
-  }
-  if (data.audioFileName && data.audioAssetKey) {
-    return [
-      {
-        id: "audio-1",
-        fileName: data.audioFileName,
-        assetKey: data.audioAssetKey,
-        duration: data.audioDuration ?? 0,
-        offset: data.audioOffset ?? 0,
-        volume: data.audioVolume ?? 0.8,
-        muted: data.audioMuted ?? false,
-      },
-    ];
-  }
-  return [];
-}
 
 // Pure serialization: ProjectState -> SavedProject
 export function toSavedProject(state: ProjectState): SavedProject {
@@ -625,11 +601,9 @@ export function toSavedProject(state: ProjectState): SavedProject {
 }
 
 // Pure deserialization: SavedProject -> Partial<ProjectState>
-export function fromSavedProject(
-  data: Partial<SavedProject>,
-): Partial<ProjectState> {
+export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
   // Version check: only reject if major breaking change
-  if (data.version && data.version > STORAGE_VERSION) {
+  if (data.version > STORAGE_VERSION) {
     console.warn("Project from newer version, some data may be lost");
   }
 
@@ -650,10 +624,22 @@ export function fromSavedProject(
   }, 0);
   locatorIdCounter = maxLocatorId;
 
-  // Migrate legacy singleton audio fields into the id-based array.
-  // Use raw `data` (not `merged`) so the DEFAULTS empty array doesn't shadow
-  // legacy `audioFileName` fields.
-  const savedAudioTracks = migrateSavedAudioTracks(data);
+  const savedAudioTracks: SavedAudioTrack[] =
+    data.version === 2
+      ? data.audioTracks
+      : data.audioFileName && data.audioAssetKey
+        ? [
+            {
+              id: "audio-1",
+              fileName: data.audioFileName,
+              assetKey: data.audioAssetKey,
+              duration: data.audioDuration,
+              offset: data.audioOffset,
+              volume: data.audioVolume,
+              muted: data.audioMuted ?? false,
+            },
+          ]
+        : [];
 
   // Update audio track ID counter to avoid collisions
   audioTrackIdCounter = savedAudioTracks.reduce((max, t) => {
