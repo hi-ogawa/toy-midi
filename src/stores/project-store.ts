@@ -591,43 +591,28 @@ export function toSavedProject(state: ProjectState): SavedProject {
 }
 
 export function migrateSavedProject(data: AnySavedProject): SavedProject {
-  if (data.version === STORAGE_VERSION) {
-    return data;
+  if (data.version === 1) {
+    return {
+      ...data,
+      version: STORAGE_VERSION,
+      audioTracks:
+        data.audioFileName && data.audioAssetKey
+          ? [
+              {
+                id: "audio-1",
+                fileName: data.audioFileName,
+                assetKey: data.audioAssetKey,
+                duration: data.audioDuration,
+                offset: data.audioOffset,
+                volume: data.audioVolume,
+                muted: data.audioMuted ?? false,
+              },
+            ]
+          : [],
+    };
   }
 
-  return {
-    version: STORAGE_VERSION,
-    notes: data.notes,
-    tempo: data.tempo,
-    timeSignature: data.timeSignature,
-    gridSnap: data.gridSnap,
-    locators: data.locators,
-    audioTracks:
-      data.audioFileName && data.audioAssetKey
-        ? [
-            {
-              id: "audio-1",
-              fileName: data.audioFileName,
-              assetKey: data.audioAssetKey,
-              duration: data.audioDuration,
-              offset: data.audioOffset,
-              volume: data.audioVolume,
-              muted: data.audioMuted ?? false,
-            },
-          ]
-        : [],
-    midiVolume: data.midiVolume,
-    midiMuted: data.midiMuted,
-    midiProgram: data.midiProgram,
-    metronomeEnabled: data.metronomeEnabled,
-    metronomeVolume: data.metronomeVolume,
-    autoScrollEnabled: data.autoScrollEnabled,
-    scrollX: data.scrollX,
-    scrollY: data.scrollY,
-    pixelsPerBeat: data.pixelsPerBeat,
-    pixelsPerKey: data.pixelsPerKey,
-    waveformHeight: data.waveformHeight,
-  };
+  return data;
 }
 
 // Pure deserialization: SavedProject -> Partial<ProjectState>
