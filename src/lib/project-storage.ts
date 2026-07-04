@@ -20,7 +20,7 @@
 
 import {
   type AnySavedProject,
-  defaultSavedProject,
+  createDefaultSavedProject,
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
@@ -68,7 +68,10 @@ class ProjectStorage {
 
   // Create new project with the default empty document, returns its ID
   createNew(): string {
-    return this.create(this.getDefaultProjectName(), defaultSavedProject());
+    return this.create(
+      this.getDefaultProjectName(),
+      createDefaultSavedProject(),
+    );
   }
 
   // Create new project (metadata entry + initial document), returns its ID

@@ -563,8 +563,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   waveformHeight: 60,
 };
 
-// Canonical default document for a new project
-export function defaultSavedProject(): SavedProject {
+export function createDefaultSavedProject(): SavedProject {
   return { version: STORAGE_VERSION, ...DEFAULTS };
 }
 
