@@ -1,5 +1,4 @@
 import { Midi } from "@tonejs/midi";
-import { beatsToSeconds } from "../stores/project-store";
 import { Note, TimeSignature } from "../types";
 
 export interface MidiExportOptions {
@@ -40,15 +39,15 @@ export function exportMidi(options: MidiExportOptions): Uint8Array {
   track.name = trackName;
 
   // Add all notes to the track
-  // Notes in the store are in beats, need to convert to seconds
+  // Notes in the store are in beats (quarter notes), so writing ticks
+  // directly keeps grid alignment exact instead of round-tripping
+  // through seconds and the tempo
+  const ppq = midi.header.ppq;
   notes.forEach((note) => {
-    const timeInSeconds = beatsToSeconds(note.start, tempo);
-    const durationInSeconds = beatsToSeconds(note.duration, tempo);
-
     track.addNote({
       midi: note.pitch,
-      time: timeInSeconds,
-      duration: durationInSeconds,
+      ticks: Math.round(note.start * ppq),
+      durationTicks: Math.max(1, Math.round(note.duration * ppq)),
       velocity: note.velocity / 127, // @tonejs/midi uses normalized 0-1 velocity
     });
   });
