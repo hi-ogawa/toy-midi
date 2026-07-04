@@ -24,13 +24,17 @@ import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
 type SettingsProps = {
+  projectName: string;
+  onProjectNameChange: (name: string) => void;
   onProjectsClick: () => void;
 };
 
-export function Settings({ onProjectsClick }: SettingsProps) {
+export function Settings({
+  projectName,
+  onProjectNameChange,
+  onProjectsClick,
+}: SettingsProps) {
   const {
-    projectName,
-    renameProject,
     audioTracks,
     tempo,
     timeSignature,
@@ -45,7 +49,7 @@ export function Settings({ onProjectsClick }: SettingsProps) {
 
   const projectNameInput = useDraftTextInput({
     value: projectName,
-    onCommit: renameProject,
+    onCommit: onProjectNameChange,
     normalize: (value) => value.trim(),
     isValid: (value) => value.length > 0,
   });

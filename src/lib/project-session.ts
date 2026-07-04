@@ -10,6 +10,7 @@ import { projectStorage } from "./project-storage";
 
 export interface ProjectSession {
   projectId: string;
+  projectName: string;
   dispose: () => void;
 }
 
@@ -33,11 +34,7 @@ export async function openProjectSession(options: {
     throw new Error(`Project ${projectId} metadata not found`);
   }
   const data = projectStorage.load(projectId);
-  useProjectStore.setState({
-    ...fromSavedProject(data),
-    projectId,
-    projectName: metadata.name,
-  });
+  useProjectStore.setState(fromSavedProject(data));
 
   const project = useProjectStore.getState();
   for (const track of project.audioTracks) {
@@ -63,13 +60,6 @@ export async function openProjectSession(options: {
     audioManager.applyState(state, prevState);
   });
 
-  // Write renames through to project metadata (name is not part of the document)
-  const unsubscribeNameSync = useProjectStore.subscribe((state, prevState) => {
-    if (state.projectName !== prevState.projectName) {
-      projectStorage.updateMetadata(projectId, { name: state.projectName });
-    }
-  });
-
   // Auto-save on state changes (debounced)
   const autoSaveDebounceMs = Number(
     import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
@@ -92,9 +82,9 @@ export async function openProjectSession(options: {
 
   return {
     projectId,
+    projectName: metadata.name,
     dispose: () => {
       unsubscribeAudioSync();
-      unsubscribeNameSync();
       unsubscribeAutoSave();
       clearTimeout(saveTimeout);
       historyStore.clearHistory();

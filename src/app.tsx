@@ -15,7 +15,6 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
 import { openProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
-import { useProjectStore } from "./stores/project-store";
 
 export function App() {
   const initMutation = useMutation({
@@ -64,16 +63,26 @@ export function App() {
     );
   }
 
-  return <Editor />;
+  return (
+    <Editor
+      projectId={initMutation.data.projectId}
+      initialProjectName={initMutation.data.projectName}
+    />
+  );
 }
 
 // === Editor Component ===
 
-function Editor() {
+type EditorProps = {
+  projectId: string;
+  initialProjectName: string;
+};
+
+function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
-  const projectName = useProjectStore((state) => state.projectName);
+  const [projectName, setProjectName] = useState(initialProjectName);
 
   // Update document title when project name changes
   useEffect(() => {
@@ -113,6 +122,7 @@ function Editor() {
         onSettingsClick={() => setIsSettingsOpen(true)}
         onHelpClick={() => setIsHelpOpen(true)}
         onMixerClick={() => setIsMixerOpen(true)}
+        projectName={projectName}
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
@@ -131,6 +141,13 @@ function Editor() {
         testId="settings-dialog"
       >
         <Settings
+          projectName={projectName}
+          onProjectNameChange={(name) => {
+            if (name && name !== projectName) {
+              projectStorage.updateMetadata(projectId, { name });
+              setProjectName(name);
+            }
+          }}
           onProjectsClick={() => {
             // TODO: modal project list view and allow switch project?
             // for now, open startup page in new tab.
