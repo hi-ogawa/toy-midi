@@ -61,9 +61,6 @@ export async function exportProjectFile(
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
   for (const track of tracks) {
-    if (!track.assetKey) {
-      continue;
-    }
     const asset = await loadAsset(track.assetKey);
     if (!asset) {
       continue;

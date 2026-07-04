@@ -128,7 +128,7 @@ export function Settings({
   const handleRemoveAudio = async (id: string) => {
     const track = audioTracks.find((t) => t.id === id);
     // Delete from IndexedDB if we have a key
-    if (track?.assetKey) {
+    if (track) {
       await deleteAsset(track.assetKey);
     }
     // Removing from the store disposes the player via the state-sync subscription

@@ -421,7 +421,7 @@ export function PianoRoll() {
         deleteLocator(selectedLocatorId);
       } else if (selectedAudioTrackId) {
         const track = audioTracks.find((t) => t.id === selectedAudioTrackId);
-        if (track?.assetKey) {
+        if (track) {
           void deleteAsset(track.assetKey);
         }
         // Removing from the store disposes the player via the state-sync subscription
