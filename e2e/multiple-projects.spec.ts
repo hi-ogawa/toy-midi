@@ -1,12 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
 
-// Helper to get the last project ID from the localStorage project index
 async function getLastProjectId(page: Page): Promise<string | null> {
-  return page.evaluate(() => {
-    const json = localStorage.getItem("toy-midi-project-index");
-    return json ? JSON.parse(json).lastProjectId : null;
-  });
+  return page.evaluate(() =>
+    (window as any).__e2e.projectStorage.getLastProjectId(),
+  );
 }
 
 test.describe("Multiple Projects", () => {
