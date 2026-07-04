@@ -5,19 +5,22 @@ export interface MidiExportOptions {
   notes: Note[];
   tempo: number;
   timeSignature: TimeSignature;
+  /** Sequence name (song title) */
+  name: string;
   trackName: string;
 }
 
 /**
  * Export notes to a MIDI file with the specified tempo and time signature
- * @param options - Notes, tempo, time signature, and track name
+ * @param options - Notes, tempo, time signature, sequence name, and track name
  * @returns Uint8Array containing the MIDI file data
  */
 export function exportMidi(options: MidiExportOptions): Uint8Array {
-  const { notes, tempo, timeSignature, trackName } = options;
+  const { notes, tempo, timeSignature, name, trackName } = options;
 
   // Create a new MIDI file
   const midi = new Midi();
+  midi.name = name;
 
   // Set tempo
   midi.header.setTempo(tempo);

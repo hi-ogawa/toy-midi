@@ -1,3 +1,4 @@
+import { Midi } from "@tonejs/midi";
 import { describe, expect, it } from "vitest";
 import { Note, TimeSignature } from "../types";
 import { exportMidi } from "./midi-export";
@@ -26,6 +27,7 @@ describe("MIDI Export", () => {
       notes,
       tempo,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "Test Song",
       trackName: "Piano Roll",
     });
 
@@ -48,6 +50,7 @@ describe("MIDI Export", () => {
       notes: [],
       tempo: 120,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "Test Song",
       trackName: "Piano Roll",
     });
 
@@ -77,6 +80,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "Test Song",
       trackName: "Piano Roll",
     });
     expect(midiData).toBeInstanceOf(Uint8Array);
@@ -97,12 +101,14 @@ describe("MIDI Export", () => {
       notes,
       tempo: 60,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "Test Song",
       trackName: "Piano Roll",
     });
     const tempo240 = exportMidi({
       notes,
       tempo: 240,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "Test Song",
       trackName: "Piano Roll",
     });
 
@@ -116,7 +122,7 @@ describe("MIDI Export", () => {
     expect(tempo240.byteLength).toBeGreaterThan(0);
   });
 
-  it("should set custom track name", () => {
+  it("should set sequence name and custom track name", () => {
     const notes: Note[] = [
       {
         id: "note-1",
@@ -131,10 +137,15 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: { numerator: 4, denominator: 4 },
+      name: "My Song",
       trackName: "My Custom Track",
     });
 
     expect(midiData).toBeInstanceOf(Uint8Array);
+
+    const parsed = new Midi(midiData);
+    expect(parsed.name).toBe("My Song");
+    expect(parsed.tracks[0].name).toBe("My Custom Track");
   });
 
   it("should handle different time signatures", () => {
@@ -154,6 +165,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature34,
+      name: "Test Song",
       trackName: "Piano Roll",
     });
     expect(midiData34).toBeInstanceOf(Uint8Array);
@@ -165,6 +177,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature54,
+      name: "Test Song",
       trackName: "Piano Roll",
     });
     expect(midiData54).toBeInstanceOf(Uint8Array);
@@ -176,6 +189,7 @@ describe("MIDI Export", () => {
       notes,
       tempo: 120,
       timeSignature: timeSignature68,
+      name: "Test Song",
       trackName: "Piano Roll",
     });
     expect(midiData68).toBeInstanceOf(Uint8Array);
