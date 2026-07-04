@@ -129,9 +129,7 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
-        : "Piano Roll",
+      trackName: projectName,
     });
 
     const fileName = buildExportFileName({
@@ -147,7 +145,7 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
+      title: projectName,
     });
 
     const fileName = buildExportFileName({
@@ -164,9 +162,7 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
-        title: audioFileName
-          ? audioFileName.replace(/\.[^.]+$/, "")
-          : "Untitled",
+        title: projectName,
       });
 
       await copyABCToClipboard(abcText);
