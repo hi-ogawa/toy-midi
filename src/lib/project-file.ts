@@ -3,6 +3,7 @@ import {
   type AnySavedProject,
   migrateSavedProject,
   type SavedProject,
+  type SavedProjectV1,
 } from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
@@ -77,6 +78,41 @@ export async function exportProjectFile(
   zip.file("project.json", JSON.stringify(projectData, null, 2));
 
   // Generate ZIP
+  return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+}
+
+// for test migration
+export async function exportProjectFileV1(
+  projectName: string,
+  projectData: SavedProjectV1,
+  audioData: Uint8Array,
+): Promise<Blob> {
+  const zip = new JSZip();
+
+  if (!projectData.audioFileName) {
+    throw new Error("Cannot export v1 project file without audio file name");
+  }
+
+  const audioPath = `audio/${projectData.audioFileName}`;
+
+  const manifest: ProjectManifestV1 = {
+    formatVersion: 1,
+    exportedAt: new Date().toISOString(),
+    name: projectName,
+    files: {
+      project: "project.json",
+      audio: audioPath,
+    },
+  };
+
+  zip.file(audioPath, audioData);
+
+  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+  zip.file(
+    "project.json",
+    JSON.stringify({ ...projectData, audioAssetKey: null }, null, 2),
+  );
+
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 

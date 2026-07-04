@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import JSZip from "jszip";
+import { exportProjectFileV1 } from "../src/lib/project-file";
 import type { SavedProjectV1 } from "../src/stores/project-store";
 import { evaluateStore } from "./helpers";
 
@@ -139,29 +139,12 @@ test.describe("Project Migration", () => {
   test("imports v1 .toymidi project with legacy audio manifest", async ({
     page,
   }) => {
-    const audioBytes = await readFile(TEST_AUDIO_PATH);
-    const zip = new JSZip();
-    zip.file(
-      "manifest.json",
-      JSON.stringify({
-        formatVersion: 1,
-        exportedAt: new Date().toISOString(),
-        name: "Legacy Import",
-        files: {
-          project: "project.json",
-          audio: "audio/legacy-audio.wav",
-        },
-      }),
+    const projectBlob = await exportProjectFileV1(
+      "Legacy Import",
+      LEGACY_PROJECT,
+      await readFile(TEST_AUDIO_PATH),
     );
-    zip.file(
-      "project.json",
-      JSON.stringify({
-        ...LEGACY_PROJECT,
-        audioAssetKey: null,
-      }),
-    );
-    zip.file("audio/legacy-audio.wav", audioBytes);
-    const projectFile = await zip.generateAsync({ type: "nodebuffer" });
+    const projectFile = Buffer.from(await projectBlob.arrayBuffer());
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
