@@ -13,8 +13,10 @@ import { useProjectStore } from "./stores/project-store";
 function main() {
   // expose utility for e2e
   if (import.meta.env.DEV) {
-    (window as any).__store = useProjectStore;
-    (window as any).__e2e = { seedProjectV1 };
+    (window as any).__e2e = {
+      useProjectStore,
+      seedProjectV1,
+    };
     if (window.location.pathname.startsWith("/__e2e__/")) {
       return;
     }

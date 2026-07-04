@@ -2,16 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
-import { seedProjectV1 } from "../src/lib/project-manager";
 import type { SavedProjectV1 } from "../src/stores/project-store";
 import { evaluateStore } from "./helpers";
-
-declare global {
-  interface Window {
-    // Test-only helper exposed on the /__e2e__/ host route (see main.tsx).
-    __e2e?: { seedProjectV1: typeof seedProjectV1 };
-  }
-}
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
@@ -52,7 +44,7 @@ test.describe("Project Migration", () => {
     await page.evaluate(async (project) => {
       const response = await fetch("/test-audio.wav");
       const audio = await response.arrayBuffer();
-      await window.__e2e!.seedProjectV1(
+      await (window as any).__e2e!.seedProjectV1(
         "Legacy Project",
         project,
         new Uint8Array(audio),

@@ -1,15 +1,6 @@
 import type { Page } from "@playwright/test";
 import type { useProjectStore } from "../src/stores/project-store";
 
-// Type for the exposed store on window
-type StoreType = typeof useProjectStore;
-
-declare global {
-  interface Window {
-    __store?: StoreType;
-  }
-}
-
 /**
  * Click "New Project" on startup screen to get to main UI with empty state.
  */
@@ -77,16 +68,10 @@ export async function loadAudioFile(
  */
 export async function evaluateStore<T>(
   page: Page,
-  fn: (store: StoreType) => T,
+  fn: (store: typeof useProjectStore) => T,
 ): Promise<T> {
   return page.evaluate((fnStr) => {
-    const store = (window as Window & { __store?: StoreType }).__store;
-    if (!store) {
-      throw new Error(
-        "window.__store not available. Is the app running in dev mode?",
-      );
-    }
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const store = (window as any).__e2e.useProjectStore;
     const evalFn = new Function("store", `return (${fnStr})(store)`);
     return evalFn(store) as T;
   }, fn.toString());
