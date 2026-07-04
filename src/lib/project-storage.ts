@@ -248,5 +248,6 @@ export async function seedProjectV1(
   const assetKey = await projectStorage.saveAsset(file);
 
   project = { ...project, audioAssetKey: assetKey };
-  projectStorage.create(name, project as any);
+  const projectId = projectStorage.create(name, project as any);
+  projectStorage.setLastProjectId(projectId);
 }
