@@ -143,55 +143,53 @@ export const projectStorage = {
 
   // === binary assets — IndexedDB "toy-midi" / "assets" ===
 
-  assets: {
-    async save(file: File): Promise<string> {
-      const db = await openDB();
-      const key = generateAssetKey(file);
+  async saveAsset(file: File): Promise<string> {
+    const db = await openDB();
+    const key = generateAssetKey(file);
 
-      const asset: StoredAsset = {
-        key,
-        blob: file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        addedAt: Date.now(),
-      };
+    const asset: StoredAsset = {
+      key,
+      blob: file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      addedAt: Date.now(),
+    };
 
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.put(asset);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.put(asset);
 
-        request.onsuccess = () => resolve(key);
-        request.onerror = () => reject(request.error);
-      });
-    },
+      request.onsuccess = () => resolve(key);
+      request.onerror = () => reject(request.error);
+    });
+  },
 
-    async load(key: string): Promise<StoredAsset | null> {
-      const db = await openDB();
+  async loadAsset(key: string): Promise<StoredAsset | null> {
+    const db = await openDB();
 
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.get(key);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.get(key);
 
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error);
-      });
-    },
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  },
 
-    async delete(key: string): Promise<void> {
-      const db = await openDB();
+  async deleteAsset(key: string): Promise<void> {
+    const db = await openDB();
 
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.delete(key);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.delete(key);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    },
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   },
 };
 
@@ -268,7 +266,7 @@ export async function seedProjectV1(
   const file = new File([audioData], project.audioFileName, {
     type: "audio/wav",
   });
-  const assetKey = await projectStorage.assets.save(file);
+  const assetKey = await projectStorage.saveAsset(file);
 
   const projectId = projectStorage.create(name);
   project = { ...project, audioAssetKey: assetKey };

@@ -45,7 +45,7 @@ export function App() {
 
       const project = useProjectStore.getState();
       for (const track of project.audioTracks) {
-        const asset = await projectStorage.assets.load(track.assetKey);
+        const asset = await projectStorage.loadAsset(track.assetKey);
         if (asset) {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),

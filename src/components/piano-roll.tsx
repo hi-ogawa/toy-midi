@@ -423,7 +423,7 @@ export function PianoRoll() {
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
       } else if (selectedAudioTrack) {
-        void projectStorage.assets.delete(selectedAudioTrack.assetKey);
+        void projectStorage.deleteAsset(selectedAudioTrack.assetKey);
         // Removing from the store disposes the player via the state-sync subscription
         deleteAudioTrack(selectedAudioTrack.id);
       }

@@ -98,7 +98,7 @@ export function Settings({
       const { buffer, audioView } = await loadAudioFile(file);
 
       // Save audio to IndexedDB for persistence
-      const assetKey = await projectStorage.assets.save(file);
+      const assetKey = await projectStorage.saveAsset(file);
 
       const id = generateAudioTrackId();
       // Assign the buffer before adding to the store so the state-sync
@@ -119,7 +119,7 @@ export function Settings({
 
   const handleRemoveAudio = async (track: AudioTrack) => {
     // Delete from IndexedDB if we have a key
-    await projectStorage.assets.delete(track.assetKey);
+    await projectStorage.deleteAsset(track.assetKey);
     // Removing from the store disposes the player via the state-sync subscription
     deleteAudioTrack(track.id);
   };
