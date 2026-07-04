@@ -297,8 +297,9 @@ class AudioManager {
     Tone.getTransport().pause();
   }
 
-  seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
+  seek(beats: number): void {
+    const transport = Tone.getTransport();
+    transport.ticks = Math.round(Math.max(0, beats) * transport.PPQ);
   }
 
   syncAudioTrack(offset: number): void {

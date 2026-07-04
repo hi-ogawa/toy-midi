@@ -6,7 +6,11 @@ import * as Tone from "tone";
  *
  * Returns:
  * - isPlaying: whether transport is playing
- * - position: current position in seconds (updates at 60fps during playback)
+ * - position: current position in beats (updates at 60fps during playback)
+ *
+ * Position is in beats (derived from transport ticks) so the UI stays
+ * aligned with the musical timeline even when the transport BPM differs
+ * from the project tempo (playback speed scaling).
  *
  * Control methods (play/pause/stop/seek) are on audioManager,
  * which handles app-specific logic like note scheduling.
@@ -79,13 +83,13 @@ const TRANSPORT_EVENT_NAMES = [
 
 type TransportState = {
   isPlaying: boolean;
-  position: number;
+  position: number; // in beats (quarter notes)
 };
 
 function deriveState(): TransportState {
   const transport = Tone.getTransport();
   return {
     isPlaying: transport.state === "started",
-    position: transport.seconds,
+    position: transport.ticks / transport.PPQ,
   };
 }

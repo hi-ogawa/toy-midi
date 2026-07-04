@@ -38,7 +38,7 @@ Both break once effective BPM != tempo:
 
 2. **Audio track start offset.** `syncAudioTrack` in `src/lib/audio.ts` does
    `player.sync().start(offset)` — synced start times are transport
-   *seconds* (real time). At speed `s` the audio must start at
+   _seconds_ (real time). At speed `s` the audio must start at
    `audioOffset / s` real seconds to stay aligned with beat-positioned notes.
    Also verify seek-while-synced with `playbackRate != 1`; Tone.js's synced
    Player offset scaling with playbackRate is historically fiddly.

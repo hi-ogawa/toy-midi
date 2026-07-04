@@ -335,7 +335,7 @@ export function PianoRoll() {
     if (!isPlaying || !autoScrollEnabled) {
       return;
     }
-    const playheadBeat = secondsToBeats(position, tempo);
+    const playheadBeat = position;
     const visibleBeatsNow = viewportSize.width / pixelsPerBeat;
     // If playhead is past 80% of visible area, scroll to put it at 20%
     if (playheadBeat > scrollX + visibleBeatsNow * 0.8) {
@@ -349,7 +349,6 @@ export function PianoRoll() {
     isPlaying,
     autoScrollEnabled,
     position,
-    tempo,
     scrollX,
     pixelsPerBeat,
     viewportSize.width,
@@ -436,7 +435,7 @@ export function PianoRoll() {
     } else if (matchKeyboardEvent(e, "Ctrl+V")) {
       // Ctrl+V: Paste at snapped playhead position
       e.preventDefault();
-      const playheadBeat = secondsToBeats(position, tempo);
+      const playheadBeat = position;
       const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
       pasteNotes(snappedBeat);
     } else if (matchKeyboardEvent(e, "Ctrl+Shift+Z")) {
@@ -459,7 +458,7 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
-      const playheadBeat = secondsToBeats(position, tempo);
+      const playheadBeat = position;
       const snappedBeat = snapToGrid(playheadBeat, gridSnapValue);
       handleAddLocator(snappedBeat);
     }
@@ -1209,12 +1208,11 @@ export function PianoRoll() {
             pixelsPerBeat={roundedPixelsPerBeat}
             scrollX={scrollX}
             viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
-            playheadBeat={secondsToBeats(position, tempo)}
+            playheadBeat={position}
             beatsPerBar={beatsPerBar}
             gridSnapValue={gridSnapValue}
             onSeek={(beat) => {
-              const seconds = beatsToSeconds(beat, tempo);
-              audioManager.seek(seconds);
+              audioManager.seek(beat);
             }}
             locators={locators}
             selectedLocatorId={selectedLocatorId}
@@ -1233,7 +1231,7 @@ export function PianoRoll() {
             audioOffset={audioOffset}
             audioFileName={audioFileName}
             tempo={tempo}
-            playheadBeat={secondsToBeats(position, tempo)}
+            playheadBeat={position}
             audioView={audioView}
             height={waveformHeight}
             beatsPerBar={beatsPerBar}
@@ -1327,7 +1325,7 @@ export function PianoRoll() {
             )}
             {/* Playhead line */}
             {(() => {
-              const playheadBeat = secondsToBeats(position, tempo);
+              const playheadBeat = position;
               const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
               // Only render if visible
               if (playheadX < 0 || playheadX > viewportSize.width) {

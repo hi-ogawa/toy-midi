@@ -15,7 +15,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { cn } from "../lib/utils";
-import { useProjectStore } from "../stores/project-store";
+import { beatsToSeconds, useProjectStore } from "../stores/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
@@ -42,9 +42,7 @@ function formatTimeCompact(seconds: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
 }
 
-function formatBarBeat(seconds: number, tempo: number): string {
-  const beatsPerSecond = tempo / 60;
-  const totalBeats = seconds * beatsPerSecond;
+function formatBarBeat(totalBeats: number): string {
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
   return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
@@ -52,13 +50,16 @@ function formatBarBeat(seconds: number, tempo: number): string {
 
 // Separate component to isolate position-based re-renders
 function TimeDisplay({ tempo }: { tempo: number }) {
+  // position is in beats; time is shown in musical (project tempo) seconds,
+  // independent of playback speed
   const { position } = useTransport();
   return (
     <div
       data-testid="time-display"
       className="font-mono text-muted-foreground tabular-nums"
     >
-      {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
+      {formatBarBeat(position)} -{" "}
+      {formatTimeCompact(beatsToSeconds(position, tempo))}
     </div>
   );
 }
