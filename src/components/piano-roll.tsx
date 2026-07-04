@@ -290,6 +290,9 @@ export function PianoRoll() {
 
   // Total height of all stacked waveform lanes (each lane uses waveformHeight)
   const totalWaveformHeight = waveformHeight * audioTracks.length;
+  const selectedAudioTrack = selectedAudioTrackId
+    ? audioTracks.find((track) => track.id === selectedAudioTrackId)
+    : null;
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -419,13 +422,10 @@ export function PianoRoll() {
         deleteNotes(Array.from(selectedNoteIds));
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
-      } else if (selectedAudioTrackId) {
-        const track = audioTracks.find((t) => t.id === selectedAudioTrackId);
-        if (track) {
-          void deleteAsset(track.assetKey);
-        }
+      } else if (selectedAudioTrack) {
+        void deleteAsset(selectedAudioTrack.assetKey);
         // Removing from the store disposes the player via the state-sync subscription
-        deleteAudioTrack(selectedAudioTrackId);
+        deleteAudioTrack(selectedAudioTrack.id);
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();

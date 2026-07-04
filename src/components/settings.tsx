@@ -21,6 +21,7 @@ import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import {
+  type AudioTrack,
   generateAudioTrackId,
   toSavedProject,
   useProjectStore,
@@ -125,14 +126,11 @@ export function Settings({
     },
   });
 
-  const handleRemoveAudio = async (id: string) => {
-    const track = audioTracks.find((t) => t.id === id);
+  const handleRemoveAudio = async (track: AudioTrack) => {
     // Delete from IndexedDB if we have a key
-    if (track) {
-      await deleteAsset(track.assetKey);
-    }
+    await deleteAsset(track.assetKey);
     // Removing from the store disposes the player via the state-sync subscription
-    deleteAudioTrack(id);
+    deleteAudioTrack(track.id);
   };
 
   const handleExportMidi = () => {
@@ -252,7 +250,7 @@ export function Settings({
               </div>
               <Button
                 data-testid="remove-audio-button"
-                onClick={() => handleRemoveAudio(track.id)}
+                onClick={() => handleRemoveAudio(track)}
                 title={`Remove ${track.fileName}`}
                 className="h-8 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
