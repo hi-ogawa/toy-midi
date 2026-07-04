@@ -133,8 +133,9 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
       throw new Error("Invalid project file: v2 manifest with v1 project");
     }
 
+    // version 1 always persisted `audioAssetKey: null`
+    // and generate new asset key during parse
     const audioPath = manifest.files.audio;
-    let audioAssetKey = project.audioAssetKey;
     if (audioPath) {
       const audioZipFile = zip.file(audioPath);
       if (!audioZipFile) {
@@ -144,12 +145,12 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
       const blob = await audioZipFile.async("blob");
       const fileName =
         project.audioFileName || audioPath.split("/").pop() || "audio.wav";
-      audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
+      project.audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
     }
 
     return {
       name: manifest.name,
-      project: migrateSavedProject({ ...project, audioAssetKey }),
+      project: migrateSavedProject(project),
     };
   }
 
