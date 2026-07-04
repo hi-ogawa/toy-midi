@@ -27,19 +27,16 @@ export function App() {
     }): Promise<{ projectId: string }> => {
       await audioManager.init();
 
-      // Load existing project, or create a new one from the default state
+      // Load existing project, or create a new default one
       let projectId: string;
       if (options.projectId) {
         projectId = options.projectId;
         projectStorage.setLastProjectId(projectId);
-        const data = projectStorage.load(projectId);
-        useProjectStore.setState(fromSavedProject(data));
       } else {
-        projectId = projectStorage.create(
-          undefined,
-          toSavedProject(useProjectStore.getState()),
-        );
+        projectId = projectStorage.createNew();
       }
+      const data = projectStorage.load(projectId);
+      useProjectStore.setState(fromSavedProject(data));
 
       const project = useProjectStore.getState();
       for (const track of project.audioTracks) {

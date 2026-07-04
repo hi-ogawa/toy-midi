@@ -20,6 +20,7 @@
 
 import {
   type AnySavedProject,
+  defaultSavedProject,
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
@@ -63,6 +64,11 @@ class ProjectStorage {
 
   getMetadata(projectId: string): ProjectMetadata | null {
     return this.list().find((p) => p.id === projectId) || null;
+  }
+
+  // Create new project with the default empty document, returns its ID
+  createNew(name?: string): string {
+    return this.create(name, defaultSavedProject());
   }
 
   // Create new project (metadata entry + initial document), returns its ID
