@@ -7,7 +7,7 @@ import "./index.css";
 import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
-import { seedProjectV1 } from "./lib/project-manager";
+import { seedProjectV1 } from "./lib/project-storage";
 import { useProjectStore } from "./stores/project-store";
 
 function main() {

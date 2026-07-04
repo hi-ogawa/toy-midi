@@ -54,12 +54,13 @@ test.describe("Multiple Audio Tracks", () => {
     await page.getByTestId("remove-audio-button").first().click();
     await page.keyboard.press("Escape");
 
+    // Removal is async (awaits asset deletion); wait for the UI first
+    await expect(page.getByTestId("audio-track-region")).toHaveCount(2);
+
     tracks = await getAudioTracks(page);
     expect(tracks).toHaveLength(2);
     expect(tracks[0].fileName).toBe("test-audio-2.wav");
     expect(tracks[1].fileName).toBe("test-audio.wav");
-
-    await expect(page.getByTestId("audio-track-region")).toHaveCount(2);
   });
 
   test("two tracks persist across reload", async ({ page }) => {
