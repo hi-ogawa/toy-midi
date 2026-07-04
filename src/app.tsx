@@ -10,84 +10,17 @@ import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
-import { audioManager, loadAudioFile } from "./lib/audio";
+import { audioManager } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
+import { openProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
-import {
-  fromSavedProject,
-  toSavedProject,
-  useProjectStore,
-} from "./stores/project-store";
 
 export function App() {
   const initMutation = useMutation({
-    mutationFn: async (options: {
-      projectId?: string;
-    }): Promise<{ projectId: string; projectName: string }> => {
+    mutationFn: async (options: { projectId?: string }) => {
       await audioManager.init();
-
-      // Load existing project, or create a new default one
-      let projectId: string;
-      if (options.projectId) {
-        projectId = options.projectId;
-      } else {
-        projectId = projectStorage.createNew();
-      }
-      projectStorage.setLastProjectId(projectId);
-      const metadata = projectStorage.getMetadata(projectId);
-      if (!metadata) {
-        throw new Error(`Project ${projectId} metadata not found`);
-      }
-      const data = projectStorage.load(projectId);
-      useProjectStore.setState(fromSavedProject(data));
-
-      const project = useProjectStore.getState();
-      for (const track of project.audioTracks) {
-        const asset = await projectStorage.loadAsset(track.assetKey);
-        if (asset) {
-          const { buffer, audioView } = await loadAudioFile(
-            new File([asset.blob], asset.name),
-          );
-          const playback = audioManager.getAudioTrack(track.id);
-          playback.setBuffer(buffer);
-          playback.sync(track.offset);
-          project.updateAudioTrack(track.id, { audioView });
-        } else {
-          toast.warning(
-            `Audio asset not found for "${track.fileName}". The track will be cleared.`,
-          );
-          project.deleteAudioTrack(track.id);
-        }
-      }
-
-      audioManager.applyState(useProjectStore.getState());
-      useProjectStore.subscribe((state, prevState) => {
-        audioManager.applyState(state, prevState);
-      });
-
-      // Setup auto-save on state changes (debounced)
-      // projectId is captured in closure - no need for Zustand
-      const autoSaveDebounceMs = Number(
-        import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
-      );
-      let saveTimeout: number;
-      useProjectStore.subscribe(() => {
-        clearTimeout(saveTimeout);
-        saveTimeout = window.setTimeout(() => {
-          try {
-            projectStorage.save(
-              projectId,
-              toSavedProject(useProjectStore.getState()),
-            );
-          } catch (e) {
-            console.error("Failed to save project:", e);
-            toast.error("Failed to save project. Changes may be lost.");
-          }
-        }, autoSaveDebounceMs);
-      });
-
-      return { projectId, projectName: metadata.name };
+      return await openProjectSession(options);
     },
   });
 
@@ -139,7 +72,6 @@ export function App() {
 }
 
 // === Editor Component ===
-// Pure component that receives projectId as prop
 
 type EditorProps = {
   projectId: string;
