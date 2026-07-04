@@ -56,17 +56,21 @@ class ProjectStorage {
     const legacyLastProjectId = localStorage.getItem(
       LEGACY_LAST_PROJECT_ID_KEY,
     );
-    const entry: MainEntry = {
-      version: 1,
-      projects: legacyList ? (JSON.parse(legacyList) as ProjectMetadata[]) : [],
-      lastProjectId: legacyLastProjectId,
-    };
     if (legacyList !== null || legacyLastProjectId !== null) {
+      const entry: MainEntry = {
+        version: 1,
+        projects: legacyList
+          ? (JSON.parse(legacyList) as ProjectMetadata[])
+          : [],
+        lastProjectId: legacyLastProjectId,
+      };
       this.writeMain(entry);
       localStorage.removeItem(LEGACY_PROJECT_LIST_KEY);
       localStorage.removeItem(LEGACY_LAST_PROJECT_ID_KEY);
+      return entry;
     }
-    return entry;
+
+    return { version: 1, projects: [], lastProjectId: null };
   }
 
   private writeMain(entry: MainEntry): void {
