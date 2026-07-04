@@ -137,16 +137,17 @@ export function Settings({ onProjectsClick }: SettingsProps) {
     downloadMidiFile(midiData, fileName);
   };
 
-  const handleExportProject = async () => {
-    try {
+  const exportProjectMutation = useMutation({
+    mutationFn: async () => {
       const projectData = toSavedProject(useProjectStore.getState());
       const blob = await exportProjectFile(projectName, projectData);
       downloadProjectFile(blob, projectName);
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Failed to export project:", error);
       toast.error("Failed to export project");
-    }
-  };
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -255,11 +256,14 @@ export function Settings({ onProjectsClick }: SettingsProps) {
         <div className="pl-6 space-y-2">
           <Button
             data-testid="export-project-button"
-            onClick={handleExportProject}
+            onClick={() => exportProjectMutation.mutate()}
+            disabled={exportProjectMutation.isPending}
             className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
-            Export Project
+            {exportProjectMutation.isPending
+              ? "Exporting..."
+              : "Export Project"}
           </Button>
           <Button
             data-testid="export-midi-button"

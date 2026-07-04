@@ -58,7 +58,9 @@ export async function exportProjectFile(
     // Prefix with track id to keep paths unique across tracks
     const audioPath = `audio/${track.id}-${fileName}`;
     audioEntries.push({ trackId: track.id, path: audioPath });
-    zip.file(audioPath, asset.blob);
+    // Store audio uncompressed: deflating large audio blobs on the main
+    // thread takes seconds for marginal size savings
+    zip.file(audioPath, asset.blob, { compression: "STORE" });
   }
 
   // Prepare manifest
