@@ -3,6 +3,7 @@
 import JSZip from "jszip";
 import {
   migrateSavedAudioTracks,
+  type SavedAudioTrack,
   type SavedProject,
 } from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
@@ -26,10 +27,25 @@ export interface ProjectManifest {
 
 const CURRENT_FORMAT_VERSION = 2;
 
+type ProjectFileAudioTrack = Omit<SavedAudioTrack, "assetKey"> & {
+  // Bundled .toymidi files store audio blobs in the zip, not IndexedDB.
+  assetKey?: string | null;
+};
+
+type ProjectFileProject = Omit<SavedProject, "audioTracks"> & {
+  audioTracks?: ProjectFileAudioTrack[];
+};
+
+type ParsedProjectTrack = ProjectFileAudioTrack & { assetKey?: string | null };
+
+type ParsedProjectData = Omit<SavedProject, "audioTracks"> & {
+  audioTracks: ParsedProjectTrack[];
+};
+
 // Result of parsing a .toymidi file
 export interface ParsedProjectFile {
   manifest: ProjectManifest;
-  project: SavedProject; // normalized to current shape (audioTracks array)
+  project: ParsedProjectData; // normalized to project-file shape (audioTracks array)
   // Reconstructed audio File objects keyed by track id
   audioFiles: Map<string, File>;
 }
@@ -91,9 +107,9 @@ export async function exportProjectFile(
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
   // Add project data (strip asset keys since we're bundling the files)
-  const projectForExport: SavedProject = {
+  const projectForExport: ProjectFileProject = {
     ...projectData,
-    audioTracks: tracks.map((track) => ({ ...track, assetKey: null })),
+    audioTracks: tracks.map(({ assetKey: _assetKey, ...track }) => track),
   };
   zip.file("project.json", JSON.stringify(projectForExport, null, 2));
 
@@ -147,11 +163,20 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: missing project.json");
   }
   const projectText = await projectFile.async("text");
-  const rawProject = JSON.parse(projectText) as SavedProject;
+  const rawProject = JSON.parse(projectText) as ProjectFileProject;
 
   // Normalize to current shape (migrate legacy singleton audio fields)
-  const audioTracks = migrateSavedAudioTracks(rawProject);
-  const project: SavedProject = { ...rawProject, audioTracks };
+  const audioTracks = Array.isArray(rawProject.audioTracks)
+    ? rawProject.audioTracks
+    : migrateSavedAudioTracks({
+        audioFileName: rawProject.audioFileName,
+        audioAssetKey: rawProject.audioAssetKey,
+        audioDuration: rawProject.audioDuration,
+        audioOffset: rawProject.audioOffset,
+        audioVolume: rawProject.audioVolume,
+        audioMuted: rawProject.audioMuted,
+      });
+  const project: ParsedProjectData = { ...rawProject, audioTracks };
 
   // Reconstruct audio files keyed by track id
   const audioFiles = new Map<string, File>();
@@ -192,16 +217,15 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
 export async function importProjectAudio(
   parsed: ParsedProjectFile,
 ): Promise<SavedProject> {
-  const audioTracks = await Promise.all(
-    parsed.project.audioTracks.map(async (track) => {
-      const file = parsed.audioFiles.get(track.id);
-      if (!file) {
-        return track;
-      }
-      const assetKey = await saveAsset(file);
-      return { ...track, assetKey };
-    }),
-  );
+  const audioTracks: SavedAudioTrack[] = [];
+  for (const track of parsed.project.audioTracks) {
+    const file = parsed.audioFiles.get(track.id);
+    if (!file) {
+      continue;
+    }
+    const assetKey = await saveAsset(file);
+    audioTracks.push({ ...track, assetKey });
+  }
 
   return { ...parsed.project, audioTracks };
 }

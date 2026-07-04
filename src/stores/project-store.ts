@@ -10,7 +10,7 @@ export const MAX_AUDIO_TRACKS = 2;
 export interface SavedAudioTrack {
   id: string;
   fileName: string;
-  assetKey: string | null; // Reference to IndexedDB asset (null when bundled in .toymidi)
+  assetKey: string; // Reference to IndexedDB asset
   duration: number; // in seconds
   offset: number; // in seconds - timeline position where audio starts (>= 0)
   volume: number; // 0-1
@@ -577,14 +577,16 @@ export function migrateSavedAudioTracks(
   data: Partial<SavedProject>,
 ): SavedAudioTrack[] {
   if (Array.isArray(data.audioTracks)) {
-    return data.audioTracks;
+    return data.audioTracks.filter(
+      (track) => typeof track.assetKey === "string",
+    );
   }
-  if (data.audioFileName) {
+  if (data.audioFileName && data.audioAssetKey) {
     return [
       {
         id: "audio-1",
         fileName: data.audioFileName,
-        assetKey: data.audioAssetKey ?? null,
+        assetKey: data.audioAssetKey,
         duration: data.audioDuration ?? 0,
         offset: data.audioOffset ?? 0,
         volume: data.audioVolume ?? 0.8,
