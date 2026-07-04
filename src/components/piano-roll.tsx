@@ -8,7 +8,6 @@ import {
 } from "react";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
-import { deleteAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
@@ -20,6 +19,7 @@ import {
   snapToGrid,
   clampPitch,
 } from "../lib/music";
+import { projectStorage } from "../lib/project-storage";
 import { cn } from "../lib/utils";
 import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
@@ -423,7 +423,7 @@ export function PianoRoll() {
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
       } else if (selectedAudioTrack) {
-        void deleteAsset(selectedAudioTrack.assetKey);
+        void projectStorage.assets.delete(selectedAudioTrack.assetKey);
         // Removing from the store disposes the player via the state-sync subscription
         deleteAudioTrack(selectedAudioTrack.id);
       }

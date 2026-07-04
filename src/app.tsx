@@ -10,22 +10,10 @@ import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
-import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
-import {
-  createProject,
-  deleteProject,
-  getLastProjectId,
-  getProjectMetadata,
-  listProjects,
-  loadProjectData,
-  type ProjectMetadata,
-  saveProjectData,
-  setLastProjectId,
-  updateProjectMetadata,
-} from "./lib/project-manager";
+import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 import {
   fromSavedProject,
   toSavedProject,
@@ -40,21 +28,24 @@ export function App() {
       await audioManager.init();
 
       // Get or create project ID
-      const projectId = options.projectId ?? createProject();
-      setLastProjectId(projectId);
+      const projectId = options.projectId ?? projectStorage.create();
+      projectStorage.setLastProjectId(projectId);
 
       // Load project data if existing project, otherwise use defaults (new project)
       if (options.projectId) {
-        const data = loadProjectData(projectId);
+        const data = projectStorage.load(projectId);
         useProjectStore.setState(fromSavedProject(data));
       } else {
         // save new project on startup
-        saveProjectData(projectId, toSavedProject(useProjectStore.getState()));
+        projectStorage.save(
+          projectId,
+          toSavedProject(useProjectStore.getState()),
+        );
       }
 
       const project = useProjectStore.getState();
       for (const track of project.audioTracks) {
-        const asset = await loadAsset(track.assetKey);
+        const asset = await projectStorage.assets.load(track.assetKey);
         if (asset) {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
@@ -86,7 +77,7 @@ export function App() {
         clearTimeout(saveTimeout);
         saveTimeout = window.setTimeout(() => {
           try {
-            saveProjectData(
+            projectStorage.save(
               projectId,
               toSavedProject(useProjectStore.getState()),
             );
@@ -119,7 +110,7 @@ export function App() {
       if (matchKeyboardEvent(e, "Space")) {
         e.preventDefault();
         e.stopPropagation();
-        const lastProjectId = getLastProjectId();
+        const lastProjectId = projectStorage.getLastProjectId();
         if (lastProjectId) {
           initMutation.mutate({ projectId: lastProjectId });
         } else {
@@ -155,7 +146,7 @@ function Editor({ projectId }: EditorProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [projectName, setProjectName] = useState(
-    () => getProjectMetadata(projectId)?.name ?? "Untitled",
+    () => projectStorage.getMetadata(projectId)?.name ?? "Untitled",
   );
 
   // Update document title when project name changes
@@ -218,7 +209,7 @@ function Editor({ projectId }: EditorProps) {
           projectName={projectName}
           onProjectNameChange={(name) => {
             if (name && name !== projectName) {
-              updateProjectMetadata(projectId, { name });
+              projectStorage.updateMetadata(projectId, { name });
               setProjectName(name);
             }
           }}
@@ -324,19 +315,19 @@ function ProjectListView({
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
     null,
   );
-  const [projects, setProjects] = useState(listProjects());
+  const [projects, setProjects] = useState(projectStorage.list());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
-  const lastProjectId = getLastProjectId();
+  const lastProjectId = projectStorage.getLastProjectId();
 
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseProjectFile(file);
 
       // Create new project
-      const newProjectId = createProject(parsed.name);
-      saveProjectData(newProjectId, parsed.project);
+      const newProjectId = projectStorage.create(parsed.name);
+      projectStorage.save(newProjectId, parsed.project);
 
       return newProjectId;
     },
@@ -356,9 +347,9 @@ function ProjectListView({
   };
 
   const handleRenameSubmit = (projectId: string, nextName: string) => {
-    updateProjectMetadata(projectId, { name: nextName });
+    projectStorage.updateMetadata(projectId, { name: nextName });
     setRenamingProjectId(null);
-    setProjects(listProjects());
+    setProjects(projectStorage.list());
   };
 
   const handleRenameCancel = () => {
@@ -368,8 +359,8 @@ function ProjectListView({
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
     if (confirm("Delete this project? This action cannot be undone.")) {
-      deleteProject(projectId);
-      setProjects(listProjects());
+      projectStorage.delete(projectId);
+      setProjects(projectStorage.list());
     }
   };
 

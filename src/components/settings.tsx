@@ -8,12 +8,12 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
-import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
+import { projectStorage } from "../lib/project-storage";
 import {
   type AudioTrack,
   generateAudioTrackId,
@@ -98,7 +98,7 @@ export function Settings({
       const { buffer, audioView } = await loadAudioFile(file);
 
       // Save audio to IndexedDB for persistence
-      const assetKey = await saveAsset(file);
+      const assetKey = await projectStorage.assets.save(file);
 
       const id = generateAudioTrackId();
       // Assign the buffer before adding to the store so the state-sync
@@ -119,7 +119,7 @@ export function Settings({
 
   const handleRemoveAudio = async (track: AudioTrack) => {
     // Delete from IndexedDB if we have a key
-    await deleteAsset(track.assetKey);
+    await projectStorage.assets.delete(track.assetKey);
     // Removing from the store disposes the player via the state-sync subscription
     deleteAudioTrack(track.id);
   };
