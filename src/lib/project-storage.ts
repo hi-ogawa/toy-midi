@@ -128,7 +128,6 @@ class ProjectStorage {
   save(projectId: string, data: SavedProject): void {
     localStorage.setItem(getProjectKey(projectId), JSON.stringify(data));
     this.updateMetadata(projectId, { updatedAt: Date.now() });
-    this.setLastProjectId(projectId);
   }
 
   getLastProjectId(): string | null {

@@ -31,10 +31,10 @@ export function App() {
       let projectId: string;
       if (options.projectId) {
         projectId = options.projectId;
-        projectStorage.setLastProjectId(projectId);
       } else {
         projectId = projectStorage.createNew();
       }
+      projectStorage.setLastProjectId(projectId);
       const metadata = projectStorage.getMetadata(projectId);
       if (!metadata) {
         throw new Error(`Project ${projectId} metadata not found`);
