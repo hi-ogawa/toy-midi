@@ -5,6 +5,7 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../stores/project-store";
+import { debounce } from "../utils/timing";
 import { audioManager, loadAudioFile } from "./audio";
 import { projectStorage } from "./project-storage";
 
@@ -64,21 +65,18 @@ export async function openProjectSession(options: {
   const autoSaveDebounceMs = Number(
     import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
   );
-  let saveTimeout: number;
-  const unsubscribeAutoSave = useProjectStore.subscribe(() => {
-    clearTimeout(saveTimeout);
-    saveTimeout = window.setTimeout(() => {
-      try {
-        projectStorage.save(
-          projectId,
-          toSavedProject(useProjectStore.getState()),
-        );
-      } catch (e) {
-        console.error("Failed to save project:", e);
-        toast.error("Failed to save project. Changes may be lost.");
-      }
-    }, autoSaveDebounceMs);
-  });
+  const autoSave = debounce(() => {
+    try {
+      projectStorage.save(
+        projectId,
+        toSavedProject(useProjectStore.getState()),
+      );
+    } catch (e) {
+      console.error("Failed to save project:", e);
+      toast.error("Failed to save project. Changes may be lost.");
+    }
+  }, autoSaveDebounceMs);
+  const unsubscribeAutoSave = useProjectStore.subscribe(autoSave.schedule);
 
   return {
     projectId,
@@ -86,7 +84,7 @@ export async function openProjectSession(options: {
     dispose: () => {
       unsubscribeAudioSync();
       unsubscribeAutoSave();
-      clearTimeout(saveTimeout);
+      autoSave.flush();
       historyStore.clearHistory();
     },
   };
