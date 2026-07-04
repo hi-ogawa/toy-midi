@@ -11,6 +11,7 @@ import {
   type SavedProject,
   type SavedProjectV1,
 } from "../stores/project-store";
+import { IdbStore } from "./idb";
 
 export interface ProjectMetadata {
   id: string;
@@ -34,11 +35,6 @@ const PROJECT_LIST_KEY = "toy-midi-project-list";
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
 // project document, one localStorage entry per project
 const PROJECT_KEY_PREFIX = "toy-midi-project-";
-
-// binary audio assets
-const DB_NAME = "toy-midi";
-const DB_VERSION = 1;
-const STORE_NAME = "assets";
 
 class ProjectStorage {
   listMetadata(): ProjectMetadata[] {
@@ -138,80 +134,33 @@ class ProjectStorage {
     localStorage.setItem(LAST_PROJECT_ID_KEY, projectId);
   }
 
-  private dbPromise: Promise<IDBDatabase> | null = null;
-
-  private openDB(): Promise<IDBDatabase> {
-    if (this.dbPromise) {
-      return this.dbPromise;
-    }
-
-    this.dbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onblocked = () => {
-        console.warn("IndexedDB blocked - close other tabs?");
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: "key" });
-        }
-      };
-    });
-
-    return this.dbPromise;
-  }
+  // binary audio assets
+  private assetStore = new IdbStore<StoredAsset>({
+    dbName: "toy-midi",
+    storeName: "assets",
+    version: 1,
+    keyPath: "key",
+  });
 
   async saveAsset(file: File): Promise<string> {
-    const db = await this.openDB();
     const key = generateAssetKey(file);
-
-    const asset: StoredAsset = {
+    await this.assetStore.put({
       key,
       blob: file,
       name: file.name,
       size: file.size,
       type: file.type,
       addedAt: Date.now(),
-    };
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.put(asset);
-
-      request.onsuccess = () => resolve(key);
-      request.onerror = () => reject(request.error);
     });
+    return key;
   }
 
   async loadAsset(key: string): Promise<StoredAsset | null> {
-    const db = await this.openDB();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.get(key);
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
+    return this.assetStore.get(key);
   }
 
   async deleteAsset(key: string): Promise<void> {
-    const db = await this.openDB();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.delete(key);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    return this.assetStore.delete(key);
   }
 }
 
