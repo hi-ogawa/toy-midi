@@ -48,9 +48,7 @@ test.describe("Project Migration", () => {
   test("migrates v1 localStorage project with audio track", async ({
     page,
   }) => {
-    // Seed a v1 project on the /__e2e__/ host route (app not mounted, so this
-    // can't race boot reads or auto-save), then boot the app against it.
-    await page.goto("/__e2e__/setup");
+    await page.goto("/__e2e__/");
     await page.evaluate(async (project) => {
       const response = await fetch("/test-audio.wav");
       const audio = await response.arrayBuffer();
@@ -60,8 +58,8 @@ test.describe("Project Migration", () => {
         new Uint8Array(audio),
       );
     }, LEGACY_PROJECT);
-    await page.goto("/");
 
+    await page.goto("/");
     await page.getByTestId("continue-button").click();
     await page.getByTestId("transport").waitFor({ state: "visible" });
 
