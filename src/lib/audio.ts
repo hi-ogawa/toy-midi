@@ -3,7 +3,7 @@ import * as Tone from "tone";
 import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
-import type { ProjectState } from "../stores/project-store";
+import type { AudioTrack, ProjectState } from "../stores/project-store";
 import type { Note } from "../types";
 import {
   type AudioView,
@@ -182,9 +182,8 @@ class AudioManager {
   private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
 
-  // audio track
-  player!: Tone.Player;
-  private audioChannel!: Tone.Channel;
+  // Audio tracks, keyed by track id
+  private audioTracks = new Map<string, AudioTrackPlayback>();
 
   // metronome
   private metronome!: Metronome;
@@ -230,14 +229,6 @@ class AudioManager {
     Tone.getTransport().on("stop", () => this.midiSynth.allNotesOff());
     Tone.getTransport().on("pause", () => this.midiSynth.allNotesOff());
 
-    // Audio track
-    this.player = new Tone.Player();
-    this.audioChannel = new Tone.Channel({
-      volume: Tone.gainToDb(clampGain(0.8)),
-      channelCount: 2,
-    }).toDestination();
-    this.player.connect(this.audioChannel);
-
     // Metronome click generator with native Web Audio nodes.
     this.metronome = new Metronome(context);
     this.metronomeChannel = new Tone.Channel(0.5).toDestination();
@@ -262,10 +253,8 @@ class AudioManager {
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
     // Cheap operations - always apply
-    this.setAudioVolume(state.audioVolume);
     this.setMidiVolume(state.midiVolume);
     this.setMidiMuted(state.midiMuted);
-    this.setAudioMuted(state.audioMuted);
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
     Tone.getTransport().bpm.value = state.tempo;
@@ -279,8 +268,8 @@ class AudioManager {
     if (state.notes !== prevState?.notes) {
       this.setNotes(state.notes);
     }
-    if (state.audioOffset !== prevState?.audioOffset) {
-      this.syncAudioTrack(state.audioOffset);
+    if (state.audioTracks !== prevState?.audioTracks) {
+      this.syncAudioTracks(state.audioTracks, prevState?.audioTracks);
     }
     if (state.timeSignature.numerator !== prevState?.timeSignature.numerator) {
       this.setMetronomeSequence(state.timeSignature.numerator);
@@ -301,18 +290,43 @@ class AudioManager {
     Tone.getTransport().seconds = Math.max(0, seconds);
   }
 
-  syncAudioTrack(offset: number): void {
-    if (!this.player.loaded) {
-      return;
+  // Lazily create a player/channel pair for a track id
+  getAudioTrack(id: string): AudioTrackPlayback {
+    let entry = this.audioTracks.get(id);
+    if (!entry) {
+      entry = new AudioTrackPlayback();
+      this.audioTracks.set(id, entry);
     }
-    this.player.unsync();
-    this.player.sync().start(offset);
+    return entry;
   }
 
-  clearAudioBuffer(): void {
-    this.player.stop();
-    this.player.unsync();
-    this.player.buffer = new Tone.ToneAudioBuffer();
+  // Reconcile the player map with the store's audio tracks
+  private syncAudioTracks(
+    tracks: AudioTrack[],
+    prevTracks?: AudioTrack[],
+  ): void {
+    const prevById = new Map((prevTracks ?? []).map((t) => [t.id, t]));
+    const currentIds = new Set(tracks.map((t) => t.id));
+
+    // Dispose players for removed tracks
+    for (const [id, playback] of this.audioTracks) {
+      if (!currentIds.has(id)) {
+        playback.dispose();
+        this.audioTracks.delete(id);
+      }
+    }
+
+    // Create/update players for current tracks
+    for (const track of tracks) {
+      const prev = prevById.get(track.id);
+      const playback = this.getAudioTrack(track.id);
+      playback.setVolume(track.volume);
+      playback.setMuted(track.muted);
+      // Re-sync to Transport when newly added or offset changed
+      if (!prev || prev.offset !== track.offset) {
+        playback.sync(track.offset);
+      }
+    }
   }
 
   // TODO: incremental add / remove
@@ -348,10 +362,6 @@ class AudioManager {
   }
 
   // Volume controls (linear gain)
-  setAudioVolume(volume: number): void {
-    this.audioChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
-  }
-
   setMidiVolume(volume: number): void {
     this.midiChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
   }
@@ -368,10 +378,6 @@ class AudioManager {
     this.midiChannel.mute = muted;
   }
 
-  setAudioMuted(muted: boolean): void {
-    this.audioChannel.mute = muted;
-  }
-
   setMetronomeSequence(beatsPerBar: number): void {
     // Create new sequence with updated beats per bar
     this.metronomeSeq.clear();
@@ -383,6 +389,45 @@ class AudioManager {
   setProgram(programNumber: number): void {
     // Fire and forget - programChange is async but we don't need to wait
     void this.midiSynth.programChange(programNumber);
+  }
+}
+
+class AudioTrackPlayback {
+  readonly player = new Tone.Player();
+  readonly channel = new Tone.Channel({
+    volume: Tone.gainToDb(clampGain(0.8)),
+    channelCount: 2,
+  }).toDestination();
+
+  constructor() {
+    this.player.connect(this.channel);
+  }
+
+  setBuffer(buffer: Tone.ToneAudioBuffer): void {
+    this.player.buffer = buffer;
+  }
+
+  sync(offset: number): void {
+    if (!this.player.loaded) {
+      return;
+    }
+    this.player.unsync();
+    this.player.sync().start(offset);
+  }
+
+  setVolume(volume: number): void {
+    this.channel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
+  }
+
+  setMuted(muted: boolean): void {
+    this.channel.mute = muted;
+  }
+
+  dispose(): void {
+    this.player.stop();
+    this.player.unsync();
+    this.player.dispose();
+    this.channel.dispose();
   }
 }
 

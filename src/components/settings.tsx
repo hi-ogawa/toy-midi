@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import {
-  ClipboardIcon,
   DownloadIcon,
   FolderIcon,
   SettingsIcon,
@@ -9,18 +8,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
-import {
-  copyABCToClipboard,
-  downloadABCFile,
-  exportABC,
-} from "../lib/abc-export";
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
-import { toSavedProject, useProjectStore } from "../stores/project-store";
+import {
+  type AudioTrack,
+  generateAudioTrackId,
+  toSavedProject,
+  useProjectStore,
+} from "../stores/project-store";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -43,8 +42,7 @@ export function Settings({
     isValid: (value) => value.length > 0,
   });
   const {
-    audioFileName,
-    audioAssetKey,
+    audioTracks,
     tempo,
     timeSignature,
     notes,
@@ -52,10 +50,8 @@ export function Settings({
     showDebug,
     setAutoScrollEnabled,
     setShowDebug,
-    setAudioFile,
-    setAudioOffset,
-    setAudioView,
-    clearAudioFile,
+    addAudioTrack,
+    deleteAudioTrack,
   } = useProjectStore();
 
   const importMidiMutation = useMutation({
@@ -103,25 +99,29 @@ export function Settings({
 
       // Save audio to IndexedDB for persistence
       const assetKey = await saveAsset(file);
-      setAudioFile(file.name, buffer.duration, assetKey);
 
-      audioManager.player.buffer = buffer;
-      audioManager.player.sync().start(0);
-      setAudioOffset(0);
-
-      setAudioView(audioView);
+      const id = generateAudioTrackId();
+      // Assign the buffer before adding to the store so the state-sync
+      // subscription can immediately sync the loaded player to the Transport.
+      audioManager.getAudioTrack(id).setBuffer(buffer);
+      addAudioTrack({
+        id,
+        fileName: file.name,
+        assetKey,
+        duration: buffer.duration,
+        offset: 0,
+        volume: 0.8,
+        muted: false,
+        audioView,
+      });
     },
   });
 
-  const handleRemoveAudio = async () => {
+  const handleRemoveAudio = async (track: AudioTrack) => {
     // Delete from IndexedDB if we have a key
-    if (audioAssetKey) {
-      await deleteAsset(audioAssetKey);
-    }
-    // Clear the audio buffer in the player
-    audioManager.clearAudioBuffer();
-    // Clear store state
-    clearAudioFile();
+    await deleteAsset(track.assetKey);
+    // Removing from the store disposes the player via the state-sync subscription
+    deleteAudioTrack(track.id);
   };
 
   const handleExportMidi = () => {
@@ -129,9 +129,8 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
-        : "Piano Roll",
+      name: projectName,
+      trackName: projectName,
     });
 
     const fileName = buildExportFileName({
@@ -140,41 +139,6 @@ export function Settings({
     });
 
     downloadMidiFile(midiData, fileName);
-  };
-
-  const handleExportABC = () => {
-    const abcText = exportABC({
-      notes,
-      tempo,
-      timeSignature,
-      title: audioFileName ? audioFileName.replace(/\.[^.]+$/, "") : "Untitled",
-    });
-
-    const fileName = buildExportFileName({
-      baseName: projectName,
-      extension: ".abc",
-    });
-
-    downloadABCFile(abcText, fileName);
-  };
-
-  const handleCopyABCToClipboard = async () => {
-    try {
-      const abcText = exportABC({
-        notes,
-        tempo,
-        timeSignature,
-        title: audioFileName
-          ? audioFileName.replace(/\.[^.]+$/, "")
-          : "Untitled",
-      });
-
-      await copyABCToClipboard(abcText);
-      toast.success("ABC notation copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy ABC notation:", error);
-      toast.error("Failed to copy to clipboard");
-    }
   };
 
   const handleExportProject = async () => {
@@ -227,41 +191,38 @@ export function Settings({
         <h3 className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
           <UploadIcon className="size-4" />
           Audio
+          <span className="text-xs font-normal text-neutral-500">
+            ({audioTracks.length})
+          </span>
         </h3>
         <div className="pl-6 space-y-2">
-          {audioFileName && (
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1">
-                Current File
-              </label>
-              <div className="text-sm text-neutral-200 truncate">
-                {audioFileName}
+          {audioTracks.map((track) => (
+            <div key={track.id} className="flex items-center gap-2">
+              <div className="flex-1 text-sm text-neutral-200 truncate">
+                {track.fileName}
               </div>
-            </div>
-          )}
-          <div className="flex gap-2">
-            <FileDropInput
-              accept="audio/*"
-              data-testid="load-audio-button"
-              disabled={loadAudioMutation.isPending}
-              inputProps={{ "data-testid": "audio-file-input" }}
-              className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-              onFile={(file) => loadAudioMutation.mutate(file)}
-            >
-              <UploadIcon className="size-4" />
-              {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
-            </FileDropInput>
-            {audioFileName && (
               <Button
                 data-testid="remove-audio-button"
-                onClick={handleRemoveAudio}
-                className="h-8 flex-1 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                onClick={() => handleRemoveAudio(track)}
+                title={`Remove ${track.fileName}`}
+                className="h-8 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
                 <Trash2Icon className="size-4" />
                 Remove
               </Button>
-            )}
-          </div>
+            </div>
+          ))}
+          <FileDropInput
+            accept="audio/*"
+            data-testid="load-audio-button"
+            disabled={loadAudioMutation.isPending}
+            inputProps={{ "data-testid": "audio-file-input" }}
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 disabled:opacity-50"
+            onFile={(file) => loadAudioMutation.mutate(file)}
+          >
+            <UploadIcon className="size-4" />
+            {loadAudioMutation.isPending ? "Loading..." : "Load Audio"}
+          </FileDropInput>
         </div>
       </section>
 
@@ -312,24 +273,6 @@ export function Settings({
           >
             <DownloadIcon className="size-4" />
             Export MIDI
-          </Button>
-          <Button
-            data-testid="export-abc-button"
-            onClick={handleExportABC}
-            disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-          >
-            <DownloadIcon className="size-4" />
-            Export ABC
-          </Button>
-          <Button
-            data-testid="copy-abc-button"
-            onClick={handleCopyABCToClipboard}
-            disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-          >
-            <ClipboardIcon className="size-4" />
-            Copy ABC to Clipboard
           </Button>
         </div>
       </section>

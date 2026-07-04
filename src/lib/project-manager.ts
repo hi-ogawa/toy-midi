@@ -1,6 +1,11 @@
 // Project management for multiple project support
 
-import type { SavedProject } from "../stores/project-store";
+import type {
+  AnySavedProject,
+  SavedProject,
+  SavedProjectV1,
+} from "../stores/project-store";
+import { saveAsset } from "./asset-store";
 
 const PROJECT_LIST_KEY = "toy-midi-project-list";
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
@@ -127,11 +132,31 @@ export function saveProjectData(projectId: string, data: SavedProject): void {
 
 // Load project data from localStorage (pure - no Zustand)
 // Throws if not found or on parse error - caller should handle
-export function loadProjectData(projectId: string): SavedProject {
+export function loadProjectData(projectId: string): AnySavedProject {
   const storageKey = getProjectKey(projectId);
   const json = localStorage.getItem(storageKey);
   if (!json) {
     throw new Error(`Project ${projectId} not found in storage`);
   }
-  return JSON.parse(json) as SavedProject;
+  return JSON.parse(json) as AnySavedProject;
+}
+
+// for testing migration
+export async function seedProjectV1(
+  name: string,
+  project: SavedProjectV1,
+  audioData: Uint8Array<ArrayBuffer>,
+): Promise<void> {
+  if (!project.audioFileName) {
+    throw new Error("Cannot seed v1 project without audio file name");
+  }
+
+  const file = new File([audioData], project.audioFileName, {
+    type: "audio/wav",
+  });
+  const assetKey = await saveAsset(file);
+
+  const projectId = createProject(name);
+  project = { ...project, audioAssetKey: assetKey };
+  saveProjectData(projectId, project as any);
 }

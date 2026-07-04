@@ -13,7 +13,7 @@ import { useWindowEvent } from "./hooks/use-window-event";
 import { loadAsset } from "./lib/asset-store";
 import { audioManager, loadAudioFile } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
-import { importProjectAudio, parseProjectFile } from "./lib/project-file";
+import { parseProjectFile } from "./lib/project-file";
 import {
   createProject,
   deleteProject,
@@ -53,19 +53,21 @@ export function App() {
       }
 
       const project = useProjectStore.getState();
-      if (project.audioAssetKey) {
-        const asset = await loadAsset(project.audioAssetKey);
+      for (const track of project.audioTracks) {
+        const asset = await loadAsset(track.assetKey);
         if (asset) {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
-          audioManager.player.buffer = buffer;
-          audioManager.syncAudioTrack(project.audioOffset);
-          project.setAudioView(audioView);
+          const playback = audioManager.getAudioTrack(track.id);
+          playback.setBuffer(buffer);
+          playback.sync(track.offset);
+          project.updateAudioTrack(track.id, { audioView });
         } else {
           toast.warning(
-            "Audio asset not found. The audio track will be cleared.",
+            `Audio asset not found for "${track.fileName}". The track will be cleared.`,
           );
+          project.deleteAudioTrack(track.id);
         }
       }
 
@@ -331,11 +333,10 @@ function ProjectListView({
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseProjectFile(file);
-      const projectWithAudio = await importProjectAudio(parsed);
 
       // Create new project
-      const newProjectId = createProject(parsed.manifest.name);
-      saveProjectData(newProjectId, projectWithAudio);
+      const newProjectId = createProject(parsed.name);
+      saveProjectData(newProjectId, parsed.project);
 
       return newProjectId;
     },

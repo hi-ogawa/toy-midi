@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
+import { deleteAsset } from "../lib/asset-store";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
@@ -57,14 +58,14 @@ function generateVerticalGridLayers(
   gridSnap: GridSnap,
   scrollX: number,
   beatsPerBar: number,
-): Array<[string, string, string]> {
+): [string, string, string][] {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
   const beatWidth = Math.round(pixelsPerBeat);
   const subBeatWidth = beatWidth * gridSnapValue;
   const barWidth = beatWidth * beatsPerBar;
   const offsetX = -(scrollX * beatWidth) % barWidth;
 
-  const layers: Array<[string, string, string]> = [];
+  const layers: [string, string, string][] = [];
 
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
   let coarseBarMultiplier = 1;
@@ -141,7 +142,7 @@ function generateGridBackground(
     transparent ${11 * r}px, transparent ${12 * r}px
   )`;
 
-  const layers: Array<[string, string, string]> = [];
+  const layers: [string, string, string][] = [];
 
   // Add vertical grid lines (bar, beat, sub-beat)
   layers.push(
@@ -193,7 +194,7 @@ type DragMode =
       cellOffset: number; // which grid cell within the note was grabbed
       offsetPitch: number;
       // Original states of all notes being moved (for undo)
-      originalStates: Array<{ id: string; start: number; pitch: number }>;
+      originalStates: { id: string; start: number; pitch: number }[];
     }
   | {
       type: "duplicating";
@@ -241,14 +242,10 @@ export function PianoRoll() {
     totalBeats,
     tempo,
     timeSignature,
-    audioDuration,
-    audioOffset,
-    audioFileName,
-    isAudioTrackSelected,
-    audioVolume,
+    audioTracks,
+    selectedAudioTrackId,
     midiVolume,
     metronomeVolume,
-    audioMuted,
     midiMuted,
     metronomeEnabled,
     showDebug,
@@ -258,10 +255,9 @@ export function PianoRoll() {
     deleteNotes,
     selectNotes,
     deselectAll,
-    setAudioOffset,
-    setAudioTrackSelected,
-    clearAudioFile,
-    audioView,
+    updateAudioTrack,
+    deleteAudioTrack,
+    selectAudioTrack,
     undo,
     redo,
     canUndo,
@@ -286,13 +282,17 @@ export function PianoRoll() {
     setPixelsPerBeat,
     setPixelsPerKey,
     setWaveformHeight,
-    setAudioVolume,
     setMidiVolume,
     setMetronomeVolume,
-    setAudioMuted,
     setMidiMuted,
     setMetronomeEnabled,
   } = useProjectStore();
+
+  // Total height of all stacked waveform lanes (each lane uses waveformHeight)
+  const totalWaveformHeight = waveformHeight * audioTracks.length;
+  const selectedAudioTrack = selectedAudioTrackId
+    ? audioTracks.find((track) => track.id === selectedAudioTrackId)
+    : null;
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -422,13 +422,15 @@ export function PianoRoll() {
         deleteNotes(Array.from(selectedNoteIds));
       } else if (selectedLocatorId) {
         deleteLocator(selectedLocatorId);
-      } else if (isAudioTrackSelected) {
-        clearAudioFile();
+      } else if (selectedAudioTrack) {
+        void deleteAsset(selectedAudioTrack.assetKey);
+        // Removing from the store disposes the player via the state-sync subscription
+        deleteAudioTrack(selectedAudioTrack.id);
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
       selectLocator(null);
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
       // Ctrl+C: Copy
       e.preventDefault();
@@ -475,9 +477,12 @@ export function PianoRoll() {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
 
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left - KEYBOARD_WIDTH;
-      const mouseY = e.clientY - rect.top - TIMELINE_HEIGHT - waveformHeight;
+      const gridRect = gridRef.current?.getBoundingClientRect();
+      if (!gridRect) {
+        return;
+      }
+      const mouseX = e.clientX - gridRect.left;
+      const mouseY = e.clientY - gridRect.top;
 
       // Ctrl + wheel = horizontal zoom, Shift + wheel = vertical zoom
       if (e.ctrlKey || e.shiftKey) {
@@ -544,7 +549,6 @@ export function PianoRoll() {
     scrollY,
     visibleKeys,
     viewportSize.height,
-    waveformHeight,
   ]);
 
   // Handle mouse events on the grid
@@ -553,7 +557,7 @@ export function PianoRoll() {
       if (e.button !== 0) {
         return;
       }
-      setAudioTrackSelected(false);
+      selectAudioTrack(null);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
@@ -726,7 +730,7 @@ export function PianoRoll() {
       gridToScreen,
       selectNotes,
       deselectAll,
-      setAudioTrackSelected,
+      selectAudioTrack,
       previewNote,
     ],
   );
@@ -1106,44 +1110,54 @@ export function PianoRoll() {
                 />
               </div>
             </div>
-            {/* Audio controls */}
-            <div
-              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-              style={{ height: waveformHeight }}
-            >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">Audio</span>
-                <Toggle
-                  value={audioMuted}
-                  onChange={setAudioMuted}
-                  aria-label="Toggle audio mute"
-                  title={
-                    audioMuted
-                      ? "Unmute audio (Shift+2)"
-                      : "Mute audio (Shift+2)"
-                  }
-                  className={cn(
-                    "size-4.5",
-                    audioMuted &&
-                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                  )}
-                >
-                  M
-                </Toggle>
+            {/* Audio controls (one block per track) */}
+            {audioTracks.map((track, index) => (
+              <div
+                key={track.id}
+                className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
+                style={{ height: waveformHeight }}
+              >
+                <div className="flex items-center justify-between text-[11px] text-neutral-400">
+                  <span
+                    className="uppercase tracking-wide truncate"
+                    title={track.fileName}
+                  >
+                    {audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
+                  </span>
+                  <Toggle
+                    value={track.muted}
+                    onChange={(muted) => updateAudioTrack(track.id, { muted })}
+                    aria-label="Toggle audio mute"
+                    title={
+                      track.muted
+                        ? "Unmute audio (Shift+2)"
+                        : "Mute audio (Shift+2)"
+                    }
+                    className={cn(
+                      "size-4.5",
+                      track.muted &&
+                        "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+                    )}
+                  >
+                    M
+                  </Toggle>
+                </div>
+                <div className="relative">
+                  <div
+                    className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+                    style={{ left: `${zeroDbPercent}%` }}
+                  />
+                  <Slider
+                    value={[gainToPercent(track.volume)]}
+                    onValueChange={([v]) =>
+                      updateAudioTrack(track.id, { volume: percentToGain(v) })
+                    }
+                    max={100}
+                    step={1}
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                  style={{ left: `${zeroDbPercent}%` }}
-                />
-                <Slider
-                  value={[gainToPercent(audioVolume)]}
-                  onValueChange={([v]) => setAudioVolume(percentToGain(v))}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </div>
+            ))}
             {/* MIDI controls */}
             <div className="flex-1 p-2 flex flex-col gap-3">
               <div className="flex items-center justify-between text-[11px] text-neutral-400">
@@ -1184,18 +1198,21 @@ export function PianoRoll() {
           >
             {/* Timeline spacer */}
             <div className="shrink-0" style={{ height: TIMELINE_HEIGHT }} />
-            {/* Waveform spacer */}
-            <div
-              className="shrink-0 border-b border-neutral-700 flex items-center justify-center text-xs text-neutral-500"
-              style={{ height: waveformHeight }}
-            ></div>
+            {/* Waveform spacers (one per track lane) */}
+            {audioTracks.map((track) => (
+              <div
+                key={track.id}
+                className="shrink-0 border-b border-neutral-700"
+                style={{ height: waveformHeight }}
+              />
+            ))}
             {/* Piano keyboard */}
             <div className="flex-1 overflow-hidden">
               <Keyboard
                 pixelsPerKey={roundedPixelsPerKey}
                 scrollY={scrollY}
                 viewportHeight={
-                  viewportSize.height - TIMELINE_HEIGHT - waveformHeight
+                  viewportSize.height - TIMELINE_HEIGHT - totalWaveformHeight
                 }
               />
             </div>
@@ -1223,29 +1240,35 @@ export function PianoRoll() {
             onUpdateLocator={handleUpdateLocator}
             onDeleteLocator={handleDeleteLocator}
           />
-          {/* Waveform / Audio region */}
-          <WaveformArea
-            pixelsPerBeat={roundedPixelsPerBeat}
-            gridSnap={gridSnap}
-            scrollX={scrollX}
-            viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
-            audioDuration={audioDuration}
-            audioOffset={audioOffset}
-            audioFileName={audioFileName}
-            tempo={tempo}
-            playheadBeat={secondsToBeats(position, tempo)}
-            audioView={audioView}
-            height={waveformHeight}
-            beatsPerBar={beatsPerBar}
-            isSelected={isAudioTrackSelected}
-            onOffsetChange={setAudioOffset}
-            onHeightChange={setWaveformHeight}
-            onSelect={() => {
-              deselectAll();
-              selectLocator(null);
-              setAudioTrackSelected(true);
-            }}
-          />
+          {/* Waveform / Audio regions (one lane per track) */}
+          {audioTracks.map((track) => (
+            <WaveformArea
+              key={track.id}
+              trackId={track.id}
+              pixelsPerBeat={roundedPixelsPerBeat}
+              gridSnap={gridSnap}
+              scrollX={scrollX}
+              viewportWidth={viewportSize.width - LEFT_PANEL_WIDTH}
+              audioDuration={track.duration}
+              audioOffset={track.offset}
+              audioFileName={track.fileName}
+              tempo={tempo}
+              playheadBeat={secondsToBeats(position, tempo)}
+              audioView={track.audioView}
+              height={waveformHeight}
+              beatsPerBar={beatsPerBar}
+              isSelected={selectedAudioTrackId === track.id}
+              onOffsetChange={(offset) =>
+                updateAudioTrack(track.id, { offset })
+              }
+              onHeightChange={setWaveformHeight}
+              onSelect={() => {
+                deselectAll();
+                selectLocator(null);
+                selectAudioTrack(track.id);
+              }}
+            />
+          ))}
           {/* Note grid with CSS background */}
           <div
             ref={gridRef}
@@ -1600,7 +1623,7 @@ function Timeline({
   beatsPerBar: number;
   gridSnapValue: number;
   onSeek: (beat: number) => void;
-  locators: Array<{ id: string; position: number; label: string }>;
+  locators: { id: string; position: number; label: string }[];
   selectedLocatorId: string | null;
   onSelectLocator: (id: string) => void;
   onRenameLocator: (id: string, currentLabel: string) => void;
@@ -1783,6 +1806,7 @@ function NoteDiv({
 }
 
 function WaveformArea({
+  trackId,
   pixelsPerBeat,
   gridSnap,
   scrollX,
@@ -1800,6 +1824,7 @@ function WaveformArea({
   onHeightChange,
   onSelect,
 }: {
+  trackId: string;
   pixelsPerBeat: number;
   gridSnap: GridSnap;
   scrollX: number;
@@ -1936,6 +1961,8 @@ function WaveformArea({
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
+          data-testid="audio-track-region"
+          data-track-id={trackId}
           className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
             isDragging
               ? "bg-emerald-600"

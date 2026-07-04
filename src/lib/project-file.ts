@@ -1,26 +1,39 @@
-// .toymidi project file format: ZIP containing manifest.json, project.json, and optional audio
-
 import JSZip from "jszip";
-import type { SavedProject } from "../stores/project-store";
+import {
+  type AnySavedProject,
+  migrateSavedProject,
+  type SavedProject,
+  type SavedProjectV1,
+} from "../stores/project-store";
 import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
 
-// Manifest schema for .toymidi files
-export interface ProjectManifest {
-  formatVersion: 1;
+type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
+
+interface ProjectManifest {
+  formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
   files: {
     project: "project.json";
-    audio?: string; // e.g., "audio/track.wav"
+    audio: { trackId: string; path: string }[];
   };
 }
 
+type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
+  formatVersion: 1;
+  files: {
+    project: "project.json";
+    audio?: string;
+  };
+};
+
+const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
+
 // Result of parsing a .toymidi file
-export interface ParsedProjectFile {
-  manifest: ProjectManifest;
+interface ParsedProjectFile {
+  name: string;
   project: SavedProject;
-  audioFile?: File; // Reconstructed File object for audio
 }
 
 /**
@@ -32,39 +45,74 @@ export async function exportProjectFile(
 ): Promise<Blob> {
   const zip = new JSZip();
 
+  const audioEntries: ProjectManifest["files"]["audio"] = [];
+
+  // Bundle each track's audio asset and record its path in the manifest
+  const tracks = projectData.audioTracks;
+  for (const track of tracks) {
+    const asset = await loadAsset(track.assetKey);
+    if (!asset) {
+      throw new Error(`Missing audio asset for "${track.fileName}"`);
+    }
+    const fileName = track.fileName || "audio.wav";
+    // Prefix with track id to keep paths unique across tracks
+    const audioPath = `audio/${track.id}-${fileName}`;
+    audioEntries.push({ trackId: track.id, path: audioPath });
+    zip.file(audioPath, asset.blob);
+  }
+
   // Prepare manifest
   const manifest: ProjectManifest = {
+    formatVersion: CURRENT_FORMAT_VERSION,
+    exportedAt: new Date().toISOString(),
+    name: projectName,
+    files: {
+      project: "project.json",
+      audio: audioEntries,
+    },
+  };
+
+  // Add manifest
+  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+  zip.file("project.json", JSON.stringify(projectData, null, 2));
+
+  // Generate ZIP
+  return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+}
+
+// for test migration
+export async function exportProjectFileV1(
+  projectName: string,
+  projectData: SavedProjectV1,
+  audioData: Uint8Array,
+): Promise<Blob> {
+  const zip = new JSZip();
+
+  if (!projectData.audioFileName) {
+    throw new Error("Cannot export v1 project file without audio file name");
+  }
+
+  const audioPath = `audio/${projectData.audioFileName}`;
+
+  const manifest: ProjectManifestV1 = {
     formatVersion: 1,
     exportedAt: new Date().toISOString(),
     name: projectName,
     files: {
       project: "project.json",
+      audio: audioPath,
     },
   };
 
-  // If there's an audio file, include it
-  if (projectData.audioAssetKey) {
-    const asset = await loadAsset(projectData.audioAssetKey);
-    if (asset) {
-      const audioFileName = projectData.audioFileName || "audio.wav";
-      const audioPath = `audio/${audioFileName}`;
-      manifest.files.audio = audioPath;
-      zip.file(audioPath, asset.blob);
-    }
-  }
+  zip.file(audioPath, audioData);
 
-  // Add manifest
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+  zip.file(
+    "project.json",
+    JSON.stringify({ ...projectData, audioAssetKey: null }, null, 2),
+  );
 
-  // Add project data (strip the audioAssetKey since we're bundling the file)
-  const projectForExport: SavedProject = {
-    ...projectData,
-    // Clear asset key - will be regenerated on import
-    audioAssetKey: null,
-  };
-  zip.file("project.json", JSON.stringify(projectForExport, null, 2));
-
-  // Generate ZIP
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
@@ -99,10 +147,10 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: missing manifest.json");
   }
   const manifestText = await manifestFile.async("text");
-  const manifest = JSON.parse(manifestText) as ProjectManifest;
+  const manifest = JSON.parse(manifestText) as AnyProjectManifest;
 
   // Validate manifest version
-  if (manifest.formatVersion > 1) {
+  if (manifest.formatVersion > CURRENT_FORMAT_VERSION) {
     throw new Error(
       `Project file requires newer app version (format v${manifest.formatVersion})`,
     );
@@ -114,57 +162,79 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     throw new Error("Invalid project file: missing project.json");
   }
   const projectText = await projectFile.async("text");
-  const project = JSON.parse(projectText) as SavedProject;
+  const project = JSON.parse(projectText) as AnySavedProject;
 
-  // Read audio file if present
-  let audioFile: File | undefined;
-  if (manifest.files.audio) {
-    const audioZipFile = zip.file(manifest.files.audio);
-    if (audioZipFile) {
-      const audioBlob = await audioZipFile.async("blob");
-      const audioFileName =
-        project.audioFileName ||
-        manifest.files.audio.split("/").pop() ||
-        "audio.wav";
-
-      // Determine MIME type from extension
-      const ext = audioFileName.split(".").pop()?.toLowerCase();
-      const mimeType =
-        ext === "mp3"
-          ? "audio/mpeg"
-          : ext === "wav"
-            ? "audio/wav"
-            : ext === "ogg"
-              ? "audio/ogg"
-              : "audio/wav";
-
-      audioFile = new File([audioBlob], audioFileName, { type: mimeType });
+  if (manifest.formatVersion === 1) {
+    if (project.version !== 1) {
+      throw new Error("Invalid project file: v1 manifest with v2 project");
     }
-  }
 
-  return {
-    manifest,
-    project,
-    audioFile,
-  };
-}
+    // version 1 always persisted `audioAssetKey: null`
+    // and generate new asset key during parse
+    const audioPath = manifest.files.audio;
+    if (audioPath) {
+      const audioZipFile = zip.file(audioPath);
+      if (!audioZipFile) {
+        throw new Error(`Invalid project file: missing ${audioPath}`);
+      }
 
-/**
- * Import a parsed project file: save audio to IndexedDB and return updated project data
- */
-export async function importProjectAudio(
-  parsed: ParsedProjectFile,
-): Promise<SavedProject> {
-  let updatedProject = { ...parsed.project };
+      const blob = await audioZipFile.async("blob");
+      const fileName =
+        project.audioFileName || audioPath.split("/").pop() || "audio.wav";
+      project.audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
+    }
 
-  // If there's an audio file, save it to IndexedDB
-  if (parsed.audioFile) {
-    const assetKey = await saveAsset(parsed.audioFile);
-    updatedProject = {
-      ...updatedProject,
-      audioAssetKey: assetKey,
+    return {
+      name: manifest.name,
+      project: migrateSavedProject(project),
     };
   }
 
-  return updatedProject;
+  if (project.version !== 2) {
+    throw new Error("Invalid project file: v2 manifest with v1 project");
+  }
+
+  if (project.audioTracks.length !== manifest.files.audio.length) {
+    throw new Error(
+      "Invalid project file: audio manifest does not match project",
+    );
+  }
+
+  const newAudioTracks: SavedProject["audioTracks"] = [];
+  for (const entry of manifest.files.audio) {
+    const track = project.audioTracks.find((t) => t.id === entry.trackId);
+    if (!track) {
+      throw new Error(
+        `Invalid project file: audio entry references missing track ${entry.trackId}`,
+      );
+    }
+
+    const audioZipFile = zip.file(entry.path);
+    if (!audioZipFile) {
+      throw new Error(`Invalid project file: missing ${entry.path}`);
+    }
+    const blob = await audioZipFile.async("blob");
+    const assetKey = await saveAsset(fileFromBlob(blob, track.fileName));
+    newAudioTracks.push({ ...track, assetKey });
+  }
+  project.audioTracks = newAudioTracks;
+
+  return {
+    name: manifest.name,
+    project,
+  };
+}
+
+// Build a File object from a blob, inferring MIME type from the file extension
+function fileFromBlob(blob: Blob, fileName: string): File {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const mimeType =
+    ext === "mp3"
+      ? "audio/mpeg"
+      : ext === "wav"
+        ? "audio/wav"
+        : ext === "ogg"
+          ? "audio/ogg"
+          : "audio/wav";
+  return new File([blob], fileName, { type: mimeType });
 }
