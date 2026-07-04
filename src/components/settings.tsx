@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import {
-  ClipboardIcon,
   DownloadIcon,
   FolderIcon,
   SettingsIcon,
@@ -9,11 +8,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
-import {
-  copyABCToClipboard,
-  downloadABCFile,
-  exportABC,
-} from "../lib/abc-export";
 import { deleteAsset, saveAsset } from "../lib/asset-store";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { buildExportFileName } from "../lib/export-utils";
@@ -139,39 +133,6 @@ export function Settings({
     });
 
     downloadMidiFile(midiData, fileName);
-  };
-
-  const handleExportABC = () => {
-    const abcText = exportABC({
-      notes,
-      tempo,
-      timeSignature,
-      title: projectName,
-    });
-
-    const fileName = buildExportFileName({
-      baseName: projectName,
-      extension: ".abc",
-    });
-
-    downloadABCFile(abcText, fileName);
-  };
-
-  const handleCopyABCToClipboard = async () => {
-    try {
-      const abcText = exportABC({
-        notes,
-        tempo,
-        timeSignature,
-        title: projectName,
-      });
-
-      await copyABCToClipboard(abcText);
-      toast.success("ABC notation copied to clipboard");
-    } catch (error) {
-      console.error("Failed to copy ABC notation:", error);
-      toast.error("Failed to copy to clipboard");
-    }
   };
 
   const handleExportProject = async () => {
@@ -309,24 +270,6 @@ export function Settings({
           >
             <DownloadIcon className="size-4" />
             Export MIDI
-          </Button>
-          <Button
-            data-testid="export-abc-button"
-            onClick={handleExportABC}
-            disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-          >
-            <DownloadIcon className="size-4" />
-            Export ABC
-          </Button>
-          <Button
-            data-testid="copy-abc-button"
-            onClick={handleCopyABCToClipboard}
-            disabled={notes.length === 0}
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-          >
-            <ClipboardIcon className="size-4" />
-            Copy ABC to Clipboard
           </Button>
         </div>
       </section>
