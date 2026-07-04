@@ -310,7 +310,7 @@ function ProjectListView({
   const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
     null,
   );
-  const [projects, setProjects] = useState(projectStorage.list());
+  const [projects, setProjects] = useState(projectStorage.listMetadata());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
@@ -341,7 +341,7 @@ function ProjectListView({
   const handleRenameSubmit = (projectId: string, nextName: string) => {
     projectStorage.updateMetadata(projectId, { name: nextName });
     setRenamingProjectId(null);
-    setProjects(projectStorage.list());
+    setProjects(projectStorage.listMetadata());
   };
 
   const handleRenameCancel = () => {
@@ -352,7 +352,7 @@ function ProjectListView({
     e.stopPropagation();
     if (confirm("Delete this project? This action cannot be undone.")) {
       projectStorage.delete(projectId);
-      setProjects(projectStorage.list());
+      setProjects(projectStorage.listMetadata());
     }
   };
 

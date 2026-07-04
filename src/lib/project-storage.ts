@@ -63,7 +63,7 @@ class ProjectStorage {
   }
 
   getMetadata(projectId: string): ProjectMetadata | null {
-    return this.list().find((p) => p.id === projectId) || null;
+    return this.listMetadata().find((p) => p.id === projectId) || null;
   }
 
   // Create new project with the default empty document, returns its ID
@@ -85,7 +85,7 @@ class ProjectStorage {
       updatedAt: now,
     };
 
-    const projects = this.list();
+    const projects = this.listMetadata();
     projects.push(metadata);
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
@@ -99,7 +99,7 @@ class ProjectStorage {
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
-    const projects = this.list();
+    const projects = this.listMetadata();
     const index = projects.findIndex((p) => p.id === projectId);
     if (index === -1) {
       throw new Error(`Project ${projectId} not found`);
@@ -116,7 +116,7 @@ class ProjectStorage {
   // Delete project (metadata and document; referenced assets are kept)
   // Throws on storage error
   delete(projectId: string): void {
-    const projects = this.list();
+    const projects = this.listMetadata();
     const filtered = projects.filter((p) => p.id !== projectId);
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(filtered));
@@ -130,7 +130,7 @@ class ProjectStorage {
 
   // Get default project name with sequential numbering
   private getDefaultProjectName(): string {
-    const untitledCount = this.list().filter((p) =>
+    const untitledCount = this.listMetadata().filter((p) =>
       p.name.match(/^Untitled( \d+)?$/),
     ).length;
 
