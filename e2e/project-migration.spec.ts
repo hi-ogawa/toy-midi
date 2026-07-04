@@ -37,18 +37,21 @@ const LEGACY_PROJECT: SavedProjectV1 = {
 };
 
 test.describe("Project Migration", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    await page.evaluate(async () => {
-      localStorage.clear();
-      await indexedDB.deleteDatabase("toy-midi");
-    });
-    await page.reload();
-  });
-
   test("migrates v1 localStorage project with audio track", async ({
     page,
   }) => {
+    await page.goto("/");
+    await page.evaluate(async () => {
+      localStorage.clear();
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase("toy-midi");
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => reject(new Error("IndexedDB delete blocked"));
+      });
+    });
+    await page.reload();
+
     const audioBytes = await readFile(TEST_AUDIO_PATH);
     const assetKey = `${LEGACY_PROJECT.audioFileName}-${audioBytes.byteLength}-12345`;
 
@@ -139,6 +142,8 @@ test.describe("Project Migration", () => {
   test("imports v1 .toymidi project with legacy audio manifest", async ({
     page,
   }) => {
+    await page.goto("/");
+
     const projectBlob = await exportProjectFileV1(
       "Legacy Import",
       LEGACY_PROJECT,
