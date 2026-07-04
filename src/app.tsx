@@ -24,7 +24,7 @@ export function App() {
   const initMutation = useMutation({
     mutationFn: async (options: {
       projectId?: string;
-    }): Promise<{ projectId: string }> => {
+    }): Promise<{ projectId: string; projectName: string }> => {
       await audioManager.init();
 
       // Load existing project, or create a new default one
@@ -34,6 +34,10 @@ export function App() {
         projectStorage.setLastProjectId(projectId);
       } else {
         projectId = projectStorage.createNew();
+      }
+      const metadata = projectStorage.getMetadata(projectId);
+      if (!metadata) {
+        throw new Error(`Project ${projectId} metadata not found`);
       }
       const data = projectStorage.load(projectId);
       useProjectStore.setState(fromSavedProject(data));
@@ -83,7 +87,7 @@ export function App() {
         }, autoSaveDebounceMs);
       });
 
-      return { projectId };
+      return { projectId, projectName: metadata.name };
     },
   });
 
@@ -126,7 +130,12 @@ export function App() {
     );
   }
 
-  return <Editor projectId={initMutation.data.projectId} />;
+  return (
+    <Editor
+      projectId={initMutation.data.projectId}
+      initialProjectName={initMutation.data.projectName}
+    />
+  );
 }
 
 // === Editor Component ===
@@ -134,15 +143,14 @@ export function App() {
 
 type EditorProps = {
   projectId: string;
+  initialProjectName: string;
 };
 
-function Editor({ projectId }: EditorProps) {
+function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
-  const [projectName, setProjectName] = useState(
-    () => projectStorage.getMetadata(projectId)?.name ?? "Untitled",
-  );
+  const [projectName, setProjectName] = useState(initialProjectName);
 
   // Update document title when project name changes
   useEffect(() => {
