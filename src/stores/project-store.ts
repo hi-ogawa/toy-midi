@@ -6,22 +6,6 @@ import { historyStore } from "./history-store";
 // Maximum number of audio tracks (e.g. for stem-split transcription)
 export const MAX_AUDIO_TRACKS = 2;
 
-// Persisted audio track fields
-export interface SavedAudioTrack {
-  id: string;
-  fileName: string;
-  assetKey: string; // Reference to IndexedDB asset
-  duration: number; // in seconds
-  offset: number; // in seconds - timeline position where audio starts (>= 0)
-  volume: number; // 0-1
-  muted: boolean;
-}
-
-// Runtime audio track: persisted fields plus transient waveform data
-export type AudioTrack = SavedAudioTrack & {
-  audioView: AudioView | null; // Pre-computed waveform data (not persisted)
-};
-
 export interface ProjectState {
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
@@ -122,6 +106,17 @@ export interface ProjectState {
   setPixelsPerBeat: (pixelsPerBeat: number) => void;
   setPixelsPerKey: (pixelsPerKey: number) => void;
   setWaveformHeight: (height: number) => void;
+}
+
+export interface AudioTrack {
+  id: string;
+  fileName: string;
+  assetKey: string; // Reference to IndexedDB asset
+  duration: number; // in seconds
+  offset: number; // in seconds - timeline position where audio starts (>= 0)
+  volume: number; // 0-1
+  muted: boolean;
+  audioView: AudioView | null; // Pre-computed waveform data (not persisted)
 }
 
 let noteIdCounter = 0;
@@ -538,6 +533,8 @@ export interface SavedProject {
   pixelsPerKey?: number;
   waveformHeight?: number;
 }
+
+export type SavedAudioTrack = Omit<AudioTrack, "audioView">;
 
 export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
   version: 1;
