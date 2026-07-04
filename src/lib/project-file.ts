@@ -1,5 +1,3 @@
-// .toymidi project file format: ZIP containing manifest.json, project.json, and optional audio
-
 import JSZip from "jszip";
 import {
   type AnySavedProject,
@@ -9,9 +7,9 @@ import {
 import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
 
-// Manifest schema for .toymidi files
-//
-export interface ProjectManifest {
+type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
+
+interface ProjectManifest {
   formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
@@ -21,10 +19,7 @@ export interface ProjectManifest {
   };
 }
 
-export type ProjectManifestV1 = Omit<
-  ProjectManifest,
-  "formatVersion" | "files"
-> & {
+type ProjectManifestV1 = Omit<ProjectManifest, "formatVersion" | "files"> & {
   formatVersion: 1;
   files: {
     project: "project.json";
@@ -32,28 +27,12 @@ export type ProjectManifestV1 = Omit<
   };
 };
 
-export type AnyProjectManifest = ProjectManifestV1 | ProjectManifest;
-
 const CURRENT_FORMAT_VERSION: ProjectManifest["formatVersion"] = 2;
 
 // Result of parsing a .toymidi file
-export interface ParsedProjectFile {
-  manifest: AnyProjectManifest;
+interface ParsedProjectFile {
+  name: string;
   project: SavedProject;
-}
-
-// Build a File object from a blob, inferring MIME type from the file extension
-function fileFromBlob(blob: Blob, fileName: string): File {
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  const mimeType =
-    ext === "mp3"
-      ? "audio/mpeg"
-      : ext === "wav"
-        ? "audio/wav"
-        : ext === "ogg"
-          ? "audio/ogg"
-          : "audio/wav";
-  return new File([blob], fileName, { type: mimeType });
 }
 
 /**
@@ -209,5 +188,22 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     }
   }
 
-  return { manifest, project: migrateSavedProject(projectWithAudio) };
+  return {
+    name: manifest.name,
+    project: migrateSavedProject(projectWithAudio),
+  };
+}
+
+// Build a File object from a blob, inferring MIME type from the file extension
+function fileFromBlob(blob: Blob, fileName: string): File {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const mimeType =
+    ext === "mp3"
+      ? "audio/mpeg"
+      : ext === "wav"
+        ? "audio/wav"
+        : ext === "ogg"
+          ? "audio/ogg"
+          : "audio/wav";
+  return new File([blob], fileName, { type: mimeType });
 }

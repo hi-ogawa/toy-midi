@@ -335,7 +335,7 @@ function ProjectListView({
       const parsed = await parseProjectFile(file);
 
       // Create new project
-      const newProjectId = createProject(parsed.manifest.name);
+      const newProjectId = createProject(parsed.name);
       saveProjectData(newProjectId, parsed.project);
 
       return newProjectId;
