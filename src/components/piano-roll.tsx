@@ -57,14 +57,14 @@ function generateVerticalGridLayers(
   gridSnap: GridSnap,
   scrollX: number,
   beatsPerBar: number,
-): Array<[string, string, string]> {
+): [string, string, string][] {
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
   const beatWidth = Math.round(pixelsPerBeat);
   const subBeatWidth = beatWidth * gridSnapValue;
   const barWidth = beatWidth * beatsPerBar;
   const offsetX = -(scrollX * beatWidth) % barWidth;
 
-  const layers: Array<[string, string, string]> = [];
+  const layers: [string, string, string][] = [];
 
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
   let coarseBarMultiplier = 1;
@@ -141,7 +141,7 @@ function generateGridBackground(
     transparent ${11 * r}px, transparent ${12 * r}px
   )`;
 
-  const layers: Array<[string, string, string]> = [];
+  const layers: [string, string, string][] = [];
 
   // Add vertical grid lines (bar, beat, sub-beat)
   layers.push(
@@ -193,7 +193,7 @@ type DragMode =
       cellOffset: number; // which grid cell within the note was grabbed
       offsetPitch: number;
       // Original states of all notes being moved (for undo)
-      originalStates: Array<{ id: string; start: number; pitch: number }>;
+      originalStates: { id: string; start: number; pitch: number }[];
     }
   | {
       type: "duplicating";
@@ -1600,7 +1600,7 @@ function Timeline({
   beatsPerBar: number;
   gridSnapValue: number;
   onSeek: (beat: number) => void;
-  locators: Array<{ id: string; position: number; label: string }>;
+  locators: { id: string; position: number; label: string }[];
   selectedLocatorId: string | null;
   onSelectLocator: (id: string) => void;
   onRenameLocator: (id: string, currentLabel: string) => void;
