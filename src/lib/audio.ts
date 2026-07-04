@@ -232,8 +232,6 @@ class AudioManager {
     Tone.getTransport().on("stop", () => this.midiSynth.allNotesOff());
     Tone.getTransport().on("pause", () => this.midiSynth.allNotesOff());
 
-    // Audio tracks are created lazily per track id (see ensureAudioTrack)
-
     // Metronome click generator with native Web Audio nodes.
     this.metronome = new Metronome(context);
     this.metronomeChannel = new Tone.Channel(0.5).toDestination();
@@ -315,7 +313,7 @@ class AudioManager {
   }
 
   // Assign the decoded buffer for a track (called once after loading the file)
-  setTrackBuffer(id: string, buffer: Tone.ToneAudioBuffer): void {
+  setAudioTrackBuffer(id: string, buffer: Tone.ToneAudioBuffer): void {
     this.ensureAudioTrack(id).player.buffer = buffer;
   }
 
@@ -328,13 +326,13 @@ class AudioManager {
     entry.player.sync().start(offset);
   }
 
-  setTrackVolume(id: string, volume: number): void {
+  setAudioTrackVolume(id: string, volume: number): void {
     this.ensureAudioTrack(id).channel.volume.rampTo(
       Tone.gainToDb(clampGain(volume)),
     );
   }
 
-  setTrackMuted(id: string, muted: boolean): void {
+  setAudioTrackMuted(id: string, muted: boolean): void {
     this.ensureAudioTrack(id).channel.mute = muted;
   }
 
@@ -369,8 +367,8 @@ class AudioManager {
     for (const track of tracks) {
       const prev = prevById.get(track.id);
       this.ensureAudioTrack(track.id);
-      this.setTrackVolume(track.id, track.volume);
-      this.setTrackMuted(track.id, track.muted);
+      this.setAudioTrackVolume(track.id, track.volume);
+      this.setAudioTrackMuted(track.id, track.muted);
       // Re-sync to Transport when newly added or offset changed
       if (!prev || prev.offset !== track.offset) {
         this.syncAudioTrack(track.id, track.offset);

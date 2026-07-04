@@ -103,7 +103,7 @@ export function Settings({
       const id = generateAudioTrackId();
       // Assign the buffer before adding to the store so the state-sync
       // subscription can immediately sync the loaded player to the Transport.
-      audioManager.setTrackBuffer(id, buffer);
+      audioManager.setAudioTrackBuffer(id, buffer);
       addAudioTrack({
         id,
         fileName: file.name,

@@ -59,7 +59,7 @@ export function App() {
           const { buffer, audioView } = await loadAudioFile(
             new File([asset.blob], asset.name),
           );
-          audioManager.setTrackBuffer(track.id, buffer);
+          audioManager.setAudioTrackBuffer(track.id, buffer);
           audioManager.syncAudioTrack(track.id, track.offset);
           project.updateAudioTrack(track.id, { audioView });
         } else {
