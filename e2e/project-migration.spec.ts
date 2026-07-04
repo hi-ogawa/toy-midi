@@ -82,6 +82,46 @@ test.describe("Project Migration", () => {
     await expect(page.getByTestId("audio-track-region")).toHaveCount(1);
   });
 
+  test("migrates legacy split localStorage keys into the project index", async ({
+    page,
+  }) => {
+    await page.goto("/__e2e__/");
+    await page.evaluate((project) => {
+      const metadata = {
+        id: "legacy-keys",
+        name: "Legacy Keys",
+        createdAt: 1000,
+        updatedAt: 2000,
+      };
+      localStorage.setItem("toy-midi-project-list", JSON.stringify([metadata]));
+      localStorage.setItem("toy-midi-last-project-id", "legacy-keys");
+      localStorage.setItem(
+        "toy-midi-project-legacy-keys",
+        JSON.stringify(project),
+      );
+    }, LEGACY_PROJECT);
+
+    await page.goto("/");
+    await expect(page.getByTestId("project-card-legacy-keys")).toBeVisible();
+
+    // First read folds the legacy keys into the versioned index
+    const storage = await page.evaluate(() => ({
+      index: JSON.parse(localStorage.getItem("toy-midi-project-index")!),
+      legacyList: localStorage.getItem("toy-midi-project-list"),
+      legacyLastProjectId: localStorage.getItem("toy-midi-last-project-id"),
+    }));
+    expect(storage.index.version).toBe(1);
+    expect(storage.index.projects).toHaveLength(1);
+    expect(storage.index.projects[0].name).toBe("Legacy Keys");
+    expect(storage.index.lastProjectId).toBe("legacy-keys");
+    expect(storage.legacyList).toBeNull();
+    expect(storage.legacyLastProjectId).toBeNull();
+
+    await page.getByTestId("continue-button").click();
+    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await expect(page).toHaveTitle("Legacy Keys - Toy MIDI");
+  });
+
   test("imports v1 .toymidi project with legacy audio manifest", async ({
     page,
   }) => {
