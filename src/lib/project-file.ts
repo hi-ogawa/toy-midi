@@ -11,16 +11,13 @@ import { buildExportFileName } from "./export-utils";
 
 // Manifest schema for .toymidi files
 //
-// formatVersion history:
-//   1 - single audio file at `files.audio` (string)
-//   2 - multiple audio files at `files.audio` (array of { trackId, path })
 export interface ProjectManifest {
   formatVersion: 2;
   exportedAt: string; // ISO timestamp
   name: string;
   files: {
     project: "project.json";
-    audio?: Array<{ trackId: string; path: string }>;
+    audio: { trackId: string; path: string }[];
   };
 }
 
@@ -68,7 +65,7 @@ export async function exportProjectFile(
 ): Promise<Blob> {
   const zip = new JSZip();
 
-  const audioEntries: Array<{ trackId: string; path: string }> = [];
+  const audioEntries: ProjectManifest["files"]["audio"] = [];
 
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
@@ -91,7 +88,7 @@ export async function exportProjectFile(
     name: projectName,
     files: {
       project: "project.json",
-      ...(audioEntries.length > 0 ? { audio: audioEntries } : {}),
+      audio: audioEntries,
     },
   };
 
@@ -170,7 +167,7 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     }
 
     const audioAssetKeys = new Map<string, string>();
-    for (const entry of manifest.files.audio ?? []) {
+    for (const entry of manifest.files.audio) {
       const audioZipFile = zip.file(entry.path);
       if (!audioZipFile) {
         throw new Error(`Invalid project file: missing ${entry.path}`);
