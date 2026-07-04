@@ -41,7 +41,7 @@ const DB_NAME = "toy-midi";
 const DB_VERSION = 1;
 const STORE_NAME = "assets";
 
-export const projectStorage = {
+class ProjectStorage {
   // === metadata — localStorage "toy-midi-project-list" ===
 
   // List all projects, sorted by updatedAt descending (most recent first)
@@ -52,11 +52,11 @@ export const projectStorage = {
     }
     const list = JSON.parse(json) as ProjectMetadata[];
     return list.sort((a, b) => b.updatedAt - a.updatedAt);
-  },
+  }
 
   getMetadata(projectId: string): ProjectMetadata | null {
-    return projectStorage.list().find((p) => p.id === projectId) || null;
-  },
+    return this.list().find((p) => p.id === projectId) || null;
+  }
 
   // Create new project, returns its ID
   create(name?: string): string {
@@ -64,17 +64,17 @@ export const projectStorage = {
     const now = Date.now();
     const metadata: ProjectMetadata = {
       id: projectId,
-      name: name || getDefaultProjectName(),
+      name: name || this.getDefaultProjectName(),
       createdAt: now,
       updatedAt: now,
     };
 
-    const projects = projectStorage.list();
+    const projects = this.list();
     projects.push(metadata);
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
     return projectId;
-  },
+  }
 
   // Update project metadata (name, updatedAt)
   // Throws if project not found or on storage error
@@ -82,7 +82,7 @@ export const projectStorage = {
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
-    const projects = projectStorage.list();
+    const projects = this.list();
     const index = projects.findIndex((p) => p.id === projectId);
     if (index === -1) {
       throw new Error(`Project ${projectId} not found`);
@@ -94,22 +94,31 @@ export const projectStorage = {
     };
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
-  },
+  }
 
   // Delete project (metadata and document; referenced assets are kept)
   // Throws on storage error
   delete(projectId: string): void {
-    const projects = projectStorage.list();
+    const projects = this.list();
     const filtered = projects.filter((p) => p.id !== projectId);
 
     localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(filtered));
     localStorage.removeItem(getProjectKey(projectId));
 
     // If deleting last project, clear that too
-    if (projectStorage.getLastProjectId() === projectId) {
+    if (this.getLastProjectId() === projectId) {
       localStorage.removeItem(LAST_PROJECT_ID_KEY);
     }
-  },
+  }
+
+  // Get default project name with sequential numbering
+  private getDefaultProjectName(): string {
+    const untitledCount = this.list().filter((p) =>
+      p.name.match(/^Untitled( \d+)?$/),
+    ).length;
+
+    return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
+  }
 
   // === document data — localStorage "toy-midi-project-<id>" ===
 
@@ -121,30 +130,57 @@ export const projectStorage = {
       throw new Error(`Project ${projectId} not found in storage`);
     }
     return JSON.parse(json) as AnySavedProject;
-  },
+  }
 
   // Save project document (pure - no Zustand); also bumps updatedAt + lastProjectId
   // Throws on error - caller should handle with toast
   save(projectId: string, data: SavedProject): void {
     localStorage.setItem(getProjectKey(projectId), JSON.stringify(data));
-    projectStorage.updateMetadata(projectId, { updatedAt: Date.now() });
-    projectStorage.setLastProjectId(projectId);
-  },
+    this.updateMetadata(projectId, { updatedAt: Date.now() });
+    this.setLastProjectId(projectId);
+  }
 
   // === session pointer — localStorage "toy-midi-last-project-id" ===
 
   getLastProjectId(): string | null {
     return localStorage.getItem(LAST_PROJECT_ID_KEY);
-  },
+  }
 
   setLastProjectId(projectId: string): void {
     localStorage.setItem(LAST_PROJECT_ID_KEY, projectId);
-  },
+  }
 
   // === binary assets — IndexedDB "toy-midi" / "assets" ===
 
+  private dbPromise: Promise<IDBDatabase> | null = null;
+
+  private openDB(): Promise<IDBDatabase> {
+    if (this.dbPromise) {
+      return this.dbPromise;
+    }
+
+    this.dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      request.onblocked = () => {
+        console.warn("IndexedDB blocked - close other tabs?");
+      };
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: "key" });
+        }
+      };
+    });
+
+    return this.dbPromise;
+  }
+
   async saveAsset(file: File): Promise<string> {
-    const db = await openDB();
+    const db = await this.openDB();
     const key = generateAssetKey(file);
 
     const asset: StoredAsset = {
@@ -164,10 +200,10 @@ export const projectStorage = {
       request.onsuccess = () => resolve(key);
       request.onerror = () => reject(request.error);
     });
-  },
+  }
 
   async loadAsset(key: string): Promise<StoredAsset | null> {
-    const db = await openDB();
+    const db = await this.openDB();
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readonly");
@@ -177,10 +213,10 @@ export const projectStorage = {
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
     });
-  },
+  }
 
   async deleteAsset(key: string): Promise<void> {
-    const db = await openDB();
+    const db = await this.openDB();
 
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
@@ -190,8 +226,10 @@ export const projectStorage = {
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
-  },
-};
+  }
+}
+
+export const projectStorage = new ProjectStorage();
 
 // === private helpers ===
 
@@ -212,43 +250,6 @@ function getProjectKey(projectId: string): string {
 // Generate a simple hash key from file name + size + last modified
 function generateAssetKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
-}
-
-// Get default project name with sequential numbering
-function getDefaultProjectName(): string {
-  const projects = projectStorage.list();
-  const untitledCount = projects.filter((p) =>
-    p.name.match(/^Untitled( \d+)?$/),
-  ).length;
-
-  return untitledCount === 0 ? "Untitled" : `Untitled ${untitledCount + 1}`;
-}
-
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function openDB(): Promise<IDBDatabase> {
-  if (dbPromise) {
-    return dbPromise;
-  }
-
-  dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onblocked = () => {
-      console.warn("IndexedDB blocked - close other tabs?");
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "key" });
-      }
-    };
-  });
-
-  return dbPromise;
 }
 
 // === e2e-only ===
