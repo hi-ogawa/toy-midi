@@ -51,7 +51,7 @@ export interface ProjectState {
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
   updateNotes: (
-    updates: Array<{ id: string; changes: Partial<Omit<Note, "id">> }>,
+    updates: { id: string; changes: Partial<Omit<Note, "id">> }[],
   ) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
   selectNotes: (ids: string[], exclusive?: boolean) => void;
@@ -188,7 +188,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     // Track in history (only changed fields)
     const before: Partial<Omit<Note, "id">> = {};
     const after: Partial<Omit<Note, "id">> = {};
-    for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
+    for (const key of Object.keys(updates) as (keyof typeof updates)[]) {
       before[key] = note[key];
       after[key] = updates[key]!;
     }
@@ -215,7 +215,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
         const before: Partial<Omit<Note, "id">> = {};
         const after: Partial<Omit<Note, "id">> = {};
-        for (const key of Object.keys(changes) as Array<keyof typeof changes>) {
+        for (const key of Object.keys(changes) as (keyof typeof changes)[]) {
           before[key] = note[key];
           after[key] = changes[key]!;
         }

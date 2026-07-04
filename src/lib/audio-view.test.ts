@@ -251,7 +251,7 @@ describe("queryAudioView", () => {
     };
 
     // Query at different scroll positions (small increments)
-    const results: Array<{ data: number[] }> = [];
+    const results: { data: number[] }[] = [];
     for (let scrollSec = 30; scrollSec < 30.1; scrollSec += 0.01) {
       const result = queryAudioView(
         view,
