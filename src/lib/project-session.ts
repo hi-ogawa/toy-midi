@@ -65,7 +65,7 @@ export async function openProjectSession(options: {
   const autoSaveDebounceMs = Number(
     import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
   );
-  const autoSave = debounce(() => {
+  const saveDebouncer = debounce(() => {
     try {
       projectStorage.save(
         projectId,
@@ -76,7 +76,7 @@ export async function openProjectSession(options: {
       toast.error("Failed to save project. Changes may be lost.");
     }
   }, autoSaveDebounceMs);
-  const unsubscribeAutoSave = useProjectStore.subscribe(autoSave.schedule);
+  const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
 
   return {
     projectId,
@@ -84,7 +84,7 @@ export async function openProjectSession(options: {
     dispose: () => {
       unsubscribeAudioSync();
       unsubscribeAutoSave();
-      autoSave.flush();
+      saveDebouncer.flush();
       historyStore.clearHistory();
     },
   };

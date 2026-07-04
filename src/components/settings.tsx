@@ -41,7 +41,6 @@ export function Settings({
     normalize: (value) => value.trim(),
     isValid: (value) => value.length > 0,
   });
-
   const {
     audioTracks,
     tempo,

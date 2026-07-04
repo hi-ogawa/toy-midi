@@ -1,3 +1,4 @@
+// Copied from ../acpella/src/utils/timing.ts.
 export function debounce(fn: () => void, ms: number) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
 
