@@ -192,16 +192,15 @@ type TransportProps = {
   onSettingsClick: () => void;
   onHelpClick: () => void;
   onMixerClick: () => void;
-  projectName: string;
 };
 
 export function Transport({
   onSettingsClick,
   onHelpClick,
   onMixerClick,
-  projectName,
 }: TransportProps) {
   const {
+    projectName,
     tempo,
     timeSignature,
     midiProgram,

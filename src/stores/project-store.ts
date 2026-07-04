@@ -4,6 +4,10 @@ import type { GridSnap, Locator, Note, TimeSignature } from "../types";
 import { historyStore } from "./history-store";
 
 export interface ProjectState {
+  // project session (set when a project is opened; not persisted in the document)
+  projectId: string | null;
+  projectName: string;
+
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
@@ -60,6 +64,7 @@ export interface ProjectState {
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
+  renameProject: (name: string) => void; // not undoable
 
   // Locator actions
   addLocator: (locator: Locator) => void;
@@ -132,6 +137,8 @@ export function generateAudioTrackId(): string {
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
+  projectId: null,
+  projectName: "Untitled",
   notes: [],
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
@@ -165,6 +172,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
   waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
+
+  renameProject: (name) => {
+    set({ projectName: name });
+  },
 
   addNote: (note) => {
     // Track in history
