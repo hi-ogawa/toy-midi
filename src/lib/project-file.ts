@@ -5,8 +5,8 @@ import {
   type SavedProject,
   type SavedProjectV1,
 } from "../stores/project-store";
-import { loadAsset, saveAsset } from "./asset-store";
 import { buildExportFileName } from "./export-utils";
+import { projectStorage } from "./project-storage";
 
 type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
 
@@ -50,7 +50,7 @@ export async function exportProjectFile(
   // Bundle each track's audio asset and record its path in the manifest
   const tracks = projectData.audioTracks;
   for (const track of tracks) {
-    const asset = await loadAsset(track.assetKey);
+    const asset = await projectStorage.loadAsset(track.assetKey);
     if (!asset) {
       throw new Error(`Missing audio asset for "${track.fileName}"`);
     }
@@ -183,7 +183,9 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
       const blob = await audioZipFile.async("blob");
       const fileName =
         project.audioFileName || audioPath.split("/").pop() || "audio.wav";
-      project.audioAssetKey = await saveAsset(fileFromBlob(blob, fileName));
+      project.audioAssetKey = await projectStorage.saveAsset(
+        fileFromBlob(blob, fileName),
+      );
     }
 
     return {
@@ -216,7 +218,9 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
       throw new Error(`Invalid project file: missing ${entry.path}`);
     }
     const blob = await audioZipFile.async("blob");
-    const assetKey = await saveAsset(fileFromBlob(blob, track.fileName));
+    const assetKey = await projectStorage.saveAsset(
+      fileFromBlob(blob, track.fileName),
+    );
     newAudioTracks.push({ ...track, assetKey });
   }
   project.audioTracks = newAudioTracks;
