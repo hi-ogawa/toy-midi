@@ -1243,6 +1243,7 @@ export function PianoRoll() {
           {audioTracks.map((track) => (
             <WaveformArea
               key={track.id}
+              trackId={track.id}
               pixelsPerBeat={roundedPixelsPerBeat}
               gridSnap={gridSnap}
               scrollX={scrollX}
@@ -1804,6 +1805,7 @@ function NoteDiv({
 }
 
 function WaveformArea({
+  trackId,
   pixelsPerBeat,
   gridSnap,
   scrollX,
@@ -1821,6 +1823,7 @@ function WaveformArea({
   onHeightChange,
   onSelect,
 }: {
+  trackId: string;
   pixelsPerBeat: number;
   gridSnap: GridSnap;
   scrollX: number;
@@ -1957,6 +1960,8 @@ function WaveformArea({
       {/* Audio region block */}
       {audioDuration > 0 && (
         <div
+          data-testid="audio-track-region"
+          data-track-id={trackId}
           className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
             isDragging
               ? "bg-emerald-600"

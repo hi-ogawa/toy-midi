@@ -19,65 +19,47 @@ test.describe("Multiple Audio Tracks", () => {
     });
   }
 
-  test("load two audio tracks and render two lanes", async ({ page }) => {
+  test("supports multiple audio tracks", async ({ page }) => {
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
+    await loadAudioFile(page, "test-audio.wav");
 
-    const tracks = await getAudioTracks(page);
-    expect(tracks).toHaveLength(2);
+    let tracks = await getAudioTracks(page);
+    expect(tracks).toHaveLength(3);
     expect(tracks[0].fileName).toBe("test-audio.wav");
     expect(tracks[1].fileName).toBe("test-audio-2.wav");
+    expect(tracks[2].fileName).toBe("test-audio.wav");
+    await expect(page.getByTestId("audio-track-region")).toHaveCount(3);
 
-    // Two waveform regions visible
-    const regions = page.locator(".bg-emerald-700, .bg-emerald-600");
-    await expect(regions).toHaveCount(2);
-  });
-
-  test("more than two tracks can be added", async ({ page }) => {
-    await loadAudioFile(page, "test-audio.wav");
-    await loadAudioFile(page, "test-audio-2.wav");
-    await loadAudioFile(page, "test-audio.wav");
-
+    // Loading remains available after more than two tracks.
     await page.getByTestId("settings-button").click();
     const loadButton = page.getByTestId("load-audio-button");
     await expect(loadButton).toBeEnabled();
     await page.keyboard.press("Escape");
 
-    const tracks = await getAudioTracks(page);
-    expect(tracks).toHaveLength(3);
-  });
-
-  test("tracks can be muted independently", async ({ page }) => {
-    await loadAudioFile(page, "test-audio.wav");
-    await loadAudioFile(page, "test-audio-2.wav");
-
     // Mute the first track via the piano-roll lane toggle
     const muteToggles = page.getByRole("button", {
       name: "Toggle audio mute",
     });
-    await expect(muteToggles).toHaveCount(2);
+    await expect(muteToggles).toHaveCount(3);
     await muteToggles.first().click();
 
-    const tracks = await getAudioTracks(page);
+    tracks = await getAudioTracks(page);
     expect(tracks[0].muted).toBe(true);
     expect(tracks[1].muted).toBe(false);
-  });
-
-  test("remove one track leaves the other", async ({ page }) => {
-    await loadAudioFile(page, "test-audio.wav");
-    await loadAudioFile(page, "test-audio-2.wav");
+    expect(tracks[2].muted).toBe(false);
 
     // Remove the first track from Settings
     await page.getByTestId("settings-button").click();
     await page.getByTestId("remove-audio-button").first().click();
     await page.keyboard.press("Escape");
 
-    const tracks = await getAudioTracks(page);
-    expect(tracks).toHaveLength(1);
+    tracks = await getAudioTracks(page);
+    expect(tracks).toHaveLength(2);
     expect(tracks[0].fileName).toBe("test-audio-2.wav");
+    expect(tracks[1].fileName).toBe("test-audio.wav");
 
-    const regions = page.locator(".bg-emerald-700, .bg-emerald-600");
-    await expect(regions).toHaveCount(1);
+    await expect(page.getByTestId("audio-track-region")).toHaveCount(2);
   });
 
   test("two tracks persist across reload", async ({ page }) => {
