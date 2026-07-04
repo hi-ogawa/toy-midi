@@ -123,9 +123,8 @@ export function Settings({
       notes,
       tempo,
       timeSignature,
-      trackName: audioFileName
-        ? audioFileName.replace(/\.[^.]+$/, "")
-        : "Piano Roll",
+      name: projectName,
+      trackName: projectName,
     });
 
     const fileName = buildExportFileName({
