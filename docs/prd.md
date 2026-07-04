@@ -165,7 +165,7 @@ _Keyboard shortcuts_
 
 _Misc_
 
-- [x] removed: ABC notation export
+- [x] feat: export ABC notation (file export + clipbaord for quick LLM usage)
 - [ ] feat: support fret position annotation metadata
 - [x] feat: full review quick reference and what's missing
 
