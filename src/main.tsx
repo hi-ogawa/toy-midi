@@ -7,7 +7,11 @@ import "./index.css";
 import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
-import { projectStorage, seedProjectV1 } from "./lib/project-storage";
+import {
+  projectStorage,
+  seedLegacyProjectKeys,
+  seedProjectV1,
+} from "./lib/project-storage";
 import { useProjectStore } from "./stores/project-store";
 
 function main() {
@@ -16,6 +20,7 @@ function main() {
     (window as any).__e2e = {
       useProjectStore,
       projectStorage,
+      seedLegacyProjectKeys,
       seedProjectV1,
     };
     if (window.location.pathname.startsWith("/__e2e__/")) {

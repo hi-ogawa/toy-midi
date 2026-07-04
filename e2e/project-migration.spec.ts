@@ -87,17 +87,14 @@ test.describe("Project Migration", () => {
   }) => {
     await page.goto("/__e2e__/");
     await page.evaluate((project) => {
-      const metadata = {
-        id: "legacy-keys",
-        name: "Legacy Keys",
-        createdAt: 1000,
-        updatedAt: 2000,
-      };
-      localStorage.setItem("toy-midi-project-list", JSON.stringify([metadata]));
-      localStorage.setItem("toy-midi-last-project-id", "legacy-keys");
-      localStorage.setItem(
-        "toy-midi-project-legacy-keys",
-        JSON.stringify(project),
+      (window as any).__e2e!.seedLegacyProjectKeys(
+        {
+          id: "legacy-keys",
+          name: "Legacy Keys",
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
+        project,
       );
     }, LEGACY_PROJECT);
 

@@ -212,6 +212,16 @@ function generateAssetKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
+// e2e-only: seed the pre-index split-key storage format to test index migration
+export function seedLegacyProjectKeys(
+  metadata: ProjectMetadata,
+  project: AnySavedProject,
+): void {
+  localStorage.setItem(LEGACY_PROJECT_LIST_KEY, JSON.stringify([metadata]));
+  localStorage.setItem(LEGACY_LAST_PROJECT_ID_KEY, metadata.id);
+  localStorage.setItem(getProjectKey(metadata.id), JSON.stringify(project));
+}
+
 // e2e-only: seed an old-schema project to test migration on load
 export async function seedProjectV1(
   name: string,
