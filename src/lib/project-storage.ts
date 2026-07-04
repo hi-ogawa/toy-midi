@@ -29,52 +29,52 @@ interface StoredAsset {
   addedAt: number;
 }
 
-// versioned index: project metadata list (cheap enumeration for the list
-// view) + last opened project pointer
-interface ProjectIndex {
+// versioned main entry: project metadata list (cheap enumeration for the
+// list view) + last opened project pointer
+interface MainEntry {
   version: 1;
   projects: ProjectMetadata[];
   lastProjectId: string | null;
 }
 
-const PROJECT_INDEX_KEY = "toy-midi-project-index";
-// legacy unversioned keys, folded into the index on first read
+const MAIN_KEY = "toy-midi-main";
+// legacy unversioned keys, folded into the main entry on first read
 const LEGACY_PROJECT_LIST_KEY = "toy-midi-project-list";
 const LEGACY_LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
-// project document, one localStorage entry per project
+// saved project, one localStorage entry per project
 const PROJECT_KEY_PREFIX = "toy-midi-project-";
 
 class ProjectStorage {
-  private readIndex(): ProjectIndex {
-    const json = localStorage.getItem(PROJECT_INDEX_KEY);
+  private readMain(): MainEntry {
+    const json = localStorage.getItem(MAIN_KEY);
     if (json) {
-      // future index versions: migrate here, like migrateSavedProject
-      return JSON.parse(json) as ProjectIndex;
+      // future versions: migrate here, like migrateSavedProject
+      return JSON.parse(json) as MainEntry;
     }
 
     const legacyList = localStorage.getItem(LEGACY_PROJECT_LIST_KEY);
     const legacyLastProjectId = localStorage.getItem(
       LEGACY_LAST_PROJECT_ID_KEY,
     );
-    const index: ProjectIndex = {
+    const entry: MainEntry = {
       version: 1,
       projects: legacyList ? (JSON.parse(legacyList) as ProjectMetadata[]) : [],
       lastProjectId: legacyLastProjectId,
     };
     if (legacyList !== null || legacyLastProjectId !== null) {
-      this.writeIndex(index);
+      this.writeMain(entry);
       localStorage.removeItem(LEGACY_PROJECT_LIST_KEY);
       localStorage.removeItem(LEGACY_LAST_PROJECT_ID_KEY);
     }
-    return index;
+    return entry;
   }
 
-  private writeIndex(index: ProjectIndex): void {
-    localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(index));
+  private writeMain(entry: MainEntry): void {
+    localStorage.setItem(MAIN_KEY, JSON.stringify(entry));
   }
 
   listMetadata(): ProjectMetadata[] {
-    return this.readIndex().projects.sort((a, b) => b.updatedAt - a.updatedAt);
+    return this.readMain().projects.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   getMetadata(projectId: string): ProjectMetadata | null {
@@ -98,9 +98,9 @@ class ProjectStorage {
       updatedAt: now,
     };
 
-    const index = this.readIndex();
-    index.projects.push(metadata);
-    this.writeIndex(index);
+    const entry = this.readMain();
+    entry.projects.push(metadata);
+    this.writeMain(entry);
 
     this.save(projectId, data);
     return projectId;
@@ -110,26 +110,26 @@ class ProjectStorage {
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
-    const index = this.readIndex();
-    const position = index.projects.findIndex((p) => p.id === projectId);
+    const entry = this.readMain();
+    const position = entry.projects.findIndex((p) => p.id === projectId);
     if (position === -1) {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    index.projects[position] = {
-      ...index.projects[position],
+    entry.projects[position] = {
+      ...entry.projects[position],
       ...updates,
     };
-    this.writeIndex(index);
+    this.writeMain(entry);
   }
 
   delete(projectId: string): void {
-    const index = this.readIndex();
-    index.projects = index.projects.filter((p) => p.id !== projectId);
-    if (index.lastProjectId === projectId) {
-      index.lastProjectId = null;
+    const entry = this.readMain();
+    entry.projects = entry.projects.filter((p) => p.id !== projectId);
+    if (entry.lastProjectId === projectId) {
+      entry.lastProjectId = null;
     }
-    this.writeIndex(index);
+    this.writeMain(entry);
 
     localStorage.removeItem(getProjectKey(projectId));
   }
@@ -156,13 +156,13 @@ class ProjectStorage {
   }
 
   getLastProjectId(): string | null {
-    return this.readIndex().lastProjectId;
+    return this.readMain().lastProjectId;
   }
 
   setLastProjectId(projectId: string): void {
-    const index = this.readIndex();
-    index.lastProjectId = projectId;
-    this.writeIndex(index);
+    const entry = this.readMain();
+    entry.lastProjectId = projectId;
+    this.writeMain(entry);
   }
 
   // binary audio assets
@@ -212,7 +212,7 @@ function generateAssetKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
-// e2e-only: seed the pre-index split-key storage format to test index migration
+// e2e-only: seed the legacy split-key storage format to test main entry migration
 export function seedLegacyProjectKeys(
   metadata: ProjectMetadata,
   project: AnySavedProject,
