@@ -128,9 +128,9 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
   const projectText = await projectFile.async("text");
   const project = JSON.parse(projectText) as AnySavedProject;
 
-  if (project.version === 1) {
-    if (manifest.formatVersion !== 1) {
-      throw new Error("Invalid project file: v2 manifest with v1 project");
+  if (manifest.formatVersion === 1) {
+    if (project.version !== 1) {
+      throw new Error("Invalid project file: v1 manifest with v2 project");
     }
 
     // version 1 always persisted `audioAssetKey: null`
@@ -154,8 +154,8 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     };
   }
 
-  if (manifest.formatVersion !== 2) {
-    throw new Error("Invalid project file: v1 manifest with v2 project");
+  if (project.version !== 2) {
+    throw new Error("Invalid project file: v2 manifest with v1 project");
   }
 
   if (project.audioTracks.length !== manifest.files.audio.length) {
@@ -164,8 +164,7 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     );
   }
 
-  const audioTracks: SavedProject["audioTracks"] = [];
-
+  const newAudioTracks: SavedProject["audioTracks"] = [];
   for (const entry of manifest.files.audio) {
     const track = project.audioTracks.find((t) => t.id === entry.trackId);
     if (!track) {
@@ -180,15 +179,13 @@ export async function parseProjectFile(file: File): Promise<ParsedProjectFile> {
     }
     const blob = await audioZipFile.async("blob");
     const assetKey = await saveAsset(fileFromBlob(blob, track.fileName));
-    audioTracks.push({ ...track, assetKey });
+    newAudioTracks.push({ ...track, assetKey });
   }
+  project.audioTracks = newAudioTracks;
 
   return {
     name: manifest.name,
-    project: {
-      ...project,
-      audioTracks,
-    },
+    project,
   };
 }
 
