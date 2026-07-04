@@ -1,6 +1,4 @@
-// Persistence facade for all project storage: localStorage for project
-// metadata (cheap enumeration for the list view) and documents, IndexedDB for
-// binary audio assets.
+// Persistence facade for all project storage.
 //
 // Assets are keyed by source file (name + size + lastModified), so the same
 // file imported into multiple projects shares one asset; delete() does NOT
@@ -30,9 +28,14 @@ interface StoredAsset {
   addedAt: number;
 }
 
+// project metadata list (cheap enumeration for the list view)
 const PROJECT_LIST_KEY = "toy-midi-project-list";
+// last opened project pointer
 const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
+// project document, one localStorage entry per project
+const PROJECT_KEY_PREFIX = "toy-midi-project-";
 
+// binary audio assets
 const DB_NAME = "toy-midi";
 const DB_VERSION = 1;
 const STORE_NAME = "assets";
@@ -223,7 +226,7 @@ function generateProjectId(): string {
 }
 
 function getProjectKey(projectId: string): string {
-  return `toy-midi-project-${projectId}`;
+  return `${PROJECT_KEY_PREFIX}${projectId}`;
 }
 
 function generateAssetKey(file: File): string {
