@@ -17,7 +17,7 @@ import { useProjectStore } from "./stores/project-store";
 function main() {
   // expose utility for e2e
   if (import.meta.env.DEV) {
-    (window as any).__e2e = {
+    window.__e2e = {
       useProjectStore,
       projectStorage,
       seedLegacyProjectKeys,

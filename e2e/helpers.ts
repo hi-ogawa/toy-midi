@@ -71,7 +71,7 @@ export async function evaluateStore<T>(
   fn: (store: typeof useProjectStore) => T,
 ): Promise<T> {
   return page.evaluate((fnStr) => {
-    const store = (window as any).__e2e.useProjectStore;
+    const store = window.__e2e!.useProjectStore;
     const evalFn = new Function("store", `return (${fnStr})(store)`);
     return evalFn(store) as T;
   }, fn.toString());
