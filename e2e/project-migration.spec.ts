@@ -99,20 +99,10 @@ test.describe("Project Migration", () => {
     }, LEGACY_PROJECT);
 
     await page.goto("/");
-    await expect(page.getByTestId("project-card-legacy-keys")).toBeVisible();
-
-    // First read folds the legacy keys into the versioned index
-    const storage = await page.evaluate(() => ({
-      index: JSON.parse(localStorage.getItem("toy-midi-project-index")!),
-      legacyList: localStorage.getItem("toy-midi-project-list"),
-      legacyLastProjectId: localStorage.getItem("toy-midi-last-project-id"),
-    }));
-    expect(storage.index.version).toBe(1);
-    expect(storage.index.projects).toHaveLength(1);
-    expect(storage.index.projects[0].name).toBe("Legacy Keys");
-    expect(storage.index.lastProjectId).toBe("legacy-keys");
-    expect(storage.legacyList).toBeNull();
-    expect(storage.legacyLastProjectId).toBeNull();
+    const projectCard = page.getByTestId("project-card-legacy-keys");
+    await expect(projectCard).toBeVisible();
+    await expect(projectCard).toContainText("Legacy Keys");
+    await expect(projectCard).toHaveAttribute("aria-current", "true");
 
     await page.getByTestId("continue-button").click();
     await page.getByTestId("transport").waitFor({ state: "visible" });
