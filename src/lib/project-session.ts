@@ -76,6 +76,7 @@ export async function openProjectSession(options: {
     }
   }, autoSaveDebounceMs);
   const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
+  activeSaveDebouncer = saveDebouncer;
 
   return {
     projectId,
@@ -84,7 +85,16 @@ export async function openProjectSession(options: {
       unsubscribeAudioSync();
       unsubscribeAutoSave();
       saveDebouncer.flush();
+      activeSaveDebouncer = undefined;
       historyStore.clearHistory();
     },
   };
+}
+
+// Auto-save debouncer of the active session, so e2e tests can force a save
+// instead of waiting out the debounce.
+let activeSaveDebouncer: ReturnType<typeof debounce> | undefined;
+
+export function flushAutoSave() {
+  activeSaveDebouncer?.flush();
 }
