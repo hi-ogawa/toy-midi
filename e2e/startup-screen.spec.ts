@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { evaluateStore } from "./helpers";
+import { evaluateStore, flushAutoSave } from "./helpers";
 
 test.describe("Startup Screen", () => {
   test.beforeEach(async ({ page }) => {
@@ -57,8 +57,7 @@ test.describe("Startup Screen", () => {
       store.getState().setTempo(140);
     });
 
-    // Wait for auto-save
-    await page.waitForTimeout(100);
+    await flushAutoSave(page);
 
     // Reload - continue button should now be visible
     await page.reload();
@@ -93,7 +92,7 @@ test.describe("Startup Screen", () => {
         velocity: 90,
       });
     });
-    await page.waitForTimeout(600);
+    await flushAutoSave(page);
 
     // With saved project, Space should continue
     await page.reload();

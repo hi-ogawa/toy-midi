@@ -54,6 +54,14 @@ export async function loadAudioFile(
 }
 
 /**
+ * Force a pending auto-save to run immediately instead of waiting out the
+ * debounce.
+ */
+export async function flushAutoSave(page: Page): Promise<void> {
+  await page.evaluate(() => window.__e2e!.flushAutoSave());
+}
+
+/**
  * Evaluate a function against the Zustand store in the browser context.
  * Only available in dev mode where window.__store is exposed.
  *
