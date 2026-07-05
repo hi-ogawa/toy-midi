@@ -47,11 +47,15 @@ function ProjectRoute({ projectId }: { projectId: string }) {
   if (!sessionQuery.isSuccess) {
     return (
       <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
-        {String(sessionQuery.error ?? "")}
-        {sessionQuery.isError && (
-          <a href="/" className="text-emerald-400 hover:text-emerald-300">
-            Back to projects
-          </a>
+        {sessionQuery.isError ? (
+          <>
+            {String(sessionQuery.error)}
+            <a href="/" className="text-emerald-400 hover:text-emerald-300">
+              Back to projects
+            </a>
+          </>
+        ) : (
+          "Loading..."
         )}
       </div>
     );
