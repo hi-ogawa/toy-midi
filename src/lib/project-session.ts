@@ -15,14 +15,6 @@ export interface ProjectSession {
   dispose: () => void;
 }
 
-// Auto-save debouncer of the active session, so e2e tests can force a save
-// instead of waiting out the debounce.
-let activeSaveDebouncer: { flush: () => void } | undefined;
-
-export function flushAutoSave() {
-  activeSaveDebouncer?.flush();
-}
-
 // Open a project as the active document: hydrate the store, load audio
 // assets, and wire project-scoped subscriptions. dispose() undoes the wiring
 // so another project can be opened without a page reload.
@@ -98,4 +90,12 @@ export async function openProjectSession(options: {
       historyStore.clearHistory();
     },
   };
+}
+
+// Auto-save debouncer of the active session, so e2e tests can force a save
+// instead of waiting out the debounce.
+let activeSaveDebouncer: ReturnType<typeof debounce> | undefined;
+
+export function flushAutoSave() {
+  activeSaveDebouncer?.flush();
 }

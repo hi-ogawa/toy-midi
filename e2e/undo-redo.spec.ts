@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject, flushAutoSave } from "./helpers";
+import { clickNewProject, evaluateFlushAutoSave } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -316,7 +316,7 @@ test.describe("Undo/Redo", () => {
     await page.mouse.up();
     await expect(note).toHaveCount(1);
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload page (which will load project from localStorage)
     await page.reload();

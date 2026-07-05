@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject, flushAutoSave } from "./helpers";
+import {
+  clickContinue,
+  clickNewProject,
+  evaluateFlushAutoSave,
+} from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -36,7 +40,7 @@ test.describe("Project Persistence", () => {
 
     // Wait out the real debounce (50ms via VITE_AUTO_SAVE_DEBOUNCE_MS). This
     // test intentionally covers the debounced auto-save path end-to-end;
-    // other tests use flushAutoSave() instead.
+    // other tests use evaluateFlushAutoSave() instead.
     await page.waitForTimeout(100);
 
     // Reload the page and click Continue to restore
@@ -98,7 +102,7 @@ test.describe("Project Persistence", () => {
     // Verify 3 notes exist
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -125,7 +129,7 @@ test.describe("Project Persistence", () => {
     const waveform = page.locator(".bg-emerald-700, .bg-emerald-600").first();
     await expect(waveform).toBeVisible();
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -158,7 +162,7 @@ test.describe("Project Persistence", () => {
     await metronomeToggle.click();
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -210,7 +214,7 @@ test.describe("Project Persistence", () => {
       throw new Error("Note not found after move");
     }
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -266,7 +270,7 @@ test.describe("Project Persistence", () => {
     await page.keyboard.press("Delete");
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -294,7 +298,7 @@ test.describe("Project Persistence", () => {
     const note = page.locator("[data-testid^='note-']").first();
     await expect(note).toHaveAttribute("data-selected", "true");
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
@@ -331,7 +335,7 @@ test.describe("Project Persistence", () => {
     );
     expect(changedScrollX).toBe(25);
 
-    await flushAutoSave(page);
+    await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
     await page.reload();
