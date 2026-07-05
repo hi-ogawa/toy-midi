@@ -18,7 +18,7 @@ test.describe("Project Route", () => {
       });
       store.getState().setTempo(140);
     });
-    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__e2e!.flushAutoSave());
 
     const projectId = await page.evaluate(() =>
       window.__e2e!.projectStorage.getLastProjectId(),
