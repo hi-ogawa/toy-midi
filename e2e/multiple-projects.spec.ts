@@ -39,7 +39,7 @@ test.describe("Multiple Projects", () => {
     expect(project1Id).not.toBeNull();
 
     // Reload to see project list
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("startup-screen")).toBeVisible();
 
     // Should see the first project in the list
@@ -70,7 +70,7 @@ test.describe("Multiple Projects", () => {
     expect(project2Id).not.toBe(project1Id);
 
     // Reload again
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("startup-screen")).toBeVisible();
 
     // Should see both projects
@@ -95,7 +95,7 @@ test.describe("Multiple Projects", () => {
     const project1Id = await getLastProjectId(page);
 
     // Create second project with different note
-    await page.reload();
+    await page.goto("/");
     await clickNewProject(page);
     await evaluateStore(page, (store) => {
       store.getState().addNote({
@@ -111,7 +111,7 @@ test.describe("Multiple Projects", () => {
     const project2Id = await getLastProjectId(page);
 
     // Load first project
-    await page.reload();
+    await page.goto("/");
     await page.getByTestId(`project-card-${project1Id}`).click();
     await expect(page.getByTestId("transport")).toBeVisible();
 
@@ -121,7 +121,7 @@ test.describe("Multiple Projects", () => {
     expect(notes1[0].pitch).toBe(60);
 
     // Load second project
-    await page.reload();
+    await page.goto("/");
     await page.getByTestId(`project-card-${project2Id}`).click();
     await expect(page.getByTestId("transport")).toBeVisible();
 
@@ -147,7 +147,7 @@ test.describe("Multiple Projects", () => {
     await evaluateFlushAutoSave(page);
 
     // Reload and use "Continue Last" button
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("continue-button")).toBeVisible();
     await page.getByTestId("continue-button").click();
 
@@ -172,7 +172,7 @@ test.describe("Multiple Projects", () => {
     const project1Id = await getLastProjectId(page);
 
     // Create second project (will be more recent)
-    await page.reload();
+    await page.goto("/");
     await page.waitForTimeout(100); // Small delay to ensure different timestamp
     await clickNewProject(page);
     await evaluateStore(page, (store) => {
@@ -182,7 +182,7 @@ test.describe("Multiple Projects", () => {
     const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
-    await page.reload();
+    await page.goto("/");
 
     // Get all project cards
     const projectCards = page.locator('[data-testid^="project-card-"]');
@@ -212,7 +212,7 @@ test.describe("Multiple Projects", () => {
     await evaluateFlushAutoSave(page);
 
     // Reload and press Space
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("continue-button")).toBeVisible();
     await page.keyboard.press("Space");
 
@@ -227,7 +227,7 @@ test.describe("Multiple Projects", () => {
     const projectId = await getLastProjectId(page);
 
     // Reload to see project list
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("startup-screen")).toBeVisible();
 
     await expect(page.getByTestId(`project-card-${projectId}`)).toContainText(
@@ -261,7 +261,7 @@ test.describe("Multiple Projects", () => {
     const projectId = await getLastProjectId(page);
 
     // Reload to see project list
-    await page.reload();
+    await page.goto("/");
     const projectCard = page.getByTestId(`project-card-${projectId}`);
 
     // Start rename
@@ -281,12 +281,12 @@ test.describe("Multiple Projects", () => {
     await clickNewProject(page);
     const project1Id = await getLastProjectId(page);
 
-    await page.reload();
+    await page.goto("/");
     await clickNewProject(page);
     const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId(`project-card-${project1Id}`)).toBeVisible();
     await expect(page.getByTestId(`project-card-${project2Id}`)).toBeVisible();
 
@@ -317,17 +317,17 @@ test.describe("Multiple Projects", () => {
     const project1Id = await getLastProjectId(page);
 
     // Create second project - should be "Untitled 2"
-    await page.reload();
+    await page.goto("/");
     await clickNewProject(page);
     const project2Id = await getLastProjectId(page);
 
     // Create third project - should be "Untitled 3"
-    await page.reload();
+    await page.goto("/");
     await clickNewProject(page);
     const project3Id = await getLastProjectId(page);
 
     // Go back to startup screen to verify names
-    await page.reload();
+    await page.goto("/");
 
     const project1Card = page.getByTestId(`project-card-${project1Id}`);
     const project2Card = page.getByTestId(`project-card-${project2Id}`);
@@ -369,7 +369,7 @@ test.describe("Multiple Projects", () => {
     await expect(page).toHaveTitle("My Bass Track - Toy MIDI");
 
     // Verify the name was changed by going to startup screen
-    await page.reload();
+    await page.goto("/");
     const projectCard = page.getByTestId(`project-card-${projectId}`);
     await expect(projectCard).toContainText("My Bass Track");
   });
@@ -380,12 +380,12 @@ test.describe("Multiple Projects", () => {
     const project1Id = await getLastProjectId(page);
 
     // Create second project
-    await page.reload();
+    await page.goto("/");
     await clickNewProject(page);
     const project2Id = await getLastProjectId(page);
 
     // Go back to startup screen
-    await page.reload();
+    await page.goto("/");
 
     // Project 2 should be highlighted (it's the last one we used)
     await expect(
@@ -402,7 +402,7 @@ test.describe("Multiple Projects", () => {
     await expect(page.getByTestId("transport")).toBeVisible();
 
     // Go back to startup screen
-    await page.reload();
+    await page.goto("/");
 
     // Project 1 should now be highlighted (it's the last one we opened)
     await expect(

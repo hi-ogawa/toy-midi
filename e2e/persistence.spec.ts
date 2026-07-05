@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
-  clickContinue,
+  waitForEditor,
   clickNewProject,
   evaluateFlushAutoSave,
 } from "./helpers";
@@ -45,7 +45,7 @@ test.describe("Project Persistence", () => {
 
     // Reload the page and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Note should still exist after reload
     const restoredNote = page.locator("[data-testid^='note-']");
@@ -106,7 +106,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // All 3 notes should be restored
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(3);
@@ -133,7 +133,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Audio should be restored - waveform should be visible
     await expect(waveform).toBeVisible();
@@ -166,7 +166,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // All settings should be restored
     await expect(page.getByTestId("tempo-input")).toHaveValue("95");
@@ -218,7 +218,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Note should be at the moved position
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -274,7 +274,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Should still have only 1 note
     await expect(page.locator("[data-testid^='note-']")).toHaveCount(1);
@@ -302,7 +302,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Note should exist but NOT be selected (selection is transient)
     const restoredNote = page.locator("[data-testid^='note-']").first();
@@ -339,7 +339,7 @@ test.describe("Project Persistence", () => {
 
     // Reload and click Continue to restore
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Verify viewport state was restored
     const restoredScrollX = await evaluateStore(

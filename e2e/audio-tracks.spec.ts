@@ -1,5 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
-import { clickNewProject, evaluateStore, loadAudioFile } from "./helpers";
+import {
+  clickNewProject,
+  evaluateStore,
+  loadAudioFile,
+  waitForEditor,
+} from "./helpers";
 
 test.describe("Multiple Audio Tracks", () => {
   test.beforeEach(async ({ page }) => {
@@ -72,8 +77,7 @@ test.describe("Multiple Audio Tracks", () => {
     // Wait for auto-save
     await page.waitForTimeout(200);
     await page.reload();
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await waitForEditor(page);
 
     const tracks = await getAudioTracks(page);
     expect(tracks).toHaveLength(2);

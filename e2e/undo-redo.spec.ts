@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject, evaluateFlushAutoSave } from "./helpers";
+import {
+  clickNewProject,
+  evaluateFlushAutoSave,
+  waitForEditor,
+} from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -321,11 +325,7 @@ test.describe("Undo/Redo", () => {
     // Reload page (which will load project from localStorage)
     await page.reload();
 
-    // Click Continue to restore the project
-    const continueButton = page.getByTestId("continue-button");
-    await continueButton.waitFor({ state: "visible", timeout: 10000 });
-    await continueButton.click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await waitForEditor(page);
 
     // Note should still be there
     await expect(note).toHaveCount(1);

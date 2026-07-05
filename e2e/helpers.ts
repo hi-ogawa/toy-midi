@@ -17,6 +17,13 @@ export async function clickContinue(page: Page): Promise<void> {
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }
 
+/**
+ * Wait for the editor UI after navigating or reloading into /project/:id.
+ */
+export async function waitForEditor(page: Page): Promise<void> {
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
 /** @deprecated Use clickNewProject instead */
 export const clickThroughStartup = clickNewProject;
 

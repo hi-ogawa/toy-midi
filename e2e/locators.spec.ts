@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject } from "./helpers";
+import { clickNewProject, waitForEditor } from "./helpers";
 
 test.describe("Locators", () => {
   test.beforeEach(async ({ page }) => {
@@ -148,9 +148,7 @@ test.describe("Locators", () => {
     // Reload page
     await page.reload();
 
-    // Click "Continue" to restore project
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await waitForEditor(page);
 
     // Verify locators persisted
     await expect(page.getByText("Section 1")).toBeVisible();
