@@ -28,12 +28,11 @@ export async function openProjectSession(options: {
   } else {
     projectId = projectStorage.createNew();
   }
-  projectStorage.setLastProjectId(projectId);
-
   const metadata = projectStorage.getMetadata(projectId);
   if (!metadata) {
     throw new Error(`Project ${projectId} metadata not found`);
   }
+  projectStorage.setLastProjectId(projectId);
   const data = projectStorage.load(projectId);
   useProjectStore.setState(fromSavedProject(data));
 
