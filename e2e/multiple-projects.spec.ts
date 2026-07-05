@@ -6,14 +6,9 @@ async function getLastProjectId(page: Page) {
 }
 
 test.describe("Multiple Projects", () => {
+  // Each test gets a fresh browser context, so storage starts empty
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    // Clear all storage to start fresh
-    await page.evaluate(() => {
-      localStorage.clear();
-      // Also clear IndexedDB if needed
-    });
-    await page.reload();
   });
 
   test("can create multiple projects", async ({ page }) => {
