@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
 
-async function getLastProjectId(page: Page): Promise<string | undefined> {
+async function getLastProjectId(page: Page) {
   return page.evaluate(() => window.__e2e!.projectStorage.getLastProjectId());
 }
 
