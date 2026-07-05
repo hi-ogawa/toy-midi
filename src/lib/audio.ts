@@ -191,8 +191,6 @@ class AudioManager {
   private metronomeChannel!: Tone.Channel;
 
   async init(): Promise<void> {
-    await Tone.start(); // Resume audio context (browser autoplay policy)
-
     const context = Tone.getContext();
 
     // OxiSynth (Rust/WASM) for SF2 playback
@@ -432,6 +430,20 @@ class AudioTrackPlayback {
 }
 
 export const audioManager = new AudioManager();
+
+// Browser autoplay policy blocks AudioContext.resume() outside a user
+// gesture, but everything else in init() works on a suspended context.
+// Resume on the first interaction anywhere; capture phase so that even
+// "click play as the very first interaction" resumes within that gesture.
+export function unlockAudioOnFirstGesture(): void {
+  const unlock = () => {
+    Tone.start();
+    window.removeEventListener("pointerdown", unlock, true);
+    window.removeEventListener("keydown", unlock, true);
+  };
+  window.addEventListener("pointerdown", unlock, true);
+  window.addEventListener("keydown", unlock, true);
+}
 
 // Derive POINTS_PER_SECOND from max zoom level we want to support
 // Goal: 1 point per pixel at max zoom

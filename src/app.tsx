@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +17,44 @@ import { openProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 
 export function App() {
+  const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
+  if (match) {
+    return <ProjectRoute projectId={match[1]} />;
+  }
+  return <StartupApp />;
+}
+
+// Deep-link entry: load the project named by the URL directly, no startup
+// screen. Audio inits on a suspended context (see unlockAudioOnFirstGesture).
+function ProjectRoute({ projectId }: { projectId: string }) {
+  const sessionQuery = useQuery({
+    queryKey: ["project-session", projectId],
+    queryFn: async () => {
+      await audioManager.init();
+      return await openProjectSession({ projectId });
+    },
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+  });
+
+  if (!sessionQuery.isSuccess) {
+    return (
+      <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center text-neutral-400">
+        {String(sessionQuery.error ?? "")}
+      </div>
+    );
+  }
+
+  return (
+    <Editor
+      projectId={sessionQuery.data.projectId}
+      initialProjectName={sessionQuery.data.projectName}
+    />
+  );
+}
+
+function StartupApp() {
   const initMutation = useMutation({
     mutationFn: async (options: { projectId?: string }) => {
       await audioManager.init();
