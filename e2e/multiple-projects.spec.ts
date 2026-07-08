@@ -10,7 +10,8 @@ async function getLastProjectId(page: Page) {
 }
 
 test.describe("Multiple Projects", () => {
-  // Each test gets a fresh browser context, so storage starts empty
+  // Playwright creates a fresh browser context per test by default, so storage
+  // starts empty here.
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });

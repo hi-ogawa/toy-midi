@@ -32,7 +32,6 @@ export async function openProjectSession(options: {
   if (!metadata) {
     throw new Error(`Project ${projectId} metadata not found`);
   }
-  projectStorage.setLastProjectId(projectId);
   const data = projectStorage.load(projectId);
   useProjectStore.setState(fromSavedProject(data));
 
@@ -77,6 +76,7 @@ export async function openProjectSession(options: {
   }, autoSaveDebounceMs);
   const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
   activeSaveDebouncer = saveDebouncer;
+  projectStorage.setLastProjectId(projectId);
 
   return {
     projectId,
