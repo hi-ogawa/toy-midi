@@ -37,11 +37,15 @@ function ProjectRoute({ projectId }: { projectId: string }) {
     gcTime: Infinity,
     retry: false,
   });
+  const errorMessage =
+    sessionQuery.error instanceof Error
+      ? sessionQuery.error.message
+      : String(sessionQuery.error ?? "");
 
   if (!sessionQuery.isSuccess) {
     return (
       <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center text-neutral-400">
-        {String(sessionQuery.error ?? "")}
+        {errorMessage}
       </div>
     );
   }
