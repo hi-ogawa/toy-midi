@@ -51,7 +51,7 @@ so dev and Playwright need nothing. Production needs
 - `src/main.tsx` — register unlock listeners
 - `wrangler.jsonc` — SPA fallback
 - `e2e/project-route.spec.ts` — deep link opens project; bogus id
-  redirects to `/`
+  shows an error message
 
 ## Status
 
