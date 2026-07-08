@@ -1,3 +1,4 @@
+import type { flushAutoSave } from "./lib/project-session";
 import type {
   projectStorage,
   seedLegacyProjectKeys,
@@ -12,6 +13,7 @@ declare global {
       projectStorage: typeof projectStorage;
       seedLegacyProjectKeys: typeof seedLegacyProjectKeys;
       seedProjectV1: typeof seedProjectV1;
+      flushAutoSave: typeof flushAutoSave;
     };
   }
 }

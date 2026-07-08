@@ -7,6 +7,8 @@ import "./index.css";
 import oxisynthWasmUrl from "./assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
+import { unlockAudioOnFirstGesture } from "./lib/audio";
+import { flushAutoSave } from "./lib/project-session";
 import {
   projectStorage,
   seedLegacyProjectKeys,
@@ -22,11 +24,14 @@ function main() {
       projectStorage,
       seedLegacyProjectKeys,
       seedProjectV1,
+      flushAutoSave,
     };
     if (window.location.pathname.startsWith("/__e2e__/")) {
       return;
     }
   }
+
+  unlockAudioOnFirstGesture();
 
   const queryClient = new QueryClient({
     defaultOptions: {

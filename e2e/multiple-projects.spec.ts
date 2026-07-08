@@ -1,19 +1,18 @@
 import { expect, test, type Page } from "@playwright/test";
-import { clickNewProject, evaluateStore } from "./helpers";
+import {
+  clickNewProject,
+  evaluateStore,
+  evaluateFlushAutoSave,
+} from "./helpers";
 
 async function getLastProjectId(page: Page) {
   return page.evaluate(() => window.__e2e!.projectStorage.getLastProjectId());
 }
 
 test.describe("Multiple Projects", () => {
+  // Each test gets a fresh browser context, so storage starts empty
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    // Clear all storage to start fresh
-    await page.evaluate(() => {
-      localStorage.clear();
-      // Also clear IndexedDB if needed
-    });
-    await page.reload();
   });
 
   test("can create multiple projects", async ({ page }) => {
@@ -33,8 +32,7 @@ test.describe("Multiple Projects", () => {
       store.getState().setTempo(140);
     });
 
-    // Wait for auto-save
-    await page.waitForTimeout(100);
+    await evaluateFlushAutoSave(page);
 
     // Get first project ID
     const project1Id = await getLastProjectId(page);
@@ -65,7 +63,7 @@ test.describe("Multiple Projects", () => {
       store.getState().setTempo(120);
     });
 
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     const project2Id = await getLastProjectId(page);
     expect(project2Id).not.toBeNull();
@@ -92,7 +90,7 @@ test.describe("Multiple Projects", () => {
         velocity: 100,
       });
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     const project1Id = await getLastProjectId(page);
 
@@ -108,7 +106,7 @@ test.describe("Multiple Projects", () => {
         velocity: 80,
       });
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     const project2Id = await getLastProjectId(page);
 
@@ -146,7 +144,7 @@ test.describe("Multiple Projects", () => {
       });
       store.getState().setTempo(130);
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     // Reload and use "Continue Last" button
     await page.reload();
@@ -170,7 +168,7 @@ test.describe("Multiple Projects", () => {
     await evaluateStore(page, (store) => {
       store.getState().setTempo(100);
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
     const project1Id = await getLastProjectId(page);
 
     // Create second project (will be more recent)
@@ -180,7 +178,7 @@ test.describe("Multiple Projects", () => {
     await evaluateStore(page, (store) => {
       store.getState().setTempo(120);
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
     const project2Id = await getLastProjectId(page);
 
     // Reload to see project list
@@ -211,7 +209,7 @@ test.describe("Multiple Projects", () => {
     await evaluateStore(page, (store) => {
       store.getState().setTempo(115);
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     // Reload and press Space
     await page.reload();
@@ -346,7 +344,7 @@ test.describe("Multiple Projects", () => {
     await evaluateStore(page, (store) => {
       store.getState().setTempo(130);
     });
-    await page.waitForTimeout(600);
+    await evaluateFlushAutoSave(page);
 
     const projectId = await getLastProjectId(page);
 
