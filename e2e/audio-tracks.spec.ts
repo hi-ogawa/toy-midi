@@ -1,5 +1,11 @@
 import { expect, type Page, test } from "@playwright/test";
-import { clickNewProject, evaluateStore, loadAudioFile } from "./helpers";
+import {
+  clickContinue,
+  clickNewProject,
+  evaluateFlushAutoSave,
+  evaluateStore,
+  loadAudioFile,
+} from "./helpers";
 
 test.describe("Multiple Audio Tracks", () => {
   test.beforeEach(async ({ page }) => {
@@ -80,6 +86,33 @@ test.describe("Multiple Audio Tracks", () => {
     expect(tracks.map((t) => t.fileName)).toEqual([
       "test-audio.wav",
       "test-audio-2.wav",
+    ]);
+  });
+
+  test("imports ordered audio tracks from a stem ZIP", async ({ page }) => {
+    test.slow();
+    await page.getByTestId("settings-button").click();
+    await page
+      .getByTestId("audio-file-input")
+      .setInputFiles("e2e/fixtures/test-stems.zip");
+    await expect(page.getByTestId("remove-audio-button")).toHaveCount(2);
+    await page.keyboard.press("Escape");
+
+    let tracks = await getAudioTracks(page);
+    expect(tracks.map((track) => track.fileName)).toEqual([
+      "no_bass.wav",
+      "bass.wav",
+    ]);
+    await expect(page.getByTestId("audio-track-region")).toHaveCount(2);
+
+    await evaluateFlushAutoSave(page);
+    await page.reload();
+    await clickContinue(page);
+
+    tracks = await getAudioTracks(page);
+    expect(tracks.map((track) => track.fileName)).toEqual([
+      "no_bass.wav",
+      "bass.wav",
     ]);
   });
 });
