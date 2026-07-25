@@ -86,8 +86,6 @@ interface AudioTrack {
 
 There is exactly one implicit MIDI track (a flat `notes: Note[]`) and any number of audio tracks.
 
-Multiple audio tracks are typically stems of one recording, so offsets are linked by default: `moveAudioOffset` applies a drag's delta to all tracks when the `linkAudioOffsetsEnabled` preference is on, clamping the shared delta so the minimum offset lands at 0 (per-track clamping would break relative alignment).
-
 ## State Management
 
 `useProjectStore` (Zustand) holds music data (`notes`, `locators`, `audioTracks`, `tempo`, `timeSignature`, `totalBeats`), editor state (selections, `gridSnap`, `clipboard`), mixer settings, and viewport state (`scrollX`/`scrollY`, `pixelsPerBeat`/`pixelsPerKey`, `waveformHeight`).
