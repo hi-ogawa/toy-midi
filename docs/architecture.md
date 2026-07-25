@@ -96,6 +96,8 @@ Serialization lives next to the store: `SavedProject` (version 2), `toSavedProje
 
 Undo/redo: `historyStore` is a plain object holding note-operation entries (`add/delete/update`, max 50), used only by project-store actions, so React never subscribes to it. Only note operations are undoable; locators, audio tracks, tempo, and mixer are not.
 
+Selected notes can be quantized with `Q`; the command snaps their starts and durations to the active grid as one undoable batch update, with a minimum duration of one grid unit.
+
 ## Audio Layer
 
 `AudioManager` (`lib/audio.ts`, singleton `audioManager`) owns the Tone.js graph: an OxiSynth SF2 worklet behind a `Tone.Channel` for MIDI, one `Tone.Player` + `Tone.Channel` per audio track, and a raw Web Audio metronome driven by a `Tone.Sequence`.
