@@ -35,7 +35,7 @@ export interface ProjectState {
   // UI state
   showDebug: boolean;
   autoScrollEnabled: boolean;
-  linkAudioOffsetsEnabled: boolean; // drag moves all audio tracks together (stems)
+  linkAudioOffsetsEnabled: boolean; // drag moves all audio tracks together
 
   // Viewport state
   // scrollX/scrollY: content offset in logical units (beats/semitones), can be fractional
