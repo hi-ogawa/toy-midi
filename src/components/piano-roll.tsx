@@ -256,6 +256,7 @@ export function PianoRoll() {
     selectNotes,
     deselectAll,
     updateAudioTrack,
+    moveAudioOffset,
     deleteAudioTrack,
     selectAudioTrack,
     undo,
@@ -1258,9 +1259,7 @@ export function PianoRoll() {
               height={waveformHeight}
               beatsPerBar={beatsPerBar}
               isSelected={selectedAudioTrackId === track.id}
-              onOffsetChange={(offset) =>
-                updateAudioTrack(track.id, { offset })
-              }
+              onOffsetChange={(offset) => moveAudioOffset(track.id, offset)}
               onHeightChange={setWaveformHeight}
               onSelect={() => {
                 deselectAll();

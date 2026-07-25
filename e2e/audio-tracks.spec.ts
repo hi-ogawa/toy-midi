@@ -89,6 +89,50 @@ test.describe("Multiple Audio Tracks", () => {
     ]);
   });
 
+  test("drags linked audio offsets together", async ({ page }) => {
+    test.slow();
+    await loadAudioFile(page, "test-audio.wav");
+    await loadAudioFile(page, "test-audio-2.wav");
+
+    async function getOffsets(page: Page) {
+      return await evaluateStore(page, (store) =>
+        store.getState().audioTracks.map((t) => t.offset),
+      );
+    }
+
+    async function dragRegionBy(page: Page, index: number, dx: number) {
+      const region = page.getByTestId("audio-track-region").nth(index);
+      const box = (await region.boundingBox())!;
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(
+        box.x + box.width / 2 + dx,
+        box.y + box.height / 2,
+        { steps: 5 },
+      );
+      await page.mouse.up();
+    }
+
+    // Default 80 px/beat at 120 BPM: 160 px = 2 beats = 1 s.
+    // Linked (default on): dragging one region moves both tracks.
+    await dragRegionBy(page, 0, 160);
+    let offsets = await getOffsets(page);
+    expect(offsets[0]).toBeCloseTo(1, 5);
+    expect(offsets[1]).toBeCloseTo(1, 5);
+
+    // Disable linking in Settings, then only the dragged track moves.
+    await page.getByTestId("settings-button").click();
+    await page.getByRole("checkbox", { name: "Link audio offsets" }).uncheck();
+    // Escape is swallowed while the checkbox has focus, so use the close button
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(page.getByTestId("settings-dialog")).toBeHidden();
+
+    await dragRegionBy(page, 1, 80);
+    offsets = await getOffsets(page);
+    expect(offsets[0]).toBeCloseTo(1, 5);
+    expect(offsets[1]).toBeCloseTo(1.5, 5);
+  });
+
   test("imports ordered audio tracks from a stem ZIP", async ({ page }) => {
     test.slow();
     await page.getByTestId("settings-button").click();
