@@ -341,19 +341,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       return;
     }
 
-    if (!state.linkAudioOffsetsEnabled || state.audioTracks.length === 1) {
+    if (!state.linkAudioOffsetsEnabled) {
       state.updateAudioTrack(id, { offset: Math.max(0, offset) });
       return;
     }
 
-    // Linked: move all tracks by the same delta, clamped so the minimum
-    // offset lands at 0 (per-track clamping would break relative alignment)
+    // Move all tracks by the same delta, clamping the delta (not each
+    // track) so relative alignment is preserved when hitting 0
     const minOffset = Math.min(...state.audioTracks.map((t) => t.offset));
     const delta = Math.max(offset - track.offset, -minOffset);
     set((state) => ({
       audioTracks: state.audioTracks.map((t) => ({
         ...t,
-        offset: Math.max(0, t.offset + delta),
+        offset: t.offset + delta,
       })),
     }));
   },
