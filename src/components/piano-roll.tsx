@@ -43,6 +43,8 @@ const MIN_WAVEFORM_HEIGHT = 56;
 const MAX_WAVEFORM_HEIGHT = 300;
 
 // Zoom limits (pixels per beat/key)
+// TODO: consider discrete integer zoom levels (e.g. 1,2,3,4,6,8,...,192)
+// for simpler state and guaranteed zoom roundtrip
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
 const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
@@ -104,7 +106,7 @@ function generateVerticalGridLayers(
 
 // Generate CSS background for grid (returns style object)
 // Uses linear-gradient + background-size instead of repeating-linear-gradient
-// to avoid subpixel rendering artifacts (see docs/2026-01-08-vertical-grid-alignment.md)
+// to avoid subpixel rendering artifacts
 function generateGridBackground(
   pixelsPerBeat: number,
   pixelsPerKey: number,
@@ -303,6 +305,8 @@ export function PianoRoll() {
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
 
   // Track viewport size
+  // TODO: keyboard sidebar initial height is truncated until the first
+  // resize because of this hardcoded initial size
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
 
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
@@ -360,6 +364,8 @@ export function PianoRoll() {
   const visibleBeats = viewportSize.width / pixelsPerBeat;
   const visibleKeys = viewportSize.height / pixelsPerKey;
 
+  // TODO: some useCallback below (screenToGrid, gridToScreen, handleMouseMove,
+  // handleMouseUp) may be unnecessary now that useWindowEvent uses useEffectEvent
   // Convert screen coordinates to grid coordinates (beat, pitch)
   const screenToGrid = useCallback(
     (clientX: number, clientY: number) => {

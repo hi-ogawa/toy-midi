@@ -13,5 +13,4 @@ pnpm dev
 
 ## Docs
 
-- [docs/prd.md](docs/prd.md)
 - [docs/architecture.md](docs/architecture.md)
