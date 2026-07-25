@@ -33,8 +33,8 @@ export function openProjectSession(options: {
     throw new Error(`Project ${projectId} metadata not found`);
   }
   projectStorage.setLastProjectId(projectId);
-  const hydrated = fromSavedProject(projectStorage.load(projectId));
-  useProjectStore.setState(hydrated);
+  const data = projectStorage.load(projectId);
+  useProjectStore.setState(fromSavedProject(data));
 
   // applyState no-ops until audioManager is ready; attachAudio runs a full
   // sync at the ready transition, so changes made while loading are not lost.
@@ -90,14 +90,9 @@ export function openProjectSession(options: {
     if (disposed) {
       return;
     }
-    // Fresh getState here on purpose: edits made while audio was loading
-    // must be included, unlike the hydration-time snapshot below.
+    // Fresh getState: edits made while audio was loading must be included.
     audioManager.applyState(useProjectStore.getState());
-    await restoreAudioTracks(
-      hydrated.audioTracks ?? [],
-      useProjectStore.getState(),
-      () => disposed,
-    );
+    await restoreAudioTracks(useProjectStore.getState(), () => disposed);
   };
   void attachAudio();
 
@@ -116,17 +111,15 @@ export function openProjectSession(options: {
   };
 }
 
-// Restore stored audio for the given (hydration-time) tracks: this level
-// owns the store reconciliation (waveform on success, track removal when
-// the asset is gone) and user-facing errors; IO/decode and playback wiring
-// live below. One bad asset skips that track only. `tracks` is deliberately
-// a snapshot of what was hydrated; `project` is the caller's store handle.
+// Restore stored audio for the project's tracks: this level owns the store
+// reconciliation (waveform on success, track removal when the asset is
+// gone) and user-facing errors; IO/decode and playback wiring live below.
+// One bad asset skips that track only.
 async function restoreAudioTracks(
-  tracks: AudioTrack[],
   project: ProjectState,
   isDisposed: () => boolean,
 ): Promise<void> {
-  for (const track of tracks) {
+  for (const track of project.audioTracks) {
     try {
       const loaded = await loadStoredTrackAudio(track);
       if (isDisposed()) {
