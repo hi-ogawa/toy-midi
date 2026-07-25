@@ -12,6 +12,8 @@ import * as Tone from "tone";
  * which handles app-specific logic like note scheduling.
  */
 export function useTransport() {
+  // TODO: persist last position so a restored project resumes where it left off
+  // TODO: align naming with Tone.js (position -> seconds)
   // TODO:
   // expose high frequency update should as a separate hook?
   // or we should allow selector function to subscribe only partial state e.g.

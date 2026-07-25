@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { clickNewProject } from "./helpers";
 
+// TODO: consolidate into fewer user-flow tests (combine add/select/delete/deselect)
 test.describe("Locators", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
