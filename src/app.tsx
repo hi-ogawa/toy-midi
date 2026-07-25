@@ -34,6 +34,10 @@ function openProject(projectId: string) {
 // initializes in the background (see openProjectSession) and playback
 // enables when it's ready.
 function ProjectRoute({ projectId }: { projectId: string }) {
+  // TODO: a sync queryFn is an abuse of useQuery, kept only for its
+  // StrictMode-safe once-per-key creation. Once dispose matters (client-side
+  // navigation, #161), model the session as an owned resource instead:
+  // create in an effect keyed by projectId, dispose in the cleanup.
   const sessionQuery = useQuery({
     queryKey: ["project-session", projectId],
     queryFn: () => openProjectSession({ projectId }),
