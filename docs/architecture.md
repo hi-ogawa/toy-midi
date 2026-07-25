@@ -80,7 +80,13 @@ interface AudioTrack {
   offset: number; // seconds
   volume: number;
   muted: boolean;
-  audioView: AudioView | null; // transient, not persisted
+  // transient, not persisted: pending → pale region; ready → waveform;
+  // unavailable → no waveform, still plays (too-long bailout); error → dead
+  audioWaveform:
+    | { status: "pending" }
+    | { status: "ready"; view: AudioView }
+    | { status: "unavailable" }
+    | { status: "error" };
 }
 ```
 

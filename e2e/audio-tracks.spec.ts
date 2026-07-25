@@ -153,4 +153,22 @@ test.describe("Multiple Audio Tracks", () => {
       "bass.wav",
     ]);
   });
+
+  test("renders a failed audio restore as a dead region", async ({ page }) => {
+    await loadAudioFile(page, "test-audio.wav");
+
+    // Force the error state directly; a real decode failure is not
+    // reproducible deterministically in e2e
+    await evaluateStore(page, (store) => {
+      const track = store.getState().audioTracks[0];
+      store.getState().updateAudioTrack(track.id, {
+        audioWaveform: { status: "error" },
+      });
+    });
+
+    await expect(page.getByTestId("audio-track-region")).toHaveAttribute(
+      "title",
+      "Audio failed to load",
+    );
+  });
 });

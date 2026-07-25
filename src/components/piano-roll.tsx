@@ -25,6 +25,7 @@ import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
+  type AudioWaveform,
   generateLocatorId,
   generateNoteId,
   secondsToBeats,
@@ -1264,7 +1265,7 @@ export function PianoRoll() {
               audioFileName={track.fileName}
               tempo={tempo}
               playheadBeat={secondsToBeats(position, tempo)}
-              audioView={track.audioView}
+              audioWaveform={track.audioWaveform}
               height={waveformHeight}
               beatsPerBar={beatsPerBar}
               isSelected={selectedAudioTrackId === track.id}
@@ -1824,7 +1825,7 @@ function WaveformArea({
   audioFileName,
   tempo,
   playheadBeat,
-  audioView,
+  audioWaveform,
   height,
   beatsPerBar,
   isSelected,
@@ -1842,7 +1843,7 @@ function WaveformArea({
   audioFileName: string | null;
   tempo: number;
   playheadBeat: number;
-  audioView: AudioView | null;
+  audioWaveform: AudioWaveform;
   height: number;
   beatsPerBar: number;
   isSelected: boolean;
@@ -1966,19 +1967,26 @@ function WaveformArea({
       className="relative shrink-0 border-b border-neutral-700 overflow-hidden"
       style={{ height, ...gridBackgroundStyle }}
     >
-      {/* Audio region block. Pale while audioView is null (asset not
-          restored yet); EMPTY_AUDIO_VIEW renders normal color with no
-          waveform (too-long bailout or failed restore, see #182). */}
+      {/* Audio region block: pale while pending (asset restoring), reddish
+          when the restore failed (dead track), normal color with no waveform
+          when unavailable (too-long bailout, still playable). */}
       {audioDuration > 0 && (
         <div
           data-testid="audio-track-region"
           data-track-id={trackId}
+          title={
+            audioWaveform.status === "error"
+              ? "Audio failed to load"
+              : undefined
+          }
           className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-75 ${
-            audioView === null
+            audioWaveform.status === "pending"
               ? "bg-emerald-800/40"
-              : isDragging
-                ? "bg-emerald-600"
-                : "bg-emerald-700 hover:bg-emerald-600"
+              : audioWaveform.status === "error"
+                ? "bg-red-900/30"
+                : isDragging
+                  ? "bg-emerald-600"
+                  : "bg-emerald-700 hover:bg-emerald-600"
           } ${isSelected ? "ring-2 ring-sky-400" : ""}`}
           style={{
             left: audioStartX,
@@ -1987,15 +1995,16 @@ function WaveformArea({
           onMouseDown={handleMouseDown}
         >
           {/* Waveform SVG */}
-          {audioView && audioView.data.length > 0 && (
-            <Waveform
-              audioView={audioView}
-              audioDuration={audioDuration}
-              visibleStart={audioVisibleStart}
-              visibleEnd={audioVisibleEnd}
-              pixelWidth={Math.max(1, Math.round(audioWidth))}
-            />
-          )}
+          {audioWaveform.status === "ready" &&
+            audioWaveform.view.data.length > 0 && (
+              <Waveform
+                audioView={audioWaveform.view}
+                audioDuration={audioDuration}
+                visibleStart={audioVisibleStart}
+                visibleEnd={audioVisibleEnd}
+                pixelWidth={Math.max(1, Math.round(audioWidth))}
+              />
+            )}
           {/* File name and offset indicator */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
