@@ -135,56 +135,48 @@ function openProjectSession(projectId: string): ProjectSession {
   };
 }
 
-// Restore stored audio for the project's tracks, in parallel: the IDB reads
-// and decodeAudioData overlap off the main thread, so wall-clock is ~the
-// slowest track instead of the sum (only the sync waveform peak extraction
-// serializes, as results land). Store updates are id-keyed and
-// order-independent.
+// Restore stored audio for the project's tracks. Only the effect-free
+// IO/decode fans out (IDB reads and decodeAudioData overlap off the main
+// thread, so wall-clock is ~the slowest track instead of the sum); store
+// reconciliation (waveform on success, track removal when the asset is
+// gone) and user-facing errors run in one sequential pass after the
+// barrier, so nothing mutates before the single abort check and one bad
+// asset affects only its own track.
 async function restoreAudioTracks(
   project: ProjectState,
   signal: AbortSignal,
 ): Promise<void> {
-  await Promise.all(
+  const loads = await Promise.all(
     project.audioTracks.map((track) =>
-      restoreAudioTrack(project, track, signal),
+      loadStoredTrackAudio(track).then(
+        (loaded) => ({ track, loaded }),
+        (e: unknown) => {
+          console.error(e);
+          return { track, loaded: "failed" as const };
+        },
+      ),
     ),
   );
-}
-
-// Restore one track: this level owns the store reconciliation (waveform on
-// success, track removal when the asset is gone) and user-facing errors;
-// IO/decode and playback wiring live below. Never rejects, so one bad asset
-// affects only its own track.
-async function restoreAudioTrack(
-  project: ProjectState,
-  track: AudioTrack,
-  signal: AbortSignal,
-): Promise<void> {
-  try {
-    const loaded = await loadStoredTrackAudio(track);
-    if (signal.aborted) {
-      return;
-    }
-    if (!loaded) {
+  if (signal.aborted) {
+    return;
+  }
+  for (const { track, loaded } of loads) {
+    if (loaded === "failed") {
+      toast.error(`Failed to load audio "${track.fileName}".`);
+      // Mark the waveform unavailable so `audioView === null` stays
+      // pending-only and the region doesn't read as loading forever.
+      // TODO(#182): model restore failure explicitly (distinct from the
+      // too-long waveform bailout) so the region can render the track as dead.
+      project.updateAudioTrack(track.id, { audioView: EMPTY_AUDIO_VIEW });
+    } else if (!loaded) {
       toast.warning(
         `Audio asset not found for "${track.fileName}". The track will be cleared.`,
       );
       project.deleteAudioTrack(track.id);
-      return;
+    } else {
+      audioManager.attachTrackBuffer(track.id, loaded.buffer, track.offset);
+      project.updateAudioTrack(track.id, { audioView: loaded.audioView });
     }
-    audioManager.attachTrackBuffer(track.id, loaded.buffer, track.offset);
-    project.updateAudioTrack(track.id, { audioView: loaded.audioView });
-  } catch (e) {
-    console.error(e);
-    if (signal.aborted) {
-      return;
-    }
-    toast.error(`Failed to load audio "${track.fileName}".`);
-    // Mark the waveform unavailable so `audioView === null` stays
-    // pending-only and the region doesn't read as loading forever.
-    // TODO(#182): model restore failure explicitly (distinct from the
-    // too-long waveform bailout) so the region can render the track as dead.
-    project.updateAudioTrack(track.id, { audioView: EMPTY_AUDIO_VIEW });
   }
 }
 
