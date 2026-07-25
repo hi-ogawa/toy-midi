@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { SparklesIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import {
@@ -17,10 +17,6 @@ import {
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
-// One coalesce key per panel session: every live re-decode replaces notes,
-// but the whole session stays a single undo step
-let transcribeSessionCounter = 0;
-
 export function AudioToMidiPanel({
   track,
   onClose,
@@ -32,10 +28,6 @@ export function AudioToMidiPanel({
   const [progress, setProgress] = useState<number | null>(null);
   const [analyzed, setAnalyzed] = useState(false);
   const [noteCount, setNoteCount] = useState<number | null>(null);
-  const [sessionKey] = useState(
-    () => `audio-to-midi-${++transcribeSessionCounter}`,
-  );
-  const decodeSeqRef = useRef(0);
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
@@ -54,56 +46,41 @@ export function AudioToMidiPanel({
     onSettled: () => setProgress(null),
   });
 
-  // TODO: this live-apply drifted from the #173 MVP, which wants two explicit
-  // steps: analyze (cached inference) and a decode/apply button that commits
-  // one replaceAllNotes per press. Parameter edits should stage locally
-  // instead of continuously rewriting project notes.
-  // Decoding is cheap (no inference), so parameter changes apply to the
-  // project live: debounce slider drags and drop stale worker responses
-  useEffect(() => {
-    if (!analyzed) {
-      return;
-    }
-    const seq = ++decodeSeqRef.current;
-    const timer = setTimeout(async () => {
-      try {
-        const transcribed = await basicPitchClient.decode(
-          track.assetKey,
-          params,
-        );
-        if (seq !== decodeSeqRef.current) {
-          return;
-        }
-        const { tempo, replaceAllNotes } = useProjectStore.getState();
-        const notes = transcribed.map((note) => ({
-          id: generateNoteId(),
-          pitch: note.pitchMidi,
-          start: secondsToBeats(note.startSeconds + track.offset, tempo),
-          duration: secondsToBeats(note.durationSeconds, tempo),
-          velocity: Math.max(
-            1,
-            Math.min(127, Math.round(note.amplitude * 127)),
-          ),
-        }));
-        replaceAllNotes(notes, sessionKey);
-        setNoteCount(notes.length);
-      } catch (error) {
-        console.error("Failed to decode notes:", error);
-        toast.error("Failed to decode notes");
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [analyzed, params, track.assetKey, track.offset, sessionKey]);
+  // Parameter edits only stage locally; Convert to MIDI is the explicit
+  // commit (worker `decode` stage), one replaceAllNotes and thus one undo
+  // entry per press
+  const convertMutation = useMutation({
+    mutationFn: async () => {
+      const transcribed = await basicPitchClient.decode(track.assetKey, params);
+      const { tempo, replaceAllNotes } = useProjectStore.getState();
+      const notes = transcribed.map((note) => ({
+        id: generateNoteId(),
+        pitch: note.pitchMidi,
+        start: secondsToBeats(note.startSeconds + track.offset, tempo),
+        duration: secondsToBeats(note.durationSeconds, tempo),
+        velocity: Math.max(1, Math.min(127, Math.round(note.amplitude * 127))),
+      }));
+      replaceAllNotes(notes);
+      return notes.length;
+    },
+    onSuccess: (count) => setNoteCount(count),
+    onError: (error) => {
+      console.error("Failed to convert audio to MIDI:", error);
+      toast.error("Failed to convert audio to MIDI");
+    },
+  });
 
   const status = analyzeMutation.isPending
     ? progress !== null
       ? `Analyzing ${Math.round(progress * 100)}%`
       : "Analyzing..."
-    : analyzed
-      ? noteCount !== null
-        ? `Analyzed · ${noteCount} notes`
-        : "Analyzed"
-      : "Not analyzed";
+    : !analyzed
+      ? "Not analyzed"
+      : convertMutation.isPending
+        ? "Converting..."
+        : noteCount !== null
+          ? `Converted ${noteCount} notes`
+          : "Analyzed";
 
   return (
     <div
@@ -130,6 +107,12 @@ export function AudioToMidiPanel({
         title={track.fileName}
       >
         {track.fileName}
+      </p>
+
+      {/* TODO: tweak this intro copy */}
+      <p className="text-xs text-neutral-500">
+        Analyze the audio once, then adjust the settings and convert to MIDI as
+        often as you like — analysis is cached, so converting is instant.
       </p>
 
       <div className="flex items-center justify-between gap-2">
@@ -222,15 +205,21 @@ export function AudioToMidiPanel({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-neutral-500">
-          Changes replace all MIDI notes live; the session is one undo step.
-        </p>
-        <Button
+        <button
           onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
           disabled={!analyzed}
-          className="h-8 px-3 text-sm text-neutral-300 hover:bg-accent"
+          className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300 disabled:opacity-50 disabled:hover:text-neutral-500"
         >
-          Reset
+          Reset to defaults
+        </button>
+        <Button
+          data-testid="convert-button"
+          onClick={() => convertMutation.mutate()}
+          disabled={!analyzed || convertMutation.isPending}
+          title="Convert with current settings, replacing all MIDI notes"
+          className="h-8 px-3 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          Convert to MIDI
         </Button>
       </div>
     </div>

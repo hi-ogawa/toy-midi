@@ -37,12 +37,18 @@ test.describe("Audio to MIDI", () => {
       "test-tones.wav",
     );
 
-    // Analyze runs inference, then the initial decode replaces notes live.
-    // The status line confirms both steps: the note count only appears after
-    // the decode's replace has landed in the store
+    // Step 1: analyze runs inference and caches activations; project notes
+    // are untouched until an explicit convert
     await panel.getByTestId("analyze-button").click();
     await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
-      /^Analyzed · \d+ notes$/,
+      "Analyzed",
+    );
+    expect(await getNoteIds(page)).toEqual(["note-marker"]);
+
+    // Step 2: convert commits the result, replacing all notes
+    await panel.getByTestId("convert-button").click();
+    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
+      /^Converted \d+ notes$/,
     );
     expect(await getNoteIds(page)).not.toContain("note-marker");
     const idsAfterTranscribe = await getNoteIds(page);
@@ -50,8 +56,8 @@ test.describe("Audio to MIDI", () => {
     await panel.getByRole("button", { name: "Close" }).click();
     await expect(panel).toBeHidden();
 
-    // One undo restores the entire pre-transcription state (live re-decodes
-    // within a panel session coalesce into a single history entry)
+    // Each convert is one history entry, so one undo restores the
+    // prior state
     await page.keyboard.press("Control+z");
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 

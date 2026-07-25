@@ -55,9 +55,7 @@ export interface ProjectState {
     updates: { id: string; changes: Partial<Omit<Note, "id">> }[],
   ) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
-  // Single undoable operation; consecutive calls with the same coalesceKey
-  // collapse into one history entry (live transcription parameter tweaks)
-  replaceAllNotes: (notes: Note[], coalesceKey?: string) => void;
+  replaceAllNotes: (notes: Note[]) => void; // Single undoable operation
 
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
@@ -274,25 +272,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
   },
 
-  replaceAllNotes: (notes, coalesceKey) => {
-    const lastEntry = historyStore.undoStack[historyStore.undoStack.length - 1];
-    if (
-      coalesceKey !== undefined &&
-      lastEntry?.type === "replace-notes" &&
-      lastEntry.coalesceKey === coalesceKey
-    ) {
-      // Keep the original `before` so one undo returns to the state from
-      // before the first replace of the session
-      lastEntry.after = notes;
-    } else {
-      historyStore.pushOperation({
-        type: "replace-notes",
-        before: get().notes,
-        after: notes,
-        coalesceKey,
-      });
-    }
-
+  replaceAllNotes: (notes) => {
+    historyStore.pushOperation({
+      type: "replace-notes",
+      before: get().notes,
+      after: notes,
+    });
     set({ notes, selectedNoteIds: new Set() });
   },
 
