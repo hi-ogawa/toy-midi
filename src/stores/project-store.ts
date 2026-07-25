@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import type { AudioView } from "../lib/audio-view";
-import type { GridSnap, Locator, Note, TimeSignature } from "../types";
+import { snapToGrid } from "../lib/music";
+import {
+  GRID_SNAP_VALUES,
+  type GridSnap,
+  type Locator,
+  type Note,
+  type TimeSignature,
+} from "../types";
 import { historyStore } from "./history-store";
 
 export interface ProjectState {
@@ -55,6 +62,7 @@ export interface ProjectState {
     updates: { id: string; changes: Partial<Omit<Note, "id">> }[],
   ) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
+  quantizeSelectedNotes: () => void;
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
@@ -268,6 +276,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         selectedNoteIds: newSelected,
       };
     });
+  },
+
+  quantizeSelectedNotes: () => {
+    const state = get();
+    const gridSize = GRID_SNAP_VALUES[state.gridSnap];
+    const updates: {
+      id: string;
+      changes: Partial<Omit<Note, "id">>;
+    }[] = [];
+    for (const note of state.notes) {
+      if (!state.selectedNoteIds.has(note.id)) {
+        continue;
+      }
+      const start = snapToGrid(note.start, gridSize);
+      const duration = Math.max(gridSize, snapToGrid(note.duration, gridSize));
+      if (start !== note.start || duration !== note.duration) {
+        updates.push({ id: note.id, changes: { start, duration } });
+      }
+    }
+    if (updates.length > 0) {
+      state.updateNotes(updates);
+    }
   },
 
   selectNotes: (ids, exclusive = true) =>
