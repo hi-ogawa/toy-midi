@@ -29,21 +29,52 @@ interface StoredAsset {
   addedAt: number;
 }
 
-// project metadata list (cheap enumeration for the list view)
-const PROJECT_LIST_KEY = "toy-midi-project-list";
-// last opened project pointer
-const LAST_PROJECT_ID_KEY = "toy-midi-last-project-id";
-// project document, one localStorage entry per project
-const PROJECT_KEY_PREFIX = "toy-midi-project-";
+// Storage layout v2. The ":v2" on the index key marks the storage LAYOUT
+// generation (how keys are arranged), never the doc schema — SavedProject
+// carries its own version and migrates lazily at read time.
+//
+// Migration tier rule: compatible doc-schema changes ride the lazy
+// value-versioned migration (migrateSavedProject on load, persisted by the
+// next save); breaking or lossy changes get promoted to a layout bump — new
+// index version, copy-then-commit-then-delete, like migrateLayoutV1 below.
+// If you'd want a backup, it's a layout bump.
+//
+// Concurrency: accepted-risk, single-writer-ish. Every op read-modify-writes
+// its own entry against a fresh index read, never a cached snapshot, so two
+// editors on different projects can't lose each other's entries; structural
+// ops (create/delete) racing another tab's autosave are out of scope.
+const INDEX_KEY = "toy-midi:project-list:v2";
+// project document, one localStorage entry per project (internally versioned)
+const PROJECT_KEY_PREFIX = "toy-midi:project:";
+
+// Layout v1 keys, read only by the one-time migration below.
+const LEGACY_LIST_KEY = "toy-midi-project-list";
+const LEGACY_LAST_ID_KEY = "toy-midi-last-project-id";
+const LEGACY_PROJECT_KEY_PREFIX = "toy-midi-project-";
+
+// Single JSON: the metadata list (cheap enumeration for the list view) plus
+// the last-opened pointer.
+interface ProjectIndex {
+  projects: ProjectMetadata[];
+  lastProjectId: string | null;
+}
 
 class ProjectStorage {
-  listMetadata(): ProjectMetadata[] {
-    const json = localStorage.getItem(PROJECT_LIST_KEY);
+  private readIndex(): ProjectIndex {
+    migrateLayoutV1();
+    const json = localStorage.getItem(INDEX_KEY);
     if (!json) {
-      return [];
+      return { projects: [], lastProjectId: null };
     }
-    const list = JSON.parse(json) as ProjectMetadata[];
-    return list.sort((a, b) => b.updatedAt - a.updatedAt);
+    return JSON.parse(json) as ProjectIndex;
+  }
+
+  private writeIndex(index: ProjectIndex): void {
+    localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+  }
+
+  listMetadata(): ProjectMetadata[] {
+    return this.readIndex().projects.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   getMetadata(projectId: string): ProjectMetadata | null {
@@ -58,7 +89,7 @@ class ProjectStorage {
   }
 
   create(name: string, data: SavedProject): string {
-    const projectId = generateProjectId();
+    const projectId = crypto.randomUUID();
     const now = Date.now();
     const metadata: ProjectMetadata = {
       id: projectId,
@@ -67,10 +98,9 @@ class ProjectStorage {
       updatedAt: now,
     };
 
-    const projects = this.listMetadata();
-    projects.push(metadata);
-
-    localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
+    const index = this.readIndex();
+    index.projects.push(metadata);
+    this.writeIndex(index);
     this.save(projectId, data);
     return projectId;
   }
@@ -79,30 +109,27 @@ class ProjectStorage {
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
-    const projects = this.listMetadata();
-    const index = projects.findIndex((p) => p.id === projectId);
-    if (index === -1) {
+    const index = this.readIndex();
+    const at = index.projects.findIndex((p) => p.id === projectId);
+    if (at === -1) {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    projects[index] = {
-      ...projects[index],
+    index.projects[at] = {
+      ...index.projects[at],
       ...updates,
     };
-
-    localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projects));
+    this.writeIndex(index);
   }
 
   delete(projectId: string): void {
-    const projects = this.listMetadata();
-    const filtered = projects.filter((p) => p.id !== projectId);
-
-    localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(filtered));
-    localStorage.removeItem(getProjectKey(projectId));
-
-    if (this.getLastProjectId() === projectId) {
-      localStorage.removeItem(LAST_PROJECT_ID_KEY);
+    const index = this.readIndex();
+    index.projects = index.projects.filter((p) => p.id !== projectId);
+    if (index.lastProjectId === projectId) {
+      index.lastProjectId = null;
     }
+    this.writeIndex(index);
+    localStorage.removeItem(getProjectKey(projectId));
   }
 
   private getDefaultProjectName(): string {
@@ -114,6 +141,7 @@ class ProjectStorage {
   }
 
   load(projectId: string): SavedProject {
+    migrateLayoutV1();
     const json = localStorage.getItem(getProjectKey(projectId));
     if (!json) {
       throw new Error(`Project ${projectId} not found in storage`);
@@ -127,11 +155,13 @@ class ProjectStorage {
   }
 
   getLastProjectId(): string | null {
-    return localStorage.getItem(LAST_PROJECT_ID_KEY);
+    return this.readIndex().lastProjectId;
   }
 
   setLastProjectId(projectId: string): void {
-    localStorage.setItem(LAST_PROJECT_ID_KEY, projectId);
+    const index = this.readIndex();
+    index.lastProjectId = projectId;
+    this.writeIndex(index);
   }
 
   // binary audio assets
@@ -166,13 +196,6 @@ class ProjectStorage {
 
 export const projectStorage = new ProjectStorage();
 
-function generateProjectId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return `project-${crypto.randomUUID()}`;
-  }
-  return `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
-
 function getProjectKey(projectId: string): string {
   return `${PROJECT_KEY_PREFIX}${projectId}`;
 }
@@ -181,7 +204,57 @@ function generateAssetKey(file: File): string {
   return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
-// e2e-only: seed an old-schema project to test migration on load
+// One-time layout v1 → v2 migration: strip the legacy "project-" id prefix
+// (which doubled into "toy-midi-project-project-<uuid>" doc keys), copy docs
+// to v2 keys as raw strings (no schema touch), fold the last-project pointer
+// into the index, and only then delete the v1 keys. The index write is the
+// commit point: a crash before it leaves v1 intact and the migration simply
+// re-runs on the next load. Assets (IndexedDB) are unaffected.
+let checkedLayout = false;
+function migrateLayoutV1(): void {
+  if (checkedLayout) {
+    return;
+  }
+  checkedLayout = true;
+  if (localStorage.getItem(INDEX_KEY) !== null) {
+    return;
+  }
+  const legacyJson = localStorage.getItem(LEGACY_LIST_KEY);
+  if (!legacyJson) {
+    return; // fresh install
+  }
+
+  const legacyList = JSON.parse(legacyJson) as ProjectMetadata[];
+  const projects: ProjectMetadata[] = [];
+  const copiedLegacyKeys: string[] = [];
+  for (const entry of legacyList) {
+    const doc = localStorage.getItem(LEGACY_PROJECT_KEY_PREFIX + entry.id);
+    if (doc === null) {
+      continue; // entry without a doc: drop it
+    }
+    const bareId = entry.id.replace(/^project-/, "");
+    localStorage.setItem(getProjectKey(bareId), doc);
+    copiedLegacyKeys.push(LEGACY_PROJECT_KEY_PREFIX + entry.id);
+    projects.push({ ...entry, id: bareId });
+  }
+  const legacyLastId = localStorage
+    .getItem(LEGACY_LAST_ID_KEY)
+    ?.replace(/^project-/, "");
+  const lastProjectId = projects.some((p) => p.id === legacyLastId)
+    ? (legacyLastId ?? null)
+    : null;
+
+  const index: ProjectIndex = { projects, lastProjectId };
+  localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+
+  localStorage.removeItem(LEGACY_LIST_KEY);
+  localStorage.removeItem(LEGACY_LAST_ID_KEY);
+  for (const key of copiedLegacyKeys) {
+    localStorage.removeItem(key);
+  }
+}
+
+// e2e-only: seed an old-schema project to test doc migration on load
 export async function seedProjectV1(
   name: string,
   project: SavedProjectV1,
@@ -199,4 +272,25 @@ export async function seedProjectV1(
   project = { ...project, audioAssetKey: assetKey };
   const projectId = projectStorage.create(name, project as any);
   projectStorage.setLastProjectId(projectId);
+}
+
+// e2e-only: seed a layout-v1 project (prefixed id, separate list/pointer
+// keys) to test the layout migration above
+export function seedLayoutV1Project(
+  name: string,
+  overrides?: Partial<SavedProject>,
+): string {
+  const projectId = `project-${crypto.randomUUID()}`;
+  const now = Date.now();
+  const list = JSON.parse(
+    localStorage.getItem(LEGACY_LIST_KEY) ?? "[]",
+  ) as ProjectMetadata[];
+  list.push({ id: projectId, name, createdAt: now, updatedAt: now });
+  localStorage.setItem(LEGACY_LIST_KEY, JSON.stringify(list));
+  localStorage.setItem(
+    LEGACY_PROJECT_KEY_PREFIX + projectId,
+    JSON.stringify({ ...createDefaultSavedProject(), ...overrides }),
+  );
+  localStorage.setItem(LEGACY_LAST_ID_KEY, projectId);
+  return projectId;
 }

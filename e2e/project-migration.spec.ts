@@ -130,4 +130,37 @@ test.describe("Project Migration", () => {
     expect(audioTracks[0].assetKey).not.toBe("");
     await expect(page.getByTestId("audio-track-region")).toHaveCount(1);
   });
+
+  test("migrates layout-v1 storage (prefixed ids) to the v2 index", async ({
+    page,
+  }) => {
+    await page.goto("/__e2e__/");
+    const legacyId = await page.evaluate(() => {
+      localStorage.clear();
+      return window.__e2e!.seedLayoutV1Project("Layout Legacy", {
+        tempo: 137,
+      });
+    });
+    expect(legacyId).toMatch(/^project-/);
+
+    // The list renders the migrated project; opening it lands on a bare-uuid
+    // URL (no "project-" stutter)
+    const bareId = legacyId.replace(/^project-/, "");
+    await page.goto("/");
+    await page.getByTestId(`project-card-${bareId}`).click();
+    await expect(page).toHaveURL(/\/project\/[0-9a-f-]{36}$/);
+    await page.getByTestId("transport").waitFor({ state: "visible" });
+    expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
+      137,
+    );
+
+    // Continue (last-project pointer) survives the migration, and a second
+    // load is a no-op migration
+    await page.goto("/");
+    await page.getByTestId("continue-button").click();
+    await page.getByTestId("transport").waitFor({ state: "visible" });
+    expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
+      137,
+    );
+  });
 });
