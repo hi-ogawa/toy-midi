@@ -3,13 +3,13 @@
 //
 // Usage:
 //   pnpm verify-basic-pitch              # synthesized C2/E2/G2 test tones
-//   pnpm verify-basic-pitch input.wav    # 16-bit PCM or float32 WAV
+//   pnpm verify-basic-pitch input.wav    # any audio format supported by ffmpeg
 //
 // Runs on plain @tensorflow/tfjs (slow CPU backend, no native deps). The
 // model is loaded from the npm package through an in-memory IO handler
-// because fetch(file://) is unavailable in Node, and WAV decode/resample is
-// hand-rolled because Node has no Web Audio.
+// because fetch(file://) is unavailable in Node.
 
+import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -27,13 +27,13 @@ const {
 const MODEL_SAMPLE_RATE = 22050;
 
 async function main() {
-  const wavPath = process.argv[2];
-  const pcm = wavPath
-    ? await loadWavAsModelPcm(wavPath)
+  const audioPath = process.argv[2];
+  const pcm = audioPath
+    ? await loadAudioAsModelPcm(audioPath)
     : synthesizeTestSignal();
   console.log(
-    wavPath
-      ? `input: ${wavPath} (${(pcm.length / MODEL_SAMPLE_RATE).toFixed(2)}s at ${MODEL_SAMPLE_RATE}Hz mono)`
+    audioPath
+      ? `input: ${audioPath} (${(pcm.length / MODEL_SAMPLE_RATE).toFixed(2)}s at ${MODEL_SAMPLE_RATE}Hz mono)`
       : "input: synthesized C2/E2/G2 tones, 1s each",
   );
 
@@ -131,79 +131,53 @@ function synthesizeTestSignal() {
   return pcm;
 }
 
-async function loadWavAsModelPcm(wavPath) {
-  const { channels, sampleRate, samples } = parseWav(await readFile(wavPath));
-  const mono = new Float32Array(samples.length / channels);
-  for (let i = 0; i < mono.length; i++) {
-    let sum = 0;
-    for (let c = 0; c < channels; c++) {
-      sum += samples[i * channels + c];
-    }
-    mono[i] = sum / channels;
-  }
-  return resampleLinear(mono, sampleRate, MODEL_SAMPLE_RATE);
-}
-
-// Minimal RIFF parser for 16-bit PCM (format 1) and float32 (format 3) WAV
-function parseWav(buffer) {
-  if (buffer.toString("ascii", 0, 4) !== "RIFF") {
-    throw new Error("Not a RIFF file");
-  }
-  let format = null;
-  let channels = 0;
-  let sampleRate = 0;
-  let bitsPerSample = 0;
-  let samples = null;
-  let cursor = 12;
-  while (cursor + 8 <= buffer.length) {
-    const chunkId = buffer.toString("ascii", cursor, cursor + 4);
-    const chunkSize = buffer.readUInt32LE(cursor + 4);
-    const body = cursor + 8;
-    if (chunkId === "fmt ") {
-      format = buffer.readUInt16LE(body);
-      channels = buffer.readUInt16LE(body + 2);
-      sampleRate = buffer.readUInt32LE(body + 4);
-      bitsPerSample = buffer.readUInt16LE(body + 14);
-    } else if (chunkId === "data") {
-      if (format === 1 && bitsPerSample === 16) {
-        samples = new Float32Array(chunkSize / 2);
-        for (let i = 0; i < samples.length; i++) {
-          samples[i] = buffer.readInt16LE(body + i * 2) / 32768;
-        }
-      } else if (format === 3 && bitsPerSample === 32) {
-        samples = new Float32Array(chunkSize / 4);
-        for (let i = 0; i < samples.length; i++) {
-          samples[i] = buffer.readFloatLE(body + i * 4);
-        }
-      } else {
-        throw new Error(
-          `Unsupported WAV: format=${format} bits=${bitsPerSample}`,
+async function loadAudioAsModelPcm(audioPath) {
+  const output = await new Promise((resolve, reject) => {
+    const ffmpeg = spawn("ffmpeg", [
+      "-loglevel",
+      "error",
+      "-i",
+      audioPath,
+      "-vn",
+      "-ac",
+      "1",
+      "-ar",
+      String(MODEL_SAMPLE_RATE),
+      "-c:a",
+      "pcm_f32le",
+      "-f",
+      "f32le",
+      "pipe:1",
+    ]);
+    const stdout = [];
+    const stderr = [];
+    ffmpeg.stdout.on("data", (chunk) => stdout.push(chunk));
+    ffmpeg.stderr.on("data", (chunk) => stderr.push(chunk));
+    ffmpeg.once("error", (error) => {
+      reject(
+        new Error(`Failed to start ffmpeg: ${error.message}`, { cause: error }),
+      );
+    });
+    ffmpeg.once("close", (code, signal) => {
+      if (code !== 0) {
+        const detail = Buffer.concat(stderr).toString("utf8").trim();
+        const status = signal ? `signal ${signal}` : `status ${code}`;
+        reject(
+          new Error(`ffmpeg exited with ${status}${detail ? `: ${detail}` : ""}`),
         );
+        return;
       }
-    }
-    cursor = body + chunkSize + (chunkSize % 2);
+      resolve(Buffer.concat(stdout));
+    });
+  });
+  if (output.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
+    throw new Error(
+      `ffmpeg produced ${output.byteLength} bytes of invalid f32le output`,
+    );
   }
-  if (!samples) {
-    throw new Error("No data chunk found");
-  }
-  return { channels, sampleRate, samples };
-}
-
-function resampleLinear(samples, fromRate, toRate) {
-  if (fromRate === toRate) {
-    return samples;
-  }
-  const output = new Float32Array(
-    Math.floor((samples.length * toRate) / fromRate),
+  return new Float32Array(
+    output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength),
   );
-  for (let i = 0; i < output.length; i++) {
-    const position = (i * fromRate) / toRate;
-    const index = Math.floor(position);
-    const fraction = position - index;
-    const next = Math.min(index + 1, samples.length - 1);
-    output[i] = samples[index] * (1 - fraction) + samples[next] * fraction;
-  }
-  return output;
 }
 
 const NOTE_NAMES = "C C# D D# E F F# G G# A A# B".split(" ");
