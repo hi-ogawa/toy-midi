@@ -146,8 +146,8 @@ async function restoreAudioTracks(
       toast.error(`Failed to load audio "${track.fileName}".`);
       // Mark the waveform unavailable so `audioView === null` stays
       // pending-only and the region doesn't read as loading forever.
-      // TODO: model restore failure explicitly (distinct from the too-long
-      // waveform bailout) so the region can render the track as dead.
+      // TODO(#182): model restore failure explicitly (distinct from the
+      // too-long waveform bailout) so the region can render the track as dead.
       project.updateAudioTrack(track.id, { audioView: EMPTY_AUDIO_VIEW });
     }
   }
