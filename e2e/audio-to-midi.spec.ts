@@ -8,6 +8,14 @@ test.describe("Audio to MIDI", () => {
     );
   }
 
+  async function getNotePitches(page: Page) {
+    return await evaluateStore(page, (store) =>
+      [...store.getState().notes]
+        .sort((a, b) => a.start - b.start)
+        .map((n) => n.pitch),
+    );
+  }
+
   test("transcribes an audio track and replaces notes as one undo step", async ({
     page,
   }) => {
@@ -48,24 +56,39 @@ test.describe("Audio to MIDI", () => {
     );
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
-    // Step 2: convert commits the result, replacing all notes
+    // Step 2: convert commits the result, replacing all notes. The fixture
+    // is a C4/E4/G4/C5 arpeggio (see e2e/fixtures/README.md) that Basic
+    // Pitch transcribes cleanly to exactly those four notes
     await panel.getByTestId("convert-button").click();
     await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
-      /^Converted \d+ notes$/,
+      "Converted 4 notes",
     );
-    expect(await getNoteIds(page)).not.toContain("note-marker");
-    const idsAfterTranscribe = await getNoteIds(page);
+    expect(await getNotePitches(page)).toEqual([60, 64, 67, 72]);
+    const idsAfterFirstConvert = await getNoteIds(page);
+
+    // Staged parameter edits apply on the next convert: narrowing the pitch
+    // range to exclude the C5 must drop it from the result
+    await panel.getByLabel("Maximum pitch (MIDI)").fill("71");
+    await panel.getByTestId("convert-button").click();
+    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
+      "Converted 3 notes",
+    );
+    expect(await getNotePitches(page)).toEqual([60, 64, 67]);
+    const idsAfterSecondConvert = await getNoteIds(page);
 
     await panel.getByRole("button", { name: "Close" }).click();
     await expect(panel).toBeHidden();
 
-    // Each convert is one history entry, so one undo restores the
-    // prior state
+    // Each convert is one history entry: the first undo restores the first
+    // convert's notes, the second restores the pre-convert marker
+    await page.keyboard.press("Control+z");
+    expect(await getNoteIds(page)).toEqual(idsAfterFirstConvert);
     await page.keyboard.press("Control+z");
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
-    // Redo re-applies the transcription result
+    // Redo re-applies both converts
     await page.keyboard.press("Control+Shift+z");
-    expect(await getNoteIds(page)).toEqual(idsAfterTranscribe);
+    await page.keyboard.press("Control+Shift+z");
+    expect(await getNoteIds(page)).toEqual(idsAfterSecondConvert);
   });
 });
