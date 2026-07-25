@@ -166,9 +166,8 @@ test.describe("Multiple Audio Tracks", () => {
       });
     });
 
-    await expect(page.getByTestId("audio-track-region")).toHaveAttribute(
-      "title",
-      "Audio failed to load",
-    );
+    const region = page.getByTestId("audio-track-region");
+    await expect(region).toContainText("failed to load");
+    await expect(region).toHaveAttribute("title", "Audio failed to load");
   });
 });

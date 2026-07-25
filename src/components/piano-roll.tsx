@@ -2005,9 +2005,16 @@ function WaveformArea({
                 pixelWidth={Math.max(1, Math.round(audioWidth))}
               />
             )}
-          {/* File name and offset indicator */}
+          {/* File name, status, and offset indicator (pending is indicated
+              by the pale region color alone) */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
+            {audioWaveform.status === "error" && (
+              <span className="mr-1.5 text-red-300">failed to load</span>
+            )}
+            {audioWaveform.status === "unavailable" && (
+              <span className="mr-1.5 opacity-75">no waveform</span>
+            )}
             {audioOffset > 0 && (
               <span className="opacity-75">+{audioOffset.toFixed(3)}s</span>
             )}
