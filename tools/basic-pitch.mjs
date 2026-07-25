@@ -11,10 +11,13 @@
 // model is loaded from the npm package through an in-memory IO handler
 // because fetch(file://) is unavailable in Node.
 
-import { spawn } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdir, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 // require() instead of ESM imports: both packages ship CJS/UMD entries whose
 // named exports are unreliable through Node's ESM interop
@@ -113,47 +116,17 @@ async function loadAudioAsModelPcm(audioPath) {
   if (audioPath.endsWith(".pcm")) {
     return bufferToFloat32(await readFile(audioPath));
   }
-  const output = await new Promise((resolve, reject) => {
-    const ffmpeg = spawn("ffmpeg", [
-      "-loglevel",
-      "error",
-      "-i",
-      audioPath,
-      "-vn",
-      "-ac",
-      "1",
-      "-ar",
-      String(MODEL_SAMPLE_RATE),
-      "-c:a",
-      "pcm_f32le",
-      "-f",
-      "f32le",
-      "pipe:1",
-    ]);
-    const stdout = [];
-    const stderr = [];
-    ffmpeg.stdout.on("data", (chunk) => stdout.push(chunk));
-    ffmpeg.stderr.on("data", (chunk) => stderr.push(chunk));
-    ffmpeg.once("error", (error) => {
-      reject(
-        new Error(`Failed to start ffmpeg: ${error.message}`, { cause: error }),
-      );
-    });
-    ffmpeg.once("close", (code, signal) => {
-      if (code !== 0) {
-        const detail = Buffer.concat(stderr).toString("utf8").trim();
-        const status = signal ? `signal ${signal}` : `status ${code}`;
-        reject(
-          new Error(
-            `ffmpeg exited with ${status}${detail ? `: ${detail}` : ""}`,
-          ),
-        );
-        return;
-      }
-      resolve(Buffer.concat(stdout));
-    });
-  });
-  return bufferToFloat32(output);
+  const tmpDir = path.join(import.meta.dirname, "../.tmp");
+  const tmpPath = path.join(tmpDir, "basic-pitch-input.pcm");
+  await mkdir(tmpDir, { recursive: true });
+  await execFileAsync("ffmpeg", [
+    ...["-loglevel", "error", "-y"],
+    ...["-i", audioPath],
+    ...["-vn", "-ac", "1", "-ar", String(MODEL_SAMPLE_RATE)],
+    ...["-c:a", "pcm_f32le", "-f", "f32le"],
+    tmpPath,
+  ]);
+  return bufferToFloat32(await readFile(tmpPath));
 }
 
 function bufferToFloat32(buffer) {
