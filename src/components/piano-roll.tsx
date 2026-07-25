@@ -254,6 +254,7 @@ export function PianoRoll() {
     autoScrollEnabled,
     addNote,
     updateNote,
+    quantizeSelectedNotes,
     deleteNotes,
     selectNotes,
     deselectAll,
@@ -466,6 +467,8 @@ export function PianoRoll() {
       if (canUndo()) {
         undo();
       }
+    } else if (matchKeyboardEvent(e, "Q")) {
+      quantizeSelectedNotes();
     } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
       const playheadBeat = secondsToBeats(position, tempo);
