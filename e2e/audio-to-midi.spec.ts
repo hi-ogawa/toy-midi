@@ -64,7 +64,7 @@ test.describe("Audio to MIDI", () => {
   // e2e/fixtures/README.md), but the browser needs them wrapped in a
   // decodable container such as WAV before this test can use them.
   // Verified with `pnpm basic-pitch` (Node, same model): such tones
-  // transcribe to the expected pitches, and the existing public/test-audio.wav
+  // transcribe to the expected pitches, and the existing e2e/fixtures/test-audio.wav
   // is a 3s A4 tone that already comes back as a single midi-69 note.
   test.skip("detects known pitches from a synthesized fixture", async () => {
     // Ideal assertion: after transcribing that fixture, store notes are
