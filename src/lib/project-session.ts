@@ -60,6 +60,11 @@ export function openProjectSession(options: {
   const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
   activeSaveDebouncer = saveDebouncer;
 
+  // Session lifetime as an AbortController: dispose aborts, which detaches
+  // the shortcut listener and stops the background audio attach.
+  const abortController = new AbortController();
+  const { signal } = abortController;
+
   // Playback shortcut, scoped to the session rather than to whichever
   // component happens to render: Space toggles playback (no-op until audio
   // is ready via the guarded togglePlayback).
@@ -72,13 +77,12 @@ export function openProjectSession(options: {
       audioManager.togglePlayback();
     }
   };
-  window.addEventListener("keydown", handleKeydown);
+  window.addEventListener("keydown", handleKeydown, { signal });
 
   // Background audio attach, owned by the session: initialize the synth,
   // run one full applyState at the ready transition, then restore stored
   // audio assets. Strictly sequential, handles every error internally so
-  // the task can never reject, and stops touching the store once disposed.
-  let disposed = false;
+  // the task can never reject, and stops touching the store once aborted.
   const attachAudio = async () => {
     try {
       await audioManager.init();
@@ -87,12 +91,12 @@ export function openProjectSession(options: {
       toast.error("Failed to initialize audio. Playback is unavailable.");
       return;
     }
-    if (disposed) {
+    if (signal.aborted) {
       return;
     }
     // Fresh getState: edits made while audio was loading must be included.
     audioManager.applyState(useProjectStore.getState());
-    await restoreAudioTracks(useProjectStore.getState(), () => disposed);
+    await restoreAudioTracks(useProjectStore.getState(), signal);
   };
   void attachAudio();
 
@@ -100,8 +104,7 @@ export function openProjectSession(options: {
     projectId,
     projectName: metadata.name,
     dispose: () => {
-      disposed = true;
-      window.removeEventListener("keydown", handleKeydown);
+      abortController.abort();
       unsubscribeAudioSync();
       unsubscribeAutoSave();
       saveDebouncer.flush();
@@ -117,12 +120,12 @@ export function openProjectSession(options: {
 // One bad asset skips that track only.
 async function restoreAudioTracks(
   project: ProjectState,
-  isDisposed: () => boolean,
+  signal: AbortSignal,
 ): Promise<void> {
   for (const track of project.audioTracks) {
     try {
       const loaded = await loadStoredTrackAudio(track);
-      if (isDisposed()) {
+      if (signal.aborted) {
         return;
       }
       if (!loaded) {
