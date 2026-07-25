@@ -1963,11 +1963,11 @@ function WaveformArea({
         <div
           data-testid="audio-track-region"
           data-track-id={trackId}
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-75 ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"
-          } ${isSelected ? "ring-2 ring-sky-400" : "opacity-85"}`}
+          } ${isSelected ? "ring-2 ring-sky-400" : ""}`}
           style={{
             left: audioStartX,
             width: Math.max(audioWidth, 4),
