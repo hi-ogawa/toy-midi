@@ -73,8 +73,7 @@ test.describe("Multiple Audio Tracks", () => {
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
 
-    // Wait for auto-save
-    await page.waitForTimeout(200);
+    await evaluateFlushAutoSave(page);
     await page.reload();
     await page.getByTestId("continue-button").click();
     await page.getByTestId("transport").waitFor({ state: "visible" });
