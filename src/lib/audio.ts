@@ -288,6 +288,11 @@ class AudioManager {
     Tone.getTransport().seconds = Math.max(0, seconds);
   }
 
+  // Decoded buffer for transcription; null until the asset finishes loading
+  getAudioTrackBuffer(id: string): AudioBuffer | null {
+    return this.audioTracks.get(id)?.player.buffer.get() ?? null;
+  }
+
   // Lazily create a player/channel pair for a track id
   getAudioTrack(id: string): AudioTrackPlayback {
     let entry = this.audioTracks.get(id);

@@ -13,6 +13,7 @@ src/
 │   ├── piano-roll.tsx      # grid, keyboard, timeline, notes, waveform, drag state machine (~2000 lines)
 │   ├── transport.tsx       # play/pause, tempo, time signature, grid snap, instrument, project name
 │   ├── settings.tsx        # audio load, MIDI import, MIDI/.toymidi export
+│   ├── audio-to-midi-modal.tsx # Basic Pitch transcription parameters, opened per audio track
 │   ├── mixer.tsx           # MIDI/metronome/per-audio-track channel strips
 │   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
 │   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
@@ -22,6 +23,7 @@ src/
 │   └── use-window-event.ts # useEffectEvent-based window listener
 ├── lib/
 │   ├── audio.ts            # AudioManager singleton: Tone.js graph, store→audio sync point
+│   ├── basic-pitch.ts      # audio→MIDI transcription client (+ basic-pitch-worker.ts: tfjs inference, activation cache, note decoding)
 │   ├── oxisynth-synth.ts   # SF2 synthesis via Rust/WASM AudioWorklet
 │   ├── metronome.ts        # raw Web Audio click voices (accent C7 / normal G6)
 │   ├── audio-view.ts       # waveform peak model + viewport slice query
@@ -103,6 +105,8 @@ Undo/redo: `historyStore` is a plain object holding note-operation entries (`add
 The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
 
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
+
+Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker. The main thread resamples a track's decoded buffer to mono 22,050 Hz and transfers it; the worker caches the raw activation matrices per audio asset, so re-decoding with different parameters skips inference. Results are converted from source-audio seconds to timeline beats (track offset + project tempo) and committed via `replaceAllNotes`, a single undoable operation.
 
 ## Persistence
 

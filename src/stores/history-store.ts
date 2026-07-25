@@ -21,6 +21,11 @@ type HistoryEntry =
         before: Partial<Omit<Note, "id">>;
         after: Partial<Omit<Note, "id">>;
       }>;
+    }
+  | {
+      type: "replace-notes";
+      before: Note[]; // Full snapshot for undo
+      after: Note[]; // Full snapshot for redo
     };
 
 const MAX_HISTORY = 50;

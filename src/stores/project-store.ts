@@ -54,6 +54,8 @@ export interface ProjectState {
     updates: { id: string; changes: Partial<Omit<Note, "id">> }[],
   ) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
+  replaceAllNotes: (notes: Note[]) => void; // Single undoable operation
+
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
@@ -266,6 +268,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
   },
 
+  replaceAllNotes: (notes) => {
+    historyStore.pushOperation({
+      type: "replace-notes",
+      before: get().notes,
+      after: notes,
+    });
+
+    set({ notes, selectedNoteIds: new Set() });
+  },
+
   selectNotes: (ids, exclusive = true) =>
     set((state) => {
       if (exclusive) {
@@ -387,6 +399,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             ),
           };
         });
+      } else if (entry.type === "replace-notes") {
+        // Undo replace: restore the previous snapshot
+        set({ notes: entry.before, selectedNoteIds: new Set() });
       }
 
       historyStore.moveToRedo();
@@ -431,6 +446,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
             ),
           };
         });
+      } else if (entry.type === "replace-notes") {
+        // Redo replace: apply the replacement snapshot again
+        set({ notes: entry.after, selectedNoteIds: new Set() });
       }
 
       // Move from redo to undo stack
