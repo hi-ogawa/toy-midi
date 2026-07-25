@@ -119,7 +119,7 @@ test.describe("Project Persistence", () => {
       page.waitForEvent("filechooser"),
       page.getByTestId("load-audio-button").click(),
     ]);
-    await fileChooser.setFiles("public/test-audio.wav");
+    await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
 
     // Close settings dialog and wait for audio to load
     await page.keyboard.press("Escape");

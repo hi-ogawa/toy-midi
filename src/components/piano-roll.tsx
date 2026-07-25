@@ -43,6 +43,8 @@ const MIN_WAVEFORM_HEIGHT = 56;
 const MAX_WAVEFORM_HEIGHT = 300;
 
 // Zoom limits (pixels per beat/key)
+// TODO: consider discrete integer zoom levels (e.g. 1,2,3,4,6,8,...,192)
+// for simpler state and guaranteed zoom roundtrip
 const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
 const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
@@ -104,7 +106,7 @@ function generateVerticalGridLayers(
 
 // Generate CSS background for grid (returns style object)
 // Uses linear-gradient + background-size instead of repeating-linear-gradient
-// to avoid subpixel rendering artifacts (see docs/2026-01-08-vertical-grid-alignment.md)
+// to avoid subpixel rendering artifacts
 function generateGridBackground(
   pixelsPerBeat: number,
   pixelsPerKey: number,
@@ -256,6 +258,7 @@ export function PianoRoll() {
     selectNotes,
     deselectAll,
     updateAudioTrack,
+    moveAudioOffset,
     deleteAudioTrack,
     selectAudioTrack,
     undo,
@@ -302,6 +305,8 @@ export function PianoRoll() {
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
 
   // Track viewport size
+  // TODO: keyboard sidebar initial height is truncated until the first
+  // resize because of this hardcoded initial size
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 400 });
 
   const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
@@ -359,6 +364,8 @@ export function PianoRoll() {
   const visibleBeats = viewportSize.width / pixelsPerBeat;
   const visibleKeys = viewportSize.height / pixelsPerKey;
 
+  // TODO: some useCallback below (screenToGrid, gridToScreen, handleMouseMove,
+  // handleMouseUp) may be unnecessary now that useWindowEvent uses useEffectEvent
   // Convert screen coordinates to grid coordinates (beat, pitch)
   const screenToGrid = useCallback(
     (clientX: number, clientY: number) => {
@@ -1258,9 +1265,7 @@ export function PianoRoll() {
               height={waveformHeight}
               beatsPerBar={beatsPerBar}
               isSelected={selectedAudioTrackId === track.id}
-              onOffsetChange={(offset) =>
-                updateAudioTrack(track.id, { offset })
-              }
+              onOffsetChange={(offset) => moveAudioOffset(track.id, offset)}
               onHeightChange={setWaveformHeight}
               onSelect={() => {
                 deselectAll();
@@ -1963,11 +1968,11 @@ function WaveformArea({
         <div
           data-testid="audio-track-region"
           data-track-id={trackId}
-          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden ${
+          className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-75 ${
             isDragging
               ? "bg-emerald-600"
               : "bg-emerald-700 hover:bg-emerald-600"
-          } ${isSelected ? "ring-2 ring-sky-400" : "opacity-85"}`}
+          } ${isSelected ? "ring-2 ring-sky-400" : ""}`}
           style={{
             left: audioStartX,
             width: Math.max(audioWidth, 4),
@@ -1988,7 +1993,7 @@ function WaveformArea({
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
             {audioOffset > 0 && (
-              <span className="opacity-75">+{audioOffset.toFixed(1)}s</span>
+              <span className="opacity-75">+{audioOffset.toFixed(3)}s</span>
             )}
           </div>
         </div>

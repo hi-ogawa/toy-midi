@@ -5,6 +5,8 @@ import { clickNewProject } from "./helpers";
 const BEAT_WIDTH = 80;
 const ROW_HEIGHT = 20;
 
+// TODO: consolidate into fewer user-flow tests (combine paste/snap/preserve/selection)
+
 // Helper to seek playhead by clicking on timeline
 async function seekTobeat(
   page: import("@playwright/test").Page,

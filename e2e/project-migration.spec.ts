@@ -7,7 +7,7 @@ import { evaluateStore } from "./helpers";
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
-  "../public/test-audio.wav",
+  "fixtures/test-audio.wav",
 );
 
 const LEGACY_PROJECT: SavedProjectV1 = {
@@ -41,15 +41,13 @@ test.describe("Project Migration", () => {
     page,
   }) => {
     await page.goto("/__e2e__/");
-    await page.evaluate(async (project) => {
-      const response = await fetch("/test-audio.wav");
-      const audio = await response.arrayBuffer();
-      await window.__e2e!.seedProjectV1(
-        "Legacy Project",
-        project,
-        new Uint8Array(audio),
-      );
-    }, LEGACY_PROJECT);
+    const audio = new Uint8Array(await readFile(TEST_AUDIO_PATH));
+    await page.evaluate(
+      async ({ project, audio }) => {
+        await window.__e2e!.seedProjectV1("Legacy Project", project, audio);
+      },
+      { project: LEGACY_PROJECT, audio },
+    );
 
     await page.goto("/");
     await page.getByTestId("continue-button").click();

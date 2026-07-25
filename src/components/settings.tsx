@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { audioManager, loadAudioFile } from "../lib/audio";
+import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
@@ -47,8 +48,10 @@ export function Settings({
     timeSignature,
     notes,
     autoScrollEnabled,
+    linkAudioOffsetsEnabled,
     showDebug,
     setAutoScrollEnabled,
+    setLinkAudioOffsetsEnabled,
     setShowDebug,
     addAudioTrack,
     deleteAudioTrack,
@@ -94,26 +97,35 @@ export function Settings({
   });
 
   const loadAudioMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const { buffer, audioView } = await loadAudioFile(file);
+    mutationFn: async (input: File) => {
+      const files = await resolveAudioFiles(input);
+      for (const file of files) {
+        const { buffer, audioView } = await loadAudioFile(file);
 
-      // Save audio to IndexedDB for persistence
-      const assetKey = await projectStorage.saveAsset(file);
+        // Save audio to IndexedDB for persistence
+        const assetKey = await projectStorage.saveAsset(file);
 
-      const id = generateAudioTrackId();
-      // Assign the buffer before adding to the store so the state-sync
-      // subscription can immediately sync the loaded player to the Transport.
-      audioManager.getAudioTrack(id).setBuffer(buffer);
-      addAudioTrack({
-        id,
-        fileName: file.name,
-        assetKey,
-        duration: buffer.duration,
-        offset: 0,
-        volume: 0.8,
-        muted: false,
-        audioView,
-      });
+        const id = generateAudioTrackId();
+        // Assign the buffer before adding to the store so the state-sync
+        // subscription can immediately sync the loaded player to the Transport.
+        audioManager.getAudioTrack(id).setBuffer(buffer);
+        addAudioTrack({
+          id,
+          fileName: file.name,
+          assetKey,
+          duration: buffer.duration,
+          offset: 0,
+          volume: 0.8,
+          muted: false,
+          audioView,
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to load audio:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load audio",
+      );
     },
   });
 
@@ -214,7 +226,7 @@ export function Settings({
             </div>
           ))}
           <FileDropInput
-            accept="audio/*"
+            accept="audio/*,.zip,application/zip"
             data-testid="load-audio-button"
             disabled={loadAudioMutation.isPending}
             inputProps={{ "data-testid": "audio-file-input" }}
@@ -298,6 +310,15 @@ export function Settings({
             <span className="text-sm text-neutral-300">
               Auto-scroll <span className="text-xs text-neutral-500">(F)</span>
             </span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={linkAudioOffsetsEnabled}
+              onChange={(e) => setLinkAudioOffsetsEnabled(e.target.checked)}
+              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            <span className="text-sm text-neutral-300">Link audio offsets</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input

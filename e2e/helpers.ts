@@ -46,7 +46,7 @@ export async function loadAudioFile(
   const path = await import("path");
   const testAudioPath = path.join(
     import.meta.dirname,
-    "../public/test-audio.wav",
+    "fixtures/test-audio.wav",
   );
   await fileInput.setInputFiles({
     name: fileName,

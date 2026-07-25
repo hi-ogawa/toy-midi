@@ -12,24 +12,10 @@
 
 | File                   | Purpose                          |
 | ---------------------- | -------------------------------- |
-| `docs/prd.md`          | Requirements, UX specs, features |
 | `docs/architecture.md` | Technical architecture overview  |
 | `docs/references.md`   | Reference projects and libraries |
-| `docs/YYYY-MM-DD-*.md` | Task-specific planning/notes     |
 
-Read `docs/prd.md` before implementing features.
-
-## Task Documents
-
-For non-trivial work, create `docs/YYYY-MM-DD-<topic>.md` **before implementing**.
-
-Task docs should enable **handoff to a fresh agent** - include enough context to continue without conversation history.
-
-**Structure:**
-
-- Problem context and approach
-- Reference files/patterns to follow
-- Implementation steps
+Planned work and known bugs live in GitHub issues, minor code-level nits as inline `TODO` comments. When a change alters durable behavior or structure, update `docs/architecture.md` in the same PR, and file follow-ups as issues.
 
 ## Conventions
 
