@@ -3,6 +3,7 @@
 //
 // Usage:
 //   pnpm basic-pitch input.wav    # any audio format supported by ffmpeg
+//   pnpm basic-pitch input.wav --onset 0.5 --frame 0.3 --min-length 5
 //
 // A synthetic C2/E2/G2 test input lives at e2e/fixtures/test-tones.pcm
 // (regeneration documented in e2e/fixtures/README.md).
@@ -13,28 +14,56 @@
 
 import { execFile } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
-
-// require() instead of ESM imports: both packages ship CJS/UMD entries whose
-// named exports are unreliable through Node's ESM interop
-const require = createRequire(import.meta.url);
-const tf = require("@tensorflow/tfjs");
-const {
+import { fileURLToPath } from "node:url";
+import { parseArgs, promisify } from "node:util";
+import {
   BasicPitch,
   noteFramesToTime,
   outputToNotesPoly,
-} = require("@spotify/basic-pitch");
+} from "@spotify/basic-pitch";
+import * as tf from "@tensorflow/tfjs";
+
+const execFileAsync = promisify(execFile);
 
 const MODEL_SAMPLE_RATE = 22050;
 
+const USAGE = `\
+usage: pnpm basic-pitch <input-audio> [options]
+
+options:
+  --onset <0-1>        onset threshold, higher = fewer note splits (default 0.5)
+  --frame <0-1>        frame threshold, higher = fewer detected notes (default 0.3)
+  --min-length <n>     drop notes shorter than n frames, 1 frame ≈ 11.6ms (default 5)
+  -h, --help           show this help
+
+Decoder defaults follow the reference implementation.`;
+
 async function main() {
-  const audioPath = process.argv[2];
+  let parsed;
+  try {
+    parsed = parseArgs({
+      allowPositionals: true,
+      options: {
+        onset: { type: "string", default: "0.5" },
+        frame: { type: "string", default: "0.3" },
+        "min-length": { type: "string", default: "5" },
+        help: { type: "boolean", short: "h", default: false },
+      },
+    });
+  } catch (e) {
+    console.error(e.message);
+    console.error(USAGE);
+    process.exit(1);
+  }
+  const { values, positionals } = parsed;
+  if (values.help) {
+    console.log(USAGE);
+    return;
+  }
+  const audioPath = positionals[0];
   if (!audioPath) {
-    console.error("usage: pnpm basic-pitch <input-audio>");
+    console.error(USAGE);
     process.exit(1);
   }
   const pcm = await loadAudioAsModelPcm(audioPath);
@@ -62,9 +91,23 @@ async function main() {
   const seconds = ((performance.now() - startedAt) / 1000).toFixed(1);
   console.log(`\rinference: done in ${seconds}s (${frames.length} frames)`);
 
-  // Reference decoder defaults: onset 0.5, frame 0.3, min length 5 frames
+  const onsetThreshold = Number(values.onset);
+  const frameThreshold = Number(values.frame);
+  const minNoteLength = Number(values["min-length"]);
+  console.log(
+    `decode: onset=${onsetThreshold} frame=${frameThreshold} min-length=${minNoteLength}`,
+  );
   const notes = noteFramesToTime(
-    outputToNotesPoly(frames, onsets, 0.5, 0.3, 5, true, null, null),
+    outputToNotesPoly(
+      frames,
+      onsets,
+      onsetThreshold,
+      frameThreshold,
+      minNoteLength,
+      true,
+      null,
+      null,
+    ),
   );
   notes.sort((a, b) => a.startTimeSeconds - b.startTimeSeconds);
 
@@ -84,30 +127,27 @@ async function main() {
 
 // tf.loadGraphModel cannot fetch file:// URLs, so read model.json and the
 // weight shards from the package and hand them over as in-memory artifacts
-function loadModelFromPackage() {
-  const modelJsonPath =
-    require.resolve("@spotify/basic-pitch/model/model.json");
-  return (async () => {
-    const modelJson = JSON.parse(await readFile(modelJsonPath, "utf8"));
-    const shards = await Promise.all(
-      modelJson.weightsManifest
-        .flatMap((group) => group.paths)
-        .map((p) => readFile(path.join(path.dirname(modelJsonPath), p))),
-    );
-    const weightData = Buffer.concat(shards);
-    return tf.loadGraphModel(
-      tf.io.fromMemory({
-        modelTopology: modelJson.modelTopology,
-        weightSpecs: modelJson.weightsManifest.flatMap(
-          (group) => group.weights,
-        ),
-        weightData: weightData.buffer.slice(
-          weightData.byteOffset,
-          weightData.byteOffset + weightData.byteLength,
-        ),
-      }),
-    );
-  })();
+async function loadModelFromPackage() {
+  const modelJsonPath = fileURLToPath(
+    import.meta.resolve("@spotify/basic-pitch/model/model.json"),
+  );
+  const modelJson = JSON.parse(await readFile(modelJsonPath, "utf8"));
+  const shards = await Promise.all(
+    modelJson.weightsManifest
+      .flatMap((group) => group.paths)
+      .map((p) => readFile(path.join(path.dirname(modelJsonPath), p))),
+  );
+  const weightData = Buffer.concat(shards);
+  return tf.loadGraphModel(
+    tf.io.fromMemory({
+      modelTopology: modelJson.modelTopology,
+      weightSpecs: modelJson.weightsManifest.flatMap((group) => group.weights),
+      weightData: weightData.buffer.slice(
+        weightData.byteOffset,
+        weightData.byteOffset + weightData.byteLength,
+      ),
+    }),
+  );
 }
 
 async function loadAudioAsModelPcm(audioPath) {
