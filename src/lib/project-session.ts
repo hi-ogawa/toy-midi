@@ -9,6 +9,7 @@ import {
 } from "../stores/project-store";
 import { debounce } from "../utils/timing";
 import { audioManager, loadAudioFile } from "./audio";
+import { EMPTY_AUDIO_VIEW } from "./audio-view";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
 import { projectStorage } from "./project-storage";
 
@@ -139,7 +140,15 @@ async function restoreAudioTracks(
       project.updateAudioTrack(track.id, { audioView: loaded.audioView });
     } catch (e) {
       console.error(e);
+      if (signal.aborted) {
+        return;
+      }
       toast.error(`Failed to load audio "${track.fileName}".`);
+      // Mark the waveform unavailable so `audioView === null` stays
+      // pending-only and the region doesn't read as loading forever.
+      // TODO: model restore failure explicitly (distinct from the too-long
+      // waveform bailout) so the region can render the track as dead.
+      project.updateAudioTrack(track.id, { audioView: EMPTY_AUDIO_VIEW });
     }
   }
 }
