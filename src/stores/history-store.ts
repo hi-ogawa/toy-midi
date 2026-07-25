@@ -26,6 +26,7 @@ type HistoryEntry =
       type: "replace-notes";
       before: Note[]; // Full snapshot for undo
       after: Note[]; // Full snapshot for redo
+      coalesceKey?: string; // Consecutive replaces with the same key merge into one entry
     };
 
 const MAX_HISTORY = 50;

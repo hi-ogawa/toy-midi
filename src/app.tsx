@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AudioToMidiPanel } from "./components/audio-to-midi-panel";
 import { HelpOverlay } from "./components/help-overlay";
 import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
@@ -15,6 +16,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
 import { openProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
+import { useProjectStore } from "./stores/project-store";
 
 export function App() {
   const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
@@ -121,6 +123,12 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [projectName, setProjectName] = useState(initialProjectName);
+  const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string | null>(
+    null,
+  );
+  const audioToMidiTrack = useProjectStore(
+    (s) => s.audioTracks.find((t) => t.id === audioToMidiTrackId) ?? null,
+  );
 
   // Update document title when project name changes
   useEffect(() => {
@@ -146,6 +154,10 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);
+      } else if (audioToMidiTrackId) {
+        e.preventDefault();
+        e.stopPropagation();
+        setAudioToMidiTrackId(null);
       }
     }
     if (e.key === "?" && !e.repeat) {
@@ -163,6 +175,13 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
         projectName={projectName}
       />
       <PianoRoll />
+      {audioToMidiTrack && (
+        <AudioToMidiPanel
+          key={audioToMidiTrack.id}
+          track={audioToMidiTrack}
+          onClose={() => setAudioToMidiTrackId(null)}
+        />
+      )}
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       <Dialog
         isOpen={isMixerOpen}
@@ -190,6 +209,10 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
             // TODO: modal project list view and allow switch project?
             // for now, open startup page in new tab.
             window.open("/", "_blank");
+          }}
+          onAudioToMidiClick={(trackId) => {
+            setIsSettingsOpen(false);
+            setAudioToMidiTrackId(trackId);
           }}
         />
       </Dialog>

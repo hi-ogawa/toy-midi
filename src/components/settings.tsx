@@ -7,7 +7,6 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { audioManager, loadAudioFile } from "../lib/audio";
@@ -23,7 +22,6 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../stores/project-store";
-import { AudioToMidiModal } from "./audio-to-midi-modal";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -32,12 +30,15 @@ type SettingsProps = {
   projectName: string;
   onProjectNameChange: (name: string) => void;
   onProjectsClick: () => void;
+  // Closes settings and opens the transcription panel for the track
+  onAudioToMidiClick: (trackId: string) => void;
 };
 
 export function Settings({
   projectName,
   onProjectNameChange,
   onProjectsClick,
+  onAudioToMidiClick,
 }: SettingsProps) {
   const projectNameInput = useDraftTextInput({
     value: projectName,
@@ -59,11 +60,6 @@ export function Settings({
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
-  const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string | null>(
-    null,
-  );
-  const audioToMidiTrack =
-    audioTracks.find((t) => t.id === audioToMidiTrackId) ?? null;
 
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -224,7 +220,7 @@ export function Settings({
               </div>
               <Button
                 data-testid="audio-to-midi-button"
-                onClick={() => setAudioToMidiTrackId(track.id)}
+                onClick={() => onAudioToMidiClick(track.id)}
                 title={`Transcribe ${track.fileName} to MIDI notes`}
                 className="h-8 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
               >
@@ -348,13 +344,6 @@ export function Settings({
           </label>
         </div>
       </section>
-
-      {audioToMidiTrack && (
-        <AudioToMidiModal
-          track={audioToMidiTrack}
-          onClose={() => setAudioToMidiTrackId(null)}
-        />
-      )}
     </div>
   );
 }

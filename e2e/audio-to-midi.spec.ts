@@ -26,29 +26,31 @@ test.describe("Audio to MIDI", () => {
       });
     });
 
-    // Open the transcription modal from the track row in Settings
+    // Open the transcription panel from the track row in Settings; the
+    // settings dialog closes so the panel and piano roll are usable together
     await page.getByTestId("settings-button").click();
     await page.getByTestId("audio-to-midi-button").click();
-    const modal = page.getByTestId("audio-to-midi-modal");
-    await expect(modal).toBeVisible();
-    await expect(modal.getByTestId("audio-to-midi-file-name")).toHaveText(
+    await expect(page.getByTestId("settings-dialog")).toBeHidden();
+    const panel = page.getByTestId("audio-to-midi-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByTestId("audio-to-midi-file-name")).toHaveText(
       "bass.wav",
     );
 
-    // Transcription is done once the replace has landed in the store; the
-    // marker note disappears regardless of what the model detected
-    await modal.getByTestId("transcribe-button").click();
+    // Analyze runs inference; the initial decode then replaces notes live.
+    // Done once the replace lands in the store: the marker note disappears
+    // regardless of what the model detected
+    await panel.getByTestId("analyze-button").click();
     await expect
       .poll(async () => (await getNoteIds(page)).includes("note-marker"))
       .toBe(false);
     const idsAfterTranscribe = await getNoteIds(page);
 
-    // Close the modal, then Settings
-    await modal.getByRole("button", { name: "Close" }).click();
-    await expect(modal).toBeHidden();
-    await page.keyboard.press("Escape");
+    await panel.getByRole("button", { name: "Close" }).click();
+    await expect(panel).toBeHidden();
 
-    // One undo restores the entire pre-transcription state
+    // One undo restores the entire pre-transcription state (live re-decodes
+    // within a panel session coalesce into a single history entry)
     await page.keyboard.press("Control+z");
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 

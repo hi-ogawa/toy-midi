@@ -1,7 +1,8 @@
 // Client for Basic Pitch (https://github.com/spotify/basic-pitch) audio→MIDI
-// transcription. Inference and note decoding run in basic-pitch-worker.ts,
-// which caches raw model output per audio asset, so re-running with different
-// decode parameters skips the expensive inference pass.
+// transcription. The worker (basic-pitch-worker.ts) exposes the two inherent
+// stages separately: `analyze` runs model inference once per audio asset and
+// caches the raw activations worker-side, `decode` reruns only the cheap
+// activations→notes extraction with new parameters.
 
 export interface TranscribeParams {
   onsetThreshold: number; // 0-1, higher = fewer note splits
@@ -28,63 +29,93 @@ export const DEFAULT_TRANSCRIBE_PARAMS: TranscribeParams = {
   maxPitchMidi: 108, // C8
 };
 
-export interface BasicPitchRequest {
-  requestId: number;
-  cacheKey: string;
-  params: TranscribeParams;
-  pcm?: Float32Array; // present only when the worker lacks activations for cacheKey
-}
+export type BasicPitchRequest =
+  | {
+      type: "analyze";
+      requestId: number;
+      cacheKey: string;
+      pcm?: Float32Array; // present only when the worker lacks activations for cacheKey
+    }
+  | {
+      type: "decode";
+      requestId: number;
+      cacheKey: string;
+      params: TranscribeParams;
+    };
 
 export type BasicPitchResponse =
   | { type: "progress"; requestId: number; percent: number }
-  | { type: "result"; requestId: number; notes: TranscribedNote[] }
+  | { type: "analyzed"; requestId: number }
+  | { type: "notes"; requestId: number; notes: TranscribedNote[] }
   | { type: "error"; requestId: number; message: string };
 
 const MODEL_SAMPLE_RATE = 22050;
 
 class BasicPitchClient {
   private worker: Worker | null = null;
-  private workerCacheKey: string | null = null;
+  private analyzedCacheKey: string | null = null;
   private nextRequestId = 1;
 
-  async transcribe(
+  async analyze(
     cacheKey: string,
     audioBuffer: AudioBuffer,
-    params: TranscribeParams,
     onProgress: (percent: number) => void,
+  ): Promise<void> {
+    const pcm =
+      this.analyzedCacheKey === cacheKey
+        ? undefined
+        : await resampleToModelRate(audioBuffer);
+    await this.sendRequest(
+      { type: "analyze", requestId: this.nextRequestId++, cacheKey, pcm },
+      pcm ? [pcm.buffer] : [],
+      onProgress,
+    );
+    this.analyzedCacheKey = cacheKey;
+  }
+
+  async decode(
+    cacheKey: string,
+    params: TranscribeParams,
   ): Promise<TranscribedNote[]> {
+    const response = await this.sendRequest(
+      { type: "decode", requestId: this.nextRequestId++, cacheKey, params },
+      [],
+    );
+    if (response.type !== "notes") {
+      throw new Error(`Unexpected response: ${response.type}`);
+    }
+    return response.notes;
+  }
+
+  private sendRequest(
+    request: BasicPitchRequest,
+    transfer: Transferable[],
+    onProgress?: (percent: number) => void,
+  ): Promise<BasicPitchResponse> {
     this.worker ??= new Worker(
       new URL("./basic-pitch-worker.ts", import.meta.url),
       { type: "module" },
     );
     const worker = this.worker;
-    const requestId = this.nextRequestId++;
-    const pcm =
-      this.workerCacheKey === cacheKey
-        ? undefined
-        : await resampleToModelRate(audioBuffer);
-    const request: BasicPitchRequest = { requestId, cacheKey, params, pcm };
-
     return new Promise((resolve, reject) => {
       const handleMessage = (event: MessageEvent<BasicPitchResponse>) => {
         const response = event.data;
-        if (response.requestId !== requestId) {
+        if (response.requestId !== request.requestId) {
           return;
         }
         if (response.type === "progress") {
-          onProgress(response.percent);
+          onProgress?.(response.percent);
           return;
         }
         worker.removeEventListener("message", handleMessage);
-        if (response.type === "result") {
-          this.workerCacheKey = cacheKey;
-          resolve(response.notes);
-        } else {
+        if (response.type === "error") {
           reject(new Error(response.message));
+        } else {
+          resolve(response);
         }
       };
       worker.addEventListener("message", handleMessage);
-      worker.postMessage(request, pcm ? [pcm.buffer] : []);
+      worker.postMessage(request, transfer);
     });
   }
 }

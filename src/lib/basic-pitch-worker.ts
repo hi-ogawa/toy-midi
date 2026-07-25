@@ -25,10 +25,10 @@ const basicPitch = new BasicPitch(
   }),
 );
 
-// Raw activations for the most recently transcribed audio asset, so decode
-// parameter changes rerun only the cheap decoding below. Kept worker-side
-// because the matrices are large (~7 MB per song minute); a single entry
-// bounds memory. Contours are dropped since pitch bends are not imported.
+// Raw activations for the most recently analyzed audio asset, so decode
+// requests rerun only the cheap extraction below. Kept worker-side because
+// the matrices are large (~7 MB per song minute); a single entry bounds
+// memory. Contours are dropped since pitch bends are not imported.
 let cache: {
   cacheKey: string;
   frames: number[][];
@@ -36,26 +36,38 @@ let cache: {
 } | null = null;
 
 self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
-  const { requestId, cacheKey, params, pcm } = event.data;
+  const request = event.data;
+  const { requestId } = request;
   const respond = (response: BasicPitchResponse) => self.postMessage(response);
   try {
-    if (cache?.cacheKey !== cacheKey) {
-      if (!pcm) {
-        throw new Error("Missing PCM for uncached audio");
+    if (request.type === "analyze") {
+      if (cache?.cacheKey !== request.cacheKey) {
+        if (!request.pcm) {
+          throw new Error("Missing PCM for unanalyzed audio");
+        }
+        const frames: number[][] = [];
+        const onsets: number[][] = [];
+        await basicPitch.evaluateModel(
+          request.pcm,
+          (chunkFrames, chunkOnsets) => {
+            frames.push(...chunkFrames);
+            onsets.push(...chunkOnsets);
+          },
+          (percent) => respond({ type: "progress", requestId, percent }),
+        );
+        cache = { cacheKey: request.cacheKey, frames, onsets };
       }
-      const frames: number[][] = [];
-      const onsets: number[][] = [];
-      await basicPitch.evaluateModel(
-        pcm,
-        (chunkFrames, chunkOnsets) => {
-          frames.push(...chunkFrames);
-          onsets.push(...chunkOnsets);
-        },
-        (percent) => respond({ type: "progress", requestId, percent }),
-      );
-      cache = { cacheKey, frames, onsets };
+      respond({ type: "analyzed", requestId });
+    } else {
+      if (cache?.cacheKey !== request.cacheKey) {
+        throw new Error("Audio not analyzed");
+      }
+      respond({
+        type: "notes",
+        requestId,
+        notes: decodeNotes(cache, request.params),
+      });
     }
-    respond({ type: "result", requestId, notes: decodeNotes(cache, params) });
   } catch (error) {
     respond({
       type: "error",

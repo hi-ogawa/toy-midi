@@ -13,7 +13,7 @@ src/
 │   ├── piano-roll.tsx      # grid, keyboard, timeline, notes, waveform, drag state machine (~2000 lines)
 │   ├── transport.tsx       # play/pause, tempo, time signature, grid snap, instrument, project name
 │   ├── settings.tsx        # audio load, MIDI import, MIDI/.toymidi export
-│   ├── audio-to-midi-modal.tsx # Basic Pitch transcription parameters, opened per audio track
+│   ├── audio-to-midi-panel.tsx # Basic Pitch analyze + live decode params, floating panel per audio track
 │   ├── mixer.tsx           # MIDI/metronome/per-audio-track channel strips
 │   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
 │   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
@@ -106,7 +106,7 @@ The single store→audio sync point is `applyState(state, prevState)`, subscribe
 
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
 
-Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker. The main thread resamples a track's decoded buffer to mono 22,050 Hz and transfers it; the worker caches the raw activation matrices per audio asset, so re-decoding with different parameters skips inference. Results are converted from source-audio seconds to timeline beats (track offset + project tempo) and committed via `replaceAllNotes`, a single undoable operation. `pnpm verify-basic-pitch [input.wav]` runs the same model in Node (slow CPU backend) for local debugging of the contract and decoder parameters.
+Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker behind a two-message protocol mirroring the inherent stages: `analyze` runs inference once per audio asset (main thread resamples to mono 22,050 Hz and transfers PCM; raw activation matrices stay cached worker-side), and `decode` reruns only the cheap activations→notes extraction. The floating panel (`components/audio-to-midi-panel.tsx`) applies parameter changes live: each debounced decode converts source-audio seconds to timeline beats (track offset + project tempo) and commits via `replaceAllNotes` with a session coalesce key, so a whole tuning session is one undo step. `pnpm verify-basic-pitch [input.wav]` runs the same model in Node (slow CPU backend) for local debugging of the contract and decoder parameters.
 
 ## Persistence
 
