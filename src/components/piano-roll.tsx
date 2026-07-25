@@ -1992,7 +1992,8 @@ function WaveformArea({
           {/* File name and offset indicator */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
-            {/* null = asset not restored yet (EMPTY_AUDIO_VIEW means waveform disabled) */}
+            {/* null = asset not restored yet; EMPTY_AUDIO_VIEW means waveform
+                unavailable (too-long bailout or failed restore, see #182) */}
             {audioView === null && (
               <span className="mr-1.5 opacity-75">loading...</span>
             )}
