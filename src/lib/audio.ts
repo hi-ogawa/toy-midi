@@ -164,8 +164,9 @@ export const GM_PROGRAMS = [
 
 // Synth/scheduling readiness. The editor mounts before (and regardless of)
 // audio being usable, so playback capability is explicit state, not an
-// assumed invariant.
-export type AudioStatus = "disabled" | "loading" | "ready" | "error";
+// assumed invariant. "idle" is the pre-init default; sessions move to
+// "loading" synchronously on open, so it is only observable outside a session.
+export type AudioStatus = "idle" | "loading" | "ready" | "error";
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -177,7 +178,7 @@ export type AudioStatus = "disabled" | "loading" | "ready" | "error";
  * Transport state (play/pause/stop/seek) is managed by useTransport hook,
  * which directly interfaces with Tone.js Transport.
  *
- * Lifecycle: starts "disabled"; init() moves through "loading" to "ready"
+ * Lifecycle: starts "idle"; init() moves through "loading" to "ready"
  * (or "error"). Until ready, playback/synth methods are no-ops, so callers
  * never need to check before calling.
  *
@@ -199,7 +200,7 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
-  private status: AudioStatus = "disabled";
+  private status: AudioStatus = "idle";
   private statusListeners = new Set<() => void>();
 
   // getStatus/subscribeStatus/setStatus are useSyncExternalStore ceremony

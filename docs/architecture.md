@@ -102,7 +102,7 @@ Undo/redo: `historyStore` is a plain object holding note-operation entries (`add
 
 The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
 
-Readiness is explicit state: `audioManager` starts `"disabled"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness (the play button disables while loading) subscribes via `useAudioStatus()`.
+Readiness is explicit state: `audioManager` starts `"idle"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness (the play button disables while loading) subscribes via `useAudioStatus()`.
 
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
 
