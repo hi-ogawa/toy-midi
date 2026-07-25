@@ -40,8 +40,6 @@ export function openProjectSession(options: {
     audioManager.applyState(state, prevState);
   });
 
-  void attachAudio();
-
   // Auto-save on state changes (debounced)
   const autoSaveDebounceMs = Number(
     import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
@@ -74,10 +72,61 @@ export function openProjectSession(options: {
   };
   window.addEventListener("keydown", handleKeydown);
 
+  // Background audio attach, owned by the session: initialize the synth,
+  // run one full applyState at the ready transition, then restore stored
+  // audio assets. Strictly sequential, handles every error internally so
+  // the task can never reject, and stops touching the store once disposed.
+  let disposed = false;
+  const attachAudio = async () => {
+    try {
+      await audioManager.init();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to initialize audio. Playback is unavailable.");
+      return;
+    }
+    if (disposed) {
+      return;
+    }
+    audioManager.applyState(useProjectStore.getState());
+
+    const project = useProjectStore.getState();
+    for (const track of project.audioTracks) {
+      try {
+        const asset = await projectStorage.loadAsset(track.assetKey);
+        if (disposed) {
+          return;
+        }
+        if (!asset) {
+          toast.warning(
+            `Audio asset not found for "${track.fileName}". The track will be cleared.`,
+          );
+          project.deleteAudioTrack(track.id);
+          continue;
+        }
+        const { buffer, audioView } = await loadAudioFile(
+          new File([asset.blob], asset.name),
+        );
+        if (disposed) {
+          return;
+        }
+        const playback = audioManager.getAudioTrack(track.id);
+        playback.setBuffer(buffer);
+        playback.sync(track.offset);
+        project.updateAudioTrack(track.id, { audioView });
+      } catch (e) {
+        console.error(e);
+        toast.error(`Failed to load audio "${track.fileName}".`);
+      }
+    }
+  };
+  void attachAudio();
+
   return {
     projectId,
     projectName: metadata.name,
     dispose: () => {
+      disposed = true;
       window.removeEventListener("keydown", handleKeydown);
       unsubscribeAudioSync();
       unsubscribeAutoSave();
@@ -86,43 +135,6 @@ export function openProjectSession(options: {
       historyStore.clearHistory();
     },
   };
-}
-
-// Initialize the synth and decode stored audio assets without blocking the
-// editor. Assets run in parallel with init: buffer/player setup only touches
-// parts of audioManager that are safe pre-init.
-async function attachAudio(): Promise<void> {
-  const assetsPromise = loadAudioAssets();
-  try {
-    await audioManager.init();
-  } catch (e) {
-    console.error(e);
-    toast.error("Failed to initialize audio. Playback is unavailable.");
-    return;
-  }
-  audioManager.applyState(useProjectStore.getState());
-  await assetsPromise;
-}
-
-async function loadAudioAssets(): Promise<void> {
-  const project = useProjectStore.getState();
-  for (const track of project.audioTracks) {
-    const asset = await projectStorage.loadAsset(track.assetKey);
-    if (asset) {
-      const { buffer, audioView } = await loadAudioFile(
-        new File([asset.blob], asset.name),
-      );
-      const playback = audioManager.getAudioTrack(track.id);
-      playback.setBuffer(buffer);
-      playback.sync(track.offset);
-      project.updateAudioTrack(track.id, { audioView });
-    } else {
-      toast.warning(
-        `Audio asset not found for "${track.fileName}". The track will be cleared.`,
-      );
-      project.deleteAudioTrack(track.id);
-    }
-  }
 }
 
 // Auto-save debouncer of the active session, so e2e tests can force a save
