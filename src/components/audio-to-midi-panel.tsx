@@ -54,6 +54,10 @@ export function AudioToMidiPanel({
     onSettled: () => setProgress(null),
   });
 
+  // TODO: this live-apply drifted from the #173 MVP, which wants two explicit
+  // steps: analyze (cached inference) and a decode/apply button that commits
+  // one replaceAllNotes per press. Parameter edits should stage locally
+  // instead of continuously rewriting project notes.
   // Decoding is cheap (no inference), so parameter changes apply to the
   // project live: debounce slider drags and drop stale worker responses
   useEffect(() => {
@@ -129,7 +133,12 @@ export function AudioToMidiPanel({
       </p>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-neutral-400">{status}</span>
+        <span
+          data-testid="audio-to-midi-status"
+          className="text-xs text-neutral-400"
+        >
+          {status}
+        </span>
         <Button
           data-testid="analyze-button"
           onClick={() => analyzeMutation.mutate()}

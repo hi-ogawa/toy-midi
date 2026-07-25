@@ -37,13 +37,14 @@ test.describe("Audio to MIDI", () => {
       "test-tones.wav",
     );
 
-    // Analyze runs inference; the initial decode then replaces notes live.
-    // Done once the replace lands in the store: the marker note disappears
-    // regardless of what the model detected
+    // Analyze runs inference, then the initial decode replaces notes live.
+    // The status line confirms both steps: the note count only appears after
+    // the decode's replace has landed in the store
     await panel.getByTestId("analyze-button").click();
-    await expect
-      .poll(async () => (await getNoteIds(page)).includes("note-marker"))
-      .toBe(false);
+    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
+      /^Analyzed · \d+ notes$/,
+    );
+    expect(await getNoteIds(page)).not.toContain("note-marker");
     const idsAfterTranscribe = await getNoteIds(page);
 
     await panel.getByRole("button", { name: "Close" }).click();
