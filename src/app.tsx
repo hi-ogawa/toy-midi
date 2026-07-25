@@ -10,7 +10,6 @@ import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
-import { audioManager } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
 import { openProjectSession } from "./lib/project-session";
@@ -31,14 +30,13 @@ function openProject(projectId: string) {
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
-// screen. Audio inits on a suspended context (see unlockAudioOnFirstGesture).
+// screen. Hydration is synchronous, so the editor mounts immediately; audio
+// initializes in the background (see openProjectSession) and playback
+// enables when it's ready.
 function ProjectRoute({ projectId }: { projectId: string }) {
   const sessionQuery = useQuery({
     queryKey: ["project-session", projectId],
-    queryFn: async () => {
-      await audioManager.init();
-      return await openProjectSession({ projectId });
-    },
+    queryFn: () => openProjectSession({ projectId }),
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,

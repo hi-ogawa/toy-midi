@@ -162,6 +162,11 @@ export const GM_PROGRAMS = [
   "Gunshot",
 ] as const;
 
+// Synth/scheduling readiness. The editor mounts before (and regardless of)
+// audio being usable, so playback capability is explicit state, not an
+// assumed invariant.
+export type AudioStatus = "disabled" | "loading" | "ready" | "error";
+
 /**
  * AudioManager handles audio-specific functionality:
  * - Audio file loading and playback sync
@@ -172,8 +177,12 @@ export const GM_PROGRAMS = [
  * Transport state (play/pause/stop/seek) is managed by useTransport hook,
  * which directly interfaces with Tone.js Transport.
  *
+ * Lifecycle: starts "disabled"; init() moves through "loading" to "ready"
+ * (or "error"). Until ready, playback/synth methods are no-ops, so callers
+ * never need to check before calling.
+ *
  * State sync pattern:
- * - applyState() is called once during init() for initial state
+ * - applyState() is called once right after init() for initial state
  * - applyState() is called on every store change via subscription
  * - Components should update store, not call AudioManager directly
  */
@@ -190,7 +199,37 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
+  private status: AudioStatus = "disabled";
+  private statusListeners = new Set<() => void>();
+
+  getStatus(): AudioStatus {
+    return this.status;
+  }
+
+  subscribeStatus(listener: () => void): () => void {
+    this.statusListeners.add(listener);
+    return () => this.statusListeners.delete(listener);
+  }
+
+  private setStatus(status: AudioStatus): void {
+    this.status = status;
+    for (const listener of this.statusListeners) {
+      listener();
+    }
+  }
+
   async init(): Promise<void> {
+    this.setStatus("loading");
+    try {
+      await this.initInner();
+      this.setStatus("ready");
+    } catch (e) {
+      this.setStatus("error");
+      throw e;
+    }
+  }
+
+  private async initInner(): Promise<void> {
     const context = Tone.getContext();
 
     // OxiSynth (Rust/WASM) for SF2 playback
@@ -250,6 +289,9 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
+    if (this.status !== "ready") {
+      return;
+    }
     // Cheap operations - always apply
     this.setMidiVolume(state.midiVolume);
     this.setMidiMuted(state.midiMuted);
@@ -277,11 +319,22 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
+    if (this.status !== "ready") {
+      return;
+    }
     Tone.getTransport().start();
   }
 
   pause(): void {
     Tone.getTransport().pause();
+  }
+
+  togglePlayback(): void {
+    if (Tone.getTransport().state === "started") {
+      this.pause();
+    } else {
+      this.play();
+    }
   }
 
   seek(seconds: number): void {
@@ -347,15 +400,24 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
+    if (this.status !== "ready") {
+      return;
+    }
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
   }
 
   // Note preview with manual control (for keyboard interaction)
   noteOn(pitch: number): void {
+    if (this.status !== "ready") {
+      return;
+    }
     this.midiSynth.noteOn(pitch, 100);
   }
 
   noteOff(pitch: number): void {
+    if (this.status !== "ready") {
+      return;
+    }
     this.midiSynth.noteOff(pitch);
   }
 
