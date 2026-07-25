@@ -178,9 +178,6 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
               setProjectName(name);
             }
           }}
-          onProjectsClick={() => {
-            window.location.href = "/";
-          }}
         />
       </Dialog>
     </div>
@@ -298,7 +295,7 @@ function ProjectListView({
       toast.error("Failed to import project");
     },
   });
-  const isImporting = importProjectMutation.isPending;
+  const isLoading = importProjectMutation.isPending;
 
   const handleRenameStart = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
@@ -456,7 +453,7 @@ function ProjectListView({
                 <button
                   type="button"
                   data-testid="continue-button"
-                  disabled={isImporting}
+                  disabled={isLoading}
                   onClick={() =>
                     lastProjectId && onSelectProject(lastProjectId)
                   }
@@ -467,7 +464,7 @@ function ProjectListView({
                 <button
                   type="button"
                   data-testid="new-project-button"
-                  disabled={isImporting}
+                  disabled={isLoading}
                   onClick={onNewProject}
                   className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
                 >
@@ -476,17 +473,15 @@ function ProjectListView({
                 <button
                   type="button"
                   data-testid="import-project-button"
-                  disabled={isImporting}
+                  disabled={isLoading}
                   onClick={handleImportClick}
                   className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
                 >
-                  {importProjectMutation.isPending
-                    ? "Importing..."
-                    : "Import Project"}
+                  {isLoading ? "Importing..." : "Import Project"}
                 </button>
               </div>
               <p className="text-neutral-600 text-sm">
-                {isImporting ? (
+                {isLoading ? (
                   "Loading..."
                 ) : (
                   <>
@@ -506,7 +501,7 @@ function ProjectListView({
               <button
                 type="button"
                 data-testid="new-project-button"
-                disabled={isImporting}
+                disabled={isLoading}
                 onClick={onNewProject}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
               >
@@ -515,17 +510,15 @@ function ProjectListView({
               <button
                 type="button"
                 data-testid="import-project-button"
-                disabled={isImporting}
+                disabled={isLoading}
                 onClick={handleImportClick}
                 className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
               >
-                {importProjectMutation.isPending
-                  ? "Importing..."
-                  : "Import Project"}
+                {isLoading ? "Importing..." : "Import Project"}
               </button>
             </div>
             <p className="text-neutral-600 text-sm">
-              {isImporting ? (
+              {isLoading ? (
                 "Loading..."
               ) : (
                 <>
