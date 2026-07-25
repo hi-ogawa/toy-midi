@@ -281,17 +281,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   quantizeSelectedNotes: () => {
     const state = get();
     const gridSize = GRID_SNAP_VALUES[state.gridSnap];
-    const updates = state.notes.flatMap((note) => {
+    const updates: {
+      id: string;
+      changes: Partial<Omit<Note, "id">>;
+    }[] = [];
+    for (const note of state.notes) {
       if (!state.selectedNoteIds.has(note.id)) {
-        return [];
+        continue;
       }
       const start = snapToGrid(note.start, gridSize);
       const duration = Math.max(gridSize, snapToGrid(note.duration, gridSize));
-      if (start === note.start && duration === note.duration) {
-        return [];
+      if (start !== note.start || duration !== note.duration) {
+        updates.push({ id: note.id, changes: { start, duration } });
       }
-      return [{ id: note.id, changes: { start, duration } }];
-    });
+    }
     if (updates.length > 0) {
       state.updateNotes(updates);
     }
