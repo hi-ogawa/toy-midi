@@ -1963,15 +1963,19 @@ function WaveformArea({
       className="relative shrink-0 border-b border-neutral-700 overflow-hidden"
       style={{ height, ...gridBackgroundStyle }}
     >
-      {/* Audio region block */}
+      {/* Audio region block. Pale while audioView is null (asset not
+          restored yet); EMPTY_AUDIO_VIEW renders normal color with no
+          waveform (too-long bailout or failed restore, see #182). */}
       {audioDuration > 0 && (
         <div
           data-testid="audio-track-region"
           data-track-id={trackId}
           className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-75 ${
-            isDragging
-              ? "bg-emerald-600"
-              : "bg-emerald-700 hover:bg-emerald-600"
+            audioView === null
+              ? "bg-emerald-800/40"
+              : isDragging
+                ? "bg-emerald-600"
+                : "bg-emerald-700 hover:bg-emerald-600"
           } ${isSelected ? "ring-2 ring-sky-400" : ""}`}
           style={{
             left: audioStartX,
@@ -1992,11 +1996,6 @@ function WaveformArea({
           {/* File name and offset indicator */}
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
-            {/* null = asset not restored yet; EMPTY_AUDIO_VIEW means waveform
-                unavailable (too-long bailout or failed restore, see #182) */}
-            {audioView === null && (
-              <span className="mr-1.5 opacity-75">loading...</span>
-            )}
             {audioOffset > 0 && (
               <span className="opacity-75">+{audioOffset.toFixed(3)}s</span>
             )}
