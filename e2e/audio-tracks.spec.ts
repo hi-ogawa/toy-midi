@@ -70,8 +70,6 @@ test.describe("Multiple Audio Tracks", () => {
   });
 
   test("two tracks persist across reload", async ({ page }) => {
-    // Loads two audio files then reloads - allow extra time
-    test.slow();
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
 
@@ -133,7 +131,6 @@ test.describe("Multiple Audio Tracks", () => {
   });
 
   test("imports ordered audio tracks from a stem ZIP", async ({ page }) => {
-    test.slow();
     await page.getByTestId("settings-button").click();
     await page
       .getByTestId("audio-file-input")
