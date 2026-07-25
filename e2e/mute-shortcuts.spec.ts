@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
-  clickContinue,
+  waitForEditor,
   clickNewProject,
   evaluateStore,
   loadAudioFile,
@@ -94,8 +94,7 @@ test.describe("Track Mute Shortcuts", () => {
     // Reload page
     await page.reload();
 
-    // Click Continue to restore the project
-    await clickContinue(page);
+    await waitForEditor(page);
 
     // Mute state should be restored
     muteState = await getMuteState(page);

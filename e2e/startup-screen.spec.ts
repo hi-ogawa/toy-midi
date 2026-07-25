@@ -59,8 +59,8 @@ test.describe("Startup Screen", () => {
 
     await evaluateFlushAutoSave(page);
 
-    // Reload - continue button should now be visible
-    await page.reload();
+    // Back on the project list, continue button should now be visible
+    await page.goto("/");
 
     const continueButton = page.getByTestId("continue-button");
     await expect(continueButton).toBeVisible();
@@ -95,7 +95,7 @@ test.describe("Startup Screen", () => {
     await evaluateFlushAutoSave(page);
 
     // With saved project, Space should continue
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("continue-button")).toBeVisible();
     await page.keyboard.press("Space");
     await expect(page.getByTestId("transport")).toBeVisible();

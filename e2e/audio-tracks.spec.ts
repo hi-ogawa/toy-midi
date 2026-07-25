@@ -1,10 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
-  clickContinue,
   clickNewProject,
   evaluateFlushAutoSave,
   evaluateStore,
   loadAudioFile,
+  waitForEditor,
 } from "./helpers";
 
 test.describe("Multiple Audio Tracks", () => {
@@ -75,8 +75,7 @@ test.describe("Multiple Audio Tracks", () => {
 
     await evaluateFlushAutoSave(page);
     await page.reload();
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await waitForEditor(page);
 
     const tracks = await getAudioTracks(page);
     expect(tracks).toHaveLength(2);
@@ -146,7 +145,7 @@ test.describe("Multiple Audio Tracks", () => {
 
     await evaluateFlushAutoSave(page);
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
 
     tracks = await getAudioTracks(page);
     expect(tracks.map((track) => track.fileName)).toEqual([

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
+import { clickNewProject, loadAudioFile, waitForEditor } from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -158,7 +158,7 @@ test.describe("Transport Controls", () => {
 
     // Verify state persisted - reload and check
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
     await expect(page.getByTestId("instrument-select")).toContainText(
       "Acoustic Guitar",
     );
