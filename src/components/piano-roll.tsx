@@ -1966,15 +1966,19 @@ function WaveformArea({
       className="relative shrink-0 border-b border-neutral-700 overflow-hidden"
       style={{ height, ...gridBackgroundStyle }}
     >
-      {/* Audio region block */}
+      {/* Audio region block. Pale while audioView is null (asset not
+          restored yet); EMPTY_AUDIO_VIEW renders normal color with no
+          waveform (too-long bailout or failed restore, see #182). */}
       {audioDuration > 0 && (
         <div
           data-testid="audio-track-region"
           data-track-id={trackId}
           className={`absolute top-1 bottom-1 rounded cursor-ew-resize overflow-hidden opacity-75 ${
-            isDragging
-              ? "bg-emerald-600"
-              : "bg-emerald-700 hover:bg-emerald-600"
+            audioView === null
+              ? "bg-emerald-800/40"
+              : isDragging
+                ? "bg-emerald-600"
+                : "bg-emerald-700 hover:bg-emerald-600"
           } ${isSelected ? "ring-2 ring-sky-400" : ""}`}
           style={{
             left: audioStartX,

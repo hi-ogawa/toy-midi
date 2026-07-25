@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Tone from "tone";
+import { type AudioStatus, audioManager } from "../lib/audio";
 
 /**
  * Hook that provides reactive transport state from Tone.js Transport.
@@ -90,4 +91,13 @@ function deriveState(): TransportState {
     isPlaying: transport.state === "started",
     position: transport.seconds,
   };
+}
+
+// Reactive audioManager readiness, for UI that must disable until the synth
+// is usable (e.g. play button).
+export function useAudioStatus(): AudioStatus {
+  return useSyncExternalStore(
+    (listener) => audioManager.subscribeStatus(listener),
+    () => audioManager.getStatus(),
+  );
 }

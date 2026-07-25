@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,10 +10,9 @@ import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
-import { audioManager } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
-import { openProjectSession } from "./lib/project-session";
+import { getProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 
 export function App() {
@@ -31,40 +30,34 @@ function openProject(projectId: string) {
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
-// screen. Audio inits on a suspended context (see unlockAudioOnFirstGesture).
+// screen. The session is read synchronously during render (getProjectSession
+// caches the result per id, so StrictMode's double render opens it once),
+// so the very first paint is the editor with notes visible; audio
+// initializes in the background and playback enables when it's ready.
+//
+// The sync read leans on document storage being localStorage. If session
+// open ever becomes asynchronous (IndexedDB/remote documents), extend
+// ProjectSessionResult with a "pending" variant and render the empty editor
+// (store defaults are a complete ProjectState) under a blocking loading
+// overlay, following the same status-gated pattern as the audio attach.
 function ProjectRoute({ projectId }: { projectId: string }) {
-  const sessionQuery = useQuery({
-    queryKey: ["project-session", projectId],
-    queryFn: async () => {
-      await audioManager.init();
-      return await openProjectSession({ projectId });
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: false,
-  });
+  const session = getProjectSession(projectId);
 
-  if (!sessionQuery.isSuccess) {
+  if (!session.ok) {
     return (
       <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
-        {sessionQuery.isError ? (
-          <>
-            {String(sessionQuery.error)}
-            <a href="/" className="text-emerald-400 hover:text-emerald-300">
-              Back to projects
-            </a>
-          </>
-        ) : (
-          "Loading..."
-        )}
+        {String(session.error)}
+        <a href="/" className="text-emerald-400 hover:text-emerald-300">
+          Back to projects
+        </a>
       </div>
     );
   }
 
   return (
     <Editor
-      projectId={sessionQuery.data.projectId}
-      initialProjectName={sessionQuery.data.projectName}
+      projectId={session.value.projectId}
+      initialProjectName={session.value.projectName}
     />
   );
 }
