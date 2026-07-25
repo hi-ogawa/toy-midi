@@ -79,6 +79,8 @@ export function AudioToMidiPanel({
   // shows in the shared status line next to the Analyze button, far from the
   // "Convert to MIDI" button that triggered it. Move convert progress/result
   // feedback near that button (or onto it).
+  // TODO: show elapsed time after each step completes (e.g. "Analyzed in
+  // 4.2s", "Converted 4 notes in 0.8s").
   const status = analyzeMutation.isPending
     ? progress !== null
       ? `Analyzing ${Math.round(progress * 100)}%`
