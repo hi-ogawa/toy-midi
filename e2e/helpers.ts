@@ -22,12 +22,13 @@ export const clickThroughStartup = clickNewProject;
 
 /**
  * Load an audio file via Settings dialog.
- * Opens Settings, uploads test-audio.wav under the given file name, waits for
- * load, then closes Settings.
+ * Opens Settings, uploads the given fixture WAV under the given file name,
+ * waits for load, then closes Settings.
  */
 export async function loadAudioFile(
   page: Page,
   fileName = "test-audio.wav",
+  fixtureName = "test-audio.wav",
 ): Promise<void> {
   // Open settings dialog
   await page.getByTestId("settings-button").click();
@@ -37,10 +38,7 @@ export async function loadAudioFile(
   const fileInput = page.getByTestId("audio-file-input");
   const fs = await import("fs/promises");
   const path = await import("path");
-  const testAudioPath = path.join(
-    import.meta.dirname,
-    "fixtures/test-audio.wav",
-  );
+  const testAudioPath = path.join(import.meta.dirname, "fixtures", fixtureName);
   await fileInput.setInputFiles({
     name: fileName,
     mimeType: "audio/wav",

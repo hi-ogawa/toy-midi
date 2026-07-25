@@ -41,3 +41,13 @@ ffmpeg -hide_banner -loglevel error -f lavfi \
   -i "aevalsrc='st(0,440*pow(2,(if(lt(t,1),60,if(lt(t,2),64,if(lt(t,3),67,72)))-69)/12))*0+st(1,mod(t,1))*0+min(1,ld(1)/0.01)*min(1,(1-ld(1))/0.02)*(0.5*sin(2*PI*ld(0)*ld(1))+0.15*sin(4*PI*ld(0)*ld(1))+0.075*sin(6*PI*ld(0)*ld(1)))':s=22050:d=4" \
   -c:a pcm_f32le -f f32le e2e/fixtures/test-tones.pcm
 ```
+
+## test-tones.wav
+
+The same signal as `test-tones.pcm` in a mono 44.1 kHz 16-bit WAV container, so the browser can decode it in e2e tests (also transcribes cleanly to the same four notes):
+
+```sh
+ffmpeg -hide_banner -loglevel error -f lavfi \
+  -i "aevalsrc='st(0,440*pow(2,(if(lt(t,1),60,if(lt(t,2),64,if(lt(t,3),67,72)))-69)/12))*0+st(1,mod(t,1))*0+min(1,ld(1)/0.01)*min(1,(1-ld(1))/0.02)*(0.5*sin(2*PI*ld(0)*ld(1))+0.15*sin(4*PI*ld(0)*ld(1))+0.075*sin(6*PI*ld(0)*ld(1)))':s=44100:d=4" \
+  -c:a pcm_s16le -bitexact e2e/fixtures/test-tones.wav
+```
