@@ -125,7 +125,7 @@ test.describe("Settings Dialog - Project Export", () => {
 
     const testAudioPath = path.join(
       import.meta.dirname,
-      "../public/test-audio.wav",
+      "fixtures/test-audio.wav",
     );
     await fileChooser.setFiles(testAudioPath);
 
