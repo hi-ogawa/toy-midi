@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { audioManager, loadAudioFile } from "../lib/audio";
+import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
@@ -94,26 +95,35 @@ export function Settings({
   });
 
   const loadAudioMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const { buffer, audioView } = await loadAudioFile(file);
+    mutationFn: async (input: File) => {
+      const files = await resolveAudioFiles(input);
+      for (const file of files) {
+        const { buffer, audioView } = await loadAudioFile(file);
 
-      // Save audio to IndexedDB for persistence
-      const assetKey = await projectStorage.saveAsset(file);
+        // Save audio to IndexedDB for persistence
+        const assetKey = await projectStorage.saveAsset(file);
 
-      const id = generateAudioTrackId();
-      // Assign the buffer before adding to the store so the state-sync
-      // subscription can immediately sync the loaded player to the Transport.
-      audioManager.getAudioTrack(id).setBuffer(buffer);
-      addAudioTrack({
-        id,
-        fileName: file.name,
-        assetKey,
-        duration: buffer.duration,
-        offset: 0,
-        volume: 0.8,
-        muted: false,
-        audioView,
-      });
+        const id = generateAudioTrackId();
+        // Assign the buffer before adding to the store so the state-sync
+        // subscription can immediately sync the loaded player to the Transport.
+        audioManager.getAudioTrack(id).setBuffer(buffer);
+        addAudioTrack({
+          id,
+          fileName: file.name,
+          assetKey,
+          duration: buffer.duration,
+          offset: 0,
+          volume: 0.8,
+          muted: false,
+          audioView,
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to load audio:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to load audio",
+      );
     },
   });
 
@@ -214,7 +224,7 @@ export function Settings({
             </div>
           ))}
           <FileDropInput
-            accept="audio/*"
+            accept="audio/*,.zip,application/zip"
             data-testid="load-audio-button"
             disabled={loadAudioMutation.isPending}
             inputProps={{ "data-testid": "audio-file-input" }}
