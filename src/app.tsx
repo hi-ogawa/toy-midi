@@ -12,7 +12,7 @@ import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
-import { getProjectSession, type ProjectSession } from "./lib/project-session";
+import { getProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 
 export function App() {
@@ -31,17 +31,16 @@ function openProject(projectId: string) {
 
 // Deep-link entry: load the project named by the URL directly, no startup
 // screen. The session is read synchronously during render (getProjectSession
-// caches per id, so StrictMode's double render opens it once), so the very
-// first paint is the editor with notes visible; audio initializes in the
-// background and playback enables when it's ready.
+// caches the result per id, so StrictMode's double render opens it once),
+// so the very first paint is the editor with notes visible; audio
+// initializes in the background and playback enables when it's ready.
 function ProjectRoute({ projectId }: { projectId: string }) {
-  let session: ProjectSession;
-  try {
-    session = getProjectSession(projectId);
-  } catch (e) {
+  const session = getProjectSession(projectId);
+
+  if (!session.ok) {
     return (
       <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
-        {String(e)}
+        {String(session.error)}
         <a href="/" className="text-emerald-400 hover:text-emerald-300">
           Back to projects
         </a>
@@ -51,8 +50,8 @@ function ProjectRoute({ projectId }: { projectId: string }) {
 
   return (
     <Editor
-      projectId={session.projectId}
-      initialProjectName={session.projectName}
+      projectId={session.value.projectId}
+      initialProjectName={session.value.projectName}
     />
   );
 }

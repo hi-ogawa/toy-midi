@@ -19,19 +19,28 @@ export interface ProjectSession {
   dispose: () => void;
 }
 
+export type ProjectSessionResult =
+  | { ok: true; value: ProjectSession }
+  | { ok: false; error: unknown };
+
 // Open-once cache so ProjectRoute can read the session synchronously during
 // render (no loading flash) while staying idempotent under StrictMode's
-// double render. Entries live until full-page navigation, matching the
+// double render. Failures are cached like successes, so an open is attempted
+// exactly once per id. Entries live until full-page navigation, matching the
 // previous react-query gcTime: Infinity behavior.
-const activeSessions = new Map<string, ProjectSession>();
+const sessionResults = new Map<string, ProjectSessionResult>();
 
-export function getProjectSession(projectId: string): ProjectSession {
-  let session = activeSessions.get(projectId);
-  if (!session) {
-    session = openProjectSession(projectId);
-    activeSessions.set(projectId, session);
+export function getProjectSession(projectId: string): ProjectSessionResult {
+  let result = sessionResults.get(projectId);
+  if (!result) {
+    try {
+      result = { ok: true, value: openProjectSession(projectId) };
+    } catch (error) {
+      result = { ok: false, error };
+    }
+    sessionResults.set(projectId, result);
   }
-  return session;
+  return result;
 }
 
 // Open a project as the active document: hydrate the store synchronously,
