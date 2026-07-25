@@ -29,21 +29,21 @@ interface StoredAsset {
   addedAt: number;
 }
 
-// Storage layout v2. The ":v2" on the index key marks the storage LAYOUT
+// Storage layout v2. The ":v2" on the list key marks the storage LAYOUT
 // generation (how keys are arranged), never the doc schema — SavedProject
 // carries its own version and migrates lazily at read time.
 //
 // Migration tier rule: compatible doc-schema changes ride the lazy
 // value-versioned migration (migrateSavedProject on load, persisted by the
 // next save); breaking or lossy changes get promoted to a layout bump — new
-// index version, copy-then-commit-then-delete, like migrateLayoutV1 below.
+// list-key version, copy-then-commit-then-delete, like migrateLayoutV1 below.
 // If you'd want a backup, it's a layout bump.
 //
 // Concurrency: accepted-risk, single-writer-ish. Every op read-modify-writes
-// its own entry against a fresh index read, never a cached snapshot, so two
+// its own entry against a fresh list read, never a cached snapshot, so two
 // editors on different projects can't lose each other's entries; structural
 // ops (create/delete) racing another tab's autosave are out of scope.
-const INDEX_KEY = "toy-midi:project-list:v2";
+const PROJECT_LIST_KEY = "toy-midi:project-list:v2";
 // project document, one localStorage entry per project (internally versioned)
 const PROJECT_KEY_PREFIX = "toy-midi:project:";
 
@@ -54,27 +54,29 @@ const LEGACY_PROJECT_KEY_PREFIX = "toy-midi-project-";
 
 // Single JSON: the metadata list (cheap enumeration for the list view) plus
 // the last-opened pointer.
-interface ProjectIndex {
+interface ProjectList {
   projects: ProjectMetadata[];
   lastProjectId: string | null;
 }
 
 class ProjectStorage {
-  private readIndex(): ProjectIndex {
+  private readProjectList(): ProjectList {
     migrateLayoutV1();
-    const json = localStorage.getItem(INDEX_KEY);
+    const json = localStorage.getItem(PROJECT_LIST_KEY);
     if (!json) {
       return { projects: [], lastProjectId: null };
     }
-    return JSON.parse(json) as ProjectIndex;
+    return JSON.parse(json) as ProjectList;
   }
 
-  private writeIndex(index: ProjectIndex): void {
-    localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+  private writeProjectList(projectList: ProjectList): void {
+    localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projectList));
   }
 
   listMetadata(): ProjectMetadata[] {
-    return this.readIndex().projects.sort((a, b) => b.updatedAt - a.updatedAt);
+    return this.readProjectList().projects.sort(
+      (a, b) => b.updatedAt - a.updatedAt,
+    );
   }
 
   getMetadata(projectId: string): ProjectMetadata | null {
@@ -98,9 +100,9 @@ class ProjectStorage {
       updatedAt: now,
     };
 
-    const index = this.readIndex();
-    index.projects.push(metadata);
-    this.writeIndex(index);
+    const projectList = this.readProjectList();
+    projectList.projects.push(metadata);
+    this.writeProjectList(projectList);
     this.save(projectId, data);
     return projectId;
   }
@@ -109,26 +111,28 @@ class ProjectStorage {
     projectId: string,
     updates: Partial<Pick<ProjectMetadata, "name" | "updatedAt">>,
   ): void {
-    const index = this.readIndex();
-    const at = index.projects.findIndex((p) => p.id === projectId);
-    if (at === -1) {
+    const projectList = this.readProjectList();
+    const index = projectList.projects.findIndex((p) => p.id === projectId);
+    if (index === -1) {
       throw new Error(`Project ${projectId} not found`);
     }
 
-    index.projects[at] = {
-      ...index.projects[at],
+    projectList.projects[index] = {
+      ...projectList.projects[index],
       ...updates,
     };
-    this.writeIndex(index);
+    this.writeProjectList(projectList);
   }
 
   delete(projectId: string): void {
-    const index = this.readIndex();
-    index.projects = index.projects.filter((p) => p.id !== projectId);
-    if (index.lastProjectId === projectId) {
-      index.lastProjectId = null;
+    const projectList = this.readProjectList();
+    projectList.projects = projectList.projects.filter(
+      (p) => p.id !== projectId,
+    );
+    if (projectList.lastProjectId === projectId) {
+      projectList.lastProjectId = null;
     }
-    this.writeIndex(index);
+    this.writeProjectList(projectList);
     localStorage.removeItem(getProjectKey(projectId));
   }
 
@@ -155,13 +159,13 @@ class ProjectStorage {
   }
 
   getLastProjectId(): string | null {
-    return this.readIndex().lastProjectId;
+    return this.readProjectList().lastProjectId;
   }
 
   setLastProjectId(projectId: string): void {
-    const index = this.readIndex();
-    index.lastProjectId = projectId;
-    this.writeIndex(index);
+    const projectList = this.readProjectList();
+    projectList.lastProjectId = projectId;
+    this.writeProjectList(projectList);
   }
 
   // binary audio assets
@@ -207,7 +211,7 @@ function generateAssetKey(file: File): string {
 // One-time layout v1 → v2 migration: strip the legacy "project-" id prefix
 // (which doubled into "toy-midi-project-project-<uuid>" doc keys), copy docs
 // to v2 keys as raw strings (no schema touch), fold the last-project pointer
-// into the index, and only then delete the v1 keys. The index write is the
+// into the list, and only then delete the v1 keys. The list write is the
 // commit point: a crash before it leaves v1 intact and the migration simply
 // re-runs on the next load. Assets (IndexedDB) are unaffected.
 let checkedLayout = false;
@@ -216,7 +220,7 @@ function migrateLayoutV1(): void {
     return;
   }
   checkedLayout = true;
-  if (localStorage.getItem(INDEX_KEY) !== null) {
+  if (localStorage.getItem(PROJECT_LIST_KEY) !== null) {
     return;
   }
   const legacyJson = localStorage.getItem(LEGACY_LIST_KEY);
@@ -244,8 +248,8 @@ function migrateLayoutV1(): void {
     ? (legacyLastId ?? null)
     : null;
 
-  const index: ProjectIndex = { projects, lastProjectId };
-  localStorage.setItem(INDEX_KEY, JSON.stringify(index));
+  const projectList: ProjectList = { projects, lastProjectId };
+  localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projectList));
 
   localStorage.removeItem(LEGACY_LIST_KEY);
   localStorage.removeItem(LEGACY_LAST_ID_KEY);
