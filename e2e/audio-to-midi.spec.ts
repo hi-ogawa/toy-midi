@@ -59,10 +59,11 @@ test.describe("Audio to MIDI", () => {
     expect(await getNoteIds(page)).toEqual(idsAfterTranscribe);
   });
 
-  // TODO: add a fixture with clearly pitched content Basic Pitch can detect,
-  // generated like test-stems.zip (see e2e/fixtures/README.md), e.g. C2, E2,
-  // G2 (MIDI 36/40/43) synthesized for one beat each at 120 BPM.
-  // Verified with `pnpm verify-basic-pitch` (Node, same model): such tones
+  // TODO: the C2/E2/G2 tones (MIDI 36/40/43, 1s each) exist as
+  // e2e/fixtures/test-tones.pcm (raw PCM for the Node CLI, regeneration in
+  // e2e/fixtures/README.md), but the browser needs them wrapped in a
+  // decodable container such as WAV before this test can use them.
+  // Verified with `pnpm basic-pitch` (Node, same model): such tones
   // transcribe to the expected pitches, and the existing public/test-audio.wav
   // is a 3s A4 tone that already comes back as a single midi-69 note.
   test.skip("detects known pitches from a synthesized fixture", async () => {

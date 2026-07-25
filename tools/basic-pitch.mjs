@@ -1,9 +1,11 @@
-// Verify Basic Pitch transcription locally without a browser, for debugging
-// the model contract and decoder parameters.
+// CLI to run Basic Pitch transcription on an audio file in Node, without a
+// browser. Prints the detected notes.
 //
 // Usage:
-//   pnpm verify-basic-pitch              # synthesized C2/E2/G2 test tones
-//   pnpm verify-basic-pitch input.wav    # any audio format supported by ffmpeg
+//   pnpm basic-pitch input.wav    # any audio format supported by ffmpeg
+//
+// A synthetic C2/E2/G2 test input lives at e2e/fixtures/test-tones.pcm
+// (regeneration documented in e2e/fixtures/README.md).
 //
 // Runs on plain @tensorflow/tfjs (slow CPU backend, no native deps). The
 // model is loaded from the npm package through an in-memory IO handler
@@ -28,13 +30,13 @@ const MODEL_SAMPLE_RATE = 22050;
 
 async function main() {
   const audioPath = process.argv[2];
-  const pcm = audioPath
-    ? await loadAudioAsModelPcm(audioPath)
-    : synthesizeTestSignal();
+  if (!audioPath) {
+    console.error("usage: pnpm basic-pitch <input-audio>");
+    process.exit(1);
+  }
+  const pcm = await loadAudioAsModelPcm(audioPath);
   console.log(
-    audioPath
-      ? `input: ${audioPath} (${(pcm.length / MODEL_SAMPLE_RATE).toFixed(2)}s at ${MODEL_SAMPLE_RATE}Hz mono)`
-      : "input: synthesized C2/E2/G2 tones, 1s each",
+    `input: ${audioPath} (${(pcm.length / MODEL_SAMPLE_RATE).toFixed(2)}s at ${MODEL_SAMPLE_RATE}Hz mono)`,
   );
 
   await tf.ready();
@@ -105,33 +107,12 @@ function loadModelFromPackage() {
   })();
 }
 
-// C2/E2/G2 (MIDI 36/40/43) for 1s each with a couple of harmonics and a
-// short attack/release envelope, mirroring the planned e2e fixture
-function synthesizeTestSignal() {
-  const noteSeconds = 1;
-  const midiNotes = [36, 40, 43];
-  const pcm = new Float32Array(
-    midiNotes.length * noteSeconds * MODEL_SAMPLE_RATE,
-  );
-  midiNotes.forEach((midi, index) => {
-    const frequency = 440 * 2 ** ((midi - 69) / 12);
-    const offset = index * noteSeconds * MODEL_SAMPLE_RATE;
-    const length = noteSeconds * MODEL_SAMPLE_RATE;
-    for (let i = 0; i < length; i++) {
-      const t = i / MODEL_SAMPLE_RATE;
-      const envelope =
-        Math.min(1, t / 0.01) * Math.min(1, (noteSeconds - t) / 0.05);
-      pcm[offset + i] =
-        envelope *
-        (0.5 * Math.sin(2 * Math.PI * frequency * t) +
-          0.15 * Math.sin(2 * Math.PI * 2 * frequency * t) +
-          0.075 * Math.sin(2 * Math.PI * 3 * frequency * t));
-    }
-  });
-  return pcm;
-}
-
 async function loadAudioAsModelPcm(audioPath) {
+  // .pcm files are assumed to already be f32le mono at the model sample rate
+  // (like e2e/fixtures/test-tones.pcm); anything else is decoded by ffmpeg
+  if (audioPath.endsWith(".pcm")) {
+    return bufferToFloat32(await readFile(audioPath));
+  }
   const output = await new Promise((resolve, reject) => {
     const ffmpeg = spawn("ffmpeg", [
       "-loglevel",
@@ -163,20 +144,27 @@ async function loadAudioAsModelPcm(audioPath) {
         const detail = Buffer.concat(stderr).toString("utf8").trim();
         const status = signal ? `signal ${signal}` : `status ${code}`;
         reject(
-          new Error(`ffmpeg exited with ${status}${detail ? `: ${detail}` : ""}`),
+          new Error(
+            `ffmpeg exited with ${status}${detail ? `: ${detail}` : ""}`,
+          ),
         );
         return;
       }
       resolve(Buffer.concat(stdout));
     });
   });
-  if (output.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
-    throw new Error(
-      `ffmpeg produced ${output.byteLength} bytes of invalid f32le output`,
-    );
+  return bufferToFloat32(output);
+}
+
+function bufferToFloat32(buffer) {
+  if (buffer.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
+    throw new Error(`invalid f32le data: ${buffer.byteLength} bytes`);
   }
   return new Float32Array(
-    output.buffer.slice(output.byteOffset, output.byteOffset + output.byteLength),
+    buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength,
+    ),
   );
 }
 
@@ -185,4 +173,7 @@ function formatNoteName(midi) {
   return `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
 }
 
-await main();
+main().catch((e) => {
+  console.log(e);
+  process.exitCode = 1;
+});
