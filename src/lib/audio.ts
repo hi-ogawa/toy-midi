@@ -341,6 +341,17 @@ class AudioManager {
     Tone.getTransport().seconds = Math.max(0, seconds);
   }
 
+  // Attach a decoded buffer to a track's player and sync it to the Transport
+  attachTrackBuffer(
+    id: string,
+    buffer: Tone.ToneAudioBuffer,
+    offset: number,
+  ): void {
+    const playback = this.getAudioTrack(id);
+    playback.setBuffer(buffer);
+    playback.sync(offset);
+  }
+
   // Lazily create a player/channel pair for a track id
   getAudioTrack(id: string): AudioTrackPlayback {
     let entry = this.audioTracks.get(id);

@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { historyStore } from "../stores/history-store";
 import {
+  type AudioTrack,
   fromSavedProject,
   toSavedProject,
   useProjectStore,
@@ -89,36 +90,7 @@ export function openProjectSession(options: {
       return;
     }
     audioManager.applyState(useProjectStore.getState());
-
-    const project = useProjectStore.getState();
-    for (const track of project.audioTracks) {
-      try {
-        const asset = await projectStorage.loadAsset(track.assetKey);
-        if (disposed) {
-          return;
-        }
-        if (!asset) {
-          toast.warning(
-            `Audio asset not found for "${track.fileName}". The track will be cleared.`,
-          );
-          project.deleteAudioTrack(track.id);
-          continue;
-        }
-        const { buffer, audioView } = await loadAudioFile(
-          new File([asset.blob], asset.name),
-        );
-        if (disposed) {
-          return;
-        }
-        const playback = audioManager.getAudioTrack(track.id);
-        playback.setBuffer(buffer);
-        playback.sync(track.offset);
-        project.updateAudioTrack(track.id, { audioView });
-      } catch (e) {
-        console.error(e);
-        toast.error(`Failed to load audio "${track.fileName}".`);
-      }
-    }
+    await restoreAudioTracks(() => disposed);
   };
   void attachAudio();
 
@@ -135,6 +107,44 @@ export function openProjectSession(options: {
       historyStore.clearHistory();
     },
   };
+}
+
+// Restore stored audio for the hydrated tracks: this level owns the store
+// reconciliation (waveform on success, track removal when the asset is
+// gone) and user-facing errors; IO/decode and playback wiring live below.
+// One bad asset skips that track only.
+async function restoreAudioTracks(isDisposed: () => boolean): Promise<void> {
+  const project = useProjectStore.getState();
+  for (const track of project.audioTracks) {
+    try {
+      const loaded = await loadStoredTrackAudio(track);
+      if (isDisposed()) {
+        return;
+      }
+      if (!loaded) {
+        toast.warning(
+          `Audio asset not found for "${track.fileName}". The track will be cleared.`,
+        );
+        project.deleteAudioTrack(track.id);
+        continue;
+      }
+      audioManager.attachTrackBuffer(track.id, loaded.buffer, track.offset);
+      project.updateAudioTrack(track.id, { audioView: loaded.audioView });
+    } catch (e) {
+      console.error(e);
+      toast.error(`Failed to load audio "${track.fileName}".`);
+    }
+  }
+}
+
+// Load a track's stored asset bytes and decode them; null when the asset
+// is missing from storage. No store access, no user-facing effects.
+async function loadStoredTrackAudio(track: AudioTrack) {
+  const asset = await projectStorage.loadAsset(track.assetKey);
+  if (!asset) {
+    return null;
+  }
+  return await loadAudioFile(new File([asset.blob], asset.name));
 }
 
 // Auto-save debouncer of the active session, so e2e tests can force a save
