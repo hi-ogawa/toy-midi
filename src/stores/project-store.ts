@@ -35,6 +35,7 @@ export interface ProjectState {
   // UI state
   showDebug: boolean;
   autoScrollEnabled: boolean;
+  linkAudioOffsetsEnabled: boolean; // drag moves all audio tracks together
 
   // Viewport state
   // scrollX/scrollY: content offset in logical units (beats/semitones), can be fractional
@@ -87,6 +88,7 @@ export interface ProjectState {
   ) => void;
   deleteAudioTrack: (id: string) => void;
   selectAudioTrack: (id: string | null) => void;
+  moveAudioOffset: (id: string, offset: number) => void;
 
   // Mixer actions
   setMidiVolume: (volume: number) => void;
@@ -98,6 +100,7 @@ export interface ProjectState {
   // UI actions
   setShowDebug: (show: boolean) => void;
   setAutoScrollEnabled: (enabled: boolean) => void;
+  setLinkAudioOffsetsEnabled: (enabled: boolean) => void;
 
   // Viewport actions
   setScrollX: (scrollX: number) => void;
@@ -160,6 +163,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // UI state
   showDebug: false,
   autoScrollEnabled: true,
+  linkAudioOffsetsEnabled: true,
 
   // Viewport state (defaults match piano-roll.tsx)
   scrollX: 0,
@@ -342,6 +346,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   selectAudioTrack: (id) => set({ selectedAudioTrackId: id }),
 
+  moveAudioOffset: (id, offset) => {
+    const state = get();
+    const track = state.audioTracks.find((t) => t.id === id);
+    if (!track) {
+      return;
+    }
+
+    if (!state.linkAudioOffsetsEnabled) {
+      state.updateAudioTrack(id, { offset: Math.max(0, offset) });
+      return;
+    }
+
+    // Move all tracks by the same delta, clamping the delta (not each
+    // track) so relative alignment is preserved when hitting 0
+    const minOffset = Math.min(...state.audioTracks.map((t) => t.offset));
+    const delta = Math.max(offset - track.offset, -minOffset);
+    set((state) => ({
+      audioTracks: state.audioTracks.map((t) => ({
+        ...t,
+        offset: t.offset + delta,
+      })),
+    }));
+  },
+
   // Mixer actions
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMidiMuted: (muted) => set({ midiMuted: muted }),
@@ -352,6 +380,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // UI actions
   setShowDebug: (show) => set({ showDebug: show }),
   setAutoScrollEnabled: (enabled) => set({ autoScrollEnabled: enabled }),
+  setLinkAudioOffsetsEnabled: (enabled) =>
+    set({ linkAudioOffsetsEnabled: enabled }),
 
   // Viewport actions
   setScrollX: (scrollX) => set({ scrollX }),
@@ -537,6 +567,7 @@ export interface SavedProject {
   metronomeEnabled: boolean;
   metronomeVolume: number;
   autoScrollEnabled?: boolean;
+  linkAudioOffsetsEnabled?: boolean; // Optional for backward compatibility
   // Viewport state
   scrollX?: number;
   scrollY?: number;
@@ -573,6 +604,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   metronomeEnabled: false,
   metronomeVolume: 0.5,
   autoScrollEnabled: true,
+  linkAudioOffsetsEnabled: true,
   // Viewport state defaults
   scrollX: 0,
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
@@ -604,6 +636,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
     autoScrollEnabled: state.autoScrollEnabled,
+    linkAudioOffsetsEnabled: state.linkAudioOffsetsEnabled,
     scrollX: state.scrollX,
     scrollY: state.scrollY,
     pixelsPerBeat: state.pixelsPerBeat,
@@ -683,6 +716,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     metronomeEnabled: merged.metronomeEnabled,
     metronomeVolume: merged.metronomeVolume,
     autoScrollEnabled: merged.autoScrollEnabled ?? DEFAULTS.autoScrollEnabled,
+    linkAudioOffsetsEnabled:
+      merged.linkAudioOffsetsEnabled ?? DEFAULTS.linkAudioOffsetsEnabled,
     scrollX: merged.scrollX ?? DEFAULTS.scrollX,
     scrollY: merged.scrollY ?? DEFAULTS.scrollY,
     pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat,
