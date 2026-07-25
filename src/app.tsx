@@ -34,6 +34,12 @@ function openProject(projectId: string) {
 // caches the result per id, so StrictMode's double render opens it once),
 // so the very first paint is the editor with notes visible; audio
 // initializes in the background and playback enables when it's ready.
+//
+// The sync read leans on document storage being localStorage. If session
+// open ever becomes asynchronous (IndexedDB/remote documents), extend
+// ProjectSessionResult with a "pending" variant and render the empty editor
+// (store defaults are a complete ProjectState) under a blocking loading
+// overlay, following the same status-gated pattern as the audio attach.
 function ProjectRoute({ projectId }: { projectId: string }) {
   const session = getProjectSession(projectId);
 
