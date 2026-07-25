@@ -78,6 +78,11 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     category: "editing",
   },
   {
+    key: "Q",
+    description: "Quantize selected notes",
+    category: "editing",
+  },
+  {
     key: "L",
     description: "Add locator at playhead",
     category: "editing",
