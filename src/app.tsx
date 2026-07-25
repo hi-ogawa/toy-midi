@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,10 +11,9 @@ import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
-import { audioManager } from "./lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
-import { openProjectSession } from "./lib/project-session";
+import { getProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 import { useProjectStore } from "./stores/project-store";
 
@@ -26,51 +25,50 @@ export function App() {
   return <StartupApp />;
 }
 
-// Deep-link entry: load the project named by the URL directly, no startup
-// screen. Audio inits on a suspended context (see unlockAudioOnFirstGesture).
-function ProjectRoute({ projectId }: { projectId: string }) {
-  const sessionQuery = useQuery({
-    queryKey: ["project-session", projectId],
-    queryFn: async () => {
-      await audioManager.init();
-      return await openProjectSession({ projectId });
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: false,
-  });
+// All project opens are full-page navigation; ProjectRoute is the only way
+// into the editor.
+function openProject(projectId: string) {
+  window.location.href = `/project/${projectId}`;
+}
 
-  if (!sessionQuery.isSuccess) {
+// Deep-link entry: load the project named by the URL directly, no startup
+// screen. The session is read synchronously during render (getProjectSession
+// caches the result per id, so StrictMode's double render opens it once),
+// so the very first paint is the editor with notes visible; audio
+// initializes in the background and playback enables when it's ready.
+//
+// The sync read leans on document storage being localStorage. If session
+// open ever becomes asynchronous (IndexedDB/remote documents), extend
+// ProjectSessionResult with a "pending" variant and render the empty editor
+// (store defaults are a complete ProjectState) under a blocking loading
+// overlay, following the same status-gated pattern as the audio attach.
+function ProjectRoute({ projectId }: { projectId: string }) {
+  const session = getProjectSession(projectId);
+
+  if (!session.ok) {
     return (
-      <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center text-neutral-400">
-        {String(sessionQuery.error ?? "")}
+      <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
+        {String(session.error)}
+        <a href="/" className="text-emerald-400 hover:text-emerald-300">
+          Back to projects
+        </a>
       </div>
     );
   }
 
   return (
     <Editor
-      projectId={sessionQuery.data.projectId}
-      initialProjectName={sessionQuery.data.projectName}
+      projectId={session.value.projectId}
+      initialProjectName={session.value.projectName}
     />
   );
 }
 
 function StartupApp() {
-  const initMutation = useMutation({
-    mutationFn: async (options: { projectId?: string }) => {
-      await audioManager.init();
-      return await openProjectSession(options);
-    },
-  });
-
-  // Space to continue/start project (startup screen only)
+  // Space to continue/start project
   useWindowEvent(
     "keydown",
     (e) => {
-      if (initMutation.isSuccess || initMutation.isPending) {
-        return;
-      }
       const target = e.target as HTMLElement | null;
       if (
         target?.tagName === "INPUT" ||
@@ -82,31 +80,18 @@ function StartupApp() {
       if (matchKeyboardEvent(e, "Space")) {
         e.preventDefault();
         e.stopPropagation();
-        const lastProjectId = projectStorage.getLastProjectId();
-        if (lastProjectId) {
-          initMutation.mutate({ projectId: lastProjectId });
-        } else {
-          initMutation.mutate({});
-        }
+        openProject(
+          projectStorage.getLastProjectId() ?? projectStorage.createNew(),
+        );
       }
     },
     true,
   );
 
-  if (!initMutation.isSuccess) {
-    return (
-      <ProjectListView
-        isLoading={initMutation.isPending}
-        onSelectProject={(projectId) => initMutation.mutate({ projectId })}
-        onNewProject={() => initMutation.mutate({})}
-      />
-    );
-  }
-
   return (
-    <Editor
-      projectId={initMutation.data.projectId}
-      initialProjectName={initMutation.data.projectName}
+    <ProjectListView
+      onSelectProject={openProject}
+      onNewProject={() => openProject(projectStorage.createNew())}
     />
   );
 }
@@ -205,11 +190,6 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
               setProjectName(name);
             }
           }}
-          onProjectsClick={() => {
-            // TODO: modal project list view and allow switch project?
-            // for now, open startup page in new tab.
-            window.open("/", "_blank");
-          }}
           onAudioToMidiClick={(trackId) => {
             setIsSettingsOpen(false);
             setAudioToMidiTrackId(trackId);
@@ -223,7 +203,6 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
 // === Project List View ===
 
 type ProjectListViewProps = {
-  isLoading: boolean;
   onSelectProject: (projectId: string) => void;
   onNewProject: () => void;
 };
@@ -304,7 +283,6 @@ function ProjectRenameInput({
 }
 
 function ProjectListView({
-  isLoading,
   onSelectProject,
   onNewProject,
 }: ProjectListViewProps) {
@@ -333,6 +311,7 @@ function ProjectListView({
       toast.error("Failed to import project");
     },
   });
+  const isLoading = importProjectMutation.isPending;
 
   const handleRenameStart = (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
@@ -510,13 +489,11 @@ function ProjectListView({
                 <button
                   type="button"
                   data-testid="import-project-button"
-                  disabled={isLoading || importProjectMutation.isPending}
+                  disabled={isLoading}
                   onClick={handleImportClick}
                   className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
                 >
-                  {importProjectMutation.isPending
-                    ? "Importing..."
-                    : "Import Project"}
+                  {isLoading ? "Importing..." : "Import Project"}
                 </button>
               </div>
               <p className="text-neutral-600 text-sm">
@@ -549,13 +526,11 @@ function ProjectListView({
               <button
                 type="button"
                 data-testid="import-project-button"
-                disabled={isLoading || importProjectMutation.isPending}
+                disabled={isLoading}
                 onClick={handleImportClick}
                 className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
               >
-                {importProjectMutation.isPending
-                  ? "Importing..."
-                  : "Import Project"}
+                {isLoading ? "Importing..." : "Import Project"}
               </button>
             </div>
             <p className="text-neutral-600 text-sm">

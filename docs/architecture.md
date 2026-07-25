@@ -106,6 +106,8 @@ Selected notes can be quantized with `Q`; the command snaps their starts and dur
 
 The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
 
+Readiness is explicit state: `audioManager` starts `"idle"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness (the play button disables while loading) subscribes via `useAudioStatus()`.
+
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
 
 Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker behind a two-message protocol mirroring the inherent stages: `analyze` runs inference once per audio asset (main thread resamples to mono 22,050 Hz and transfers PCM; raw activation matrices stay cached worker-side), and `decode` reruns only the cheap activations→notes extraction. The floating panel (`components/audio-to-midi-panel.tsx`) exposes both stages as explicit buttons: Analyze caches inference, parameter edits stage locally, and each "Convert to MIDI" press runs the `decode` stage, converts source-audio seconds to timeline beats (track offset + project tempo), and commits once via `replaceAllNotes`, one undo entry per press. `pnpm basic-pitch input.wav` runs the same model in Node (slow CPU backend) for local debugging of the contract and decoder parameters, and `e2e/fixtures/test-tones.pcm` is a synthetic C4/E4/G4/C5 test input for it (regeneration documented in `e2e/fixtures/README.md`).
@@ -117,13 +119,13 @@ Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) 
 - localStorage: project metadata list, last-project id, and one `SavedProject` JSON doc per project.
 - IndexedDB (`toy-midi`/`assets`): audio blobs keyed by `name-size-lastModified`, so the same file is shared across projects. Deleting a project does not GC assets.
 
-`openProjectSession` (`lib/project-session.ts`) is the active-document lifecycle: load doc into the store, restore audio track buffers from IndexedDB, then subscribe `audioManager.applyState` and a debounced auto-save (500ms, `VITE_AUTO_SAVE_DEBOUNCE_MS`) to store changes. `dispose()` flushes the pending save and clears history. `flushAutoSave()` exists for deterministic e2e saves.
+`openProjectSession` (`lib/project-session.ts`) is the active-document lifecycle. It is synchronous: hydrate the store from localStorage, subscribe `audioManager.applyState` and a debounced auto-save (500ms, `VITE_AUTO_SAVE_DEBOUNCE_MS`) to store changes, and register session-scoped shortcuts (Space toggles playback). The editor therefore mounts immediately with notes visible; audio attaches via a session-owned background task (synth init, one full `applyState` at the ready transition, then audio buffers restored from IndexedDB — IO/decode fans out in parallel, store reconciliation applies sequentially after the barrier, per-track error tolerance) that never rejects and stops touching the store after `dispose()`. `dispose()` unregisters shortcuts, flushes the pending save, and clears history. `flushAutoSave()` exists for deterministic e2e saves.
 
 `.toymidi` files (`lib/project-file.ts`) are zips with a manifest, the project JSON, and uncompressed audio blobs; import re-registers audio through `projectStorage.saveAsset`.
 
 ## App Init / Routing
 
-Routing is a single regex in `app.tsx`, no router library: `/project/:id` deep-links straight into a project session (via React Query), anything else renders the startup screen with the project list (Continue / New Project / Import). Space on the startup screen resumes the last project.
+Routing is a single regex in `app.tsx`, no router library: `/project/:id` deep-links straight into a project session (read synchronously during render via `getProjectSession`'s per-id cache, so the first paint is the editor), anything else renders the startup screen with the project list (Continue / New Project / Import). Space on the startup screen resumes the last project.
 
 ## Coordinates & Rendering
 

@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { clickContinue, clickNewProject, loadAudioFile } from "./helpers";
+import {
+  clickNewProject,
+  loadAudioFile,
+  waitForAudioReady,
+  waitForEditor,
+} from "./helpers";
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
@@ -11,7 +16,7 @@ test.describe("Transport Controls", () => {
   });
 
   test("playback controls", async ({ page }) => {
-    // Play button is always enabled for MIDI-only mode
+    // Play button enables once audio finishes initializing
     const playButton = page.getByTestId("play-pause-button");
     await expect(playButton).toBeEnabled();
 
@@ -158,7 +163,7 @@ test.describe("Transport Controls", () => {
 
     // Verify state persisted - reload and check
     await page.reload();
-    await clickContinue(page);
+    await waitForEditor(page);
     await expect(page.getByTestId("instrument-select")).toContainText(
       "Acoustic Guitar",
     );
@@ -394,7 +399,8 @@ test.describe("Timeline Seek", () => {
     const seekX = timelineBox.x + BEAT_WIDTH * 4;
     await page.mouse.click(seekX, timelineBox.y + timelineBox.height / 2);
 
-    // Start playback
+    // Start playback (Space is a no-op until audio is ready)
+    await waitForAudioReady(page);
     await page.keyboard.press("Space");
     await expect(page.getByTestId("pause-icon")).toBeVisible();
 

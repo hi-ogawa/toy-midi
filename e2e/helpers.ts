@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import type { useProjectStore } from "../src/stores/project-store";
 
 /**
@@ -15,6 +15,23 @@ export async function clickNewProject(page: Page): Promise<void> {
 export async function clickContinue(page: Page): Promise<void> {
   await page.getByTestId("continue-button").click();
   await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/**
+ * Wait for the editor UI after navigating or reloading into /project/:id.
+ * The editor mounts before audio is ready; use waitForAudioReady before
+ * driving playback via keyboard.
+ */
+export async function waitForEditor(page: Page): Promise<void> {
+  await page.getByTestId("transport").waitFor({ state: "visible" });
+}
+
+/**
+ * Wait until audio is initialized and playback is available. Button clicks
+ * auto-wait for enabled, but keyboard shortcuts (Space) do not.
+ */
+export async function waitForAudioReady(page: Page): Promise<void> {
+  await expect(page.getByTestId("play-pause-button")).toBeEnabled();
 }
 
 /** @deprecated Use clickNewProject instead */

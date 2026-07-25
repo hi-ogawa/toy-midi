@@ -8,9 +8,8 @@ import {
   SlidersHorizontalIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import * as Tone from "tone";
 import { useDraftInput } from "../hooks/use-draft-input";
-import { useTransport } from "../hooks/use-transport";
+import { useAudioStatus, useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
@@ -63,34 +62,23 @@ function TimeDisplay({ tempo }: { tempo: number }) {
   );
 }
 
-function togglePlayback() {
-  if (Tone.getTransport().state === "started") {
-    audioManager.pause();
-  } else {
-    audioManager.play();
-  }
-}
-
 // Separate component to isolate isPlaying-based re-renders
 function PlayPauseButton() {
   const { isPlaying } = useTransport();
-
-  // Space key shortcut
-  useWindowEvent("keydown", (e) => {
-    if (isShortcutTextInputTarget(e.target)) {
-      return;
-    }
-    if (matchKeyboardEvent(e, "Space") && !e.repeat) {
-      e.preventDefault();
-      togglePlayback();
-    }
-  });
+  const audioStatus = useAudioStatus();
 
   return (
     <Button
       data-testid="play-pause-button"
-      onClick={togglePlayback}
-      title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+      disabled={audioStatus !== "ready"}
+      onClick={() => audioManager.togglePlayback()}
+      title={
+        audioStatus !== "ready"
+          ? "Loading audio..."
+          : isPlaying
+            ? "Pause (Space)"
+            : "Play (Space)"
+      }
       className={cn(
         "size-9",
         isPlaying

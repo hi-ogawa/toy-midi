@@ -87,7 +87,7 @@ test.describe("Settings Dialog - Project Export", () => {
     await download.saveAs(downloadPath);
 
     await page.keyboard.press("Escape");
-    await page.reload();
+    await page.goto("/");
     await expect(page.getByTestId("startup-screen")).toBeVisible();
 
     const [fileChooser] = await Promise.all([

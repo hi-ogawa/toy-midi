@@ -23,13 +23,12 @@ import {
   useProjectStore,
 } from "../stores/project-store";
 import { FileDropInput } from "./file-drop-input";
-import { Button } from "./ui/button";
+import { Button, LinkButton } from "./ui/button";
 
 type SettingsProps = {
   // Project section
   projectName: string;
   onProjectNameChange: (name: string) => void;
-  onProjectsClick: () => void;
   // Closes settings and opens the transcription panel for the track
   onAudioToMidiClick: (trackId: string) => void;
 };
@@ -37,7 +36,6 @@ type SettingsProps = {
 export function Settings({
   projectName,
   onProjectNameChange,
-  onProjectsClick,
   onAudioToMidiClick,
 }: SettingsProps) {
   const projectNameInput = useDraftTextInput({
@@ -193,13 +191,13 @@ export function Settings({
               placeholder="Enter project name"
             />
           </div>
-          <Button
-            onClick={onProjectsClick}
+          <LinkButton
+            href="/"
             className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <FolderIcon className="size-4" />
             Manage Projects
-          </Button>
+          </LinkButton>
         </div>
       </section>
 

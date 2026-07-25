@@ -28,6 +28,10 @@ function main() {
 
   unlockAudioOnFirstGesture();
 
+  // Auto-save is debounced; flush pending changes when leaving the page
+  // (navigation away or tab close).
+  window.addEventListener("pagehide", () => flushAutoSave());
+
   const queryClient = new QueryClient({
     defaultOptions: {
       mutations: {
