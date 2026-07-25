@@ -13,7 +13,7 @@
 // because fetch(file://) is unavailable in Node.
 
 import { execFile } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs, promisify } from "node:util";
@@ -23,10 +23,15 @@ import {
   outputToNotesPoly,
 } from "@spotify/basic-pitch";
 import * as tf from "@tensorflow/tfjs";
+// default import: @tonejs/midi's CJS bundle defeats Node's named-export detection
+import tonejsMidi from "@tonejs/midi";
+
+const { Midi } = tonejsMidi;
 
 const execFileAsync = promisify(execFile);
 
 const MODEL_SAMPLE_RATE = 22050;
+const TMP_DIR = path.join(import.meta.dirname, "../.tmp");
 
 const USAGE = `\
 usage: pnpm basic-pitch <input-audio> [options]
@@ -35,6 +40,11 @@ options:
   --onset <0-1>        onset threshold, higher = fewer note splits (default 0.5)
   --frame <0-1>        frame threshold, higher = fewer detected notes (default 0.3)
   --min-length <n>     drop notes shorter than n frames, 1 frame ≈ 11.6ms (default 5)
+  --midi <out.mid>     MIDI output path (default .tmp/basic-pitch-output.mid),
+                       converted like the app's audio-to-MIDI panel + MIDI export
+  --bpm <n>            project tempo for the seconds→beats conversion (default 120)
+  --offset <seconds>   track offset added to note starts (default 0)
+  --dump               print each detected note to stdout
   -h, --help           show this help
 
 Decoder defaults follow the reference implementation.`;
@@ -48,6 +58,10 @@ async function main() {
         onset: { type: "string", default: "0.5" },
         frame: { type: "string", default: "0.3" },
         "min-length": { type: "string", default: "5" },
+        midi: { type: "string" },
+        bpm: { type: "string", default: "120" },
+        offset: { type: "string", default: "0" },
+        dump: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -112,17 +126,56 @@ async function main() {
   notes.sort((a, b) => a.startTimeSeconds - b.startTimeSeconds);
 
   console.log(`notes: ${notes.length}`);
-  for (const note of notes) {
-    console.log(
-      [
-        `start=${note.startTimeSeconds.toFixed(3)}s`,
-        `dur=${note.durationSeconds.toFixed(3)}s`,
-        `midi=${note.pitchMidi}`,
-        formatNoteName(note.pitchMidi).padEnd(4),
-        `amp=${note.amplitude.toFixed(2)}`,
-      ].join("  "),
-    );
+  if (values.dump) {
+    for (const note of notes) {
+      console.log(
+        [
+          `start=${note.startTimeSeconds.toFixed(3)}s`,
+          `dur=${note.durationSeconds.toFixed(3)}s`,
+          `midi=${note.pitchMidi}`,
+          formatNoteName(note.pitchMidi).padEnd(4),
+          `amp=${note.amplitude.toFixed(2)}`,
+        ].join("  "),
+      );
+    }
   }
+
+  const midiPath = values.midi ?? path.join(TMP_DIR, "basic-pitch-output.mid");
+  await writeMidi(midiPath, notes, {
+    bpm: Number(values.bpm),
+    offsetSeconds: Number(values.offset),
+  });
+  console.log(
+    `midi: wrote ${midiPath} (bpm=${values.bpm} offset=${values.offset}s)`,
+  );
+}
+
+// Mirror the app's audio-to-MIDI panel commit (seconds→beats at the project
+// tempo, track offset added to starts, amplitude→velocity) followed by its
+// tick-based MIDI export, so the file round-trips through MIDI import into
+// the same notes a browser transcription session would produce
+async function writeMidi(outPath, notes, { bpm, offsetSeconds }) {
+  const secondsToBeats = (seconds) => (seconds / 60) * bpm;
+  const midi = new Midi();
+  midi.header.setTempo(bpm);
+  const track = midi.addTrack();
+  const ppq = midi.header.ppq;
+  for (const note of notes) {
+    track.addNote({
+      midi: note.pitchMidi,
+      ticks: Math.round(
+        secondsToBeats(note.startTimeSeconds + offsetSeconds) * ppq,
+      ),
+      durationTicks: Math.max(
+        1,
+        Math.round(secondsToBeats(note.durationSeconds) * ppq),
+      ),
+      velocity:
+        Math.max(1, Math.min(127, Math.round(note.amplitude * 127))) / 127,
+    });
+  }
+  await mkdir(path.dirname(outPath), { recursive: true });
+  await writeFile(outPath, midi.toArray());
 }
 
 // tf.loadGraphModel cannot fetch file:// URLs, so read model.json and the
@@ -156,9 +209,8 @@ async function loadAudioAsModelPcm(audioPath) {
   if (audioPath.endsWith(".pcm")) {
     return bufferToFloat32(await readFile(audioPath));
   }
-  const tmpDir = path.join(import.meta.dirname, "../.tmp");
-  const tmpPath = path.join(tmpDir, "basic-pitch-input.pcm");
-  await mkdir(tmpDir, { recursive: true });
+  const tmpPath = path.join(TMP_DIR, "basic-pitch-input.pcm");
+  await mkdir(TMP_DIR, { recursive: true });
   await execFileAsync("ffmpeg", [
     ...["-loglevel", "error", "-y"],
     ...["-i", audioPath],
