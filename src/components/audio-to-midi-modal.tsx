@@ -3,7 +3,10 @@ import { SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
-import { BASS_TRANSCRIBE_PARAMS, basicPitchClient } from "../lib/basic-pitch";
+import {
+  DEFAULT_TRANSCRIBE_PARAMS,
+  basicPitchClient,
+} from "../lib/basic-pitch";
 import { midiToNoteName } from "../lib/music";
 import {
   type AudioTrack,
@@ -22,7 +25,7 @@ export function AudioToMidiModal({
   track: AudioTrack;
   onClose: () => void;
 }) {
-  const [params, setParams] = useState(BASS_TRANSCRIBE_PARAMS);
+  const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [progress, setProgress] = useState<number | null>(null);
 
   const transcribeMutation = useMutation({
@@ -148,7 +151,7 @@ export function AudioToMidiModal({
 
         <div className="flex justify-end gap-2">
           <Button
-            onClick={() => setParams(BASS_TRANSCRIBE_PARAMS)}
+            onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
             className="h-8 px-3 text-sm text-neutral-300 hover:bg-accent"
           >
             Reset

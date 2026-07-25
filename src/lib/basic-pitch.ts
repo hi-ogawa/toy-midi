@@ -18,12 +18,14 @@ export interface TranscribedNote {
   amplitude: number; // model confidence 0-1, not musical velocity
 }
 
-export const BASS_TRANSCRIBE_PARAMS: TranscribeParams = {
+// Matches the Basic Pitch reference decoder defaults: onset 0.5, frame 0.3,
+// min length 5 frames (~58 ms), and the model's full pitch range (MIDI 21-108)
+export const DEFAULT_TRANSCRIBE_PARAMS: TranscribeParams = {
   onsetThreshold: 0.5,
   frameThreshold: 0.3,
-  minNoteLengthMs: 60,
-  minPitchMidi: 24, // C1
-  maxPitchMidi: 72, // C5
+  minNoteLengthMs: 58,
+  minPitchMidi: 21, // A0
+  maxPitchMidi: 108, // C8
 };
 
 export interface BasicPitchRequest {
