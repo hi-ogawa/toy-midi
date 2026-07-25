@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Github, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
-import { openProjectSession } from "./lib/project-session";
+import { getProjectSession, type ProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
 
 export function App() {
@@ -30,43 +30,29 @@ function openProject(projectId: string) {
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
-// screen. Hydration is synchronous, so the editor mounts immediately; audio
-// initializes in the background (see openProjectSession) and playback
-// enables when it's ready.
+// screen. The session is read synchronously during render (getProjectSession
+// caches per id, so StrictMode's double render opens it once), so the very
+// first paint is the editor with notes visible; audio initializes in the
+// background and playback enables when it's ready.
 function ProjectRoute({ projectId }: { projectId: string }) {
-  // TODO: a sync queryFn is an abuse of useQuery, kept only for its
-  // StrictMode-safe once-per-key creation. Once dispose matters (client-side
-  // navigation, #161), model the session as an owned resource instead:
-  // create in an effect keyed by projectId, dispose in the cleanup.
-  const sessionQuery = useQuery({
-    queryKey: ["project-session", projectId],
-    queryFn: () => openProjectSession({ projectId }),
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: false,
-  });
-
-  if (!sessionQuery.isSuccess) {
+  let session: ProjectSession;
+  try {
+    session = getProjectSession(projectId);
+  } catch (e) {
     return (
       <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
-        {sessionQuery.isError ? (
-          <>
-            {String(sessionQuery.error)}
-            <a href="/" className="text-emerald-400 hover:text-emerald-300">
-              Back to projects
-            </a>
-          </>
-        ) : (
-          "Loading..."
-        )}
+        {String(e)}
+        <a href="/" className="text-emerald-400 hover:text-emerald-300">
+          Back to projects
+        </a>
       </div>
     );
   }
 
   return (
     <Editor
-      projectId={sessionQuery.data.projectId}
-      initialProjectName={sessionQuery.data.projectName}
+      projectId={session.projectId}
+      initialProjectName={session.projectName}
     />
   );
 }

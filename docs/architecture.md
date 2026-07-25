@@ -119,7 +119,7 @@ AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `point
 
 ## App Init / Routing
 
-Routing is a single regex in `app.tsx`, no router library: `/project/:id` deep-links straight into a project session (via React Query), anything else renders the startup screen with the project list (Continue / New Project / Import). Space on the startup screen resumes the last project.
+Routing is a single regex in `app.tsx`, no router library: `/project/:id` deep-links straight into a project session (read synchronously during render via `getProjectSession`'s per-id cache, so the first paint is the editor), anything else renders the startup screen with the project list (Continue / New Project / Import). Space on the startup screen resumes the last project.
 
 ## Coordinates & Rendering
 

@@ -19,16 +19,27 @@ export interface ProjectSession {
   dispose: () => void;
 }
 
+// Open-once cache so ProjectRoute can read the session synchronously during
+// render (no loading flash) while staying idempotent under StrictMode's
+// double render. Entries live until full-page navigation, matching the
+// previous react-query gcTime: Infinity behavior.
+const activeSessions = new Map<string, ProjectSession>();
+
+export function getProjectSession(projectId: string): ProjectSession {
+  let session = activeSessions.get(projectId);
+  if (!session) {
+    session = openProjectSession(projectId);
+    activeSessions.set(projectId, session);
+  }
+  return session;
+}
+
 // Open a project as the active document: hydrate the store synchronously,
 // wire project-scoped subscriptions and shortcuts, and attach audio in the
 // background. The editor is usable (viewing/editing notes) immediately;
 // playback enables when audioManager reaches "ready". dispose() undoes the
 // wiring so another project can be opened without a page reload.
-export function openProjectSession(options: {
-  projectId?: string;
-}): ProjectSession {
-  // Load existing project, or create a new default one
-  const projectId = options.projectId ?? projectStorage.createNew();
+function openProjectSession(projectId: string): ProjectSession {
   const metadata = projectStorage.getMetadata(projectId);
   if (!metadata) {
     throw new Error(`Project ${projectId} metadata not found`);
