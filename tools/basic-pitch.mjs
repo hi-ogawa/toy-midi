@@ -5,7 +5,7 @@
 //   pnpm basic-pitch input.wav    # any audio format supported by ffmpeg
 //   pnpm basic-pitch input.wav --onset 0.5 --frame 0.3 --min-length 5
 //
-// A synthetic C2/E2/G2 test input lives at e2e/fixtures/test-tones.pcm
+// A synthetic C4/E4/G4/C5 test input lives at e2e/fixtures/test-tones.pcm
 // (regeneration documented in e2e/fixtures/README.md).
 //
 // Runs on plain @tensorflow/tfjs (slow CPU backend, no native deps). The
