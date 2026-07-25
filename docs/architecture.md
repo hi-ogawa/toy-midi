@@ -106,7 +106,7 @@ The single store→audio sync point is `applyState(state, prevState)`, subscribe
 
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
 
-Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker. The main thread resamples a track's decoded buffer to mono 22,050 Hz and transfers it; the worker caches the raw activation matrices per audio asset, so re-decoding with different parameters skips inference. Results are converted from source-audio seconds to timeline beats (track offset + project tempo) and committed via `replaceAllNotes`, a single undoable operation.
+Audio→MIDI transcription (`lib/basic-pitch.ts` + `lib/basic-pitch-worker.ts`) runs Spotify's Basic Pitch model (tfjs, model shipped in the npm package) in a worker. The main thread resamples a track's decoded buffer to mono 22,050 Hz and transfers it; the worker caches the raw activation matrices per audio asset, so re-decoding with different parameters skips inference. Results are converted from source-audio seconds to timeline beats (track offset + project tempo) and committed via `replaceAllNotes`, a single undoable operation. `pnpm verify-basic-pitch [input.wav]` runs the same model in Node (slow CPU backend) for local debugging of the contract and decoder parameters.
 
 ## Persistence
 
