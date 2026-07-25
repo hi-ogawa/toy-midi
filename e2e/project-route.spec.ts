@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject, evaluateStore } from "./helpers";
+import {
+  clickNewProject,
+  evaluateFlushAutoSave,
+  evaluateStore,
+} from "./helpers";
 
 test.describe("Project Route", () => {
   test("deep link opens project directly without startup screen", async ({
@@ -18,7 +22,7 @@ test.describe("Project Route", () => {
       });
       store.getState().setTempo(140);
     });
-    await page.evaluate(() => window.__e2e!.flushAutoSave());
+    await evaluateFlushAutoSave(page);
 
     const projectId = await page.evaluate(() =>
       window.__e2e!.projectStorage.getLastProjectId(),
@@ -63,13 +67,11 @@ test.describe("Project Route", () => {
         velocity: 100,
       });
     });
-    await page.evaluate(() => window.__e2e!.flushAutoSave());
-    const projectId = await page.evaluate(() =>
-      window.__e2e!.projectStorage.getLastProjectId(),
-    );
+    await evaluateFlushAutoSave(page);
 
-    // The editor mounts with content while audio is still initializing
-    await page.goto(`/project/${projectId}`);
+    // Already on /project/:id (clickNewProject navigated there); reload and
+    // assert the editor mounts with content while audio is still initializing
+    await page.reload();
     await expect(page.getByTestId("transport")).toBeVisible();
     await expect(page.getByTestId("note-note-audio-loading")).toBeVisible();
     await expect(page.getByTestId("play-pause-button")).toBeDisabled();
