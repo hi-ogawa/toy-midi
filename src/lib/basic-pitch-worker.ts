@@ -16,6 +16,14 @@ import type {
 // Model output frame rate: 22,050 Hz sample rate / 256 FFT hop
 const FRAME_DURATION_MS = 1000 / (22050 / 256);
 
+// tfjs 3.x PlatformBrowser.setTimeoutCustom references the undeclared
+// `window` before it can take its own setTimeout fallback, which throws in
+// workers and stalls the WebGL backend's fence polling (inference hangs at
+// 0%). Shadow the prototype method with the fallback it meant to use.
+tf.env().platform.setTimeoutCustom = (fn: () => void, delay: number) => {
+  setTimeout(fn, delay);
+};
+
 // The npm package ships the model files, but Vite fingerprints them as
 // separate assets, which breaks model.json's relative reference to the
 // weight shard. weightUrlConverter remaps it to the emitted asset URL.
