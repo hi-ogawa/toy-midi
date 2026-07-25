@@ -5,6 +5,8 @@ import { clickNewProject, evaluateFlushAutoSave } from "./helpers";
 const BEAT_WIDTH = 80;
 const ROW_HEIGHT = 20;
 
+// TODO: add coverage for resize batching (drag through many steps creates a single undo entry)
+// TODO: consolidate into fewer user-flow tests (combine create/delete/move/resize undo+redo)
 test.describe("Undo/Redo", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
