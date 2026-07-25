@@ -90,7 +90,6 @@ test.describe("Multiple Audio Tracks", () => {
   });
 
   test("drags linked audio offsets together", async ({ page }) => {
-    test.slow();
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
 
