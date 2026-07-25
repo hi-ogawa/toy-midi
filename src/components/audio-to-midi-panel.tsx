@@ -48,7 +48,12 @@ export function AudioToMidiPanel({
 
   // Parameter edits only stage locally; Convert to MIDI is the explicit
   // commit (worker `decode` stage), one replaceAllNotes and thus one undo
-  // entry per press
+  // entry per press.
+  // TODO: offer post-processing steps as extra convert parameters. A direct
+  // quantize-to-grid option is trivial (snap starts/durations like
+  // quantizeSelectedNotes before committing); an octave-ghost filter (drop
+  // notes +12/+19 semitones above a concurrent louder note) would target the
+  // dominant error class on real Demucs bass stems.
   const convertMutation = useMutation({
     mutationFn: async () => {
       const transcribed = await basicPitchClient.decode(track.assetKey, params);
