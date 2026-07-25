@@ -73,6 +73,9 @@ test.describe("Project Route", () => {
     await expect(page.getByTestId("transport")).toBeVisible();
     await expect(page.getByTestId("note-note-audio-loading")).toBeVisible();
     await expect(page.getByTestId("play-pause-button")).toBeDisabled();
+    await expect(page.getByTestId("audio-status-indicator")).toHaveText(
+      "Loading audio...",
+    );
 
     // Space is a no-op while audio is loading
     await page.keyboard.press("Space");
@@ -81,6 +84,7 @@ test.describe("Project Route", () => {
     // Release the soundfont; playback becomes available
     releaseSoundfont();
     await expect(page.getByTestId("play-pause-button")).toBeEnabled();
+    await expect(page.getByTestId("audio-status-indicator")).not.toBeVisible();
   });
 
   test("unknown project id shows error", async ({ page }) => {

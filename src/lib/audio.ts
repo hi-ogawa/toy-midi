@@ -202,6 +202,8 @@ class AudioManager {
   private status: AudioStatus = "disabled";
   private statusListeners = new Set<() => void>();
 
+  // getStatus/subscribeStatus/setStatus are useSyncExternalStore ceremony
+  // backing the useAudioStatus() hook.
   getStatus(): AudioStatus {
     return this.status;
   }

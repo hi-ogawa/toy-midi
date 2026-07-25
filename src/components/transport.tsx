@@ -95,6 +95,22 @@ function PlayPauseButton() {
   );
 }
 
+// Global audio readiness shown next to the project name; nothing once ready
+function AudioStatusIndicator() {
+  const audioStatus = useAudioStatus();
+  if (audioStatus === "ready") {
+    return null;
+  }
+  return (
+    <span
+      data-testid="audio-status-indicator"
+      className="text-xs text-neutral-500 whitespace-nowrap"
+    >
+      {audioStatus === "error" ? "Audio unavailable" : "Loading audio..."}
+    </span>
+  );
+}
+
 // GM instrument groups for organized display
 const INSTRUMENT_GROUPS = [
   { label: "Piano", start: 0, end: 8 },
@@ -381,6 +397,8 @@ export function Transport({
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      <AudioStatusIndicator />
 
       <div
         data-testid="project-name-header"
