@@ -1,7 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { clickNewProject, evaluateStore, loadAudioFile } from "./helpers";
 
 test.describe("Audio to MIDI", () => {
+  async function getNoteIds(page: Page) {
+    return await evaluateStore(page, (store) =>
+      store.getState().notes.map((n) => n.id),
+    );
+  }
+
   test("transcribes an audio track and replaces notes as one undo step", async ({
     page,
   }) => {
@@ -25,19 +31,17 @@ test.describe("Audio to MIDI", () => {
     await page.getByTestId("audio-to-midi-button").click();
     const modal = page.getByTestId("audio-to-midi-modal");
     await expect(modal).toBeVisible();
-    await expect(modal.getByText("bass.wav")).toBeVisible();
-
-    // Real model inference runs in a worker; allow a generous timeout
-    await modal.getByTestId("transcribe-button").click();
-    await expect(
-      page.getByText(/Replaced notes with \d+ transcribed notes/),
-    ).toBeVisible({ timeout: 30_000 });
-
-    // The marker note is gone regardless of what the model detected
-    const idsAfterTranscribe = await evaluateStore(page, (store) =>
-      store.getState().notes.map((n) => n.id),
+    await expect(modal.getByTestId("audio-to-midi-file-name")).toHaveText(
+      "bass.wav",
     );
-    expect(idsAfterTranscribe).not.toContain("note-marker");
+
+    // Transcription is done once the replace has landed in the store; the
+    // marker note disappears regardless of what the model detected
+    await modal.getByTestId("transcribe-button").click();
+    await expect
+      .poll(async () => (await getNoteIds(page)).includes("note-marker"))
+      .toBe(false);
+    const idsAfterTranscribe = await getNoteIds(page);
 
     // Close the modal, then Settings
     await modal.getByRole("button", { name: "Close" }).click();
@@ -46,16 +50,20 @@ test.describe("Audio to MIDI", () => {
 
     // One undo restores the entire pre-transcription state
     await page.keyboard.press("Control+z");
-    const idsAfterUndo = await evaluateStore(page, (store) =>
-      store.getState().notes.map((n) => n.id),
-    );
-    expect(idsAfterUndo).toEqual(["note-marker"]);
+    expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
     // Redo re-applies the transcription result
     await page.keyboard.press("Control+Shift+z");
-    const idsAfterRedo = await evaluateStore(page, (store) =>
-      store.getState().notes.map((n) => n.id),
-    );
-    expect(idsAfterRedo).toEqual(idsAfterTranscribe);
+    expect(await getNoteIds(page)).toEqual(idsAfterTranscribe);
+  });
+
+  // TODO: add a fixture with clearly pitched content Basic Pitch can detect,
+  // generated like test-stems.zip (see e2e/fixtures/README.md), e.g. C2, E2,
+  // G2 (MIDI 36/40/43) synthesized for one beat each at 120 BPM.
+  test.skip("detects known pitches from a synthesized fixture", async () => {
+    // Ideal assertion: after transcribing that fixture, store notes are
+    // [{ pitch: 36, start: ≈0 }, { pitch: 40, start: ≈1 }, { pitch: 43, start: ≈2 }]
+    // with starts/durations within a small tolerance, so decoder regressions
+    // (thresholds, timing alignment, seconds→beats conversion) are caught.
   });
 });

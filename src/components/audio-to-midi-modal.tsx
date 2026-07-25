@@ -69,7 +69,11 @@ export function AudioToMidiModal({
       testId="audio-to-midi-modal"
     >
       <div className="space-y-4">
-        <p className="text-sm text-neutral-300 truncate" title={track.fileName}>
+        <p
+          data-testid="audio-to-midi-file-name"
+          className="text-sm text-neutral-300 truncate"
+          title={track.fileName}
+        >
           {track.fileName}
         </p>
 
