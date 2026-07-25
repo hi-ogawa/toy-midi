@@ -1993,7 +1993,7 @@ function WaveformArea({
           <div className="absolute left-1 top-0.5 text-[10px] text-emerald-200 whitespace-nowrap z-10">
             {audioFileName && <span className="mr-1.5">{audioFileName}</span>}
             {audioOffset > 0 && (
-              <span className="opacity-75">+{audioOffset.toFixed(1)}s</span>
+              <span className="opacity-75">+{audioOffset.toFixed(3)}s</span>
             )}
           </div>
         </div>
