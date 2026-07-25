@@ -8,15 +8,6 @@
 | `pnpm test`     | Unit tests (src/, vitest)                 |
 | `pnpm test-e2e` | E2E tests (e2e/, playwright)              |
 
-## Key Docs
-
-| File                   | Purpose                          |
-| ---------------------- | -------------------------------- |
-| `docs/architecture.md` | Technical architecture overview  |
-| `docs/references.md`   | Reference projects and libraries |
-
-Planned work and known bugs live in GitHub issues, minor code-level nits as inline `TODO` comments. When a change alters durable behavior or structure, update `docs/architecture.md` in the same PR, and file follow-ups as issues.
-
 ## Conventions
 
 - File names: kebab-case
