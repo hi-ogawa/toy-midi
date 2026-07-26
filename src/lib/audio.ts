@@ -202,10 +202,10 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
-  readonly state = new AudioStateStore();
+  readonly store = new AudioStateStore();
 
   private setStatus(status: AudioStatus): void {
-    this.state.update({ status });
+    this.store.update({ status });
   }
 
   async init(): Promise<void> {
@@ -279,7 +279,7 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
-    if (this.state.getSnapshot().status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     // Cheap operations - always apply
@@ -309,7 +309,7 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
-    if (this.state.getSnapshot().status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     Tone.getTransport().start();
@@ -328,7 +328,7 @@ class AudioManager {
   }
 
   seek(seconds: number): void {
-    this.state.seek(seconds);
+    this.store.seek(seconds);
   }
 
   // Attach a decoded buffer to a track's player and sync it to the Transport
@@ -401,7 +401,7 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
-    if (this.state.getSnapshot().status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
@@ -409,14 +409,14 @@ class AudioManager {
 
   // Note preview with manual control (for keyboard interaction)
   noteOn(pitch: number): void {
-    if (this.state.getSnapshot().status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.noteOn(pitch, 100);
   }
 
   noteOff(pitch: number): void {
-    if (this.state.getSnapshot().status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.noteOff(pitch);
@@ -479,7 +479,7 @@ class AudioStateStore {
     }
   }
 
-  getSnapshot = (): AudioState => this.snapshot;
+  get = (): AudioState => this.snapshot;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
