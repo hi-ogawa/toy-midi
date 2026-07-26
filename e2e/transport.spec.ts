@@ -83,11 +83,14 @@ test.describe("Transport Controls", () => {
   });
 
   test("mixer dB input", async ({ page }) => {
-    await page.getByTestId("mixer-button").click();
+    const mixerButton = page.getByTestId("mixer-button");
+    await expect(mixerButton).toHaveAttribute("aria-pressed", "false");
+    await mixerButton.click();
     const mixerPanel = page.getByTestId("mixer-panel");
     const midiDbInput = mixerPanel.getByLabel("MIDI level in dB");
 
     await expect(mixerPanel).toBeVisible();
+    await expect(mixerButton).toHaveAttribute("aria-pressed", "true");
 
     // The panel is non-modal, so transport controls remain usable.
     await page.getByTestId("play-pause-button").click();
@@ -106,8 +109,9 @@ test.describe("Transport Controls", () => {
     await midiDbInput.press("Enter");
     await expect(midiDbInput).toHaveValue("-60.0");
 
-    await mixerPanel.getByRole("button", { name: "Close Mixer" }).click();
+    await mixerButton.click();
     await expect(mixerPanel).not.toBeVisible();
+    await expect(mixerButton).toHaveAttribute("aria-pressed", "false");
   });
 
   test("auto-scroll toggle", async ({ page }) => {
