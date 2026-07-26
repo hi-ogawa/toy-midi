@@ -8,7 +8,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
-      VITE_BASIC_PITCH_BACKEND: "cpu",
+      ...(process.env.CI ? { VITE_BASIC_PITCH_BACKEND: "cpu" } : {}),
     },
   },
   use: {
