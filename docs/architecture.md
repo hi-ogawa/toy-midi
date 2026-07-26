@@ -20,7 +20,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 
 ## State And Audio Flow
 
-The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence. Each audio track stores its own resizable waveform lane height.
+The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
 
 Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
 
