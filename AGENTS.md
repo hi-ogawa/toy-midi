@@ -19,6 +19,7 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 
 ## Conventions
 
+- This application is desktop-only. Do not propose, evaluate, implement, or mention mobile or responsive behavior
 - Commit messages: use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`); add `!` for breaking changes
 - File names: kebab-case
 - Prefer the smallest correct change, and avoid speculative abstractions or compatibility paths
