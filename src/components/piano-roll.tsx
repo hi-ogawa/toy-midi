@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useAudio } from "../hooks/use-transport";
+import { useAudio } from "../hooks/use-audio";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";

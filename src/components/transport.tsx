@@ -8,8 +8,8 @@ import {
   SlidersHorizontalIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
-import { useAudio } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager, GM_PROGRAMS } from "../lib/audio";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";

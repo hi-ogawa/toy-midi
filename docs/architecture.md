@@ -17,7 +17,7 @@ src/
 │   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
 │   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
 ├── hooks/
-│   ├── use-transport.ts    # selector hook for AudioManager's external state
+│   ├── use-audio.ts        # selector hook for AudioManager's external state
 │   ├── use-draft-input.ts  # commit-on-Enter numeric input (+ use-draft-text-input.ts)
 │   └── use-window-event.ts # useEffectEvent-based window listener
 ├── lib/
