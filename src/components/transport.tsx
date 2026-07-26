@@ -14,7 +14,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
-import { useProjectStore } from "../stores/project-store";
+import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {

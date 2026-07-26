@@ -10,8 +10,7 @@ import {
   gainToPercent,
   percentToGain,
 } from "../lib/music";
-import type { AudioTrack } from "../stores/project-store";
-import { useProjectStore } from "../stores/project-store";
+import { type AudioTrack, useProjectStore } from "../lib/project-store";
 import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";

@@ -10,6 +10,7 @@ import { useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
+import { historyStore } from "../lib/history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
   clampPitch,
@@ -23,7 +24,6 @@ import {
   snapToGrid,
 } from "../lib/music";
 import { projectStorage } from "../lib/project-storage";
-import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
   type AudioWaveform,
@@ -31,7 +31,7 @@ import {
   generateNoteId,
   secondsToBeats,
   useProjectStore,
-} from "../stores/project-store";
+} from "../lib/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";

@@ -12,7 +12,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 
 - `src/app.tsx` owns the application shell and routing.
 - `src/components/piano-roll.tsx` owns editor interaction and rendering.
-- `src/stores/project-store.ts` owns project and editor state.
+- `src/lib/project-store.ts` owns project and editor state.
 - `src/lib/audio.ts` owns the Tone.js runtime graph.
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.

@@ -1,17 +1,17 @@
 import { toast } from "sonner";
-import { historyStore } from "../stores/history-store";
+import { debounce } from "../utils/timing";
+import { audioManager } from "./audio";
+import { loadAudioFile } from "./audio-files";
+import { historyStore } from "./history-store";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
+import { projectStorage } from "./project-storage";
 import {
   type AudioTrack,
   fromSavedProject,
   type ProjectState,
   toSavedProject,
   useProjectStore,
-} from "../stores/project-store";
-import { debounce } from "../utils/timing";
-import { audioManager } from "./audio";
-import { loadAudioFile } from "./audio-files";
-import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
-import { projectStorage } from "./project-storage";
+} from "./project-store";
 
 export interface ProjectSession {
   projectId: string;

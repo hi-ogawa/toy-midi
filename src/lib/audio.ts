@@ -2,11 +2,11 @@ import * as Tone from "tone";
 import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
-import type { AudioTrack, ProjectState } from "../stores/project-store";
 import type { Note } from "../types";
 import { Metronome } from "./metronome";
 import { clampGain } from "./music";
 import { OxiSynthSynth } from "./oxisynth-synth";
+import type { AudioTrack, ProjectState } from "./project-store";
 
 // Synth/scheduling readiness. The editor mounts before (and regardless of)
 // audio being usable, so playback capability is explicit state, not an

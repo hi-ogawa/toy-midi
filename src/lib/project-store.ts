@@ -1,6 +1,4 @@
 import { create } from "zustand";
-import type { AudioView } from "../lib/audio-view";
-import { snapToGrid } from "../lib/music";
 import {
   GRID_SNAP_VALUES,
   type GridSnap,
@@ -8,7 +6,9 @@ import {
   type Note,
   type TimeSignature,
 } from "../types";
+import type { AudioView } from "./audio-view";
 import { historyStore } from "./history-store";
+import { snapToGrid } from "./music";
 
 export interface ProjectState {
   // project
