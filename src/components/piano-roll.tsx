@@ -25,6 +25,7 @@ import {
 } from "../lib/music";
 import { projectStorage } from "../lib/project-storage";
 import {
+  type AudioTrack,
   beatsToSeconds,
   type AudioWaveform,
   generateLocatorId,
@@ -319,8 +320,6 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
-  const zeroDbPercent = dbToPercent(0);
-
   // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
   const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
   const edgeThreshold = Math.max(6, Math.min(50, gridCellWidth * 0.2));
@@ -1079,114 +1078,16 @@ export function PianoRoll() {
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: track controls + keyboard labels */}
         <div className="shrink-0 flex gap-1 bg-neutral-900">
-          <div
-            className="shrink-0 flex flex-col"
-            style={{ width: TRACK_CONTROL_WIDTH }}
-          >
-            {/* Master controls */}
-            <div
-              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-              style={{ height: TIMELINE_HEIGHT }}
-            >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">Master</span>
-              </div>
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                  style={{ left: `${zeroDbPercent}%` }}
-                />
-                <Slider
-                  data-testid="master-volume-slider"
-                  value={[gainToPercent(masterVolume)]}
-                  onValueChange={([v]) => setMasterVolume(percentToGain(v))}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </div>
-            {/* Audio controls (one block per track) */}
-            {audioTracks.map((track, index) => (
-              <div
-                key={track.id}
-                className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-                style={{ height: track.waveformHeight }}
-              >
-                <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                  <span
-                    className="uppercase tracking-wide truncate"
-                    title={track.fileName}
-                  >
-                    {audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
-                  </span>
-                  <Toggle
-                    value={track.muted}
-                    onChange={(muted) => updateAudioTrack(track.id, { muted })}
-                    aria-label="Toggle audio mute"
-                    title={
-                      track.muted
-                        ? "Unmute audio (Shift+2)"
-                        : "Mute audio (Shift+2)"
-                    }
-                    className={cn(
-                      "size-4.5",
-                      track.muted &&
-                        "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                    )}
-                  >
-                    M
-                  </Toggle>
-                </div>
-                <div className="relative">
-                  <div
-                    className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                    style={{ left: `${zeroDbPercent}%` }}
-                  />
-                  <Slider
-                    value={[gainToPercent(track.volume)]}
-                    onValueChange={([v]) =>
-                      updateAudioTrack(track.id, { volume: percentToGain(v) })
-                    }
-                    max={100}
-                    step={1}
-                  />
-                </div>
-              </div>
-            ))}
-            {/* MIDI controls */}
-            <div className="flex-1 p-2 flex flex-col gap-3">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">MIDI</span>
-                <Toggle
-                  value={midiMuted}
-                  onChange={setMidiMuted}
-                  aria-label="Toggle MIDI mute"
-                  title={
-                    midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
-                  }
-                  className={cn(
-                    "size-4.5",
-                    midiMuted &&
-                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                  )}
-                >
-                  M
-                </Toggle>
-              </div>
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                  style={{ left: `${zeroDbPercent}%` }}
-                />
-                <Slider
-                  value={[gainToPercent(midiVolume)]}
-                  onValueChange={([v]) => setMidiVolume(percentToGain(v))}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </div>
-          </div>
+          <TrackControls
+            masterVolume={masterVolume}
+            midiVolume={midiVolume}
+            midiMuted={midiMuted}
+            audioTracks={audioTracks}
+            onMasterVolumeChange={setMasterVolume}
+            onMidiVolumeChange={setMidiVolume}
+            onMidiMutedChange={setMidiMuted}
+            onAudioTrackChange={updateAudioTrack}
+          />
           <div
             className="shrink-0 flex flex-col bg-neutral-900 border-r border-neutral-700"
             style={{ width: KEYBOARD_WIDTH }}
@@ -1513,6 +1414,137 @@ export function PianoRoll() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type TrackControlsProps = {
+  masterVolume: number;
+  midiVolume: number;
+  midiMuted: boolean;
+  audioTracks: AudioTrack[];
+  onMasterVolumeChange: (volume: number) => void;
+  onMidiVolumeChange: (volume: number) => void;
+  onMidiMutedChange: (muted: boolean) => void;
+  onAudioTrackChange: (trackId: string, updates: Partial<AudioTrack>) => void;
+};
+
+function TrackControls({
+  masterVolume,
+  midiVolume,
+  midiMuted,
+  audioTracks,
+  onMasterVolumeChange,
+  onMidiVolumeChange,
+  onMidiMutedChange,
+  onAudioTrackChange,
+}: TrackControlsProps) {
+  const zeroDbPercent = dbToPercent(0);
+
+  return (
+    <div
+      className="shrink-0 flex flex-col"
+      style={{ width: TRACK_CONTROL_WIDTH }}
+    >
+      {/* Master controls */}
+      <div
+        className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
+        style={{ height: TIMELINE_HEIGHT }}
+      >
+        <div className="flex items-center justify-between text-[11px] text-neutral-400">
+          <span className="uppercase tracking-wide">Master</span>
+        </div>
+        <div className="relative">
+          <div
+            className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+            style={{ left: `${zeroDbPercent}%` }}
+          />
+          <Slider
+            data-testid="master-volume-slider"
+            value={[gainToPercent(masterVolume)]}
+            onValueChange={([v]) => onMasterVolumeChange(percentToGain(v))}
+            max={100}
+            step={1}
+          />
+        </div>
+      </div>
+      {/* Audio controls (one block per track) */}
+      {audioTracks.map((track, index) => (
+        <div
+          key={track.id}
+          className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
+          style={{ height: track.waveformHeight }}
+        >
+          <div className="flex items-center justify-between text-[11px] text-neutral-400">
+            <span
+              className="uppercase tracking-wide truncate"
+              title={track.fileName}
+            >
+              {audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
+            </span>
+            <Toggle
+              value={track.muted}
+              onChange={(muted) => onAudioTrackChange(track.id, { muted })}
+              aria-label="Toggle audio mute"
+              title={
+                track.muted ? "Unmute audio (Shift+2)" : "Mute audio (Shift+2)"
+              }
+              className={cn(
+                "size-4.5",
+                track.muted &&
+                  "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+              )}
+            >
+              M
+            </Toggle>
+          </div>
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+              style={{ left: `${zeroDbPercent}%` }}
+            />
+            <Slider
+              value={[gainToPercent(track.volume)]}
+              onValueChange={([v]) =>
+                onAudioTrackChange(track.id, { volume: percentToGain(v) })
+              }
+              max={100}
+              step={1}
+            />
+          </div>
+        </div>
+      ))}
+      {/* MIDI controls */}
+      <div className="flex-1 p-2 flex flex-col gap-3">
+        <div className="flex items-center justify-between text-[11px] text-neutral-400">
+          <span className="uppercase tracking-wide">MIDI</span>
+          <Toggle
+            value={midiMuted}
+            onChange={onMidiMutedChange}
+            aria-label="Toggle MIDI mute"
+            title={midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"}
+            className={cn(
+              "size-4.5",
+              midiMuted &&
+                "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+            )}
+          >
+            M
+          </Toggle>
+        </div>
+        <div className="relative">
+          <div
+            className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+            style={{ left: `${zeroDbPercent}%` }}
+          />
+          <Slider
+            value={[gainToPercent(midiVolume)]}
+            onValueChange={([v]) => onMidiVolumeChange(percentToGain(v))}
+            max={100}
+            step={1}
+          />
+        </div>
+      </div>
     </div>
   );
 }
