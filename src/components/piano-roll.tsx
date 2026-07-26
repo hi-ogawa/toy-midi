@@ -952,6 +952,7 @@ export function PianoRoll() {
                 height={track.waveformHeight}
                 volume={track.volume}
                 muted={track.muted}
+                muteLabel="Toggle audio mute"
                 muteTitle={
                   track.muted
                     ? "Unmute audio (Shift+2)"
@@ -967,6 +968,7 @@ export function PianoRoll() {
               label="MIDI"
               volume={midiVolume}
               muted={midiMuted}
+              muteLabel="Toggle MIDI mute"
               muteTitle={
                 midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
               }
@@ -1290,6 +1292,7 @@ type TrackControlProps = {
   height?: number;
   volume: number;
   muted?: boolean;
+  muteLabel?: string;
   muteTitle?: string;
   sliderTestId?: string;
   onVolumeChange: (volume: number) => void;
@@ -1302,6 +1305,7 @@ function TrackControl({
   height,
   volume,
   muted,
+  muteLabel,
   muteTitle,
   sliderTestId,
   onVolumeChange,
@@ -1326,7 +1330,7 @@ function TrackControl({
           <Toggle
             value={muted ?? false}
             onChange={onMutedChange}
-            aria-label={`Toggle ${label} mute`}
+            aria-label={muteLabel}
             title={muteTitle}
             className={cn(
               "size-4.5",
