@@ -2,14 +2,11 @@ import { useSyncExternalStore } from "react";
 import { type AudioState, audioManager } from "../lib/audio";
 
 /**
- * Hook that provides reactive transport state from Tone.js Transport.
+ * Selects reactive state from AudioManager.
  *
- * Returns:
- * - isPlaying: whether transport is playing
- * - position: current position in seconds (updates at 60fps during playback)
- *
- * Control methods (play/pause/stop/seek) are on audioManager,
- * which handles app-specific logic like note scheduling.
+ * Select primitives or stable references because the selected value is the
+ * useSyncExternalStore snapshot. Do not construct a new object in the selector.
+ * For example: useAudio((state) => state.isPlaying).
  */
 export function useAudio<T>(selector: (state: AudioState) => T): T {
   return useSyncExternalStore(audioManager.subscribe, () =>
