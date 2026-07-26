@@ -77,7 +77,7 @@ test.describe("Audio to MIDI", () => {
     expect(await getNotePitches(page)).toEqual([60, 64, 67]);
     const idsAfterSecondConvert = await getNoteIds(page);
 
-    await panel.getByRole("button", { name: "Close" }).click();
+    await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
     await expect(panel).toBeHidden();
 
     // Each convert is one history entry: the first undo restores the first

@@ -2,13 +2,14 @@ import {
   CircleHelpIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
+  SparklesIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
-import { AudioToMidiPanel } from "./audio-to-midi-panel";
+import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
 import { PianoRoll } from "./piano-roll";
@@ -112,15 +113,24 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       {/* TODO: coordinate active floating panels so Mixer and Audio to MIDI do
           not overlap when both are open. */}
       {audioToMidiTrack && (
-        <AudioToMidiPanel
-          key={audioToMidiTrack.id}
-          track={audioToMidiTrack}
+        <FloatingPanel
+          closeLabel="Close Audio to MIDI"
           onClose={() => setAudioToMidiTrackId(undefined)}
-        />
+          testId="audio-to-midi-panel"
+          title={
+            <span className="flex items-center gap-2">
+              <SparklesIcon className="size-4" />
+              Audio to MIDI
+            </span>
+          }
+        >
+          <AudioToMidi key={audioToMidiTrack.id} track={audioToMidiTrack} />
+        </FloatingPanel>
       )}
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       {isMixerOpen && (
         <FloatingPanel
+          closeLabel="Close Mixer"
           onClose={() => setIsMixerOpen(false)}
           title="Mixer"
           testId="mixer-panel"

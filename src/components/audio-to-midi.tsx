@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { SparklesIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
@@ -17,13 +16,7 @@ import {
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
-export function AudioToMidiPanel({
-  track,
-  onClose,
-}: {
-  track: AudioTrack;
-  onClose: () => void;
-}) {
+export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [progress, setProgress] = useState<number>();
   const [analyzed, setAnalyzed] = useState(false);
@@ -98,24 +91,7 @@ export function AudioToMidiPanel({
               : "Analyzed";
 
   return (
-    <div
-      data-testid="audio-to-midi-panel"
-      className="fixed bottom-4 right-4 z-40 w-80 space-y-4 rounded-lg border border-neutral-700 bg-neutral-800 p-4 shadow-2xl"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-neutral-100 flex items-center gap-2">
-          <SparklesIcon className="size-4" />
-          Audio to MIDI
-        </h2>
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="text-neutral-400 hover:text-neutral-200 text-xl leading-none"
-        >
-          ×
-        </button>
-      </div>
-
+    <div className="w-72 space-y-4">
       <p
         data-testid="audio-to-midi-file-name"
         className="text-sm text-neutral-300 truncate"

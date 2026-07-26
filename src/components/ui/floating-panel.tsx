@@ -2,7 +2,8 @@ import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 type FloatingPanelProps = {
-  title: string;
+  title: ReactNode;
+  closeLabel: string;
   onClose: () => void;
   children: ReactNode;
   testId?: string;
@@ -10,6 +11,7 @@ type FloatingPanelProps = {
 
 export function FloatingPanel({
   title,
+  closeLabel,
   onClose,
   children,
   testId,
@@ -24,7 +26,7 @@ export function FloatingPanel({
         <button
           onClick={onClose}
           className="text-neutral-400 hover:text-neutral-200"
-          aria-label={`Close ${title}`}
+          aria-label={closeLabel}
         >
           <XIcon className="size-5" />
         </button>
