@@ -6,6 +6,7 @@ import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { parseProjectFile } from "../lib/project-file";
 import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
+import { Button } from "./ui/button";
 
 type ProjectListViewProps = {
   onSelectProject: (projectId: string) => void;
@@ -141,38 +142,35 @@ export function ProjectListView({
         <div className="flex flex-col items-center gap-4">
           <div className="flex gap-4">
             {hasProjects && (
-              <button
-                type="button"
+              <Button
                 data-testid="continue-button"
                 disabled={isLoading}
                 onClick={() => lastProjectId && onSelectProject(lastProjectId)}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-900/30"
               >
                 Continue
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
               data-testid="new-project-button"
               disabled={isLoading}
               onClick={onNewProject}
-              className={`px-6 py-2.5 rounded-lg font-medium ${
+              className={`px-6 py-2.5 font-medium ${
                 hasProjects
-                  ? "bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200"
-                  : "bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white shadow-lg shadow-emerald-900/30"
+                  ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30"
               }`}
             >
               {hasProjects ? "New Project" : "Create Your First Project"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               data-testid="import-project-button"
               disabled={isLoading}
               onClick={handleImportClick}
-              className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+              className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium"
             >
               {isLoading ? "Importing..." : "Import Project"}
-            </button>
+            </Button>
           </div>
           <p className="text-neutral-600 text-sm">
             Press{" "}
