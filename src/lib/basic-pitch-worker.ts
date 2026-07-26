@@ -6,7 +6,7 @@ import {
 import modelWeightsUrl from "@spotify/basic-pitch/model/group1-shard1of1.bin?url";
 import modelJsonUrl from "@spotify/basic-pitch/model/model.json?url";
 import * as tf from "@tensorflow/tfjs";
-import type { BasicPitchHandlers, TranscribedNote } from "./basic-pitch";
+import type { TranscribedNote, TranscribeParams } from "./basic-pitch";
 import { registerWorkerRpcHandlers } from "./rpc/worker.ts";
 
 // Model output frame rate: 22,050 Hz sample rate / 256 FFT hop
@@ -87,13 +87,18 @@ let cache: {
   onsets: number[][];
 } | null = null;
 
-class BasicPitchWorkerHandlers implements BasicPitchHandlers {
+export class BasicPitchWorkerHandlers {
   async analyze({
     cacheKey,
     backend,
     pcm,
     onProgress,
-  }: Parameters<BasicPitchHandlers["analyze"]>[0]): Promise<{
+  }: {
+    cacheKey: string;
+    backend?: string;
+    pcm?: Float32Array;
+    onProgress: (percent: number) => void;
+  }): Promise<{
     backend: string;
   }> {
     basicPitch ??= initializeBasicPitch(backend);
@@ -120,7 +125,10 @@ class BasicPitchWorkerHandlers implements BasicPitchHandlers {
   async decode({
     cacheKey,
     params,
-  }: Parameters<BasicPitchHandlers["decode"]>[0]): Promise<TranscribedNote[]> {
+  }: {
+    cacheKey: string;
+    params: TranscribeParams;
+  }): Promise<TranscribedNote[]> {
     if (cache?.cacheKey !== cacheKey) {
       throw new Error("Audio not analyzed");
     }
@@ -146,7 +154,7 @@ async function initializeBasicPitch(backend?: string): Promise<BasicPitch> {
 
 function decodeNotes(
   { frames, onsets }: NonNullable<typeof cache>,
-  params: Parameters<BasicPitchHandlers["decode"]>[0]["params"],
+  params: TranscribeParams,
 ): TranscribedNote[] {
   // outputToNotesPoly mutates its inputs when constraining the pitch range,
   // so decode from copies to keep the cached activations reusable

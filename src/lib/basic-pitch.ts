@@ -1,3 +1,4 @@
+import type { BasicPitchWorkerHandlers } from "./basic-pitch-worker.ts";
 import type { RpcClient } from "./rpc/core.ts";
 import { createWorkerRpc } from "./rpc/worker.ts";
 
@@ -34,21 +35,8 @@ export const DEFAULT_TRANSCRIBE_PARAMS: TranscribeParams = {
 
 const MODEL_SAMPLE_RATE = 22050;
 
-export interface BasicPitchHandlers {
-  analyze(params: {
-    cacheKey: string;
-    backend?: string;
-    pcm?: Float32Array;
-    onProgress: (percent: number) => void;
-  }): Promise<{ backend: string }>;
-  decode(params: {
-    cacheKey: string;
-    params: TranscribeParams;
-  }): Promise<TranscribedNote[]>;
-}
-
 class BasicPitchClient {
-  private rpc: RpcClient<BasicPitchHandlers> | undefined;
+  private rpc: RpcClient<BasicPitchWorkerHandlers> | undefined;
   private analyzedCacheKey: string | null = null;
 
   async analyze(
@@ -97,13 +85,13 @@ class BasicPitchClient {
     return this.getRpc().decode({ cacheKey, params });
   }
 
-  private getRpc(): RpcClient<BasicPitchHandlers> {
+  private getRpc(): RpcClient<BasicPitchWorkerHandlers> {
     if (!this.rpc) {
       const worker = new Worker(
         new URL("./basic-pitch-worker.ts", import.meta.url),
         { type: "module" },
       );
-      this.rpc = createWorkerRpc<BasicPitchHandlers>(worker);
+      this.rpc = createWorkerRpc<BasicPitchWorkerHandlers>(worker);
     }
     return this.rpc;
   }
