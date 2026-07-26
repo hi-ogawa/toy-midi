@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
 import type { SavedProjectV1 } from "../src/stores/project-store";
-import { evaluateStore } from "./helpers";
+import { clickContinue, evaluateStore, waitForEditor } from "./helpers";
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
@@ -44,14 +44,13 @@ test.describe("Project Migration", () => {
     const audio = new Uint8Array(await readFile(TEST_AUDIO_PATH));
     await page.evaluate(
       async ({ project, audio }) => {
-        await window.__e2e!.seedProjectV1("Legacy Project", project, audio);
+        await window.__e2e.seedProjectV1("Legacy Project", project, audio);
       },
       { project: LEGACY_PROJECT, audio },
     );
 
     await page.goto("/");
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await clickContinue(page);
 
     const audioTracks = await evaluateStore(page, (store) => {
       return store.getState().audioTracks.map((track) => ({
@@ -129,5 +128,36 @@ test.describe("Project Migration", () => {
     expect(audioTracks[0].assetKey).toEqual(expect.any(String));
     expect(audioTracks[0].assetKey).not.toBe("");
     await expect(page.getByTestId("audio-track-region")).toHaveCount(1);
+  });
+
+  test("migrates layout-v1 storage (prefixed ids) to the v2 index", async ({
+    page,
+  }) => {
+    await page.goto("/__e2e__/");
+    const legacyId = await page.evaluate(() => {
+      return window.__e2e.seedLayoutV1Project("Layout Legacy", {
+        tempo: 137,
+      });
+    });
+    expect(legacyId).toMatch(/^project-/);
+
+    // The list renders the migrated project; opening it lands on a bare-uuid
+    // URL (no "project-" stutter)
+    const bareId = legacyId.replace(/^project-/, "");
+    await page.goto("/");
+    await page.getByTestId(`project-card-${bareId}`).click();
+    await expect(page).toHaveURL(/\/project\/[0-9a-f-]{36}$/);
+    await waitForEditor(page);
+    expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
+      137,
+    );
+
+    // Continue (last-project pointer) survives the migration, and a second
+    // load is a no-op migration
+    await page.goto("/");
+    await clickContinue(page);
+    expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
+      137,
+    );
   });
 });

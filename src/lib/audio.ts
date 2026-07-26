@@ -5,11 +5,7 @@ import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
 import type { AudioTrack, ProjectState } from "../stores/project-store";
 import type { Note } from "../types";
-import {
-  type AudioView,
-  createAudioView,
-  EMPTY_AUDIO_VIEW,
-} from "./audio-view";
+import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
 import { OxiSynthSynth } from "./oxisynth-synth";
 import { clampGain } from "./volume";
@@ -543,10 +539,12 @@ const POINTS_PER_SECOND = 800;
 // At 48kHz, 60 min = 172.8M samples → ~300-600ms extraction (too slow)
 const MAX_AUDIO_DURATION_SECONDS = 600; // 10 minutes
 
-// Load audio file and create AudioView for waveform display
+// Load audio file and create AudioView for waveform display.
+// audioView is null when the waveform is skipped (too-long bailout); callers
+// map that to AudioWaveform "unavailable".
 export async function loadAudioFile(file: File): Promise<{
   buffer: Tone.ToneAudioBuffer;
-  audioView: AudioView;
+  audioView: AudioView | null;
   duration: number;
 }> {
   const url = URL.createObjectURL(file);
@@ -560,7 +558,7 @@ export async function loadAudioFile(file: File): Promise<{
       );
       return {
         buffer,
-        audioView: EMPTY_AUDIO_VIEW,
+        audioView: null,
         duration: buffer.duration,
       };
     }

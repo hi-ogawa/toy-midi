@@ -416,9 +416,8 @@ function ProjectListView({
                         />
                       ) : (
                         <div className="flex justify-between items-center flex-1">
-                          <button
-                            type="button"
-                            onClick={() => onSelectProject(project.id)}
+                          <a
+                            href={`/project/${project.id}`}
                             className="flex-1 text-left"
                           >
                             <div className="text-neutral-100 font-medium text-lg">
@@ -435,7 +434,7 @@ function ProjectListView({
                                 },
                               )}
                             </div>
-                          </button>
+                          </a>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"

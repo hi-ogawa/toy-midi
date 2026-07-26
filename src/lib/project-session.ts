@@ -9,7 +9,6 @@ import {
 } from "../stores/project-store";
 import { debounce } from "../utils/timing";
 import { audioManager, loadAudioFile } from "./audio";
-import { EMPTY_AUDIO_VIEW } from "./audio-view";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
 import { projectStorage } from "./project-storage";
 
@@ -65,7 +64,7 @@ function openProjectSession(projectId: string): ProjectSession {
 
   // Auto-save on state changes (debounced)
   const autoSaveDebounceMs = Number(
-    import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
+    import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 1000,
   );
   const saveDebouncer = debounce(() => {
     try {
@@ -163,11 +162,9 @@ async function restoreAudioTracks(
   for (const { track, loaded } of loads) {
     if (loaded === "failed") {
       toast.error(`Failed to load audio "${track.fileName}".`);
-      // Mark the waveform unavailable so `audioView === null` stays
-      // pending-only and the region doesn't read as loading forever.
-      // TODO(#182): model restore failure explicitly (distinct from the
-      // too-long waveform bailout) so the region can render the track as dead.
-      project.updateAudioTrack(track.id, { audioView: EMPTY_AUDIO_VIEW });
+      project.updateAudioTrack(track.id, {
+        audioWaveform: { status: "error" },
+      });
     } else if (!loaded) {
       toast.warning(
         `Audio asset not found for "${track.fileName}". The track will be cleared.`,
@@ -175,7 +172,11 @@ async function restoreAudioTracks(
       project.deleteAudioTrack(track.id);
     } else {
       audioManager.attachTrackBuffer(track.id, loaded.buffer, track.offset);
-      project.updateAudioTrack(track.id, { audioView: loaded.audioView });
+      project.updateAudioTrack(track.id, {
+        audioWaveform: loaded.audioView
+          ? { status: "ready", view: loaded.audioView }
+          : { status: "unavailable" },
+      });
     }
   }
 }

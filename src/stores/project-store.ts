@@ -117,6 +117,15 @@ export interface ProjectState {
   setWaveformHeight: (height: number) => void;
 }
 
+// Transient per-track waveform state, not persisted. "unavailable" means the
+// waveform is intentionally skipped (too-long bailout) but the track plays;
+// "error" means asset restore failed and the track is unplayable.
+export type AudioWaveform =
+  | { status: "pending" }
+  | { status: "ready"; view: AudioView }
+  | { status: "unavailable" }
+  | { status: "error" };
+
 export interface AudioTrack {
   id: string;
   fileName: string;
@@ -125,7 +134,7 @@ export interface AudioTrack {
   offset: number; // in seconds - timeline position where audio starts (>= 0)
   volume: number; // 0-1
   muted: boolean;
-  audioView: AudioView | null; // Pre-computed waveform data (not persisted)
+  audioWaveform: AudioWaveform;
 }
 
 let noteIdCounter = 0;
@@ -604,7 +613,7 @@ export interface SavedProject {
   waveformHeight?: number;
 }
 
-export type SavedAudioTrack = Omit<AudioTrack, "audioView">;
+export type SavedAudioTrack = Omit<AudioTrack, "audioWaveform">;
 
 export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
   version: 1;
@@ -656,7 +665,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     locators: state.locators,
     audioTracks: state.audioTracks.map(
       // Strip transient waveform data
-      ({ audioView: _audioView, ...track }) => track,
+      ({ audioWaveform: _audioWaveform, ...track }) => track,
     ),
     midiVolume: state.midiVolume,
     midiMuted: state.midiMuted,
@@ -737,7 +746,10 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     gridSnap: merged.gridSnap,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
-    audioTracks: merged.audioTracks.map((t) => ({ ...t, audioView: null })),
+    audioTracks: merged.audioTracks.map((t) => ({
+      ...t,
+      audioWaveform: { status: "pending" as const },
+    })),
     midiVolume: merged.midiVolume,
     midiMuted: merged.midiMuted ?? DEFAULTS.midiMuted,
     midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,
