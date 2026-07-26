@@ -21,7 +21,7 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 
 - Commit messages: use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`); add `!` for breaking changes
 - File names: kebab-case
-- Minimize file splits (multiple components per file when related)
+- Keep cohesive implementation together; split files only for reuse or a clear module boundary
 - Prefer `undefined` over `null`
 - Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
 - Make props/params required when all call sites always pass them
