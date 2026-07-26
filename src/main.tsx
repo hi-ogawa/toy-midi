@@ -9,21 +9,12 @@ import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
 import { unlockAudioOnFirstGesture } from "./lib/audio";
 import { flushAutoSave } from "./lib/project-session";
-import { projectStorage, seedProjectV1 } from "./lib/project-storage";
-import { useProjectStore } from "./stores/project-store";
+import "./e2e";
 
 function main() {
-  // expose utility for e2e
-  if (import.meta.env.DEV) {
-    window.__e2e = {
-      useProjectStore,
-      projectStorage,
-      seedProjectV1,
-      flushAutoSave,
-    };
-    if (window.location.pathname.startsWith("/__e2e__/")) {
-      return;
-    }
+  // Keep a same-origin utility page for E2E setup without initializing the app.
+  if (window.location.pathname.startsWith("/__e2e__/")) {
+    return;
   }
 
   unlockAudioOnFirstGesture();
