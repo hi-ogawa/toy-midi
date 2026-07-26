@@ -136,7 +136,6 @@ test.describe("Project Migration", () => {
   }) => {
     await page.goto("/__e2e__/");
     const legacyId = await page.evaluate(() => {
-      localStorage.clear();
       return window.__e2e!.seedLayoutV1Project("Layout Legacy", {
         tempo: 137,
       });
