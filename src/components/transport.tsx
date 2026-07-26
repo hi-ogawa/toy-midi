@@ -16,6 +16,7 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -286,6 +287,22 @@ export function Transport({
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
+
+      {/* Metronome toggle */}
+      <Button
+        data-testid="metronome-mute-toggle"
+        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome (M)"
+        className={cn(
+          "size-9",
+          metronomeEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+      >
+        <MetronomeIcon className="size-5" />
+      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
