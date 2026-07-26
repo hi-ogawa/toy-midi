@@ -98,6 +98,11 @@ class BasicPitchClient {
     );
     const worker = this.worker;
     return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        worker.removeEventListener("message", handleMessage);
+        worker.removeEventListener("error", handleError);
+        worker.removeEventListener("messageerror", handleMessageError);
+      };
       const handleMessage = (event: MessageEvent<BasicPitchResponse>) => {
         const response = event.data;
         if (response.requestId !== request.requestId) {
@@ -107,14 +112,24 @@ class BasicPitchClient {
           onProgress?.(response.percent);
           return;
         }
-        worker.removeEventListener("message", handleMessage);
+        cleanup();
         if (response.type === "error") {
           reject(new Error(response.message));
         } else {
           resolve(response);
         }
       };
+      const handleError = (event: ErrorEvent) => {
+        cleanup();
+        reject(new Error(event.message || "Basic Pitch worker failed"));
+      };
+      const handleMessageError = () => {
+        cleanup();
+        reject(new Error("Basic Pitch worker message could not be read"));
+      };
       worker.addEventListener("message", handleMessage);
+      worker.addEventListener("error", handleError);
+      worker.addEventListener("messageerror", handleMessageError);
       worker.postMessage(request, transfer);
     });
   }

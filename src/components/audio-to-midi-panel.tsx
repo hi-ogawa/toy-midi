@@ -85,13 +85,17 @@ export function AudioToMidiPanel({
     ? progress !== null
       ? `Analyzing ${Math.round(progress * 100)}%`
       : "Analyzing..."
-    : !analyzed
-      ? "Not analyzed"
-      : convertMutation.isPending
-        ? "Converting..."
-        : noteCount !== null
-          ? `Converted ${noteCount} notes`
-          : "Analyzed";
+    : analyzeMutation.error
+      ? `Analysis failed: ${analyzeMutation.error.message}`
+      : !analyzed
+        ? "Not analyzed"
+        : convertMutation.isPending
+          ? "Converting..."
+          : convertMutation.error
+            ? `Conversion failed: ${convertMutation.error.message}`
+            : noteCount !== null
+              ? `Converted ${noteCount} notes`
+              : "Analyzed";
 
   return (
     <div
