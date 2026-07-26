@@ -41,7 +41,6 @@ export interface ProjectState {
   metronomeVolume: number; // 0-1
 
   // UI state
-  showDebug: boolean;
   autoScrollEnabled: boolean;
   linkAudioOffsetsEnabled: boolean; // drag moves all audio tracks together
 
@@ -105,7 +104,6 @@ export interface ProjectState {
   setMetronomeVolume: (volume: number) => void;
 
   // UI actions
-  setShowDebug: (show: boolean) => void;
   setAutoScrollEnabled: (enabled: boolean) => void;
   setLinkAudioOffsetsEnabled: (enabled: boolean) => void;
 
@@ -177,7 +175,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   metronomeVolume: 0.5,
 
   // UI state
-  showDebug: false,
   autoScrollEnabled: true,
   linkAudioOffsetsEnabled: true,
 
@@ -408,7 +405,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
 
   // UI actions
-  setShowDebug: (show) => set({ showDebug: show }),
   setAutoScrollEnabled: (enabled) => set({ autoScrollEnabled: enabled }),
   setLinkAudioOffsetsEnabled: (enabled) =>
     set({ linkAudioOffsetsEnabled: enabled }),
