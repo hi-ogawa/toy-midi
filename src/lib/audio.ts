@@ -187,6 +187,11 @@ class AudioManager {
     this.store.seek(seconds);
   }
 
+  // Decoded buffer for transcription; undefined until the asset finishes loading
+  getAudioTrackBuffer(id: string): AudioBuffer | undefined {
+    return this.audioTracks.get(id)?.player.buffer.get() ?? undefined;
+  }
+
   // Attach a decoded buffer to a track's player and sync it to the Transport
   attachTrackBuffer(
     id: string,

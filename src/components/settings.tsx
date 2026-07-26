@@ -3,6 +3,7 @@ import {
   DownloadIcon,
   FolderIcon,
   SettingsIcon,
+  SparklesIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -29,9 +30,15 @@ type SettingsProps = {
   // Project section
   projectName: string;
   onProjectNameChange: (name: string) => void;
+  // Closes settings and opens the transcription panel for the track
+  onAudioToMidiClick: (trackId: string) => void;
 };
 
-export function Settings({ projectName, onProjectNameChange }: SettingsProps) {
+export function Settings({
+  projectName,
+  onProjectNameChange,
+  onAudioToMidiClick,
+}: SettingsProps) {
   const projectNameInput = useDraftTextInput({
     value: projectName,
     onCommit: onProjectNameChange,
@@ -211,6 +218,15 @@ export function Settings({ projectName, onProjectNameChange }: SettingsProps) {
               <div className="flex-1 text-sm text-neutral-200 truncate">
                 {track.fileName}
               </div>
+              <Button
+                data-testid="audio-to-midi-button"
+                onClick={() => onAudioToMidiClick(track.id)}
+                title={`Transcribe ${track.fileName} to MIDI notes`}
+                className="h-8 gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+              >
+                <SparklesIcon className="size-4" />
+                To MIDI
+              </Button>
               <Button
                 data-testid="remove-audio-button"
                 onClick={() => handleRemoveAudio(track)}

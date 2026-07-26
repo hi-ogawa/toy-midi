@@ -8,6 +8,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
+      ...(process.env.CI ? { VITE_FAKE_BASIC_PITCH: "true" } : {}),
     },
   },
   use: {

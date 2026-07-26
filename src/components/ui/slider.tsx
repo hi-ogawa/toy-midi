@@ -8,6 +8,7 @@ export function Slider({
   value,
   min = 0,
   max = 100,
+  onValueChange,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -20,13 +21,32 @@ export function Slider({
     [value, defaultValue, min, max],
   );
 
+  const handleSetValue = React.useEffectEvent((event: Event) => {
+    onValueChange?.((event as CustomEvent<number[]>).detail);
+  });
+
+  // Lets E2E tests set exact values while exercising the real change handler.
+  const setRootRef = React.useCallback(
+    (root: HTMLSpanElement | null) => {
+      if (!root) {
+        return;
+      }
+
+      root.addEventListener("slider:set-value", handleSetValue);
+      return () => root.removeEventListener("slider:set-value", handleSetValue);
+    },
+    [handleSetValue],
+  );
+
   return (
     <SliderPrimitive.Root
+      ref={setRootRef}
       data-slot="slider"
       defaultValue={defaultValue}
       value={value}
       min={min}
       max={max}
+      onValueChange={onValueChange}
       className={cn(
         "relative flex w-full touch-none items-center select-none data-[disabled]:opacity-50 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
         className,
