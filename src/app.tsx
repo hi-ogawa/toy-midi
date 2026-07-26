@@ -263,9 +263,7 @@ function ProjectListView({
   onSelectProject,
   onNewProject,
 }: ProjectListViewProps) {
-  const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
-    null,
-  );
+  const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -297,12 +295,12 @@ function ProjectListView({
 
   const handleRenameSubmit = (projectId: string, nextName: string) => {
     projectStorage.updateMetadata(projectId, { name: nextName });
-    setRenamingProjectId(null);
+    setRenamingProjectId(undefined);
     setProjects(projectStorage.listMetadata());
   };
 
   const handleRenameCancel = () => {
-    setRenamingProjectId(null);
+    setRenamingProjectId(undefined);
   };
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {
@@ -393,9 +391,8 @@ function ProjectListView({
                         />
                       ) : (
                         <div className="flex justify-between items-center flex-1">
-                          <button
-                            type="button"
-                            onClick={() => onSelectProject(project.id)}
+                          <a
+                            href={`/project/${project.id}`}
                             className="flex-1 text-left"
                           >
                             <div className="text-neutral-100 font-medium text-lg">
@@ -412,7 +409,7 @@ function ProjectListView({
                                 },
                               )}
                             </div>
-                          </button>
+                          </a>
                           <div className="flex items-center gap-1">
                             <button
                               type="button"

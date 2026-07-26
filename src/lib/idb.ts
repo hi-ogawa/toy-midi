@@ -1,6 +1,6 @@
 // Generic promise wrapper for a single IndexedDB object store.
 export class IdbStore<T> {
-  private dbPromise: Promise<IDBDatabase> | null = null;
+  private dbPromise: Promise<IDBDatabase> | undefined;
 
   constructor(
     private options: {
@@ -11,8 +11,8 @@ export class IdbStore<T> {
     },
   ) {}
 
-  async get(key: string): Promise<T | null> {
-    return (await this.request("readonly", (store) => store.get(key))) ?? null;
+  async get(key: string): Promise<T | undefined> {
+    return await this.request("readonly", (store) => store.get(key));
   }
 
   async put(value: T): Promise<void> {

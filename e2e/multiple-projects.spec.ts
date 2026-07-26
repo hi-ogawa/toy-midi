@@ -6,7 +6,7 @@ import {
 } from "./helpers";
 
 async function getLastProjectId(page: Page) {
-  return page.evaluate(() => window.__e2e!.projectStorage.getLastProjectId());
+  return page.evaluate(() => window.__e2e.projectStorage.getLastProjectId());
 }
 
 test.describe("Multiple Projects", () => {
