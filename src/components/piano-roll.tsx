@@ -56,138 +56,6 @@ const MAX_PIXELS_PER_KEY = 40;
 // Minimum pixel spacing for grid line visibility (hide when lines are too dense)
 const MIN_LINE_SPACING = 8;
 
-// Generate vertical grid lines (bar, beat, sub-beat) for timelines
-// Returns layers array for use with background CSS properties
-function generateVerticalGridLayers(
-  pixelsPerBeat: number,
-  gridSnap: GridSnap,
-  scrollX: number,
-  beatsPerBar: number,
-): [string, string, string][] {
-  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
-  const beatWidth = Math.round(pixelsPerBeat);
-  const subBeatWidth = beatWidth * gridSnapValue;
-  const barWidth = beatWidth * beatsPerBar;
-  const offsetX = -(scrollX * beatWidth) % barWidth;
-
-  const layers: [string, string, string][] = [];
-
-  // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
-  let coarseBarMultiplier = 1;
-  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
-    coarseBarMultiplier *= 2;
-  }
-  const coarseBarWidth = barWidth * coarseBarMultiplier;
-  const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
-
-  layers.push([
-    `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
-    `${coarseBarWidth}px 100%`,
-    `${coarseBarOffsetX}px 0`,
-  ]);
-
-  // Vertical beat lines - hide when too dense
-  if (beatWidth >= MIN_LINE_SPACING) {
-    layers.push([
-      `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
-      `${beatWidth}px 100%`,
-      `${offsetX}px 0`,
-    ]);
-  }
-
-  // Vertical sub-beat lines (grid snap) - hide when too dense
-  if (subBeatWidth >= MIN_LINE_SPACING) {
-    layers.push([
-      `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
-      `${subBeatWidth}px 100%`,
-      `${offsetX}px 0`,
-    ]);
-  }
-
-  return layers;
-}
-
-// Generate CSS background for grid (returns style object)
-// Uses linear-gradient + background-size instead of repeating-linear-gradient
-// to avoid subpixel rendering artifacts
-function generateGridBackground(
-  pixelsPerBeat: number,
-  pixelsPerKey: number,
-  gridSnap: GridSnap,
-  scrollX: number,
-  scrollY: number,
-  beatsPerBar: number,
-): React.CSSProperties {
-  // Round base sizes, derive others to avoid drift between grid layers
-  const rowHeight = Math.round(pixelsPerKey);
-  const octaveHeight = rowHeight * 12;
-
-  // Calculate offsets for horizontal lines
-  const rowOffsetY = -(scrollY % 1) * rowHeight;
-  // Octave line at B/C boundary = bottom of C row
-  const octaveOffsetY =
-    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
-    octaveHeight;
-
-  // Build black key pattern gradient (one octave, 12 rows)
-  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
-  const blackKeyColor = "rgba(0,0,0,0.35)";
-  const r = rowHeight;
-  const blackKeyGradient = `linear-gradient(0deg,
-    transparent 0, transparent ${r}px,
-    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
-    transparent ${2 * r}px, transparent ${3 * r}px,
-    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
-    transparent ${4 * r}px, transparent ${6 * r}px,
-    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
-    transparent ${7 * r}px, transparent ${8 * r}px,
-    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
-    transparent ${9 * r}px, transparent ${10 * r}px,
-    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
-    transparent ${11 * r}px, transparent ${12 * r}px
-  )`;
-
-  const layers: [string, string, string][] = [];
-
-  // Add vertical grid lines (bar, beat, sub-beat)
-  layers.push(
-    ...generateVerticalGridLayers(
-      pixelsPerBeat,
-      gridSnap,
-      scrollX,
-      beatsPerBar,
-    ),
-  );
-
-  // Octave lines (B/C boundary) - always visible
-  layers.push([
-    `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
-    `100% ${octaveHeight}px`,
-    `0 ${octaveOffsetY}px`,
-  ]);
-
-  // Row lines (every pitch) - always visible for now
-  layers.push([
-    `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
-    `100% ${rowHeight}px`,
-    `0 ${rowOffsetY}px`,
-  ]);
-
-  // Black key row backgrounds (subtle darker shade)
-  layers.push([
-    blackKeyGradient,
-    `100% ${octaveHeight}px`,
-    `0 ${octaveOffsetY}px`,
-  ]);
-
-  return {
-    backgroundColor: "#1a1a1a",
-    backgroundImage: layers.map(([gradient]) => gradient).join(", "),
-    backgroundSize: layers.map(([, size]) => size).join(", "),
-    backgroundPosition: layers.map(([, , position]) => position).join(", "),
-  };
-}
-
 type DragMode =
   | { type: "none" }
   | { type: "creating"; startBeat: number; pitch: number; currentBeat: number }
@@ -1255,6 +1123,138 @@ export function PianoRoll() {
       </div>
     </div>
   );
+}
+
+// Generate CSS background for grid (returns style object)
+// Uses linear-gradient + background-size instead of repeating-linear-gradient
+// to avoid subpixel rendering artifacts
+function generateGridBackground(
+  pixelsPerBeat: number,
+  pixelsPerKey: number,
+  gridSnap: GridSnap,
+  scrollX: number,
+  scrollY: number,
+  beatsPerBar: number,
+): React.CSSProperties {
+  // Round base sizes, derive others to avoid drift between grid layers
+  const rowHeight = Math.round(pixelsPerKey);
+  const octaveHeight = rowHeight * 12;
+
+  // Calculate offsets for horizontal lines
+  const rowOffsetY = -(scrollY % 1) * rowHeight;
+  // Octave line at B/C boundary = bottom of C row
+  const octaveOffsetY =
+    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
+    octaveHeight;
+
+  // Build black key pattern gradient (one octave, 12 rows)
+  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
+  const blackKeyColor = "rgba(0,0,0,0.35)";
+  const r = rowHeight;
+  const blackKeyGradient = `linear-gradient(0deg,
+    transparent 0, transparent ${r}px,
+    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
+    transparent ${2 * r}px, transparent ${3 * r}px,
+    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
+    transparent ${4 * r}px, transparent ${6 * r}px,
+    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
+    transparent ${7 * r}px, transparent ${8 * r}px,
+    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
+    transparent ${9 * r}px, transparent ${10 * r}px,
+    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
+    transparent ${11 * r}px, transparent ${12 * r}px
+  )`;
+
+  const layers: [string, string, string][] = [];
+
+  // Add vertical grid lines (bar, beat, sub-beat)
+  layers.push(
+    ...generateVerticalGridLayers(
+      pixelsPerBeat,
+      gridSnap,
+      scrollX,
+      beatsPerBar,
+    ),
+  );
+
+  // Octave lines (B/C boundary) - always visible
+  layers.push([
+    `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
+
+  // Row lines (every pitch) - always visible for now
+  layers.push([
+    `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
+    `100% ${rowHeight}px`,
+    `0 ${rowOffsetY}px`,
+  ]);
+
+  // Black key row backgrounds (subtle darker shade)
+  layers.push([
+    blackKeyGradient,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
+
+  return {
+    backgroundColor: "#1a1a1a",
+    backgroundImage: layers.map(([gradient]) => gradient).join(", "),
+    backgroundSize: layers.map(([, size]) => size).join(", "),
+    backgroundPosition: layers.map(([, , position]) => position).join(", "),
+  };
+}
+
+// Generate vertical grid lines (bar, beat, sub-beat) for timelines
+// Returns layers array for use with background CSS properties
+function generateVerticalGridLayers(
+  pixelsPerBeat: number,
+  gridSnap: GridSnap,
+  scrollX: number,
+  beatsPerBar: number,
+): [string, string, string][] {
+  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
+  const beatWidth = Math.round(pixelsPerBeat);
+  const subBeatWidth = beatWidth * gridSnapValue;
+  const barWidth = beatWidth * beatsPerBar;
+  const offsetX = -(scrollX * beatWidth) % barWidth;
+
+  const layers: [string, string, string][] = [];
+
+  // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
+  let coarseBarMultiplier = 1;
+  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
+    coarseBarMultiplier *= 2;
+  }
+  const coarseBarWidth = barWidth * coarseBarMultiplier;
+  const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
+
+  layers.push([
+    `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
+    `${coarseBarWidth}px 100%`,
+    `${coarseBarOffsetX}px 0`,
+  ]);
+
+  // Vertical beat lines - hide when too dense
+  if (beatWidth >= MIN_LINE_SPACING) {
+    layers.push([
+      `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
+      `${beatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ]);
+  }
+
+  // Vertical sub-beat lines (grid snap) - hide when too dense
+  if (subBeatWidth >= MIN_LINE_SPACING) {
+    layers.push([
+      `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
+      `${subBeatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ]);
+  }
+
+  return layers;
 }
 
 type PlayheadLineProps = {
