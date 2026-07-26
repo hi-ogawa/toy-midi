@@ -1,7 +1,6 @@
 import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
-import { cn } from "../lib/utils";
 import {
   MAX_DB,
   MIN_DB,
@@ -10,12 +9,12 @@ import {
   gainToDb,
   gainToPercent,
   percentToGain,
-} from "../lib/volume";
-import type { AudioTrack } from "../stores/project-store";
-import { useProjectStore } from "../stores/project-store";
+} from "../lib/music";
+import { type AudioTrack, useProjectStore } from "../lib/project-store";
 import { MetronomeIcon } from "./icons";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
+import { cn } from "./ui/utils";
 
 export function Mixer() {
   const {

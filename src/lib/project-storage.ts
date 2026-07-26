@@ -4,14 +4,14 @@
 // file imported into multiple projects shares one asset; delete() does NOT
 // remove assets referenced by the deleted project (no garbage collection).
 
+import { IdbStore } from "./idb";
 import {
   type AnySavedProject,
   createDefaultSavedProject,
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
-} from "../stores/project-store";
-import { IdbStore } from "./idb";
+} from "./project-store";
 
 export interface ProjectMetadata {
   id: string;

@@ -1,153 +1,43 @@
 # Architecture Overview
 
-Terse map of how the app is put together. When behavior or structure changes durably, update this doc in the same PR.
+This document records durable system boundaries and design decisions. Keep implementation inventories and subsystem details in the code.
 
-## Project Structure
+## System Shape
 
-```
-src/
-├── main.tsx                # entry: e2e hooks, audio unlock, React Query client, asset preload
-├── app.tsx                 # regex router, startup screen / project list, editor layout
-├── types.ts                # Note, GridSnap, TimeSignature, Locator
-├── components/
-│   ├── piano-roll.tsx      # grid, keyboard, timeline, notes, waveform, drag state machine (~2000 lines)
-│   ├── transport.tsx       # play/pause, tempo, time signature, grid snap, instrument, project name
-│   ├── settings.tsx        # audio load, MIDI import, MIDI/.toymidi export
-│   ├── mixer.tsx           # MIDI/metronome/per-audio-track channel strips
-│   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
-│   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
-├── hooks/
-│   ├── use-audio.ts        # selector hook for AudioManager's external state
-│   ├── use-draft-input.ts  # commit-on-Enter numeric input (+ use-draft-text-input.ts)
-│   └── use-window-event.ts # useEffectEvent-based window listener
-├── lib/
-│   ├── audio.ts            # AudioManager singleton: Tone.js graph, store→audio sync point
-│   ├── oxisynth-synth.ts   # SF2 synthesis via Rust/WASM AudioWorklet
-│   ├── metronome.ts        # raw Web Audio click voices (accent C7 / normal G6)
-│   ├── audio-view.ts       # waveform peak model + viewport slice query
-│   ├── project-storage.ts  # facade over localStorage docs + IndexedDB assets
-│   ├── project-session.ts  # active document lifecycle, auto-save subscription
-│   ├── project-file.ts     # portable .toymidi zip export/import
-│   ├── midi-export.ts      # .mid export (+ midi-import.ts)
-│   ├── keybindings.ts      # shortcut definitions (source of truth for help overlay)
-│   ├── keyboard.ts         # shortcut parsing/matching, input-target guard
-│   └── music.ts, volume.ts, idb.ts, audio-files.ts, export-utils.ts, utils.ts
-└── stores/
-    ├── project-store.ts    # Zustand store + SavedProject serialization/migration
-    └── history-store.ts    # undo/redo stacks (plain object, not subscribed by React)
-```
+Toy MIDI is a browser-only editor built with React and TypeScript. Zustand owns project and editor state, Tone.js and OxiSynth provide audio playback, and browser storage provides persistence. The application has no server component.
 
-## Technology Stack
+The editor supports one MIDI track and multiple audio tracks on a shared beat-based timeline. Components render and edit state, while library modules own audio, persistence, import, and export behavior.
 
-| Layer       | Technology                    |
-| ----------- | ----------------------------- |
-| UI          | React 19 + TypeScript         |
-| Build       | Vite                          |
-| Styling     | Tailwind CSS 4 + Radix UI     |
-| State       | Zustand                       |
-| Async init  | TanStack React Query          |
-| Audio       | Tone.js + OxiSynth (SF2/WASM) |
-| Persistence | localStorage + IndexedDB      |
+## Stable Boundaries
 
-## Core Data Model
+- `src/app.tsx` owns the application shell and routing.
+- `src/components/piano-roll.tsx` owns editor interaction and rendering.
+- `src/lib/project-store.ts` owns project and editor state.
+- `src/lib/audio.ts` owns Tone.js integration and the runtime audio graph.
+- `src/hooks/use-audio.ts` exposes reactive audio state to the UI.
+- `src/lib/project-session.ts` owns the active-project lifecycle.
+- `src/lib/project-storage.ts` owns browser persistence access.
 
-```typescript
-// src/types.ts
-interface Note {
-  id: string;
-  pitch: number; // MIDI 0-127
-  start: number; // beats
-  duration: number; // beats
-  velocity: number; // 0-127
-}
-type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
-interface TimeSignature {
-  numerator: number;
-  denominator: number;
-}
-interface Locator {
-  id: string;
-  position: number /* beats */;
-  label: string;
-}
+## State And Audio Flow
 
-// src/stores/project-store.ts
-interface AudioTrack {
-  id: string;
-  fileName: string;
-  assetKey: string; // IndexedDB asset reference
-  duration: number; // seconds
-  offset: number; // seconds
-  volume: number;
-  muted: boolean;
-  // transient, not persisted: pending → pale region; ready → waveform;
-  // unavailable → no waveform, still plays (too-long bailout); error → dead
-  audioWaveform:
-    | { status: "pending" }
-    | { status: "ready"; view: AudioView }
-    | { status: "unavailable" }
-    | { status: "error" };
-}
-```
+The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
 
-There is exactly one implicit MIDI track (a flat `notes: Note[]`) and any number of audio tracks.
+Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
 
-## State Management
+One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
 
-`useProjectStore` (Zustand) holds music data (`notes`, `locators`, `audioTracks`, `tempo`, `timeSignature`, `totalBeats`), editor state (selections, `gridSnap`, `clipboard`), mixer settings, and viewport state (`scrollX`/`scrollY`, `pixelsPerBeat`/`pixelsPerKey`, `waveformHeight`).
+Audio readiness is explicit because the editor can mount before audio initialization finishes. Playback operations are safe no-ops until the graph is ready, and initialization failure does not prevent editing.
 
-Playback state is deliberately NOT in the project store. `AudioManager` owns a cached external-store snapshot (`status`, `isPlaying`, `position`), Tone.Transport event listeners, and one RAF loop while playing. UI reads selected snapshot values through `useAudio(selector)`, and controls go through `audioManager.play/pause/seek`.
+Audio file and ZIP resolution are independent of Tone.js, while decoding stays behind the audio integration boundary. Waveform extraction is skipped for long files so they remain playable without blocking the main thread.
 
-Serialization lives next to the store: `SavedProject` (version 2), `toSavedProject` (strips transient fields), `migrateSavedProject` (v1 single-audio → `audioTracks[]`), `fromSavedProject` (merges defaults, rewinds id counters).
+Undo and redo cover note edits only. Other project changes are not currently included in history.
 
-Undo/redo: `historyStore` is a plain object holding note-operation entries (`add/delete/update`, max 50), used only by project-store actions, so React never subscribes to it. Only note operations are undoable; locators, audio tracks, tempo, and mixer are not.
+## Persistence And Sessions
 
-Selected notes can be quantized with `Q`; the command snaps their starts and durations to the active grid as one undoable batch update, with a minimum duration of one grid unit.
+Project documents and their metadata index live in localStorage. Binary audio assets live in IndexedDB and may be shared by multiple projects. Deleting a project does not currently garbage-collect assets.
 
-## Audio Layer
+Compatible document changes migrate when a project is loaded. Breaking or lossy storage changes require a new storage layout and a copy-before-delete migration so the previous data remains recoverable until commit.
 
-`AudioManager` (`lib/audio.ts`, singleton `audioManager`) owns the Tone.js graph: an OxiSynth SF2 worklet behind a `Tone.Channel` for MIDI, one `Tone.Player` + `Tone.Channel` per audio track, and a raw Web Audio metronome driven by a `Tone.Sequence`.
+An active project session coordinates hydration, audio synchronization, autosave, asset restoration, shortcuts, and cleanup. The editor renders from hydrated project data immediately, while audio initialization and restoration continue in the background.
 
-The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
-
-Readiness is explicit state: `audioManager` starts `"idle"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness selects `status` via `useAudio()`.
-
-AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
-
-## Persistence
-
-`projectStorage` (`lib/project-storage.ts`) is the facade over where bytes live:
-
-- localStorage: `toy-midi:project-list:v2` — one JSON of `{ projects, lastProjectId }` — plus one internally-versioned `SavedProject` doc per project at `toy-midi:project:<uuid>`. The `:v2` marks the storage _layout_ generation, not the doc schema; a one-time copy-then-commit migration (list write as commit point) upgrades layout v1 (prefixed `project-<uuid>` ids, separate pointer key) and deletes the legacy keys. Ids are bare `crypto.randomUUID()`.
-- IndexedDB (`toy-midi`/`assets`): audio blobs keyed by `name-size-lastModified`, so the same file is shared across projects. Deleting a project does not GC assets.
-
-Migration tiers: compatible doc-schema changes migrate lazily by value (`migrateSavedProject` at read time); breaking changes get a layout bump (new list-key version, copy-then-commit-then-delete). Multi-tab concurrency is accepted-risk: list ops rewrite their own entry from a fresh read, and structural ops racing another tab's autosave are out of scope.
-
-`openProjectSession` (`lib/project-session.ts`) is the active-document lifecycle. It is synchronous: hydrate the store from localStorage, subscribe `audioManager.applyState` and a debounced auto-save (1s, `VITE_AUTO_SAVE_DEBOUNCE_MS`) to store changes, and register session-scoped shortcuts (Space toggles playback). The editor therefore mounts immediately with notes visible; audio attaches via a session-owned background task (synth init, one full `applyState` at the ready transition, then audio buffers restored from IndexedDB — IO/decode fans out in parallel, store reconciliation applies sequentially after the barrier, per-track error tolerance) that never rejects and stops touching the store after `dispose()`. `dispose()` unregisters shortcuts, flushes the pending save, and clears history. `flushAutoSave()` exists for deterministic e2e saves.
-
-`.toymidi` files (`lib/project-file.ts`) are zips with a manifest, the project JSON, and uncompressed audio blobs; import re-registers audio through `projectStorage.saveAsset`.
-
-## App Init / Routing
-
-Routing is a single regex in `app.tsx`, no router library: `/project/:id` deep-links straight into a project session (read synchronously during render via `getProjectSession`'s per-id cache, so the first paint is the editor), anything else renders the startup screen with the project list (Continue / New Project / Import). Space on the startup screen resumes the last project.
-
-## Coordinates & Rendering
-
-Grid space is beats × MIDI pitch, with pitch 127 at the top and `scrollY` measured in rows. Conversion (in `piano-roll.tsx`):
-
-```typescript
-// screen → grid
-beat = x / pixelsPerBeat + scrollX;
-pitch = MAX_PITCH - floor(scrollY + y / pixelsPerKey);
-// grid → screen
-x = (beat - scrollX) * pixelsPerBeat;
-y = (MAX_PITCH - scrollY - pitch) * pixelsPerKey;
-```
-
-Zoom keeps fractional `pixelsPerBeat`/`pixelsPerKey` in state for smoothness but renders with rounded values to avoid subpixel artifacts. Wheel = 2D pan, Ctrl+wheel / Shift+wheel = horizontal/vertical zoom anchored at the cursor. Zoom limits and layout constants live at the top of `piano-roll.tsx`.
-
-Rendering approach:
-
-- Grid: layered CSS `linear-gradient` backgrounds on a single div, scrolled via `background-position`, with density culling that hides lines closer than `MIN_LINE_SPACING`. No canvas, no per-line DOM.
-- Notes, playhead, box-select: absolutely-positioned divs, viewport-culled.
-- Waveform: one SVG `<path>` per track from `queryAudioView` peaks, stretched with `preserveAspectRatio="none"`.
+Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.

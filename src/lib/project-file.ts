@@ -1,12 +1,12 @@
 import JSZip from "jszip";
+import { buildExportFileName } from "./export-utils";
+import { projectStorage } from "./project-storage";
 import {
   type AnySavedProject,
   migrateSavedProject,
   type SavedProject,
   type SavedProjectV1,
-} from "../stores/project-store";
-import { buildExportFileName } from "./export-utils";
-import { projectStorage } from "./project-storage";
+} from "./project-store";
 
 type AnyProjectManifest = ProjectManifest | ProjectManifestV1;
 
