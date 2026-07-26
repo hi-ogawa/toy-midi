@@ -110,7 +110,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         }
       />
       <PianoRoll />
-
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       {isMixerOpen && (
         <FloatingPanel
