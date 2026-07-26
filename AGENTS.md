@@ -19,8 +19,15 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 
 ## Conventions
 
+- Commit messages: use Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`); add `!` for breaking changes
 - File names: kebab-case
 - Minimize file splits (multiple components per file when related)
+- Prefer `undefined` over `null`
+- Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
+- Make props/params required when all call sites always pass them
+- Prefer a single options object over multiple primitive arguments (for example, `fn({ a, b })` rather than `fn(a, b)`)
+- Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
+- Use pnpm only; never create or commit `package-lock.json` or `yarn.lock`
 
 ## Testing Strategy
 
