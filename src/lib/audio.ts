@@ -3,166 +3,24 @@ import * as Tone from "tone";
 import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
-import type { AudioTrack, ProjectState } from "../stores/project-store";
 import type { Note } from "../types";
 import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
+import { clampGain } from "./music";
 import { OxiSynthSynth } from "./oxisynth-synth";
-import { clampGain } from "./volume";
-
-// General MIDI Program Names (0-127)
-export const GM_PROGRAMS = [
-  // Piano (0-7)
-  "Acoustic Grand Piano",
-  "Bright Acoustic Piano",
-  "Electric Grand Piano",
-  "Honky-tonk Piano",
-  "Electric Piano 1",
-  "Electric Piano 2",
-  "Harpsichord",
-  "Clavinet",
-  // Chromatic Percussion (8-15)
-  "Celesta",
-  "Glockenspiel",
-  "Music Box",
-  "Vibraphone",
-  "Marimba",
-  "Xylophone",
-  "Tubular Bells",
-  "Dulcimer",
-  // Organ (16-23)
-  "Drawbar Organ",
-  "Percussive Organ",
-  "Rock Organ",
-  "Church Organ",
-  "Reed Organ",
-  "Accordion",
-  "Harmonica",
-  "Tango Accordion",
-  // Guitar (24-31)
-  "Acoustic Guitar (nylon)",
-  "Acoustic Guitar (steel)",
-  "Electric Guitar (jazz)",
-  "Electric Guitar (clean)",
-  "Electric Guitar (muted)",
-  "Overdriven Guitar",
-  "Distortion Guitar",
-  "Guitar Harmonics",
-  // Bass (32-39)
-  "Acoustic Bass",
-  "Electric Bass (finger)",
-  "Electric Bass (pick)",
-  "Fretless Bass",
-  "Slap Bass 1",
-  "Slap Bass 2",
-  "Synth Bass 1",
-  "Synth Bass 2",
-  // Strings (40-47)
-  "Violin",
-  "Viola",
-  "Cello",
-  "Contrabass",
-  "Tremolo Strings",
-  "Pizzicato Strings",
-  "Orchestral Harp",
-  "Timpani",
-  // Ensemble (48-55)
-  "String Ensemble 1",
-  "String Ensemble 2",
-  "Synth Strings 1",
-  "Synth Strings 2",
-  "Choir Aahs",
-  "Voice Oohs",
-  "Synth Voice",
-  "Orchestra Hit",
-  // Brass (56-63)
-  "Trumpet",
-  "Trombone",
-  "Tuba",
-  "Muted Trumpet",
-  "French Horn",
-  "Brass Section",
-  "Synth Brass 1",
-  "Synth Brass 2",
-  // Reed (64-71)
-  "Soprano Sax",
-  "Alto Sax",
-  "Tenor Sax",
-  "Baritone Sax",
-  "Oboe",
-  "English Horn",
-  "Bassoon",
-  "Clarinet",
-  // Pipe (72-79)
-  "Piccolo",
-  "Flute",
-  "Recorder",
-  "Pan Flute",
-  "Blown Bottle",
-  "Shakuhachi",
-  "Whistle",
-  "Ocarina",
-  // Synth Lead (80-87)
-  "Lead 1 (square)",
-  "Lead 2 (sawtooth)",
-  "Lead 3 (calliope)",
-  "Lead 4 (chiff)",
-  "Lead 5 (charang)",
-  "Lead 6 (voice)",
-  "Lead 7 (fifths)",
-  "Lead 8 (bass + lead)",
-  // Synth Pad (88-95)
-  "Pad 1 (new age)",
-  "Pad 2 (warm)",
-  "Pad 3 (polysynth)",
-  "Pad 4 (choir)",
-  "Pad 5 (bowed)",
-  "Pad 6 (metallic)",
-  "Pad 7 (halo)",
-  "Pad 8 (sweep)",
-  // Synth Effects (96-103)
-  "FX 1 (rain)",
-  "FX 2 (soundtrack)",
-  "FX 3 (crystal)",
-  "FX 4 (atmosphere)",
-  "FX 5 (brightness)",
-  "FX 6 (goblins)",
-  "FX 7 (echoes)",
-  "FX 8 (sci-fi)",
-  // Ethnic (104-111)
-  "Sitar",
-  "Banjo",
-  "Shamisen",
-  "Koto",
-  "Kalimba",
-  "Bagpipe",
-  "Fiddle",
-  "Shanai",
-  // Percussive (112-119)
-  "Tinkle Bell",
-  "Agogo",
-  "Steel Drums",
-  "Woodblock",
-  "Taiko Drum",
-  "Melodic Tom",
-  "Synth Drum",
-  "Reverse Cymbal",
-  // Sound Effects (120-127)
-  "Guitar Fret Noise",
-  "Breath Noise",
-  "Seashore",
-  "Bird Tweet",
-  "Telephone Ring",
-  "Helicopter",
-  "Applause",
-  "Gunshot",
-] as const;
+import type { AudioTrack, ProjectState } from "./project-store";
 
 // Synth/scheduling readiness. The editor mounts before (and regardless of)
 // audio being usable, so playback capability is explicit state, not an
 // assumed invariant. "idle" is the pre-init default; sessions move to
 // "loading" synchronously on open, so it is only observable outside a session.
 export type AudioStatus = "idle" | "loading" | "ready" | "error";
+
+export type AudioState = {
+  status: AudioStatus;
+  isPlaying: boolean;
+  position: number;
+};
 
 /**
  * AudioManager handles audio-specific functionality:
@@ -171,8 +29,8 @@ export type AudioStatus = "idle" | "loading" | "ready" | "error";
  * - Volume/mixer controls
  * - Metronome
  *
- * Transport state (play/pause/stop/seek) is managed by useTransport hook,
- * which directly interfaces with Tone.js Transport.
+ * AudioManager delegates observable lifecycle and transport state to its
+ * AudioStateStore.
  *
  * Lifecycle: starts "idle"; init() moves through "loading" to "ready"
  * (or "error"). Until ready, playback/synth methods are no-ops, so callers
@@ -196,25 +54,10 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
-  private status: AudioStatus = "idle";
-  private statusListeners = new Set<() => void>();
-
-  // getStatus/subscribeStatus/setStatus are useSyncExternalStore ceremony
-  // backing the useAudioStatus() hook.
-  getStatus(): AudioStatus {
-    return this.status;
-  }
-
-  subscribeStatus(listener: () => void): () => void {
-    this.statusListeners.add(listener);
-    return () => this.statusListeners.delete(listener);
-  }
+  readonly store = new AudioStateStore();
 
   private setStatus(status: AudioStatus): void {
-    this.status = status;
-    for (const listener of this.statusListeners) {
-      listener();
-    }
+    this.store.update({ status });
   }
 
   async init(): Promise<void> {
@@ -288,7 +131,7 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
-    if (this.status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     // Cheap operations - always apply
@@ -318,7 +161,7 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
-    if (this.status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     Tone.getTransport().start();
@@ -337,7 +180,7 @@ class AudioManager {
   }
 
   seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
+    this.store.seek(seconds);
   }
 
   // Attach a decoded buffer to a track's player and sync it to the Transport
@@ -410,7 +253,7 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
-    if (this.status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
@@ -418,14 +261,14 @@ class AudioManager {
 
   // Note preview with manual control (for keyboard interaction)
   noteOn(pitch: number): void {
-    if (this.status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.noteOn(pitch, 100);
   }
 
   noteOff(pitch: number): void {
-    if (this.status !== "ready") {
+    if (this.store.get().status !== "ready") {
       return;
     }
     this.midiSynth.noteOff(pitch);
@@ -459,6 +302,98 @@ class AudioManager {
   setProgram(programNumber: number): void {
     // Fire and forget - programChange is async but we don't need to wait
     void this.midiSynth.programChange(programNumber);
+  }
+}
+
+// from Tone.js TransportEventNames type
+const TRANSPORT_EVENT_NAMES = [
+  "start",
+  "stop",
+  "pause",
+  "loop",
+  "loopEnd",
+  "loopStart",
+  "ticks",
+] as const;
+
+class AudioStateStore {
+  private snapshot: AudioState = {
+    status: "idle",
+    isPlaying: false,
+    position: 0,
+  };
+  private listeners = new Set<() => void>();
+  private transportRaf?: number;
+
+  constructor() {
+    for (const event of TRANSPORT_EVENT_NAMES) {
+      Tone.getTransport().on(event, this.handleTransportEvent);
+    }
+  }
+
+  get = (): AudioState => this.snapshot;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  update(next: Partial<AudioState>): void {
+    const snapshot = { ...this.snapshot, ...next };
+    if (
+      snapshot.status === this.snapshot.status &&
+      snapshot.isPlaying === this.snapshot.isPlaying &&
+      snapshot.position === this.snapshot.position
+    ) {
+      return;
+    }
+    this.snapshot = snapshot;
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
+
+  seek(seconds: number): void {
+    Tone.getTransport().seconds = Math.max(0, seconds);
+    this.updateTransportSnapshot();
+  }
+
+  private handleTransportEvent = (): void => {
+    this.updateTransportSnapshot();
+    if (this.snapshot.isPlaying) {
+      this.startTransportRaf();
+    } else {
+      this.stopTransportRaf();
+      // Tone fires some events before its public state has settled.
+      queueMicrotask(() => this.updateTransportSnapshot());
+    }
+  };
+
+  private updateTransportSnapshot(): void {
+    const transport = Tone.getTransport();
+    this.update({
+      isPlaying: transport.state === "started",
+      position: transport.seconds,
+    });
+  }
+
+  private startTransportRaf(): void {
+    if (this.transportRaf !== undefined) {
+      return;
+    }
+    const update = () => {
+      this.updateTransportSnapshot();
+      this.transportRaf = requestAnimationFrame(update);
+    };
+    this.transportRaf = requestAnimationFrame(update);
+  }
+
+  private stopTransportRaf(): void {
+    if (this.transportRaf === undefined) {
+      return;
+    }
+    cancelAnimationFrame(this.transportRaf);
+    this.transportRaf = undefined;
   }
 }
 
@@ -517,26 +452,13 @@ export function unlockAudioOnFirstGesture(): void {
   window.addEventListener("keydown", unlock, true);
 }
 
-// Derive POINTS_PER_SECOND from max zoom level we want to support
-// Goal: 1 point per pixel at max zoom
-//
-// At 100 BPM, 4 beats visible (1 bar) in 1920px viewport:
-//   duration = 4 beats × 0.6 sec/beat = 2.4 sec
-//   points needed = 1920 px / 2.4 sec = 800 points/sec
-//
-// Formula: POINTS_PER_SECOND = viewportWidth / (beatsAtMaxZoom × secPerBeat)
-// With viewportWidth=1920, beatsAtMaxZoom=4, BPM=100:
-//   = 1920 / (4 × 60/100) = 1920 / 2.4 = 800
+// Derive this from the max supported zoom: one point per pixel with four beats
+// visible in a 1920px viewport at 100 BPM.
 const POINTS_PER_SECOND = 800;
+const MAX_AUDIO_DURATION_SECONDS = 600;
 
-// Bailout threshold: avoid freezing on very long audio
-// At 48kHz, 10 min = 28.8M samples → ~50-100ms extraction (acceptable)
-// At 48kHz, 60 min = 172.8M samples → ~300-600ms extraction (too slow)
-const MAX_AUDIO_DURATION_SECONDS = 600; // 10 minutes
-
-// Load audio file and create AudioView for waveform display.
-// audioView is undefined when the waveform is skipped (too-long bailout); callers
-// map that to AudioWaveform "unavailable".
+// Decode through Tone and prepare the waveform. Long files remain playable,
+// but skip waveform extraction to avoid blocking the main thread.
 export async function loadAudioFile(file: File): Promise<{
   buffer: Tone.ToneAudioBuffer;
   audioView?: AudioView;
@@ -545,29 +467,19 @@ export async function loadAudioFile(file: File): Promise<{
   const url = URL.createObjectURL(file);
   try {
     const buffer = await Tone.ToneAudioBuffer.fromUrl(url);
-
-    // Bailout for very long audio
     if (buffer.duration > MAX_AUDIO_DURATION_SECONDS) {
       toast.warning(
         `Audio too long (${Math.round(buffer.duration / 60)} min). Waveform disabled.`,
       );
-      return {
-        buffer,
-        duration: buffer.duration,
-      };
+      return { buffer, duration: buffer.duration };
     }
 
-    const samples = buffer.getChannelData(0); // Use left/mono channel
     const audioView = createAudioView(
-      samples,
+      buffer.getChannelData(0),
       buffer.sampleRate,
       POINTS_PER_SECOND,
     );
-    return {
-      buffer,
-      audioView,
-      duration: buffer.duration,
-    };
+    return { buffer, audioView, duration: buffer.duration };
   } finally {
     URL.revokeObjectURL(url);
   }

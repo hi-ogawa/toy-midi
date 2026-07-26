@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
-import type { SavedProjectV1 } from "../src/stores/project-store";
+import type { SavedProjectV1 } from "../src/lib/project-store";
 import { clickContinue, evaluateStore, waitForEditor } from "./helpers";
 
 const TEST_AUDIO_PATH = path.join(

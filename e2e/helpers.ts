@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import type { useProjectStore } from "../src/stores/project-store";
+import type { useProjectStore } from "../src/lib/project-store";
 
 /**
  * Click "New Project" on startup screen to get to main UI with empty state.

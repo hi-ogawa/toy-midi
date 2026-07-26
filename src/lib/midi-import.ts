@@ -1,8 +1,8 @@
 // MIDI file import using @tonejs/midi
 
 import { Midi } from "@tonejs/midi";
-import { generateNoteId } from "../stores/project-store";
 import type { Note, TimeSignature } from "../types";
+import { generateNoteId } from "./project-store";
 
 export interface ParsedMidiTrack {
   index: number;
