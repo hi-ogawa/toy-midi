@@ -34,6 +34,7 @@ export type BasicPitchRequest =
       type: "analyze";
       requestId: number;
       cacheKey: string;
+      backend?: string;
       pcm?: Float32Array; // present only when the worker lacks activations for cacheKey
     }
   | {
@@ -44,6 +45,7 @@ export type BasicPitchRequest =
     };
 
 export type BasicPitchResponse =
+  | { type: "ready"; requestId: number; backend: string }
   | { type: "progress"; requestId: number; percent: number }
   | { type: "analyzed"; requestId: number }
   | { type: "notes"; requestId: number; notes: TranscribedNote[] }
@@ -66,7 +68,13 @@ class BasicPitchClient {
         ? undefined
         : await resampleToModelRate(audioBuffer);
     await this.sendRequest(
-      { type: "analyze", requestId: this.nextRequestId++, cacheKey, pcm },
+      {
+        type: "analyze",
+        requestId: this.nextRequestId++,
+        cacheKey,
+        backend: import.meta.env.VITE_BASIC_PITCH_BACKEND,
+        pcm,
+      },
       pcm ? [pcm.buffer] : [],
       onProgress,
     );
@@ -106,6 +114,20 @@ class BasicPitchClient {
       const handleMessage = (event: MessageEvent<BasicPitchResponse>) => {
         const response = event.data;
         if (response.requestId !== request.requestId) {
+          return;
+        }
+        if (response.type === "ready") {
+          if (
+            request.type === "analyze" &&
+            request.backend !== response.backend
+          ) {
+            cleanup();
+            reject(
+              new Error(
+                `Expected tfjs backend ${request.backend}, got ${response.backend}`,
+              ),
+            );
+          }
           return;
         }
         if (response.type === "progress") {

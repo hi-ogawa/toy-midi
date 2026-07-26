@@ -79,7 +79,7 @@ tf.env().platform.setTimeoutCustom = (fn: () => void, delay: number) => {
 // The npm package ships the model files, but Vite fingerprints them as
 // separate assets, which breaks model.json's relative reference to the
 // weight shard. weightUrlConverter remaps it to the emitted asset URL.
-const basicPitch = initializeBasicPitch();
+let basicPitch: Promise<BasicPitch> | undefined;
 
 // Raw activations for the most recently analyzed audio asset, so decode
 // requests rerun only the cheap extraction below. Kept worker-side because
@@ -97,15 +97,16 @@ self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
   const respond = (response: BasicPitchResponse) => self.postMessage(response);
   try {
     if (request.type === "analyze") {
+      basicPitch ??= initializeBasicPitch(request.backend);
+      const initializedBasicPitch = await basicPitch;
+      respond({ type: "ready", requestId, backend: tf.getBackend() });
       if (cache?.cacheKey !== request.cacheKey) {
         if (!request.pcm) {
           throw new Error("Missing PCM for unanalyzed audio");
         }
         const frames: number[][] = [];
         const onsets: number[][] = [];
-        await (
-          await basicPitch
-        ).evaluateModel(
+        await initializedBasicPitch.evaluateModel(
           request.pcm,
           (chunkFrames, chunkOnsets) => {
             frames.push(...chunkFrames);
@@ -135,8 +136,7 @@ self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
   }
 };
 
-async function initializeBasicPitch(): Promise<BasicPitch> {
-  const backend = import.meta.env.VITE_BASIC_PITCH_BACKEND;
+async function initializeBasicPitch(backend?: string): Promise<BasicPitch> {
   if (backend) {
     if (!(await tf.setBackend(backend))) {
       throw new Error(`Failed to initialize tfjs backend: ${backend}`);
