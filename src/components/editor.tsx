@@ -109,6 +109,8 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         }
       />
       <PianoRoll />
+      {/* TODO: coordinate active floating panels so Mixer and Audio to MIDI do
+          not overlap when both are open. */}
       {audioToMidiTrack && (
         <AudioToMidiPanel
           key={audioToMidiTrack.id}
