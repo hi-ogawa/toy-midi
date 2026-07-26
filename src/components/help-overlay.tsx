@@ -1,3 +1,4 @@
+import { XIcon } from "lucide-react";
 import {
   CATEGORY_NAMES,
   KEYBOARD_SHORTCUTS,
@@ -73,10 +74,10 @@ export function HelpOverlay({ isOpen, onClose }: HelpOverlayProps) {
           </h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 text-2xl leading-none"
+            className="text-neutral-400 hover:text-neutral-200"
             aria-label="Close help"
           >
-            ×
+            <XIcon className="size-5" />
           </button>
         </div>
 

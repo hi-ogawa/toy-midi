@@ -18,6 +18,7 @@ import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
   type AudioTrack,
+  DEFAULT_WAVEFORM_HEIGHT,
   generateAudioTrackId,
   toSavedProject,
   useProjectStore,
@@ -119,6 +120,7 @@ export function Settings({
           offset: 0,
           volume: 0.8,
           muted: false,
+          waveformHeight: DEFAULT_WAVEFORM_HEIGHT,
           audioWaveform: audioView
             ? { status: "ready", view: audioView }
             : { status: "unavailable" },

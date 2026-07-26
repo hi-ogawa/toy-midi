@@ -1,5 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { Github, Pencil, Trash2 } from "lucide-react";
+import {
+  CircleHelpIcon,
+  Github,
+  Pencil,
+  SettingsIcon,
+  SlidersHorizontalIcon,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AudioToMidiPanel } from "./components/audio-to-midi-panel";
@@ -8,7 +15,10 @@ import { Mixer } from "./components/mixer";
 import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
+import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
+import { FloatingPanel } from "./components/ui/floating-panel";
+import { cn } from "./components/ui/utils";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
@@ -154,10 +164,40 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
   return (
     <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
-        onSettingsClick={() => setIsSettingsOpen(true)}
-        onHelpClick={() => setIsHelpOpen(true)}
-        onMixerClick={() => setIsMixerOpen(true)}
         projectName={projectName}
+        controls={
+          <>
+            <Button
+              data-testid="settings-button"
+              onClick={() => setIsSettingsOpen(true)}
+              title="Settings"
+              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <SettingsIcon className="size-5" />
+            </Button>
+            <Button
+              data-testid="mixer-button"
+              onClick={() => setIsMixerOpen((open) => !open)}
+              aria-pressed={isMixerOpen}
+              title="Mixer"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isMixerOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              <SlidersHorizontalIcon className="size-5" />
+            </Button>
+            <Button
+              data-testid="help-button"
+              onClick={() => setIsHelpOpen(true)}
+              title="Show keyboard shortcuts (?)"
+              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <CircleHelpIcon className="size-5" />
+            </Button>
+          </>
+        }
       />
       <PianoRoll />
       {audioToMidiTrack && (
@@ -168,14 +208,15 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
         />
       )}
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      <Dialog
-        isOpen={isMixerOpen}
-        onClose={() => setIsMixerOpen(false)}
-        title="Mixer"
-        testId="mixer-dialog"
-      >
-        <Mixer />
-      </Dialog>
+      {isMixerOpen && (
+        <FloatingPanel
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="mixer-panel"
+        >
+          <Mixer />
+        </FloatingPanel>
+      )}
       <Dialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

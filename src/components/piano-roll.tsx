@@ -249,10 +249,9 @@ export function PianoRoll() {
     timeSignature,
     audioTracks,
     selectedAudioTrackId,
+    masterVolume,
     midiVolume,
-    metronomeVolume,
     midiMuted,
-    metronomeEnabled,
     showDebug,
     autoScrollEnabled,
     addNote,
@@ -283,20 +282,19 @@ export function PianoRoll() {
     scrollY,
     pixelsPerBeat,
     pixelsPerKey,
-    waveformHeight,
     setScrollX,
     setScrollY,
     setPixelsPerBeat,
     setPixelsPerKey,
-    setWaveformHeight,
+    setMasterVolume,
     setMidiVolume,
-    setMetronomeVolume,
     setMidiMuted,
-    setMetronomeEnabled,
   } = useProjectStore();
 
-  // Total height of all stacked waveform lanes (each lane uses waveformHeight)
-  const totalWaveformHeight = waveformHeight * audioTracks.length;
+  const totalWaveformHeight = audioTracks.reduce(
+    (height, track) => height + track.waveformHeight,
+    0,
+  );
   const selectedAudioTrack = selectedAudioTrackId
     ? audioTracks.find((track) => track.id === selectedAudioTrackId)
     : undefined;
@@ -1085,31 +1083,13 @@ export function PianoRoll() {
             className="shrink-0 flex flex-col"
             style={{ width: TRACK_CONTROL_WIDTH }}
           >
-            {/* Metronome controls */}
+            {/* Master controls */}
             <div
               className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
               style={{ height: TIMELINE_HEIGHT }}
             >
               <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">Metro</span>
-                <Toggle
-                  data-testid="metronome-mute-toggle"
-                  value={!metronomeEnabled}
-                  onChange={(muted) => setMetronomeEnabled(!muted)}
-                  aria-label="Toggle metronome mute"
-                  title={
-                    metronomeEnabled
-                      ? "Mute metronome (M)"
-                      : "Unmute metronome (M)"
-                  }
-                  className={cn(
-                    "size-4.5",
-                    !metronomeEnabled &&
-                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                  )}
-                >
-                  M
-                </Toggle>
+                <span className="uppercase tracking-wide">Master</span>
               </div>
               <div className="relative">
                 <div
@@ -1117,8 +1097,9 @@ export function PianoRoll() {
                   style={{ left: `${zeroDbPercent}%` }}
                 />
                 <Slider
-                  value={[gainToPercent(metronomeVolume)]}
-                  onValueChange={([v]) => setMetronomeVolume(percentToGain(v))}
+                  data-testid="master-volume-slider"
+                  value={[gainToPercent(masterVolume)]}
+                  onValueChange={([v]) => setMasterVolume(percentToGain(v))}
                   max={100}
                   step={1}
                 />
@@ -1129,7 +1110,7 @@ export function PianoRoll() {
               <div
                 key={track.id}
                 className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-                style={{ height: waveformHeight }}
+                style={{ height: track.waveformHeight }}
               >
                 <div className="flex items-center justify-between text-[11px] text-neutral-400">
                   <span
@@ -1217,7 +1198,7 @@ export function PianoRoll() {
               <div
                 key={track.id}
                 className="shrink-0 border-b border-neutral-700"
-                style={{ height: waveformHeight }}
+                style={{ height: track.waveformHeight }}
               />
             ))}
             {/* Piano keyboard */}
@@ -1269,11 +1250,13 @@ export function PianoRoll() {
               tempo={tempo}
               playheadBeat={secondsToBeats(position, tempo)}
               audioWaveform={track.audioWaveform}
-              height={waveformHeight}
+              height={track.waveformHeight}
               beatsPerBar={beatsPerBar}
               isSelected={selectedAudioTrackId === track.id}
               onOffsetChange={(offset) => moveAudioOffset(track.id, offset)}
-              onHeightChange={setWaveformHeight}
+              onHeightChange={(waveformHeight) =>
+                updateAudioTrack(track.id, { waveformHeight })
+              }
               onSelect={() => {
                 deselectAll();
                 selectLocator(undefined);

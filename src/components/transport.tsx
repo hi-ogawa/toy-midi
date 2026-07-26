@@ -1,13 +1,10 @@
 import {
   CheckIcon,
   ChevronsUpDownIcon,
-  CircleHelpIcon,
   PauseIcon,
   PlayIcon,
-  SettingsIcon,
-  SlidersHorizontalIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
@@ -16,6 +13,7 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -178,18 +176,11 @@ function InstrumentCombobox({
 }
 
 type TransportProps = {
-  onSettingsClick: () => void;
-  onHelpClick: () => void;
-  onMixerClick: () => void;
   projectName: string;
+  controls: ReactNode;
 };
 
-export function Transport({
-  onSettingsClick,
-  onHelpClick,
-  onMixerClick,
-  projectName,
-}: TransportProps) {
+export function Transport({ projectName, controls }: TransportProps) {
   const {
     tempo,
     timeSignature,
@@ -286,6 +277,22 @@ export function Transport({
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
+
+      {/* Metronome toggle */}
+      <Button
+        data-testid="metronome-mute-toggle"
+        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome (M)"
+        className={cn(
+          "size-9",
+          metronomeEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+      >
+        <MetronomeIcon className="size-5" />
+      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
@@ -394,35 +401,7 @@ export function Transport({
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
 
-      {/* Settings button */}
-      <Button
-        data-testid="settings-button"
-        onClick={onSettingsClick}
-        title="Settings"
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-      >
-        <SettingsIcon className="size-5" />
-      </Button>
-
-      {/* Mixer button */}
-      <Button
-        data-testid="mixer-button"
-        onClick={onMixerClick}
-        title="Mixer"
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-      >
-        <SlidersHorizontalIcon className="size-5" />
-      </Button>
-
-      {/* Help button */}
-      <Button
-        data-testid="help-button"
-        onClick={onHelpClick}
-        title="Show keyboard shortcuts (?)"
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-      >
-        <CircleHelpIcon className="size-5" />
-      </Button>
+      {controls}
     </div>
   );
 }
