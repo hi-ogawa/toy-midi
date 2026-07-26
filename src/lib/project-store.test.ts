@@ -10,6 +10,7 @@ function makeAudioTrack(id: string, offset: number): AudioTrack {
     offset,
     volume: 1,
     muted: false,
+    waveformHeight: 60,
     audioWaveform: { status: "pending" },
   };
 }

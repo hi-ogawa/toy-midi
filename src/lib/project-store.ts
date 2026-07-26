@@ -53,7 +53,6 @@ export interface ProjectState {
   scrollY: number; // vertical offset: rows scrolled from top (0 = C8 at top)
   pixelsPerBeat: number; // horizontal scale: screen pixels per beat
   pixelsPerKey: number; // vertical scale: screen pixels per semitone row
-  waveformHeight: number; // resizable waveform lane height in pixels (per track)
 
   // Actions
   addNote: (note: Note) => void;
@@ -113,7 +112,6 @@ export interface ProjectState {
   setScrollY: (scrollY: number) => void;
   setPixelsPerBeat: (pixelsPerBeat: number) => void;
   setPixelsPerKey: (pixelsPerKey: number) => void;
-  setWaveformHeight: (height: number) => void;
 }
 
 // Transient per-track waveform state, not persisted. "unavailable" means the
@@ -133,8 +131,11 @@ export interface AudioTrack {
   offset: number; // in seconds - timeline position where audio starts (>= 0)
   volume: number; // 0-1
   muted: boolean;
+  waveformHeight: number;
   audioWaveform: AudioWaveform;
 }
+
+export const DEFAULT_WAVEFORM_HEIGHT = 60;
 
 let noteIdCounter = 0;
 export function generateNoteId(): string {
@@ -185,7 +186,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80, // DEFAULT_PIXELS_PER_BEAT
   pixelsPerKey: 20, // DEFAULT_PIXELS_PER_KEY
-  waveformHeight: 60, // DEFAULT_WAVEFORM_HEIGHT
 
   addNote: (note) => {
     // Track in history
@@ -417,7 +417,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setScrollY: (scrollY) => set({ scrollY }),
   setPixelsPerBeat: (pixelsPerBeat) => set({ pixelsPerBeat }),
   setPixelsPerKey: (pixelsPerKey) => set({ pixelsPerKey }),
-  setWaveformHeight: (height) => set({ waveformHeight: height }),
 
   // Undo/Redo actions
   undo: () => {
@@ -583,7 +582,9 @@ export interface SavedProject {
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   locators?: Locator[]; // Optional for backward compatibility
-  audioTracks: SavedAudioTrack[];
+  audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
+    waveformHeight?: number; // Optional for backward compatibility
+  })[];
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
   midiProgram?: number; // Optional for backward compatibility
@@ -599,7 +600,7 @@ export interface SavedProject {
   waveformHeight?: number;
 }
 
-export type SavedAudioTrack = Omit<AudioTrack, "audioWaveform">;
+type SavedAudioTrack = Omit<AudioTrack, "audioWaveform">;
 
 export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
   version: 1;
@@ -633,7 +634,6 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80,
   pixelsPerKey: 20,
-  waveformHeight: 60,
 };
 
 export function createDefaultSavedProject(): SavedProject {
@@ -664,7 +664,6 @@ export function toSavedProject(state: ProjectState): SavedProject {
     scrollY: state.scrollY,
     pixelsPerBeat: state.pixelsPerBeat,
     pixelsPerKey: state.pixelsPerKey,
-    waveformHeight: state.waveformHeight,
   };
 }
 
@@ -704,6 +703,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
 
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...migrated };
+  const legacyWaveformHeight =
+    migrated.waveformHeight ?? DEFAULT_WAVEFORM_HEIGHT;
 
   // Update note ID counter to avoid collisions
   const maxId = merged.notes.reduce((max, n) => {
@@ -734,6 +735,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     // Reattach transient waveform data slot (loaded lazily on project open)
     audioTracks: merged.audioTracks.map((t) => ({
       ...t,
+      waveformHeight: t.waveformHeight ?? legacyWaveformHeight,
       audioWaveform: { status: "pending" as const },
     })),
     midiVolume: merged.midiVolume,
@@ -748,7 +750,6 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     scrollY: merged.scrollY ?? DEFAULTS.scrollY,
     pixelsPerBeat: merged.pixelsPerBeat ?? DEFAULTS.pixelsPerBeat,
     pixelsPerKey: merged.pixelsPerKey ?? DEFAULTS.pixelsPerKey,
-    waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight,
     // Reset transient state
     selectedNoteIds: new Set(),
     selectedLocatorId: undefined,
