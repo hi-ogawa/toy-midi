@@ -318,20 +318,18 @@ function ProjectRenameInput({
         ref={inputRef}
         className="flex-1 px-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-200 text-lg focus:outline-none focus:border-emerald-500"
       />
-      <button
-        type="button"
+      <Button
         onClick={renameInput.commit}
-        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium"
+        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
       >
         Save
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
         onClick={onCancel}
-        className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded-lg text-sm"
+        className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-300"
       >
         Cancel
-      </button>
+      </Button>
     </div>
   );
 }
