@@ -51,8 +51,8 @@ test.describe("Audio to MIDI", () => {
     // GitHub runners cannot execute the real browser model reliably; the Node
     // CLI remains the real-model verification path.
     await panel.getByTestId("analyze-button").click();
-    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
-      "Analyzed",
+    await expect(panel.getByTestId("audio-to-midi-analysis-status")).toHaveText(
+      /^Analyzed in (\d+ms|\d+\.\d+s)$/,
       { timeout: 10_000 },
     );
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
@@ -61,9 +61,9 @@ test.describe("Audio to MIDI", () => {
     // is a C4/E4/G4/C5 arpeggio (see e2e/fixtures/README.md) that Basic
     // Pitch transcribes cleanly to exactly those four notes
     await panel.getByTestId("convert-button").click();
-    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
-      "Converted 4 notes",
-    );
+    await expect(
+      panel.getByTestId("audio-to-midi-conversion-status"),
+    ).toHaveText(/^4 notes in (\d+ms|\d+\.\d+s)$/);
     expect(await getNotePitches(page)).toEqual([60, 64, 67, 72]);
     const idsAfterFirstConvert = await getNoteIds(page);
 
@@ -71,9 +71,9 @@ test.describe("Audio to MIDI", () => {
     // range to exclude the C5 must drop it from the result
     await panel.getByLabel("Maximum pitch (MIDI)").fill("71");
     await panel.getByTestId("convert-button").click();
-    await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
-      "Converted 3 notes",
-    );
+    await expect(
+      panel.getByTestId("audio-to-midi-conversion-status"),
+    ).toHaveText(/^3 notes in (\d+ms|\d+\.\d+s)$/);
     expect(await getNotePitches(page)).toEqual([60, 64, 67]);
     const idsAfterSecondConvert = await getNoteIds(page);
 

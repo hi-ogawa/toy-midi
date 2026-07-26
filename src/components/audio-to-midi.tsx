@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import {
@@ -21,6 +21,10 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [progress, setProgress] = useState<number>();
   const [analyzed, setAnalyzed] = useState(false);
   const [noteCount, setNoteCount] = useState<number>();
+  const [analyzeElapsedMs, setAnalyzeElapsedMs] = useState<number>();
+  const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
+  const analyzeStartedAt = useRef<number>(undefined);
+  const convertStartedAt = useRef<number>(undefined);
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
@@ -31,12 +35,21 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       setProgress(0);
       await basicPitchClient.analyze(track.assetKey, buffer, setProgress);
     },
+    onMutate: () => {
+      analyzeStartedAt.current = performance.now();
+      setAnalyzeElapsedMs(undefined);
+    },
     onSuccess: () => setAnalyzed(true),
     onError: (error) => {
       console.error("Failed to analyze audio:", error);
       toast.error("Failed to analyze audio");
     },
-    onSettled: () => setProgress(undefined),
+    onSettled: () => {
+      setProgress(undefined);
+      if (analyzeStartedAt.current !== undefined) {
+        setAnalyzeElapsedMs(performance.now() - analyzeStartedAt.current);
+      }
+    },
   });
 
   // Parameter edits only stage locally; Convert to MIDI is the explicit
@@ -61,34 +74,37 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       replaceAllNotes(notes);
       return notes.length;
     },
+    onMutate: () => {
+      convertStartedAt.current = performance.now();
+      setConvertElapsedMs(undefined);
+    },
     onSuccess: (count) => setNoteCount(count),
     onError: (error) => {
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
     },
+    onSettled: () => {
+      if (convertStartedAt.current !== undefined) {
+        setConvertElapsedMs(performance.now() - convertStartedAt.current);
+      }
+    },
   });
 
-  // TODO: converting takes noticeable time, but its "Converting..." feedback
-  // shows in the shared status line next to the Analyze button, far from the
-  // "Convert to MIDI" button that triggered it. Move convert progress/result
-  // feedback near that button (or onto it).
-  // TODO: show elapsed time after each step completes (e.g. "Analyzed in
-  // 4.2s", "Converted 4 notes in 0.8s").
-  const status = analyzeMutation.isPending
+  const analysisStatus = analyzeMutation.isPending
     ? progress !== undefined
       ? `Analyzing ${Math.round(progress * 100)}%`
       : "Analyzing..."
     : analyzeMutation.error
-      ? `Analysis failed: ${analyzeMutation.error.message}`
+      ? `Analysis failed${formatElapsedSuffix(analyzeElapsedMs)}`
       : !analyzed
         ? "Not analyzed"
-        : convertMutation.isPending
-          ? "Converting..."
-          : convertMutation.error
-            ? `Conversion failed: ${convertMutation.error.message}`
-            : noteCount !== undefined
-              ? `Converted ${noteCount} notes`
-              : "Analyzed";
+        : `Analyzed${formatElapsedSuffix(analyzeElapsedMs)}`;
+
+  const conversionStatus = convertMutation.error
+    ? `Failed${formatElapsedSuffix(convertElapsedMs)}`
+    : noteCount !== undefined && convertElapsedMs !== undefined
+      ? `${noteCount} notes in ${formatElapsed(convertElapsedMs)}`
+      : undefined;
 
   return (
     <div className="w-72 space-y-4">
@@ -108,10 +124,10 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
 
       <div className="flex items-center justify-between gap-2">
         <span
-          data-testid="audio-to-midi-status"
+          data-testid="audio-to-midi-analysis-status"
           className="text-xs text-neutral-400"
         >
-          {status}
+          {analysisStatus}
         </span>
         <Button
           data-testid="analyze-button"
@@ -203,18 +219,38 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         >
           Reset to defaults
         </button>
-        <Button
-          data-testid="convert-button"
-          onClick={() => convertMutation.mutate()}
-          disabled={!analyzed || convertMutation.isPending}
-          title="Convert with current settings, replacing all MIDI notes"
-          className="h-8 px-3 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
-        >
-          Convert to MIDI
-        </Button>
+        <div className="flex items-center gap-2">
+          {conversionStatus && (
+            <span
+              data-testid="audio-to-midi-conversion-status"
+              className="text-xs text-neutral-400"
+            >
+              {conversionStatus}
+            </span>
+          )}
+          <Button
+            data-testid="convert-button"
+            onClick={() => convertMutation.mutate()}
+            disabled={!analyzed || convertMutation.isPending}
+            title="Convert with current settings, replacing all MIDI notes"
+            className="h-8 px-3 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+          >
+            {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
+          </Button>
+        </div>
       </div>
     </div>
   );
+}
+
+function formatElapsedSuffix(elapsedMs: number | undefined) {
+  return elapsedMs === undefined ? "" : ` in ${formatElapsed(elapsedMs)}`;
+}
+
+function formatElapsed(elapsedMs: number) {
+  return elapsedMs < 1000
+    ? `${Math.round(elapsedMs)}ms`
+    : `${(elapsedMs / 1000).toFixed(1)}s`;
 }
 
 function ThresholdSlider({
