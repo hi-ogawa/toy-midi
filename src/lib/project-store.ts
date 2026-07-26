@@ -583,7 +583,7 @@ export interface SavedProject {
   gridSnap: GridSnap;
   locators?: Locator[]; // Optional for backward compatibility
   audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
-    waveformHeight?: number;
+    waveformHeight?: number; // Optional for backward compatibility
   })[];
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
