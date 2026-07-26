@@ -44,6 +44,10 @@ test.describe("Audio to MIDI", () => {
     await expect(panel.getByTestId("audio-to-midi-file-name")).toHaveText(
       "test-tones.wav",
     );
+    await expect(
+      panel.getByRole("heading", { name: "Conversion settings" }),
+    ).toBeVisible();
+    await expect(panel.getByTestId("convert-button")).toBeDisabled();
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
@@ -55,6 +59,7 @@ test.describe("Audio to MIDI", () => {
       /^Analyzed in (\d+ms|\d+\.\d+s)$/,
       { timeout: 10_000 },
     );
+    await expect(panel.getByTestId("convert-button")).toBeEnabled();
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
     // Step 2: convert commits the result, replacing all notes. The fixture

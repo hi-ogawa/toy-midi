@@ -107,138 +107,165 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       : undefined;
 
   return (
-    <div className="w-72 space-y-4">
-      <p
-        data-testid="audio-to-midi-file-name"
-        className="text-sm text-neutral-300 truncate"
-        title={track.fileName}
-      >
-        {track.fileName}
-      </p>
+    <div className="w-96">
+      <section className="space-y-3">
+        <p className="truncate text-xs text-neutral-400" title={track.fileName}>
+          <span className="text-neutral-500">Audio track:</span>{" "}
+          <span
+            data-testid="audio-to-midi-file-name"
+            className="text-neutral-300"
+          >
+            {track.fileName}
+          </span>
+        </p>
 
-      {/* TODO: tweak this intro copy */}
-      <p className="text-xs text-neutral-500">
-        Analyze the audio once, then adjust the settings and convert to MIDI as
-        often as you like — analysis is cached, so converting is instant.
-      </p>
+        <p className="text-xs leading-relaxed text-neutral-400">
+          Analyze the track once to prepare it for MIDI conversion.
+        </p>
 
-      <div className="flex items-center justify-between gap-2">
-        <span
-          data-testid="audio-to-midi-analysis-status"
-          className="text-xs text-neutral-400"
-        >
-          {analysisStatus}
-        </span>
         <Button
           data-testid="analyze-button"
           onClick={() => analyzeMutation.mutate()}
           disabled={analyzeMutation.isPending || analyzed}
-          className="h-8 gap-1.5 px-3 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+          className="h-9 w-full gap-1.5 bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
         >
-          Analyze
+          {analyzeMutation.isPending ? "Analyzing audio..." : "Analyze audio"}
         </Button>
-      </div>
 
-      <ThresholdSlider
-        label="Frame threshold (higher = fewer notes)"
-        value={params.frameThreshold}
-        disabled={!analyzed}
-        onChange={(frameThreshold) => setParams({ ...params, frameThreshold })}
-      />
-      <ThresholdSlider
-        label="Onset threshold (higher = fewer splits)"
-        value={params.onsetThreshold}
-        disabled={!analyzed}
-        onChange={(onsetThreshold) => setParams({ ...params, onsetThreshold })}
-      />
-
-      <div className="flex items-center justify-between gap-2">
-        <label
-          htmlFor="audio-to-midi-min-note-length"
-          className="text-xs text-neutral-400"
+        <div
+          data-testid="audio-to-midi-analysis-status"
+          className="h-4 text-left text-xs text-neutral-400"
         >
-          Min note length (ms)
-        </label>
-        <input
-          id="audio-to-midi-min-note-length"
-          type="number"
-          min={0}
-          max={500}
-          step={10}
-          disabled={!analyzed}
-          value={params.minNoteLengthMs}
-          onChange={(e) =>
-            setParams({ ...params, minNoteLengthMs: Number(e.target.value) })
-          }
-          className="w-20 h-8 px-2 text-sm text-right bg-neutral-900 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:border-neutral-500 disabled:opacity-50"
-        />
-      </div>
-
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-neutral-400">Pitch range</span>
-        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-          <input
-            type="number"
-            aria-label="Minimum pitch (MIDI)"
-            min={0}
-            max={127}
-            disabled={!analyzed}
-            value={params.minPitchMidi}
-            onChange={(e) =>
-              setParams({ ...params, minPitchMidi: Number(e.target.value) })
-            }
-            className="w-16 h-8 px-2 text-sm text-right bg-neutral-900 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:border-neutral-500 disabled:opacity-50"
-          />
-          <span className="w-8 tabular-nums">
-            {midiToNoteName(params.minPitchMidi)}
-          </span>
-          <span>to</span>
-          <input
-            type="number"
-            aria-label="Maximum pitch (MIDI)"
-            min={0}
-            max={127}
-            disabled={!analyzed}
-            value={params.maxPitchMidi}
-            onChange={(e) =>
-              setParams({ ...params, maxPitchMidi: Number(e.target.value) })
-            }
-            className="w-16 h-8 px-2 text-sm text-right bg-neutral-900 border border-neutral-600 rounded text-neutral-100 focus:outline-none focus:border-neutral-500 disabled:opacity-50"
-          />
-          <span className="w-8 tabular-nums">
-            {midiToNoteName(params.maxPitchMidi)}
-          </span>
+          {analysisStatus}
         </div>
-      </div>
+      </section>
 
-      <div className="flex items-center justify-between gap-2">
-        <button
-          onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
-          disabled={!analyzed}
-          className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300 disabled:opacity-50 disabled:hover:text-neutral-500"
-        >
-          Reset to defaults
-        </button>
-        <div className="flex items-center gap-2">
-          {conversionStatus && (
-            <span
-              data-testid="audio-to-midi-conversion-status"
-              className="text-xs text-neutral-400"
+      <section
+        className={`mt-4 space-y-4 border-t border-neutral-700 pt-4 ${analyzed ? "" : "opacity-50"}`}
+      >
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-sm font-semibold text-neutral-100">
+              Conversion settings
+            </h3>
+            <button
+              onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
+              disabled={!analyzed}
+              className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300 disabled:pointer-events-none"
             >
-              {conversionStatus}
+              Reset to defaults
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-neutral-500">
+            Adjust these settings and convert again without re-analyzing.
+          </p>
+        </div>
+
+        <ThresholdSlider
+          label="Frame threshold"
+          hint="Higher values detect fewer notes"
+          value={params.frameThreshold}
+          disabled={!analyzed}
+          onChange={(frameThreshold) =>
+            setParams({ ...params, frameThreshold })
+          }
+        />
+        <ThresholdSlider
+          label="Onset threshold"
+          hint="Higher values create fewer splits"
+          value={params.onsetThreshold}
+          disabled={!analyzed}
+          onChange={(onsetThreshold) =>
+            setParams({ ...params, onsetThreshold })
+          }
+        />
+
+        <div className="flex items-center justify-between gap-2">
+          <label
+            htmlFor="audio-to-midi-min-note-length"
+            className="text-xs text-neutral-300"
+          >
+            Minimal note length
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="audio-to-midi-min-note-length"
+              type="number"
+              min={0}
+              max={500}
+              step={10}
+              disabled={!analyzed}
+              value={params.minNoteLengthMs}
+              onChange={(e) =>
+                setParams({
+                  ...params,
+                  minNoteLengthMs: Number(e.target.value),
+                })
+              }
+              className="h-8 w-20 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            />
+            <span className="w-5 text-xs text-neutral-500">ms</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-neutral-300">Pitch range</span>
+          <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+            <input
+              type="number"
+              aria-label="Minimum pitch (MIDI)"
+              min={0}
+              max={127}
+              disabled={!analyzed}
+              value={params.minPitchMidi}
+              onChange={(e) =>
+                setParams({ ...params, minPitchMidi: Number(e.target.value) })
+              }
+              className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            />
+            <span className="w-7 tabular-nums">
+              {midiToNoteName(params.minPitchMidi)}
             </span>
-          )}
+            <span className="text-neutral-600">to</span>
+            <input
+              type="number"
+              aria-label="Maximum pitch (MIDI)"
+              min={0}
+              max={127}
+              disabled={!analyzed}
+              value={params.maxPitchMidi}
+              onChange={(e) =>
+                setParams({ ...params, maxPitchMidi: Number(e.target.value) })
+              }
+              className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            />
+            <span className="w-7 tabular-nums">
+              {midiToNoteName(params.maxPitchMidi)}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2 border-t border-neutral-700 pt-4">
+          <p className="text-xs leading-relaxed text-amber-200/70">
+            Converting replaces all existing MIDI notes. You can undo this
+            change.
+          </p>
           <Button
             data-testid="convert-button"
             onClick={() => convertMutation.mutate()}
             disabled={!analyzed || convertMutation.isPending}
-            title="Convert with current settings, replacing all MIDI notes"
-            className="h-8 px-3 bg-primary text-sm text-primary-foreground hover:bg-primary/90"
+            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
           >
             {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
           </Button>
+          <p
+            data-testid="audio-to-midi-conversion-status"
+            className="h-4 text-left text-xs text-neutral-400"
+          >
+            {conversionStatus}
+          </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -255,19 +282,24 @@ function formatElapsed(elapsedMs: number) {
 
 function ThresholdSlider({
   label,
+  hint,
   value,
   disabled,
   onChange,
 }: {
   label: string;
+  hint: string;
   value: number;
   disabled: boolean;
   onChange: (value: number) => void;
 }) {
   return (
-    <div className={disabled ? "opacity-50" : undefined}>
-      <div className="flex justify-between mb-1 text-xs text-neutral-400">
-        <label>{label}</label>
+    <div>
+      <div className="mb-2 flex justify-between text-xs text-neutral-300">
+        <div>
+          <label>{label}</label>
+          <p className="mt-0.5 text-neutral-500">{hint}</p>
+        </div>
         <span className="tabular-nums">{value.toFixed(2)}</span>
       </div>
       <Slider
