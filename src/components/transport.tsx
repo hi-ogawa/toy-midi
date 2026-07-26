@@ -8,8 +8,8 @@ import {
   SlidersHorizontalIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
-import { useAudioStatus, useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { GM_PROGRAMS } from "../lib/general-midi";
@@ -52,7 +52,7 @@ function formatBarBeat(seconds: number, tempo: number): string {
 
 // Separate component to isolate position-based re-renders
 function TimeDisplay({ tempo }: { tempo: number }) {
-  const { position } = useTransport();
+  const position = useAudio((state) => state.position);
   return (
     <div
       data-testid="time-display"
@@ -65,8 +65,8 @@ function TimeDisplay({ tempo }: { tempo: number }) {
 
 // Separate component to isolate isPlaying-based re-renders
 function PlayPauseButton() {
-  const { isPlaying } = useTransport();
-  const audioStatus = useAudioStatus();
+  const isPlaying = useAudio((state) => state.isPlaying);
+  const audioStatus = useAudio((state) => state.status);
 
   return (
     <Button

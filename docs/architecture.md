@@ -14,6 +14,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/components/piano-roll.tsx` owns editor interaction and rendering.
 - `src/lib/project-store.ts` owns project and editor state.
 - `src/lib/audio.ts` owns Tone.js integration and the runtime audio graph.
+- `src/hooks/use-audio.ts` exposes reactive audio state to the UI.
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.
 
@@ -21,7 +22,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 
 The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
 
-Playback position and play state are not project state. They come directly from the audio transport so high-frequency playback updates do not flow through the editor store.
+Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
 
 One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
 
