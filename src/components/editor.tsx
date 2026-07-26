@@ -110,6 +110,18 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         }
       />
       <PianoRoll />
+
+      <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      {isMixerOpen && (
+        <FloatingPanel
+          closeLabel="Close Mixer"
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="mixer-panel"
+        >
+          <Mixer />
+        </FloatingPanel>
+      )}
       {/* TODO: coordinate active floating panels so Mixer and Audio to MIDI do
           not overlap when both are open. */}
       {audioToMidiTrack && (
@@ -125,17 +137,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           }
         >
           <AudioToMidi key={audioToMidiTrack.id} track={audioToMidiTrack} />
-        </FloatingPanel>
-      )}
-      <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      {isMixerOpen && (
-        <FloatingPanel
-          closeLabel="Close Mixer"
-          onClose={() => setIsMixerOpen(false)}
-          title="Mixer"
-          testId="mixer-panel"
-        >
-          <Mixer />
         </FloatingPanel>
       )}
       <Dialog
