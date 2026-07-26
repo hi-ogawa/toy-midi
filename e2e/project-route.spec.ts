@@ -29,6 +29,14 @@ test.describe("Project Route", () => {
     );
     expect(projectId).not.toBeNull();
 
+    await page.goto("/");
+    const projectLink = page
+      .getByTestId(`project-card-${projectId}`)
+      .getByRole("link");
+    await expect(projectLink).toHaveAttribute("href", `/project/${projectId}`);
+    await projectLink.click();
+    await expect(page).toHaveURL(`/project/${projectId}`);
+
     // Open via URL directly
     await page.goto(`/project/${projectId}`);
     await expect(page.getByTestId("transport")).toBeVisible();
