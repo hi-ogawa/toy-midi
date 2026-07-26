@@ -1,3 +1,6 @@
+import type { RpcClient } from "./rpc/core.ts";
+import { createWorkerRpc } from "./rpc/worker.ts";
+
 // Client for Basic Pitch (https://github.com/spotify/basic-pitch) audio→MIDI
 // transcription. The worker (basic-pitch-worker.ts) exposes the two inherent
 // stages separately: `analyze` runs model inference once per audio asset and
@@ -29,34 +32,24 @@ export const DEFAULT_TRANSCRIBE_PARAMS: TranscribeParams = {
   maxPitchMidi: 108, // C8
 };
 
-export type BasicPitchRequest =
-  | {
-      type: "analyze";
-      requestId: number;
-      cacheKey: string;
-      backend?: string;
-      pcm?: Float32Array; // present only when the worker lacks activations for cacheKey
-    }
-  | {
-      type: "decode";
-      requestId: number;
-      cacheKey: string;
-      params: TranscribeParams;
-    };
-
-export type BasicPitchResponse =
-  | { type: "ready"; requestId: number; backend: string }
-  | { type: "progress"; requestId: number; percent: number }
-  | { type: "analyzed"; requestId: number }
-  | { type: "notes"; requestId: number; notes: TranscribedNote[] }
-  | { type: "error"; requestId: number; message: string };
-
 const MODEL_SAMPLE_RATE = 22050;
 
+export interface BasicPitchHandlers {
+  analyze(params: {
+    cacheKey: string;
+    backend?: string;
+    pcm?: Float32Array;
+    onProgress: (percent: number) => void;
+  }): Promise<{ backend: string }>;
+  decode(params: {
+    cacheKey: string;
+    params: TranscribeParams;
+  }): Promise<TranscribedNote[]>;
+}
+
 class BasicPitchClient {
-  private worker: Worker | null = null;
+  private rpc: RpcClient<BasicPitchHandlers> | undefined;
   private analyzedCacheKey: string | null = null;
-  private nextRequestId = 1;
 
   async analyze(
     cacheKey: string,
@@ -72,17 +65,18 @@ class BasicPitchClient {
       this.analyzedCacheKey === cacheKey
         ? undefined
         : await resampleToModelRate(audioBuffer);
-    await this.sendRequest(
-      {
-        type: "analyze",
-        requestId: this.nextRequestId++,
-        cacheKey,
-        backend: import.meta.env.VITE_BASIC_PITCH_BACKEND,
-        pcm,
-      },
-      pcm ? [pcm.buffer] : [],
+    const expectedBackend = import.meta.env.VITE_BASIC_PITCH_BACKEND;
+    const { backend } = await this.getRpc().analyze({
+      cacheKey,
+      backend: expectedBackend,
+      pcm,
       onProgress,
-    );
+    });
+    if (expectedBackend !== undefined && expectedBackend !== backend) {
+      throw new Error(
+        `Expected tfjs backend ${expectedBackend}, got ${backend}`,
+      );
+    }
     this.analyzedCacheKey = cacheKey;
   }
 
@@ -100,76 +94,18 @@ class BasicPitchClient {
           note.pitchMidi <= params.maxPitchMidi,
       );
     }
-    const response = await this.sendRequest(
-      { type: "decode", requestId: this.nextRequestId++, cacheKey, params },
-      [],
-    );
-    if (response.type !== "notes") {
-      throw new Error(`Unexpected response: ${response.type}`);
-    }
-    return response.notes;
+    return this.getRpc().decode({ cacheKey, params });
   }
 
-  private sendRequest(
-    request: BasicPitchRequest,
-    transfer: Transferable[],
-    onProgress?: (percent: number) => void,
-  ): Promise<BasicPitchResponse> {
-    this.worker ??= new Worker(
-      new URL("./basic-pitch-worker.ts", import.meta.url),
-      { type: "module" },
-    );
-    const worker = this.worker;
-    return new Promise((resolve, reject) => {
-      const cleanup = () => {
-        worker.removeEventListener("message", handleMessage);
-        worker.removeEventListener("error", handleError);
-        worker.removeEventListener("messageerror", handleMessageError);
-      };
-      const handleMessage = (event: MessageEvent<BasicPitchResponse>) => {
-        const response = event.data;
-        if (response.requestId !== request.requestId) {
-          return;
-        }
-        if (response.type === "ready") {
-          if (
-            request.type === "analyze" &&
-            request.backend !== undefined &&
-            request.backend !== response.backend
-          ) {
-            cleanup();
-            reject(
-              new Error(
-                `Expected tfjs backend ${request.backend}, got ${response.backend}`,
-              ),
-            );
-          }
-          return;
-        }
-        if (response.type === "progress") {
-          onProgress?.(response.percent);
-          return;
-        }
-        cleanup();
-        if (response.type === "error") {
-          reject(new Error(response.message));
-        } else {
-          resolve(response);
-        }
-      };
-      const handleError = (event: ErrorEvent) => {
-        cleanup();
-        reject(new Error(event.message || "Basic Pitch worker failed"));
-      };
-      const handleMessageError = () => {
-        cleanup();
-        reject(new Error("Basic Pitch worker message could not be read"));
-      };
-      worker.addEventListener("message", handleMessage);
-      worker.addEventListener("error", handleError);
-      worker.addEventListener("messageerror", handleMessageError);
-      worker.postMessage(request, transfer);
-    });
+  private getRpc(): RpcClient<BasicPitchHandlers> {
+    if (!this.rpc) {
+      const worker = new Worker(
+        new URL("./basic-pitch-worker.ts", import.meta.url),
+        { type: "module" },
+      );
+      this.rpc = createWorkerRpc<BasicPitchHandlers>(worker);
+    }
+    return this.rpc;
   }
 }
 
