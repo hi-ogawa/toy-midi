@@ -114,102 +114,74 @@ export function ProjectListView({
           </div>
         </div>
 
-        {hasProjects ? (
-          <>
-            <div className="w-full max-w-lg">
-              <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
-                Your Projects
-              </h2>
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {projects.map((project) => (
-                  <ProjectListItem
-                    key={project.id}
-                    project={project}
-                    isLastProject={project.id === lastProjectId}
-                    isRenaming={project.id === renamingProjectId}
-                    onRenameStart={(e) => handleRenameStart(e, project.id)}
-                    onRenameSubmit={(nextName) =>
-                      handleRenameSubmit(project.id, nextName)
-                    }
-                    onRenameCancel={handleRenameCancel}
-                    onDelete={(e) => handleDelete(e, project.id)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  data-testid="continue-button"
-                  disabled={isLoading}
-                  onClick={() =>
-                    lastProjectId && onSelectProject(lastProjectId)
+        {hasProjects && (
+          <div className="w-full max-w-lg">
+            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+              Your Projects
+            </h2>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {projects.map((project) => (
+                <ProjectListItem
+                  key={project.id}
+                  project={project}
+                  isLastProject={project.id === lastProjectId}
+                  isRenaming={project.id === renamingProjectId}
+                  onRenameStart={(e) => handleRenameStart(e, project.id)}
+                  onRenameSubmit={(nextName) =>
+                    handleRenameSubmit(project.id, nextName)
                   }
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
-                >
-                  Continue
-                </button>
-                <button
-                  type="button"
-                  data-testid="new-project-button"
-                  disabled={isLoading}
-                  onClick={onNewProject}
-                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
-                >
-                  New Project
-                </button>
-                <button
-                  type="button"
-                  data-testid="import-project-button"
-                  disabled={isLoading}
-                  onClick={handleImportClick}
-                  className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
-                >
-                  {isLoading ? "Importing..." : "Import Project"}
-                </button>
-              </div>
-              <p className="text-neutral-600 text-sm">
-                Press{" "}
-                <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                  Space
-                </kbd>{" "}
-                to continue
-              </p>
+                  onRenameCancel={handleRenameCancel}
+                  onDelete={(e) => handleDelete(e, project.id)}
+                />
+              ))}
             </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex gap-4">
-              <button
-                type="button"
-                data-testid="new-project-button"
-                disabled={isLoading}
-                onClick={onNewProject}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
-              >
-                Create Your First Project
-              </button>
-              <button
-                type="button"
-                data-testid="import-project-button"
-                disabled={isLoading}
-                onClick={handleImportClick}
-                className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
-              >
-                {isLoading ? "Importing..." : "Import Project"}
-              </button>
-            </div>
-            <p className="text-neutral-600 text-sm">
-              Press{" "}
-              <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                Space
-              </kbd>{" "}
-              to start
-            </p>
           </div>
         )}
+
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex gap-4">
+            {hasProjects && (
+              <button
+                type="button"
+                data-testid="continue-button"
+                disabled={isLoading}
+                onClick={() => lastProjectId && onSelectProject(lastProjectId)}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white rounded-lg font-medium shadow-lg shadow-emerald-900/30"
+              >
+                Continue
+              </button>
+            )}
+            <button
+              type="button"
+              data-testid="new-project-button"
+              disabled={isLoading}
+              onClick={onNewProject}
+              className={`px-6 py-2.5 rounded-lg font-medium ${
+                hasProjects
+                  ? "bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200"
+                  : "bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white shadow-lg shadow-emerald-900/30"
+              }`}
+            >
+              {hasProjects ? "New Project" : "Create Your First Project"}
+            </button>
+            <button
+              type="button"
+              data-testid="import-project-button"
+              disabled={isLoading}
+              onClick={handleImportClick}
+              className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 disabled:bg-neutral-800/50 text-neutral-200 rounded-lg font-medium"
+            >
+              {isLoading ? "Importing..." : "Import Project"}
+            </button>
+          </div>
+          <p className="text-neutral-600 text-sm">
+            Press{" "}
+            <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+              Space
+            </kbd>{" "}
+            to {hasProjects ? "continue" : "start"}
+          </p>
+        </div>
       </div>
     </div>
   );
