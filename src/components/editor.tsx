@@ -51,18 +51,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsSettingsOpen(false);
-      } else if (isMixerOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsMixerOpen(false);
       } else if (isHelpOpen) {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);
-      } else if (audioToMidiTrackId) {
-        e.preventDefault();
-        e.stopPropagation();
-        setAudioToMidiTrackId(undefined);
       }
     }
     if (e.key === "?" && !e.repeat) {
