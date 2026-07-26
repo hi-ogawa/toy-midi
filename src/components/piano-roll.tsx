@@ -12,16 +12,17 @@ import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
+  clampPitch,
+  dbToPercent,
+  gainToPercent,
   isBlackKey,
   MAX_PITCH,
   midiToNoteName,
   MIN_PITCH,
+  percentToGain,
   snapToGrid,
-  clampPitch,
 } from "../lib/music";
 import { projectStorage } from "../lib/project-storage";
-import { cn } from "../lib/utils";
-import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
 import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
@@ -34,6 +35,7 @@ import {
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
+import { cn } from "./ui/utils";
 
 // Layout constants
 const KEYBOARD_WIDTH = 50;

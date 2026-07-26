@@ -8,8 +8,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
-import { audioManager, loadAudioFile } from "../lib/audio";
-import { resolveAudioFiles } from "../lib/audio-files";
+import { audioManager } from "../lib/audio";
+import { loadAudioFile, resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";

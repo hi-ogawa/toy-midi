@@ -8,7 +8,8 @@ import {
   useProjectStore,
 } from "../stores/project-store";
 import { debounce } from "../utils/timing";
-import { audioManager, loadAudioFile } from "./audio";
+import { audioManager } from "./audio";
+import { loadAudioFile } from "./audio-files";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
 import { projectStorage } from "./project-storage";
 

@@ -15,7 +15,7 @@ src/
 │   ├── settings.tsx        # audio load, MIDI import, MIDI/.toymidi export
 │   ├── mixer.tsx           # MIDI/metronome/per-audio-track channel strips
 │   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
-│   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
+│   └── ui/                 # Radix/cmdk wrappers + shared class-name utility
 ├── hooks/
 │   ├── use-transport.ts    # reactive { isPlaying, position } from Tone.Transport via RAF
 │   ├── use-draft-input.ts  # commit-on-Enter numeric input (+ use-draft-text-input.ts)
@@ -25,13 +25,15 @@ src/
 │   ├── oxisynth-synth.ts   # SF2 synthesis via Rust/WASM AudioWorklet
 │   ├── metronome.ts        # raw Web Audio click voices (accent C7 / normal G6)
 │   ├── audio-view.ts       # waveform peak model + viewport slice query
+│   ├── audio-files.ts      # audio/zip resolution, decoding, waveform preparation
+│   ├── general-midi.ts     # General MIDI program names
 │   ├── project-storage.ts  # facade over localStorage docs + IndexedDB assets
 │   ├── project-session.ts  # active document lifecycle, auto-save subscription
 │   ├── project-file.ts     # portable .toymidi zip export/import
 │   ├── midi-export.ts      # .mid export (+ midi-import.ts)
 │   ├── keybindings.ts      # shortcut definitions (source of truth for help overlay)
 │   ├── keyboard.ts         # shortcut parsing/matching, input-target guard
-│   └── music.ts, volume.ts, idb.ts, audio-files.ts, export-utils.ts, utils.ts
+│   └── music.ts, idb.ts, export-utils.ts
 └── stores/
     ├── project-store.ts    # Zustand store + SavedProject serialization/migration
     └── history-store.ts    # undo/redo stacks (plain object, not subscribed by React)
@@ -107,6 +109,8 @@ Selected notes can be quantized with `Q`; the command snaps their starts and dur
 ## Audio Layer
 
 `AudioManager` (`lib/audio.ts`, singleton `audioManager`) owns the Tone.js graph: an OxiSynth SF2 worklet behind a `Tone.Channel` for MIDI, one `Tone.Player` + `Tone.Channel` per audio track, and a raw Web Audio metronome driven by a `Tone.Sequence`.
+
+Audio file resolution, decoding, and waveform preparation live in `lib/audio-files.ts`, while static General MIDI program metadata lives in `lib/general-midi.ts`.
 
 The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
 

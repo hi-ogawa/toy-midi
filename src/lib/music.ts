@@ -1,6 +1,9 @@
 // Full MIDI range: C-1 (0) to G9 (127)
 export const MIN_PITCH = 0; // C-1
 export const MAX_PITCH = 127; // G9
+export const MIN_DB = -60;
+export const MAX_DB = 6;
+const LOG2 = Math.log(2);
 const NOTE_NAMES = [
   "C",
   "C#",
@@ -15,6 +18,7 @@ const NOTE_NAMES = [
   "A#",
   "B",
 ];
+const MAX_GAIN = dbToGain(MAX_DB);
 
 export function midiToNoteName(midi: number): string {
   const octave = Math.floor(midi / 12) - 1;
@@ -40,4 +44,43 @@ export function snapToGrid(
 
 export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
+}
+
+export function dbToGain(db: number): number {
+  return Math.pow(10, db / 20);
+}
+
+export function gainToDb(gain: number): number {
+  if (gain <= 0) {
+    return MIN_DB;
+  }
+  return 20 * Math.log10(gain);
+}
+
+export function clampGain(gain: number): number {
+  return clamp(gain, 0, MAX_GAIN);
+}
+
+export function percentToGain(percent: number): number {
+  const position = clamp(percent / 100, 0, 1);
+  if (position === 0) {
+    return 0;
+  }
+  return Math.exp(((Math.pow(position, 1 / 8) * 198 - 192) / 6) * LOG2);
+}
+
+export function gainToPercent(gain: number): number {
+  if (gain <= 0) {
+    return 0;
+  }
+  const position = Math.pow(((6 * Math.log(gain)) / LOG2 + 192) / 198, 8);
+  return clamp(position * 100, 0, 100);
+}
+
+export function dbToPercent(db: number): number {
+  return gainToPercent(dbToGain(clamp(db, MIN_DB, MAX_DB)));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
