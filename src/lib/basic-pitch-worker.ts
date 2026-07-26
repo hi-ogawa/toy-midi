@@ -100,7 +100,7 @@ export class BasicPitchWorkerHandlers {
   }: {
     cacheKey: string;
     backend?: string;
-    pcm?: Float32Array;
+    pcm: Float32Array;
     onProgress: (percent: number) => void;
   }): Promise<{
     backend: string;
@@ -108,9 +108,6 @@ export class BasicPitchWorkerHandlers {
     basicPitch ??= initializeBasicPitch(backend);
     const initializedBasicPitch = await basicPitch;
     if (cache?.cacheKey !== cacheKey) {
-      if (!pcm) {
-        throw new Error("Missing PCM for unanalyzed audio");
-      }
       const frames: number[][] = [];
       const onsets: number[][] = [];
       await initializedBasicPitch.evaluateModel(

@@ -49,10 +49,7 @@ class BasicPitchClient {
       this.analyzedCacheKey = cacheKey;
       return;
     }
-    const pcm =
-      this.analyzedCacheKey === cacheKey
-        ? undefined
-        : await resampleToModelRate(audioBuffer);
+    const pcm = await resampleToModelRate(audioBuffer);
     const expectedBackend = import.meta.env.VITE_BASIC_PITCH_BACKEND;
     const { backend } = await this.getRpc().analyze({
       cacheKey,
