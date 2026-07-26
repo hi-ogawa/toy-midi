@@ -13,7 +13,7 @@ import {
   generateNoteId,
   secondsToBeats,
   useProjectStore,
-} from "../stores/project-store";
+} from "../lib/project-store";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 

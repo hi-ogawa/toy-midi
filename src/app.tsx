@@ -15,7 +15,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
 import { parseProjectFile } from "./lib/project-file";
 import { getProjectSession } from "./lib/project-session";
 import { type ProjectMetadata, projectStorage } from "./lib/project-storage";
-import { useProjectStore } from "./stores/project-store";
+import { useProjectStore } from "./lib/project-store";
 
 export function App() {
   const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
