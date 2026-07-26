@@ -8,11 +8,11 @@ test.describe("Audio to MIDI", () => {
     );
   }
 
-  async function getNotePitches(page: Page) {
+  async function getNotes(page: Page) {
     return await evaluateStore(page, (store) =>
       [...store.getState().notes]
         .sort((a, b) => a.start - b.start)
-        .map((n) => n.pitch),
+        .map(({ pitch, start, duration }) => ({ pitch, start, duration })),
     );
   }
 
@@ -48,6 +48,10 @@ test.describe("Audio to MIDI", () => {
       panel.getByRole("heading", { name: "Conversion settings" }),
     ).toBeVisible();
     await expect(panel.getByTestId("convert-button")).toBeDisabled();
+    const quantizeCheckbox = panel.getByRole("checkbox", {
+      name: "Quantize to current grid (1/8)",
+    });
+    await expect(quantizeCheckbox).toBeDisabled();
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
@@ -60,6 +64,7 @@ test.describe("Audio to MIDI", () => {
       { timeout: 10_000 },
     );
     await expect(panel.getByTestId("convert-button")).toBeEnabled();
+    await expect(quantizeCheckbox).toBeEnabled();
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
     // Step 2: convert commits the result, replacing all notes. The fixture
@@ -69,7 +74,9 @@ test.describe("Audio to MIDI", () => {
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
     ).toHaveText(/^4 notes in (\d+ms|\d+\.\d+s)$/);
-    expect(await getNotePitches(page)).toEqual([60, 64, 67, 72]);
+    expect((await getNotes(page)).map((note) => note.pitch)).toEqual([
+      60, 64, 67, 72,
+    ]);
     const idsAfterFirstConvert = await getNoteIds(page);
 
     // Staged parameter edits apply on the next convert: narrowing the pitch
@@ -79,14 +86,32 @@ test.describe("Audio to MIDI", () => {
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
     ).toHaveText(/^3 notes in (\d+ms|\d+\.\d+s)$/);
-    expect(await getNotePitches(page)).toEqual([60, 64, 67]);
+    expect((await getNotes(page)).map((note) => note.pitch)).toEqual([
+      60, 64, 67,
+    ]);
     const idsAfterSecondConvert = await getNoteIds(page);
+
+    // Optional quantization follows the current grid and remains part of the
+    // conversion's single replace-all history entry.
+    await quantizeCheckbox.check();
+    await panel.getByTestId("convert-button").click();
+    await expect(
+      panel.getByTestId("audio-to-midi-conversion-status"),
+    ).toHaveText(/^3 notes in (\d+ms|\d+\.\d+s)$/);
+    for (const { start, duration } of await getNotes(page)) {
+      expect(start * 2).toBe(Math.round(start * 2));
+      expect(duration * 2).toBe(Math.round(duration * 2));
+      expect(duration).toBeGreaterThanOrEqual(0.5);
+    }
+    const idsAfterQuantizedConvert = await getNoteIds(page);
 
     await panel.getByRole("button", { name: "Close Audio to MIDI" }).click();
     await expect(panel).toBeHidden();
 
-    // Each convert is one history entry: the first undo restores the first
-    // convert's notes, the second restores the pre-convert marker
+    // Each convert is one history entry. Undo restores each prior conversion,
+    // then the pre-convert marker.
+    await page.keyboard.press("Control+z");
+    expect(await getNoteIds(page)).toEqual(idsAfterSecondConvert);
     await page.keyboard.press("Control+z");
     expect(await getNoteIds(page)).toEqual(idsAfterFirstConvert);
     await page.keyboard.press("Control+z");
@@ -95,6 +120,7 @@ test.describe("Audio to MIDI", () => {
     // Redo re-applies both converts
     await page.keyboard.press("Control+Shift+z");
     await page.keyboard.press("Control+Shift+z");
-    expect(await getNoteIds(page)).toEqual(idsAfterSecondConvert);
+    await page.keyboard.press("Control+Shift+z");
+    expect(await getNoteIds(page)).toEqual(idsAfterQuantizedConvert);
   });
 });

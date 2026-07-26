@@ -6,18 +6,20 @@ import {
   basicPitchClient,
   DEFAULT_TRANSCRIBE_PARAMS,
 } from "../lib/basic-pitch";
-import { midiToNoteName } from "../lib/music";
+import { midiToNoteName, snapToGrid } from "../lib/music";
 import {
   type AudioTrack,
   generateNoteId,
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
+import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
 export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
+  const [quantizeToGrid, setQuantizeToGrid] = useState(false);
   const [progress, setProgress] = useState<number>();
   const [analyzed, setAnalyzed] = useState(false);
   const [noteCount, setNoteCount] = useState<number>();
@@ -25,6 +27,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
   const convertStartedAt = useRef<number>(undefined);
+  const gridSnap = useProjectStore((state) => state.gridSnap);
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
@@ -55,22 +58,30 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   // Parameter edits only stage locally; Convert to MIDI is the explicit
   // commit (worker `decode` stage), one replaceAllNotes and thus one undo
   // entry per press.
-  // TODO: offer post-processing steps as extra convert parameters. A direct
-  // quantize-to-grid option is trivial (snap starts/durations like
-  // quantizeSelectedNotes before committing); an octave-ghost filter (drop
-  // notes +12/+19 semitones above a concurrent louder note) would target the
+  // TODO: offer an octave-ghost filter as an extra convert parameter. Dropping
+  // notes +12/+19 semitones above a concurrent louder note would target the
   // dominant error class on real Demucs bass stems.
   const convertMutation = useMutation({
     mutationFn: async () => {
       const transcribed = await basicPitchClient.decode(track.assetKey, params);
-      const { tempo, replaceAllNotes } = useProjectStore.getState();
-      const notes = transcribed.map((note) => ({
-        id: generateNoteId(),
-        pitch: note.pitchMidi,
-        start: secondsToBeats(note.startSeconds + track.offset, tempo),
-        duration: secondsToBeats(note.durationSeconds, tempo),
-        velocity: Math.max(1, Math.min(127, Math.round(note.amplitude * 127))),
-      }));
+      const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
+      const gridSize = GRID_SNAP_VALUES[gridSnap];
+      const notes = transcribed.map((note) => {
+        const start = secondsToBeats(note.startSeconds + track.offset, tempo);
+        const duration = secondsToBeats(note.durationSeconds, tempo);
+        return {
+          id: generateNoteId(),
+          pitch: note.pitchMidi,
+          start: quantizeToGrid ? snapToGrid(start, gridSize) : start,
+          duration: quantizeToGrid
+            ? Math.max(gridSize, snapToGrid(duration, gridSize))
+            : duration,
+          velocity: Math.max(
+            1,
+            Math.min(127, Math.round(note.amplitude * 127)),
+          ),
+        };
+      });
       replaceAllNotes(notes);
       return notes.length;
     },
@@ -244,6 +255,17 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
             </span>
           </div>
         </div>
+
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300 has-disabled:cursor-default">
+          <input
+            type="checkbox"
+            checked={quantizeToGrid}
+            disabled={!analyzed}
+            onChange={(e) => setQuantizeToGrid(e.target.checked)}
+            className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+          />
+          Quantize to current grid ({gridSnap})
+        </label>
 
         <div className="space-y-2 border-t border-neutral-700 pt-4">
           <p className="text-xs leading-relaxed text-amber-200/70">
