@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useTransport } from "../hooks/use-transport";
+import { useAudio } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
@@ -300,7 +300,8 @@ export function PianoRoll() {
     : null;
 
   // Transport state from hook (source of truth: Tone.js Transport)
-  const { isPlaying, position } = useTransport();
+  const isPlaying = useAudio((state) => state.isPlaying);
+  const position = useAudio((state) => state.position);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

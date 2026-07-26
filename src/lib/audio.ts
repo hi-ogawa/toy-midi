@@ -164,6 +164,23 @@ export const GM_PROGRAMS = [
 // "loading" synchronously on open, so it is only observable outside a session.
 export type AudioStatus = "idle" | "loading" | "ready" | "error";
 
+export type AudioState = {
+  status: AudioStatus;
+  isPlaying: boolean;
+  position: number;
+};
+
+// from Tone.js TransportEventNames type
+const TRANSPORT_EVENT_NAMES = [
+  "start",
+  "stop",
+  "pause",
+  "loop",
+  "loopEnd",
+  "loopStart",
+  "ticks",
+] as const;
+
 /**
  * AudioManager handles audio-specific functionality:
  * - Audio file loading and playback sync
@@ -171,8 +188,8 @@ export type AudioStatus = "idle" | "loading" | "ready" | "error";
  * - Volume/mixer controls
  * - Metronome
  *
- * Transport state (play/pause/stop/seek) is managed by useTransport hook,
- * which directly interfaces with Tone.js Transport.
+ * AudioManager also owns transport state and exposes it to React through an
+ * external-store interface.
  *
  * Lifecycle: starts "idle"; init() moves through "loading" to "ready"
  * (or "error"). Until ready, playback/synth methods are no-ops, so callers
@@ -196,25 +213,82 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
-  private status: AudioStatus = "idle";
-  private statusListeners = new Set<() => void>();
+  private state: AudioState = {
+    status: "idle",
+    isPlaying: false,
+    position: 0,
+  };
+  private stateListeners = new Set<() => void>();
+  private transportRaf: number | null = null;
 
-  // getStatus/subscribeStatus/setStatus are useSyncExternalStore ceremony
-  // backing the useAudioStatus() hook.
-  getStatus(): AudioStatus {
-    return this.status;
+  constructor() {
+    for (const event of TRANSPORT_EVENT_NAMES) {
+      Tone.getTransport().on(event, this.handleTransportEvent);
+    }
   }
 
-  subscribeStatus(listener: () => void): () => void {
-    this.statusListeners.add(listener);
-    return () => this.statusListeners.delete(listener);
+  getState = (): AudioState => this.state;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.stateListeners.add(listener);
+    return () => this.stateListeners.delete(listener);
+  };
+
+  private setState(next: Partial<AudioState>): void {
+    const state = { ...this.state, ...next };
+    if (
+      state.status === this.state.status &&
+      state.isPlaying === this.state.isPlaying &&
+      state.position === this.state.position
+    ) {
+      return;
+    }
+    this.state = state;
+    for (const listener of this.stateListeners) {
+      listener();
+    }
   }
 
   private setStatus(status: AudioStatus): void {
-    this.status = status;
-    for (const listener of this.statusListeners) {
-      listener();
+    this.setState({ status });
+  }
+
+  private handleTransportEvent = (): void => {
+    this.updateTransportState();
+    if (this.state.isPlaying) {
+      this.startTransportRaf();
+    } else {
+      this.stopTransportRaf();
+      // Tone fires some events before its public state has settled.
+      queueMicrotask(() => this.updateTransportState());
     }
+  };
+
+  private updateTransportState(): void {
+    const transport = Tone.getTransport();
+    this.setState({
+      isPlaying: transport.state === "started",
+      position: transport.seconds,
+    });
+  }
+
+  private startTransportRaf(): void {
+    if (this.transportRaf !== null) {
+      return;
+    }
+    const update = () => {
+      this.updateTransportState();
+      this.transportRaf = requestAnimationFrame(update);
+    };
+    this.transportRaf = requestAnimationFrame(update);
+  }
+
+  private stopTransportRaf(): void {
+    if (this.transportRaf === null) {
+      return;
+    }
+    cancelAnimationFrame(this.transportRaf);
+    this.transportRaf = null;
   }
 
   async init(): Promise<void> {
@@ -288,7 +362,7 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
-    if (this.status !== "ready") {
+    if (this.state.status !== "ready") {
       return;
     }
     // Cheap operations - always apply
@@ -318,7 +392,7 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
-    if (this.status !== "ready") {
+    if (this.state.status !== "ready") {
       return;
     }
     Tone.getTransport().start();
@@ -338,6 +412,7 @@ class AudioManager {
 
   seek(seconds: number): void {
     Tone.getTransport().seconds = Math.max(0, seconds);
+    this.updateTransportState();
   }
 
   // Attach a decoded buffer to a track's player and sync it to the Transport
@@ -410,7 +485,7 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
-    if (this.status !== "ready") {
+    if (this.state.status !== "ready") {
       return;
     }
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
@@ -418,14 +493,14 @@ class AudioManager {
 
   // Note preview with manual control (for keyboard interaction)
   noteOn(pitch: number): void {
-    if (this.status !== "ready") {
+    if (this.state.status !== "ready") {
       return;
     }
     this.midiSynth.noteOn(pitch, 100);
   }
 
   noteOff(pitch: number): void {
-    if (this.status !== "ready") {
+    if (this.state.status !== "ready") {
       return;
     }
     this.midiSynth.noteOff(pitch);
