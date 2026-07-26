@@ -135,6 +135,8 @@ export interface AudioTrack {
   audioWaveform: AudioWaveform;
 }
 
+export const DEFAULT_WAVEFORM_HEIGHT = 60;
+
 let noteIdCounter = 0;
 export function generateNoteId(): string {
   return `note-${++noteIdCounter}`;
@@ -702,7 +704,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
 
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...migrated };
-  const legacyWaveformHeight = migrated.waveformHeight ?? 60;
+  const legacyWaveformHeight =
+    migrated.waveformHeight ?? DEFAULT_WAVEFORM_HEIGHT;
 
   // Update note ID counter to avoid collisions
   const maxId = merged.notes.reduce((max, n) => {
