@@ -69,9 +69,35 @@ test.describe("Multiple Audio Tracks", () => {
     expect(tracks[1].fileName).toBe("test-audio.wav");
   });
 
+  test("resizes audio track lanes independently", async ({ page }) => {
+    await loadAudioFile(page, "test-audio.wav");
+    await loadAudioFile(page, "test-audio-2.wav");
+
+    const regions = page.getByTestId("audio-track-region");
+    const firstBox = (await regions.first().boundingBox())!;
+    const secondBox = (await regions.nth(1).boundingBox())!;
+
+    await page.mouse.move(firstBox.x + 10, firstBox.y + firstBox.height + 1);
+    await page.mouse.down();
+    await page.mouse.move(firstBox.x + 10, firstBox.y + firstBox.height + 31);
+    await page.mouse.up();
+
+    expect((await regions.first().boundingBox())!.height).toBe(
+      firstBox.height + 30,
+    );
+    expect((await regions.nth(1).boundingBox())!.height).toBe(secondBox.height);
+    expect((await regions.nth(1).boundingBox())!.y).toBe(secondBox.y + 30);
+  });
+
   test("two tracks persist across reload", async ({ page }) => {
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
+
+    await evaluateStore(page, (store) => {
+      const [first, second] = store.getState().audioTracks;
+      store.getState().updateAudioTrack(first.id, { waveformHeight: 80 });
+      store.getState().updateAudioTrack(second.id, { waveformHeight: 100 });
+    });
 
     await evaluateFlushAutoSave(page);
     await page.reload();
@@ -83,6 +109,10 @@ test.describe("Multiple Audio Tracks", () => {
       "test-audio.wav",
       "test-audio-2.wav",
     ]);
+    const waveformHeights = await evaluateStore(page, (store) =>
+      store.getState().audioTracks.map((track) => track.waveformHeight),
+    );
+    expect(waveformHeights).toEqual([80, 100]);
   });
 
   test("drags linked audio offsets together", async ({ page }) => {

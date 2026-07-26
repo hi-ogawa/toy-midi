@@ -338,7 +338,6 @@ test.describe("Project Persistence", () => {
       state.setScrollY(60);
       state.setPixelsPerBeat(120);
       state.setPixelsPerKey(30);
-      state.setWaveformHeight(100);
     });
 
     // Verify the changes were applied
@@ -371,15 +370,9 @@ test.describe("Project Persistence", () => {
       page,
       (store) => store.getState().pixelsPerKey,
     );
-    const restoredWaveformHeight = await evaluateStore(
-      page,
-      (store) => store.getState().waveformHeight,
-    );
-
     expect(restoredScrollX).toBe(25);
     expect(restoredScrollY).toBe(60);
     expect(restoredPixelsPerBeat).toBe(120);
     expect(restoredPixelsPerKey).toBe(30);
-    expect(restoredWaveformHeight).toBe(100);
   });
 });
