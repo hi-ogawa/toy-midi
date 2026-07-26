@@ -19,6 +19,7 @@ test.describe("Audio to MIDI", () => {
   test("transcribes an audio track and replaces notes as one undo step", async ({
     page,
   }) => {
+    test.setTimeout(120_000);
     await page.goto("/");
     await clickNewProject(page);
     await loadAudioFile(page, "test-tones.wav", "test-tones.wav");
@@ -47,11 +48,13 @@ test.describe("Audio to MIDI", () => {
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
-    // longer under parallel suite load, especially on CI runners.
+    // longer under parallel suite load. CI forces the CPU backend because
+    // headless WebGL can hang, and its first model frame can take over 30s on
+    // GitHub's two-core runner.
     await panel.getByTestId("analyze-button").click();
     await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
       "Analyzed",
-      { timeout: 30_000 },
+      { timeout: 90_000 },
     );
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
