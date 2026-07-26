@@ -1,5 +1,5 @@
-import { MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
-import { useCallback } from "react";
+import { GaugeIcon, MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { type ComponentProps, type ReactNode, useCallback } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import {
   MAX_DB,
@@ -18,11 +18,13 @@ import { cn } from "./ui/utils";
 
 export function Mixer() {
   const {
+    masterVolume,
     midiVolume,
     metronomeVolume,
     midiMuted,
     metronomeEnabled,
     audioTracks,
+    setMasterVolume,
     setMidiVolume,
     setMetronomeVolume,
     setMidiMuted,
@@ -30,6 +32,15 @@ export function Mixer() {
   } = useProjectStore();
   const zeroDbPercent = dbToPercent(0);
   const formatDb = useCallback((value: number) => value.toFixed(1), []);
+  const masterDbInput = useDraftInput({
+    value: gainToDb(masterVolume),
+    onCommit: (db) => setMasterVolume(dbToGain(db)),
+    min: MIN_DB,
+    max: MAX_DB,
+    step: 0.5,
+    parse: "float",
+    format: formatDb,
+  });
   const midiDbInput = useDraftInput({
     value: gainToDb(midiVolume),
     onCommit: (db) => setMidiVolume(dbToGain(db)),
@@ -50,51 +61,16 @@ export function Mixer() {
   });
 
   return (
-    <div className="flex justify-center gap-8 py-4">
-      {/* MIDI Channel */}
-      <div className="flex flex-col items-center gap-3 min-w-24">
-        <div className="flex items-center gap-2">
-          <MusicIcon className="size-4 text-muted-foreground" />
-          <label className="text-xs font-medium text-neutral-300">MIDI</label>
-        </div>
-        <div className="relative h-48">
-          <div
-            className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-            style={{ bottom: `${zeroDbPercent}%` }}
-          />
-          <Slider
-            value={[gainToPercent(midiVolume)]}
-            onValueChange={([v]) => setMidiVolume(percentToGain(v))}
-            max={100}
-            step={1}
-            orientation="vertical"
-            className="h-48"
-          />
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
-          <input
-            type="text"
-            inputMode="decimal"
-            aria-label="MIDI level in dB"
-            className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
-            {...midiDbInput.props}
-          />
-          <span>dB</span>
-        </div>
-        <Toggle
-          value={midiMuted}
-          onChange={setMidiMuted}
-          aria-label="Toggle MIDI mute"
-          title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
-          className={cn(
-            "h-8 min-w-8 px-1.5",
-            midiMuted &&
-              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
-          )}
-        >
-          <VolumeXIcon className="size-4" />
-        </Toggle>
-      </div>
+    <div className="flex justify-center gap-8 py-1">
+      <MixerChannel
+        icon={<GaugeIcon className="size-4 text-muted-foreground" />}
+        label="Master"
+        volume={masterVolume}
+        onVolumeChange={setMasterVolume}
+        dbInputProps={masterDbInput.props}
+        sliderTestId="mixer-master-volume-slider"
+        zeroDbPercent={zeroDbPercent}
+      />
 
       {/* Audio Channels (one per loaded track) */}
       {audioTracks.map((track, index) => (
@@ -107,50 +83,54 @@ export function Mixer() {
         />
       ))}
 
-      {/* Metronome Channel */}
-      <div className="flex flex-col items-center gap-3 min-w-24">
-        <div className="flex items-center gap-2">
-          <MetronomeIcon className="size-4 text-muted-foreground" />
-          <label className="text-xs font-medium text-neutral-300">Metro</label>
-        </div>
-        <div className="relative h-48">
-          <div
-            className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-            style={{ bottom: `${zeroDbPercent}%` }}
-          />
-          <Slider
-            value={[gainToPercent(metronomeVolume)]}
-            onValueChange={([v]) => setMetronomeVolume(percentToGain(v))}
-            max={100}
-            step={1}
-            orientation="vertical"
-            className="h-48"
-          />
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
-          <input
-            type="text"
-            inputMode="decimal"
-            aria-label="Metronome level in dB"
-            className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
-            {...metronomeDbInput.props}
-          />
-          <span>dB</span>
-        </div>
-        <Toggle
-          value={!metronomeEnabled}
-          onChange={(muted) => setMetronomeEnabled(!muted)}
-          aria-label="Toggle metronome mute"
-          title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
-          className={cn(
-            "h-8 min-w-8 px-1.5",
-            !metronomeEnabled &&
-              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
-          )}
-        >
-          <VolumeXIcon className="size-4" />
-        </Toggle>
-      </div>
+      <MixerChannel
+        icon={<MusicIcon className="size-4 text-muted-foreground" />}
+        label="MIDI"
+        volume={midiVolume}
+        onVolumeChange={setMidiVolume}
+        dbInputProps={midiDbInput.props}
+        zeroDbPercent={zeroDbPercent}
+        action={
+          <Toggle
+            value={midiMuted}
+            onChange={setMidiMuted}
+            aria-label="Toggle MIDI mute"
+            title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
+            className={cn(
+              "h-8 min-w-8 px-1.5",
+              midiMuted &&
+                "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+            )}
+          >
+            <VolumeXIcon className="size-4" />
+          </Toggle>
+        }
+      />
+
+      <MixerChannel
+        icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
+        label="Metro"
+        volume={metronomeVolume}
+        onVolumeChange={setMetronomeVolume}
+        dbInputProps={metronomeDbInput.props}
+        zeroDbPercent={zeroDbPercent}
+        className="border-l border-neutral-700 pl-8"
+        action={
+          <Toggle
+            value={!metronomeEnabled}
+            onChange={(muted) => setMetronomeEnabled(!muted)}
+            aria-label="Toggle metronome mute"
+            title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
+            className={cn(
+              "h-8 min-w-8 px-1.5",
+              !metronomeEnabled &&
+                "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+            )}
+          >
+            <VolumeXIcon className="size-4" />
+          </Toggle>
+        }
+      />
     </div>
   );
 }
@@ -179,12 +159,63 @@ function AudioMixerChannel({
   });
 
   return (
-    <div className="flex flex-col items-center gap-3 min-w-24">
+    <MixerChannel
+      icon={<Volume2Icon className="size-4 text-muted-foreground" />}
+      label={label}
+      labelTitle={track.fileName}
+      volume={track.volume}
+      onVolumeChange={(volume) => updateAudioTrack(track.id, { volume })}
+      dbInputProps={dbInput.props}
+      zeroDbPercent={zeroDbPercent}
+      action={
+        <Toggle
+          value={track.muted}
+          onChange={(muted) => updateAudioTrack(track.id, { muted })}
+          aria-label={`Toggle ${label} mute`}
+          title={track.muted ? `Unmute ${label}` : `Mute ${label}`}
+          className={cn(
+            "h-8 min-w-8 px-1.5",
+            track.muted &&
+              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+          )}
+        >
+          <VolumeXIcon className="size-4" />
+        </Toggle>
+      }
+    />
+  );
+}
+
+function MixerChannel({
+  icon,
+  label,
+  labelTitle,
+  volume,
+  onVolumeChange,
+  dbInputProps,
+  zeroDbPercent,
+  action,
+  sliderTestId,
+  className,
+}: {
+  icon: ReactNode;
+  label: string;
+  labelTitle?: string;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  dbInputProps: ComponentProps<"input">;
+  zeroDbPercent: number;
+  action?: ReactNode;
+  sliderTestId?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex min-w-24 flex-col items-center gap-3", className)}>
       <div className="flex items-center gap-2">
-        <Volume2Icon className="size-4 text-muted-foreground" />
+        {icon}
         <label
-          className="text-xs font-medium text-neutral-300 max-w-24 truncate"
-          title={track.fileName}
+          className="max-w-24 truncate text-xs font-medium text-neutral-300"
+          title={labelTitle}
         >
           {label}
         </label>
@@ -195,10 +226,9 @@ function AudioMixerChannel({
           style={{ bottom: `${zeroDbPercent}%` }}
         />
         <Slider
-          value={[gainToPercent(track.volume)]}
-          onValueChange={([v]) =>
-            updateAudioTrack(track.id, { volume: percentToGain(v) })
-          }
+          data-testid={sliderTestId}
+          value={[gainToPercent(volume)]}
+          onValueChange={([value]) => onVolumeChange(percentToGain(value))}
           max={100}
           step={1}
           orientation="vertical"
@@ -209,25 +239,13 @@ function AudioMixerChannel({
         <input
           type="text"
           inputMode="decimal"
-          aria-label={`${label} level in dB`}
+          aria-label={`${label === "Metro" ? "Metronome" : label} level in dB`}
           className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
-          {...dbInput.props}
+          {...dbInputProps}
         />
         <span>dB</span>
       </div>
-      <Toggle
-        value={track.muted}
-        onChange={(muted) => updateAudioTrack(track.id, { muted })}
-        aria-label={`Toggle ${label} mute`}
-        title={track.muted ? `Unmute ${label}` : `Mute ${label}`}
-        className={cn(
-          "h-8 min-w-8 px-1.5",
-          track.muted &&
-            "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
-        )}
-      >
-        <VolumeXIcon className="size-4" />
-      </Toggle>
+      {action ?? <div className="h-8" />}
     </div>
   );
 }

@@ -16,6 +16,8 @@ import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { Button } from "./components/ui/button";
 import { Dialog } from "./components/ui/dialog";
+import { FloatingPanel } from "./components/ui/floating-panel";
+import { cn } from "./components/ui/utils";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
@@ -163,9 +165,14 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
             </Button>
             <Button
               data-testid="mixer-button"
-              onClick={() => setIsMixerOpen(true)}
+              onClick={() => setIsMixerOpen((open) => !open)}
+              aria-pressed={isMixerOpen}
               title="Mixer"
-              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isMixerOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
             >
               <SlidersHorizontalIcon className="size-5" />
             </Button>
@@ -182,14 +189,15 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      <Dialog
-        isOpen={isMixerOpen}
-        onClose={() => setIsMixerOpen(false)}
-        title="Mixer"
-        testId="mixer-dialog"
-      >
-        <Mixer />
-      </Dialog>
+      {isMixerOpen && (
+        <FloatingPanel
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="mixer-panel"
+        >
+          <Mixer />
+        </FloatingPanel>
+      )}
       <Dialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
