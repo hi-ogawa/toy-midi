@@ -17,7 +17,7 @@ src/
 │   ├── help-overlay.tsx    # code-generated from lib/keybindings.ts
 │   └── ui/                 # Radix/cmdk wrappers (button, dialog, slider, ...)
 ├── hooks/
-│   ├── use-transport.ts    # reactive { isPlaying, position } from Tone.Transport via RAF
+│   ├── use-audio.ts        # selector hook for AudioManager's external state
 │   ├── use-draft-input.ts  # commit-on-Enter numeric input (+ use-draft-text-input.ts)
 │   └── use-window-event.ts # useEffectEvent-based window listener
 ├── lib/
@@ -96,7 +96,7 @@ There is exactly one implicit MIDI track (a flat `notes: Note[]`) and any number
 
 `useProjectStore` (Zustand) holds music data (`notes`, `locators`, `audioTracks`, `tempo`, `timeSignature`, `totalBeats`), editor state (selections, `gridSnap`, `clipboard`), mixer settings, and viewport state (`scrollX`/`scrollY`, `pixelsPerBeat`/`pixelsPerKey`, `waveformHeight`).
 
-Playback state is deliberately NOT in the store. `useTransport()` reads `isPlaying`/`position` directly from Tone.Transport with a RAF loop while playing, and controls go through `audioManager.play/pause/seek`.
+Playback state is deliberately NOT in the project store. `AudioManager` owns a cached external-store snapshot (`status`, `isPlaying`, `position`), Tone.Transport event listeners, and one RAF loop while playing. UI reads selected snapshot values through `useAudio(selector)`, and controls go through `audioManager.play/pause/seek`.
 
 Serialization lives next to the store: `SavedProject` (version 2), `toSavedProject` (strips transient fields), `migrateSavedProject` (v1 single-audio → `audioTracks[]`), `fromSavedProject` (merges defaults, rewinds id counters).
 
@@ -110,7 +110,7 @@ Selected notes can be quantized with `Q`; the command snaps their starts and dur
 
 The single store→audio sync point is `applyState(state, prevState)`, subscribed to the store by the project session. It always applies volumes/mute/tempo and diff-guards the expensive updates (program change, note `Tone.Part` rebuild, audio track create/dispose).
 
-Readiness is explicit state: `audioManager` starts `"idle"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness (the play button disables while loading) subscribes via `useAudioStatus()`.
+Readiness is explicit state: `audioManager` starts `"idle"` and `init()` moves it through `"loading"` to `"ready"` (or `"error"`). Playback/synth methods (`play`, `togglePlayback`, `applyState`, note previews) are guarded no-ops until ready, so callers never check first; UI that must reflect readiness selects `status` via `useAudio()`.
 
 AudioContext unlock: `unlockAudioOnFirstGesture()` installs capture-phase `pointerdown`/`keydown` listeners that call `Tone.start()`, so init can safely run on a suspended context.
 
