@@ -170,98 +170,6 @@ export type AudioState = {
   position: number;
 };
 
-// from Tone.js TransportEventNames type
-const TRANSPORT_EVENT_NAMES = [
-  "start",
-  "stop",
-  "pause",
-  "loop",
-  "loopEnd",
-  "loopStart",
-  "ticks",
-] as const;
-
-class AudioStateStore {
-  private snapshot: AudioState = {
-    status: "idle",
-    isPlaying: false,
-    position: 0,
-  };
-  private listeners = new Set<() => void>();
-  private transportRaf: number | null = null;
-
-  constructor() {
-    for (const event of TRANSPORT_EVENT_NAMES) {
-      Tone.getTransport().on(event, this.handleTransportEvent);
-    }
-  }
-
-  getSnapshot = (): AudioState => this.snapshot;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  update(next: Partial<AudioState>): void {
-    const snapshot = { ...this.snapshot, ...next };
-    if (
-      snapshot.status === this.snapshot.status &&
-      snapshot.isPlaying === this.snapshot.isPlaying &&
-      snapshot.position === this.snapshot.position
-    ) {
-      return;
-    }
-    this.snapshot = snapshot;
-    for (const listener of this.listeners) {
-      listener();
-    }
-  }
-
-  seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
-    this.updateTransportSnapshot();
-  }
-
-  private handleTransportEvent = (): void => {
-    this.updateTransportSnapshot();
-    if (this.snapshot.isPlaying) {
-      this.startTransportRaf();
-    } else {
-      this.stopTransportRaf();
-      // Tone fires some events before its public state has settled.
-      queueMicrotask(() => this.updateTransportSnapshot());
-    }
-  };
-
-  private updateTransportSnapshot(): void {
-    const transport = Tone.getTransport();
-    this.update({
-      isPlaying: transport.state === "started",
-      position: transport.seconds,
-    });
-  }
-
-  private startTransportRaf(): void {
-    if (this.transportRaf !== null) {
-      return;
-    }
-    const update = () => {
-      this.updateTransportSnapshot();
-      this.transportRaf = requestAnimationFrame(update);
-    };
-    this.transportRaf = requestAnimationFrame(update);
-  }
-
-  private stopTransportRaf(): void {
-    if (this.transportRaf === null) {
-      return;
-    }
-    cancelAnimationFrame(this.transportRaf);
-    this.transportRaf = null;
-  }
-}
-
 /**
  * AudioManager handles audio-specific functionality:
  * - Audio file loading and playback sync
@@ -542,6 +450,98 @@ class AudioManager {
   setProgram(programNumber: number): void {
     // Fire and forget - programChange is async but we don't need to wait
     void this.midiSynth.programChange(programNumber);
+  }
+}
+
+// from Tone.js TransportEventNames type
+const TRANSPORT_EVENT_NAMES = [
+  "start",
+  "stop",
+  "pause",
+  "loop",
+  "loopEnd",
+  "loopStart",
+  "ticks",
+] as const;
+
+class AudioStateStore {
+  private snapshot: AudioState = {
+    status: "idle",
+    isPlaying: false,
+    position: 0,
+  };
+  private listeners = new Set<() => void>();
+  private transportRaf: number | null = null;
+
+  constructor() {
+    for (const event of TRANSPORT_EVENT_NAMES) {
+      Tone.getTransport().on(event, this.handleTransportEvent);
+    }
+  }
+
+  getSnapshot = (): AudioState => this.snapshot;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  update(next: Partial<AudioState>): void {
+    const snapshot = { ...this.snapshot, ...next };
+    if (
+      snapshot.status === this.snapshot.status &&
+      snapshot.isPlaying === this.snapshot.isPlaying &&
+      snapshot.position === this.snapshot.position
+    ) {
+      return;
+    }
+    this.snapshot = snapshot;
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
+
+  seek(seconds: number): void {
+    Tone.getTransport().seconds = Math.max(0, seconds);
+    this.updateTransportSnapshot();
+  }
+
+  private handleTransportEvent = (): void => {
+    this.updateTransportSnapshot();
+    if (this.snapshot.isPlaying) {
+      this.startTransportRaf();
+    } else {
+      this.stopTransportRaf();
+      // Tone fires some events before its public state has settled.
+      queueMicrotask(() => this.updateTransportSnapshot());
+    }
+  };
+
+  private updateTransportSnapshot(): void {
+    const transport = Tone.getTransport();
+    this.update({
+      isPlaying: transport.state === "started",
+      position: transport.seconds,
+    });
+  }
+
+  private startTransportRaf(): void {
+    if (this.transportRaf !== null) {
+      return;
+    }
+    const update = () => {
+      this.updateTransportSnapshot();
+      this.transportRaf = requestAnimationFrame(update);
+    };
+    this.transportRaf = requestAnimationFrame(update);
+  }
+
+  private stopTransportRaf(): void {
+    if (this.transportRaf === null) {
+      return;
+    }
+    cancelAnimationFrame(this.transportRaf);
+    this.transportRaf = null;
   }
 }
 
