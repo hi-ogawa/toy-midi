@@ -136,19 +136,16 @@ export interface AudioTrack {
   audioWaveform: AudioWaveform;
 }
 
-let noteIdCounter = 0;
 export function generateNoteId(): string {
-  return `note-${++noteIdCounter}`;
+  return `note-${crypto.randomUUID()}`;
 }
 
-let locatorIdCounter = 0;
 export function generateLocatorId(): string {
-  return `locator-${++locatorIdCounter}`;
+  return `locator-${crypto.randomUUID()}`;
 }
 
-let audioTrackIdCounter = 0;
 export function generateAudioTrackId(): string {
-  return `audio-${++audioTrackIdCounter}`;
+  return `audio-${crypto.randomUUID()}`;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -704,26 +701,6 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
 
   // Merge with defaults (handles new fields gracefully)
   const merged = { ...DEFAULTS, ...migrated };
-
-  // Update note ID counter to avoid collisions
-  const maxId = merged.notes.reduce((max, n) => {
-    const match = n.id.match(/^note-(\d+)$/);
-    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
-  }, 0);
-  noteIdCounter = maxId;
-
-  // Update locator ID counter to avoid collisions
-  const maxLocatorId = (merged.locators ?? []).reduce((max, l) => {
-    const match = l.id.match(/^locator-(\d+)$/);
-    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
-  }, 0);
-  locatorIdCounter = maxLocatorId;
-
-  // Update audio track ID counter to avoid collisions
-  audioTrackIdCounter = merged.audioTracks.reduce((max, t) => {
-    const match = t.id.match(/^audio-(\d+)$/);
-    return match ? Math.max(max, Number.parseInt(match[1], 10)) : max;
-  }, 0);
 
   return {
     notes: merged.notes,
