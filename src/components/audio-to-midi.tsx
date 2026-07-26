@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { type ComponentProps, useRef, useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
@@ -14,15 +14,17 @@ import {
 import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+import { cn } from "./ui/utils";
 
 export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
-  const [quantizeToGrid, setQuantizeToGrid] = useState(false);
+  const [quantizeToGrid, setQuantizeToGrid] = useState(true);
   const [progress, setProgress] = useState<number>();
   const [analyzeElapsedMs, setAnalyzeElapsedMs] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
   const convertStartedAt = useRef<number>(undefined);
+  const lastConvertedSettings = useRef<string>(undefined);
   const gridSnap = useProjectStore((state) => state.gridSnap);
 
   // TODO: cached analysis timing is misleading because it measures this client
@@ -42,7 +44,9 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
     },
     onError: (error) => {
       console.error("Failed to analyze audio:", error);
-      toast.error("Failed to analyze audio");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to analyze audio",
+      );
     },
     onSettled: () => {
       setProgress(undefined);
@@ -60,6 +64,10 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   // dominant error class on real Demucs bass stems.
   const convertMutation = useMutation({
     mutationFn: async () => {
+      lastConvertedSettings.current = JSON.stringify({
+        params,
+        quantizeToGrid,
+      });
       const transcribed = await basicPitchClient.decode(track.assetKey, params);
       const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
       const gridSize = GRID_SNAP_VALUES[gridSnap];
@@ -102,187 +110,146 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       ? `Analyzing ${Math.round(progress * 100)}%`
       : "Analyzing..."
     : analyzeMutation.error
-      ? `Analysis failed${formatElapsedSuffix(analyzeElapsedMs)}`
+      ? "Analysis failed"
       : !analyzeMutation.isSuccess
         ? "Not analyzed"
         : `Analyzed${formatElapsedSuffix(analyzeElapsedMs)}`;
 
   const conversionStatus = convertMutation.error
-    ? `Failed${formatElapsedSuffix(convertElapsedMs)}`
-    : convertMutation.data !== undefined && convertElapsedMs !== undefined
-      ? `${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
-      : undefined;
+    ? "Conversion failed"
+    : convertMutation.data === 0
+      ? "No notes detected. Try lowering the frame threshold or widening the pitch range."
+      : convertMutation.data !== undefined && convertElapsedMs !== undefined
+        ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
+        : "Replaces all existing notes. Undo restores them.";
+
+  const convertNeedsRerun =
+    convertMutation.isSuccess &&
+    lastConvertedSettings.current !==
+      JSON.stringify({ params, quantizeToGrid });
 
   return (
-    <div className="w-96">
-      <section className="space-y-3">
-        <p className="truncate text-xs text-neutral-400" title={track.fileName}>
-          <span className="text-neutral-500">Audio track:</span>{" "}
-          <span
-            data-testid="audio-to-midi-file-name"
-            className="text-neutral-300"
-          >
-            {track.fileName}
-          </span>
-        </p>
-
-        <p className="text-xs leading-relaxed text-neutral-400">
-          Analyze the track once to prepare it for MIDI conversion.
+    <div className="w-96 space-y-4">
+      <section className="space-y-2">
+        <p
+          data-testid="audio-to-midi-file-name"
+          className="truncate text-xs text-neutral-300"
+          title={track.fileName}
+        >
+          {track.fileName}
         </p>
 
         <Button
           data-testid="analyze-button"
           onClick={() => analyzeMutation.mutate()}
           disabled={analyzeMutation.isPending || analyzeMutation.isSuccess}
-          className="h-9 w-full gap-1.5 bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+          className={cn(
+            "h-9 w-full px-3 text-sm",
+            analyzeMutation.isSuccess
+              ? "bg-background shadow-xs dark:border-input dark:bg-input/30"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
         >
           {analyzeMutation.isPending ? "Analyzing audio..." : "Analyze audio"}
         </Button>
 
         <div
           data-testid="audio-to-midi-analysis-status"
-          className="h-4 text-left text-xs text-neutral-400"
+          aria-live="polite"
+          className="h-4 text-xs text-neutral-400"
         >
           {analysisStatus}
         </div>
       </section>
 
-      <section
-        className={`mt-4 space-y-4 border-t border-neutral-700 pt-4 ${analyzeMutation.isSuccess ? "" : "opacity-50"}`}
-      >
-        <div>
-          <div className="flex items-center justify-between gap-4">
-            <h3 className="text-sm font-semibold text-neutral-100">
-              Conversion settings
-            </h3>
-            <button
-              onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
-              disabled={!analyzeMutation.isSuccess}
-              className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300 disabled:pointer-events-none"
-            >
-              Reset to defaults
-            </button>
-          </div>
-          <p className="mt-1 text-xs text-neutral-500">
-            Adjust these settings and convert again without re-analyzing.
-          </p>
-        </div>
-
-        <ThresholdSlider
+      <section className="space-y-5 border-t border-neutral-700 pt-4">
+        <ParamSlider
           label="Frame threshold"
           hint="Higher values detect fewer notes"
-          value={params.frameThreshold}
-          disabled={!analyzeMutation.isSuccess}
-          onChange={(frameThreshold) =>
+          valueText={params.frameThreshold.toFixed(2)}
+          value={[params.frameThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([frameThreshold]) =>
             setParams({ ...params, frameThreshold })
           }
         />
-        <ThresholdSlider
+        <ParamSlider
           label="Onset threshold"
           hint="Higher values create fewer splits"
-          value={params.onsetThreshold}
-          disabled={!analyzeMutation.isSuccess}
-          onChange={(onsetThreshold) =>
+          valueText={params.onsetThreshold.toFixed(2)}
+          value={[params.onsetThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([onsetThreshold]) =>
             setParams({ ...params, onsetThreshold })
           }
         />
+        <ParamSlider
+          label="Minimum note length"
+          valueText={`${params.minNoteLengthMs} ms`}
+          value={[params.minNoteLengthMs]}
+          min={0}
+          max={500}
+          step={1}
+          onValueChange={([minNoteLengthMs]) =>
+            setParams({ ...params, minNoteLengthMs })
+          }
+        />
+        {/* Slider bounds are the model's full pitch range (A0-C8) */}
+        <ParamSlider
+          label="Pitch range"
+          valueText={`${midiToNoteName(params.minPitchMidi)} – ${midiToNoteName(params.maxPitchMidi)}`}
+          value={[params.minPitchMidi, params.maxPitchMidi]}
+          min={21}
+          max={108}
+          step={1}
+          onValueChange={([minPitchMidi, maxPitchMidi]) =>
+            setParams({ ...params, minPitchMidi, maxPitchMidi })
+          }
+        />
 
-        <div className="flex items-center justify-between gap-2">
-          <label
-            htmlFor="audio-to-midi-min-note-length"
-            className="text-xs text-neutral-300"
-          >
-            Minimal note length
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={quantizeToGrid}
+              onChange={(e) => setQuantizeToGrid(e.target.checked)}
+              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            Quantize to current grid ({gridSnap})
           </label>
-          <div className="flex items-center gap-2">
-            <input
-              id="audio-to-midi-min-note-length"
-              type="number"
-              min={0}
-              max={500}
-              step={10}
-              disabled={!analyzeMutation.isSuccess}
-              value={params.minNoteLengthMs}
-              onChange={(e) =>
-                setParams({
-                  ...params,
-                  minNoteLengthMs: Number(e.target.value),
-                })
-              }
-              className="h-8 w-20 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
-            />
-            <span className="w-5 text-xs text-neutral-500">ms</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-neutral-300">Pitch range</span>
-          <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-            <input
-              type="number"
-              aria-label="Minimum pitch (MIDI)"
-              min={0}
-              max={127}
-              disabled={!analyzeMutation.isSuccess}
-              value={params.minPitchMidi}
-              onChange={(e) =>
-                setParams({ ...params, minPitchMidi: Number(e.target.value) })
-              }
-              className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
-            />
-            <span className="w-7 tabular-nums">
-              {midiToNoteName(params.minPitchMidi)}
-            </span>
-            <span className="text-neutral-600">to</span>
-            <input
-              type="number"
-              aria-label="Maximum pitch (MIDI)"
-              min={0}
-              max={127}
-              disabled={!analyzeMutation.isSuccess}
-              value={params.maxPitchMidi}
-              onChange={(e) =>
-                setParams({ ...params, maxPitchMidi: Number(e.target.value) })
-              }
-              className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-2 text-right text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
-            />
-            <span className="w-7 tabular-nums">
-              {midiToNoteName(params.maxPitchMidi)}
-            </span>
-          </div>
-        </div>
-
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300 has-disabled:cursor-default">
-          <input
-            type="checkbox"
-            checked={quantizeToGrid}
-            disabled={!analyzeMutation.isSuccess}
-            onChange={(e) => setQuantizeToGrid(e.target.checked)}
-            className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
-          />
-          Quantize to current grid ({gridSnap})
-        </label>
-
-        <div className="space-y-2 border-t border-neutral-700 pt-4">
-          <p className="text-xs leading-relaxed text-amber-200/70">
-            Converting replaces all existing MIDI notes. You can undo this
-            change.
-          </p>
-          <Button
-            data-testid="convert-button"
-            onClick={() => convertMutation.mutate()}
-            disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
-            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+          <button
+            onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
+            className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
           >
-            {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
-          </Button>
-          <p
-            data-testid="audio-to-midi-conversion-status"
-            className="h-4 text-left text-xs text-neutral-400"
-          >
-            {conversionStatus}
-          </p>
+            Reset to defaults
+          </button>
         </div>
+      </section>
+
+      <section className="space-y-2 border-t border-neutral-700 pt-4">
+        <Button
+          data-testid="convert-button"
+          onClick={() => convertMutation.mutate()}
+          disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
+          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          {convertMutation.isPending
+            ? "Converting..."
+            : convertNeedsRerun
+              ? "Convert again"
+              : "Convert to MIDI"}
+        </Button>
+        <p
+          data-testid="audio-to-midi-conversion-status"
+          aria-live="polite"
+          className="min-h-4 text-xs text-neutral-400"
+        >
+          {conversionStatus}
+        </p>
       </section>
     </div>
   );
@@ -298,36 +265,26 @@ function formatElapsed(elapsedMs: number) {
     : `${(elapsedMs / 1000).toFixed(1)}s`;
 }
 
-function ThresholdSlider({
+function ParamSlider({
   label,
   hint,
-  value,
-  disabled,
-  onChange,
+  valueText,
+  ...sliderProps
 }: {
   label: string;
-  hint: string;
-  value: number;
-  disabled: boolean;
-  onChange: (value: number) => void;
-}) {
+  hint?: string;
+  valueText: string;
+} & ComponentProps<typeof Slider>) {
   return (
     <div>
-      <div className="mb-2 flex justify-between text-xs text-neutral-300">
+      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
         <div>
           <label>{label}</label>
-          <p className="mt-0.5 text-neutral-500">{hint}</p>
+          {hint && <p className="mt-0.5 text-neutral-500">{hint}</p>}
         </div>
-        <span className="tabular-nums">{value.toFixed(2)}</span>
+        <span className="tabular-nums">{valueText}</span>
       </div>
-      <Slider
-        value={[value]}
-        min={0.05}
-        max={0.95}
-        step={0.05}
-        disabled={disabled}
-        onValueChange={([v]) => onChange(v)}
-      />
+      <Slider {...sliderProps} />
     </div>
   );
 }

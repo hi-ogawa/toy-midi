@@ -44,14 +44,16 @@ test.describe("Audio to MIDI", () => {
     await expect(panel.getByTestId("audio-to-midi-file-name")).toHaveText(
       "test-tones.wav",
     );
-    await expect(
-      panel.getByRole("heading", { name: "Conversion settings" }),
-    ).toBeVisible();
+    // Conversion params are editable before analysis; only Convert is gated
+    // on an analyzed track
     await expect(panel.getByTestId("convert-button")).toBeDisabled();
     const quantizeCheckbox = panel.getByRole("checkbox", {
       name: "Quantize to current grid (1/8)",
     });
-    await expect(quantizeCheckbox).toBeDisabled();
+    // Quantize defaults to on; uncheck it to observe the raw transcription
+    // first, then re-check later to cover the quantized path
+    await expect(quantizeCheckbox).toBeChecked();
+    await quantizeCheckbox.uncheck();
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
@@ -64,7 +66,6 @@ test.describe("Audio to MIDI", () => {
       { timeout: 10_000 },
     );
     await expect(panel.getByTestId("convert-button")).toBeEnabled();
-    await expect(quantizeCheckbox).toBeEnabled();
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
     // Step 2: convert commits the result, replacing all notes. The fixture
@@ -73,19 +74,32 @@ test.describe("Audio to MIDI", () => {
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
-    ).toHaveText(/^4 notes in (\d+ms|\d+\.\d+s)$/);
+    ).toHaveText(/^Created 4 notes in (\d+ms|\d+\.\d+s)$/);
     expect((await getNotes(page)).map((note) => note.pitch)).toEqual([
       60, 64, 67, 72,
     ]);
     const idsAfterFirstConvert = await getNoteIds(page);
 
     // Staged parameter edits apply on the next convert: narrowing the pitch
-    // range to exclude the C5 must drop it from the result
-    await panel.getByLabel("Maximum pitch (MIDI)").fill("71");
+    // range to exclude the C5 must drop it from the result. The max-pitch
+    // thumb is the last slider thumb in the panel (C8 = MIDI 108; B4 = 71).
+    await expect(panel.getByTestId("convert-button")).toHaveText(
+      "Convert to MIDI",
+    );
+    const maxPitchThumb = panel.getByRole("slider").last();
+    await maxPitchThumb.focus();
+    for (let i = 0; i < 108 - 71; i++) {
+      await maxPitchThumb.press("ArrowLeft");
+    }
+    await expect(maxPitchThumb).toHaveAttribute("aria-valuenow", "71");
+    // Edited settings surface as a pending re-convert on the button label
+    await expect(panel.getByTestId("convert-button")).toHaveText(
+      "Convert again",
+    );
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
-    ).toHaveText(/^3 notes in (\d+ms|\d+\.\d+s)$/);
+    ).toHaveText(/^Created 3 notes in (\d+ms|\d+\.\d+s)$/);
     expect((await getNotes(page)).map((note) => note.pitch)).toEqual([
       60, 64, 67,
     ]);
@@ -97,7 +111,7 @@ test.describe("Audio to MIDI", () => {
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
-    ).toHaveText(/^3 notes in (\d+ms|\d+\.\d+s)$/);
+    ).toHaveText(/^Created 3 notes in (\d+ms|\d+\.\d+s)$/);
     for (const { start, duration } of await getNotes(page)) {
       expect(start * 2).toBe(Math.round(start * 2));
       expect(duration * 2).toBe(Math.round(duration * 2));

@@ -7,8 +7,12 @@ import type { BasicPitchWorkerHandlers } from "./worker.ts";
 // Client for Basic Pitch (https://github.com/spotify/basic-pitch) audio→MIDI
 // transcription. The worker exposes the two inherent
 // stages separately: `analyze` runs model inference once per audio asset and
-// caches the raw activations worker-side, `decode` reruns only the cheap
-// activations→notes extraction with new parameters.
+// caches the raw activations worker-side, `decode` reruns only the
+// activations→notes extraction with new parameters. Decode is cheaper than
+// analyze but not instant. Example for a 3min song: ~12s analyze, then 1-5s
+// per decode depending on how many notes the params yield (and likely more for
+// exotic configs), so treat decode as a deliberate action rather than
+// something to rerun live on every parameter change.
 
 class BasicPitchClient {
   private rpc: RpcClient<BasicPitchWorkerHandlers> | undefined;
