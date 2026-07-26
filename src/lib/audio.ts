@@ -181,6 +181,37 @@ const TRANSPORT_EVENT_NAMES = [
   "ticks",
 ] as const;
 
+class AudioStateStore {
+  private snapshot: AudioState = {
+    status: "idle",
+    isPlaying: false,
+    position: 0,
+  };
+  private listeners = new Set<() => void>();
+
+  getSnapshot = (): AudioState => this.snapshot;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  update(next: Partial<AudioState>): void {
+    const snapshot = { ...this.snapshot, ...next };
+    if (
+      snapshot.status === this.snapshot.status &&
+      snapshot.isPlaying === this.snapshot.isPlaying &&
+      snapshot.position === this.snapshot.position
+    ) {
+      return;
+    }
+    this.snapshot = snapshot;
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
+}
+
 /**
  * AudioManager handles audio-specific functionality:
  * - Audio file loading and playback sync
@@ -213,12 +244,7 @@ class AudioManager {
   private metronomeSeq!: Tone.Sequence<number>;
   private metronomeChannel!: Tone.Channel;
 
-  private state: AudioState = {
-    status: "idle",
-    isPlaying: false,
-    position: 0,
-  };
-  private stateListeners = new Set<() => void>();
+  private stateStore = new AudioStateStore();
   private transportRaf: number | null = null;
 
   constructor() {
@@ -227,35 +253,17 @@ class AudioManager {
     }
   }
 
-  getState = (): AudioState => this.state;
+  getState = this.stateStore.getSnapshot;
 
-  subscribe = (listener: () => void): (() => void) => {
-    this.stateListeners.add(listener);
-    return () => this.stateListeners.delete(listener);
-  };
-
-  private setState(next: Partial<AudioState>): void {
-    const state = { ...this.state, ...next };
-    if (
-      state.status === this.state.status &&
-      state.isPlaying === this.state.isPlaying &&
-      state.position === this.state.position
-    ) {
-      return;
-    }
-    this.state = state;
-    for (const listener of this.stateListeners) {
-      listener();
-    }
-  }
+  subscribe = this.stateStore.subscribe;
 
   private setStatus(status: AudioStatus): void {
-    this.setState({ status });
+    this.stateStore.update({ status });
   }
 
   private handleTransportEvent = (): void => {
     this.updateTransportState();
-    if (this.state.isPlaying) {
+    if (this.getState().isPlaying) {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
@@ -266,7 +274,7 @@ class AudioManager {
 
   private updateTransportState(): void {
     const transport = Tone.getTransport();
-    this.setState({
+    this.stateStore.update({
       isPlaying: transport.state === "started",
       position: transport.seconds,
     });
@@ -362,7 +370,7 @@ class AudioManager {
    * When prevState is provided, only applies changed values to avoid expensive rebuilds.
    */
   applyState(state: ProjectState, prevState?: ProjectState): void {
-    if (this.state.status !== "ready") {
+    if (this.getState().status !== "ready") {
       return;
     }
     // Cheap operations - always apply
@@ -392,7 +400,7 @@ class AudioManager {
   // Transport control methods (wrapper around Tone.Transport with app-specific logic)
 
   play(): void {
-    if (this.state.status !== "ready") {
+    if (this.getState().status !== "ready") {
       return;
     }
     Tone.getTransport().start();
@@ -485,7 +493,7 @@ class AudioManager {
 
   // Note preview (immediate, not synced to Transport)
   playNote(pitch: number, duration: number = 0.5): void {
-    if (this.state.status !== "ready") {
+    if (this.getState().status !== "ready") {
       return;
     }
     this.midiSynth.triggerAttackRelease(pitch, duration, 100);
@@ -493,14 +501,14 @@ class AudioManager {
 
   // Note preview with manual control (for keyboard interaction)
   noteOn(pitch: number): void {
-    if (this.state.status !== "ready") {
+    if (this.getState().status !== "ready") {
       return;
     }
     this.midiSynth.noteOn(pitch, 100);
   }
 
   noteOff(pitch: number): void {
-    if (this.state.status !== "ready") {
+    if (this.getState().status !== "ready") {
       return;
     }
     this.midiSynth.noteOff(pitch);
