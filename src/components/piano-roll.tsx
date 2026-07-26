@@ -1274,21 +1274,13 @@ export function PianoRoll() {
                 }}
               />
             )}
-            {/* Playhead line */}
-            {(() => {
-              const playheadBeat = secondsToBeats(position, tempo);
-              const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
-              // Only render if visible
-              if (playheadX < 0 || playheadX > viewportSize.width) {
-                return null;
-              }
-              return (
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
-                  style={{ left: playheadX }}
-                />
-              );
-            })()}
+            <PlayheadLine
+              position={position}
+              tempo={tempo}
+              scrollX={scrollX}
+              pixelsPerBeat={roundedPixelsPerBeat}
+              viewportWidth={viewportSize.width}
+            />
           </div>
         </div>
       </div>
@@ -1445,6 +1437,36 @@ export function PianoRoll() {
         </div>
       )}
     </div>
+  );
+}
+
+type PlayheadLineProps = {
+  position: number;
+  tempo: number;
+  scrollX: number;
+  pixelsPerBeat: number;
+  viewportWidth: number;
+};
+
+function PlayheadLine({
+  position,
+  tempo,
+  scrollX,
+  pixelsPerBeat,
+  viewportWidth,
+}: PlayheadLineProps) {
+  const playheadBeat = secondsToBeats(position, tempo);
+  const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
+
+  if (playheadX < 0 || playheadX > viewportWidth) {
+    return null;
+  }
+
+  return (
+    <div
+      className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
+      style={{ left: playheadX }}
+    />
   );
 }
 
