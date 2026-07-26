@@ -582,7 +582,9 @@ export interface SavedProject {
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   locators?: Locator[]; // Optional for backward compatibility
-  audioTracks: LegacySavedAudioTrack[];
+  audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
+    waveformHeight?: number;
+  })[];
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
   midiProgram?: number; // Optional for backward compatibility
@@ -599,9 +601,6 @@ export interface SavedProject {
 }
 
 type SavedAudioTrack = Omit<AudioTrack, "audioWaveform">;
-type LegacySavedAudioTrack = Omit<SavedAudioTrack, "waveformHeight"> & {
-  waveformHeight?: number;
-};
 
 export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
   version: 1;
@@ -734,7 +733,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     gridSnap: merged.gridSnap,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
-    audioTracks: merged.audioTracks.map((t: LegacySavedAudioTrack) => ({
+    audioTracks: merged.audioTracks.map((t) => ({
       ...t,
       waveformHeight: t.waveformHeight ?? legacyWaveformHeight,
       audioWaveform: { status: "pending" as const },
