@@ -6,12 +6,12 @@ import {
 import modelWeightsUrl from "@spotify/basic-pitch/model/group1-shard1of1.bin?url";
 import modelJsonUrl from "@spotify/basic-pitch/model/model.json?url";
 import * as tf from "@tensorflow/tfjs";
-import type {
-  BasicPitchRequest,
-  BasicPitchResponse,
-  TranscribedNote,
-  TranscribeParams,
-} from "./basic-pitch";
+import type { TranscribedNote, TranscribeParams } from "./basic-pitch";
+import { registerWorkerRpcHandlers } from "./rpc/worker.ts";
+
+function main(): void {
+  registerWorkerRpcHandlers(new BasicPitchWorkerHandlers());
+}
 
 // Model output frame rate: 22,050 Hz sample rate / 256 FFT hop
 const FRAME_DURATION_MS = 1000 / (22050 / 256);
@@ -91,50 +91,59 @@ let cache: {
   onsets: number[][];
 } | null = null;
 
-self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
-  const request = event.data;
-  const { requestId } = request;
-  const respond = (response: BasicPitchResponse) => self.postMessage(response);
-  try {
-    if (request.type === "analyze") {
-      basicPitch ??= initializeBasicPitch(request.backend);
-      const initializedBasicPitch = await basicPitch;
-      respond({ type: "ready", requestId, backend: tf.getBackend() });
-      if (cache?.cacheKey !== request.cacheKey) {
-        if (!request.pcm) {
-          throw new Error("Missing PCM for unanalyzed audio");
-        }
-        const frames: number[][] = [];
-        const onsets: number[][] = [];
-        await initializedBasicPitch.evaluateModel(
-          request.pcm,
-          (chunkFrames, chunkOnsets) => {
-            frames.push(...chunkFrames);
-            onsets.push(...chunkOnsets);
-          },
-          (percent) => respond({ type: "progress", requestId, percent }),
-        );
-        cache = { cacheKey: request.cacheKey, frames, onsets };
-      }
-      respond({ type: "analyzed", requestId });
-    } else {
-      if (cache?.cacheKey !== request.cacheKey) {
-        throw new Error("Audio not analyzed");
-      }
-      respond({
-        type: "notes",
-        requestId,
-        notes: decodeNotes(cache, request.params),
-      });
-    }
-  } catch (error) {
-    respond({
-      type: "error",
-      requestId,
-      message: error instanceof Error ? error.message : String(error),
-    });
+export class BasicPitchWorkerHandlers {
+  async initialize({ backend }: { backend?: string }): Promise<{
+    backend: string;
+  }> {
+    basicPitch ??= initializeBasicPitch(backend);
+    await basicPitch;
+    return { backend: tf.getBackend() };
   }
-};
+
+  async hasAnalysis({ cacheKey }: { cacheKey: string }): Promise<boolean> {
+    return cache?.cacheKey === cacheKey;
+  }
+
+  async analyze({
+    cacheKey,
+    pcm,
+    onProgress,
+  }: {
+    cacheKey: string;
+    pcm: Float32Array;
+    onProgress: (percent: number) => void;
+  }): Promise<void> {
+    if (!basicPitch) {
+      throw new Error("Basic Pitch not initialized");
+    }
+    const frames: number[][] = [];
+    const onsets: number[][] = [];
+    await (
+      await basicPitch
+    ).evaluateModel(
+      pcm,
+      (chunkFrames, chunkOnsets) => {
+        frames.push(...chunkFrames);
+        onsets.push(...chunkOnsets);
+      },
+      onProgress,
+    );
+    cache = { cacheKey, frames, onsets };
+  }
+
+  async decode({
+    cacheKey,
+    params,
+  }: {
+    cacheKey: string;
+    params: TranscribeParams;
+  }): Promise<TranscribedNote[]> {
+    if (cache?.cacheKey !== cacheKey) {
+      throw new Error("Audio not analyzed");
+    }
+    return decodeNotes(cache, params);
+  }
+}
 
 async function initializeBasicPitch(backend?: string): Promise<BasicPitch> {
   if (backend) {
@@ -179,3 +188,5 @@ function decodeNotes(
 function midiToHz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
+
+main();
