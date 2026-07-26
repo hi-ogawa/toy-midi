@@ -6,8 +6,8 @@ import {
 import modelWeightsUrl from "@spotify/basic-pitch/model/group1-shard1of1.bin?url";
 import modelJsonUrl from "@spotify/basic-pitch/model/model.json?url";
 import * as tf from "@tensorflow/tfjs";
-import type { TranscribedNote, TranscribeParams } from "./basic-pitch";
-import { registerWorkerRpcHandlers } from "./rpc/worker.ts";
+import { registerWorkerRpcHandlers } from "../rpc/worker.ts";
+import type { TranscribedNote, TranscribeParams } from "./transcription.ts";
 
 function main(): void {
   registerWorkerRpcHandlers(new BasicPitchWorkerHandlers());

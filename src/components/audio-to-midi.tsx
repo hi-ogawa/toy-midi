@@ -2,10 +2,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
-import {
-  basicPitchClient,
-  DEFAULT_TRANSCRIBE_PARAMS,
-} from "../lib/basic-pitch";
+import { basicPitchClient } from "../lib/basic-pitch/client";
+import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
 import { midiToNoteName, snapToGrid } from "../lib/music";
 import {
   type AudioTrack,
