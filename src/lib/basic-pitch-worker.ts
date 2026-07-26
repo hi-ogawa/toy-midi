@@ -79,11 +79,7 @@ tf.env().platform.setTimeoutCustom = (fn: () => void, delay: number) => {
 // The npm package ships the model files, but Vite fingerprints them as
 // separate assets, which breaks model.json's relative reference to the
 // weight shard. weightUrlConverter remaps it to the emitted asset URL.
-const basicPitch = new BasicPitch(
-  tf.loadGraphModel(modelJsonUrl, {
-    weightUrlConverter: async () => modelWeightsUrl,
-  }),
-);
+const basicPitch = initializeBasicPitch();
 
 // Raw activations for the most recently analyzed audio asset, so decode
 // requests rerun only the cheap extraction below. Kept worker-side because
@@ -107,7 +103,9 @@ self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
         }
         const frames: number[][] = [];
         const onsets: number[][] = [];
-        await basicPitch.evaluateModel(
+        await (
+          await basicPitch
+        ).evaluateModel(
           request.pcm,
           (chunkFrames, chunkOnsets) => {
             frames.push(...chunkFrames);
@@ -136,6 +134,21 @@ self.onmessage = async (event: MessageEvent<BasicPitchRequest>) => {
     });
   }
 };
+
+async function initializeBasicPitch(): Promise<BasicPitch> {
+  const backend = import.meta.env.VITE_BASIC_PITCH_BACKEND;
+  if (backend) {
+    if (!(await tf.setBackend(backend))) {
+      throw new Error(`Failed to initialize tfjs backend: ${backend}`);
+    }
+  }
+  await tf.ready();
+  return new BasicPitch(
+    tf.loadGraphModel(modelJsonUrl, {
+      weightUrlConverter: async () => modelWeightsUrl,
+    }),
+  );
+}
 
 function decodeNotes(
   { frames, onsets }: NonNullable<typeof cache>,
