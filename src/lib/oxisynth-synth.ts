@@ -31,7 +31,7 @@ const PROCESSOR_NAME = "oxisynth";
 export class OxiSynthSynth {
   private node!: AudioWorkletNode;
   private context: ToneContext;
-  private currentSoundfontId: string | null = null;
+  private currentSoundfontId: string | undefined;
   private pendingCallbacks = new Map<string, (data: unknown) => void>();
 
   readonly output: Tone.Gain;
