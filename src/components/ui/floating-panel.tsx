@@ -1,3 +1,4 @@
+import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 type FloatingPanelProps = {
@@ -22,10 +23,10 @@ export function FloatingPanel({
         <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
         <button
           onClick={onClose}
-          className="text-xl leading-none text-neutral-400 hover:text-neutral-200"
+          className="text-neutral-400 hover:text-neutral-200"
           aria-label={`Close ${title}`}
         >
-          ×
+          <XIcon className="size-5" />
         </button>
       </div>
       <div className="px-4 py-3">{children}</div>
