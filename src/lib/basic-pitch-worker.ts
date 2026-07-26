@@ -44,6 +44,22 @@ const FRAME_DURATION_MS = 1000 / (22050 / 256);
 // inference to a worker protects the UI thread but does not isolate it from
 // Chromium's shared GPU process.
 //
+// References:
+// - Basic Pitch inference loop and first-frame progress callback:
+//   https://github.com/spotify/basic-pitch-ts/blob/v1.0.1/src/inference.ts
+// - Basic Pitch worker support discussion:
+//   https://github.com/spotify/basic-pitch-ts/issues/19
+// - Basic Pitch WebGL inference hang report and WASM workaround:
+//   https://github.com/spotify/basic-pitch-ts/issues/22
+// - tfjs WebGL worker/OffscreenCanvas support:
+//   https://github.com/tensorflow/tfjs/issues/1506
+// - tfjs worker WebGL still sharing GPU resources with the UI:
+//   https://github.com/tensorflow/tfjs/issues/5454
+// - Chromium headless GPU requirements:
+//   https://chromium.googlesource.com/chromium/src/+/main/docs/gpu/using-gpu-hardware-in-headless-chrome.md
+// - Chromium SwiftShader modes and launch flags:
+//   https://chromium.googlesource.com/chromium/src/+/main/docs/gpu/swiftshader.md
+//
 // TODO: make CI inference deterministic instead of relying on implicit
 // headless WebGL selection. Evaluated options, in reliability order:
 // - select tfjs CPU before constructing BasicPitch (slow but deterministic);
