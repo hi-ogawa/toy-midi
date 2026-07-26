@@ -8,6 +8,7 @@ import { PianoRoll } from "./components/piano-roll";
 import { Settings } from "./components/settings";
 import { Transport } from "./components/transport";
 import { Dialog } from "./components/ui/dialog";
+import { FloatingPanel } from "./components/ui/floating-panel";
 import { useDraftTextInput } from "./hooks/use-draft-text-input";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./lib/keyboard";
@@ -149,14 +150,15 @@ function Editor({ projectId, initialProjectName }: EditorProps) {
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-      <Dialog
-        isOpen={isMixerOpen}
-        onClose={() => setIsMixerOpen(false)}
-        title="Mixer"
-        testId="mixer-dialog"
-      >
-        <Mixer />
-      </Dialog>
+      {isMixerOpen && (
+        <FloatingPanel
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="mixer-panel"
+        >
+          <Mixer />
+        </FloatingPanel>
+      )}
       <Dialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

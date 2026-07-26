@@ -50,7 +50,7 @@ export function Mixer() {
   });
 
   return (
-    <div className="flex justify-center gap-8 py-4">
+    <div className="flex justify-center gap-8 py-1">
       {/* MIDI Channel */}
       <div className="flex flex-col items-center gap-3 min-w-24">
         <div className="flex items-center gap-2">
