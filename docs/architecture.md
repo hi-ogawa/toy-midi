@@ -13,7 +13,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/app.tsx` owns the application shell and routing.
 - `src/components/piano-roll.tsx` owns editor interaction and rendering.
 - `src/lib/project-store.ts` owns project and editor state.
-- `src/lib/audio.ts` owns the Tone.js runtime graph.
+- `src/lib/audio.ts` owns Tone.js integration and the runtime audio graph.
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.
 
@@ -27,7 +27,7 @@ One audio manager owns the runtime graph for MIDI synthesis, audio-track playbac
 
 Audio readiness is explicit because the editor can mount before audio initialization finishes. Playback operations are safe no-ops until the graph is ready, and initialization failure does not prevent editing.
 
-Audio assets are decoded and prepared outside the runtime graph owner. Waveform extraction is skipped for long files so they remain playable without blocking the main thread.
+Audio file and ZIP resolution are independent of Tone.js, while decoding stays behind the audio integration boundary. Waveform extraction is skipped for long files so they remain playable without blocking the main thread.
 
 Undo and redo cover note edits only. Other project changes are not currently included in history.
 

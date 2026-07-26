@@ -1,7 +1,4 @@
 import JSZip from "jszip";
-import { toast } from "sonner";
-import * as Tone from "tone";
-import { type AudioView, createAudioView } from "./audio-view";
 
 const AUDIO_MIME_TYPES: Record<string, string> = {
   wav: "audio/wav",
@@ -43,37 +40,4 @@ export async function resolveAudioFiles(file: File): Promise<File[]> {
     throw new Error("ZIP does not contain a supported audio file.");
   }
   return files;
-}
-
-// Derive this from the max supported zoom: one point per pixel with four beats
-// visible in a 1920px viewport at 100 BPM.
-const POINTS_PER_SECOND = 800;
-const MAX_AUDIO_DURATION_SECONDS = 600;
-
-// Decode an audio file and prepare its waveform. Long files remain playable,
-// but skip waveform extraction to avoid blocking the main thread.
-export async function loadAudioFile(file: File): Promise<{
-  buffer: Tone.ToneAudioBuffer;
-  audioView?: AudioView;
-  duration: number;
-}> {
-  const url = URL.createObjectURL(file);
-  try {
-    const buffer = await Tone.ToneAudioBuffer.fromUrl(url);
-    if (buffer.duration > MAX_AUDIO_DURATION_SECONDS) {
-      toast.warning(
-        `Audio too long (${Math.round(buffer.duration / 60)} min). Waveform disabled.`,
-      );
-      return { buffer, duration: buffer.duration };
-    }
-
-    const audioView = createAudioView(
-      buffer.getChannelData(0),
-      buffer.sampleRate,
-      POINTS_PER_SECOND,
-    );
-    return { buffer, audioView, duration: buffer.duration };
-  } finally {
-    URL.revokeObjectURL(url);
-  }
 }

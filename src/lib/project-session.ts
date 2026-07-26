@@ -1,7 +1,6 @@
 import { toast } from "sonner";
 import { debounce } from "../utils/timing";
-import { audioManager } from "./audio";
-import { loadAudioFile } from "./audio-files";
+import { audioManager, loadAudioFile } from "./audio";
 import { historyStore } from "./history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
 import { projectStorage } from "./project-storage";

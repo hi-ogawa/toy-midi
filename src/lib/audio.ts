@@ -1,8 +1,10 @@
+import { toast } from "sonner";
 import * as Tone from "tone";
 import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../types";
+import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
 import { clampGain } from "./music";
 import { OxiSynthSynth } from "./oxisynth-synth";
@@ -365,4 +367,37 @@ export function unlockAudioOnFirstGesture(): void {
   };
   window.addEventListener("pointerdown", unlock, true);
   window.addEventListener("keydown", unlock, true);
+}
+
+// Derive this from the max supported zoom: one point per pixel with four beats
+// visible in a 1920px viewport at 100 BPM.
+const POINTS_PER_SECOND = 800;
+const MAX_AUDIO_DURATION_SECONDS = 600;
+
+// Decode through Tone and prepare the waveform. Long files remain playable,
+// but skip waveform extraction to avoid blocking the main thread.
+export async function loadAudioFile(file: File): Promise<{
+  buffer: Tone.ToneAudioBuffer;
+  audioView?: AudioView;
+  duration: number;
+}> {
+  const url = URL.createObjectURL(file);
+  try {
+    const buffer = await Tone.ToneAudioBuffer.fromUrl(url);
+    if (buffer.duration > MAX_AUDIO_DURATION_SECONDS) {
+      toast.warning(
+        `Audio too long (${Math.round(buffer.duration / 60)} min). Waveform disabled.`,
+      );
+      return { buffer, duration: buffer.duration };
+    }
+
+    const audioView = createAudioView(
+      buffer.getChannelData(0),
+      buffer.sampleRate,
+      POINTS_PER_SECOND,
+    );
+    return { buffer, audioView, duration: buffer.duration };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
