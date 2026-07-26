@@ -181,12 +181,12 @@ async function restoreAudioTracks(
   }
 }
 
-// Load a track's stored asset bytes and decode them; null when the asset
+// Load a track's stored asset bytes and decode them; undefined when the asset
 // is missing from storage. No store access, no user-facing effects.
 async function loadStoredTrackAudio(track: AudioTrack) {
   const asset = await projectStorage.loadAsset(track.assetKey);
   if (!asset) {
-    return null;
+    return undefined;
   }
   return await loadAudioFile(new File([asset.blob], asset.name));
 }

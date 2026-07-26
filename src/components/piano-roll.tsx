@@ -297,7 +297,7 @@ export function PianoRoll() {
   const totalWaveformHeight = waveformHeight * audioTracks.length;
   const selectedAudioTrack = selectedAudioTrackId
     ? audioTracks.find((track) => track.id === selectedAudioTrackId)
-    : null;
+    : undefined;
 
   // Transport state from hook (source of truth: Tone.js Transport)
   const { isPlaying, position } = useTransport();
@@ -438,8 +438,8 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
-      selectLocator(null);
-      selectAudioTrack(null);
+      selectLocator(undefined);
+      selectAudioTrack(undefined);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
       // Ctrl+C: Copy
       e.preventDefault();
@@ -568,7 +568,7 @@ export function PianoRoll() {
       if (e.button !== 0) {
         return;
       }
-      selectAudioTrack(null);
+      selectAudioTrack(undefined);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
@@ -885,11 +885,11 @@ export function PianoRoll() {
         .map(({ id, start, pitch }) => {
           const currentNote = notes.find((n) => n.id === id);
           if (!currentNote) {
-            return null;
+            return undefined;
           }
           // Only record if actually changed
           if (currentNote.start === start && currentNote.pitch === pitch) {
-            return null;
+            return undefined;
           }
           return {
             id,
@@ -897,7 +897,7 @@ export function PianoRoll() {
             after: { start: currentNote.start, pitch: currentNote.pitch },
           };
         })
-        .filter((u) => u !== null);
+        .filter((u) => u !== undefined);
 
       if (updates.length > 0) {
         historyStore.pushOperation({
@@ -1273,7 +1273,7 @@ export function PianoRoll() {
               onHeightChange={setWaveformHeight}
               onSelect={() => {
                 deselectAll();
-                selectLocator(null);
+                selectLocator(undefined);
                 selectAudioTrack(track.id);
               }}
             />
@@ -1633,7 +1633,7 @@ function Timeline({
   gridSnapValue: number;
   onSeek: (beat: number) => void;
   locators: { id: string; position: number; label: string }[];
-  selectedLocatorId: string | null;
+  selectedLocatorId: string | undefined;
   onSelectLocator: (id: string) => void;
   onRenameLocator: (id: string, currentLabel: string) => void;
   onUpdateLocator: (id: string, position: number) => void;
@@ -1840,7 +1840,7 @@ function WaveformArea({
   viewportWidth: number;
   audioDuration: number;
   audioOffset: number;
-  audioFileName: string | null;
+  audioFileName: string | undefined;
   tempo: number;
   playheadBeat: number;
   audioWaveform: AudioWaveform;

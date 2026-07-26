@@ -56,7 +56,7 @@ const LEGACY_PROJECT_KEY_PREFIX = "toy-midi-project-";
 // the last-opened pointer.
 interface ProjectList {
   projects: ProjectMetadata[];
-  lastProjectId: string | null;
+  lastProjectId?: string;
 }
 
 class ProjectStorage {
@@ -64,7 +64,7 @@ class ProjectStorage {
     migrateLayoutV1();
     const json = localStorage.getItem(PROJECT_LIST_KEY);
     if (!json) {
-      return { projects: [], lastProjectId: null };
+      return { projects: [] };
     }
     return JSON.parse(json) as ProjectList;
   }
@@ -79,8 +79,8 @@ class ProjectStorage {
     );
   }
 
-  getMetadata(projectId: string): ProjectMetadata | null {
-    return this.listMetadata().find((p) => p.id === projectId) || null;
+  getMetadata(projectId: string): ProjectMetadata | undefined {
+    return this.listMetadata().find((p) => p.id === projectId);
   }
 
   createNew(): string {
@@ -130,7 +130,7 @@ class ProjectStorage {
       (p) => p.id !== projectId,
     );
     if (projectList.lastProjectId === projectId) {
-      projectList.lastProjectId = null;
+      projectList.lastProjectId = undefined;
     }
     this.writeProjectList(projectList);
     localStorage.removeItem(getProjectKey(projectId));
@@ -158,7 +158,7 @@ class ProjectStorage {
     this.updateMetadata(projectId, { updatedAt: Date.now() });
   }
 
-  getLastProjectId(): string | null {
+  getLastProjectId(): string | undefined {
     return this.readProjectList().lastProjectId;
   }
 
@@ -189,7 +189,7 @@ class ProjectStorage {
     return key;
   }
 
-  async loadAsset(key: string): Promise<StoredAsset | null> {
+  async loadAsset(key: string): Promise<StoredAsset | undefined> {
     return this.assetStore.get(key);
   }
 
@@ -245,8 +245,8 @@ function migrateLayoutV1(): void {
     .getItem(LEGACY_LAST_ID_KEY)
     ?.replace(/^project-/, "");
   const lastProjectId = projects.some((p) => p.id === legacyLastId)
-    ? (legacyLastId ?? null)
-    : null;
+    ? legacyLastId
+    : undefined;
 
   const projectList: ProjectList = { projects, lastProjectId };
   localStorage.setItem(PROJECT_LIST_KEY, JSON.stringify(projectList));

@@ -26,11 +26,11 @@ export interface ProjectState {
 
   // Locators (section markers)
   locators: Locator[];
-  selectedLocatorId: string | null;
+  selectedLocatorId: string | undefined;
 
   // Audio tracks
   audioTracks: AudioTrack[];
-  selectedAudioTrackId: string | null; // not persisted
+  selectedAudioTrackId: string | undefined; // not persisted
 
   // Mixer state
   midiVolume: number; // 0-1
@@ -74,7 +74,7 @@ export interface ProjectState {
   addLocator: (locator: Locator) => void;
   updateLocator: (id: string, updates: Partial<Omit<Locator, "id">>) => void;
   deleteLocator: (id: string) => void;
-  selectLocator: (id: string | null) => void;
+  selectLocator: (id: string | undefined) => void;
 
   // Undo/Redo actions
   undo: () => void;
@@ -93,7 +93,7 @@ export interface ProjectState {
     updates: Partial<Omit<AudioTrack, "id">>,
   ) => void;
   deleteAudioTrack: (id: string) => void;
-  selectAudioTrack: (id: string | null) => void;
+  selectAudioTrack: (id: string | undefined) => void;
   moveAudioOffset: (id: string, offset: number) => void;
 
   // Mixer actions
@@ -162,11 +162,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Locator state
   locators: [],
-  selectedLocatorId: null,
+  selectedLocatorId: undefined,
 
   // Audio state
   audioTracks: [],
-  selectedAudioTrackId: null,
+  selectedAudioTrackId: undefined,
 
   // Mixer state
   midiVolume: 0.8,
@@ -231,7 +231,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       .map(({ id, changes }) => {
         const note = state.notes.find((n) => n.id === id);
         if (!note) {
-          return null;
+          return undefined;
         }
 
         const before: Partial<Omit<Note, "id">> = {};
@@ -242,7 +242,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         }
         return { id, before, after };
       })
-      .filter((u) => u !== null);
+      .filter((u) => u !== undefined);
 
     if (historyUpdates.length > 0) {
       historyStore.pushOperation({
@@ -348,7 +348,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set((state) => ({
       locators: state.locators.filter((l) => l.id !== id),
       selectedLocatorId:
-        state.selectedLocatorId === id ? null : state.selectedLocatorId,
+        state.selectedLocatorId === id ? undefined : state.selectedLocatorId,
     })),
 
   selectLocator: (id) => set({ selectedLocatorId: id }),
@@ -368,7 +368,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set((state) => ({
       audioTracks: state.audioTracks.filter((t) => t.id !== id),
       selectedAudioTrackId:
-        state.selectedAudioTrackId === id ? null : state.selectedAudioTrackId,
+        state.selectedAudioTrackId === id
+          ? undefined
+          : state.selectedAudioTrackId,
     })),
 
   selectAudioTrack: (id) => set({ selectedAudioTrackId: id }),
@@ -749,7 +751,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     waveformHeight: merged.waveformHeight ?? DEFAULTS.waveformHeight,
     // Reset transient state
     selectedNoteIds: new Set(),
-    selectedLocatorId: null,
-    selectedAudioTrackId: null,
+    selectedLocatorId: undefined,
+    selectedAudioTrackId: undefined,
   };
 }

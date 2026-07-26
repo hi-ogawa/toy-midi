@@ -535,11 +535,11 @@ const POINTS_PER_SECOND = 800;
 const MAX_AUDIO_DURATION_SECONDS = 600; // 10 minutes
 
 // Load audio file and create AudioView for waveform display.
-// audioView is null when the waveform is skipped (too-long bailout); callers
+// audioView is undefined when the waveform is skipped (too-long bailout); callers
 // map that to AudioWaveform "unavailable".
 export async function loadAudioFile(file: File): Promise<{
   buffer: Tone.ToneAudioBuffer;
-  audioView: AudioView | null;
+  audioView: AudioView | undefined;
   duration: number;
 }> {
   const url = URL.createObjectURL(file);
@@ -553,7 +553,7 @@ export async function loadAudioFile(file: File): Promise<{
       );
       return {
         buffer,
-        audioView: null,
+        audioView: undefined,
         duration: buffer.duration,
       };
     }
