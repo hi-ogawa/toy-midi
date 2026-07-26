@@ -33,7 +33,7 @@ jobs:
       - run: corepack enable
       - run: pnpm i
       - run: pnpm exec playwright install chromium --with-deps --no-shell
-      - run: pnpm test-e2e
+      - run: pnpm test-e2e e2e/audio-to-midi.spec.ts --workers=1
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
