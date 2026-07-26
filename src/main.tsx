@@ -9,7 +9,11 @@ import oxisynthWorkletUrl from "./assets/oxisynth/worklet.js?url";
 import soundfontUrl from "./assets/soundfonts/A320U.sf2?url";
 import { unlockAudioOnFirstGesture } from "./lib/audio";
 import { flushAutoSave } from "./lib/project-session";
-import { projectStorage, seedProjectV1 } from "./lib/project-storage";
+import {
+  projectStorage,
+  seedLayoutV1Project,
+  seedProjectV1,
+} from "./lib/project-storage";
 import { useProjectStore } from "./stores/project-store";
 
 function main() {
@@ -19,6 +23,7 @@ function main() {
       useProjectStore,
       projectStorage,
       seedProjectV1,
+      seedLayoutV1Project,
       flushAutoSave,
     };
     if (window.location.pathname.startsWith("/__e2e__/")) {

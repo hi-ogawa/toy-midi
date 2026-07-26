@@ -64,7 +64,7 @@ function openProjectSession(projectId: string): ProjectSession {
 
   // Auto-save on state changes (debounced)
   const autoSaveDebounceMs = Number(
-    import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 500,
+    import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 1000,
   );
   const saveDebouncer = debounce(() => {
     try {
