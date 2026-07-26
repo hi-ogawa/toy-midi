@@ -539,7 +539,7 @@ const MAX_AUDIO_DURATION_SECONDS = 600; // 10 minutes
 // map that to AudioWaveform "unavailable".
 export async function loadAudioFile(file: File): Promise<{
   buffer: Tone.ToneAudioBuffer;
-  audioView: AudioView | undefined;
+  audioView?: AudioView;
   duration: number;
 }> {
   const url = URL.createObjectURL(file);
@@ -553,7 +553,6 @@ export async function loadAudioFile(file: File): Promise<{
       );
       return {
         buffer,
-        audioView: undefined,
         duration: buffer.duration,
       };
     }

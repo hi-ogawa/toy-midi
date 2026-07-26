@@ -1633,7 +1633,7 @@ function Timeline({
   gridSnapValue: number;
   onSeek: (beat: number) => void;
   locators: { id: string; position: number; label: string }[];
-  selectedLocatorId: string | undefined;
+  selectedLocatorId?: string;
   onSelectLocator: (id: string) => void;
   onRenameLocator: (id: string, currentLabel: string) => void;
   onUpdateLocator: (id: string, position: number) => void;
@@ -1840,7 +1840,7 @@ function WaveformArea({
   viewportWidth: number;
   audioDuration: number;
   audioOffset: number;
-  audioFileName: string | undefined;
+  audioFileName?: string;
   tempo: number;
   playheadBeat: number;
   audioWaveform: AudioWaveform;

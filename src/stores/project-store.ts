@@ -26,11 +26,11 @@ export interface ProjectState {
 
   // Locators (section markers)
   locators: Locator[];
-  selectedLocatorId: string | undefined;
+  selectedLocatorId?: string;
 
   // Audio tracks
   audioTracks: AudioTrack[];
-  selectedAudioTrackId: string | undefined; // not persisted
+  selectedAudioTrackId?: string; // not persisted
 
   // Mixer state
   midiVolume: number; // 0-1
