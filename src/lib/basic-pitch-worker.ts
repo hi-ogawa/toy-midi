@@ -92,35 +92,43 @@ let cache: {
 } | null = null;
 
 export class BasicPitchWorkerHandlers {
+  async initialize({ backend }: { backend?: string }): Promise<{
+    backend: string;
+  }> {
+    basicPitch ??= initializeBasicPitch(backend);
+    await basicPitch;
+    return { backend: tf.getBackend() };
+  }
+
+  async hasAnalysis({ cacheKey }: { cacheKey: string }): Promise<boolean> {
+    return cache?.cacheKey === cacheKey;
+  }
+
   async analyze({
     cacheKey,
-    backend,
     pcm,
     onProgress,
   }: {
     cacheKey: string;
-    backend?: string;
     pcm: Float32Array;
     onProgress: (percent: number) => void;
-  }): Promise<{
-    backend: string;
-  }> {
-    basicPitch ??= initializeBasicPitch(backend);
-    const initializedBasicPitch = await basicPitch;
-    if (cache?.cacheKey !== cacheKey) {
-      const frames: number[][] = [];
-      const onsets: number[][] = [];
-      await initializedBasicPitch.evaluateModel(
-        pcm,
-        (chunkFrames, chunkOnsets) => {
-          frames.push(...chunkFrames);
-          onsets.push(...chunkOnsets);
-        },
-        onProgress,
-      );
-      cache = { cacheKey, frames, onsets };
+  }): Promise<void> {
+    if (!basicPitch) {
+      throw new Error("Basic Pitch not initialized");
     }
-    return { backend: tf.getBackend() };
+    const frames: number[][] = [];
+    const onsets: number[][] = [];
+    await (
+      await basicPitch
+    ).evaluateModel(
+      pcm,
+      (chunkFrames, chunkOnsets) => {
+        frames.push(...chunkFrames);
+        onsets.push(...chunkOnsets);
+      },
+      onProgress,
+    );
+    cache = { cacheKey, frames, onsets };
   }
 
   async decode({

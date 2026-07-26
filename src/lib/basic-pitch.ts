@@ -49,20 +49,20 @@ class BasicPitchClient {
       this.analyzedCacheKey = cacheKey;
       return;
     }
-    const pcm = await resampleToModelRate(audioBuffer);
+    const rpc = this.getRpc();
     const expectedBackend = import.meta.env.VITE_BASIC_PITCH_BACKEND;
-    const { backend } = await this.getRpc().analyze({
-      cacheKey,
+    const { backend } = await rpc.initialize({
       backend: expectedBackend,
-      pcm,
-      onProgress,
     });
     if (expectedBackend !== undefined && expectedBackend !== backend) {
       throw new Error(
         `Expected tfjs backend ${expectedBackend}, got ${backend}`,
       );
     }
-    this.analyzedCacheKey = cacheKey;
+    if (!(await rpc.hasAnalysis({ cacheKey }))) {
+      const pcm = await resampleToModelRate(audioBuffer);
+      await rpc.analyze({ cacheKey, pcm, onProgress });
+    }
   }
 
   async decode(
