@@ -1,3 +1,4 @@
+import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 type DialogProps = {
@@ -34,10 +35,10 @@ export function Dialog({
           <h2 className="text-lg font-semibold text-neutral-100">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-200 text-2xl leading-none"
+            className="text-neutral-400 hover:text-neutral-200"
             aria-label="Close"
           >
-            ×
+            <XIcon className="size-5" />
           </button>
         </div>
 

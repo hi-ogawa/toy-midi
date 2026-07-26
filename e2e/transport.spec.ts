@@ -70,16 +70,16 @@ test.describe("Transport Controls", () => {
   test("metronome toggle", async ({ page }) => {
     const metronomeToggle = page.getByTestId("metronome-mute-toggle");
 
-    // Toggle is "pressed" when muted. Metronome starts muted.
-    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
-
-    // Unmute
-    await metronomeToggle.click();
+    // Metronome starts disabled.
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
-    // Mute
+    // Enable
     await metronomeToggle.click();
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
+
+    // Disable
+    await metronomeToggle.click();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
   });
 
   test("mixer dB input", async ({ page }) => {
