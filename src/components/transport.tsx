@@ -34,7 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Toggle } from "./ui/toggle";
 import { cn } from "./ui/utils";
 
 function formatTimeCompact(seconds: number): string {
@@ -289,21 +288,21 @@ export function Transport({
       {/* Play/Pause button */}
       <PlayPauseButton />
 
-      {/* Metronome mute */}
-      <Toggle
+      {/* Metronome toggle */}
+      <Button
         data-testid="metronome-mute-toggle"
-        value={!metronomeEnabled}
-        onChange={(muted) => setMetronomeEnabled(!muted)}
-        aria-label="Toggle metronome mute"
-        title={metronomeEnabled ? "Mute metronome (M)" : "Unmute metronome (M)"}
+        onClick={() => setMetronomeEnabled(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome (M)"
         className={cn(
           "size-9",
-          !metronomeEnabled &&
-            "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+          metronomeEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
       >
         <MetronomeIcon className="size-5" />
-      </Toggle>
+      </Button>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />

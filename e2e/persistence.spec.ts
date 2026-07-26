@@ -159,9 +159,9 @@ test.describe("Project Persistence", () => {
 
     // Enable metronome
     const metronomeToggle = page.getByTestId("metronome-mute-toggle");
-    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
-    await metronomeToggle.click();
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
+    await metronomeToggle.click();
+    await expect(metronomeToggle).toHaveAttribute("aria-pressed", "true");
 
     // Change master volume
     await evaluateStore(page, (store) => {
@@ -183,7 +183,7 @@ test.describe("Project Persistence", () => {
     await expect(page.getByTestId("grid-snap-select")).toContainText("1/16");
     await expect(page.getByTestId("metronome-mute-toggle")).toHaveAttribute(
       "aria-pressed",
-      "false",
+      "true",
     );
     expect(
       await evaluateStore(page, (store) => store.getState().masterVolume),
