@@ -9,7 +9,7 @@ import { type AudioState, audioManager } from "../lib/audio";
  * For example: useAudio((state) => state.isPlaying).
  */
 export function useAudio<T>(selector: (state: AudioState) => T): T {
-  return useSyncExternalStore(audioManager.subscribe, () =>
-    selector(audioManager.getState()),
+  return useSyncExternalStore(audioManager.state.subscribe, () =>
+    selector(audioManager.state.getSnapshot()),
   );
 }
