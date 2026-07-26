@@ -171,17 +171,11 @@ export function ProjectListView({
                 </button>
               </div>
               <p className="text-neutral-600 text-sm">
-                {isLoading ? (
-                  "Loading..."
-                ) : (
-                  <>
-                    Press{" "}
-                    <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                      Space
-                    </kbd>{" "}
-                    to continue
-                  </>
-                )}
+                Press{" "}
+                <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+                  Space
+                </kbd>{" "}
+                to continue
               </p>
             </div>
           </>
@@ -208,17 +202,11 @@ export function ProjectListView({
               </button>
             </div>
             <p className="text-neutral-600 text-sm">
-              {isLoading ? (
-                "Loading..."
-              ) : (
-                <>
-                  Press{" "}
-                  <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-                    Space
-                  </kbd>{" "}
-                  to start
-                </>
-              )}
+              Press{" "}
+              <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
+                Space
+              </kbd>{" "}
+              to start
             </p>
           </div>
         )}
