@@ -44,11 +44,10 @@ test.describe("Multiple Audio Tracks", () => {
     await page.keyboard.press("Escape");
 
     // Mute the first track via the piano-roll lane toggle
-    const muteToggles = page.getByRole("button", {
-      name: "Toggle audio mute",
+    const firstMuteToggle = page.getByRole("button", {
+      name: "Toggle Audio 1 mute",
     });
-    await expect(muteToggles).toHaveCount(3);
-    await muteToggles.first().click();
+    await firstMuteToggle.click();
 
     tracks = await getAudioTracks(page);
     expect(tracks[0].muted).toBe(true);

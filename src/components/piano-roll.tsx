@@ -56,138 +56,6 @@ const MAX_PIXELS_PER_KEY = 40;
 // Minimum pixel spacing for grid line visibility (hide when lines are too dense)
 const MIN_LINE_SPACING = 8;
 
-// Generate vertical grid lines (bar, beat, sub-beat) for timelines
-// Returns layers array for use with background CSS properties
-function generateVerticalGridLayers(
-  pixelsPerBeat: number,
-  gridSnap: GridSnap,
-  scrollX: number,
-  beatsPerBar: number,
-): [string, string, string][] {
-  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
-  const beatWidth = Math.round(pixelsPerBeat);
-  const subBeatWidth = beatWidth * gridSnapValue;
-  const barWidth = beatWidth * beatsPerBar;
-  const offsetX = -(scrollX * beatWidth) % barWidth;
-
-  const layers: [string, string, string][] = [];
-
-  // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
-  let coarseBarMultiplier = 1;
-  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
-    coarseBarMultiplier *= 2;
-  }
-  const coarseBarWidth = barWidth * coarseBarMultiplier;
-  const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
-
-  layers.push([
-    `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
-    `${coarseBarWidth}px 100%`,
-    `${coarseBarOffsetX}px 0`,
-  ]);
-
-  // Vertical beat lines - hide when too dense
-  if (beatWidth >= MIN_LINE_SPACING) {
-    layers.push([
-      `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
-      `${beatWidth}px 100%`,
-      `${offsetX}px 0`,
-    ]);
-  }
-
-  // Vertical sub-beat lines (grid snap) - hide when too dense
-  if (subBeatWidth >= MIN_LINE_SPACING) {
-    layers.push([
-      `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
-      `${subBeatWidth}px 100%`,
-      `${offsetX}px 0`,
-    ]);
-  }
-
-  return layers;
-}
-
-// Generate CSS background for grid (returns style object)
-// Uses linear-gradient + background-size instead of repeating-linear-gradient
-// to avoid subpixel rendering artifacts
-function generateGridBackground(
-  pixelsPerBeat: number,
-  pixelsPerKey: number,
-  gridSnap: GridSnap,
-  scrollX: number,
-  scrollY: number,
-  beatsPerBar: number,
-): React.CSSProperties {
-  // Round base sizes, derive others to avoid drift between grid layers
-  const rowHeight = Math.round(pixelsPerKey);
-  const octaveHeight = rowHeight * 12;
-
-  // Calculate offsets for horizontal lines
-  const rowOffsetY = -(scrollY % 1) * rowHeight;
-  // Octave line at B/C boundary = bottom of C row
-  const octaveOffsetY =
-    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
-    octaveHeight;
-
-  // Build black key pattern gradient (one octave, 12 rows)
-  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
-  const blackKeyColor = "rgba(0,0,0,0.35)";
-  const r = rowHeight;
-  const blackKeyGradient = `linear-gradient(0deg,
-    transparent 0, transparent ${r}px,
-    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
-    transparent ${2 * r}px, transparent ${3 * r}px,
-    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
-    transparent ${4 * r}px, transparent ${6 * r}px,
-    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
-    transparent ${7 * r}px, transparent ${8 * r}px,
-    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
-    transparent ${9 * r}px, transparent ${10 * r}px,
-    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
-    transparent ${11 * r}px, transparent ${12 * r}px
-  )`;
-
-  const layers: [string, string, string][] = [];
-
-  // Add vertical grid lines (bar, beat, sub-beat)
-  layers.push(
-    ...generateVerticalGridLayers(
-      pixelsPerBeat,
-      gridSnap,
-      scrollX,
-      beatsPerBar,
-    ),
-  );
-
-  // Octave lines (B/C boundary) - always visible
-  layers.push([
-    `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
-    `100% ${octaveHeight}px`,
-    `0 ${octaveOffsetY}px`,
-  ]);
-
-  // Row lines (every pitch) - always visible for now
-  layers.push([
-    `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
-    `100% ${rowHeight}px`,
-    `0 ${rowOffsetY}px`,
-  ]);
-
-  // Black key row backgrounds (subtle darker shade)
-  layers.push([
-    blackKeyGradient,
-    `100% ${octaveHeight}px`,
-    `0 ${octaveOffsetY}px`,
-  ]);
-
-  return {
-    backgroundColor: "#1a1a1a",
-    backgroundImage: layers.map(([gradient]) => gradient).join(", "),
-    backgroundSize: layers.map(([, size]) => size).join(", "),
-    backgroundPosition: layers.map(([, , position]) => position).join(", "),
-  };
-}
-
 type DragMode =
   | { type: "none" }
   | { type: "creating"; startBeat: number; pitch: number; currentBeat: number }
@@ -317,8 +185,6 @@ export function PianoRoll() {
   // Keep fractional values in state for smooth zoom, but render with whole pixels
   const roundedPixelsPerKey = Math.round(pixelsPerKey);
   const roundedPixelsPerBeat = Math.round(pixelsPerBeat);
-  const zeroDbPercent = dbToPercent(0);
-
   // Edge threshold for resize handles: 20% of grid cell, clamped to 6-20px
   const gridCellWidth = gridSnapValue * roundedPixelsPerBeat;
   const edgeThreshold = Math.max(6, Math.min(50, gridCellWidth * 0.2));
@@ -1018,16 +884,6 @@ export function PianoRoll() {
     stopPreviewNote();
   });
 
-  // Generate grid background with scroll offset (use rounded values)
-  const gridBackground = generateGridBackground(
-    roundedPixelsPerBeat,
-    roundedPixelsPerKey,
-    gridSnap,
-    scrollX,
-    scrollY,
-    beatsPerBar,
-  );
-
   // Filter notes to visible range (with some margin)
   const visibleNotes = notes.filter((note) => {
     const noteEnd = note.start + note.duration;
@@ -1081,109 +937,42 @@ export function PianoRoll() {
             className="shrink-0 flex flex-col"
             style={{ width: TRACK_CONTROL_WIDTH }}
           >
-            {/* Master controls */}
-            <div
-              className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-              style={{ height: TIMELINE_HEIGHT }}
-            >
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">Master</span>
-              </div>
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                  style={{ left: `${zeroDbPercent}%` }}
-                />
-                <Slider
-                  data-testid="master-volume-slider"
-                  value={[gainToPercent(masterVolume)]}
-                  onValueChange={([v]) => setMasterVolume(percentToGain(v))}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </div>
-            {/* Audio controls (one block per track) */}
+            <TrackControl
+              label="Master"
+              height={TIMELINE_HEIGHT}
+              volume={masterVolume}
+              onVolumeChange={setMasterVolume}
+              sliderTestId="master-volume-slider"
+            />
             {audioTracks.map((track, index) => (
-              <div
+              <TrackControl
                 key={track.id}
-                className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-                style={{ height: track.waveformHeight }}
-              >
-                <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                  <span
-                    className="uppercase tracking-wide truncate"
-                    title={track.fileName}
-                  >
-                    {audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
-                  </span>
-                  <Toggle
-                    value={track.muted}
-                    onChange={(muted) => updateAudioTrack(track.id, { muted })}
-                    aria-label="Toggle audio mute"
-                    title={
-                      track.muted
-                        ? "Unmute audio (Shift+2)"
-                        : "Mute audio (Shift+2)"
-                    }
-                    className={cn(
-                      "size-4.5",
-                      track.muted &&
-                        "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                    )}
-                  >
-                    M
-                  </Toggle>
-                </div>
-                <div className="relative">
-                  <div
-                    className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                    style={{ left: `${zeroDbPercent}%` }}
-                  />
-                  <Slider
-                    value={[gainToPercent(track.volume)]}
-                    onValueChange={([v]) =>
-                      updateAudioTrack(track.id, { volume: percentToGain(v) })
-                    }
-                    max={100}
-                    step={1}
-                  />
-                </div>
-              </div>
+                label={audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
+                labelTitle={track.fileName}
+                height={track.waveformHeight}
+                volume={track.volume}
+                muted={track.muted}
+                muteTitle={
+                  track.muted
+                    ? "Unmute audio (Shift+2)"
+                    : "Mute audio (Shift+2)"
+                }
+                onVolumeChange={(volume) =>
+                  updateAudioTrack(track.id, { volume })
+                }
+                onMutedChange={(muted) => updateAudioTrack(track.id, { muted })}
+              />
             ))}
-            {/* MIDI controls */}
-            <div className="flex-1 p-2 flex flex-col gap-3">
-              <div className="flex items-center justify-between text-[11px] text-neutral-400">
-                <span className="uppercase tracking-wide">MIDI</span>
-                <Toggle
-                  value={midiMuted}
-                  onChange={setMidiMuted}
-                  aria-label="Toggle MIDI mute"
-                  title={
-                    midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
-                  }
-                  className={cn(
-                    "size-4.5",
-                    midiMuted &&
-                      "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-                  )}
-                >
-                  M
-                </Toggle>
-              </div>
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-                  style={{ left: `${zeroDbPercent}%` }}
-                />
-                <Slider
-                  value={[gainToPercent(midiVolume)]}
-                  onValueChange={([v]) => setMidiVolume(percentToGain(v))}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </div>
+            <TrackControl
+              label="MIDI"
+              volume={midiVolume}
+              muted={midiMuted}
+              muteTitle={
+                midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
+              }
+              onVolumeChange={setMidiVolume}
+              onMutedChange={setMidiMuted}
+            />
           </div>
           <div
             className="shrink-0 flex flex-col bg-neutral-900 border-r border-neutral-700"
@@ -1268,7 +1057,14 @@ export function PianoRoll() {
             data-testid="piano-roll-grid"
             className="flex-1 cursor-crosshair relative overflow-hidden"
             onMouseDown={handleGridMouseDown}
-            style={gridBackground}
+            style={generateGridBackground(
+              roundedPixelsPerBeat,
+              roundedPixelsPerKey,
+              gridSnap,
+              scrollX,
+              scrollY,
+              beatsPerBar,
+            )}
           >
             {/* Notes */}
             {visibleNotes.map((note) => (
@@ -1312,23 +1108,248 @@ export function PianoRoll() {
                 }}
               />
             )}
-            {/* Playhead line */}
-            {(() => {
-              const playheadBeat = secondsToBeats(position, tempo);
-              const playheadX = (playheadBeat - scrollX) * roundedPixelsPerBeat;
-              // Only render if visible
-              if (playheadX < 0 || playheadX > viewportSize.width) {
-                return null;
-              }
-              return (
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
-                  style={{ left: playheadX }}
-                />
-              );
-            })()}
+            <PlayheadLine
+              position={position}
+              tempo={tempo}
+              scrollX={scrollX}
+              pixelsPerBeat={roundedPixelsPerBeat}
+              viewportWidth={viewportSize.width}
+            />
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Generate CSS background for grid (returns style object)
+// Uses linear-gradient + background-size instead of repeating-linear-gradient
+// to avoid subpixel rendering artifacts
+function generateGridBackground(
+  pixelsPerBeat: number,
+  pixelsPerKey: number,
+  gridSnap: GridSnap,
+  scrollX: number,
+  scrollY: number,
+  beatsPerBar: number,
+): React.CSSProperties {
+  // Round base sizes, derive others to avoid drift between grid layers
+  const rowHeight = Math.round(pixelsPerKey);
+  const octaveHeight = rowHeight * 12;
+
+  // Calculate offsets for horizontal lines
+  const rowOffsetY = -(scrollY % 1) * rowHeight;
+  // Octave line at B/C boundary = bottom of C row
+  const octaveOffsetY =
+    ((((MAX_PITCH + 1 - scrollY) * rowHeight) % octaveHeight) + octaveHeight) %
+    octaveHeight;
+
+  // Build black key pattern gradient (one octave, 12 rows)
+  // Black keys at positions 1, 3, 6, 8, 10 (C#, D#, F#, G#, A#)
+  const blackKeyColor = "rgba(0,0,0,0.35)";
+  const r = rowHeight;
+  const blackKeyGradient = `linear-gradient(0deg,
+    transparent 0, transparent ${r}px,
+    ${blackKeyColor} ${r}px, ${blackKeyColor} ${2 * r}px,
+    transparent ${2 * r}px, transparent ${3 * r}px,
+    ${blackKeyColor} ${3 * r}px, ${blackKeyColor} ${4 * r}px,
+    transparent ${4 * r}px, transparent ${6 * r}px,
+    ${blackKeyColor} ${6 * r}px, ${blackKeyColor} ${7 * r}px,
+    transparent ${7 * r}px, transparent ${8 * r}px,
+    ${blackKeyColor} ${8 * r}px, ${blackKeyColor} ${9 * r}px,
+    transparent ${9 * r}px, transparent ${10 * r}px,
+    ${blackKeyColor} ${10 * r}px, ${blackKeyColor} ${11 * r}px,
+    transparent ${11 * r}px, transparent ${12 * r}px
+  )`;
+
+  const layers: [string, string, string][] = [];
+
+  // Add vertical grid lines (bar, beat, sub-beat)
+  layers.push(
+    ...generateVerticalGridLayers(
+      pixelsPerBeat,
+      gridSnap,
+      scrollX,
+      beatsPerBar,
+    ),
+  );
+
+  // Octave lines (B/C boundary) - always visible
+  layers.push([
+    `linear-gradient(180deg, #666666 0px, #666666 1px, transparent 1px, transparent 100%)`,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
+
+  // Row lines (every pitch) - always visible for now
+  layers.push([
+    `linear-gradient(180deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
+    `100% ${rowHeight}px`,
+    `0 ${rowOffsetY}px`,
+  ]);
+
+  // Black key row backgrounds (subtle darker shade)
+  layers.push([
+    blackKeyGradient,
+    `100% ${octaveHeight}px`,
+    `0 ${octaveOffsetY}px`,
+  ]);
+
+  return {
+    backgroundColor: "#1a1a1a",
+    backgroundImage: layers.map(([gradient]) => gradient).join(", "),
+    backgroundSize: layers.map(([, size]) => size).join(", "),
+    backgroundPosition: layers.map(([, , position]) => position).join(", "),
+  };
+}
+
+// Generate vertical grid lines (bar, beat, sub-beat) for timelines
+// Returns layers array for use with background CSS properties
+function generateVerticalGridLayers(
+  pixelsPerBeat: number,
+  gridSnap: GridSnap,
+  scrollX: number,
+  beatsPerBar: number,
+): [string, string, string][] {
+  const gridSnapValue = GRID_SNAP_VALUES[gridSnap];
+  const beatWidth = Math.round(pixelsPerBeat);
+  const subBeatWidth = beatWidth * gridSnapValue;
+  const barWidth = beatWidth * beatsPerBar;
+  const offsetX = -(scrollX * beatWidth) % barWidth;
+
+  const layers: [string, string, string][] = [];
+
+  // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
+  let coarseBarMultiplier = 1;
+  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
+    coarseBarMultiplier *= 2;
+  }
+  const coarseBarWidth = barWidth * coarseBarMultiplier;
+  const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
+
+  layers.push([
+    `linear-gradient(90deg, #525252 0px, #525252 1px, transparent 1px, transparent 100%)`,
+    `${coarseBarWidth}px 100%`,
+    `${coarseBarOffsetX}px 0`,
+  ]);
+
+  // Vertical beat lines - hide when too dense
+  if (beatWidth >= MIN_LINE_SPACING) {
+    layers.push([
+      `linear-gradient(90deg, #404040 0px, #404040 1px, transparent 1px, transparent 100%)`,
+      `${beatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ]);
+  }
+
+  // Vertical sub-beat lines (grid snap) - hide when too dense
+  if (subBeatWidth >= MIN_LINE_SPACING) {
+    layers.push([
+      `linear-gradient(90deg, #333 0px, #333 1px, transparent 1px, transparent 100%)`,
+      `${subBeatWidth}px 100%`,
+      `${offsetX}px 0`,
+    ]);
+  }
+
+  return layers;
+}
+
+type PlayheadLineProps = {
+  position: number;
+  tempo: number;
+  scrollX: number;
+  pixelsPerBeat: number;
+  viewportWidth: number;
+};
+
+function PlayheadLine({
+  position,
+  tempo,
+  scrollX,
+  pixelsPerBeat,
+  viewportWidth,
+}: PlayheadLineProps) {
+  const playheadBeat = secondsToBeats(position, tempo);
+  const playheadX = (playheadBeat - scrollX) * pixelsPerBeat;
+
+  if (playheadX < 0 || playheadX > viewportWidth) {
+    return null;
+  }
+
+  return (
+    <div
+      className="absolute top-0 bottom-0 w-px bg-sky-400 pointer-events-none z-10"
+      style={{ left: playheadX }}
+    />
+  );
+}
+
+type TrackControlProps = {
+  label: string;
+  labelTitle?: string;
+  height?: number;
+  volume: number;
+  muted?: boolean;
+  muteTitle?: string;
+  sliderTestId?: string;
+  onVolumeChange: (volume: number) => void;
+  onMutedChange?: (muted: boolean) => void;
+};
+
+function TrackControl({
+  label,
+  labelTitle,
+  height,
+  volume,
+  muted,
+  muteTitle,
+  sliderTestId,
+  onVolumeChange,
+  onMutedChange,
+}: TrackControlProps) {
+  return (
+    <div
+      className={cn(
+        "border-b border-neutral-700 p-2 flex flex-col gap-3",
+        height === undefined ? "flex-1" : "shrink-0",
+      )}
+      style={{ height }}
+    >
+      <div className="flex items-center justify-between text-[11px] text-neutral-400">
+        <span
+          className={cn("uppercase tracking-wide", labelTitle && "truncate")}
+          title={labelTitle}
+        >
+          {label}
+        </span>
+        {onMutedChange && (
+          <Toggle
+            value={muted ?? false}
+            onChange={onMutedChange}
+            aria-label={`Toggle ${label} mute`}
+            title={muteTitle}
+            className={cn(
+              "size-4.5",
+              muted &&
+                "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+            )}
+          >
+            M
+          </Toggle>
+        )}
+      </div>
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+          style={{ left: `${dbToPercent(0)}%` }}
+        />
+        <Slider
+          data-testid={sliderTestId}
+          value={[gainToPercent(volume)]}
+          onValueChange={([v]) => onVolumeChange(percentToGain(v))}
+          max={100}
+          step={1}
+        />
       </div>
     </div>
   );
