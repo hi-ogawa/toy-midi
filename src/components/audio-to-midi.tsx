@@ -16,6 +16,19 @@ import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 
+// TODO(ui): deferred polish from the panel UX review
+// - merge analyze into convert: auto-analyze on the first convert so the
+//   panel has a single primary action and no gated state
+// - show "Convert again" on the convert button when params/quantize diverge
+//   from the settings used by the last successful convert
+// - show "Reset to defaults" only when params diverge from the defaults
+// - derive analysis state from the worker cache: reopening the panel shows an
+//   analyzed track as "Not analyzed" and resets tuned params
+// - allow canceling an in-flight analysis
+// - relabel threshold sliders in user terms (needs direction flip so that
+//   right = more notes/splits)
+// - cached analysis timing is misleading because it measures the client call
+//   rather than the original worker inference
 export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [quantizeToGrid, setQuantizeToGrid] = useState(true);
@@ -24,11 +37,8 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
   const convertStartedAt = useRef<number>(undefined);
-  const lastConvertedSettings = useRef<string>(undefined);
   const gridSnap = useProjectStore((state) => state.gridSnap);
 
-  // TODO: cached analysis timing is misleading because it measures this client
-  // call rather than the original worker inference.
   const analyzeMutation = useMutation({
     mutationFn: async () => {
       const buffer = audioManager.getAudioTrackBuffer(track.id);
@@ -64,10 +74,6 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   // dominant error class on real Demucs bass stems.
   const convertMutation = useMutation({
     mutationFn: async () => {
-      lastConvertedSettings.current = JSON.stringify({
-        params,
-        quantizeToGrid,
-      });
       const transcribed = await basicPitchClient.decode(track.assetKey, params);
       const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
       const gridSize = GRID_SNAP_VALUES[gridSnap];
@@ -122,11 +128,6 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       : convertMutation.data !== undefined && convertElapsedMs !== undefined
         ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
         : "Replaces all existing notes. Undo restores them.";
-
-  const convertNeedsRerun =
-    convertMutation.isSuccess &&
-    lastConvertedSettings.current !==
-      JSON.stringify({ params, quantizeToGrid });
 
   return (
     <div className="w-96 space-y-4">
@@ -237,11 +238,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
           className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
         >
-          {convertMutation.isPending
-            ? "Converting..."
-            : convertNeedsRerun
-              ? "Convert again"
-              : "Convert to MIDI"}
+          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
         </Button>
         <p
           data-testid="audio-to-midi-conversion-status"

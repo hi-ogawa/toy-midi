@@ -83,19 +83,12 @@ test.describe("Audio to MIDI", () => {
     // Staged parameter edits apply on the next convert: narrowing the pitch
     // range to exclude the C5 must drop it from the result. The max-pitch
     // thumb is the last slider thumb in the panel (C8 = MIDI 108; B4 = 71).
-    await expect(panel.getByTestId("convert-button")).toHaveText(
-      "Convert to MIDI",
-    );
     const maxPitchThumb = panel.getByRole("slider").last();
     await maxPitchThumb.focus();
     for (let i = 0; i < 108 - 71; i++) {
       await maxPitchThumb.press("ArrowLeft");
     }
     await expect(maxPitchThumb).toHaveAttribute("aria-valuenow", "71");
-    // Edited settings surface as a pending re-convert on the button label
-    await expect(panel.getByTestId("convert-button")).toHaveText(
-      "Convert again",
-    );
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
