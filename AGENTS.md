@@ -27,7 +27,6 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 - Make props/params required when all call sites always pass them
 - Prefer a single options object over multiple primitive arguments (for example, `fn({ a, b })` rather than `fn(a, b)`)
 - Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
-- Use pnpm only; never create or commit `package-lock.json` or `yarn.lock`
 
 ## Testing Strategy
 
