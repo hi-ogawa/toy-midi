@@ -25,7 +25,7 @@ test.describe("Project Route", () => {
     await evaluateFlushAutoSave(page);
 
     const projectId = await page.evaluate(() =>
-      window.__e2e!.projectStorage.getLastProjectId(),
+      window.__e2e.projectStorage.getLastProjectId(),
     );
     expect(projectId).not.toBeNull();
 
