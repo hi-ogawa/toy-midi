@@ -286,9 +286,7 @@ function ProjectListView({
   onSelectProject,
   onNewProject,
 }: ProjectListViewProps) {
-  const [renamingProjectId, setRenamingProjectId] = useState<string | null>(
-    null,
-  );
+  const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -320,12 +318,12 @@ function ProjectListView({
 
   const handleRenameSubmit = (projectId: string, nextName: string) => {
     projectStorage.updateMetadata(projectId, { name: nextName });
-    setRenamingProjectId(null);
+    setRenamingProjectId(undefined);
     setProjects(projectStorage.listMetadata());
   };
 
   const handleRenameCancel = () => {
-    setRenamingProjectId(null);
+    setRenamingProjectId(undefined);
   };
 
   const handleDelete = (e: React.MouseEvent, projectId: string) => {

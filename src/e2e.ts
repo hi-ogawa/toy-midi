@@ -4,7 +4,7 @@ import {
   seedLayoutV1Project,
   seedProjectV1,
 } from "./lib/project-storage";
-import { useProjectStore } from "./stores/project-store";
+import { useProjectStore } from "./lib/project-store";
 
 const utils = {
   useProjectStore,

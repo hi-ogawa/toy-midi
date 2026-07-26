@@ -21,7 +21,7 @@ import {
   generateAudioTrackId,
   toSavedProject,
   useProjectStore,
-} from "../stores/project-store";
+} from "../lib/project-store";
 import { FileDropInput } from "./file-drop-input";
 import { Button, LinkButton } from "./ui/button";
 

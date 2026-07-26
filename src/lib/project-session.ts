@@ -1,16 +1,16 @@
 import { toast } from "sonner";
-import { historyStore } from "../stores/history-store";
+import { debounce } from "../utils/timing";
+import { audioManager, loadAudioFile } from "./audio";
+import { historyStore } from "./history-store";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
+import { projectStorage } from "./project-storage";
 import {
   type AudioTrack,
   fromSavedProject,
   type ProjectState,
   toSavedProject,
   useProjectStore,
-} from "../stores/project-store";
-import { debounce } from "../utils/timing";
-import { audioManager, loadAudioFile } from "./audio";
-import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
-import { projectStorage } from "./project-storage";
+} from "./project-store";
 
 export interface ProjectSession {
   projectId: string;
@@ -181,12 +181,12 @@ async function restoreAudioTracks(
   }
 }
 
-// Load a track's stored asset bytes and decode them; null when the asset
+// Load a track's stored asset bytes and decode them; undefined when the asset
 // is missing from storage. No store access, no user-facing effects.
 async function loadStoredTrackAudio(track: AudioTrack) {
   const asset = await projectStorage.loadAsset(track.assetKey);
   if (!asset) {
-    return null;
+    return undefined;
   }
   return await loadAudioFile(new File([asset.blob], asset.name));
 }

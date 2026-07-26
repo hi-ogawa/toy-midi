@@ -8,13 +8,13 @@ import {
   SlidersHorizontalIcon,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
-import { useAudioStatus, useTransport } from "../hooks/use-transport";
 import { useWindowEvent } from "../hooks/use-window-event";
-import { audioManager, GM_PROGRAMS } from "../lib/audio";
+import { audioManager } from "../lib/audio";
+import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
-import { cn } from "../lib/utils";
-import { useProjectStore } from "../stores/project-store";
+import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { Button } from "./ui/button";
 import {
@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "./ui/utils";
 
 function formatTimeCompact(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -51,7 +52,7 @@ function formatBarBeat(seconds: number, tempo: number): string {
 
 // Separate component to isolate position-based re-renders
 function TimeDisplay({ tempo }: { tempo: number }) {
-  const { position } = useTransport();
+  const position = useAudio((state) => state.position);
   return (
     <div
       data-testid="time-display"
@@ -64,8 +65,8 @@ function TimeDisplay({ tempo }: { tempo: number }) {
 
 // Separate component to isolate isPlaying-based re-renders
 function PlayPauseButton() {
-  const { isPlaying } = useTransport();
-  const audioStatus = useAudioStatus();
+  const isPlaying = useAudio((state) => state.isPlaying);
+  const audioStatus = useAudio((state) => state.status);
 
   return (
     <Button

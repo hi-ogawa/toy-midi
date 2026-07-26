@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dbToPercent, gainToPercent, percentToGain } from "./volume";
+import { dbToPercent, gainToPercent, percentToGain } from "./music";
 
 describe("volume fader mapping", () => {
   it("places unity gain near Ardour's fader position", () => {

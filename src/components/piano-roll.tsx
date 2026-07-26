@@ -6,23 +6,24 @@ import {
   useRef,
   useState,
 } from "react";
-import { useTransport } from "../hooks/use-transport";
+import { useAudio } from "../hooks/use-audio";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
+import { historyStore } from "../lib/history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
+  clampPitch,
+  dbToPercent,
+  gainToPercent,
   isBlackKey,
   MAX_PITCH,
   midiToNoteName,
   MIN_PITCH,
+  percentToGain,
   snapToGrid,
-  clampPitch,
 } from "../lib/music";
 import { projectStorage } from "../lib/project-storage";
-import { cn } from "../lib/utils";
-import { dbToPercent, gainToPercent, percentToGain } from "../lib/volume";
-import { historyStore } from "../stores/history-store";
 import {
   beatsToSeconds,
   type AudioWaveform,
@@ -30,10 +31,11 @@ import {
   generateNoteId,
   secondsToBeats,
   useProjectStore,
-} from "../stores/project-store";
+} from "../lib/project-store";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
+import { cn } from "./ui/utils";
 
 // Layout constants
 const KEYBOARD_WIDTH = 50;
@@ -297,10 +299,11 @@ export function PianoRoll() {
   const totalWaveformHeight = waveformHeight * audioTracks.length;
   const selectedAudioTrack = selectedAudioTrackId
     ? audioTracks.find((track) => track.id === selectedAudioTrackId)
-    : null;
+    : undefined;
 
   // Transport state from hook (source of truth: Tone.js Transport)
-  const { isPlaying, position } = useTransport();
+  const isPlaying = useAudio((state) => state.isPlaying);
+  const position = useAudio((state) => state.position);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -438,8 +441,8 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "Escape")) {
       deselectAll();
-      selectLocator(null);
-      selectAudioTrack(null);
+      selectLocator(undefined);
+      selectAudioTrack(undefined);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
       // Ctrl+C: Copy
       e.preventDefault();
@@ -568,7 +571,7 @@ export function PianoRoll() {
       if (e.button !== 0) {
         return;
       }
-      selectAudioTrack(null);
+      selectAudioTrack(undefined);
       const { beat, pitch } = screenToGrid(e.clientX, e.clientY);
       const snappedBeat = snapToGrid(beat, gridSnapValue, {
         floor: true,
@@ -885,11 +888,11 @@ export function PianoRoll() {
         .map(({ id, start, pitch }) => {
           const currentNote = notes.find((n) => n.id === id);
           if (!currentNote) {
-            return null;
+            return undefined;
           }
           // Only record if actually changed
           if (currentNote.start === start && currentNote.pitch === pitch) {
-            return null;
+            return undefined;
           }
           return {
             id,
@@ -897,7 +900,7 @@ export function PianoRoll() {
             after: { start: currentNote.start, pitch: currentNote.pitch },
           };
         })
-        .filter((u) => u !== null);
+        .filter((u) => u !== undefined);
 
       if (updates.length > 0) {
         historyStore.pushOperation({
@@ -1273,7 +1276,7 @@ export function PianoRoll() {
               onHeightChange={setWaveformHeight}
               onSelect={() => {
                 deselectAll();
-                selectLocator(null);
+                selectLocator(undefined);
                 selectAudioTrack(track.id);
               }}
             />
@@ -1633,7 +1636,7 @@ function Timeline({
   gridSnapValue: number;
   onSeek: (beat: number) => void;
   locators: { id: string; position: number; label: string }[];
-  selectedLocatorId: string | null;
+  selectedLocatorId?: string;
   onSelectLocator: (id: string) => void;
   onRenameLocator: (id: string, currentLabel: string) => void;
   onUpdateLocator: (id: string, position: number) => void;
@@ -1840,7 +1843,7 @@ function WaveformArea({
   viewportWidth: number;
   audioDuration: number;
   audioOffset: number;
-  audioFileName: string | null;
+  audioFileName?: string;
   tempo: number;
   playheadBeat: number;
   audioWaveform: AudioWaveform;
