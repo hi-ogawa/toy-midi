@@ -25,7 +25,6 @@ import {
 } from "../lib/music";
 import { projectStorage } from "../lib/project-storage";
 import {
-  type AudioTrack,
   beatsToSeconds,
   type AudioWaveform,
   generateLocatorId,
@@ -1078,16 +1077,47 @@ export function PianoRoll() {
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: track controls + keyboard labels */}
         <div className="shrink-0 flex gap-1 bg-neutral-900">
-          <TrackControls
-            masterVolume={masterVolume}
-            midiVolume={midiVolume}
-            midiMuted={midiMuted}
-            audioTracks={audioTracks}
-            onMasterVolumeChange={setMasterVolume}
-            onMidiVolumeChange={setMidiVolume}
-            onMidiMutedChange={setMidiMuted}
-            onAudioTrackChange={updateAudioTrack}
-          />
+          <div
+            className="shrink-0 flex flex-col"
+            style={{ width: TRACK_CONTROL_WIDTH }}
+          >
+            <TrackControl
+              label="Master"
+              height={TIMELINE_HEIGHT}
+              volume={masterVolume}
+              onVolumeChange={setMasterVolume}
+              sliderTestId="master-volume-slider"
+            />
+            {audioTracks.map((track, index) => (
+              <TrackControl
+                key={track.id}
+                label={audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
+                labelTitle={track.fileName}
+                height={track.waveformHeight}
+                volume={track.volume}
+                muted={track.muted}
+                muteTitle={
+                  track.muted
+                    ? "Unmute audio (Shift+2)"
+                    : "Mute audio (Shift+2)"
+                }
+                onVolumeChange={(volume) =>
+                  updateAudioTrack(track.id, { volume })
+                }
+                onMutedChange={(muted) => updateAudioTrack(track.id, { muted })}
+              />
+            ))}
+            <TrackControl
+              label="MIDI"
+              volume={midiVolume}
+              muted={midiMuted}
+              muteTitle={
+                midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
+              }
+              onVolumeChange={setMidiVolume}
+              onMutedChange={setMidiMuted}
+            />
+          </div>
           <div
             className="shrink-0 flex flex-col bg-neutral-900 border-r border-neutral-700"
             style={{ width: KEYBOARD_WIDTH }}
@@ -1414,66 +1444,6 @@ export function PianoRoll() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-type TrackControlsProps = {
-  masterVolume: number;
-  midiVolume: number;
-  midiMuted: boolean;
-  audioTracks: AudioTrack[];
-  onMasterVolumeChange: (volume: number) => void;
-  onMidiVolumeChange: (volume: number) => void;
-  onMidiMutedChange: (muted: boolean) => void;
-  onAudioTrackChange: (trackId: string, updates: Partial<AudioTrack>) => void;
-};
-
-function TrackControls({
-  masterVolume,
-  midiVolume,
-  midiMuted,
-  audioTracks,
-  onMasterVolumeChange,
-  onMidiVolumeChange,
-  onMidiMutedChange,
-  onAudioTrackChange,
-}: TrackControlsProps) {
-  return (
-    <div
-      className="shrink-0 flex flex-col"
-      style={{ width: TRACK_CONTROL_WIDTH }}
-    >
-      <TrackControl
-        label="Master"
-        height={TIMELINE_HEIGHT}
-        volume={masterVolume}
-        onVolumeChange={onMasterVolumeChange}
-        sliderTestId="master-volume-slider"
-      />
-      {audioTracks.map((track, index) => (
-        <TrackControl
-          key={track.id}
-          label={audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
-          labelTitle={track.fileName}
-          height={track.waveformHeight}
-          volume={track.volume}
-          muted={track.muted}
-          muteTitle={
-            track.muted ? "Unmute audio (Shift+2)" : "Mute audio (Shift+2)"
-          }
-          onVolumeChange={(volume) => onAudioTrackChange(track.id, { volume })}
-          onMutedChange={(muted) => onAudioTrackChange(track.id, { muted })}
-        />
-      ))}
-      <TrackControl
-        label="MIDI"
-        volume={midiVolume}
-        muted={midiMuted}
-        muteTitle={midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"}
-        onVolumeChange={onMidiVolumeChange}
-        onMutedChange={onMidiMutedChange}
-      />
     </div>
   );
 }
