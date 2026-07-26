@@ -91,6 +91,14 @@ test.describe("Transport Controls", () => {
 
     await expect(mixerPanel).toBeVisible();
     await expect(mixerButton).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      mixerPanel.locator("label").allTextContents(),
+    ).resolves.toEqual(["Master", "MIDI", "Metro"]);
+
+    const masterDbInput = mixerPanel.getByLabel("Master level in dB");
+    await masterDbInput.fill("-6.0");
+    await masterDbInput.press("Enter");
+    await expect(masterDbInput).toHaveValue("-6.0");
 
     // The panel is non-modal, so transport controls remain usable.
     await page.getByTestId("play-pause-button").click();
