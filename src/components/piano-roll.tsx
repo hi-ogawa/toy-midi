@@ -884,16 +884,6 @@ export function PianoRoll() {
     stopPreviewNote();
   });
 
-  // Generate grid background with scroll offset (use rounded values)
-  const gridBackground = generateGridBackground(
-    roundedPixelsPerBeat,
-    roundedPixelsPerKey,
-    gridSnap,
-    scrollX,
-    scrollY,
-    beatsPerBar,
-  );
-
   // Filter notes to visible range (with some margin)
   const visibleNotes = notes.filter((note) => {
     const noteEnd = note.start + note.duration;
@@ -1067,7 +1057,14 @@ export function PianoRoll() {
             data-testid="piano-roll-grid"
             className="flex-1 cursor-crosshair relative overflow-hidden"
             onMouseDown={handleGridMouseDown}
-            style={gridBackground}
+            style={generateGridBackground(
+              roundedPixelsPerBeat,
+              roundedPixelsPerKey,
+              gridSnap,
+              scrollX,
+              scrollY,
+              beatsPerBar,
+            )}
           >
             {/* Notes */}
             {visibleNotes.map((note) => (
