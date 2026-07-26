@@ -47,12 +47,11 @@ test.describe("Audio to MIDI", () => {
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
-    // longer under parallel suite load, which made the suite-wide run flaky
-    // at the 5s default timeout
+    // longer under parallel suite load, especially on CI runners.
     await panel.getByTestId("analyze-button").click();
     await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
       "Analyzed",
-      { timeout: 10_000 },
+      { timeout: 30_000 },
     );
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 

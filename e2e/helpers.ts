@@ -73,6 +73,7 @@ export async function loadAudioFile(
  * debounce.
  */
 export async function evaluateFlushAutoSave(page: Page): Promise<void> {
+  await page.waitForFunction(() => window.__e2e !== undefined);
   await page.evaluate(() => window.__e2e.flushAutoSave());
 }
 
@@ -93,6 +94,7 @@ export async function evaluateStore<T>(
   page: Page,
   fn: (store: typeof useProjectStore) => T,
 ): Promise<T> {
+  await page.waitForFunction(() => window.__e2e !== undefined);
   return page.evaluate((fnStr) => {
     const store = window.__e2e.useProjectStore;
     const evalFn = new Function("store", `return (${fnStr})(store)`);
