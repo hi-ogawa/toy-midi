@@ -20,6 +20,42 @@ const FRAME_DURATION_MS = 1000 / (22050 / 256);
 // `window` before it can take its own setTimeout fallback, which throws in
 // workers and stalls the WebGL backend's fence polling (inference hangs at
 // 0%). Shadow the prototype method with the fallback it meant to use.
+// CI investigation: browser inference consistently hangs at "Analyzing 0%"
+// in headless Chromium on standard GitHub Actions Ubuntu runners, while the
+// same Playwright test finishes in roughly 8-10 seconds locally. The 0% is a
+// real Basic Pitch progress callback emitted immediately before its first
+// model frame. By that point the worker started, received the transferred PCM,
+// prepared the input tensor, and posted a message back to the main thread.
+//
+// Basic Pitch then runs GraphModel.execute and downloads the output tensors
+// with Tensor.array(). A browser worker is considered a browser environment by
+// tfjs, so WebGL has a higher backend priority than CPU when OffscreenCanvas
+// can create a context. Standard GitHub-hosted runners have no hardware GPU;
+// Chromium therefore uses a software graphics path. tfjs 3.21 waits for output
+// through a WebGL fence and polls it without a deadline. On the CI runner that
+// fence can remain unsignaled indefinitely, so the tensor promise never
+// resolves or rejects. This is why the try/catch below, the client's Worker
+// "error"/"messageerror" handlers, and the panel's mutation error UI receive
+// nothing. Increasing the Playwright timeout only delays the same failure.
+//
+// Upstream Basic Pitch 1.0.1 does not test browser workers or headless WebGL;
+// its CI runs under Node with tfjs-node. Upstream reports also describe WebGL
+// inference remaining stuck on other software/driver combinations. Moving
+// inference to a worker protects the UI thread but does not isolate it from
+// Chromium's shared GPU process.
+//
+// TODO: make CI inference deterministic instead of relying on implicit
+// headless WebGL selection. Evaluated options, in reliability order:
+// - select tfjs CPU before constructing BasicPitch (slow but deterministic);
+// - add and select tfjs WASM, including explicit worker WASM asset paths;
+// - launch CI Chromium with explicit SwANGLE/SwiftShader flags and verify the
+//   active renderer, accepting that these flags are Chromium-version-sensitive;
+// - mock browser inference in the regular E2E suite and separately verify the
+//   real model through the Node Basic Pitch CLI.
+// TODO: add an application-level analysis watchdog that terminates and clears
+// the worker, then surfaces a timeout in the panel. It cannot repair the GPU
+// stall, but it prevents users from seeing an infinite progress indicator and
+// allows a retry to create a fresh worker.
 tf.env().platform.setTimeoutCustom = (fn: () => void, delay: number) => {
   setTimeout(fn, delay);
 };
