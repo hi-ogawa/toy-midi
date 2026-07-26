@@ -1439,111 +1439,114 @@ function TrackControls({
   onMidiMutedChange,
   onAudioTrackChange,
 }: TrackControlsProps) {
-  const zeroDbPercent = dbToPercent(0);
-
   return (
     <div
       className="shrink-0 flex flex-col"
       style={{ width: TRACK_CONTROL_WIDTH }}
     >
-      {/* Master controls */}
-      <div
-        className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-        style={{ height: TIMELINE_HEIGHT }}
-      >
-        <div className="flex items-center justify-between text-[11px] text-neutral-400">
-          <span className="uppercase tracking-wide">Master</span>
-        </div>
-        <div className="relative">
-          <div
-            className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-            style={{ left: `${zeroDbPercent}%` }}
-          />
-          <Slider
-            data-testid="master-volume-slider"
-            value={[gainToPercent(masterVolume)]}
-            onValueChange={([v]) => onMasterVolumeChange(percentToGain(v))}
-            max={100}
-            step={1}
-          />
-        </div>
-      </div>
-      {/* Audio controls (one block per track) */}
+      <TrackControl
+        label="Master"
+        height={TIMELINE_HEIGHT}
+        volume={masterVolume}
+        onVolumeChange={onMasterVolumeChange}
+        sliderTestId="master-volume-slider"
+      />
       {audioTracks.map((track, index) => (
-        <div
+        <TrackControl
           key={track.id}
-          className="shrink-0 border-b border-neutral-700 p-2 flex flex-col gap-3"
-          style={{ height: track.waveformHeight }}
-        >
-          <div className="flex items-center justify-between text-[11px] text-neutral-400">
-            <span
-              className="uppercase tracking-wide truncate"
-              title={track.fileName}
-            >
-              {audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
-            </span>
-            <Toggle
-              value={track.muted}
-              onChange={(muted) => onAudioTrackChange(track.id, { muted })}
-              aria-label="Toggle audio mute"
-              title={
-                track.muted ? "Unmute audio (Shift+2)" : "Mute audio (Shift+2)"
-              }
-              className={cn(
-                "size-4.5",
-                track.muted &&
-                  "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-              )}
-            >
-              M
-            </Toggle>
-          </div>
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-              style={{ left: `${zeroDbPercent}%` }}
-            />
-            <Slider
-              value={[gainToPercent(track.volume)]}
-              onValueChange={([v]) =>
-                onAudioTrackChange(track.id, { volume: percentToGain(v) })
-              }
-              max={100}
-              step={1}
-            />
-          </div>
-        </div>
+          label={audioTracks.length > 1 ? `Audio ${index + 1}` : "Audio"}
+          labelTitle={track.fileName}
+          height={track.waveformHeight}
+          volume={track.volume}
+          muted={track.muted}
+          muteTitle={
+            track.muted ? "Unmute audio (Shift+2)" : "Mute audio (Shift+2)"
+          }
+          onVolumeChange={(volume) => onAudioTrackChange(track.id, { volume })}
+          onMutedChange={(muted) => onAudioTrackChange(track.id, { muted })}
+        />
       ))}
-      {/* MIDI controls */}
-      <div className="flex-1 p-2 flex flex-col gap-3">
-        <div className="flex items-center justify-between text-[11px] text-neutral-400">
-          <span className="uppercase tracking-wide">MIDI</span>
+      <TrackControl
+        label="MIDI"
+        fill
+        volume={midiVolume}
+        muted={midiMuted}
+        muteTitle={midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"}
+        onVolumeChange={onMidiVolumeChange}
+        onMutedChange={onMidiMutedChange}
+      />
+    </div>
+  );
+}
+
+type TrackControlProps = {
+  label: string;
+  labelTitle?: string;
+  height?: number;
+  fill?: boolean;
+  volume: number;
+  muted?: boolean;
+  muteTitle?: string;
+  sliderTestId?: string;
+  onVolumeChange: (volume: number) => void;
+  onMutedChange?: (muted: boolean) => void;
+};
+
+function TrackControl({
+  label,
+  labelTitle,
+  height,
+  fill,
+  volume,
+  muted,
+  muteTitle,
+  sliderTestId,
+  onVolumeChange,
+  onMutedChange,
+}: TrackControlProps) {
+  return (
+    <div
+      className={cn(
+        "border-b border-neutral-700 p-2 flex flex-col gap-3",
+        fill ? "flex-1" : "shrink-0",
+      )}
+      style={{ height }}
+    >
+      <div className="flex items-center justify-between text-[11px] text-neutral-400">
+        <span
+          className={cn("uppercase tracking-wide", labelTitle && "truncate")}
+          title={labelTitle}
+        >
+          {label}
+        </span>
+        {onMutedChange && (
           <Toggle
-            value={midiMuted}
-            onChange={onMidiMutedChange}
-            aria-label="Toggle MIDI mute"
-            title={midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"}
+            value={muted ?? false}
+            onChange={onMutedChange}
+            aria-label={`Toggle ${label} mute`}
+            title={muteTitle}
             className={cn(
               "size-4.5",
-              midiMuted &&
+              muted &&
                 "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
             )}
           >
             M
           </Toggle>
-        </div>
-        <div className="relative">
-          <div
-            className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-            style={{ left: `${zeroDbPercent}%` }}
-          />
-          <Slider
-            value={[gainToPercent(midiVolume)]}
-            onValueChange={([v]) => onMidiVolumeChange(percentToGain(v))}
-            max={100}
-            step={1}
-          />
-        </div>
+        )}
+      </div>
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+          style={{ left: `${dbToPercent(0)}%` }}
+        />
+        <Slider
+          data-testid={sliderTestId}
+          value={[gainToPercent(volume)]}
+          onValueChange={([v]) => onVolumeChange(percentToGain(v))}
+          max={100}
+          step={1}
+        />
       </div>
     </div>
   );
