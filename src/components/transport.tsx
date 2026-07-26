@@ -325,6 +325,26 @@ function formatTimeCompact(seconds: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
 }
 
+// GM instrument groups for organized display
+const INSTRUMENT_GROUPS = [
+  { label: "Piano", start: 0, end: 8 },
+  { label: "Chromatic Percussion", start: 8, end: 16 },
+  { label: "Organ", start: 16, end: 24 },
+  { label: "Guitar", start: 24, end: 32 },
+  { label: "Bass", start: 32, end: 40 },
+  { label: "Strings", start: 40, end: 48 },
+  { label: "Ensemble", start: 48, end: 56 },
+  { label: "Brass", start: 56, end: 64 },
+  { label: "Reed", start: 64, end: 72 },
+  { label: "Pipe", start: 72, end: 80 },
+  { label: "Synth Lead", start: 80, end: 88 },
+  { label: "Synth Pad", start: 88, end: 96 },
+  { label: "Synth Effects", start: 96, end: 104 },
+  { label: "Ethnic", start: 104, end: 112 },
+  { label: "Percussive", start: 112, end: 120 },
+  { label: "Sound Effects", start: 120, end: 128 },
+] as const;
+
 function InstrumentCombobox({
   value,
   onValueChange,
@@ -385,23 +405,3 @@ function InstrumentCombobox({
     </Popover>
   );
 }
-
-// GM instrument groups for organized display
-const INSTRUMENT_GROUPS = [
-  { label: "Piano", start: 0, end: 8 },
-  { label: "Chromatic Percussion", start: 8, end: 16 },
-  { label: "Organ", start: 16, end: 24 },
-  { label: "Guitar", start: 24, end: 32 },
-  { label: "Bass", start: 32, end: 40 },
-  { label: "Strings", start: 40, end: 48 },
-  { label: "Ensemble", start: 48, end: 56 },
-  { label: "Brass", start: 56, end: 64 },
-  { label: "Reed", start: 64, end: 72 },
-  { label: "Pipe", start: 72, end: 80 },
-  { label: "Synth Lead", start: 80, end: 88 },
-  { label: "Synth Pad", start: 88, end: 96 },
-  { label: "Synth Effects", start: 96, end: 104 },
-  { label: "Ethnic", start: 104, end: 112 },
-  { label: "Percussive", start: 112, end: 120 },
-  { label: "Sound Effects", start: 120, end: 128 },
-] as const;
