@@ -119,6 +119,7 @@ class BasicPitchClient {
         if (response.type === "ready") {
           if (
             request.type === "analyze" &&
+            request.backend !== undefined &&
             request.backend !== response.backend
           ) {
             cleanup();
