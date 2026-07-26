@@ -112,7 +112,14 @@ test.describe("Multiple Projects", () => {
 
     // Load first project
     await page.goto("/");
-    await page.getByTestId(`project-card-${project1Id}`).click();
+    const project1Link = page
+      .getByTestId(`project-card-${project1Id}`)
+      .getByRole("link");
+    await expect(project1Link).toHaveAttribute(
+      "href",
+      `/project/${project1Id}`,
+    );
+    await project1Link.click();
     await expect(page.getByTestId("transport")).toBeVisible();
 
     // Should have only the first project's note
