@@ -19,14 +19,14 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [quantizeToGrid, setQuantizeToGrid] = useState(false);
   const [progress, setProgress] = useState<number>();
-  const [analyzed, setAnalyzed] = useState(false);
-  const [noteCount, setNoteCount] = useState<number>();
   const [analyzeElapsedMs, setAnalyzeElapsedMs] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
   const convertStartedAt = useRef<number>(undefined);
   const gridSnap = useProjectStore((state) => state.gridSnap);
 
+  // TODO: cached analysis timing is misleading because it measures this client
+  // call rather than the original worker inference.
   const analyzeMutation = useMutation({
     mutationFn: async () => {
       const buffer = audioManager.getAudioTrackBuffer(track.id);
@@ -40,7 +40,6 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       analyzeStartedAt.current = performance.now();
       setAnalyzeElapsedMs(undefined);
     },
-    onSuccess: () => setAnalyzed(true),
     onError: (error) => {
       console.error("Failed to analyze audio:", error);
       toast.error("Failed to analyze audio");
@@ -87,7 +86,6 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       convertStartedAt.current = performance.now();
       setConvertElapsedMs(undefined);
     },
-    onSuccess: (count) => setNoteCount(count),
     onError: (error) => {
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
@@ -105,14 +103,14 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       : "Analyzing..."
     : analyzeMutation.error
       ? `Analysis failed${formatElapsedSuffix(analyzeElapsedMs)}`
-      : !analyzed
+      : !analyzeMutation.isSuccess
         ? "Not analyzed"
         : `Analyzed${formatElapsedSuffix(analyzeElapsedMs)}`;
 
   const conversionStatus = convertMutation.error
     ? `Failed${formatElapsedSuffix(convertElapsedMs)}`
-    : noteCount !== undefined && convertElapsedMs !== undefined
-      ? `${noteCount} notes in ${formatElapsed(convertElapsedMs)}`
+    : convertMutation.data !== undefined && convertElapsedMs !== undefined
+      ? `${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
       : undefined;
 
   return (
@@ -135,7 +133,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         <Button
           data-testid="analyze-button"
           onClick={() => analyzeMutation.mutate()}
-          disabled={analyzeMutation.isPending || analyzed}
+          disabled={analyzeMutation.isPending || analyzeMutation.isSuccess}
           className="h-9 w-full gap-1.5 bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
         >
           {analyzeMutation.isPending ? "Analyzing audio..." : "Analyze audio"}
@@ -150,7 +148,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       </section>
 
       <section
-        className={`mt-4 space-y-4 border-t border-neutral-700 pt-4 ${analyzed ? "" : "opacity-50"}`}
+        className={`mt-4 space-y-4 border-t border-neutral-700 pt-4 ${analyzeMutation.isSuccess ? "" : "opacity-50"}`}
       >
         <div>
           <div className="flex items-center justify-between gap-4">
@@ -159,7 +157,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
             </h3>
             <button
               onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
-              disabled={!analyzed}
+              disabled={!analyzeMutation.isSuccess}
               className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300 disabled:pointer-events-none"
             >
               Reset to defaults
@@ -174,7 +172,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           label="Frame threshold"
           hint="Higher values detect fewer notes"
           value={params.frameThreshold}
-          disabled={!analyzed}
+          disabled={!analyzeMutation.isSuccess}
           onChange={(frameThreshold) =>
             setParams({ ...params, frameThreshold })
           }
@@ -183,7 +181,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           label="Onset threshold"
           hint="Higher values create fewer splits"
           value={params.onsetThreshold}
-          disabled={!analyzed}
+          disabled={!analyzeMutation.isSuccess}
           onChange={(onsetThreshold) =>
             setParams({ ...params, onsetThreshold })
           }
@@ -203,7 +201,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
               min={0}
               max={500}
               step={10}
-              disabled={!analyzed}
+              disabled={!analyzeMutation.isSuccess}
               value={params.minNoteLengthMs}
               onChange={(e) =>
                 setParams({
@@ -225,7 +223,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
               aria-label="Minimum pitch (MIDI)"
               min={0}
               max={127}
-              disabled={!analyzed}
+              disabled={!analyzeMutation.isSuccess}
               value={params.minPitchMidi}
               onChange={(e) =>
                 setParams({ ...params, minPitchMidi: Number(e.target.value) })
@@ -241,7 +239,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
               aria-label="Maximum pitch (MIDI)"
               min={0}
               max={127}
-              disabled={!analyzed}
+              disabled={!analyzeMutation.isSuccess}
               value={params.maxPitchMidi}
               onChange={(e) =>
                 setParams({ ...params, maxPitchMidi: Number(e.target.value) })
@@ -258,7 +256,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           <input
             type="checkbox"
             checked={quantizeToGrid}
-            disabled={!analyzed}
+            disabled={!analyzeMutation.isSuccess}
             onChange={(e) => setQuantizeToGrid(e.target.checked)}
             className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
           />
@@ -273,7 +271,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           <Button
             data-testid="convert-button"
             onClick={() => convertMutation.mutate()}
-            disabled={!analyzed || convertMutation.isPending}
+            disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
             className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
           >
             {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
