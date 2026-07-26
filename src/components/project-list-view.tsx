@@ -121,73 +121,20 @@ export function ProjectListView({
                 Your Projects
               </h2>
               <div className="space-y-3 max-h-80 overflow-y-auto">
-                {projects.map((project) => {
-                  const isLastProject = project.id === lastProjectId;
-                  return (
-                    <div
-                      key={project.id}
-                      data-testid={`project-card-${project.id}`}
-                      aria-current={isLastProject ? "true" : undefined}
-                      className={`group w-full h-20 px-5 rounded-xl border transition-colors flex items-center ${
-                        isLastProject
-                          ? "bg-emerald-900/25 hover:bg-emerald-900/35 border-emerald-700/50"
-                          : "bg-neutral-800/60 hover:bg-neutral-800 border-neutral-700/50"
-                      }`}
-                    >
-                      {renamingProjectId === project.id ? (
-                        <ProjectRenameInput
-                          project={project}
-                          onSubmit={(nextName) =>
-                            handleRenameSubmit(project.id, nextName)
-                          }
-                          onCancel={handleRenameCancel}
-                        />
-                      ) : (
-                        <div className="flex justify-between items-center flex-1">
-                          <a
-                            href={`/project/${project.id}`}
-                            className="flex-1 text-left"
-                          >
-                            <div className="text-neutral-100 font-medium text-lg">
-                              {project.name}
-                            </div>
-                            <div className="text-neutral-500 text-sm mt-1">
-                              Last edited{" "}
-                              {new Date(project.updatedAt).toLocaleDateString(
-                                undefined,
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                },
-                              )}
-                            </div>
-                          </a>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              data-testid={`rename-button-${project.id}`}
-                              onClick={(e) => handleRenameStart(e, project.id)}
-                              className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
-                              title="Rename"
-                            >
-                              <Pencil className="size-4 text-neutral-400" />
-                            </button>
-                            <button
-                              type="button"
-                              data-testid={`delete-button-${project.id}`}
-                              onClick={(e) => handleDelete(e, project.id)}
-                              className="p-2 hover:bg-red-600/30 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="size-4 text-neutral-400" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {projects.map((project) => (
+                  <ProjectListItem
+                    key={project.id}
+                    project={project}
+                    isLastProject={project.id === lastProjectId}
+                    isRenaming={project.id === renamingProjectId}
+                    onRenameStart={(e) => handleRenameStart(e, project.id)}
+                    onRenameSubmit={(nextName) =>
+                      handleRenameSubmit(project.id, nextName)
+                    }
+                    onRenameCancel={handleRenameCancel}
+                    onDelete={(e) => handleDelete(e, project.id)}
+                  />
+                ))}
               </div>
             </div>
 
@@ -276,6 +223,82 @@ export function ProjectListView({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+type ProjectListItemProps = {
+  project: ProjectMetadata;
+  isLastProject: boolean;
+  isRenaming: boolean;
+  onRenameStart: (e: React.MouseEvent) => void;
+  onRenameSubmit: (name: string) => void;
+  onRenameCancel: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+};
+
+function ProjectListItem({
+  project,
+  isLastProject,
+  isRenaming,
+  onRenameStart,
+  onRenameSubmit,
+  onRenameCancel,
+  onDelete,
+}: ProjectListItemProps) {
+  return (
+    <div
+      data-testid={`project-card-${project.id}`}
+      aria-current={isLastProject ? "true" : undefined}
+      className={`group w-full h-20 px-5 rounded-xl border transition-colors flex items-center ${
+        isLastProject
+          ? "bg-emerald-900/25 hover:bg-emerald-900/35 border-emerald-700/50"
+          : "bg-neutral-800/60 hover:bg-neutral-800 border-neutral-700/50"
+      }`}
+    >
+      {isRenaming ? (
+        <ProjectRenameInput
+          project={project}
+          onSubmit={onRenameSubmit}
+          onCancel={onRenameCancel}
+        />
+      ) : (
+        <div className="flex justify-between items-center flex-1">
+          <a href={`/project/${project.id}`} className="flex-1 text-left">
+            <div className="text-neutral-100 font-medium text-lg">
+              {project.name}
+            </div>
+            <div className="text-neutral-500 text-sm mt-1">
+              Last edited{" "}
+              {new Date(project.updatedAt).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
+          </a>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              data-testid={`rename-button-${project.id}`}
+              onClick={onRenameStart}
+              className="p-2 hover:bg-neutral-600/50 rounded-lg transition-colors"
+              title="Rename"
+            >
+              <Pencil className="size-4 text-neutral-400" />
+            </button>
+            <button
+              type="button"
+              data-testid={`delete-button-${project.id}`}
+              onClick={onDelete}
+              className="p-2 hover:bg-red-600/30 rounded-lg transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="size-4 text-neutral-400" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
