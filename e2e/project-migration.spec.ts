@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
 import type { SavedProjectV1 } from "../src/stores/project-store";
-import { evaluateStore } from "./helpers";
+import { clickContinue, evaluateStore, waitForEditor } from "./helpers";
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
@@ -50,8 +50,7 @@ test.describe("Project Migration", () => {
     );
 
     await page.goto("/");
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await clickContinue(page);
 
     const audioTracks = await evaluateStore(page, (store) => {
       return store.getState().audioTracks.map((track) => ({
@@ -148,7 +147,7 @@ test.describe("Project Migration", () => {
     await page.goto("/");
     await page.getByTestId(`project-card-${bareId}`).click();
     await expect(page).toHaveURL(/\/project\/[0-9a-f-]{36}$/);
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await waitForEditor(page);
     expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
       137,
     );
@@ -156,8 +155,7 @@ test.describe("Project Migration", () => {
     // Continue (last-project pointer) survives the migration, and a second
     // load is a no-op migration
     await page.goto("/");
-    await page.getByTestId("continue-button").click();
-    await page.getByTestId("transport").waitFor({ state: "visible" });
+    await clickContinue(page);
     expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
       137,
     );
