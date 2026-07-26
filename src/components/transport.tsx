@@ -33,148 +33,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "./ui/utils";
 
-function formatTimeCompact(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const hundredths = Math.floor((seconds % 1) * 100);
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
-}
-
-function formatBarBeat(seconds: number, tempo: number): string {
-  const beatsPerSecond = tempo / 60;
-  const totalBeats = seconds * beatsPerSecond;
-  const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
-  const beatInBar = Math.floor(totalBeats % 4) + 1;
-  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
-}
-
-// Separate component to isolate position-based re-renders
-function TimeDisplay({ tempo }: { tempo: number }) {
-  const position = useAudio((state) => state.position);
-  return (
-    <div
-      data-testid="time-display"
-      className="font-mono text-muted-foreground tabular-nums"
-    >
-      {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
-    </div>
-  );
-}
-
-// Separate component to isolate isPlaying-based re-renders
-function PlayPauseButton() {
-  const isPlaying = useAudio((state) => state.isPlaying);
-  const audioStatus = useAudio((state) => state.status);
-
-  return (
-    <Button
-      data-testid="play-pause-button"
-      disabled={audioStatus !== "ready"}
-      onClick={() => audioManager.togglePlayback()}
-      title={
-        audioStatus !== "ready"
-          ? "Loading audio..."
-          : isPlaying
-            ? "Pause (Space)"
-            : "Play (Space)"
-      }
-      className={cn(
-        "size-9",
-        isPlaying
-          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-          : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-      )}
-    >
-      {isPlaying ? (
-        <PauseIcon data-testid="pause-icon" className="size-5" />
-      ) : (
-        <PlayIcon data-testid="play-icon" className="size-5" />
-      )}
-    </Button>
-  );
-}
-
-// GM instrument groups for organized display
-const INSTRUMENT_GROUPS = [
-  { label: "Piano", start: 0, end: 8 },
-  { label: "Chromatic Percussion", start: 8, end: 16 },
-  { label: "Organ", start: 16, end: 24 },
-  { label: "Guitar", start: 24, end: 32 },
-  { label: "Bass", start: 32, end: 40 },
-  { label: "Strings", start: 40, end: 48 },
-  { label: "Ensemble", start: 48, end: 56 },
-  { label: "Brass", start: 56, end: 64 },
-  { label: "Reed", start: 64, end: 72 },
-  { label: "Pipe", start: 72, end: 80 },
-  { label: "Synth Lead", start: 80, end: 88 },
-  { label: "Synth Pad", start: 88, end: 96 },
-  { label: "Synth Effects", start: 96, end: 104 },
-  { label: "Ethnic", start: 104, end: 112 },
-  { label: "Percussive", start: 112, end: 120 },
-  { label: "Sound Effects", start: 120, end: 128 },
-] as const;
-
-function InstrumentCombobox({
-  value,
-  onValueChange,
-}: {
-  value: number;
-  onValueChange: (value: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          data-testid="instrument-select"
-          role="combobox"
-          aria-expanded={open}
-          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <span className="truncate">
-            {value}: {GM_PROGRAMS[value]}
-          </span>
-          <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search instruments..." />
-          <CommandList>
-            <CommandEmpty>No instrument found.</CommandEmpty>
-            {INSTRUMENT_GROUPS.map((group) => (
-              <CommandGroup key={group.label} heading={group.label}>
-                {GM_PROGRAMS.slice(group.start, group.end).map((name, i) => {
-                  const program = group.start + i;
-                  return (
-                    <CommandItem
-                      key={program}
-                      value={`${program}: ${name}`}
-                      onSelect={() => {
-                        onValueChange(program);
-                        setOpen(false);
-                      }}
-                      className="text-xs"
-                    >
-                      <CheckIcon
-                        className={`mr-2 size-4 ${
-                          value === program ? "opacity-100" : "opacity-0"
-                        }`}
-                      />
-                      {program}: {name}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ))}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 type TransportProps = {
   projectName: string;
   controls: ReactNode;
@@ -403,5 +261,147 @@ export function Transport({ projectName, controls }: TransportProps) {
 
       {controls}
     </div>
+  );
+}
+
+// Separate component to isolate isPlaying-based re-renders
+function PlayPauseButton() {
+  const isPlaying = useAudio((state) => state.isPlaying);
+  const audioStatus = useAudio((state) => state.status);
+
+  return (
+    <Button
+      data-testid="play-pause-button"
+      disabled={audioStatus !== "ready"}
+      onClick={() => audioManager.togglePlayback()}
+      title={
+        audioStatus !== "ready"
+          ? "Loading audio..."
+          : isPlaying
+            ? "Pause (Space)"
+            : "Play (Space)"
+      }
+      className={cn(
+        "size-9",
+        isPlaying
+          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+          : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+      )}
+    >
+      {isPlaying ? (
+        <PauseIcon data-testid="pause-icon" className="size-5" />
+      ) : (
+        <PlayIcon data-testid="play-icon" className="size-5" />
+      )}
+    </Button>
+  );
+}
+
+// Separate component to isolate position-based re-renders
+function TimeDisplay({ tempo }: { tempo: number }) {
+  const position = useAudio((state) => state.position);
+  return (
+    <div
+      data-testid="time-display"
+      className="font-mono text-muted-foreground tabular-nums"
+    >
+      {formatBarBeat(position, tempo)} - {formatTimeCompact(position)}
+    </div>
+  );
+}
+
+function formatBarBeat(seconds: number, tempo: number): string {
+  const beatsPerSecond = tempo / 60;
+  const totalBeats = seconds * beatsPerSecond;
+  const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
+  const beatInBar = Math.floor(totalBeats % 4) + 1;
+  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
+}
+
+function formatTimeCompact(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const hundredths = Math.floor((seconds % 1) * 100);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
+}
+
+// GM instrument groups for organized display
+const INSTRUMENT_GROUPS = [
+  { label: "Piano", start: 0, end: 8 },
+  { label: "Chromatic Percussion", start: 8, end: 16 },
+  { label: "Organ", start: 16, end: 24 },
+  { label: "Guitar", start: 24, end: 32 },
+  { label: "Bass", start: 32, end: 40 },
+  { label: "Strings", start: 40, end: 48 },
+  { label: "Ensemble", start: 48, end: 56 },
+  { label: "Brass", start: 56, end: 64 },
+  { label: "Reed", start: 64, end: 72 },
+  { label: "Pipe", start: 72, end: 80 },
+  { label: "Synth Lead", start: 80, end: 88 },
+  { label: "Synth Pad", start: 88, end: 96 },
+  { label: "Synth Effects", start: 96, end: 104 },
+  { label: "Ethnic", start: 104, end: 112 },
+  { label: "Percussive", start: 112, end: 120 },
+  { label: "Sound Effects", start: 120, end: 128 },
+] as const;
+
+function InstrumentCombobox({
+  value,
+  onValueChange,
+}: {
+  value: number;
+  onValueChange: (value: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          data-testid="instrument-select"
+          role="combobox"
+          aria-expanded={open}
+          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          <span className="truncate">
+            {value}: {GM_PROGRAMS[value]}
+          </span>
+          <ChevronsUpDownIcon className="ml-1 size-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search instruments..." />
+          <CommandList>
+            <CommandEmpty>No instrument found.</CommandEmpty>
+            {INSTRUMENT_GROUPS.map((group) => (
+              <CommandGroup key={group.label} heading={group.label}>
+                {GM_PROGRAMS.slice(group.start, group.end).map((name, i) => {
+                  const program = group.start + i;
+                  return (
+                    <CommandItem
+                      key={program}
+                      value={`${program}: ${name}`}
+                      onSelect={() => {
+                        onValueChange(program);
+                        setOpen(false);
+                      }}
+                      className="text-xs"
+                    >
+                      <CheckIcon
+                        className={`mr-2 size-4 ${
+                          value === program ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      {program}: {name}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
