@@ -9,6 +9,10 @@ import * as tf from "@tensorflow/tfjs";
 import type { TranscribedNote, TranscribeParams } from "./basic-pitch";
 import { registerWorkerRpcHandlers } from "./rpc/worker.ts";
 
+function main(): void {
+  registerWorkerRpcHandlers(new BasicPitchWorkerHandlers());
+}
+
 // Model output frame rate: 22,050 Hz sample rate / 256 FFT hop
 const FRAME_DURATION_MS = 1000 / (22050 / 256);
 
@@ -136,8 +140,6 @@ export class BasicPitchWorkerHandlers {
   }
 }
 
-registerWorkerRpcHandlers(new BasicPitchWorkerHandlers());
-
 async function initializeBasicPitch(backend?: string): Promise<BasicPitch> {
   if (backend) {
     if (!(await tf.setBackend(backend))) {
@@ -181,3 +183,5 @@ function decodeNotes(
 function midiToHz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
+
+main();
