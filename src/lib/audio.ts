@@ -471,7 +471,7 @@ class AudioStateStore {
     position: 0,
   };
   private listeners = new Set<() => void>();
-  private transportRaf: number | null = null;
+  private transportRaf?: number;
 
   constructor() {
     for (const event of TRANSPORT_EVENT_NAMES) {
@@ -526,7 +526,7 @@ class AudioStateStore {
   }
 
   private startTransportRaf(): void {
-    if (this.transportRaf !== null) {
+    if (this.transportRaf !== undefined) {
       return;
     }
     const update = () => {
@@ -537,11 +537,11 @@ class AudioStateStore {
   }
 
   private stopTransportRaf(): void {
-    if (this.transportRaf === null) {
+    if (this.transportRaf === undefined) {
       return;
     }
     cancelAnimationFrame(this.transportRaf);
-    this.transportRaf = null;
+    this.transportRaf = undefined;
   }
 }
 
