@@ -8,6 +8,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
+      ...(process.env.CI ? { VITE_FAKE_BASIC_PITCH: "true" } : {}),
     },
   },
   use: {
@@ -26,16 +27,7 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         channel: "chromium",
         launchOptions: {
-          args: [
-            "--autoplay-policy=no-user-gesture-required",
-            ...(process.env.CI
-              ? [
-                  "--use-gl=angle",
-                  "--use-angle=swiftshader",
-                  "--enable-unsafe-swiftshader",
-                ]
-              : []),
-          ],
+          args: ["--autoplay-policy=no-user-gesture-required"],
         },
       },
     },

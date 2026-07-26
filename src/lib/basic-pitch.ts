@@ -63,6 +63,11 @@ class BasicPitchClient {
     audioBuffer: AudioBuffer,
     onProgress: (percent: number) => void,
   ): Promise<void> {
+    if (import.meta.env.VITE_FAKE_BASIC_PITCH === "true") {
+      onProgress(1);
+      this.analyzedCacheKey = cacheKey;
+      return;
+    }
     const pcm =
       this.analyzedCacheKey === cacheKey
         ? undefined
@@ -85,6 +90,16 @@ class BasicPitchClient {
     cacheKey: string,
     params: TranscribeParams,
   ): Promise<TranscribedNote[]> {
+    if (import.meta.env.VITE_FAKE_BASIC_PITCH === "true") {
+      if (this.analyzedCacheKey !== cacheKey) {
+        throw new Error("Audio not analyzed");
+      }
+      return FAKE_TRANSCRIBED_NOTES.filter(
+        (note) =>
+          note.pitchMidi >= params.minPitchMidi &&
+          note.pitchMidi <= params.maxPitchMidi,
+      );
+    }
     const response = await this.sendRequest(
       { type: "decode", requestId: this.nextRequestId++, cacheKey, params },
       [],
@@ -157,6 +172,15 @@ class BasicPitchClient {
     });
   }
 }
+
+const FAKE_TRANSCRIBED_NOTES: TranscribedNote[] = [60, 64, 67, 72].map(
+  (pitchMidi, index) => ({
+    startSeconds: index,
+    durationSeconds: 0.8,
+    pitchMidi,
+    amplitude: 0.8,
+  }),
+);
 
 export const basicPitchClient = new BasicPitchClient();
 

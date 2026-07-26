@@ -19,7 +19,6 @@ test.describe("Audio to MIDI", () => {
   test("transcribes an audio track and replaces notes as one undo step", async ({
     page,
   }) => {
-    test.setTimeout(60_000);
     await page.goto("/");
     await clickNewProject(page);
     await loadAudioFile(page, "test-tones.wav", "test-tones.wav");
@@ -48,12 +47,13 @@ test.describe("Audio to MIDI", () => {
 
     // Step 1: analyze runs inference and caches activations; project notes
     // are untouched until an explicit convert. Inference takes ~4s solo and
-    // longer under parallel suite load. CI uses an explicit SwiftShader WebGL
-    // renderer because its CPU backend takes over 90s for the first frame.
+    // longer under parallel suite load. CI fakes this client boundary because
+    // GitHub runners cannot execute the real browser model reliably; the Node
+    // CLI remains the real-model verification path.
     await panel.getByTestId("analyze-button").click();
     await expect(panel.getByTestId("audio-to-midi-status")).toHaveText(
       "Analyzed",
-      { timeout: 30_000 },
+      { timeout: 10_000 },
     );
     expect(await getNoteIds(page)).toEqual(["note-marker"]);
 
