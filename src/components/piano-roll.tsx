@@ -244,7 +244,6 @@ export function PianoRoll() {
     notes,
     selectedNoteIds,
     gridSnap,
-    totalBeats,
     tempo,
     timeSignature,
     audioTracks,
@@ -252,7 +251,6 @@ export function PianoRoll() {
     masterVolume,
     midiVolume,
     midiMuted,
-    showDebug,
     autoScrollEnabled,
     addNote,
     updateNote,
@@ -1203,35 +1201,6 @@ export function PianoRoll() {
             onMouseDown={handleGridMouseDown}
             style={gridBackground}
           >
-            {/* Debug: reference lines at y=0, pixelsPerKey, 2*pixelsPerKey (red) */}
-            {showDebug && (
-              <>
-                <div
-                  className="absolute left-0 right-0 h-[2px] bg-red-500"
-                  style={{ top: 0 }}
-                />
-                <div
-                  className="absolute left-0 right-0 h-px bg-red-500"
-                  style={{ top: roundedPixelsPerKey }}
-                />
-                <div
-                  className="absolute left-0 right-0 h-px bg-red-500"
-                  style={{ top: 2 * roundedPixelsPerKey }}
-                />
-                <div
-                  className="absolute text-red-500 text-[10px]"
-                  style={{ left: 5, top: 2 }}
-                >
-                  y=0
-                </div>
-                <div
-                  className="absolute text-red-500 text-[10px]"
-                  style={{ left: 5, top: roundedPixelsPerKey + 2 }}
-                >
-                  y={roundedPixelsPerKey}
-                </div>
-              </>
-            )}
             {/* Notes */}
             {visibleNotes.map((note) => (
               <NoteDiv
@@ -1284,158 +1253,6 @@ export function PianoRoll() {
           </div>
         </div>
       </div>
-
-      {/* Debug Panel */}
-      {showDebug && (
-        <div className="fixed bottom-4 right-4 bg-neutral-800 border border-neutral-600 rounded-lg p-4 text-xs font-mono max-w-md max-h-96 overflow-auto shadow-lg z-50 select-text">
-          <div className="font-bold text-yellow-400 mb-2">Debug Info</div>
-
-          <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Scroll State:</div>
-            <div className="text-cyan-400">scrollY: {scrollY.toFixed(6)}</div>
-            <div className="text-cyan-400">
-              Math.floor(scrollY): {Math.floor(scrollY)}
-            </div>
-            <div className="text-cyan-400">
-              scrollY % 1: {(scrollY % 1).toFixed(6)}
-            </div>
-            <div>
-              pixelsPerKey: {pixelsPerKey.toFixed(4)} →{" "}
-              <span className="text-green-400">{roundedPixelsPerKey}</span>
-            </div>
-            <div>
-              pixelsPerBeat: {pixelsPerBeat.toFixed(4)} →{" "}
-              <span className="text-green-400">{roundedPixelsPerBeat}</span>
-            </div>
-            <div>
-              topPitch: {MAX_PITCH - Math.floor(scrollY)} (
-              {midiToNoteName(MAX_PITCH - Math.floor(scrollY))})
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Row Lines Offset:</div>
-            <div className="text-cyan-400">
-              rowOffsetY = -(scrollY % 1) * pixelsPerKey
-            </div>
-            <div className="text-cyan-400">
-              {" "}
-              = -{(scrollY % 1).toFixed(6)} * {pixelsPerKey.toFixed(2)}
-            </div>
-            <div className="text-cyan-400">
-              {" "}
-              = {(-(scrollY % 1) * pixelsPerKey).toFixed(4)}px
-            </div>
-            <div>
-              Grid lines at: {(-(scrollY % 1) * pixelsPerKey).toFixed(2)},{" "}
-              {(-(scrollY % 1) * pixelsPerKey + pixelsPerKey).toFixed(2)},{" "}
-              {(-(scrollY % 1) * pixelsPerKey + 2 * pixelsPerKey).toFixed(2)}...
-            </div>
-            <div className="text-neutral-500 mt-1">
-              Row tops (from topPitch):
-            </div>
-            {Array.from(
-              { length: 5 },
-              (_, i) => MAX_PITCH - Math.floor(scrollY) - i,
-            ).map((p) => {
-              const y = (MAX_PITCH - scrollY - p) * pixelsPerKey;
-              return (
-                <div key={p} className="text-neutral-500">
-                  {midiToNoteName(p)} (pitch {p}): y={y.toFixed(4)}px
-                </div>
-              );
-            })}
-            <div className="text-yellow-400 mt-1">
-              Diff (row[0] - gridLine[0]):{" "}
-              {(
-                (MAX_PITCH - scrollY - (MAX_PITCH - Math.floor(scrollY))) *
-                  pixelsPerKey -
-                -(scrollY % 1) * pixelsPerKey
-              ).toFixed(6)}
-              px
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <div className="text-neutral-400 mb-1">
-              B/C Boundary (octave line):
-            </div>
-            {(() => {
-              const topPitchVal = MAX_PITCH - scrollY;
-              const topPitchInOctave =
-                ((Math.floor(topPitchVal) % 12) + 12) % 12;
-              const octaveHeight = pixelsPerKey * 12;
-              const octaveOffsetYVal =
-                ((((MAX_PITCH - scrollY) * pixelsPerKey) % octaveHeight) +
-                  octaveHeight) %
-                octaveHeight;
-              // Find first C at or below topPitch
-              const firstCPitch = Math.floor(topPitchVal) - topPitchInOctave;
-              const firstCRowTop =
-                (MAX_PITCH - scrollY - firstCPitch) * pixelsPerKey;
-              // Expected: firstCRowTop mod octaveHeight should equal octaveOffsetY
-              const expectedOffset =
-                ((firstCRowTop % octaveHeight) + octaveHeight) % octaveHeight;
-              return (
-                <>
-                  <div>topPitch: {topPitchVal.toFixed(4)}</div>
-                  <div>octaveHeight: {octaveHeight.toFixed(2)}px</div>
-                  <div>octaveOffsetY: {octaveOffsetYVal.toFixed(4)}px</div>
-                  <div className="text-green-400">
-                    First C: {midiToNoteName(firstCPitch)} (pitch {firstCPitch})
-                  </div>
-                  <div className="text-green-400">
-                    C row top: {firstCRowTop.toFixed(4)}px
-                  </div>
-                  <div className="text-green-400">
-                    C row top mod octaveHeight: {expectedOffset.toFixed(4)}px
-                  </div>
-                  <div
-                    className={
-                      Math.abs(expectedOffset - octaveOffsetYVal) < 0.001
-                        ? "text-green-400"
-                        : "text-red-400"
-                    }
-                  >
-                    Diff: {(expectedOffset - octaveOffsetYVal).toFixed(6)}px
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-
-          <div className="mb-3">
-            <div className="text-neutral-400 mb-1">Grid settings:</div>
-            <div>gridSnap: {gridSnap}</div>
-            <div>totalBeats: {totalBeats}</div>
-          </div>
-
-          <div>
-            <div className="text-neutral-400 mb-1">
-              Notes ({notes.length} total, {visibleNotes.length} visible):
-            </div>
-            {notes.length === 0 ? (
-              <div className="text-neutral-500">No notes</div>
-            ) : (
-              <div className="space-y-1">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`${selectedNoteIds.has(note.id) ? "text-blue-400" : ""}`}
-                  >
-                    {note.id}: pitch={note.pitch} ({midiToNoteName(note.pitch)}
-                    ), start={note.start.toFixed(2)}, dur=
-                    {note.duration.toFixed(2)}
-                    <span className="text-neutral-500 ml-1">
-                      → y={(MAX_PITCH - scrollY - note.pitch) * pixelsPerKey}px
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

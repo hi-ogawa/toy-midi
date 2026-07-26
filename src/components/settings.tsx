@@ -45,10 +45,8 @@ export function Settings({ projectName, onProjectNameChange }: SettingsProps) {
     notes,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
-    showDebug,
     setAutoScrollEnabled,
     setLinkAudioOffsetsEnabled,
-    setShowDebug,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -318,15 +316,6 @@ export function Settings({ projectName, onProjectNameChange }: SettingsProps) {
               className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
             />
             <span className="text-sm text-neutral-300">Link audio offsets</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showDebug}
-              onChange={(e) => setShowDebug(e.target.checked)}
-              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
-            />
-            <span className="text-sm text-neutral-300">Debug</span>
           </label>
         </div>
       </section>
