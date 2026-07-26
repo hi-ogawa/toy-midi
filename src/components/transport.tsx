@@ -16,6 +16,7 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -33,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Toggle } from "./ui/toggle";
 import { cn } from "./ui/utils";
 
 function formatTimeCompact(seconds: number): string {
@@ -286,6 +288,22 @@ export function Transport({
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
+
+      {/* Metronome mute */}
+      <Toggle
+        data-testid="metronome-mute-toggle"
+        value={!metronomeEnabled}
+        onChange={(muted) => setMetronomeEnabled(!muted)}
+        aria-label="Toggle metronome mute"
+        title={metronomeEnabled ? "Mute metronome (M)" : "Unmute metronome (M)"}
+        className={cn(
+          "size-9",
+          !metronomeEnabled &&
+            "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
+        )}
+      >
+        <MetronomeIcon className="size-5" />
+      </Toggle>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />

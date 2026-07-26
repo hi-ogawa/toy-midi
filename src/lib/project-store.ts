@@ -33,6 +33,7 @@ export interface ProjectState {
   selectedAudioTrackId?: string; // not persisted
 
   // Mixer state
+  masterVolume: number;
   midiVolume: number; // 0-1
   midiMuted: boolean;
   midiProgram: number; // GM program number 0-127
@@ -97,6 +98,7 @@ export interface ProjectState {
   moveAudioOffset: (id: string, offset: number) => void;
 
   // Mixer actions
+  setMasterVolume: (volume: number) => void;
   setMidiVolume: (volume: number) => void;
   setMidiMuted: (muted: boolean) => void;
   setMidiProgram: (program: number) => void;
@@ -169,6 +171,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedAudioTrackId: undefined,
 
   // Mixer state
+  masterVolume: 1,
   midiVolume: 0.8,
   midiMuted: false,
   midiProgram: 0, // Acoustic Grand Piano
@@ -400,6 +403,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   // Mixer actions
+  setMasterVolume: (volume) => set({ masterVolume: volume }),
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMidiMuted: (muted) => set({ midiMuted: muted }),
   setMidiProgram: (program) => set({ midiProgram: program }),
@@ -584,6 +588,7 @@ export interface SavedProject {
   gridSnap: GridSnap;
   locators?: Locator[]; // Optional for backward compatibility
   audioTracks: SavedAudioTrack[];
+  masterVolume?: number;
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
   midiProgram?: number; // Optional for backward compatibility
@@ -621,6 +626,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   gridSnap: "1/8",
   locators: [],
   audioTracks: [],
+  masterVolume: 1,
   midiVolume: 0.8,
   midiMuted: false,
   midiProgram: 0,
@@ -653,6 +659,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
       // Strip transient waveform data
       ({ audioWaveform: _audioWaveform, ...track }) => track,
     ),
+    masterVolume: state.masterVolume,
     midiVolume: state.midiVolume,
     midiMuted: state.midiMuted,
     midiProgram: state.midiProgram,
@@ -736,6 +743,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
       ...t,
       audioWaveform: { status: "pending" as const },
     })),
+    masterVolume: merged.masterVolume ?? DEFAULTS.masterVolume,
     midiVolume: merged.midiVolume,
     midiMuted: merged.midiMuted ?? DEFAULTS.midiMuted,
     midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,

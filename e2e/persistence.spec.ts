@@ -3,6 +3,7 @@ import {
   waitForEditor,
   clickNewProject,
   evaluateFlushAutoSave,
+  evaluateStore,
 } from "./helpers";
 
 // Constants matching piano-roll.tsx
@@ -162,6 +163,15 @@ test.describe("Project Persistence", () => {
     await metronomeToggle.click();
     await expect(metronomeToggle).toHaveAttribute("aria-pressed", "false");
 
+    // Change master volume
+    await evaluateStore(page, (store) => {
+      store.getState().setMasterVolume(0.75);
+    });
+    await expect(page.getByTestId("master-volume-slider")).toHaveAttribute(
+      "data-slot",
+      "slider",
+    );
+
     await evaluateFlushAutoSave(page);
 
     // Reload and click Continue to restore
@@ -175,6 +185,9 @@ test.describe("Project Persistence", () => {
       "aria-pressed",
       "false",
     );
+    expect(
+      await evaluateStore(page, (store) => store.getState().masterVolume),
+    ).toBe(0.75);
   });
 
   test("note edits persist after reload", async ({ page }) => {

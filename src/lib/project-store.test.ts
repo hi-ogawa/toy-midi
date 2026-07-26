@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { type AudioTrack, useProjectStore } from "./project-store";
+import {
+  type AudioTrack,
+  createDefaultSavedProject,
+  fromSavedProject,
+  toSavedProject,
+  useProjectStore,
+} from "./project-store";
 
 function makeAudioTrack(id: string, offset: number): AudioTrack {
   return {
@@ -57,5 +63,20 @@ describe("moveAudioOffset", () => {
   it("ignores unknown track ids", () => {
     useProjectStore.getState().moveAudioOffset("audio-99", 7);
     expect(getOffsets()).toEqual([5, 2]);
+  });
+});
+
+describe("master volume persistence", () => {
+  it("serializes the master volume", () => {
+    useProjectStore.setState({ masterVolume: 0.75 });
+
+    expect(toSavedProject(useProjectStore.getState()).masterVolume).toBe(0.75);
+  });
+
+  it("defaults old projects to unity gain", () => {
+    const project = createDefaultSavedProject();
+    delete project.masterVolume;
+
+    expect(fromSavedProject(project).masterVolume).toBe(1);
   });
 });

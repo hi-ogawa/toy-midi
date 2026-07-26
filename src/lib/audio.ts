@@ -42,6 +42,7 @@ export type AudioState = {
  * - Components should update store, not call AudioManager directly
  */
 class AudioManager {
+  private masterChannel!: Tone.Channel;
   private midiSynth!: OxiSynthSynth;
   private midiChannel!: Tone.Channel;
   private midiPart!: Tone.Part;
@@ -74,6 +75,8 @@ class AudioManager {
   private async initInner(): Promise<void> {
     const context = Tone.getContext();
 
+    this.masterChannel = new Tone.Channel(0).toDestination();
+
     // OxiSynth (Rust/WASM) for SF2 playback
     this.midiSynth = new OxiSynthSynth(context);
     await this.midiSynth.init({
@@ -87,7 +90,7 @@ class AudioManager {
     );
 
     // Connect synth output to Channel for volume control
-    this.midiChannel = new Tone.Channel(0).toDestination();
+    this.midiChannel = new Tone.Channel(0).connect(this.masterChannel);
     this.midiSynth.output.connect(this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
@@ -110,7 +113,7 @@ class AudioManager {
 
     // Metronome click generator with native Web Audio nodes.
     this.metronome = new Metronome(context);
-    this.metronomeChannel = new Tone.Channel(0.5).toDestination();
+    this.metronomeChannel = new Tone.Channel(0.5).connect(this.masterChannel);
     Tone.connect(this.metronome.output, this.metronomeChannel);
 
     // Metronome sequence (4/4 with accent on beat 1)
@@ -135,6 +138,7 @@ class AudioManager {
       return;
     }
     // Cheap operations - always apply
+    this.setMasterVolume(state.masterVolume);
     this.setMidiVolume(state.midiVolume);
     this.setMidiMuted(state.midiMuted);
     this.setMetronomeVolume(state.metronomeVolume);
@@ -198,7 +202,7 @@ class AudioManager {
   getAudioTrack(id: string): AudioTrackPlayback {
     let entry = this.audioTracks.get(id);
     if (!entry) {
-      entry = new AudioTrackPlayback();
+      entry = new AudioTrackPlayback(this.masterChannel);
       this.audioTracks.set(id, entry);
     }
     return entry;
@@ -275,6 +279,10 @@ class AudioManager {
   }
 
   // Volume controls (linear gain)
+  setMasterVolume(volume: number): void {
+    this.masterChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
+  }
+
   setMidiVolume(volume: number): void {
     this.midiChannel.volume.rampTo(Tone.gainToDb(clampGain(volume)));
   }
@@ -399,12 +407,13 @@ class AudioStateStore {
 
 class AudioTrackPlayback {
   readonly player = new Tone.Player();
-  readonly channel = new Tone.Channel({
-    volume: Tone.gainToDb(clampGain(0.8)),
-    channelCount: 2,
-  }).toDestination();
+  readonly channel: Tone.Channel;
 
-  constructor() {
+  constructor(output: Tone.InputNode) {
+    this.channel = new Tone.Channel({
+      volume: Tone.gainToDb(clampGain(0.8)),
+      channelCount: 2,
+    }).connect(output);
     this.player.connect(this.channel);
   }
 
