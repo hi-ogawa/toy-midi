@@ -1468,7 +1468,6 @@ function TrackControls({
       ))}
       <TrackControl
         label="MIDI"
-        fill
         volume={midiVolume}
         muted={midiMuted}
         muteTitle={midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"}
@@ -1483,7 +1482,6 @@ type TrackControlProps = {
   label: string;
   labelTitle?: string;
   height?: number;
-  fill?: boolean;
   volume: number;
   muted?: boolean;
   muteTitle?: string;
@@ -1496,7 +1494,6 @@ function TrackControl({
   label,
   labelTitle,
   height,
-  fill,
   volume,
   muted,
   muteTitle,
@@ -1508,7 +1505,7 @@ function TrackControl({
     <div
       className={cn(
         "border-b border-neutral-700 p-2 flex flex-col gap-3",
-        fill ? "flex-1" : "shrink-0",
+        height === undefined ? "flex-1" : "shrink-0",
       )}
       style={{ height }}
     >
