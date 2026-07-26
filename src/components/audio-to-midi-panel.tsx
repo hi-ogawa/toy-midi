@@ -25,9 +25,9 @@ export function AudioToMidiPanel({
   onClose: () => void;
 }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
-  const [progress, setProgress] = useState<number | null>(null);
+  const [progress, setProgress] = useState<number>();
   const [analyzed, setAnalyzed] = useState(false);
-  const [noteCount, setNoteCount] = useState<number | null>(null);
+  const [noteCount, setNoteCount] = useState<number>();
 
   const analyzeMutation = useMutation({
     mutationFn: async () => {
@@ -43,7 +43,7 @@ export function AudioToMidiPanel({
       console.error("Failed to analyze audio:", error);
       toast.error("Failed to analyze audio");
     },
-    onSettled: () => setProgress(null),
+    onSettled: () => setProgress(undefined),
   });
 
   // Parameter edits only stage locally; Convert to MIDI is the explicit
@@ -82,7 +82,7 @@ export function AudioToMidiPanel({
   // TODO: show elapsed time after each step completes (e.g. "Analyzed in
   // 4.2s", "Converted 4 notes in 0.8s").
   const status = analyzeMutation.isPending
-    ? progress !== null
+    ? progress !== undefined
       ? `Analyzing ${Math.round(progress * 100)}%`
       : "Analyzing..."
     : analyzeMutation.error
@@ -93,7 +93,7 @@ export function AudioToMidiPanel({
           ? "Converting..."
           : convertMutation.error
             ? `Conversion failed: ${convertMutation.error.message}`
-            : noteCount !== null
+            : noteCount !== undefined
               ? `Converted ${noteCount} notes`
               : "Analyzed";
 
