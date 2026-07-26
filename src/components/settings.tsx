@@ -112,6 +112,7 @@ export function Settings({ projectName, onProjectNameChange }: SettingsProps) {
           offset: 0,
           volume: 0.8,
           muted: false,
+          waveformHeight: 60,
           audioWaveform: audioView
             ? { status: "ready", view: audioView }
             : { status: "unavailable" },

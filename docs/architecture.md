@@ -87,6 +87,7 @@ interface AudioTrack {
     | { status: "ready"; view: AudioView }
     | { status: "unavailable" }
     | { status: "error" };
+  waveformHeight: number;
 }
 ```
 
@@ -94,7 +95,7 @@ There is exactly one implicit MIDI track (a flat `notes: Note[]`) and any number
 
 ## State Management
 
-`useProjectStore` (Zustand) holds music data (`notes`, `locators`, `audioTracks`, `tempo`, `timeSignature`, `totalBeats`), editor state (selections, `gridSnap`, `clipboard`), mixer settings, and viewport state (`scrollX`/`scrollY`, `pixelsPerBeat`/`pixelsPerKey`, `waveformHeight`).
+`useProjectStore` (Zustand) holds music data (`notes`, `locators`, `audioTracks`, `tempo`, `timeSignature`, `totalBeats`), editor state (selections, `gridSnap`, `clipboard`), mixer settings, and viewport state (`scrollX`/`scrollY`, `pixelsPerBeat`/`pixelsPerKey`). Each audio track stores its own resizable `waveformHeight`.
 
 Playback state is deliberately NOT in the store. `useTransport()` reads `isPlaying`/`position` directly from Tone.Transport with a RAF loop while playing, and controls go through `audioManager.play/pause/seek`.
 
