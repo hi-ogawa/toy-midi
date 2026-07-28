@@ -14,8 +14,7 @@
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
     "test-e2e": "playwright test",
-    "basic-pitch": "node tools/basic-pitch.mjs",
-    "mt3-infer": "uv run python tools/mt3-infer.py"
+    "basic-pitch": "node tools/basic-pitch.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",

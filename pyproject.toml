@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "Offline MT3 transcription evaluation tools (uv-managed, CPU-only)"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+  "huggingface-hub==0.36.2",
   "mt3-infer==0.1.3",
   # The 0.1.3 wheel imports Lightning for YourMT3 but omits it from its metadata.
   "pytorch-lightning==2.4.0",

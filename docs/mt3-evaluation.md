@@ -9,14 +9,18 @@ Install [uv](https://docs.astral.sh/uv/) and pnpm, then run from the repository 
 ```sh
 uv sync
 pnpm install
+uv run hf download mimbres/YourMT3 \
+  amt/logs/2024/mc13_256_g4_all_v7_mt3f_sqr_rms_moe_wf4_n8k2_silu_rope_rp_b36_nops/checkpoints/last.ckpt \
+  --repo-type space \
+  --local-dir .tmp/mt3-checkpoints
 ```
 
-The uv project selects Python 3.11 and CPU-only PyTorch wheels. No system Python 3.14 environment is used.
+The uv project selects Python 3.11 and CPU-only PyTorch wheels. No system Python 3.14 environment is used. The `hf download` command fetches only the targeted YourMT3 checkpoint and can be rerun safely when it is already cached.
 
-Run the harness through the package script:
+Run the harness through uv:
 
 ```sh
-pnpm mt3-infer <input-audio> [options]
+uv run python tools/mt3-infer.py <input-audio> [options]
 ```
 
 Options:
@@ -33,7 +37,7 @@ Options:
 Use the deterministic four-tone fixture to exercise audio loading, model inference, and MIDI writing:
 
 ```sh
-pnpm mt3-infer e2e/fixtures/test-tones.wav \
+uv run python tools/mt3-infer.py e2e/fixtures/test-tones.wav \
   --duration 4 \
   --midi .tmp/mt3-smoke.mid
 ```
@@ -45,7 +49,7 @@ This only verifies that the inference path runs. Synthetic-tone transcription qu
 Choose a representative excerpt and match `--bpm` to the toy-midi project tempo:
 
 ```sh
-pnpm mt3-infer path/to/audio.wav \
+uv run python tools/mt3-infer.py path/to/audio.wav \
   --start 42.5 \
   --duration 20 \
   --bpm 96 \
@@ -57,7 +61,7 @@ Model event times are placed at `--start + --offset` before conversion to ticks.
 
 ## Checkpoints And Output
 
-The first `yourmt3` run downloads its approximately 536 MB checkpoint to `.tmp/mt3-checkpoints/`. Later runs reuse it and can run without network access. MIDI defaults to `.tmp/mt3-output.mid`; `.tmp/` and the uv `.venv/` are gitignored.
+The setup command downloads only the approximately 536 MiB YourMT3 checkpoint from Hugging Face to `.tmp/mt3-checkpoints/`. It does not require Git LFS or clone the full YourMT3 repository. Inference then reuses the cached checkpoint and can run without network access. MIDI defaults to `.tmp/mt3-output.mid`; `.tmp/` and the uv `.venv/` are gitignored.
 
 Inference is CPU-only and can take substantially longer than the selected excerpt. The checkpoint size, model loading time, and CPU runtime are expected evaluation costs rather than app runtime requirements.
 

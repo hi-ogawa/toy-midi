@@ -19,6 +19,12 @@ if TYPE_CHECKING:
 DEFAULT_MIDI_PATH = Path(".tmp/mt3-output.mid")
 DEFAULT_CHECKPOINT_DIR = Path(".tmp/mt3-checkpoints")
 MODEL_SAMPLE_RATE = 16_000
+YOURMT3_CHECKPOINT_PATH = Path(
+    "amt/logs/2024/"
+    "mc13_256_g4_all_v7_mt3f_sqr_rms_moe_wf4_n8k2_silu_rope_rp_b36_nops/"
+    "checkpoints/last.ckpt"
+)
+YOURMT3_CHECKPOINT_SIZE = 561_544_628
 
 
 def main() -> None:
@@ -44,12 +50,14 @@ def main() -> None:
         f"at {sample_rate}Hz mono"
     )
     print(f"model: {args.model} (CPU; checkpoints: {os.environ['MT3_CHECKPOINT_DIR']})")
+    checkpoint_path = resolve_checkpoint(args.model)
 
     started_at = time.monotonic()
     model_midi = transcribe(
         excerpt,
         model=args.model,
         sr=sample_rate,
+        checkpoint_path=str(checkpoint_path) if checkpoint_path else None,
         device="cpu",
     )
     print(f"inference: done in {time.monotonic() - started_at:.1f}s")
@@ -123,6 +131,16 @@ def slice_excerpt(
     if duration_seconds is not None:
         end_sample = start_sample + round(duration_seconds * sample_rate)
     return audio[start_sample:end_sample]
+
+
+def resolve_checkpoint(model: str) -> Path | None:
+    if model != "yourmt3":
+        return None
+
+    checkpoint_path = Path(os.environ["MT3_CHECKPOINT_DIR"]) / YOURMT3_CHECKPOINT_PATH
+    if not checkpoint_path.is_file() or checkpoint_path.stat().st_size != YOURMT3_CHECKPOINT_SIZE:
+        raise SystemExit("YourMT3 checkpoint is missing or invalid; run the setup download command")
+    return checkpoint_path
 
 
 @dataclass(frozen=True)
