@@ -86,6 +86,18 @@ uv run python tools/mt3-infer.py path/to/audio.wav \
 
 Model event times are placed at `--start + --offset` before conversion to ticks. Use `--start` for the excerpt's position in the source audio and `--offset` for any additional placement of that audio track in the toy-midi project.
 
+### Bass Stem Trial
+
+The first 15 seconds of the isolated bass stem from PRIMROSE's `Ring` live clip were tested at 105 BPM with a 4.671-second project offset:
+
+| Model         | Inference | Output                                                |
+| ------------- | --------: | ----------------------------------------------------- |
+| `mr_mt3`      |      5.0s | 8 notes, pitches 36-50, melodic and percussion events |
+| `mt3_pytorch` |      2.7s | No notes                                              |
+| `yourmt3`     |     23.7s | No notes                                              |
+
+MR-MT3's first detected note was at 11.189 seconds in the excerpt, or 15.860 seconds after applying the project offset. An earlier 30-second MR-MT3 run produced 72 notes across MIDI pitches 28-102, but visual inspection did not look correct. The percussion events from an isolated bass stem and the empty outputs from the other models mean none of these results was a useful transcription starting point for this excerpt.
+
 ## Checkpoints And Output
 
 The setup commands download approximately 711 MiB total: one shared 175 MiB checkpoint for `mr_mt3` and `mt3_pytorch`, plus the 536 MiB YourMT3 checkpoint. They do not require Git LFS or clone either source repository. Inference then reuses the cached checkpoints and can run without network access. MIDI defaults to `.tmp/mt3-output.mid`; `.tmp/` and the uv `.venv/` are gitignored.
