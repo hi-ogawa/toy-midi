@@ -14,3 +14,4 @@ pnpm dev
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md)
+- [docs/mt3-evaluation.md](docs/mt3-evaluation.md)
