@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+import importlib.util
+import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+SCRIPT_PATH = Path(__file__).with_name("bass-pitch.py")
+SPEC = importlib.util.spec_from_file_location("bass_pitch", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+bass_pitch = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = bass_pitch
+SPEC.loader.exec_module(bass_pitch)
+
+
+def test_grid_seconds_and_ticks_preserve_project_alignment() -> None:
+    cells = bass_pitch.make_grid_cells(
+        excerpt_start=1.0,
+        excerpt_end=2.0,
+        bpm=120,
+        cells_per_beat=2,
+        grid_origin=0.125,
+        track_offset=0.5,
+    )
+
+    assert [(cell.index, cell.source_start, cell.project_start) for cell in cells] == [
+        (6, pytest.approx(1.125), pytest.approx(1.625)),
+        (7, pytest.approx(1.375), pytest.approx(1.875)),
+        (8, pytest.approx(1.625), pytest.approx(2.125)),
+    ]
+    assert bass_pitch.seconds_to_ticks(1.625, bpm=120) == 1560
+
+
+def test_cell_vote_uses_confidence_weighted_rounded_midi_mode() -> None:
+    cell = bass_pitch.GridCell(0, 0.0, 1.0, 0.0, 1.0)
+    voted = bass_pitch.vote_cell(
+        cell,
+        frame_times=np.array([0.1, 0.3, 0.5, 0.7]),
+        midi_pitch=np.array([39.9, 40.1, 41.0, np.nan]),
+        voiced_flag=np.array([True, True, True, False]),
+        voiced_probability=np.array([0.9, 0.8, 0.6, 0.9]),
+        confidence_threshold=0.5,
+        minimum_voiced_coverage=0.5,
+    )
+
+    assert voted.pitch == 40
+    assert voted.voiced_coverage == 0.75
+    assert voted.vote_confidence == pytest.approx(0.85)
+
+
+def test_cell_vote_emits_rest_below_coverage_threshold() -> None:
+    cell = bass_pitch.GridCell(0, 0.0, 1.0, 0.0, 1.0)
+    voted = bass_pitch.vote_cell(
+        cell,
+        frame_times=np.array([0.1, 0.3, 0.5, 0.7]),
+        midi_pitch=np.array([40.0, np.nan, np.nan, np.nan]),
+        voiced_flag=np.array([True, False, False, False]),
+        voiced_probability=np.array([0.9, 0.1, 0.1, 0.1]),
+        confidence_threshold=0.5,
+        minimum_voiced_coverage=0.5,
+    )
+
+    assert voted.pitch is None
+    assert voted.voiced_coverage == 0.25
+
+
+def test_adjacent_equal_pitch_cells_merge_without_boundary_evidence() -> None:
+    cells = [pitched_cell(0), pitched_cell(1)]
+    boundaries = [boundary(split=False)]
+
+    assert bass_pitch.merge_cells(cells, boundaries) == [bass_pitch.Note(40, 0.0, 1.0, 0, 1)]
+
+
+def test_boundary_evaluation_returns_one_decision_per_adjacent_pair() -> None:
+    cells = [pitched_cell(0), pitched_cell(1)]
+    boundaries = bass_pitch.evaluate_boundaries(
+        cells,
+        frame_times=np.array([0.45, 0.5, 0.55]),
+        onset=np.zeros(3),
+        rms=np.ones(3),
+        voiced_probability=np.ones(3),
+        tolerance=0.06,
+        onset_threshold=0.5,
+    )
+
+    assert len(boundaries) == 1
+    assert boundaries[0].reason == "same-pitch-merge"
+
+
+def test_adjacent_equal_pitch_cells_split_on_retrigger_evidence() -> None:
+    cells = [pitched_cell(0), pitched_cell(1)]
+    boundaries = [boundary(split=True)]
+
+    assert bass_pitch.merge_cells(cells, boundaries) == [
+        bass_pitch.Note(40, 0.0, 0.5, 0, 0),
+        bass_pitch.Note(40, 0.5, 1.0, 1, 1),
+    ]
+
+
+def pitched_cell(index: int) -> bass_pitch.GridCell:
+    return bass_pitch.GridCell(
+        index=index,
+        source_start=index * 0.5,
+        source_end=(index + 1) * 0.5,
+        project_start=index * 0.5,
+        project_end=(index + 1) * 0.5,
+        pitch=40,
+    )
+
+
+def boundary(*, split: bool) -> bass_pitch.Boundary:
+    return bass_pitch.Boundary(
+        left_cell=0,
+        right_cell=1,
+        source_time=0.5,
+        project_time=0.5,
+        onset_score=float(split),
+        rms_dip_score=0.0,
+        confidence_dip_score=0.0,
+        evidence_score=float(split),
+        split=split,
+        reason="same-pitch-onset" if split else "same-pitch-merge",
+    )
