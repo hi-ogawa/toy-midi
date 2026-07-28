@@ -10,7 +10,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import mido
@@ -19,11 +19,14 @@ if TYPE_CHECKING:
 DEFAULT_MIDI_PATH = Path(".tmp/mt3-output.mid")
 DEFAULT_CHECKPOINT_DIR = Path(".tmp/mt3-checkpoints")
 MODEL_SAMPLE_RATE = 16_000
+MR_MT3_CHECKPOINT_PATH = Path("mr_mt3/mt3.pth")
+MT3_PYTORCH_CHECKPOINT_PATH = Path("mt3_pytorch")
 YOURMT3_CHECKPOINT_PATH = Path(
     "amt/logs/2024/"
     "mc13_256_g4_all_v7_mt3f_sqr_rms_moe_wf4_n8k2_silu_rope_rp_b36_nops/"
     "checkpoints/last.ckpt"
 )
+SMALL_CHECKPOINT_SIZE = 183_672_643
 YOURMT3_CHECKPOINT_SIZE = 561_544_628
 
 
@@ -33,6 +36,7 @@ def main() -> None:
 
     # mt3-infer otherwise resolves checkpoints relative to the current directory.
     os.environ.setdefault("MT3_CHECKPOINT_DIR", str(DEFAULT_CHECKPOINT_DIR.resolve()))
+    configure_model_compatibility(args.model)
 
     from mt3_infer import transcribe
     from mt3_infer.utils.audio import load_audio
@@ -134,13 +138,51 @@ def slice_excerpt(
 
 
 def resolve_checkpoint(model: str) -> Path | None:
-    if model != "yourmt3":
+    checkpoint_dir = Path(os.environ["MT3_CHECKPOINT_DIR"])
+    if model == "mr_mt3":
+        checkpoint_path = checkpoint_dir / MR_MT3_CHECKPOINT_PATH
+        valid = (
+            checkpoint_path.is_file() and checkpoint_path.stat().st_size == SMALL_CHECKPOINT_SIZE
+        )
+    elif model == "mt3_pytorch":
+        checkpoint_path = checkpoint_dir / MT3_PYTORCH_CHECKPOINT_PATH
+        weights_path = checkpoint_path / "mt3.pth"
+        valid = (
+            (checkpoint_path / "config.json").is_file()
+            and weights_path.is_file()
+            and weights_path.stat().st_size == SMALL_CHECKPOINT_SIZE
+        )
+    elif model == "yourmt3":
+        checkpoint_path = checkpoint_dir / YOURMT3_CHECKPOINT_PATH
+        valid = (
+            checkpoint_path.is_file() and checkpoint_path.stat().st_size == YOURMT3_CHECKPOINT_SIZE
+        )
+    else:
         return None
 
-    checkpoint_path = Path(os.environ["MT3_CHECKPOINT_DIR"]) / YOURMT3_CHECKPOINT_PATH
-    if not checkpoint_path.is_file() or checkpoint_path.stat().st_size != YOURMT3_CHECKPOINT_SIZE:
-        raise SystemExit("YourMT3 checkpoint is missing or invalid; run the setup download command")
+    if not valid:
+        raise SystemExit(f"{model} checkpoint is missing or invalid; run the setup commands")
     return checkpoint_path
+
+
+def configure_model_compatibility(model: str) -> None:
+    """Bridge the T5 API versions used by the mt3-infer 0.1.3 adapters."""
+    if model == "mr_mt3":
+        from transformers.models.t5.modeling_t5 import T5Block
+
+        original_forward = T5Block.forward
+
+        def compatible_forward(self: Any, *args: Any, **kwargs: Any) -> Any:
+            kwargs["past_key_value"] = kwargs.pop("past_key_values", None)
+            kwargs.pop("cache_position", None)
+            return original_forward(self, *args, **kwargs)
+
+        T5Block.forward = compatible_forward
+    elif model == "mt3_pytorch":
+        from torch.utils.checkpoint import checkpoint
+        from transformers.models.t5 import modeling_t5
+
+        modeling_t5.checkpoint = checkpoint
 
 
 @dataclass(frozen=True)

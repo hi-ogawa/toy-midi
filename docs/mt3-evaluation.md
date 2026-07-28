@@ -9,13 +9,21 @@ Install [uv](https://docs.astral.sh/uv/) and pnpm, then run from the repository 
 ```sh
 uv sync
 pnpm install
+uv run hf download gudgud1014/MR-MT3 mt3.pth \
+  --local-dir .tmp/mt3-checkpoints/mr_mt3
+mkdir -p .tmp/mt3-checkpoints/mt3_pytorch
+curl --fail --location \
+  https://raw.githubusercontent.com/kunato/mt3-pytorch/master/pretrained/config.json \
+  --output .tmp/mt3-checkpoints/mt3_pytorch/config.json
+ln -sfn ../mr_mt3/mt3.pth \
+  .tmp/mt3-checkpoints/mt3_pytorch/mt3.pth
 uv run hf download mimbres/YourMT3 \
   amt/logs/2024/mc13_256_g4_all_v7_mt3f_sqr_rms_moe_wf4_n8k2_silu_rope_rp_b36_nops/checkpoints/last.ckpt \
   --repo-type space \
   --local-dir .tmp/mt3-checkpoints
 ```
 
-The uv project selects Python 3.11 and CPU-only PyTorch wheels. No system Python 3.14 environment is used. The `hf download` command fetches only the targeted YourMT3 checkpoint and can be rerun safely when it is already cached.
+The uv project selects Python 3.11 and CPU-only PyTorch wheels. No system Python 3.14 environment is used. These commands fetch only the targeted checkpoints and can be rerun safely. `mr_mt3` and `mt3_pytorch` use the same weights, so the latter links to the existing file instead of storing a duplicate.
 
 Run the harness through uv:
 
@@ -34,15 +42,34 @@ Options:
 
 ## Smoke Test
 
-Use the deterministic four-tone fixture to exercise audio loading, model inference, and MIDI writing:
+Use the deterministic four-tone fixture to exercise audio loading, each model, and MIDI writing:
 
 ```sh
 uv run python tools/mt3-infer.py e2e/fixtures/test-tones.wav \
+  --model mr_mt3 \
   --duration 4 \
-  --midi .tmp/mt3-smoke.mid
+  --midi .tmp/mt3-smoke-mr-mt3.mid
+uv run python tools/mt3-infer.py e2e/fixtures/test-tones.wav \
+  --model mt3_pytorch \
+  --duration 4 \
+  --midi .tmp/mt3-smoke-mt3-pytorch.mid
+uv run python tools/mt3-infer.py e2e/fixtures/test-tones.wav \
+  --model yourmt3 \
+  --duration 4 \
+  --midi .tmp/mt3-smoke-yourmt3.mid
 ```
 
 This only verifies that the inference path runs. Synthetic-tone transcription quality is not evidence that a model will be useful on real music.
+
+Results from the four-second fixture on CPU:
+
+| Model         | Checkpoint | Role                             | Inference | Fixture output                  |
+| ------------- | ---------: | -------------------------------- | --------: | ------------------------------- |
+| `mr_mt3`      |    175 MiB | Fast MT3 descendant              |      2.5s | 4 notes, 1 track                |
+| `mt3_pytorch` |    175 MiB | Closest established MT3 baseline |     11.8s | 32 notes, 2 note-bearing tracks |
+| `yourmt3`     |    536 MiB | Larger PerceiverTF/MoE system    |     11.7s | 3 notes, 1 clean-guitar track   |
+
+The timings are one local run and are only useful as a rough relative cost. Compare transcription quality on the same representative real excerpt before selecting a model.
 
 ## Real Excerpt
 
@@ -61,7 +88,7 @@ Model event times are placed at `--start + --offset` before conversion to ticks.
 
 ## Checkpoints And Output
 
-The setup command downloads only the approximately 536 MiB YourMT3 checkpoint from Hugging Face to `.tmp/mt3-checkpoints/`. It does not require Git LFS or clone the full YourMT3 repository. Inference then reuses the cached checkpoint and can run without network access. MIDI defaults to `.tmp/mt3-output.mid`; `.tmp/` and the uv `.venv/` are gitignored.
+The setup commands download approximately 711 MiB total: one shared 175 MiB checkpoint for `mr_mt3` and `mt3_pytorch`, plus the 536 MiB YourMT3 checkpoint. They do not require Git LFS or clone either source repository. Inference then reuses the cached checkpoints and can run without network access. MIDI defaults to `.tmp/mt3-output.mid`; `.tmp/` and the uv `.venv/` are gitignored.
 
 Inference is CPU-only and can take substantially longer than the selected excerpt. The checkpoint size, model loading time, and CPU runtime are expected evaluation costs rather than app runtime requirements.
 
