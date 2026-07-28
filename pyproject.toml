@@ -1,0 +1,32 @@
+[project]
+name = "toy-midi-mt3-tools"
+version = "0.0.0"
+description = "Offline MT3 transcription evaluation tools (uv-managed, CPU-only)"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "mt3-infer==0.1.3",
+  # The 0.1.3 wheel imports Lightning for YourMT3 but omits it from its metadata.
+  "pytorch-lightning==2.4.0",
+  "torch==2.8.0",
+  "torchaudio==2.8.0",
+  "torchvision==0.23.0",
+  # YourMT3 was developed against this Transformers API; 5.x is not compatible.
+  "transformers==4.45.1",
+]
+
+[dependency-groups]
+dev = ["ruff==0.12.11"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
