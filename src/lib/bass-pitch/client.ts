@@ -24,7 +24,7 @@ class BassPitchClient {
   // that inside the first conversion's "Converting 0%" phase.
   warmUp(): void {
     this.getRpc()
-      .initialize()
+      .initialize({})
       .catch((error) => {
         console.error("Failed to warm up bass pitch worker:", error);
       });
