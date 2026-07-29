@@ -46,6 +46,11 @@ interface StoredAsset {
 const PROJECT_LIST_KEY = "toy-midi:project-list:v2";
 // project document, one localStorage entry per project (internally versioned)
 const PROJECT_KEY_PREFIX = "toy-midi:project:";
+const PREFERENCES_KEY = "toy-midi:preferences";
+
+interface Preferences {
+  defaultMidiProgram?: number;
+}
 
 // Layout v1 keys, read only by the one-time migration below.
 const LEGACY_LIST_KEY = "toy-midi-project-list";
@@ -84,9 +89,37 @@ class ProjectStorage {
   }
 
   createNew(): string {
-    return this.create(
-      this.getDefaultProjectName(),
-      createDefaultSavedProject(),
+    const project = createDefaultSavedProject();
+    const defaultMidiProgram = this.getDefaultMidiProgram();
+    if (defaultMidiProgram !== undefined) {
+      project.midiProgram = defaultMidiProgram;
+    }
+    return this.create(this.getDefaultProjectName(), project);
+  }
+
+  getDefaultMidiProgram(): number | undefined {
+    const json = localStorage.getItem(PREFERENCES_KEY);
+    if (!json) {
+      return undefined;
+    }
+
+    try {
+      const { defaultMidiProgram } = JSON.parse(json) as Preferences;
+      return Number.isInteger(defaultMidiProgram) &&
+        defaultMidiProgram !== undefined &&
+        defaultMidiProgram >= 0 &&
+        defaultMidiProgram <= 127
+        ? defaultMidiProgram
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  setDefaultMidiProgram(program: number): void {
+    localStorage.setItem(
+      PREFERENCES_KEY,
+      JSON.stringify({ defaultMidiProgram: program } satisfies Preferences),
     );
   }
 
