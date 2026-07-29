@@ -48,3 +48,14 @@ Grid bass is now the default method in the `AudioToMidi` panel, with Basic Pitch
 - The generated `src/lib/bass-pitch/pkg/` is committed (about 0.5 MB of wasm) so the Cloudflare deploy does not need a Rust toolchain. Regenerate with `pnpm build-bass-pitch-wasm` after changing the Rust core.
 - Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch-evaluation.md`.
 - There is no analyze stage: one Convert press resamples to 22.05 kHz mono on the main thread, runs pYIN plus grid decisions in the worker, and commits one `replaceAllNotes` undo entry. The e2e spec covers the default grid-bass flow with the real wasm and the Basic Pitch flow via the method selector.
+
+## Blocker: Chunked Analysis With Progress
+
+The wasm call is currently monolithic, so the panel shows a static "Converting..." for the whole run. That is tolerable for short excerpts but not for the primary workflow, where the input is a full-song Demucs bass stem and the projected wasm runtime is 35-50 seconds. Grid bass cannot remain the default method for real use until conversion reports progress and can be cancelled, so this is the next deliverable, ahead of any quality tuning.
+
+Plan:
+
+1. Chunk the analysis inside the Rust core. Split the excerpt into grid-aligned chunks of roughly 10-20 seconds with overlapping audio of at least the analysis frame and onset context, run pYIN and feature extraction per chunk, discard the duplicate overlap frames, and concatenate the frame arrays. The evaluation doc's parallelization notes already sketch these boundary conditions. Onset normalization must move after concatenation because the 95th-percentile scale is defined over the whole excerpt, and the grid decision stages already run on the full frame arrays, so they are unaffected. Per-chunk Viterbi introduces boundary effects on f0 continuity, which the overlap absorbs; validate against the current unchunked output on the bar-11 and 30-second fixtures.
+2. Expose progress across the wasm boundary as a per-chunk callback (`js_sys::Function`), and forward it through the worker RPC exactly like the Basic Pitch `onProgress`, so the panel can show "Converting NN%".
+3. Cancellation stays boring: the client terminates the worker and recreates it on the next convert, which is acceptable because the worker holds no cache.
+4. The native CLI should share the same chunked path so the fixtures keep validating the code the app runs. Parallel chunk analysis across workers remains deferred until latency is still a problem after progress exists.
