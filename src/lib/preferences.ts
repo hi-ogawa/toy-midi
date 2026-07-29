@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Based on ../demucs-onnx/packages/app/src/lib/preferences.ts.
+// Based on https://github.com/hi-ogawa/demucs-onnx/blob/main/packages/app/src/lib/preferences.ts.
 const STORAGE_KEY = "toy-midi:preferences";
 
 const preferencesSchema = z.object({
