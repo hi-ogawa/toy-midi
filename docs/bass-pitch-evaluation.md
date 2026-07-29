@@ -2,7 +2,7 @@
 
 `tools/bass-pitch.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, votes for pitch or rest in each known project-grid cell, and merges adjacent equal-pitch cells unless local onset, RMS-dip, or confidence-dip evidence indicates a repeated articulation.
 
-It also writes staged diagnostic MIDIs. The fixed-pitch activity MIDI uses per-cell RMS dBFS thresholds and hysteresis. The fixed-pitch onset MIDI preserves those activity regions but starts a new note whenever an active grid cell's normalized onset peak passes the configured boundary onset threshold. The segmented pitch MIDI preserves the same timing and assigns a provisional pYIN pitch to each region.
+The default segmented output detects RMS activity, splits active regions at grid cells with onset evidence, and assigns a provisional pYIN pitch to each region. Use `--mode activity` or `--mode onset` to emit fixed-pitch diagnostic stages, or `--mode legacy` to inspect the original cell-level confidence-gated pipeline.
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
@@ -33,6 +33,7 @@ pnpm bass-pitch e2e/fixtures/test-tones.wav \
   --bpm 120 \
   --cells-per-beat 1 \
   --fmax 600 \
+  --mode legacy \
   --midi .tmp/bass-pitch-smoke.mid \
   --csv .tmp/bass-pitch-smoke.csv
 ```
@@ -51,19 +52,17 @@ pnpm bass-pitch path/to/demucs/bass.wav \
   --cells-per-beat 2 \
   --grid-origin 0 \
   --offset 1.25 \
-  --activity-on-db -40 \
-  --activity-off-db -45 \
   --fmin 30 \
   --fmax 400 \
-  --voicing-threshold 0.5 \
-  --min-voiced-coverage 0.5 \
-  --boundary-onset-threshold 0.5 \
-  --boundary-tolerance 0.06 \
   --midi .tmp/bass-pitch-real.mid \
-  --activity-midi .tmp/bass-pitch-real-activity.mid \
-  --onset-midi .tmp/bass-pitch-real-onset.mid \
-  --segmented-pitch-midi .tmp/bass-pitch-real-segmented.mid \
   --csv .tmp/bass-pitch-real.csv
+```
+
+The real-stem defaults are `--mode segmented`, `--activity-on-db -25`, `--activity-off-db -25`, and `--boundary-onset-threshold 0.4`. Override these explicitly when comparing thresholds. Diagnostic examples:
+
+```sh
+pnpm bass-pitch path/to/demucs/bass.wav --bpm 96 --mode activity --midi .tmp/activity.mid
+pnpm bass-pitch path/to/demucs/bass.wav --bpm 96 --mode onset --midi .tmp/onset.mid
 ```
 
 The CSV uses `record_type` rows:
@@ -122,6 +121,6 @@ Measurements on a 12th Gen Intel Core i7-12650H (10 cores, 16 hardware threads) 
 - 30 seconds of audio: 4.2-4.9 seconds analysis time.
 - 162.8 seconds of audio: 25-27 seconds analysis time.
 
-Runtime is roughly linear at 0.15-0.17 seconds per audio second, or about 6-7 times faster than real time on this machine. The current timer covers pYIN, onset, and RMS feature extraction even though its console label says `pYIN completed`; rename that label before using it as a precise benchmark. Grid decisions and MIDI/CSV writing are comparatively small.
+Runtime is roughly linear at 0.15-0.17 seconds per audio second, or about 6-7 times faster than real time on this machine. The `analysis completed` timer covers pYIN, onset, and RMS feature extraction. Grid decisions and MIDI/CSV writing are comparatively small.
 
 Future performance work can split long audio into grid-aligned chunks and analyze chunks in parallel. This is not a completely independent linear split: each chunk needs overlapping audio of at least the analysis frame and onset context, duplicate overlap frames must be discarded, and activity/onset decisions at chunk boundaries must be reconciled. The machine has enough cores for this to be worthwhile, but defer parallelization until integration establishes that current CPU latency is a practical problem.

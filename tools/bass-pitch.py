@@ -15,13 +15,11 @@ import numpy as np
 
 DEFAULT_MIDI_PATH = Path(".tmp/bass-pitch.mid")
 DEFAULT_CSV_PATH = Path(".tmp/bass-pitch.csv")
-DEFAULT_ACTIVITY_MIDI_PATH = Path(".tmp/bass-pitch-activity.mid")
-DEFAULT_ONSET_MIDI_PATH = Path(".tmp/bass-pitch-onset.mid")
-DEFAULT_SEGMENTED_PITCH_MIDI_PATH = Path(".tmp/bass-pitch-segmented.mid")
 DEFAULT_SAMPLE_RATE = 22_050
 DEFAULT_HOP_LENGTH = 256
-DEFAULT_ACTIVITY_ON_DB = -40.0
-DEFAULT_ACTIVITY_OFF_DB = -45.0
+DEFAULT_ACTIVITY_ON_DB = -25.0
+DEFAULT_ACTIVITY_OFF_DB = -25.0
+DEFAULT_ONSET_THRESHOLD = 0.4
 TICKS_PER_BEAT = 480
 
 
@@ -140,9 +138,7 @@ def main() -> None:
     voiced_probability = voiced_probability[:frame_count]
     onset = normalize_feature(onset[:frame_count])
     rms = rms[:frame_count]
-    print(
-        f"analysis: pYIN completed in {time.monotonic() - started_at:.1f}s ({frame_count} frames)"
-    )
+    print(f"analysis: completed in {time.monotonic() - started_at:.1f}s ({frame_count} frames)")
 
     cells = make_grid_cells(
         excerpt_start=args.start,
@@ -182,11 +178,7 @@ def main() -> None:
     )
     notes = merge_cells(cells, boundaries)
 
-    args.midi.parent.mkdir(parents=True, exist_ok=True)
-    write_midi(args.midi, notes, bpm=args.bpm)
-    args.activity_midi.parent.mkdir(parents=True, exist_ok=True)
     activity_notes = make_activity_notes(activity_cells, pitch=args.activity_pitch)
-    write_midi(args.activity_midi, activity_notes, bpm=args.bpm)
     onset_notes = make_activity_onset_notes(
         cells,
         activity_cells=activity_cells,
@@ -195,8 +187,6 @@ def main() -> None:
         threshold=args.boundary_onset_threshold,
         pitch=args.activity_pitch,
     )
-    args.onset_midi.parent.mkdir(parents=True, exist_ok=True)
-    write_midi(args.onset_midi, onset_notes, bpm=args.bpm)
     pitch_decisions = assign_region_pitches(
         onset_notes,
         frame_times=frame_times,
@@ -206,12 +196,14 @@ def main() -> None:
         track_offset=args.offset,
         fallback_pitch=args.activity_pitch,
     )
-    args.segmented_pitch_midi.parent.mkdir(parents=True, exist_ok=True)
-    write_midi(
-        args.segmented_pitch_midi,
-        [decision.note for decision in pitch_decisions],
-        bpm=args.bpm,
-    )
+    output_notes = {
+        "segmented": [decision.note for decision in pitch_decisions],
+        "activity": activity_notes,
+        "onset": onset_notes,
+        "legacy": notes,
+    }[args.mode]
+    args.midi.parent.mkdir(parents=True, exist_ok=True)
+    write_midi(args.midi, output_notes, bpm=args.bpm)
     args.csv.parent.mkdir(parents=True, exist_ok=True)
     write_diagnostics(
         args.csv,
@@ -242,16 +234,10 @@ def main() -> None:
         f"regions={len(activity_notes)} thresholds={args.activity_off_db:g}/"
         f"{args.activity_on_db:g}dBFS"
     )
-    print(f"midi: wrote {args.midi} (bpm={args.bpm:g})")
-    print(f"activity midi: wrote {args.activity_midi} (fixed pitch={args.activity_pitch})")
-    print(
-        f"onset midi: wrote {args.onset_midi} "
-        f"(cells={len(onset_notes)}, threshold={args.boundary_onset_threshold:g})"
-    )
     resolved_pitches = sum(decision.evidence_frames > 0 for decision in pitch_decisions)
     print(
-        f"segmented pitch midi: wrote {args.segmented_pitch_midi} "
-        f"(pitched={resolved_pitches}/{len(pitch_decisions)})"
+        f"midi: wrote {args.midi} (mode={args.mode}, notes={len(output_notes)}, "
+        f"pitched={resolved_pitches}/{len(pitch_decisions)}, bpm={args.bpm:g})"
     )
     print(f"diagnostics: wrote {args.csv}")
 
@@ -264,22 +250,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("input", type=Path, help="input monophonic bass audio path")
     parser.add_argument("--midi", type=Path, default=DEFAULT_MIDI_PATH, help="MIDI output path")
     parser.add_argument(
-        "--activity-midi",
-        type=Path,
-        default=DEFAULT_ACTIVITY_MIDI_PATH,
-        help="fixed-pitch MIDI output for RMS activity regions",
-    )
-    parser.add_argument(
-        "--onset-midi",
-        type=Path,
-        default=DEFAULT_ONSET_MIDI_PATH,
-        help="fixed-pitch activity MIDI split at grid cells with onset evidence",
-    )
-    parser.add_argument(
-        "--segmented-pitch-midi",
-        type=Path,
-        default=DEFAULT_SEGMENTED_PITCH_MIDI_PATH,
-        help="activity/onset regions with provisional pYIN pitch assignments",
+        "--mode",
+        choices=("segmented", "activity", "onset", "legacy"),
+        default="segmented",
+        help="MIDI output stage",
     )
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV_PATH, help="diagnostic CSV path")
     parser.add_argument("--start", type=float, default=0.0, help="excerpt start in source seconds")
@@ -338,7 +312,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--boundary-onset-threshold",
         type=float,
-        default=0.5,
+        default=DEFAULT_ONSET_THRESHOLD,
         help="same-pitch split threshold for combined boundary evidence",
     )
     parser.add_argument(
