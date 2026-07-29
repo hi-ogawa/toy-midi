@@ -6,6 +6,8 @@ The default segmented output detects RMS activity, splits active regions at grid
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
+A native Rust port with the same flags and outputs lives at `crates/bass-pitch` (`pnpm bass-pitch-rs`); see `docs/bass-pitch-rust-port.md` for its validation status against this harness.
+
 ## Setup
 
 Install [uv](https://docs.astral.sh/uv/) and pnpm, then run from the repository root:
@@ -38,7 +40,7 @@ pnpm bass-pitch e2e/fixtures/test-tones.wav \
   --csv .tmp/bass-pitch-smoke.csv
 ```
 
-This should produce four notes, MIDI 60, 64, 67, and 72. It verifies audio loading, pYIN, grid voting, merging, diagnostics, and MIDI writing. Synthetic tones do not establish transcription quality on a real bass stem.
+With `--mode legacy` this produces four notes, MIDI 60, 64, 67, and 72. The default segmented mode produces eight notes because each boundary-aligned attack raises the onset envelope above the split threshold in both adjacent cells, which halves every tone. It verifies audio loading, pYIN, grid voting, merging, diagnostics, and MIDI writing. Synthetic tones do not establish transcription quality on a real bass stem.
 
 ## Real Bass-Stem Run
 

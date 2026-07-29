@@ -15,7 +15,8 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "basic-pitch": "node tools/basic-pitch.mjs",
-    "bass-pitch": "uv run python tools/bass-pitch.py"
+    "bass-pitch": "uv run python tools/bass-pitch.py",
+    "bass-pitch-rs": "cargo run --release -p bass-pitch --"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",

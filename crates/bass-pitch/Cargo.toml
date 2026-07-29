@@ -1,0 +1,11 @@
+[package]
+name = "bass-pitch"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+midly = "0.5"
+pyin = "1.2"
+realfft = "3"

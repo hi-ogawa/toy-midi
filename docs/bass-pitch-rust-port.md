@@ -22,6 +22,17 @@ A native Rust CLI that reproduces the grid-guided workflow end to end on the exi
 
 Done means the CLI produces a segmented pitch MIDI on the Primrose material that is as usable as the Python one, with retuned thresholds documented, at native speed at least matching Python's 6-7x realtime.
 
+### First Deliverable Status (2026-07-29)
+
+The native CLI is implemented at `crates/bass-pitch` (`pnpm bass-pitch-rs`) and validated against the Python harness:
+
+- The `pyin` crate spike passed directly, so no fallback was needed. The smoke fixture produces the same four legacy notes (MIDI 60, 64, 67, 72) and the identical eight segmented notes as Python, because both implementations split boundary-aligned attacks into both adjacent cells on that fixture.
+- No threshold re-tuning was needed. Bar 11 reproduces the documented baseline exactly at the default `-25/-25 dBFS` and `0.4` onset thresholds: the same seven notes, regions `0+2, 2+3, 5+3, 8+4, 13+1, 14+1, 15+1`, and pitches D1 (repeated), A1, B1, C#2.
+- Two onset-feature details turned out to be load-bearing rather than optional librosa fidelity. Mel-style band aggregation before the rectified diff is required because per-bin flux rectifies decay-tail jitter into spurious splits, and the envelope must be delayed by `frame_length / (2 * hop_length)` frames like librosa's `center=True` compensation or every attack peak lands one cell early.
+- Channel downmix must be a plain mean like `librosa.to_mono`; ffmpeg's `-ac 1` applies a different gain, which shifted every activity decision by 3 dB. The CLI decodes all channels and averages them.
+- On the full Ring stem, Rust and Python agree on all 209-cell activity decisions of the 30-second excerpt and reproduce 239 of Python's 304 full-stem segmented notes exactly. The differences are extra same-pitch splits and occasional one-semitone disagreements on short transition notes, consistent with the remaining feature approximations and the older librosa version (0.9.1) the `pyin` crate is based on.
+- Full-stem (162.8 s) analysis takes about 16.7 s in Rust versus 21.7 s for the Python harness on the same machine, roughly 10x realtime.
+
 ## Follow-On Deliverable: WASM App Mode
 
 Wrap the same core with wasm-bindgen behind a worker client mirroring `src/lib/basic-pitch/`, and add a mode switch in the `AudioToMidi` panel so grid-guided bass transcription becomes an alternative conversion mode alongside Basic Pitch. Resampling happens in TS via `OfflineAudioContext`, so the Rust side never resamples. The grid parameters the pipeline needs (tempo, grid, track offset) already live in the project store.
