@@ -13,6 +13,11 @@ function main(): void {
 let wasmReady: Promise<unknown> | undefined;
 
 export class BassPitchWorkerHandlers {
+  async initialize(): Promise<void> {
+    wasmReady ??= initBassPitchWasm({ module_or_path: wasmUrl });
+    await wasmReady;
+  }
+
   async transcribe({
     pcm,
     params,

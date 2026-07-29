@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { type ComponentProps, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
@@ -74,6 +74,10 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const [progress, setProgress] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const convertStartedAt = useRef<number>(undefined);
+
+  useEffect(() => {
+    bassPitchClient.warmUp();
+  }, []);
 
   const convertMutation = useMutation({
     mutationFn: async () => {
