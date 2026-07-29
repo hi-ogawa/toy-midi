@@ -8,7 +8,11 @@ import {
   bassPitchClient,
   CONVERSION_CANCELLED_MESSAGE,
 } from "../lib/bass-pitch/client";
-import { makeGridTranscribeParams } from "../lib/bass-pitch/transcription";
+import {
+  DEFAULT_GRID_ACTIVITY_DB,
+  DEFAULT_GRID_SPLIT_THRESHOLD,
+  makeGridTranscribeParams,
+} from "../lib/bass-pitch/transcription";
 import { midiToNoteName, snapToGrid } from "../lib/music";
 import {
   type AudioTrack,
@@ -71,6 +75,10 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
 // undo entry per press. Grid cell resolution follows the current grid snap,
 // and the note timing arrives already grid-aligned in project seconds.
 function GridBassConvert({ track }: { track: AudioTrack }) {
+  const [activityDb, setActivityDb] = useState(DEFAULT_GRID_ACTIVITY_DB);
+  const [splitThreshold, setSplitThreshold] = useState(
+    DEFAULT_GRID_SPLIT_THRESHOLD,
+  );
   const [progress, setProgress] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const convertStartedAt = useRef<number>(undefined);
@@ -96,6 +104,8 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
           offset: track.offset,
           bpm: tempo,
           cellsPerBeat,
+          activityDb,
+          splitThreshold,
         }),
         setProgress,
       );
@@ -142,32 +152,68 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
           : "Replaces all existing notes. Undo restores them.";
 
   return (
-    <section className="space-y-2 border-t border-neutral-700 pt-4">
-      <Button
-        data-testid="convert-button"
-        onClick={() => convertMutation.mutate()}
-        disabled={convertMutation.isPending}
-        className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-      >
-        {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
-      </Button>
-      {convertMutation.isPending && (
+    <>
+      <section className="space-y-5 border-t border-neutral-700 pt-4">
+        <ParamSlider
+          label="Activity threshold"
+          hint="Higher values detect fewer notes"
+          valueText={`${activityDb} dBFS`}
+          value={[activityDb]}
+          min={-60}
+          max={-10}
+          step={1}
+          onValueChange={([value]) => setActivityDb(value)}
+        />
+        <ParamSlider
+          label="Split threshold"
+          hint="Higher values create fewer repeated-note splits"
+          valueText={splitThreshold.toFixed(2)}
+          value={[splitThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([value]) => setSplitThreshold(value)}
+        />
+        <div className="flex justify-end pt-1">
+          <button
+            onClick={() => {
+              setActivityDb(DEFAULT_GRID_ACTIVITY_DB);
+              setSplitThreshold(DEFAULT_GRID_SPLIT_THRESHOLD);
+            }}
+            className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
+          >
+            Reset to defaults
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-2 border-t border-neutral-700 pt-4">
         <Button
-          data-testid="cancel-convert-button"
-          onClick={() => bassPitchClient.cancel()}
-          className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
+          data-testid="convert-button"
+          onClick={() => convertMutation.mutate()}
+          disabled={convertMutation.isPending}
+          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
         >
-          Cancel
+          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
         </Button>
-      )}
-      <p
-        data-testid="audio-to-midi-conversion-status"
-        aria-live="polite"
-        className="min-h-4 text-xs text-neutral-400"
-      >
-        {conversionStatus}
-      </p>
-    </section>
+        {convertMutation.isPending && (
+          <Button
+            data-testid="cancel-convert-button"
+            onClick={() => bassPitchClient.cancel()}
+            className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
+          >
+            Cancel
+          </Button>
+        )}
+        <p
+          data-testid="audio-to-midi-conversion-status"
+          aria-live="polite"
+          className="min-h-4 text-xs text-neutral-400"
+        >
+          {conversionStatus}
+        </p>
+      </section>
+    </>
   );
 }
 

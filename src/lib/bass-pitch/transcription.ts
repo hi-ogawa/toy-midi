@@ -30,14 +30,21 @@ export interface GridTranscribedNote {
 }
 
 // Defaults mirror the evaluated CLI baseline in docs/bass-pitch-evaluation.md.
+export const DEFAULT_GRID_ACTIVITY_DB = -25;
+export const DEFAULT_GRID_SPLIT_THRESHOLD = 0.4;
+
 export function makeGridTranscribeParams({
   offset,
   bpm,
   cellsPerBeat,
+  activityDb,
+  splitThreshold,
 }: {
   offset: number;
   bpm: number;
   cellsPerBeat: number;
+  activityDb: number;
+  splitThreshold: number;
 }): GridTranscribeParams {
   return {
     start: 0,
@@ -45,14 +52,14 @@ export function makeGridTranscribeParams({
     bpm,
     cells_per_beat: cellsPerBeat,
     grid_origin: 0,
-    activity_off_db: -25,
-    activity_on_db: -25,
+    activity_off_db: activityDb,
+    activity_on_db: activityDb,
     activity_pitch: 36,
     fmin: 30,
     fmax: 400,
     voicing_threshold: 0.5,
     min_voiced_coverage: 0.5,
-    boundary_onset_threshold: 0.4,
+    boundary_onset_threshold: splitThreshold,
     boundary_tolerance: 0.06,
     sample_rate: 22050,
     frame_length: 2048,

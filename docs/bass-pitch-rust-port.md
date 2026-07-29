@@ -46,7 +46,7 @@ Grid bass is now the default method in the `AudioToMidi` panel, with Basic Pitch
 - The upstream `pyin` crate does not build on `wasm32-unknown-unknown` because its C FFI wrapper uses `libc`. It is vendored at `crates/pyin` with the FFI and binary removed; output was verified byte-identical against the registry build.
 - `crates/bass-pitch-wasm` exposes one `transcribe(samples, params_json)` function; the JSON contract is the core crate's `Params` and `Note` structs. `src/lib/bass-pitch/` holds the worker, client, and wire types, mirroring `src/lib/basic-pitch/`.
 - The generated `src/lib/bass-pitch/pkg/` is committed (about 0.5 MB of wasm) so the Cloudflare deploy does not need a Rust toolchain. Regenerate with `pnpm build-bass-pitch-wasm` after changing the Rust core.
-- Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch-evaluation.md`.
+- Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch-evaluation.md`. The two song-dependent thresholds, activity dBFS and the repeated-note split threshold, are adjustable sliders in the panel.
 - There is no analyze stage: one Convert press resamples to 22.05 kHz mono on the main thread, runs pYIN plus grid decisions in the worker, and commits one `replaceAllNotes` undo entry. The e2e spec covers the default grid-bass flow with the real wasm and the Basic Pitch flow via the method selector.
 
 ## Blocker: Chunked Analysis With Progress
