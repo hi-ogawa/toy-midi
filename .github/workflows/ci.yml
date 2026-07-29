@@ -19,6 +19,7 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
+      - run: pnpm build-wasm
       - run: pnpm lint-check
       - run: pnpm test
       - run: pnpm build
