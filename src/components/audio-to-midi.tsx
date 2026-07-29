@@ -21,6 +21,152 @@ import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 
+type ConversionMethod = "grid-bass" | "basic-pitch";
+
+// Each method is an independent flow component owning its own state, so
+// switching methods resets staged parameters and per-run status. That is
+// acceptable because the expensive Basic Pitch analysis is cached
+// worker-side by audio asset, not in this component.
+export function AudioToMidi({ track }: { track: AudioTrack }) {
+  const [method, setMethod] = useState<ConversionMethod>("grid-bass");
+
+  return (
+    <div className="w-96 space-y-4">
+      <section className="space-y-2">
+        <p
+          data-testid="audio-to-midi-file-name"
+          className="truncate text-xs text-neutral-300"
+          title={track.fileName}
+        >
+          {track.fileName}
+        </p>
+
+        <label className="flex items-center gap-2 text-xs text-neutral-300">
+          Method
+          <select
+            data-testid="audio-to-midi-method"
+            value={method}
+            onChange={(event) =>
+              setMethod(event.target.value as ConversionMethod)
+            }
+            className="h-8 flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-200"
+          >
+            <option value="grid-bass">Grid bass (pYIN)</option>
+            <option value="basic-pitch">Basic Pitch</option>
+          </select>
+        </label>
+      </section>
+
+      {method === "grid-bass" ? (
+        <GridBassConvert track={track} />
+      ) : (
+        <BasicPitchConvert track={track} />
+      )}
+    </div>
+  );
+}
+
+// Grid-guided bass conversion has no separate analyze stage; one call runs
+// pYIN plus the grid decisions and commits via replaceAllNotes, so it is one
+// undo entry per press. Grid cell resolution follows the current grid snap,
+// and the note timing arrives already grid-aligned in project seconds.
+function GridBassConvert({ track }: { track: AudioTrack }) {
+  const [progress, setProgress] = useState<number>();
+  const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
+  const convertStartedAt = useRef<number>(undefined);
+
+  const convertMutation = useMutation({
+    mutationFn: async () => {
+      const buffer = audioManager.getAudioTrackBuffer(track.id);
+      if (!buffer) {
+        throw new Error("Audio is still loading");
+      }
+      const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
+      const cellsPerBeat = Math.max(
+        1,
+        Math.round(1 / GRID_SNAP_VALUES[gridSnap]),
+      );
+      const transcribed = await bassPitchClient.transcribe(
+        buffer,
+        makeGridTranscribeParams({
+          offset: track.offset,
+          bpm: tempo,
+          cellsPerBeat,
+        }),
+        setProgress,
+      );
+      const notes = transcribed.map((note) => ({
+        id: generateNoteId(),
+        pitch: note.pitch,
+        start: secondsToBeats(note.project_start, tempo),
+        duration: secondsToBeats(note.project_end - note.project_start, tempo),
+        velocity: 100,
+      }));
+      replaceAllNotes(notes);
+      return notes.length;
+    },
+    onMutate: () => {
+      convertStartedAt.current = performance.now();
+      setConvertElapsedMs(undefined);
+      setProgress(0);
+    },
+    onError: (error) => {
+      if (error.message === CONVERSION_CANCELLED_MESSAGE) {
+        return;
+      }
+      console.error("Failed to convert audio to MIDI:", error);
+      toast.error("Failed to convert audio to MIDI");
+    },
+    onSettled: () => {
+      setProgress(undefined);
+      if (convertStartedAt.current !== undefined) {
+        setConvertElapsedMs(performance.now() - convertStartedAt.current);
+      }
+    },
+  });
+
+  const conversionStatus = convertMutation.isPending
+    ? `Converting ${Math.round((progress ?? 0) * 100)}%`
+    : convertMutation.error
+      ? convertMutation.error.message === CONVERSION_CANCELLED_MESSAGE
+        ? "Conversion cancelled"
+        : "Conversion failed"
+      : convertMutation.data === 0
+        ? "No notes detected. Check the project tempo and the track offset."
+        : convertMutation.data !== undefined && convertElapsedMs !== undefined
+          ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
+          : "Replaces all existing notes. Undo restores them.";
+
+  return (
+    <section className="space-y-2 border-t border-neutral-700 pt-4">
+      <Button
+        data-testid="convert-button"
+        onClick={() => convertMutation.mutate()}
+        disabled={convertMutation.isPending}
+        className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+      >
+        {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
+      </Button>
+      {convertMutation.isPending && (
+        <Button
+          data-testid="cancel-convert-button"
+          onClick={() => bassPitchClient.cancel()}
+          className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
+        >
+          Cancel
+        </Button>
+      )}
+      <p
+        data-testid="audio-to-midi-conversion-status"
+        aria-live="polite"
+        className="min-h-4 text-xs text-neutral-400"
+      >
+        {conversionStatus}
+      </p>
+    </section>
+  );
+}
+
 // TODO(ui): deferred polish from the panel UX review
 // - merge analyze into convert: auto-analyze on the first convert so the
 //   panel has a single primary action and no gated state
@@ -34,14 +180,10 @@ import { cn } from "./ui/utils";
 //   right = more notes/splits)
 // - cached analysis timing is misleading because it measures the client call
 //   rather than the original worker inference
-type ConversionMethod = "grid-bass" | "basic-pitch";
-
-export function AudioToMidi({ track }: { track: AudioTrack }) {
-  const [method, setMethod] = useState<ConversionMethod>("grid-bass");
+function BasicPitchConvert({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [quantizeToGrid, setQuantizeToGrid] = useState(true);
   const [progress, setProgress] = useState<number>();
-  const [gridProgress, setGridProgress] = useState<number>();
   const [analyzeElapsedMs, setAnalyzeElapsedMs] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
@@ -71,61 +213,6 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
       setProgress(undefined);
       if (analyzeStartedAt.current !== undefined) {
         setAnalyzeElapsedMs(performance.now() - analyzeStartedAt.current);
-      }
-    },
-  });
-
-  // Grid-guided bass conversion has no separate analyze stage; one call runs
-  // pYIN plus the grid decisions and commits via replaceAllNotes, so it is
-  // one undo entry per press like the Basic Pitch convert below. Grid cell
-  // resolution follows the current grid snap, and the note timing arrives
-  // already grid-aligned in project seconds.
-  const gridConvertMutation = useMutation({
-    mutationFn: async () => {
-      const buffer = audioManager.getAudioTrackBuffer(track.id);
-      if (!buffer) {
-        throw new Error("Audio is still loading");
-      }
-      const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
-      const cellsPerBeat = Math.max(
-        1,
-        Math.round(1 / GRID_SNAP_VALUES[gridSnap]),
-      );
-      const transcribed = await bassPitchClient.transcribe(
-        buffer,
-        makeGridTranscribeParams({
-          offset: track.offset,
-          bpm: tempo,
-          cellsPerBeat,
-        }),
-        setGridProgress,
-      );
-      const notes = transcribed.map((note) => ({
-        id: generateNoteId(),
-        pitch: note.pitch,
-        start: secondsToBeats(note.project_start, tempo),
-        duration: secondsToBeats(note.project_end - note.project_start, tempo),
-        velocity: 100,
-      }));
-      replaceAllNotes(notes);
-      return notes.length;
-    },
-    onMutate: () => {
-      convertStartedAt.current = performance.now();
-      setConvertElapsedMs(undefined);
-      setGridProgress(0);
-    },
-    onError: (error) => {
-      if (error.message === CONVERSION_CANCELLED_MESSAGE) {
-        return;
-      }
-      console.error("Failed to convert audio to MIDI:", error);
-      toast.error("Failed to convert audio to MIDI");
-    },
-    onSettled: () => {
-      setGridProgress(undefined);
-      if (convertStartedAt.current !== undefined) {
-        setConvertElapsedMs(performance.now() - convertStartedAt.current);
       }
     },
   });
@@ -193,193 +280,118 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
         : "Replaces all existing notes. Undo restores them.";
 
-  const gridConversionStatus = gridConvertMutation.isPending
-    ? `Converting ${Math.round((gridProgress ?? 0) * 100)}%`
-    : gridConvertMutation.error
-      ? gridConvertMutation.error.message === CONVERSION_CANCELLED_MESSAGE
-        ? "Conversion cancelled"
-        : "Conversion failed"
-      : gridConvertMutation.data === 0
-        ? "No notes detected. Check the project tempo and the track offset."
-        : gridConvertMutation.data !== undefined &&
-            convertElapsedMs !== undefined
-          ? `Created ${gridConvertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
-          : "Replaces all existing notes. Undo restores them.";
-
   return (
-    <div className="w-96 space-y-4">
+    <>
       <section className="space-y-2">
-        <p
-          data-testid="audio-to-midi-file-name"
-          className="truncate text-xs text-neutral-300"
-          title={track.fileName}
+        <Button
+          data-testid="analyze-button"
+          onClick={() => analyzeMutation.mutate()}
+          disabled={analyzeMutation.isPending || analyzeMutation.isSuccess}
+          className={cn(
+            "h-9 w-full px-3 text-sm",
+            analyzeMutation.isSuccess
+              ? "bg-background shadow-xs dark:border-input dark:bg-input/30"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
         >
-          {track.fileName}
-        </p>
+          {analyzeMutation.isPending ? "Analyzing audio..." : "Analyze audio"}
+        </Button>
 
-        <label className="flex items-center gap-2 text-xs text-neutral-300">
-          Method
-          <select
-            data-testid="audio-to-midi-method"
-            value={method}
-            onChange={(event) =>
-              setMethod(event.target.value as ConversionMethod)
-            }
-            className="h-8 flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-200"
-          >
-            <option value="grid-bass">Grid bass (pYIN)</option>
-            <option value="basic-pitch">Basic Pitch</option>
-          </select>
-        </label>
+        <div
+          data-testid="audio-to-midi-analysis-status"
+          aria-live="polite"
+          className="h-4 text-xs text-neutral-400"
+        >
+          {analysisStatus}
+        </div>
       </section>
 
-      {method === "grid-bass" && (
-        <section className="space-y-2 border-t border-neutral-700 pt-4">
-          <Button
-            data-testid="convert-button"
-            onClick={() => gridConvertMutation.mutate()}
-            disabled={gridConvertMutation.isPending}
-            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+      <section className="space-y-5 border-t border-neutral-700 pt-4">
+        <ParamSlider
+          label="Frame threshold"
+          hint="Higher values detect fewer notes"
+          valueText={params.frameThreshold.toFixed(2)}
+          value={[params.frameThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([frameThreshold]) =>
+            setParams({ ...params, frameThreshold })
+          }
+        />
+        <ParamSlider
+          label="Onset threshold"
+          hint="Higher values create fewer splits"
+          valueText={params.onsetThreshold.toFixed(2)}
+          value={[params.onsetThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([onsetThreshold]) =>
+            setParams({ ...params, onsetThreshold })
+          }
+        />
+        <ParamSlider
+          label="Minimum note length"
+          valueText={`${params.minNoteLengthMs} ms`}
+          value={[params.minNoteLengthMs]}
+          min={0}
+          max={500}
+          step={1}
+          onValueChange={([minNoteLengthMs]) =>
+            setParams({ ...params, minNoteLengthMs })
+          }
+        />
+        {/* Slider bounds are the model's full pitch range (A0-C8) */}
+        <ParamSlider
+          label="Pitch range"
+          valueText={`${midiToNoteName(params.minPitchMidi)} – ${midiToNoteName(params.maxPitchMidi)}`}
+          value={[params.minPitchMidi, params.maxPitchMidi]}
+          min={21}
+          max={108}
+          step={1}
+          onValueChange={([minPitchMidi, maxPitchMidi]) =>
+            setParams({ ...params, minPitchMidi, maxPitchMidi })
+          }
+        />
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
+            <input
+              type="checkbox"
+              checked={quantizeToGrid}
+              onChange={(e) => setQuantizeToGrid(e.target.checked)}
+              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            Quantize to current grid ({gridSnap})
+          </label>
+          <button
+            onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
+            className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
           >
-            {gridConvertMutation.isPending
-              ? "Converting..."
-              : "Convert to MIDI"}
-          </Button>
-          {gridConvertMutation.isPending && (
-            <Button
-              data-testid="cancel-convert-button"
-              onClick={() => bassPitchClient.cancel()}
-              className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
-            >
-              Cancel
-            </Button>
-          )}
-          <p
-            data-testid="audio-to-midi-conversion-status"
-            aria-live="polite"
-            className="min-h-4 text-xs text-neutral-400"
-          >
-            {gridConversionStatus}
-          </p>
-        </section>
-      )}
+            Reset to defaults
+          </button>
+        </div>
+      </section>
 
-      {method === "basic-pitch" && (
-        <>
-          <section className="space-y-2">
-            <Button
-              data-testid="analyze-button"
-              onClick={() => analyzeMutation.mutate()}
-              disabled={analyzeMutation.isPending || analyzeMutation.isSuccess}
-              className={cn(
-                "h-9 w-full px-3 text-sm",
-                analyzeMutation.isSuccess
-                  ? "bg-background shadow-xs dark:border-input dark:bg-input/30"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90",
-              )}
-            >
-              {analyzeMutation.isPending
-                ? "Analyzing audio..."
-                : "Analyze audio"}
-            </Button>
-
-            <div
-              data-testid="audio-to-midi-analysis-status"
-              aria-live="polite"
-              className="h-4 text-xs text-neutral-400"
-            >
-              {analysisStatus}
-            </div>
-          </section>
-
-          <section className="space-y-5 border-t border-neutral-700 pt-4">
-            <ParamSlider
-              label="Frame threshold"
-              hint="Higher values detect fewer notes"
-              valueText={params.frameThreshold.toFixed(2)}
-              value={[params.frameThreshold]}
-              min={0.05}
-              max={0.95}
-              step={0.05}
-              onValueChange={([frameThreshold]) =>
-                setParams({ ...params, frameThreshold })
-              }
-            />
-            <ParamSlider
-              label="Onset threshold"
-              hint="Higher values create fewer splits"
-              valueText={params.onsetThreshold.toFixed(2)}
-              value={[params.onsetThreshold]}
-              min={0.05}
-              max={0.95}
-              step={0.05}
-              onValueChange={([onsetThreshold]) =>
-                setParams({ ...params, onsetThreshold })
-              }
-            />
-            <ParamSlider
-              label="Minimum note length"
-              valueText={`${params.minNoteLengthMs} ms`}
-              value={[params.minNoteLengthMs]}
-              min={0}
-              max={500}
-              step={1}
-              onValueChange={([minNoteLengthMs]) =>
-                setParams({ ...params, minNoteLengthMs })
-              }
-            />
-            {/* Slider bounds are the model's full pitch range (A0-C8) */}
-            <ParamSlider
-              label="Pitch range"
-              valueText={`${midiToNoteName(params.minPitchMidi)} – ${midiToNoteName(params.maxPitchMidi)}`}
-              value={[params.minPitchMidi, params.maxPitchMidi]}
-              min={21}
-              max={108}
-              step={1}
-              onValueChange={([minPitchMidi, maxPitchMidi]) =>
-                setParams({ ...params, minPitchMidi, maxPitchMidi })
-              }
-            />
-
-            <div className="flex items-center justify-between gap-2 pt-1">
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
-                <input
-                  type="checkbox"
-                  checked={quantizeToGrid}
-                  onChange={(e) => setQuantizeToGrid(e.target.checked)}
-                  className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
-                />
-                Quantize to current grid ({gridSnap})
-              </label>
-              <button
-                onClick={() => setParams(DEFAULT_TRANSCRIBE_PARAMS)}
-                className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
-              >
-                Reset to defaults
-              </button>
-            </div>
-          </section>
-
-          <section className="space-y-2 border-t border-neutral-700 pt-4">
-            <Button
-              data-testid="convert-button"
-              onClick={() => convertMutation.mutate()}
-              disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
-              className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-            >
-              {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
-            </Button>
-            <p
-              data-testid="audio-to-midi-conversion-status"
-              aria-live="polite"
-              className="min-h-4 text-xs text-neutral-400"
-            >
-              {conversionStatus}
-            </p>
-          </section>
-        </>
-      )}
-    </div>
+      <section className="space-y-2 border-t border-neutral-700 pt-4">
+        <Button
+          data-testid="convert-button"
+          onClick={() => convertMutation.mutate()}
+          disabled={!analyzeMutation.isSuccess || convertMutation.isPending}
+          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
+        </Button>
+        <p
+          data-testid="audio-to-midi-conversion-status"
+          aria-live="polite"
+          className="min-h-4 text-xs text-neutral-400"
+        >
+          {conversionStatus}
+        </p>
+      </section>
+    </>
   );
 }
 
