@@ -6,7 +6,7 @@ use std::process::Command;
 use std::time::Instant;
 
 use anyhow::{bail, ensure, Context, Result};
-use bass_pitch::{diagnostics_csv, midi_bytes, run_pipeline, Params};
+use bass_pitch::{diagnostics_csv, midi_bytes, run_pipeline, ChunkProgress, Params};
 use clap::{Parser, ValueEnum};
 
 #[derive(Parser)]
@@ -102,7 +102,9 @@ fn main() -> Result<()> {
     );
 
     let started_at = Instant::now();
-    let pipeline = run_pipeline(&audio, &params);
+    let pipeline = run_pipeline(&audio, &params, &mut |progress: ChunkProgress| {
+        println!("analysis: chunk {}/{}", progress.completed, progress.total);
+    });
     println!(
         "analysis: completed in {:.1}s ({} frames)",
         started_at.elapsed().as_secs_f64(),

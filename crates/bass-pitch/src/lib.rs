@@ -14,6 +14,15 @@ use realfft::RealFftPlanner;
 
 pub const TICKS_PER_BEAT: u16 = 480;
 
+const CHUNK_SECONDS: usize = 10;
+const CHUNK_DISCARD_FRAMES: usize = 32;
+
+#[derive(Clone, Copy, Debug)]
+pub struct ChunkProgress {
+    pub completed: usize,
+    pub total: usize,
+}
+
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct Params {
     pub start: f64,
@@ -116,8 +125,12 @@ pub struct Pipeline {
     pub pitch_decisions: Vec<PitchDecision>,
 }
 
-pub fn run_pipeline(audio: &[f32], params: &Params) -> Pipeline {
-    let frames = analyze(audio, params);
+pub fn run_pipeline(
+    audio: &[f32],
+    params: &Params,
+    on_progress: &mut dyn FnMut(ChunkProgress),
+) -> Pipeline {
+    let frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
     let mut cells = make_grid_cells(params, excerpt_end);
     let activity_cells = detect_activity(&cells, &frames, params);
@@ -141,19 +154,12 @@ pub fn run_pipeline(audio: &[f32], params: &Params) -> Pipeline {
     }
 }
 
-pub fn analyze(audio: &[f32], params: &Params) -> Frames {
+pub fn analyze(
+    audio: &[f32],
+    params: &Params,
+    on_progress: &mut dyn FnMut(ChunkProgress),
+) -> Frames {
     let audio: Vec<f64> = audio.iter().map(|&sample| sample as f64).collect();
-    let mut executor = PYINExecutor::<f64>::new(
-        params.fmin,
-        params.fmax,
-        params.sample_rate,
-        params.frame_length,
-        None,
-        Some(params.hop_length),
-        None,
-    );
-    let (_timestamps, f0, voiced_flag, voiced_probability) =
-        executor.pyin(&audio, f64::NAN, Framing::Center(PadMode::Constant(0.)));
     let onset = onset_strength(
         &audio,
         params.frame_length,
@@ -161,6 +167,7 @@ pub fn analyze(audio: &[f32], params: &Params) -> Frames {
         params.sample_rate,
     );
     let rms = rms_frames(&audio, params.frame_length, params.hop_length);
+    let (f0, voiced_flag, voiced_probability) = pyin_chunked(&audio, params, on_progress);
 
     let count = f0.len().min(onset.len()).min(rms.len());
     let f0: Vec<f64> = f0.iter().take(count).copied().collect();
@@ -170,11 +177,68 @@ pub fn analyze(audio: &[f32], params: &Params) -> Frames {
             .collect(),
         midi_pitch: f0.iter().map(|&hz| hz_to_midi(hz)).collect(),
         f0,
-        voiced_flag: voiced_flag.iter().take(count).copied().collect(),
-        voiced_probability: voiced_probability.iter().take(count).copied().collect(),
+        voiced_flag: voiced_flag.into_iter().take(count).collect(),
+        voiced_probability: voiced_probability.into_iter().take(count).collect(),
         onset: normalize_feature(&onset[..count]),
         rms: rms[..count].to_vec(),
     }
+}
+
+/// pYIN dominates analysis time, so it runs demucs-style: an orchestration
+/// loop feeds frame-aligned chunks with discarded real-audio context on both
+/// sides to the unmodified pyin crate and reports per-chunk progress. Viterbi
+/// decoding is formally global, but competing paths merge within tens of
+/// frames, so the discard margin absorbs chunk-boundary effects; a single
+/// chunk sees the whole excerpt and is bit-identical to unchunked analysis.
+fn pyin_chunked(
+    audio: &[f64],
+    params: &Params,
+    on_progress: &mut dyn FnMut(ChunkProgress),
+) -> (Vec<f64>, Vec<bool>, Vec<f64>) {
+    let hop = params.hop_length;
+    let n_frames = audio.len() / hop + 1;
+    let frames_per_chunk = (CHUNK_SECONDS * params.sample_rate as usize).div_ceil(hop);
+    let total = n_frames.div_ceil(frames_per_chunk).max(1);
+    let mut executor = PYINExecutor::<f64>::new(
+        params.fmin,
+        params.fmax,
+        params.sample_rate,
+        params.frame_length,
+        None,
+        Some(hop),
+        None,
+    );
+    let mut f0 = Vec::with_capacity(n_frames);
+    let mut voiced_flag = Vec::with_capacity(n_frames);
+    let mut voiced_probability = Vec::with_capacity(n_frames);
+    for chunk in 0..total {
+        let first = chunk * frames_per_chunk;
+        let last = ((chunk + 1) * frames_per_chunk).min(n_frames);
+        let context_first = first.saturating_sub(CHUNK_DISCARD_FRAMES);
+        let context_last = (last + CHUNK_DISCARD_FRAMES).min(n_frames);
+        // The slice starts on the hop grid so chunk frame centers coincide
+        // with global frame centers, and it extends half a window past the
+        // last needed center so kept frames see only real audio. Frames whose
+        // windows the slice truncates lie inside the discarded context, except
+        // at the true excerpt edges where zero padding matches the unchunked
+        // behavior.
+        let start_sample = context_first * hop;
+        let end_sample = ((context_last - 1) * hop + params.frame_length / 2).min(audio.len());
+        let (_timestamps, chunk_f0, chunk_flag, chunk_probability) = executor.pyin(
+            &audio[start_sample..end_sample],
+            f64::NAN,
+            Framing::Center(PadMode::Constant(0.)),
+        );
+        let keep = (first - context_first)..(last - context_first);
+        f0.extend(chunk_f0.iter().skip(keep.start).take(keep.len()));
+        voiced_flag.extend(chunk_flag.iter().skip(keep.start).take(keep.len()));
+        voiced_probability.extend(chunk_probability.iter().skip(keep.start).take(keep.len()));
+        on_progress(ChunkProgress {
+            completed: chunk + 1,
+            total,
+        });
+    }
+    (f0, voiced_flag, voiced_probability)
 }
 
 /// Mel-banded log-power spectral flux as an onset novelty signal, following

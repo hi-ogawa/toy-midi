@@ -3,9 +3,10 @@
 /**
  * @param {Float32Array} samples
  * @param {string} params_json
+ * @param {Function} on_progress
  * @returns {string}
  */
-export function transcribe(samples, params_json) {
+export function transcribe(samples, params_json, on_progress) {
   let deferred4_0;
   let deferred4_1;
   try {
@@ -17,7 +18,7 @@ export function transcribe(samples, params_json) {
       wasm.__wbindgen_realloc,
     );
     const len1 = WASM_VECTOR_LEN;
-    const ret = wasm.transcribe(ptr0, len0, ptr1, len1);
+    const ret = wasm.transcribe(ptr0, len0, ptr1, len1, on_progress);
     var ptr3 = ret[0];
     var len3 = ret[1];
     if (ret[3]) {
@@ -42,6 +43,17 @@ function __wbg_get_imports() {
     __wbg___wbindgen_throw_344f42d3211c4765: function (arg0, arg1) {
       throw new Error(getStringFromWasm0(arg0, arg1));
     },
+    __wbg_call_a6e5c5dce5018821: function () {
+      return handleError(function (arg0, arg1, arg2) {
+        const ret = arg0.call(arg1, arg2);
+        return ret;
+      }, arguments);
+    },
+    __wbindgen_cast_0000000000000001: function (arg0) {
+      // Cast intrinsic for `F64 -> Externref`.
+      const ret = arg0;
+      return ret;
+    },
     __wbindgen_init_externref_table: function () {
       const table = wasm.__wbindgen_externrefs;
       const offset = table.grow(4);
@@ -56,6 +68,12 @@ function __wbg_get_imports() {
     __proto__: null,
     "./bass_pitch_bg.js": import0,
   };
+}
+
+function addToExternrefTable0(obj) {
+  const idx = wasm.__externref_table_alloc();
+  wasm.__wbindgen_externrefs.set(idx, obj);
+  return idx;
 }
 
 let cachedFloat32ArrayMemory0 = null;
@@ -82,6 +100,15 @@ function getUint8ArrayMemory0() {
     cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
   }
   return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+  try {
+    return f.apply(this, args);
+  } catch (e) {
+    const idx = addToExternrefTable0(e);
+    wasm.__wbindgen_exn_store(idx);
+  }
 }
 
 function passArrayF32ToWasm0(arg, malloc) {

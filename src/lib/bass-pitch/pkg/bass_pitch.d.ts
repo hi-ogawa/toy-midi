@@ -1,7 +1,11 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export function transcribe(samples: Float32Array, params_json: string): string;
+export function transcribe(
+  samples: Float32Array,
+  params_json: string,
+  on_progress: Function,
+): string;
 
 export type InitInput =
   | RequestInfo
@@ -17,7 +21,10 @@ export interface InitOutput {
     b: number,
     c: number,
     d: number,
+    e: any,
   ) => [number, number, number, number];
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly __externref_table_alloc: () => number;
   readonly __wbindgen_externrefs: WebAssembly.Table;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (

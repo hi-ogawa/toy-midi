@@ -91,6 +91,7 @@ name = "bass-pitch-wasm"
 version = "0.1.0"
 dependencies = [
  "bass-pitch",
+ "js-sys",
  "serde_json",
  "wasm-bindgen",
 ]

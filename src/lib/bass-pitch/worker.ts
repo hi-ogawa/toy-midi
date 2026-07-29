@@ -16,13 +16,15 @@ export class BassPitchWorkerHandlers {
   async transcribe({
     pcm,
     params,
+    onProgress,
   }: {
     pcm: Float32Array;
     params: GridTranscribeParams;
+    onProgress: (fraction: number) => void;
   }): Promise<GridTranscribedNote[]> {
     wasmReady ??= initBassPitchWasm({ module_or_path: wasmUrl });
     await wasmReady;
-    return JSON.parse(transcribe(pcm, JSON.stringify(params)));
+    return JSON.parse(transcribe(pcm, JSON.stringify(params), onProgress));
   }
 }
 

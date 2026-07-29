@@ -4,7 +4,10 @@ import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
 import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
-import { bassPitchClient } from "../lib/bass-pitch/client";
+import {
+  bassPitchClient,
+  CONVERSION_CANCELLED_MESSAGE,
+} from "../lib/bass-pitch/client";
 import { makeGridTranscribeParams } from "../lib/bass-pitch/transcription";
 import { midiToNoteName, snapToGrid } from "../lib/music";
 import {
@@ -38,6 +41,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [quantizeToGrid, setQuantizeToGrid] = useState(true);
   const [progress, setProgress] = useState<number>();
+  const [gridProgress, setGridProgress] = useState<number>();
   const [analyzeElapsedMs, setAnalyzeElapsedMs] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const analyzeStartedAt = useRef<number>(undefined);
@@ -94,6 +98,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           bpm: tempo,
           cellsPerBeat,
         }),
+        setGridProgress,
       );
       const notes = transcribed.map((note) => ({
         id: generateNoteId(),
@@ -108,12 +113,17 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
     onMutate: () => {
       convertStartedAt.current = performance.now();
       setConvertElapsedMs(undefined);
+      setGridProgress(0);
     },
     onError: (error) => {
+      if (error.message === CONVERSION_CANCELLED_MESSAGE) {
+        return;
+      }
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
     },
     onSettled: () => {
+      setGridProgress(undefined);
       if (convertStartedAt.current !== undefined) {
         setConvertElapsedMs(performance.now() - convertStartedAt.current);
       }
@@ -183,13 +193,18 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
         : "Replaces all existing notes. Undo restores them.";
 
-  const gridConversionStatus = gridConvertMutation.error
-    ? "Conversion failed"
-    : gridConvertMutation.data === 0
-      ? "No notes detected. Check the project tempo and the track offset."
-      : gridConvertMutation.data !== undefined && convertElapsedMs !== undefined
-        ? `Created ${gridConvertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
-        : "Replaces all existing notes. Undo restores them.";
+  const gridConversionStatus = gridConvertMutation.isPending
+    ? `Converting ${Math.round((gridProgress ?? 0) * 100)}%`
+    : gridConvertMutation.error
+      ? gridConvertMutation.error.message === CONVERSION_CANCELLED_MESSAGE
+        ? "Conversion cancelled"
+        : "Conversion failed"
+      : gridConvertMutation.data === 0
+        ? "No notes detected. Check the project tempo and the track offset."
+        : gridConvertMutation.data !== undefined &&
+            convertElapsedMs !== undefined
+          ? `Created ${gridConvertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
+          : "Replaces all existing notes. Undo restores them.";
 
   return (
     <div className="w-96 space-y-4">
@@ -230,6 +245,15 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
               ? "Converting..."
               : "Convert to MIDI"}
           </Button>
+          {gridConvertMutation.isPending && (
+            <Button
+              data-testid="cancel-convert-button"
+              onClick={() => bassPitchClient.cancel()}
+              className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
+            >
+              Cancel
+            </Button>
+          )}
           <p
             data-testid="audio-to-midi-conversion-status"
             aria-live="polite"
