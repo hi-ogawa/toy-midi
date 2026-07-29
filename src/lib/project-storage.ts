@@ -4,8 +4,8 @@
 // file imported into multiple projects shares one asset; delete() does NOT
 // remove assets referenced by the deleted project (no garbage collection).
 
+import { z } from "zod";
 import { IdbStore } from "./idb";
-import { loadPreferences } from "./preferences";
 import {
   type AnySavedProject,
   createDefaultSavedProject,
@@ -48,6 +48,16 @@ const PROJECT_LIST_KEY = "toy-midi:project-list:v2";
 // project document, one localStorage entry per project (internally versioned)
 const PROJECT_KEY_PREFIX = "toy-midi:project:";
 
+// Based on https://github.com/hi-ogawa/demucs-onnx/blob/main/packages/app/src/lib/preferences.ts.
+const PREFERENCES_KEY = "toy-midi:preferences";
+const preferencesSchema = z.object({
+  defaultMidiProgram: z.number().int().min(0).max(127),
+});
+type Preferences = z.infer<typeof preferencesSchema>;
+const DEFAULT_PREFERENCES: Preferences = {
+  defaultMidiProgram: 0,
+};
+
 // Layout v1 keys, read only by the one-time migration below.
 const LEGACY_LIST_KEY = "toy-midi-project-list";
 const LEGACY_LAST_ID_KEY = "toy-midi-last-project-id";
@@ -87,9 +97,33 @@ class ProjectStorage {
   createNew(): string {
     const project = {
       ...createDefaultSavedProject(),
-      midiProgram: loadPreferences().defaultMidiProgram,
+      midiProgram: this.readPreferences().defaultMidiProgram,
     };
     return this.create(this.getDefaultProjectName(), project);
+  }
+
+  setDefaultMidiProgram(defaultMidiProgram: number): void {
+    this.writePreferences({
+      ...this.readPreferences(),
+      defaultMidiProgram,
+    });
+  }
+
+  private readPreferences(): Preferences {
+    try {
+      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+      return preferencesSchema.parse({ ...DEFAULT_PREFERENCES, ...stored });
+    } catch {
+      return DEFAULT_PREFERENCES;
+    }
+  }
+
+  private writePreferences(preferences: Preferences): void {
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch {
+      // Storage can be disabled or unavailable without preventing editing.
+    }
   }
 
   create(name: string, data: SavedProject): string {

@@ -11,7 +11,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
-import { loadPreferences, savePreferences } from "../lib/preferences";
+import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { MetronomeIcon } from "./icons";
@@ -63,7 +63,7 @@ export function Transport({ projectName, controls }: TransportProps) {
 
   const handleMidiProgramChange = (program: number) => {
     setMidiProgram(program);
-    savePreferences({ ...loadPreferences(), defaultMidiProgram: program });
+    projectStorage.setDefaultMidiProgram(program);
   };
 
   const tempoInput = useDraftInput({
