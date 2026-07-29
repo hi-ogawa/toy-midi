@@ -7,5 +7,10 @@ edition = "2021"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 midly = "0.5"
-pyin = "1.2"
+pyin = { path = "../pyin" }
 realfft = "3"
+serde = { version = "1", features = ["derive"] }
+
+# pyin -> statrs -> rand needs the js backend on wasm32-unknown-unknown.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }

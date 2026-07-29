@@ -14,7 +14,7 @@ use realfft::RealFftPlanner;
 
 pub const TICKS_PER_BEAT: u16 = 480;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct Params {
     pub start: f64,
     pub offset: f64,
@@ -86,7 +86,7 @@ pub struct Boundary {
     pub reason: &'static str,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Note {
     pub pitch: i32,
     pub project_start: f64,

@@ -16,7 +16,8 @@
     "test-e2e": "playwright test",
     "basic-pitch": "node tools/basic-pitch.mjs",
     "bass-pitch": "uv run python tools/bass-pitch.py",
-    "bass-pitch-rs": "cargo run --release -p bass-pitch --"
+    "bass-pitch-rs": "cargo run --release -p bass-pitch --",
+    "build-bass-pitch-wasm": "wasm-pack build crates/bass-pitch-wasm --release --target web --out-dir ../../src/lib/bass-pitch/pkg --out-name bass_pitch && rm -f src/lib/bass-pitch/pkg/.gitignore src/lib/bass-pitch/pkg/package.json"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",

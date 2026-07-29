@@ -1,0 +1,16 @@
+# Vendored from https://github.com/Sytronik/pyin-rs v1.2.0 (MIT, see LICENSE)
+# with the C FFI surface and binary removed so the library compiles on
+# wasm32-unknown-unknown, where the original's libc dependency does not build.
+[package]
+name = "pyin"
+version = "1.2.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+approx = "0.5.1"
+getset = "0.1.2"
+ndarray = { version = "0.15.6", features = ["approx-0_5"] }
+ndarray-stats = "0.5.1"
+realfft = "3.3.0"
+statrs = "0.17.1"

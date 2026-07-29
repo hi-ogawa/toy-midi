@@ -38,3 +38,13 @@ The native CLI is implemented at `crates/bass-pitch` (`pnpm bass-pitch-rs`) and 
 Wrap the same core with wasm-bindgen behind a worker client mirroring `src/lib/basic-pitch/`, and add a mode switch in the `AudioToMidi` panel so grid-guided bass transcription becomes an alternative conversion mode alongside Basic Pitch. Resampling happens in TS via `OfflineAudioContext`, so the Rust side never resamples. The grid parameters the pipeline needs (tempo, grid, track offset) already live in the project store.
 
 Expected wasm performance is a non-issue for a one-shot per-track analysis: Python runs 6-7x realtime, native Rust should exceed that, and the typical 2-3x wasm penalty still leaves a comfortable margin.
+
+### WASM App Mode Status (2026-07-29)
+
+Grid bass is now the default method in the `AudioToMidi` panel, with Basic Pitch behind a method selector. Implementation notes:
+
+- The upstream `pyin` crate does not build on `wasm32-unknown-unknown` because its C FFI wrapper uses `libc`. It is vendored at `crates/pyin` with the FFI and binary removed; output was verified byte-identical against the registry build.
+- `crates/bass-pitch-wasm` exposes one `transcribe(samples, params_json)` function; the JSON contract is the core crate's `Params` and `Note` structs. `src/lib/bass-pitch/` holds the worker, client, and wire types, mirroring `src/lib/basic-pitch/`.
+- The generated `src/lib/bass-pitch/pkg/` is committed (about 0.5 MB of wasm) so the Cloudflare deploy does not need a Rust toolchain. Regenerate with `pnpm build-bass-pitch-wasm` after changing the Rust core.
+- Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch-evaluation.md`.
+- There is no analyze stage: one Convert press resamples to 22.05 kHz mono on the main thread, runs pYIN plus grid decisions in the worker, and commits one `replaceAllNotes` undo entry. The e2e spec covers the default grid-bass flow with the real wasm and the Basic Pitch flow via the method selector.

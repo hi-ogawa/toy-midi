@@ -44,6 +44,7 @@ test.describe("Audio to MIDI", () => {
     await expect(panel.getByTestId("audio-to-midi-file-name")).toHaveText(
       "test-tones.wav",
     );
+    await panel.getByTestId("audio-to-midi-method").selectOption("basic-pitch");
     // Conversion params are editable before analysis; only Convert is gated
     // on an analyzed track
     await expect(panel.getByTestId("convert-button")).toBeDisabled();
@@ -131,5 +132,42 @@ test.describe("Audio to MIDI", () => {
     await page.keyboard.press("Control+Shift+z");
     await page.keyboard.press("Control+Shift+z");
     expect(await getNoteIds(page)).toEqual(idsAfterQuantizedConvert);
+  });
+
+  test("grid bass converts in one step and stays grid-aligned", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await clickNewProject(page);
+    await loadAudioFile(page, "test-tones.wav", "test-tones.wav");
+    await page.getByTestId("settings-button").click();
+    await page.getByTestId("audio-to-midi-button").click();
+    const panel = page.getByTestId("audio-to-midi-panel");
+    await expect(panel).toBeVisible();
+
+    // Grid bass is the default method and has no separate analyze stage; the
+    // real pYIN wasm runs in the worker, taking a few seconds for the fixture.
+    await panel.getByTestId("convert-button").click();
+    await expect(
+      panel.getByTestId("audio-to-midi-conversion-status"),
+    ).toHaveText(/^Created \d+ notes in (\d+ms|\d+\.\d+s)$/, {
+      timeout: 15_000,
+    });
+
+    // The fixture arpeggio's tones inside the bass-oriented pitch range
+    // resolve to their true pitches, and all timing lands on the project grid
+    // (default 1/8 snap = half-beat cells).
+    const notes = await getNotes(page);
+    for (const pitch of [60, 64, 67]) {
+      expect(notes.map((note) => note.pitch)).toContain(pitch);
+    }
+    for (const { start, duration } of notes) {
+      expect(start * 2).toBe(Math.round(start * 2));
+      expect(duration * 2).toBe(Math.round(duration * 2));
+    }
+
+    // One conversion is a single undo entry
+    await page.keyboard.press("Control+z");
+    expect(await getNotes(page)).toEqual([]);
   });
 });
