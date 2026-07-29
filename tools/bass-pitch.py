@@ -15,8 +15,12 @@ import numpy as np
 
 DEFAULT_MIDI_PATH = Path(".tmp/bass-pitch.mid")
 DEFAULT_CSV_PATH = Path(".tmp/bass-pitch.csv")
+DEFAULT_ACTIVITY_MIDI_PATH = Path(".tmp/bass-pitch-activity.mid")
+DEFAULT_ONSET_MIDI_PATH = Path(".tmp/bass-pitch-onset.mid")
 DEFAULT_SAMPLE_RATE = 22_050
 DEFAULT_HOP_LENGTH = 256
+DEFAULT_ACTIVITY_ON_DB = -40.0
+DEFAULT_ACTIVITY_OFF_DB = -45.0
 TICKS_PER_BEAT = 480
 
 
@@ -32,6 +36,18 @@ class GridCell:
     vote_confidence: float = 0.0
     frame_count: int = 0
     voiced_frame_count: int = 0
+
+
+@dataclass(frozen=True)
+class ActivityCell:
+    index: int
+    source_start: float
+    source_end: float
+    project_start: float
+    project_end: float
+    rms: float
+    rms_db: float
+    active: bool
 
 
 @dataclass(frozen=True)
@@ -125,6 +141,13 @@ def main() -> None:
         grid_origin=args.grid_origin,
         track_offset=args.offset,
     )
+    activity_cells = detect_activity(
+        cells,
+        frame_times=frame_times,
+        rms=rms,
+        off_db=args.activity_off_db,
+        on_db=args.activity_on_db,
+    )
     cells = [
         vote_cell(
             cell,
@@ -150,6 +173,19 @@ def main() -> None:
 
     args.midi.parent.mkdir(parents=True, exist_ok=True)
     write_midi(args.midi, notes, bpm=args.bpm)
+    args.activity_midi.parent.mkdir(parents=True, exist_ok=True)
+    activity_notes = make_activity_notes(activity_cells, pitch=args.activity_pitch)
+    write_midi(args.activity_midi, activity_notes, bpm=args.bpm)
+    onset_notes = make_activity_onset_notes(
+        cells,
+        activity_cells=activity_cells,
+        frame_times=frame_times,
+        onset=onset,
+        threshold=args.boundary_onset_threshold,
+        pitch=args.activity_pitch,
+    )
+    args.onset_midi.parent.mkdir(parents=True, exist_ok=True)
+    write_midi(args.onset_midi, onset_notes, bpm=args.bpm)
     args.csv.parent.mkdir(parents=True, exist_ok=True)
     write_diagnostics(
         args.csv,
@@ -161,6 +197,9 @@ def main() -> None:
         onset=onset,
         rms=rms,
         cells=cells,
+        activity_cells=activity_cells,
+        activity_off_db=args.activity_off_db,
+        activity_on_db=args.activity_on_db,
         boundaries=boundaries,
         notes=notes,
         track_offset=args.offset,
@@ -171,7 +210,17 @@ def main() -> None:
         f"decisions: cells={len(cells)} pitched={pitched_cells} "
         f"boundaries={len(boundaries)} splits={split_count} notes={len(notes)}"
     )
+    print(
+        f"activity: cells={sum(cell.active for cell in activity_cells)}/{len(activity_cells)} "
+        f"regions={len(activity_notes)} thresholds={args.activity_off_db:g}/"
+        f"{args.activity_on_db:g}dBFS"
+    )
     print(f"midi: wrote {args.midi} (bpm={args.bpm:g})")
+    print(f"activity midi: wrote {args.activity_midi} (fixed pitch={args.activity_pitch})")
+    print(
+        f"onset midi: wrote {args.onset_midi} "
+        f"(cells={len(onset_notes)}, threshold={args.boundary_onset_threshold:g})"
+    )
     print(f"diagnostics: wrote {args.csv}")
 
 
@@ -182,6 +231,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("input", type=Path, help="input monophonic bass audio path")
     parser.add_argument("--midi", type=Path, default=DEFAULT_MIDI_PATH, help="MIDI output path")
+    parser.add_argument(
+        "--activity-midi",
+        type=Path,
+        default=DEFAULT_ACTIVITY_MIDI_PATH,
+        help="fixed-pitch MIDI output for RMS activity regions",
+    )
+    parser.add_argument(
+        "--onset-midi",
+        type=Path,
+        default=DEFAULT_ONSET_MIDI_PATH,
+        help="fixed-pitch activity MIDI split at grid cells with onset evidence",
+    )
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV_PATH, help="diagnostic CSV path")
     parser.add_argument("--start", type=float, default=0.0, help="excerpt start in source seconds")
     parser.add_argument("--duration", type=float, help="excerpt duration in source seconds")
@@ -203,6 +264,24 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
         help="audio track project offset; project seconds = source seconds + offset",
+    )
+    parser.add_argument(
+        "--activity-off-db",
+        type=float,
+        default=DEFAULT_ACTIVITY_OFF_DB,
+        help="cell RMS dBFS threshold below which activity ends",
+    )
+    parser.add_argument(
+        "--activity-on-db",
+        type=float,
+        default=DEFAULT_ACTIVITY_ON_DB,
+        help="cell RMS dBFS threshold at which activity begins",
+    )
+    parser.add_argument(
+        "--activity-pitch",
+        type=int,
+        default=36,
+        help="fixed MIDI pitch for activity-only output",
     )
     parser.add_argument("--fmin", type=float, default=30.0, help="minimum pYIN frequency in Hz")
     parser.add_argument("--fmax", type=float, default=400.0, help="maximum pYIN frequency in Hz")
@@ -247,6 +326,10 @@ def validate_args(args: argparse.Namespace) -> None:
         raise SystemExit("--bpm must be positive")
     if args.cells_per_beat <= 0:
         raise SystemExit("--cells-per-beat must be positive")
+    if args.activity_off_db > args.activity_on_db:
+        raise SystemExit("--activity-off-db must be less than or equal to --activity-on-db")
+    if not 0 <= args.activity_pitch <= 127:
+        raise SystemExit("--activity-pitch must be between 0 and 127")
     if args.start + args.offset < 0:
         raise SystemExit("--start + --offset must be non-negative because MIDI cannot encode it")
     if args.fmin <= 0 or args.fmax <= args.fmin:
@@ -285,6 +368,110 @@ def make_grid_cells(
         )
         for index in range(first_index, last_index + 1)
     ]
+
+
+def detect_activity(
+    cells: list[GridCell],
+    *,
+    frame_times: np.ndarray,
+    rms: np.ndarray,
+    off_db: float,
+    on_db: float,
+) -> list[ActivityCell]:
+    cell_rms = np.array(
+        [
+            float(
+                np.median(rms[(frame_times >= cell.source_start) & (frame_times < cell.source_end)])
+            )
+            if np.any((frame_times >= cell.source_start) & (frame_times < cell.source_end))
+            else 0.0
+            for cell in cells
+        ]
+    )
+    activity_cells = []
+    active = False
+    for cell, value in zip(cells, cell_rms, strict=True):
+        value_db = rms_to_db(value)
+        active = value_db >= (off_db if active else on_db)
+        activity_cells.append(
+            ActivityCell(
+                index=cell.index,
+                source_start=cell.source_start,
+                source_end=cell.source_end,
+                project_start=cell.project_start,
+                project_end=cell.project_end,
+                rms=float(value),
+                rms_db=value_db,
+                active=active,
+            )
+        )
+    return activity_cells
+
+
+def rms_to_db(value: float) -> float:
+    if value <= 0:
+        return -math.inf
+    return 20.0 * math.log10(value)
+
+
+def make_activity_notes(cells: list[ActivityCell], *, pitch: int) -> list[Note]:
+    notes: list[Note] = []
+    current: Note | None = None
+    for cell in cells:
+        if not cell.active:
+            if current is not None:
+                notes.append(current)
+                current = None
+            continue
+        if current is None:
+            current = Note(pitch, cell.project_start, cell.project_end, cell.index, cell.index)
+        else:
+            current = Note(
+                pitch,
+                current.project_start,
+                cell.project_end,
+                current.first_cell,
+                cell.index,
+            )
+    if current is not None:
+        notes.append(current)
+    return notes
+
+
+def make_activity_onset_notes(
+    cells: list[GridCell],
+    *,
+    activity_cells: list[ActivityCell],
+    frame_times: np.ndarray,
+    onset: np.ndarray,
+    threshold: float,
+    pitch: int,
+) -> list[Note]:
+    notes: list[Note] = []
+    current: Note | None = None
+    for cell, activity_cell in zip(cells, activity_cells, strict=True):
+        if not activity_cell.active:
+            if current is not None:
+                notes.append(current)
+                current = None
+            continue
+        in_cell = (frame_times >= cell.source_start) & (frame_times < cell.source_end)
+        onset_score = float(np.max(onset[in_cell], initial=0.0))
+        if current is None or onset_score >= threshold:
+            if current is not None:
+                notes.append(current)
+            current = Note(pitch, cell.project_start, cell.project_end, cell.index, cell.index)
+        else:
+            current = Note(
+                pitch,
+                current.project_start,
+                cell.project_end,
+                current.first_cell,
+                cell.index,
+            )
+    if current is not None:
+        notes.append(current)
+    return notes
 
 
 def vote_cell(
@@ -491,6 +678,9 @@ def write_diagnostics(
     onset: np.ndarray,
     rms: np.ndarray,
     cells: list[GridCell],
+    activity_cells: list[ActivityCell],
+    activity_off_db: float,
+    activity_on_db: float,
     boundaries: list[Boundary],
     notes: list[Note],
     track_offset: float,
@@ -512,6 +702,10 @@ def write_diagnostics(
         "voiced_frame_count",
         "onset_score",
         "rms",
+        "rms_db",
+        "activity_off_db",
+        "activity_on_db",
+        "active",
         "rms_dip_score",
         "confidence_dip_score",
         "evidence_score",
@@ -552,6 +746,22 @@ def write_diagnostics(
                     "voiced_coverage": cell.voiced_coverage,
                     "frame_count": cell.frame_count,
                     "voiced_frame_count": cell.voiced_frame_count,
+                }
+            )
+        for cell in activity_cells:
+            writer.writerow(
+                {
+                    "record_type": "activity",
+                    "index": cell.index,
+                    "source_start": cell.source_start,
+                    "source_end": cell.source_end,
+                    "project_start": cell.project_start,
+                    "project_end": cell.project_end,
+                    "rms": cell.rms,
+                    "rms_db": finite_or_empty(cell.rms_db),
+                    "activity_off_db": activity_off_db,
+                    "activity_on_db": activity_on_db,
+                    "active": int(cell.active),
                 }
             )
         for boundary in boundaries:
