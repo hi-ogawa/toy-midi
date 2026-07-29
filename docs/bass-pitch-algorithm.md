@@ -92,3 +92,14 @@ Reading it stage by stage: activity keeps cells 0–6, 8–9, and 13–15 (cell 
 | Output                  | `midi_bytes`, `diagnostics_csv`                        |
 
 The legacy mode is the original cell-level pipeline (per-cell confidence-gated pitch votes merged across boundaries with onset/dip evidence). It survives behind `--mode legacy` for diagnostics and for the deterministic smoke test, but it embodies the confidence-as-gate mistake and is not the shipping path.
+
+## Glossary
+
+Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and friends) are glossed in `docs/bass-pitch-pyin.md`.
+
+- **Frame / hop** — analysis slices the audio into overlapping windows ("frames", 2048 samples ≈ 93 ms) advanced by a fixed step (the "hop", 256 samples ≈ 11.6 ms), so every per-frame value is a time series at ~86 values per second.
+- **RMS / dBFS** — root-mean-square, the standard average loudness of a window; dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one. Logarithmic, matching how loudness is perceived.
+- **Mel scale / mel bands** — a frequency axis warped to perceptual pitch spacing, dense at low frequencies and sparse at high ones; a "band" sums the FFT bins falling in one mel-sized slice, here 128 bands covering 0–11 kHz.
+- **Spectral flux** — the frame-to-frame _increase_ of spectral energy, with decreases discarded ("rectified"): a note attack lights up energy across many bands at once, so summed rectified increase spikes at onsets.
+- **Hysteresis** — using two thresholds, one to turn a state on and a lower one to turn it off, so a value hovering near the boundary does not flicker the decision. The evaluated baseline happens to keep both at −25 dBFS, disabling the effect until it is needed.
+- **95th-percentile normalization** — dividing a signal by the value that 95% of its samples fall below, so "0.4" means "40% as strong as the excerpt's near-maximum" and thresholds transfer across quiet and loud material.

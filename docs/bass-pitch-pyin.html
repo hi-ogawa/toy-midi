@@ -1000,6 +1000,73 @@
           <code>docs/bass-pitch-algorithm.md</code>.
         </p>
       </section>
+
+      <section id="glossary">
+        <h2><a href="#glossary">Glossary</a></h2>
+        <dl style="font-size: 13.5px; max-width: 82ch">
+          <dt style="font-weight: 600; margin-top: 10px">Period / lag (τ)</dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            A shift in samples. If the waveform repeats every τ samples, its
+            frequency is sr / τ — τ = 621 at 22 050 Hz ≈ 35.5 Hz ≈ D1.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">Autocorrelation</dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            Similarity of a signal to a shifted copy of itself, per shift; peaks
+            at the period and its multiples. FFTs compute all shifts at once.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">
+            CMND (cumulative mean normalized difference)
+          </dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            The mismatch energy d′(τ) between the signal and its τ-shifted copy,
+            normalized by the running average over smaller lags. It hovers near
+            1 where the frame is aperiodic and dips toward 0 at the true period,
+            making trough depth a loudness-independent periodicity score: lower
+            = more periodic.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">Trough</dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            A local minimum of the CMND curve — one period candidate.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">Voiced / unvoiced</dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            Speech-processing vocabulary for "this frame contains a periodic,
+            pitched sound" versus not. Here: a bass note is sounding in that
+            11.6 ms frame.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">
+            Beta(2, 18) / Boltzmann
+          </dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            Beta(2, 18): a distribution on [0, 1] with nearly all mass around
+            0.03–0.15, standing in for "the range of thresholds a reasonable
+            person might pick". Boltzmann: exponentially decaying weights e<sup
+              >−λk</sup
+            >
+            over ranks, softly preferring the first trough.
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">
+            HMM (hidden Markov model)
+          </dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            A sequence of hidden states you never observe (the true pitch bin
+            and voicing per frame) emitting noisy observations you do (each
+            frame's candidate probabilities). "Markov" = the next state depends
+            only on the current one, which is what the transition matrix
+            encodes. Decoding asks: which hidden sequence best explains all
+            frames at once?
+          </dd>
+          <dt style="font-weight: 600; margin-top: 10px">Viterbi</dt>
+          <dd style="margin: 2px 0 0 0; color: #374151">
+            The classic dynamic-programming decode — literally a 2D table over
+            frames × states: best[t][s] = obs[t][s] × max over s′ of
+            (best[t−1][s′] × transition[s′→s]), filled left to right (197 × 898
+            for bar 11), with backpointers so the optimal full path is read out
+            backwards at the end. Cost ≈ frames × states × transition-band
+            width, which is why it dominates the pipeline's runtime.
+          </dd>
+        </dl>
+      </section>
     </main>
   </body>
 </html>
