@@ -115,6 +115,52 @@ def test_activity_onset_notes_split_active_regions_without_creating_rests() -> N
     ]
 
 
+def test_region_pitch_uses_confidence_weighted_voiced_frames() -> None:
+    decisions = bass_pitch.assign_region_pitches(
+        [bass_pitch.Note(36, 1.0, 2.0, 2, 3)],
+        frame_times=np.array([0.9, 1.1, 1.3, 1.5, 2.0]),
+        midi_pitch=np.array([50.0, 40.1, 39.9, 41.0, 60.0]),
+        voiced_flag=np.array([True, True, True, True, True]),
+        voiced_probability=np.array([1.0, 0.2, 0.3, 0.9, 1.0]),
+        track_offset=0.0,
+        fallback_pitch=36,
+    )
+
+    assert decisions == [
+        bass_pitch.PitchDecision(
+            note=bass_pitch.Note(41, 1.0, 2.0, 2, 3),
+            evidence_frames=3,
+            winner_weight=pytest.approx(0.91),
+            runner_up_pitch=40,
+            runner_up_weight=pytest.approx(0.65),
+            margin=pytest.approx(0.91 / 1.56),
+        )
+    ]
+
+
+def test_region_pitch_preserves_region_with_fallback_without_evidence() -> None:
+    decisions = bass_pitch.assign_region_pitches(
+        [bass_pitch.Note(36, 0.0, 0.5, 0, 0)],
+        frame_times=np.array([0.25]),
+        midi_pitch=np.array([np.nan]),
+        voiced_flag=np.array([False]),
+        voiced_probability=np.array([0.0]),
+        track_offset=0.0,
+        fallback_pitch=36,
+    )
+
+    assert decisions == [
+        bass_pitch.PitchDecision(
+            note=bass_pitch.Note(36, 0.0, 0.5, 0, 0),
+            evidence_frames=0,
+            winner_weight=0.0,
+            runner_up_pitch=None,
+            runner_up_weight=0.0,
+            margin=0.0,
+        )
+    ]
+
+
 def test_adjacent_equal_pitch_cells_merge_without_boundary_evidence() -> None:
     cells = [pitched_cell(0), pitched_cell(1)]
     boundaries = [boundary(split=False)]

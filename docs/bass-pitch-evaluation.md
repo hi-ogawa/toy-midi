@@ -2,7 +2,7 @@
 
 `tools/bass-pitch.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, votes for pitch or rest in each known project-grid cell, and merges adjacent equal-pitch cells unless local onset, RMS-dip, or confidence-dip evidence indicates a repeated articulation.
 
-It also writes two fixed-pitch diagnostic MIDIs. The activity MIDI uses per-cell RMS dBFS thresholds and hysteresis. The onset MIDI preserves those activity regions but starts a new note whenever an active grid cell's normalized onset peak passes the configured boundary onset threshold.
+It also writes staged diagnostic MIDIs. The fixed-pitch activity MIDI uses per-cell RMS dBFS thresholds and hysteresis. The fixed-pitch onset MIDI preserves those activity regions but starts a new note whenever an active grid cell's normalized onset peak passes the configured boundary onset threshold. The segmented pitch MIDI preserves the same timing and assigns a provisional pYIN pitch to each region.
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
@@ -62,6 +62,7 @@ pnpm bass-pitch path/to/demucs/bass.wav \
   --midi .tmp/bass-pitch-real.mid \
   --activity-midi .tmp/bass-pitch-real-activity.mid \
   --onset-midi .tmp/bass-pitch-real-onset.mid \
+  --segmented-pitch-midi .tmp/bass-pitch-real-segmented.mid \
   --csv .tmp/bass-pitch-real.csv
 ```
 
@@ -72,12 +73,21 @@ The CSV uses `record_type` rows:
 - `activity` records cell RMS and dBFS, the configured thresholds, and the hysteresis decision.
 - `boundary` records forced pitch/rest transitions or same-pitch onset evidence and split decisions.
 - `note` records the final project placement, pitch, and contributing cell range.
+- `segmented_pitch` records the provisional region pitch, voiced evidence count, winning and runner-up vote weights, and winner margin.
 
 Inspect the CSV in that order to distinguish pYIN errors, cell-voting errors, same-pitch split/merge errors, and MIDI construction errors. Tune thresholds only against representative real excerpts, and judge the synchronized MIDI after importing it into toy-midi.
 
 ## Primrose Iteration Baseline
 
 The initial real-stem evaluation uses the bass stem from PRIMROSE's `Ring` live clip at 105 BPM, with a project audio offset of 2.389 seconds and sixteenth-note cells.
+
+The practical strategy is to formulate transcription as three ordered, independently evaluated decisions:
+
+1. Detect note presence and note-off per grid cell in two substeps. First detect broad bass activity conservatively so audible notes are not dropped. Then classify active-looking continuation cells as intentional sustain or decay/rest. The first substep may deliberately over-detect; the second removes energetic tails that should be rests.
+2. Detect note starts at grid boundaries. This splits an active region when another note is articulated, including repeated notes at the same pitch.
+3. Assign pitch to each resulting note region. Pitch confidence must not decide whether a note exists.
+
+Each stage should have a diagnostic MIDI so errors are attributable to one decision rather than hidden in the final transcription. The stages can be implemented and evaluated out of order when useful, but their responsibilities must remain separate. In particular, the current activity-plus-onset segmentation can receive provisional pitches before note-off detection is solved, which allows pitch quality to be evaluated independently against known segmentation errors.
 
 The original pitch transcription was sparse even though pYIN marked most frames as voiced. The default 0.5 confidence threshold accepted only 823 of 10,500 voiced frames in the full stem, so 53 of 1,139 cells received pitches. Low notes around MIDI 25 and 26 were sustained, energetic detections consistent with C#1 and D1 rather than obvious silence errors. This showed that pYIN confidence should describe pitch certainty, not decide whether bass is present.
 
@@ -96,4 +106,22 @@ Useful outputs for the current baseline are:
 - `.tmp/primrose-ring-bar-11-local-onset.mid` for the isolated bar.
 - `.tmp/primrose-ring-bass-onset-30s.mid` for the first 30 source seconds placed at the project offset.
 
-The next iteration should address note-off and sustain classification without changing the validated onset splits. In particular, cells such as 1, 3, 4, 6, 7, 9, 10, and 11 in bar 11 contain energetic decay but should be rests. Compare within-cell envelope shape, decay from the preceding attack, and energy near the next grid boundary. Do not equate either `RMS above threshold` with sustain or `no onset` with rest. Evaluate this stage independently before assigning pitches to the resulting note regions.
+Current status and follow-ups:
+
+1. Broad note presence is approximated by RMS activity. This intentionally favors recall and avoids the original failure where pYIN confidence dropped audible bass cells. A bar-11 sweep showed that raising both thresholds from the initial `-40/-45 dBFS` hysteresis to `-25/-25 dBFS` preserves all seven desired cells while reducing unwanted active cells from eight to five. The remaining false positives are cells 1, 3, 4, 6, and 9. At `-20/-20 dBFS`, false positives fall to one but desired cells 14 and 15 are lost. Use `-25/-25 dBFS` as the improved static-threshold baseline, but do not expect further threshold tuning to solve the overlap between attacks and energetic decay. The follow-up sustain-versus-decay substep remains necessary: compare within-cell envelope shape, decay from the preceding attack, and energy near the next grid boundary. Do not equate either `RMS above threshold` with sustain or `no onset` with rest.
+2. Note-start detection is a useful baseline. The known bar-11 attacks are all detected and split correctly at threshold 0.4. Preserve this behavior while iterating on the other stages.
+3. Pitch assignment is evaluated on the current activity-plus-onset note regions. It rounds every finite voiced pYIN frame to MIDI, weights each vote by `0.1 + 0.9 * confidence`, and chooses the strongest pitch over the whole region. Confidence is not a presence gate, and a fallback pitch preserves regions with no finite evidence. Segmentation may still overestimate duration, so evaluate pitch errors independently from those known timing errors.
+
+The current segmented pitch output is already usable for reducing manual transcription work. On bar 11 it identifies the repeated D1 notes followed by A1, B1, and C#2. Improving decay-versus-rest classification can therefore be deferred while this workflow is evaluated on more songs. For application integration, treat grid-guided bass transcription as an alternative conversion mode to Basic Pitch rather than replacing the general-purpose mode immediately.
+
+## Performance Notes
+
+Measurements on a 12th Gen Intel Core i7-12650H (10 cores, 16 hardware threads) with 31 GiB RAM and CPU-only dependencies were approximately:
+
+- 2.29 seconds of audio: 0.4-0.5 seconds analysis time.
+- 30 seconds of audio: 4.2-4.9 seconds analysis time.
+- 162.8 seconds of audio: 25-27 seconds analysis time.
+
+Runtime is roughly linear at 0.15-0.17 seconds per audio second, or about 6-7 times faster than real time on this machine. The current timer covers pYIN, onset, and RMS feature extraction even though its console label says `pYIN completed`; rename that label before using it as a precise benchmark. Grid decisions and MIDI/CSV writing are comparatively small.
+
+Future performance work can split long audio into grid-aligned chunks and analyze chunks in parallel. This is not a completely independent linear split: each chunk needs overlapping audio of at least the analysis frame and onset context, duplicate overlap frames must be discarded, and activity/onset decisions at chunk boundaries must be reconciled. The machine has enough cores for this to be worthwhile, but defer parallelization until integration establishes that current CPU latency is a practical problem.

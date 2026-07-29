@@ -17,6 +17,7 @@ DEFAULT_MIDI_PATH = Path(".tmp/bass-pitch.mid")
 DEFAULT_CSV_PATH = Path(".tmp/bass-pitch.csv")
 DEFAULT_ACTIVITY_MIDI_PATH = Path(".tmp/bass-pitch-activity.mid")
 DEFAULT_ONSET_MIDI_PATH = Path(".tmp/bass-pitch-onset.mid")
+DEFAULT_SEGMENTED_PITCH_MIDI_PATH = Path(".tmp/bass-pitch-segmented.mid")
 DEFAULT_SAMPLE_RATE = 22_050
 DEFAULT_HOP_LENGTH = 256
 DEFAULT_ACTIVITY_ON_DB = -40.0
@@ -71,6 +72,16 @@ class Note:
     project_end: float
     first_cell: int
     last_cell: int
+
+
+@dataclass(frozen=True)
+class PitchDecision:
+    note: Note
+    evidence_frames: int
+    winner_weight: float
+    runner_up_pitch: int | None
+    runner_up_weight: float
+    margin: float
 
 
 def main() -> None:
@@ -186,6 +197,21 @@ def main() -> None:
     )
     args.onset_midi.parent.mkdir(parents=True, exist_ok=True)
     write_midi(args.onset_midi, onset_notes, bpm=args.bpm)
+    pitch_decisions = assign_region_pitches(
+        onset_notes,
+        frame_times=frame_times,
+        midi_pitch=midi_pitch,
+        voiced_flag=voiced_flag,
+        voiced_probability=voiced_probability,
+        track_offset=args.offset,
+        fallback_pitch=args.activity_pitch,
+    )
+    args.segmented_pitch_midi.parent.mkdir(parents=True, exist_ok=True)
+    write_midi(
+        args.segmented_pitch_midi,
+        [decision.note for decision in pitch_decisions],
+        bpm=args.bpm,
+    )
     args.csv.parent.mkdir(parents=True, exist_ok=True)
     write_diagnostics(
         args.csv,
@@ -202,6 +228,7 @@ def main() -> None:
         activity_on_db=args.activity_on_db,
         boundaries=boundaries,
         notes=notes,
+        pitch_decisions=pitch_decisions,
         track_offset=args.offset,
     )
     pitched_cells = sum(cell.pitch is not None for cell in cells)
@@ -220,6 +247,11 @@ def main() -> None:
     print(
         f"onset midi: wrote {args.onset_midi} "
         f"(cells={len(onset_notes)}, threshold={args.boundary_onset_threshold:g})"
+    )
+    resolved_pitches = sum(decision.evidence_frames > 0 for decision in pitch_decisions)
+    print(
+        f"segmented pitch midi: wrote {args.segmented_pitch_midi} "
+        f"(pitched={resolved_pitches}/{len(pitch_decisions)})"
     )
     print(f"diagnostics: wrote {args.csv}")
 
@@ -242,6 +274,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_ONSET_MIDI_PATH,
         help="fixed-pitch activity MIDI split at grid cells with onset evidence",
+    )
+    parser.add_argument(
+        "--segmented-pitch-midi",
+        type=Path,
+        default=DEFAULT_SEGMENTED_PITCH_MIDI_PATH,
+        help="activity/onset regions with provisional pYIN pitch assignments",
     )
     parser.add_argument("--csv", type=Path, default=DEFAULT_CSV_PATH, help="diagnostic CSV path")
     parser.add_argument("--start", type=float, default=0.0, help="excerpt start in source seconds")
@@ -474,6 +512,62 @@ def make_activity_onset_notes(
     return notes
 
 
+def assign_region_pitches(
+    notes: list[Note],
+    *,
+    frame_times: np.ndarray,
+    midi_pitch: np.ndarray,
+    voiced_flag: np.ndarray,
+    voiced_probability: np.ndarray,
+    track_offset: float,
+    fallback_pitch: int,
+) -> list[PitchDecision]:
+    decisions = []
+    for note in notes:
+        source_start = note.project_start - track_offset
+        source_end = note.project_end - track_offset
+        valid = (
+            (frame_times >= source_start)
+            & (frame_times < source_end)
+            & voiced_flag
+            & np.isfinite(midi_pitch)
+        )
+        rounded_pitches = np.rint(midi_pitch[valid]).astype(int)
+        weights = 0.1 + 0.9 * voiced_probability[valid]
+        pitch_weights = [
+            (float(np.sum(weights[rounded_pitches == pitch])), -int(pitch), int(pitch))
+            for pitch in np.unique(rounded_pitches)
+        ]
+        pitch_weights.sort(reverse=True)
+        if pitch_weights:
+            winner_weight, _, selected_pitch = pitch_weights[0]
+            runner_up_weight, _, runner_up_pitch = (
+                pitch_weights[1] if len(pitch_weights) > 1 else (0.0, 0, None)
+            )
+            margin = winner_weight / sum(weight for weight, _, _ in pitch_weights)
+        else:
+            selected_pitch = fallback_pitch
+            winner_weight = runner_up_weight = margin = 0.0
+            runner_up_pitch = None
+        decisions.append(
+            PitchDecision(
+                note=Note(
+                    selected_pitch,
+                    note.project_start,
+                    note.project_end,
+                    note.first_cell,
+                    note.last_cell,
+                ),
+                evidence_frames=int(np.count_nonzero(valid)),
+                winner_weight=winner_weight,
+                runner_up_pitch=runner_up_pitch,
+                runner_up_weight=runner_up_weight,
+                margin=margin,
+            )
+        )
+    return decisions
+
+
 def vote_cell(
     cell: GridCell,
     *,
@@ -683,6 +777,7 @@ def write_diagnostics(
     activity_on_db: float,
     boundaries: list[Boundary],
     notes: list[Note],
+    pitch_decisions: list[PitchDecision],
     track_offset: float,
 ) -> None:
     fields = [
@@ -713,6 +808,10 @@ def write_diagnostics(
         "reason",
         "first_cell",
         "last_cell",
+        "winner_weight",
+        "runner_up_pitch",
+        "runner_up_weight",
+        "margin",
     ]
     with path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
@@ -789,6 +888,25 @@ def write_diagnostics(
                     "pitch": note.pitch,
                     "first_cell": note.first_cell,
                     "last_cell": note.last_cell,
+                }
+            )
+        for index, decision in enumerate(pitch_decisions):
+            writer.writerow(
+                {
+                    "record_type": "segmented_pitch",
+                    "index": index,
+                    "project_start": decision.note.project_start,
+                    "project_end": decision.note.project_end,
+                    "pitch": decision.note.pitch,
+                    "voiced_frame_count": decision.evidence_frames,
+                    "winner_weight": decision.winner_weight,
+                    "runner_up_pitch": (
+                        "" if decision.runner_up_pitch is None else decision.runner_up_pitch
+                    ),
+                    "runner_up_weight": decision.runner_up_weight,
+                    "margin": decision.margin,
+                    "first_cell": decision.note.first_cell,
+                    "last_cell": decision.note.last_cell,
                 }
             )
 
