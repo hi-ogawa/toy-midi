@@ -32,6 +32,7 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
+      - run: pnpm build-wasm
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - run: pnpm test-e2e
       - uses: actions/upload-artifact@v4

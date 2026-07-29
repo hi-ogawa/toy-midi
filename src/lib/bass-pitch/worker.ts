@@ -1,6 +1,5 @@
+import initBassPitchWasm, { transcribe } from "@hiogawa/bass-pitch-wasm";
 import { registerWorkerRpcHandlers } from "../rpc/worker.ts";
-import initBassPitchWasm, { transcribe } from "./pkg/bass_pitch.js";
-import wasmUrl from "./pkg/bass_pitch_bg.wasm?url";
 import type {
   GridTranscribedNote,
   GridTranscribeParams,
@@ -14,7 +13,7 @@ let wasmReady: Promise<unknown> | undefined;
 
 export class BassPitchWorkerHandlers {
   async initialize(_params: Record<string, never>): Promise<void> {
-    wasmReady ??= initBassPitchWasm({ module_or_path: wasmUrl });
+    wasmReady ??= initBassPitchWasm();
     await wasmReady;
   }
 
@@ -27,7 +26,7 @@ export class BassPitchWorkerHandlers {
     params: GridTranscribeParams;
     onProgress: (fraction: number) => void;
   }): Promise<GridTranscribedNote[]> {
-    wasmReady ??= initBassPitchWasm({ module_or_path: wasmUrl });
+    wasmReady ??= initBassPitchWasm();
     await wasmReady;
     return JSON.parse(transcribe(pcm, JSON.stringify(params), onProgress));
   }
