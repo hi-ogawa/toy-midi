@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grid-Guided Bass Transcription — Algorithm</title>
+    <style>
+      :root {
+        --ink: #1f2937;
+        --muted: #6b7280;
+        --line: #e5e7eb;
+        --bg: #ffffff;
+        --panel: #f9fafb;
+        --presence: #3b82f6;
+        --segment: #ea580c;
+        --pitch: #059669;
+        --inactive: #cbd5e1;
+        --toc-sticky-offset: 8px;
+        --toc-layer: 10;
+        --toc-width: 200px;
+        --toc-trigger-padding: 6px 12px;
+        --toc-radius: 8px;
+        --toc-surface: #ffffff;
+        --toc-trigger-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        --toc-menu-gap: 6px;
+        --toc-menu-padding: 8px 12px;
+        --toc-menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        --toc-anchor-offset: 56px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 system-ui,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px 20px 80px;
+      }
+      h1 {
+        font-size: 26px;
+        margin: 8px 0 4px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 40px 0 10px;
+      }
+      h2 a {
+        color: inherit;
+        text-decoration: none;
+      }
+      h2 a:hover {
+        text-decoration: underline;
+      }
+      p {
+        max-width: 72ch;
+      }
+      .subtitle {
+        color: var(--muted);
+        margin-top: 0;
+      }
+      a {
+        color: #2563eb;
+      }
+      code {
+        font-family: ui-monospace, monospace;
+        font-size: 0.92em;
+        background: var(--panel);
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      section[id] {
+        scroll-margin-top: var(--toc-anchor-offset);
+      }
+
+      .toc {
+        position: sticky;
+        top: var(--toc-sticky-offset);
+        z-index: var(--toc-layer);
+        width: var(--toc-width);
+        height: 0;
+        margin-left: auto;
+      }
+      .toc summary {
+        padding: var(--toc-trigger-padding);
+        border: 1px solid var(--line);
+        border-radius: var(--toc-radius);
+        background: var(--toc-surface);
+        box-shadow: var(--toc-trigger-shadow);
+        cursor: pointer;
+        list-style: none;
+        font-size: 13px;
+      }
+      .toc nav {
+        position: absolute;
+        top: calc(100% + var(--toc-menu-gap));
+        right: 0;
+        width: 100%;
+        padding: var(--toc-menu-padding);
+        border: 1px solid var(--line);
+        border-radius: var(--toc-radius);
+        background: var(--toc-surface);
+        box-shadow: var(--toc-menu-shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 13px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin: 14px 0 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .chip {
+        display: inline-block;
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        margin-right: 5px;
+        vertical-align: -1px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: var(--panel);
+      }
+      .card b {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .card .num {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        color: #fff;
+        text-align: center;
+        line-height: 20px;
+        font-size: 12px;
+        margin-right: 6px;
+      }
+      .card p {
+        margin: 4px 0 0;
+        font-size: 13.5px;
+        color: #374151;
+      }
+
+      .stagegrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .stage {
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--muted);
+        border-radius: 10px;
+        padding: 12px 16px;
+      }
+      .stage h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+      }
+      .stage p {
+        margin: 6px 0;
+        font-size: 13.5px;
+      }
+      .stage .insight {
+        background: var(--panel);
+        border-left: 3px solid var(--muted);
+        padding: 7px 10px;
+        border-radius: 0 6px 6px 0;
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .stage.presence {
+        border-top-color: var(--presence);
+      }
+      .stage.presence .insight {
+        border-left-color: var(--presence);
+      }
+      .stage.segment {
+        border-top-color: var(--segment);
+      }
+      .stage.segment .insight {
+        border-left-color: var(--segment);
+      }
+      .stage.pitch {
+        border-top-color: var(--pitch);
+      }
+      .stage.pitch .insight {
+        border-left-color: var(--pitch);
+      }
+      .stage.neutral {
+        border-top-color: #9ca3af;
+      }
+
+      figure {
+        margin: 16px 0 0;
+      }
+      figure svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      figcaption {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 8px;
+        max-width: 80ch;
+      }
+
+      table {
+        border-collapse: collapse;
+        font-size: 13.5px;
+        margin-top: 12px;
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 5px 10px;
+        text-align: left;
+      }
+      th {
+        background: var(--panel);
+        font-weight: 600;
+      }
+      td code {
+        background: none;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <details class="toc">
+        <summary>Contents</summary>
+        <nav aria-label="Page sections">
+          <a href="#idea">Core idea</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#stages">Stage ideas</a>
+          <a href="#bar11">Worked example</a>
+          <a href="#map">Code map</a>
+        </nav>
+      </details>
+
+      <h1>Grid-Guided Bass Transcription</h1>
+      <p class="subtitle">
+        Algorithmic architecture of
+        <a
+          href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs"
+          ><code>crates/bass-pitch</code></a
+        >
+        — companion to <code>docs/bass-pitch-algorithm.md</code>
+      </p>
+
+      <section id="idea">
+        <h2><a href="#idea">Core idea</a></h2>
+        <p>
+          Instead of free-form transcription, exploit what the project already
+          knows — tempo, grid origin, track offset — plus one domain assumption:
+          a bass stem is monophonic. Every note then starts and ends on a grid
+          cell boundary, and transcription reduces to three small, ordered,
+          <em>independent</em> decisions:
+        </p>
+        <div class="cards">
+          <div class="card">
+            <b
+              ><span class="num" style="background: var(--presence)">1</span
+              >Presence</b
+            >
+            <p>
+              Which cells have bass at all? Decided by loudness only. Tuned for
+              recall: audible notes must never be dropped.
+            </p>
+          </div>
+          <div class="card">
+            <b
+              ><span class="num" style="background: var(--segment)">2</span
+              >Segmentation</b
+            >
+            <p>
+              Where is a new note articulated? Decided by onset novelty only, so
+              repeated same-pitch notes still split.
+            </p>
+          </div>
+          <div class="card">
+            <b
+              ><span class="num" style="background: var(--pitch)">3</span
+              >Pitch</b
+            >
+            <p>
+              What is each region? Decided by weighted pYIN votes. Pitch
+              confidence weighs the vote but never gates existence.
+            </p>
+          </div>
+        </div>
+        <p>
+          The founding failure this design avoids: using pYIN confidence as a
+          presence gate silently dropped most of an audibly playing bassline.
+          Each decision also emits its own diagnostic output (staged MIDIs,
+          per-frame/cell/boundary CSV records), so errors are attributable to
+          exactly one stage.
+        </p>
+        <div class="legend">
+          <span
+            ><span class="chip" style="background: var(--presence)"></span
+            >presence / loudness</span
+          >
+          <span
+            ><span class="chip" style="background: var(--segment)"></span
+            >segmentation / onset</span
+          >
+          <span
+            ><span class="chip" style="background: var(--pitch)"></span>pitch /
+            pYIN</span
+          >
+          <span
+            ><span class="chip" style="background: var(--inactive)"></span
+            >inactive / rest</span
+          >
+        </div>
+      </section>
+
+      <section id="pipeline">
+        <h2><a href="#pipeline">Pipeline</a></h2>
+        <figure>
+          <svg
+            viewBox="0 0 960 305"
+            role="img"
+            aria-label="Data flow from audio through frame features and grid pooling to three decisions and MIDI"
+          >
+            <defs>
+              <marker
+                id="arr"
+                viewBox="0 0 8 8"
+                refX="7"
+                refY="4"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto"
+              >
+                <path d="M0 0 L8 4 L0 8 z" fill="#9ca3af" />
+              </marker>
+            </defs>
+            <g font-family="system-ui, sans-serif" font-size="13">
+              <rect
+                x="16"
+                y="115"
+                width="128"
+                height="66"
+                rx="8"
+                fill="#f3f4f6"
+                stroke="#9ca3af"
+              />
+              <text x="80" y="143" text-anchor="middle" font-weight="600">
+                mono audio
+              </text>
+              <text
+                x="80"
+                y="162"
+                text-anchor="middle"
+                fill="#6b7280"
+                font-size="12"
+              >
+                22.05 kHz
+              </text>
+
+              <rect
+                x="212"
+                y="24"
+                width="196"
+                height="62"
+                rx="8"
+                fill="#ecfdf5"
+                stroke="#059669"
+              />
+              <text
+                x="310"
+                y="48"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#065f46"
+              >
+                pYIN (chunked)
+              </text>
+              <text
+                x="310"
+                y="66"
+                text-anchor="middle"
+                fill="#047857"
+                font-size="12"
+              >
+                f0 · voiced flag · probability
+              </text>
+
+              <rect
+                x="212"
+                y="118"
+                width="196"
+                height="62"
+                rx="8"
+                fill="#eff6ff"
+                stroke="#3b82f6"
+              />
+              <text
+                x="310"
+                y="142"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#1d4ed8"
+              >
+                RMS
+              </text>
+              <text
+                x="310"
+                y="160"
+                text-anchor="middle"
+                fill="#2563eb"
+                font-size="12"
+              >
+                loudness, 2048 window
+              </text>
+
+              <rect
+                x="212"
+                y="212"
+                width="196"
+                height="62"
+                rx="8"
+                fill="#fff7ed"
+                stroke="#ea580c"
+              />
+              <text
+                x="310"
+                y="236"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#9a3412"
+              >
+                mel-band log flux
+              </text>
+              <text
+                x="310"
+                y="254"
+                text-anchor="middle"
+                fill="#c2410c"
+                font-size="12"
+              >
+                onset novelty, p95-normalized
+              </text>
+
+              <text
+                x="310"
+                y="14"
+                text-anchor="middle"
+                fill="#6b7280"
+                font-size="12"
+              >
+                per frame · hop 256 ≈ 11.6 ms
+              </text>
+
+              <line
+                x1="144"
+                y1="136"
+                x2="204"
+                y2="60"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="144"
+                y1="148"
+                x2="204"
+                y2="148"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="144"
+                y1="160"
+                x2="204"
+                y2="238"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+
+              <rect
+                x="466"
+                y="115"
+                width="170"
+                height="66"
+                rx="8"
+                fill="#f3f4f6"
+                stroke="#9ca3af"
+              />
+              <text x="551" y="139" text-anchor="middle" font-weight="600">
+                grid cells
+              </text>
+              <text
+                x="551"
+                y="157"
+                text-anchor="middle"
+                fill="#6b7280"
+                font-size="12"
+              >
+                BPM · snap · offset
+              </text>
+              <text
+                x="551"
+                y="173"
+                text-anchor="middle"
+                fill="#6b7280"
+                font-size="12"
+              >
+                pool ≈ 12 frames / cell
+              </text>
+
+              <line
+                x1="408"
+                y1="55"
+                x2="458"
+                y2="128"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="408"
+                y1="148"
+                x2="458"
+                y2="148"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="408"
+                y1="243"
+                x2="458"
+                y2="168"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+
+              <rect
+                x="694"
+                y="16"
+                width="180"
+                height="52"
+                rx="8"
+                fill="#eff6ff"
+                stroke="#3b82f6"
+              />
+              <text
+                x="784"
+                y="37"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#1d4ed8"
+              >
+                1 · presence
+              </text>
+              <text
+                x="784"
+                y="54"
+                text-anchor="middle"
+                fill="#2563eb"
+                font-size="12"
+              >
+                median dBFS ≥ threshold
+              </text>
+
+              <rect
+                x="694"
+                y="92"
+                width="180"
+                height="52"
+                rx="8"
+                fill="#fff7ed"
+                stroke="#ea580c"
+              />
+              <text
+                x="784"
+                y="113"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#9a3412"
+              >
+                2 · segmentation
+              </text>
+              <text
+                x="784"
+                y="130"
+                text-anchor="middle"
+                fill="#c2410c"
+                font-size="12"
+              >
+                split at peak onset ≥ 0.4
+              </text>
+
+              <rect
+                x="694"
+                y="168"
+                width="180"
+                height="52"
+                rx="8"
+                fill="#ecfdf5"
+                stroke="#059669"
+              />
+              <text
+                x="784"
+                y="189"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#065f46"
+              >
+                3 · pitch
+              </text>
+              <text
+                x="784"
+                y="206"
+                text-anchor="middle"
+                fill="#047857"
+                font-size="12"
+              >
+                weighted vote per region
+              </text>
+
+              <rect
+                x="694"
+                y="244"
+                width="180"
+                height="46"
+                rx="8"
+                fill="#1f2937"
+              />
+              <text
+                x="784"
+                y="272"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#ffffff"
+              >
+                MIDI notes
+              </text>
+
+              <line
+                x1="636"
+                y1="140"
+                x2="686"
+                y2="48"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="784"
+                y1="68"
+                x2="784"
+                y2="86"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="784"
+                y1="144"
+                x2="784"
+                y2="162"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+              <line
+                x1="784"
+                y1="220"
+                x2="784"
+                y2="238"
+                stroke="#9ca3af"
+                marker-end="url(#arr)"
+              />
+            </g>
+          </svg>
+          <figcaption>
+            Colors tie each frame feature to the decision it powers. Output
+            timing is grid-aligned by construction: notes are made of whole
+            cells, and cells come from the project grid, so no post-hoc
+            quantization exists.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="stages">
+        <h2><a href="#stages">Stage ideas</a></h2>
+        <div class="stagegrid">
+          <div class="stage pitch">
+            <h3>pYIN pitch tracking</h3>
+            <p>
+              Per frame, YIN autocorrelation yields a probability distribution
+              over pitch candidates instead of one guess; a Viterbi decode over
+              (pitch × voicing) states with a small-step transition prior picks
+              the most likely path. Temporal continuity is what resolves the
+              octave ambiguity every individual bass frame has.
+            </p>
+            <div class="insight">
+              Confidence is never a gate. Vote weight is
+              <code>0.1 + 0.9 × probability</code> — the 0.1 floor means an
+              uncertain pYIN can weaken a pitch vote but can never erase a note
+              that presence already established.
+            </div>
+          </div>
+          <div class="stage segment">
+            <h3>Onset novelty</h3>
+            <p>
+              Rectified frame-to-frame rise of log band energy, averaged over
+              128 mel bands and normalized by the excerpt's 95th percentile, so
+              the 0.4 split threshold is relative to the material.
+            </p>
+            <div class="insight">
+              Two load-bearing details found by fixture failures: band-aggregate
+              <em>before</em> rectifying (per-bin decay jitter otherwise
+              rectifies into fake onsets), and delay the envelope by half a
+              window (else every peak lands one cell early).
+            </div>
+          </div>
+          <div class="stage presence">
+            <h3>Activity (presence)</h3>
+            <p>
+              A cell is active when its median RMS clears a dBFS threshold, with
+              on/off hysteresis. Runs of active cells form regions.
+            </p>
+            <div class="insight">
+              Deliberately recall-first and deliberately dumb: decay tails stay
+              "active" (over-sustain) rather than risking dropped notes.
+              Sustain-versus-decay classification is a planned refinement, not a
+              bug being ignored.
+            </div>
+          </div>
+          <div class="stage segment">
+            <h3>Segmentation</h3>
+            <p>
+              A new note starts at every active cell whose peak onset reaches
+              the threshold; other active cells extend the current note.
+            </p>
+            <div class="insight">
+              This is what pitch-change detection cannot do: four repeated D1
+              sixteenths have no pitch change, but each articulation has a flux
+              peak.
+            </div>
+          </div>
+          <div class="stage pitch">
+            <h3>Region pitch vote</h3>
+            <p>
+              Every voiced frame in a region votes its rounded MIDI pitch,
+              weighted by confidence; the heaviest pitch labels the region.
+              Regions with no voiced evidence keep a fallback pitch instead of
+              disappearing, and runner-up weight and margin are recorded for
+              diagnosis.
+            </p>
+          </div>
+          <div class="stage neutral">
+            <h3>Chunked orchestration</h3>
+            <p>
+              pYIN dominates runtime, so ~10 s frame-aligned chunks with 32
+              discarded context frames per side run through the unmodified pYIN
+              core (demucs-style core/orchestration split), enabling per-chunk
+              progress and future parallelism.
+            </p>
+            <div class="insight">
+              Viterbi is formally global, but competing paths merge within tens
+              of frames: on the full stem, chunked vs unchunked differs in 1
+              frame record of 14 022 and 0 decisions.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="bar11">
+        <h2><a href="#bar11">Worked example: Primrose bar 11</a></h2>
+        <p>
+          One 4/4 bar at 105 BPM, sixteenth cells. All values measured from the
+          evaluation fixture — this is the bar the whole pipeline was validated
+          against.
+        </p>
+        <figure>
+          <svg
+            viewBox="0 0 960 372"
+            role="img"
+            aria-label="Bar 11 per-cell RMS, onset, and resulting notes"
+          >
+            <g font-family="system-ui, sans-serif" font-size="12">
+              <!-- cell grid lines -->
+              <g stroke="#f3f4f6">
+                <line x1="70" y1="40" x2="70" y2="322" />
+                <line x1="124" y1="40" x2="124" y2="322" />
+                <line x1="178" y1="40" x2="178" y2="322" />
+                <line x1="232" y1="40" x2="232" y2="322" />
+                <line x1="286" y1="40" x2="286" y2="322" />
+                <line x1="340" y1="40" x2="340" y2="322" />
+                <line x1="394" y1="40" x2="394" y2="322" />
+                <line x1="448" y1="40" x2="448" y2="322" />
+                <line x1="502" y1="40" x2="502" y2="322" />
+                <line x1="556" y1="40" x2="556" y2="322" />
+                <line x1="610" y1="40" x2="610" y2="322" />
+                <line x1="664" y1="40" x2="664" y2="322" />
+                <line x1="718" y1="40" x2="718" y2="322" />
+                <line x1="772" y1="40" x2="772" y2="322" />
+                <line x1="826" y1="40" x2="826" y2="322" />
+                <line x1="880" y1="40" x2="880" y2="322" />
+                <line x1="934" y1="40" x2="934" y2="322" />
+              </g>
+              <!-- beat boundaries -->
+              <g stroke="#d1d5db">
+                <line x1="70" y1="40" x2="70" y2="340" />
+                <line x1="286" y1="40" x2="286" y2="340" />
+                <line x1="502" y1="40" x2="502" y2="340" />
+                <line x1="718" y1="40" x2="718" y2="340" />
+                <line x1="934" y1="40" x2="934" y2="340" />
+              </g>
+
+              <!-- Row 1: RMS -->
+              <text x="70" y="30" font-weight="600" fill="#1d4ed8">
+                median RMS per cell (dBFS)
+              </text>
+              <g>
+                <rect x="75" y="51.0" width="44" height="89.0" fill="#3b82f6" />
+                <rect
+                  x="129"
+                  y="52.5"
+                  width="44"
+                  height="87.5"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="183"
+                  y="47.3"
+                  width="44"
+                  height="92.7"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="237"
+                  y="48.5"
+                  width="44"
+                  height="91.5"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="291"
+                  y="59.0"
+                  width="44"
+                  height="81.0"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="345"
+                  y="48.8"
+                  width="44"
+                  height="91.2"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="399"
+                  y="52.3"
+                  width="44"
+                  height="87.7"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="453"
+                  y="67.2"
+                  width="44"
+                  height="72.8"
+                  fill="#cbd5e1"
+                />
+                <rect
+                  x="507"
+                  y="48.7"
+                  width="44"
+                  height="91.3"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="561"
+                  y="53.2"
+                  width="44"
+                  height="86.8"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="615"
+                  y="67.2"
+                  width="44"
+                  height="72.8"
+                  fill="#cbd5e1"
+                />
+                <rect
+                  x="669"
+                  y="91.7"
+                  width="44"
+                  height="48.3"
+                  fill="#cbd5e1"
+                />
+                <rect
+                  x="723"
+                  y="132.3"
+                  width="44"
+                  height="7.7"
+                  fill="#cbd5e1"
+                />
+                <rect
+                  x="777"
+                  y="45.0"
+                  width="44"
+                  height="95.0"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="831"
+                  y="52.3"
+                  width="44"
+                  height="87.7"
+                  fill="#3b82f6"
+                />
+                <rect
+                  x="885"
+                  y="56.7"
+                  width="44"
+                  height="83.3"
+                  fill="#3b82f6"
+                />
+              </g>
+              <line
+                x1="70"
+                y1="65"
+                x2="934"
+                y2="65"
+                stroke="#1d4ed8"
+                stroke-dasharray="5 4"
+              />
+              <text x="936" y="69" fill="#1d4ed8" font-size="11">−25</text>
+
+              <!-- Row 2: onset -->
+              <text x="70" y="160" font-weight="600" fill="#9a3412">
+                peak onset per cell (normalized)
+              </text>
+              <g stroke-width="2.5">
+                <line x1="97" y1="250" x2="97" y2="215.6" stroke="#ea580c" />
+                <circle cx="97" cy="215.6" r="4.5" fill="#ea580c" />
+                <line x1="151" y1="250" x2="151" y2="240.4" stroke="#cbd5e1" />
+                <circle cx="151" cy="240.4" r="4.5" fill="#cbd5e1" />
+                <line x1="205" y1="250" x2="205" y2="170" stroke="#ea580c" />
+                <circle cx="205" cy="170" r="4.5" fill="#ea580c" />
+                <line x1="259" y1="250" x2="259" y2="246" stroke="#cbd5e1" />
+                <circle cx="259" cy="246" r="4.5" fill="#cbd5e1" />
+                <line x1="313" y1="250" x2="313" y2="222.8" stroke="#cbd5e1" />
+                <circle cx="313" cy="222.8" r="4.5" fill="#cbd5e1" />
+                <line x1="367" y1="250" x2="367" y2="170" stroke="#ea580c" />
+                <circle cx="367" cy="170" r="4.5" fill="#ea580c" />
+                <line x1="421" y1="250" x2="421" y2="246.8" stroke="#cbd5e1" />
+                <circle cx="421" cy="246.8" r="4.5" fill="#cbd5e1" />
+                <line x1="475" y1="250" x2="475" y2="241.2" stroke="#cbd5e1" />
+                <circle cx="475" cy="241.2" r="4.5" fill="#cbd5e1" />
+                <line x1="529" y1="250" x2="529" y2="170" stroke="#ea580c" />
+                <circle cx="529" cy="170" r="4.5" fill="#ea580c" />
+                <line x1="583" y1="250" x2="583" y2="246.8" stroke="#cbd5e1" />
+                <circle cx="583" cy="246.8" r="4.5" fill="#cbd5e1" />
+                <line x1="637" y1="250" x2="637" y2="246.8" stroke="#cbd5e1" />
+                <circle cx="637" cy="246.8" r="4.5" fill="#cbd5e1" />
+                <line x1="691" y1="250" x2="691" y2="246.6" stroke="#cbd5e1" />
+                <circle cx="691" cy="246.6" r="4.5" fill="#cbd5e1" />
+                <line x1="745" y1="250" x2="745" y2="222.1" stroke="#cbd5e1" />
+                <circle cx="745" cy="222.1" r="4.5" fill="#cbd5e1" />
+                <line x1="799" y1="250" x2="799" y2="170" stroke="#ea580c" />
+                <circle cx="799" cy="170" r="4.5" fill="#ea580c" />
+                <line x1="853" y1="250" x2="853" y2="186.8" stroke="#ea580c" />
+                <circle cx="853" cy="186.8" r="4.5" fill="#ea580c" />
+                <line x1="907" y1="250" x2="907" y2="171.7" stroke="#ea580c" />
+                <circle cx="907" cy="171.7" r="4.5" fill="#ea580c" />
+              </g>
+              <line
+                x1="70"
+                y1="218"
+                x2="934"
+                y2="218"
+                stroke="#ea580c"
+                stroke-dasharray="5 4"
+              />
+              <text x="938" y="222" fill="#ea580c" font-size="11">0.4</text>
+
+              <!-- Row 3: notes -->
+              <text x="70" y="276" font-weight="600" fill="#065f46">
+                resulting notes
+              </text>
+              <g font-size="13" font-weight="600">
+                <rect
+                  x="71"
+                  y="284"
+                  width="106"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="124" y="308" text-anchor="middle" fill="#fff">D1</text>
+                <rect
+                  x="179"
+                  y="284"
+                  width="160"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="259" y="308" text-anchor="middle" fill="#fff">D1</text>
+                <rect
+                  x="341"
+                  y="284"
+                  width="106"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="394" y="308" text-anchor="middle" fill="#fff">D1</text>
+                <rect
+                  x="449"
+                  y="284"
+                  width="52"
+                  height="38"
+                  rx="5"
+                  fill="none"
+                  stroke="#cbd5e1"
+                  stroke-dasharray="4 3"
+                />
+                <text
+                  x="475"
+                  y="308"
+                  text-anchor="middle"
+                  fill="#9ca3af"
+                  font-weight="400"
+                >
+                  rest
+                </text>
+                <rect
+                  x="503"
+                  y="284"
+                  width="106"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="556" y="308" text-anchor="middle" fill="#fff">D1</text>
+                <rect
+                  x="611"
+                  y="284"
+                  width="160"
+                  height="38"
+                  rx="5"
+                  fill="none"
+                  stroke="#cbd5e1"
+                  stroke-dasharray="4 3"
+                />
+                <text
+                  x="691"
+                  y="308"
+                  text-anchor="middle"
+                  fill="#9ca3af"
+                  font-weight="400"
+                >
+                  rest
+                </text>
+                <rect
+                  x="773"
+                  y="284"
+                  width="52"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="799" y="308" text-anchor="middle" fill="#fff">A1</text>
+                <rect
+                  x="827"
+                  y="284"
+                  width="52"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="853" y="308" text-anchor="middle" fill="#fff">B1</text>
+                <rect
+                  x="881"
+                  y="284"
+                  width="52"
+                  height="38"
+                  rx="5"
+                  fill="#059669"
+                />
+                <text x="907" y="308" text-anchor="middle" fill="#fff">
+                  C#2
+                </text>
+              </g>
+
+              <!-- cell indices -->
+              <g fill="#9ca3af" font-size="11" text-anchor="middle">
+                <text x="97" y="338">0</text>
+                <text x="151" y="338">1</text>
+                <text x="205" y="338">2</text>
+                <text x="259" y="338">3</text>
+                <text x="313" y="338">4</text>
+                <text x="367" y="338">5</text>
+                <text x="421" y="338">6</text>
+                <text x="475" y="338">7</text>
+                <text x="529" y="338">8</text>
+                <text x="583" y="338">9</text>
+                <text x="637" y="338">10</text>
+                <text x="691" y="338">11</text>
+                <text x="745" y="338">12</text>
+                <text x="799" y="338">13</text>
+                <text x="853" y="338">14</text>
+                <text x="907" y="338">15</text>
+              </g>
+              <g fill="#6b7280" font-size="11">
+                <text x="70" y="356">beat 1</text>
+                <text x="286" y="356">beat 2</text>
+                <text x="502" y="356">beat 3</text>
+                <text x="718" y="356">beat 4</text>
+              </g>
+            </g>
+          </svg>
+          <figcaption>
+            Blue bars clearing the dashed −25 dBFS line are active cells; orange
+            lollipops clearing 0.4 start new notes. Cell 4 (−21.4 dBFS) is a
+            decay tail that stays active — the accepted recall-first
+            over-detection. Cells 13–15 show why segmentation is onset-driven:
+            A1, B1, C#2 are separate sixteenth attacks. Cell 12's onset (0.35)
+            is the A1 attack leaking one cell back; it stays below both
+            thresholds, so it neither creates a phantom note nor shifts the A1
+            start. The four D1 regions are repeated articulations of the
+            <em>same</em> pitch, split purely by onset evidence.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="map">
+        <h2><a href="#map">Code map</a></h2>
+        <table>
+          <tr>
+            <th>Decision</th>
+            <th>Function</th>
+          </tr>
+          <tr>
+            <td>Orchestration + progress</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L128"
+                ><code>run_pipeline</code></a
+              >,
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L193"
+                ><code>pyin_chunked</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Frame features</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L249"
+                ><code>onset_strength</code></a
+              >,
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L337"
+                ><code>rms_frames</code></a
+              >, vendored
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/tree/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/pyin"
+                ><code>crates/pyin</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Grid derivation</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L381"
+                ><code>make_grid_cells</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>1 · Presence</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L403"
+                ><code>detect_activity</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>2 · Segmentation</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L664"
+                ><code>make_activity_onset_notes</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>3 · Pitch</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L703"
+                ><code>assign_region_pitches</code></a
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>App boundary</td>
+            <td>
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch-wasm/src/lib.rs"
+                ><code>bass-pitch-wasm</code></a
+              >
+              →
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/tree/4746a02f1965a1d2438e66183982e74b8d5044d9/src/lib/bass-pitch"
+                ><code>src/lib/bass-pitch/</code></a
+              >
+              worker
+            </td>
+          </tr>
+        </table>
+        <p>
+          Related docs: <code>docs/bass-pitch-algorithm.md</code> (this content
+          in prose), <code>docs/bass-pitch-rust-port.md</code> (port status,
+          validation numbers, remaining work),
+          <code>docs/bass-pitch-evaluation.md</code> (the Python experiment that
+          established the design). Links pinned to commit <code>4746a02</code>.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
