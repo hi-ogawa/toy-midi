@@ -94,13 +94,6 @@ class ProjectStorage {
     return this.listMetadata().find((p) => p.id === projectId);
   }
 
-  createNew(): string {
-    return this.create(this.getDefaultProjectName(), {
-      ...createDefaultSavedProject(),
-      midiProgram: this.readPreferences().defaultMidiProgram,
-    });
-  }
-
   create(name: string, data: SavedProject): string {
     const projectId = crypto.randomUUID();
     const now = Date.now();
@@ -116,6 +109,13 @@ class ProjectStorage {
     this.writeProjectList(projectList);
     this.save(projectId, data);
     return projectId;
+  }
+
+  createNew(): string {
+    return this.create(this.getDefaultProjectName(), {
+      ...createDefaultSavedProject(),
+      midiProgram: this.readPreferences().defaultMidiProgram,
+    });
   }
 
   updateMetadata(
