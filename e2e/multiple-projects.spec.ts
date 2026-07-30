@@ -145,6 +145,11 @@ test.describe("Multiple Projects", () => {
     expect(
       await evaluateStore(page, (store) => store.getState().midiProgram),
     ).toBe(24);
+    await page.getByTestId("instrument-select").click();
+    await page
+      .locator('[data-slot="command-item"]', { hasText: "40: Violin" })
+      .click();
+    await evaluateFlushAutoSave(page);
 
     await page.goto("/");
     await page.getByTestId(`project-card-${project1Id}`).click();

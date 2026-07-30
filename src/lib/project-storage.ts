@@ -102,11 +102,8 @@ class ProjectStorage {
     return this.create(this.getDefaultProjectName(), project);
   }
 
-  setDefaultMidiProgram(defaultMidiProgram: number): void {
-    this.writePreferences({
-      ...this.readPreferences(),
-      defaultMidiProgram,
-    });
+  updatePreferences(updates: Partial<Preferences>): void {
+    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 
   private readPreferences(): Preferences {

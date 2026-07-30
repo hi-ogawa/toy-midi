@@ -63,7 +63,7 @@ export function Transport({ projectName, controls }: TransportProps) {
 
   const handleMidiProgramChange = (program: number) => {
     setMidiProgram(program);
-    projectStorage.setDefaultMidiProgram(program);
+    projectStorage.updatePreferences({ defaultMidiProgram: program });
   };
 
   const tempoInput = useDraftInput({
