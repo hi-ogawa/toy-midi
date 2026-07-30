@@ -131,6 +131,33 @@ test.describe("Multiple Projects", () => {
     expect(notes2[0].pitch).toBe(70);
   });
 
+  test("new projects use the last selected instrument", async ({ page }) => {
+    await clickNewProject(page);
+    await page.getByTestId("instrument-select").click();
+    await page
+      .locator('[data-slot="command-item"]', { hasText: "24: Acoustic Guitar" })
+      .click();
+    await evaluateFlushAutoSave(page);
+    const project1Id = await getLastProjectId(page);
+
+    await page.goto("/");
+    await clickNewProject(page);
+    expect(
+      await evaluateStore(page, (store) => store.getState().midiProgram),
+    ).toBe(24);
+    await page.getByTestId("instrument-select").click();
+    await page
+      .locator('[data-slot="command-item"]', { hasText: "40: Violin" })
+      .click();
+    await evaluateFlushAutoSave(page);
+
+    await page.goto("/");
+    await page.getByTestId(`project-card-${project1Id}`).click();
+    expect(
+      await evaluateStore(page, (store) => store.getState().midiProgram),
+    ).toBe(24);
+  });
+
   test("continue last project", async ({ page }) => {
     // Create a project
     await clickNewProject(page);
