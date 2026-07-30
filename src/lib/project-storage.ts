@@ -95,11 +95,10 @@ class ProjectStorage {
   }
 
   createNew(): string {
-    const project = {
+    return this.create(this.getDefaultProjectName(), {
       ...createDefaultSavedProject(),
       midiProgram: this.readPreferences().defaultMidiProgram,
-    };
-    return this.create(this.getDefaultProjectName(), project);
+    });
   }
 
   create(name: string, data: SavedProject): string {
