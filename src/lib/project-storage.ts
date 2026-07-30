@@ -102,27 +102,6 @@ class ProjectStorage {
     return this.create(this.getDefaultProjectName(), project);
   }
 
-  updatePreferences(updates: Partial<Preferences>): void {
-    this.writePreferences({ ...this.readPreferences(), ...updates });
-  }
-
-  private readPreferences(): Preferences {
-    try {
-      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return preferencesSchema.parse({ ...DEFAULT_PREFERENCES, ...stored });
-    } catch {
-      return DEFAULT_PREFERENCES;
-    }
-  }
-
-  private writePreferences(preferences: Preferences): void {
-    try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
-    } catch {
-      // Storage can be disabled or unavailable without preventing editing.
-    }
-  }
-
   create(name: string, data: SavedProject): string {
     const projectId = crypto.randomUUID();
     const now = Date.now();
@@ -199,6 +178,27 @@ class ProjectStorage {
     const projectList = this.readProjectList();
     projectList.lastProjectId = projectId;
     this.writeProjectList(projectList);
+  }
+
+  readPreferences(): Preferences {
+    try {
+      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+      return preferencesSchema.parse({ ...DEFAULT_PREFERENCES, ...stored });
+    } catch {
+      return DEFAULT_PREFERENCES;
+    }
+  }
+
+  writePreferences(preferences: Preferences): void {
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+    } catch {
+      // Storage can be disabled or unavailable without preventing editing.
+    }
+  }
+
+  updatePreferences(updates: Partial<Preferences>): void {
+    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 
   // binary audio assets
