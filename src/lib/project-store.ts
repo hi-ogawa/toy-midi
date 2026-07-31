@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import {
   GRID_SNAP_VALUES,
+  type BassString,
+  type BassStringCount,
   type GridSnap,
   type Locator,
   type Note,
   type TimeSignature,
 } from "../types";
 import type { AudioView } from "./audio-view";
+import { getFret, moveBassString, resolveBassTabPosition } from "./bass-tab";
 import { historyStore } from "./history-store";
 import { snapToGrid } from "./music";
 
@@ -23,6 +26,8 @@ export interface ProjectState {
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
   clipboard: Note[]; // Copied notes (not persisted)
+  bassTabEnabled: boolean;
+  bassStringCount: BassStringCount;
 
   // Locators (section markers)
   locators: Locator[];
@@ -66,6 +71,11 @@ export interface ProjectState {
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
+  setBassTabEnabled: (enabled: boolean) => void;
+  setBassStringCount: (count: BassStringCount) => void;
+  assignSelectedBassString: (string: BassString) => void;
+  moveSelectedBassStrings: (direction: "up" | "down") => void;
+  clearSelectedBassStrings: () => void;
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
@@ -155,6 +165,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
   clipboard: [], // Clipboard for copied notes (not persisted to storage)
+  bassTabEnabled: false,
+  bassStringCount: 4,
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -208,8 +220,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const before: Partial<Omit<Note, "id">> = {};
     const after: Partial<Omit<Note, "id">> = {};
     for (const key of Object.keys(updates) as (keyof typeof updates)[]) {
-      before[key] = note[key];
-      after[key] = updates[key]!;
+      Object.assign(before, { [key]: note[key] });
+      Object.assign(after, { [key]: updates[key] });
     }
     historyStore.pushOperation({
       type: "update-notes",
@@ -235,8 +247,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         const before: Partial<Omit<Note, "id">> = {};
         const after: Partial<Omit<Note, "id">> = {};
         for (const key of Object.keys(changes) as (keyof typeof changes)[]) {
-          before[key] = note[key];
-          after[key] = changes[key]!;
+          Object.assign(before, { [key]: note[key] });
+          Object.assign(after, { [key]: changes[key] });
         }
         return { id, before, after };
       })
@@ -331,6 +343,70 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   deselectAll: () => set({ selectedNoteIds: new Set() }),
 
   setGridSnap: (snap) => set({ gridSnap: snap }),
+
+  setBassTabEnabled: (enabled) => set({ bassTabEnabled: enabled }),
+
+  setBassStringCount: (count) => set({ bassStringCount: count }),
+
+  assignSelectedBassString: (string) => {
+    const state = get();
+    if (string > state.bassStringCount) {
+      return;
+    }
+    const updates = state.notes
+      .filter(
+        (note) =>
+          state.selectedNoteIds.has(note.id) &&
+          note.bassString !== string &&
+          getFret(note.pitch, string) !== undefined,
+      )
+      .map((note) => ({ id: note.id, changes: { bassString: string } }));
+    if (updates.length > 0) {
+      state.updateNotes(updates);
+    }
+  },
+
+  moveSelectedBassStrings: (direction) => {
+    const state = get();
+    const updates = state.notes.flatMap((note) => {
+      if (!state.selectedNoteIds.has(note.id)) {
+        return [];
+      }
+      const bassString = moveBassString({
+        pitch: note.pitch,
+        stringCount: state.bassStringCount,
+        bassString: note.bassString,
+        direction,
+      });
+      const currentString = resolveBassTabPosition({
+        pitch: note.pitch,
+        stringCount: state.bassStringCount,
+        bassString: note.bassString,
+      })?.string;
+      return bassString && bassString !== currentString
+        ? [{ id: note.id, changes: { bassString } }]
+        : [];
+    });
+    if (updates.length > 0) {
+      state.updateNotes(updates);
+    }
+  },
+
+  clearSelectedBassStrings: () => {
+    const state = get();
+    const updates = state.notes
+      .filter(
+        (note) =>
+          state.selectedNoteIds.has(note.id) && note.bassString !== undefined,
+      )
+      .map((note) => ({
+        id: note.id,
+        changes: { bassString: undefined },
+      }));
+    if (updates.length > 0) {
+      state.updateNotes(updates);
+    }
+  },
 
   setTotalBeats: (beats) => set({ totalBeats: beats }),
 
@@ -594,6 +670,8 @@ export interface SavedProject {
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
+  bassTabEnabled?: boolean;
+  bassStringCount?: BassStringCount;
   locators?: Locator[]; // Optional for backward compatibility
   audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
     waveformHeight?: number; // Optional for backward compatibility
@@ -634,6 +712,8 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
+  bassTabEnabled: false,
+  bassStringCount: 4,
   locators: [],
   audioTracks: [],
   masterVolume: 1,
@@ -663,6 +743,8 @@ export function toSavedProject(state: ProjectState): SavedProject {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
+    bassTabEnabled: state.bassTabEnabled,
+    bassStringCount: state.bassStringCount,
     locators: state.locators,
     audioTracks: state.audioTracks.map(
       // Strip transient waveform data
@@ -727,6 +809,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     tempo: merged.tempo,
     timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
     gridSnap: merged.gridSnap,
+    bassTabEnabled: merged.bassTabEnabled ?? DEFAULTS.bassTabEnabled,
+    bassStringCount: merged.bassStringCount ?? DEFAULTS.bassStringCount,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
     audioTracks: merged.audioTracks.map((t) => ({

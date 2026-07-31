@@ -13,7 +13,11 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
-import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import {
+  type BassStringCount,
+  COMMON_TIME_SIGNATURES,
+  type GridSnap,
+} from "../types";
 import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
@@ -49,6 +53,8 @@ export function Transport({ projectName, controls }: TransportProps) {
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
+    bassTabEnabled,
+    bassStringCount,
     setTempo,
     setTimeSignature,
     setMidiProgram,
@@ -57,6 +63,8 @@ export function Transport({ projectName, controls }: TransportProps) {
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
+    setBassTabEnabled,
+    setBassStringCount,
   } = useProjectStore();
 
   const tapTimesRef = useRef<number[]>([]);
@@ -241,6 +249,46 @@ export function Transport({ projectName, controls }: TransportProps) {
             <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-border" />
+
+      <Button
+        data-testid="bass-tab-toggle"
+        onClick={() => setBassTabEnabled(!bassTabEnabled)}
+        aria-pressed={bassTabEnabled}
+        title="Toggle bass tab annotations"
+        className={cn(
+          "h-8 px-2 font-mono text-xs",
+          bassTabEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+      >
+        TAB
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="bass-string-count-select"
+            className="h-8 gap-1 px-2 font-mono text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            {bassStringCount}-string
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={String(bassStringCount)}
+            onValueChange={(value) =>
+              setBassStringCount(Number(value) as BassStringCount)
+            }
+          >
+            <DropdownMenuRadioItem value="4">4-string</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="5">5-string</DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>

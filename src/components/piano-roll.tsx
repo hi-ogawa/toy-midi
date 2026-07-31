@@ -10,6 +10,7 @@ import { useAudio } from "../hooks/use-audio";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
+import { resolveBassTabPosition } from "../lib/bass-tab";
 import { historyStore } from "../lib/history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
@@ -32,7 +33,7 @@ import {
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
-import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { type BassString, GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 import { cn } from "./ui/utils";
@@ -112,6 +113,8 @@ export function PianoRoll() {
     notes,
     selectedNoteIds,
     gridSnap,
+    bassTabEnabled,
+    bassStringCount,
     tempo,
     timeSignature,
     audioTracks,
@@ -123,6 +126,9 @@ export function PianoRoll() {
     addNote,
     updateNote,
     quantizeSelectedNotes,
+    assignSelectedBassString,
+    moveSelectedBassStrings,
+    clearSelectedBassStrings,
     deleteNotes,
     selectNotes,
     deselectAll,
@@ -290,6 +296,9 @@ export function PianoRoll() {
     if (isShortcutTextInputTarget(e.target)) {
       return;
     }
+    const bassStringShortcut = ([1, 2, 3, 4, 5] as const).find((string) =>
+      matchKeyboardEvent(e, String(string)),
+    );
 
     if (matchKeyboardEvent(e, "Delete") || matchKeyboardEvent(e, "Backspace")) {
       if (selectedNoteIds.size > 0) {
@@ -335,6 +344,18 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "Q")) {
       quantizeSelectedNotes();
+    } else if (bassTabEnabled && bassStringShortcut) {
+      e.preventDefault();
+      assignSelectedBassString(bassStringShortcut);
+    } else if (bassTabEnabled && matchKeyboardEvent(e, "ArrowUp")) {
+      e.preventDefault();
+      moveSelectedBassStrings("up");
+    } else if (bassTabEnabled && matchKeyboardEvent(e, "ArrowDown")) {
+      e.preventDefault();
+      moveSelectedBassStrings("down");
+    } else if (bassTabEnabled && matchKeyboardEvent(e, "0")) {
+      e.preventDefault();
+      clearSelectedBassStrings();
     } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
       const playheadBeat = secondsToBeats(position, tempo);
@@ -506,11 +527,8 @@ export function PianoRoll() {
           // Create duplicates at the same position as originals
           notesToDuplicate.forEach((originalNote) => {
             const duplicateNote: Note = {
+              ...originalNote,
               id: generateNoteId(),
-              pitch: originalNote.pitch,
-              start: originalNote.start,
-              duration: originalNote.duration,
-              velocity: originalNote.velocity,
             };
             addNote(duplicateNote);
             duplicateNoteIds.push(duplicateNote.id);
@@ -1077,6 +1095,15 @@ export function PianoRoll() {
                 scrollX={scrollX}
                 scrollY={scrollY}
                 edgeThreshold={edgeThreshold}
+                annotation={
+                  bassTabEnabled
+                    ? resolveBassTabPosition({
+                        pitch: note.pitch,
+                        stringCount: bassStringCount,
+                        bassString: note.bassString,
+                      })
+                    : undefined
+                }
               />
             ))}
             {/* Preview note while creating */}
@@ -1593,6 +1620,7 @@ function NoteDiv({
   scrollX,
   scrollY,
   edgeThreshold,
+  annotation,
 }: {
   note: Note;
   selected: boolean;
@@ -1601,6 +1629,7 @@ function NoteDiv({
   scrollX: number;
   scrollY: number;
   edgeThreshold: number;
+  annotation?: { string: BassString; fret: number };
 }) {
   // Convert note position to screen coordinates
   const x = (note.start - scrollX) * pixelsPerBeat;
@@ -1625,6 +1654,23 @@ function NoteDiv({
         boxSizing: "border-box",
       }}
     >
+      {annotation && (
+        <span
+          data-testid="bass-tab-annotation"
+          className="absolute inset-0 flex items-center justify-center overflow-hidden text-[10px] font-mono font-semibold leading-none text-blue-950 pointer-events-none"
+        >
+          {annotation.string === 1
+            ? "G"
+            : annotation.string === 2
+              ? "D"
+              : annotation.string === 3
+                ? "A"
+                : annotation.string === 4
+                  ? "E"
+                  : "B"}
+          {annotation.fret}
+        </span>
+      )}
       {/* Resize handles - always visible for edge grabbing */}
       <div
         className="absolute top-0 h-full cursor-ew-resize"

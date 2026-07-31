@@ -87,6 +87,21 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Add locator at playhead",
     category: "editing",
   },
+  {
+    key: "1-5",
+    description: "Assign bass string to selected notes",
+    category: "editing",
+  },
+  {
+    key: "ArrowUp / ArrowDown",
+    description: "Move selected notes between bass strings",
+    category: "editing",
+  },
+  {
+    key: "0",
+    description: "Clear selected bass string assignments",
+    category: "editing",
+  },
 
   // Navigation
   {

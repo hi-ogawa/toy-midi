@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import type { Note } from "../types";
+import { historyStore } from "./history-store";
 import {
   type AudioTrack,
   createDefaultSavedProject,
@@ -23,6 +25,14 @@ function makeAudioTrack(id: string, offset: number): AudioTrack {
 
 function getOffsets(): number[] {
   return useProjectStore.getState().audioTracks.map((t) => t.offset);
+}
+
+function makeNote(
+  id: string,
+  pitch: number,
+  bassString?: Note["bassString"],
+): Note {
+  return { id, pitch, start: 0, duration: 1, velocity: 100, bassString };
 }
 
 describe("moveAudioOffset", () => {
@@ -79,5 +89,85 @@ describe("master volume persistence", () => {
     delete project.masterVolume;
 
     expect(fromSavedProject(project).masterVolume).toBe(1);
+  });
+});
+
+describe("bass tab settings persistence", () => {
+  it("uses compatible defaults", () => {
+    const project = createDefaultSavedProject();
+    delete project.bassTabEnabled;
+    delete project.bassStringCount;
+
+    expect(fromSavedProject(project)).toMatchObject({
+      bassTabEnabled: false,
+      bassStringCount: 4,
+    });
+  });
+
+  it("round-trips project settings and note overrides", () => {
+    useProjectStore.setState({
+      notes: [makeNote("note-1", 48, 3)],
+      bassTabEnabled: true,
+      bassStringCount: 5,
+    });
+
+    const saved = toSavedProject(useProjectStore.getState());
+    expect(fromSavedProject(saved)).toMatchObject({
+      notes: [expect.objectContaining({ id: "note-1", bassString: 3 })],
+      bassTabEnabled: true,
+      bassStringCount: 5,
+    });
+  });
+});
+
+describe("bass tab note actions", () => {
+  beforeEach(() => {
+    historyStore.clearHistory();
+    useProjectStore.setState({
+      notes: [makeNote("high", 48), makeNote("low", 30)],
+      selectedNoteIds: new Set(["high", "low"]),
+      bassStringCount: 4,
+    });
+  });
+
+  it("assigns an absolute playable string to each selected note", () => {
+    useProjectStore.getState().assignSelectedBassString(3);
+
+    expect(useProjectStore.getState().notes).toEqual([
+      makeNote("high", 48, 3),
+      makeNote("low", 30),
+    ]);
+  });
+
+  it("moves selected notes independently between playable strings", () => {
+    useProjectStore.getState().moveSelectedBassStrings("down");
+
+    expect(useProjectStore.getState().notes).toEqual([
+      makeNote("high", 48, 2),
+      makeNote("low", 30),
+    ]);
+  });
+
+  it("allows moving to string 5 only in five-string mode", () => {
+    useProjectStore.setState({
+      notes: [makeNote("low", 30, 4)],
+      selectedNoteIds: new Set(["low"]),
+    });
+    useProjectStore.getState().moveSelectedBassStrings("down");
+    expect(useProjectStore.getState().notes[0].bassString).toBe(4);
+
+    useProjectStore.getState().setBassStringCount(5);
+    useProjectStore.getState().moveSelectedBassStrings("down");
+    expect(useProjectStore.getState().notes[0].bassString).toBe(5);
+  });
+
+  it("clears overrides through undoable note updates", () => {
+    useProjectStore.setState({ notes: [makeNote("high", 48, 3)] });
+
+    useProjectStore.getState().clearSelectedBassStrings();
+    expect(useProjectStore.getState().notes[0].bassString).toBeUndefined();
+
+    useProjectStore.getState().undo();
+    expect(useProjectStore.getState().notes[0].bassString).toBe(3);
   });
 });
