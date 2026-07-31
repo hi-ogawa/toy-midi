@@ -1,4 +1,5 @@
-import path from "path";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
 
@@ -53,6 +54,53 @@ test.describe("Settings Dialog - Project Export", () => {
 
     // Project export should be enabled (empty project is valid)
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
+  });
+
+  test("export MusicXML with standard and TAB staves", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.setState({
+        notes: [
+          {
+            id: "forced-a",
+            pitch: 33,
+            start: 3.5,
+            duration: 1,
+            velocity: 100,
+            tabString: 4,
+          },
+          {
+            id: "triplet-b",
+            pitch: 35,
+            start: 5,
+            duration: 1 / 3,
+            velocity: 100,
+          },
+        ],
+        tabStringCount: 5,
+      });
+    });
+    await openSettings(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-musicxml-button").click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
+
+    const downloadPath = test.info().outputPath("export.musicxml");
+    await download.saveAs(downloadPath);
+    const xml = await readFile(downloadPath, "utf8");
+    const parseError = await page.evaluate(
+      (value) =>
+        new DOMParser()
+          .parseFromString(value, "application/xml")
+          .querySelector("parsererror")?.textContent ?? null,
+      xml,
+    );
+    expect(parseError).toBeNull();
+    expect(xml).toContain("<staves>2</staves>");
+    expect(xml).toContain("<sign>TAB</sign>");
+    expect(xml).toContain("<string>4</string>");
+    expect(xml).toContain("<fret>5</fret>");
   });
 
   test("export and import .toymidi restores project data", async ({ page }) => {

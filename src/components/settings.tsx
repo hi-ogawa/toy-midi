@@ -14,6 +14,7 @@ import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName } from "../lib/export-utils";
 import { downloadMidiFile, exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
+import { downloadMusicXmlFile, exportMusicXml } from "../lib/musicxml-export";
 import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -50,6 +51,7 @@ export function Settings({
     tempo,
     timeSignature,
     notes,
+    tabStringCount,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
     setAutoScrollEnabled,
@@ -155,6 +157,28 @@ export function Settings({
     });
 
     downloadMidiFile(midiData, fileName);
+  };
+
+  const handleExportMusicXml = () => {
+    try {
+      const xml = exportMusicXml({
+        notes,
+        tempo,
+        timeSignature,
+        name: projectName,
+        tabStringCount,
+      });
+      const fileName = buildExportFileName({
+        baseName: projectName,
+        extension: ".musicxml",
+      });
+      downloadMusicXmlFile(xml, fileName);
+    } catch (error) {
+      console.error("Failed to export MusicXML:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export MusicXML",
+      );
+    }
   };
 
   const exportProjectMutation = useMutation({
@@ -302,6 +326,15 @@ export function Settings({
           >
             <DownloadIcon className="size-4" />
             Export MIDI
+          </Button>
+          <Button
+            data-testid="export-musicxml-button"
+            onClick={handleExportMusicXml}
+            disabled={notes.length === 0}
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+          >
+            <DownloadIcon className="size-4" />
+            Export MusicXML
           </Button>
         </div>
       </section>
