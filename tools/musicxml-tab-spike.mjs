@@ -10,11 +10,11 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   <work>
-    <work-title>MusicXML TAB-only Spike</work-title>
+    <work-title>MusicXML Standard and TAB Spike</work-title>
   </work>
   <part-list>
     <score-part id="P1">
-      <part-name>5-string Bass TAB</part-name>
+      <part-name>5-string Bass</part-name>
     </score-part>
   </part-list>
   <part id="P1">
@@ -28,10 +28,15 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <beats>4</beats>
           <beat-type>4</beat-type>
         </time>
-        <clef>
+        <staves>2</staves>
+        <clef number="1">
+          <sign>F</sign>
+          <line>4</line>
+        </clef>
+        <clef number="2">
           <sign>TAB</sign>
         </clef>
-        <staff-details>
+        <staff-details number="2">
           <staff-lines>5</staff-lines>
           <staff-tuning line="1">
             <tuning-step>B</tuning-step>
@@ -66,7 +71,52 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <octave>1</octave>
         </pitch>
         <duration>1</duration>
+        <voice>1</voice>
         <type>quarter</type>
+        <staff>1</staff>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>2</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+        <staff>1</staff>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>2</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+        <staff>1</staff>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+        <staff>1</staff>
+      </note>
+      <backup>
+        <duration>4</duration>
+      </backup>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>1</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>5</voice>
+        <type>quarter</type>
+        <staff>2</staff>
         <notations>
           <technical>
             <string>5</string>
@@ -80,7 +130,9 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <octave>2</octave>
         </pitch>
         <duration>1</duration>
+        <voice>5</voice>
         <type>quarter</type>
+        <staff>2</staff>
         <notations>
           <technical>
             <string>4</string>
@@ -94,7 +146,9 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <octave>2</octave>
         </pitch>
         <duration>1</duration>
+        <voice>5</voice>
         <type>quarter</type>
+        <staff>2</staff>
         <notations>
           <technical>
             <string>4</string>
@@ -108,7 +162,9 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <octave>3</octave>
         </pitch>
         <duration>1</duration>
+        <voice>5</voice>
         <type>quarter</type>
+        <staff>2</staff>
         <notations>
           <technical>
             <string>2</string>
