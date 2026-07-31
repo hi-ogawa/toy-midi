@@ -10,11 +10,11 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   <work>
-    <work-title>MusicXML Tab Annotation Spike</work-title>
+    <work-title>MusicXML TAB-only Spike</work-title>
   </work>
   <part-list>
     <score-part id="P1">
-      <part-name>5-string Bass</part-name>
+      <part-name>5-string Bass TAB</part-name>
     </score-part>
   </part-list>
   <part id="P1">
@@ -29,37 +29,41 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
           <beat-type>4</beat-type>
         </time>
         <clef>
-          <sign>F</sign>
-          <line>4</line>
+          <sign>TAB</sign>
         </clef>
         <staff-details>
           <staff-lines>5</staff-lines>
           <staff-tuning line="1">
             <tuning-step>B</tuning-step>
-            <tuning-octave>0</tuning-octave>
+            <tuning-octave>1</tuning-octave>
           </staff-tuning>
           <staff-tuning line="2">
             <tuning-step>E</tuning-step>
-            <tuning-octave>1</tuning-octave>
+            <tuning-octave>2</tuning-octave>
           </staff-tuning>
           <staff-tuning line="3">
             <tuning-step>A</tuning-step>
-            <tuning-octave>1</tuning-octave>
+            <tuning-octave>2</tuning-octave>
           </staff-tuning>
           <staff-tuning line="4">
             <tuning-step>D</tuning-step>
-            <tuning-octave>2</tuning-octave>
+            <tuning-octave>3</tuning-octave>
           </staff-tuning>
           <staff-tuning line="5">
             <tuning-step>G</tuning-step>
-            <tuning-octave>2</tuning-octave>
+            <tuning-octave>3</tuning-octave>
           </staff-tuning>
         </staff-details>
+        <transpose>
+          <diatonic>0</diatonic>
+          <chromatic>0</chromatic>
+          <octave-change>-1</octave-change>
+        </transpose>
       </attributes>
       <note>
         <pitch>
           <step>B</step>
-          <octave>0</octave>
+          <octave>1</octave>
         </pitch>
         <duration>1</duration>
         <type>quarter</type>
@@ -73,7 +77,7 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <note>
         <pitch>
           <step>E</step>
-          <octave>1</octave>
+          <octave>2</octave>
         </pitch>
         <duration>1</duration>
         <type>quarter</type>
@@ -87,7 +91,7 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <note>
         <pitch>
           <step>A</step>
-          <octave>1</octave>
+          <octave>2</octave>
         </pitch>
         <duration>1</duration>
         <type>quarter</type>
@@ -101,7 +105,7 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
       <note>
         <pitch>
           <step>D</step>
-          <octave>2</octave>
+          <octave>3</octave>
         </pitch>
         <duration>1</duration>
         <type>quarter</type>
