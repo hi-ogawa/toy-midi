@@ -1,12 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
-const outputPath = path.join(
-  import.meta.dirname,
-  "../.tmp/musicxml-tab-spike.musicxml",
-);
-
-const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   <work>
@@ -596,8 +588,3 @@ const musicXml = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     </measure>
   </part>
 </score-partwise>
-`;
-
-await mkdir(path.dirname(outputPath), { recursive: true });
-await writeFile(outputPath, musicXml);
-console.log(`wrote ${outputPath}`);
