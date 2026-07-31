@@ -1,17 +1,17 @@
 import { create } from "zustand";
 import {
   GRID_SNAP_VALUES,
-  type BassString,
-  type BassStringCount,
+  type TabString,
+  type TabStringCount,
   type GridSnap,
   type Locator,
   type Note,
   type TimeSignature,
 } from "../types";
 import type { AudioView } from "./audio-view";
-import { getFret, moveBassString, resolveBassTabPosition } from "./bass-tab";
 import { historyStore } from "./history-store";
 import { snapToGrid } from "./music";
+import { getFret, moveTabString, resolveTabPosition } from "./tab-annotation";
 
 export interface ProjectState {
   // project
@@ -26,8 +26,8 @@ export interface ProjectState {
   selectedNoteIds: Set<string>;
   gridSnap: GridSnap;
   clipboard: Note[]; // Copied notes (not persisted)
-  bassTabEnabled: boolean;
-  bassStringCount: BassStringCount;
+  tabAnnotationEnabled: boolean;
+  tabStringCount: TabStringCount;
 
   // Locators (section markers)
   locators: Locator[];
@@ -71,11 +71,11 @@ export interface ProjectState {
   selectNotes: (ids: string[], exclusive?: boolean) => void;
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
-  setBassTabEnabled: (enabled: boolean) => void;
-  setBassStringCount: (count: BassStringCount) => void;
-  assignSelectedBassString: (string: BassString) => void;
-  moveSelectedBassStrings: (direction: "up" | "down") => void;
-  clearSelectedBassStrings: () => void;
+  setTabAnnotationEnabled: (enabled: boolean) => void;
+  setTabStringCount: (count: TabStringCount) => void;
+  assignSelectedTabString: (string: TabString) => void;
+  moveSelectedTabStrings: (direction: "up" | "down") => void;
+  clearSelectedTabStrings: () => void;
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
@@ -165,8 +165,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedNoteIds: new Set(),
   gridSnap: "1/8",
   clipboard: [], // Clipboard for copied notes (not persisted to storage)
-  bassTabEnabled: false,
-  bassStringCount: 4,
+  tabAnnotationEnabled: false,
+  tabStringCount: 4,
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -344,47 +344,47 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setGridSnap: (snap) => set({ gridSnap: snap }),
 
-  setBassTabEnabled: (enabled) => set({ bassTabEnabled: enabled }),
+  setTabAnnotationEnabled: (enabled) => set({ tabAnnotationEnabled: enabled }),
 
-  setBassStringCount: (count) => set({ bassStringCount: count }),
+  setTabStringCount: (count) => set({ tabStringCount: count }),
 
-  assignSelectedBassString: (string) => {
+  assignSelectedTabString: (string) => {
     const state = get();
-    if (string > state.bassStringCount) {
+    if (string > state.tabStringCount) {
       return;
     }
     const updates = state.notes
       .filter(
         (note) =>
           state.selectedNoteIds.has(note.id) &&
-          note.bassString !== string &&
+          note.tabString !== string &&
           getFret(note.pitch, string) !== undefined,
       )
-      .map((note) => ({ id: note.id, changes: { bassString: string } }));
+      .map((note) => ({ id: note.id, changes: { tabString: string } }));
     if (updates.length > 0) {
       state.updateNotes(updates);
     }
   },
 
-  moveSelectedBassStrings: (direction) => {
+  moveSelectedTabStrings: (direction) => {
     const state = get();
     const updates = state.notes.flatMap((note) => {
       if (!state.selectedNoteIds.has(note.id)) {
         return [];
       }
-      const bassString = moveBassString({
+      const tabString = moveTabString({
         pitch: note.pitch,
-        stringCount: state.bassStringCount,
-        bassString: note.bassString,
+        stringCount: state.tabStringCount,
+        tabString: note.tabString,
         direction,
       });
-      const currentString = resolveBassTabPosition({
+      const currentString = resolveTabPosition({
         pitch: note.pitch,
-        stringCount: state.bassStringCount,
-        bassString: note.bassString,
+        stringCount: state.tabStringCount,
+        tabString: note.tabString,
       })?.string;
-      return bassString && bassString !== currentString
-        ? [{ id: note.id, changes: { bassString } }]
+      return tabString && tabString !== currentString
+        ? [{ id: note.id, changes: { tabString } }]
         : [];
     });
     if (updates.length > 0) {
@@ -392,16 +392,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
   },
 
-  clearSelectedBassStrings: () => {
+  clearSelectedTabStrings: () => {
     const state = get();
     const updates = state.notes
       .filter(
         (note) =>
-          state.selectedNoteIds.has(note.id) && note.bassString !== undefined,
+          state.selectedNoteIds.has(note.id) && note.tabString !== undefined,
       )
       .map((note) => ({
         id: note.id,
-        changes: { bassString: undefined },
+        changes: { tabString: undefined },
       }));
     if (updates.length > 0) {
       state.updateNotes(updates);
@@ -670,8 +670,8 @@ export interface SavedProject {
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
-  bassTabEnabled?: boolean;
-  bassStringCount?: BassStringCount;
+  tabAnnotationEnabled?: boolean;
+  tabStringCount?: TabStringCount;
   locators?: Locator[]; // Optional for backward compatibility
   audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
     waveformHeight?: number; // Optional for backward compatibility
@@ -712,8 +712,8 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
-  bassTabEnabled: false,
-  bassStringCount: 4,
+  tabAnnotationEnabled: false,
+  tabStringCount: 4,
   locators: [],
   audioTracks: [],
   masterVolume: 1,
@@ -743,8 +743,8 @@ export function toSavedProject(state: ProjectState): SavedProject {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
-    bassTabEnabled: state.bassTabEnabled,
-    bassStringCount: state.bassStringCount,
+    tabAnnotationEnabled: state.tabAnnotationEnabled,
+    tabStringCount: state.tabStringCount,
     locators: state.locators,
     audioTracks: state.audioTracks.map(
       // Strip transient waveform data
@@ -809,8 +809,9 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     tempo: merged.tempo,
     timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
     gridSnap: merged.gridSnap,
-    bassTabEnabled: merged.bassTabEnabled ?? DEFAULTS.bassTabEnabled,
-    bassStringCount: merged.bassStringCount ?? DEFAULTS.bassStringCount,
+    tabAnnotationEnabled:
+      merged.tabAnnotationEnabled ?? DEFAULTS.tabAnnotationEnabled,
+    tabStringCount: merged.tabStringCount ?? DEFAULTS.tabStringCount,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
     audioTracks: merged.audioTracks.map((t) => ({

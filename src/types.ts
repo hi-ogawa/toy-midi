@@ -4,12 +4,12 @@ export interface Note {
   start: number; // Start time in beats
   duration: number; // Duration in beats
   velocity: number; // 0-127, default 100
-  bassString?: BassString;
+  tabString?: TabString;
 }
 
-export type BassString = 1 | 2 | 3 | 4 | 5;
+export type TabString = 1 | 2 | 3 | 4 | 5;
 
-export type BassStringCount = 4 | 5;
+export type TabStringCount = 4 | 5;
 
 export type GridSnap = "1/4" | "1/8" | "1/16" | "1/4T" | "1/8T" | "1/16T";
 

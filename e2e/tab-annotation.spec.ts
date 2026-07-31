@@ -6,9 +6,7 @@ import {
   waitForEditor,
 } from "./helpers";
 
-test("edits bass tab annotations and persists manual strings", async ({
-  page,
-}) => {
+test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.goto("/");
   await clickNewProject(page);
 
@@ -22,15 +20,15 @@ test("edits bass tab annotations and persists manual strings", async ({
     });
   });
 
-  const annotations = page.getByTestId("bass-tab-annotation");
+  const annotations = page.getByTestId("tab-annotation");
   await expect(annotations).toHaveCount(0);
 
-  const toggle = page.getByTestId("bass-tab-toggle");
+  const toggle = page.getByTestId("tab-annotation-toggle");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await expect(annotations).toHaveText(["G5", "D4"]);
 
-  const stringCountSelect = page.getByTestId("bass-string-count-select");
+  const stringCountSelect = page.getByTestId("tab-string-count-select");
   await stringCountSelect.click();
   await page.getByRole("menuitemradio", { name: "5-string" }).click();
   await expect(stringCountSelect).toContainText("5-string");
@@ -69,7 +67,7 @@ test("edits bass tab annotations and persists manual strings", async ({
   await page.keyboard.press("Control+c");
   await page.keyboard.press("Control+v");
   const copiedStrings = await evaluateStore(page, (store) =>
-    store.getState().notes.map((note) => note.bassString),
+    store.getState().notes.map((note) => note.tabString),
   );
   expect(copiedStrings).toEqual([5, 5, 5, 5]);
 
@@ -77,14 +75,14 @@ test("edits bass tab annotations and persists manual strings", async ({
   await page.reload();
   await waitForEditor(page);
 
-  await expect(page.getByTestId("bass-tab-toggle")).toHaveAttribute(
+  await expect(page.getByTestId("tab-annotation-toggle")).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  await expect(page.getByTestId("bass-string-count-select")).toContainText(
+  await expect(page.getByTestId("tab-string-count-select")).toContainText(
     "5-string",
   );
-  await expect(page.getByTestId("bass-tab-annotation")).toHaveText([
+  await expect(page.getByTestId("tab-annotation")).toHaveText([
     "B25",
     "B19",
     "B25",

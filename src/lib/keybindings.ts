@@ -89,17 +89,17 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
   },
   {
     key: "1-5",
-    description: "Assign bass string to selected notes",
+    description: "Assign tab string to selected notes",
     category: "editing",
   },
   {
     key: "ArrowUp / ArrowDown",
-    description: "Move selected notes between bass strings",
+    description: "Move selected notes between tab strings",
     category: "editing",
   },
   {
     key: "0",
-    description: "Clear selected bass string assignments",
+    description: "Clear selected tab string assignments",
     category: "editing",
   },
 

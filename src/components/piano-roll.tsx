@@ -10,7 +10,6 @@ import { useAudio } from "../hooks/use-audio";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { type AudioView, queryAudioView } from "../lib/audio-view";
-import { resolveBassTabPosition } from "../lib/bass-tab";
 import { historyStore } from "../lib/history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
@@ -33,7 +32,8 @@ import {
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
-import { type BassString, GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { resolveTabPosition } from "../lib/tab-annotation";
+import { GRID_SNAP_VALUES, GridSnap, Note, type TabString } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 import { cn } from "./ui/utils";
@@ -113,8 +113,8 @@ export function PianoRoll() {
     notes,
     selectedNoteIds,
     gridSnap,
-    bassTabEnabled,
-    bassStringCount,
+    tabAnnotationEnabled,
+    tabStringCount,
     tempo,
     timeSignature,
     audioTracks,
@@ -126,9 +126,9 @@ export function PianoRoll() {
     addNote,
     updateNote,
     quantizeSelectedNotes,
-    assignSelectedBassString,
-    moveSelectedBassStrings,
-    clearSelectedBassStrings,
+    assignSelectedTabString,
+    moveSelectedTabStrings,
+    clearSelectedTabStrings,
     deleteNotes,
     selectNotes,
     deselectAll,
@@ -296,7 +296,7 @@ export function PianoRoll() {
     if (isShortcutTextInputTarget(e.target)) {
       return;
     }
-    const bassStringShortcut = ([1, 2, 3, 4, 5] as const).find((string) =>
+    const tabStringShortcut = ([1, 2, 3, 4, 5] as const).find((string) =>
       matchKeyboardEvent(e, String(string)),
     );
 
@@ -344,18 +344,18 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "Q")) {
       quantizeSelectedNotes();
-    } else if (bassTabEnabled && bassStringShortcut) {
+    } else if (tabAnnotationEnabled && tabStringShortcut) {
       e.preventDefault();
-      assignSelectedBassString(bassStringShortcut);
-    } else if (bassTabEnabled && matchKeyboardEvent(e, "ArrowUp")) {
+      assignSelectedTabString(tabStringShortcut);
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "ArrowUp")) {
       e.preventDefault();
-      moveSelectedBassStrings("up");
-    } else if (bassTabEnabled && matchKeyboardEvent(e, "ArrowDown")) {
+      moveSelectedTabStrings("up");
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "ArrowDown")) {
       e.preventDefault();
-      moveSelectedBassStrings("down");
-    } else if (bassTabEnabled && matchKeyboardEvent(e, "0")) {
+      moveSelectedTabStrings("down");
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "0")) {
       e.preventDefault();
-      clearSelectedBassStrings();
+      clearSelectedTabStrings();
     } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
       const playheadBeat = secondsToBeats(position, tempo);
@@ -1096,11 +1096,11 @@ export function PianoRoll() {
                 scrollY={scrollY}
                 edgeThreshold={edgeThreshold}
                 annotation={
-                  bassTabEnabled
-                    ? resolveBassTabPosition({
+                  tabAnnotationEnabled
+                    ? resolveTabPosition({
                         pitch: note.pitch,
-                        stringCount: bassStringCount,
-                        bassString: note.bassString,
+                        stringCount: tabStringCount,
+                        tabString: note.tabString,
                       })
                     : undefined
                 }
@@ -1629,7 +1629,7 @@ function NoteDiv({
   scrollX: number;
   scrollY: number;
   edgeThreshold: number;
-  annotation?: { string: BassString; fret: number };
+  annotation?: { string: TabString; fret: number };
 }) {
   // Convert note position to screen coordinates
   const x = (note.start - scrollX) * pixelsPerBeat;
@@ -1656,7 +1656,7 @@ function NoteDiv({
     >
       {annotation && (
         <span
-          data-testid="bass-tab-annotation"
+          data-testid="tab-annotation"
           className="absolute inset-0 flex items-center justify-center overflow-hidden text-[10px] font-mono font-semibold leading-none text-blue-950 pointer-events-none"
         >
           {annotation.string === 1

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   getFret,
   getPlayableStrings,
-  moveBassString,
-  resolveBassTabPosition,
-} from "./bass-tab";
+  moveTabString,
+  resolveTabPosition,
+} from "./tab-annotation";
 
-describe("bass tab positions", () => {
+describe("tab annotation positions", () => {
   it.each([
     { pitch: 43, string: 1 as const, fret: 0 },
     { pitch: 38, string: 2 as const, fret: 0 },
@@ -35,7 +35,7 @@ describe("bass tab positions", () => {
     { pitch: 22, stringCount: 5 as const, expected: undefined },
   ])("chooses the lowest-fret default for pitch $pitch", (testCase) => {
     expect(
-      resolveBassTabPosition({
+      resolveTabPosition({
         pitch: testCase.pitch,
         stringCount: testCase.stringCount,
       }),
@@ -44,27 +44,27 @@ describe("bass tab positions", () => {
 
   it("uses a playable manual string and falls back from an invalid one", () => {
     expect(
-      resolveBassTabPosition({ pitch: 48, stringCount: 4, bassString: 3 }),
+      resolveTabPosition({ pitch: 48, stringCount: 4, tabString: 3 }),
     ).toEqual({ string: 3, fret: 15 });
     expect(
-      resolveBassTabPosition({ pitch: 30, stringCount: 4, bassString: 3 }),
+      resolveTabPosition({ pitch: 30, stringCount: 4, tabString: 3 }),
     ).toEqual({ string: 4, fret: 2 });
   });
 });
 
-describe("moveBassString", () => {
+describe("moveTabString", () => {
   it.each([
-    { bassString: undefined, direction: "down" as const, expected: 2 },
-    { bassString: 2 as const, direction: "down" as const, expected: 3 },
-    { bassString: 3 as const, direction: "up" as const, expected: 2 },
-    { bassString: 1 as const, direction: "up" as const, expected: 1 },
-    { bassString: 4 as const, direction: "down" as const, expected: 4 },
-  ])("moves $direction from $bassString to $expected", (testCase) => {
+    { tabString: undefined, direction: "down" as const, expected: 2 },
+    { tabString: 2 as const, direction: "down" as const, expected: 3 },
+    { tabString: 3 as const, direction: "up" as const, expected: 2 },
+    { tabString: 1 as const, direction: "up" as const, expected: 1 },
+    { tabString: 4 as const, direction: "down" as const, expected: 4 },
+  ])("moves $direction from $tabString to $expected", (testCase) => {
     expect(
-      moveBassString({
+      moveTabString({
         pitch: 48,
         stringCount: 4,
-        bassString: testCase.bassString,
+        tabString: testCase.tabString,
         direction: testCase.direction,
       }),
     ).toBe(testCase.expected);
@@ -72,18 +72,18 @@ describe("moveBassString", () => {
 
   it("can move to the B string only in five-string mode", () => {
     expect(
-      moveBassString({
+      moveTabString({
         pitch: 30,
         stringCount: 4,
-        bassString: 4,
+        tabString: 4,
         direction: "down",
       }),
     ).toBe(4);
     expect(
-      moveBassString({
+      moveTabString({
         pitch: 30,
         stringCount: 5,
-        bassString: 4,
+        tabString: 4,
         direction: "down",
       }),
     ).toBe(5);
