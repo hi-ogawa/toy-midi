@@ -7,8 +7,9 @@ import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 // required for standard notation and TAB to import together while preserving
 // explicit string/fret assignments.
 
-// Twelve units per quarter note exactly cover the supported straight, dotted,
-// and triplet grid values.
+// MusicXML durations are integer multiples of divisions per quarter note.
+// Twelve is divisible by 2, 3, and 4, so eighth, triplet, and 16th-note
+// subdivisions are represented without rounding.
 const DIVISIONS = 12;
 const EPSILON = 1e-6;
 
@@ -84,7 +85,7 @@ export function buildMusicXmlModel({
   }
 
   validateOpenStringPitches(openStringPitches);
-  // Full measure length in MusicXML grid units, for example 48 in 4/4 and 36 in 6/8.
+  // Measure length in MusicXML grid units.
   const measureDuration = toGridUnits(
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
