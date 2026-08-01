@@ -16,6 +16,11 @@ import {
   TAB_STRING_PRESETS,
 } from "./tab-annotation";
 
+type NoteUpdate = {
+  id: string;
+  changes: Partial<Omit<Note, "id">>;
+};
+
 export interface ProjectState {
   // project
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
@@ -65,9 +70,7 @@ export interface ProjectState {
   // Actions
   addNote: (note: Note) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
-  updateNotes: (
-    updates: { id: string; changes: Partial<Omit<Note, "id">> }[],
-  ) => void; // Batch update for history tracking
+  updateNotes: (updates: NoteUpdate[]) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
   replaceAllNotes: (notes: Note[]) => void; // Single undoable operation
   quantizeSelectedNotes: () => void;
@@ -364,18 +367,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (string > state.tabOpenStringPitches.length) {
       return;
     }
-    const updates = state.notes
-      .filter(
-        (note) =>
-          state.selectedNoteIds.has(note.id) &&
-          note.tabString !== string &&
-          getFret({
-            pitch: note.pitch,
-            string,
-            openStringPitches: state.tabOpenStringPitches,
-          }) !== undefined,
-      )
-      .map((note) => ({ id: note.id, changes: { tabString: string } }));
+    const updates: NoteUpdate[] = [];
+    for (const note of state.notes) {
+      if (
+        state.selectedNoteIds.has(note.id) &&
+        note.tabString !== string &&
+        getFret({
+          pitch: note.pitch,
+          string,
+          openStringPitches: state.tabOpenStringPitches,
+        }) !== undefined
+      ) {
+        updates.push({ id: note.id, changes: { tabString: string } });
+      }
+    }
     if (updates.length > 0) {
       state.updateNotes(updates);
     }
@@ -383,9 +388,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   moveSelectedTabStrings: (direction) => {
     const state = get();
-    const updates = state.notes.flatMap((note) => {
+    const updates: NoteUpdate[] = [];
+    for (const note of state.notes) {
       if (!state.selectedNoteIds.has(note.id)) {
-        return [];
+        continue;
       }
       const tabString = moveTabString({
         pitch: note.pitch,
@@ -398,10 +404,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         openStringPitches: state.tabOpenStringPitches,
         tabString: note.tabString,
       })?.string;
-      return tabString && tabString !== currentString
-        ? [{ id: note.id, changes: { tabString } }]
-        : [];
-    });
+      if (tabString && tabString !== currentString) {
+        updates.push({ id: note.id, changes: { tabString } });
+      }
+    }
     if (updates.length > 0) {
       state.updateNotes(updates);
     }
@@ -409,15 +415,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   clearSelectedTabStrings: () => {
     const state = get();
-    const updates = state.notes
-      .filter(
-        (note) =>
-          state.selectedNoteIds.has(note.id) && note.tabString !== undefined,
-      )
-      .map((note) => ({
-        id: note.id,
-        changes: { tabString: undefined },
-      }));
+    const updates: NoteUpdate[] = [];
+    for (const note of state.notes) {
+      if (state.selectedNoteIds.has(note.id) && note.tabString !== undefined) {
+        updates.push({ id: note.id, changes: { tabString: undefined } });
+      }
+    }
     if (updates.length > 0) {
       state.updateNotes(updates);
     }
