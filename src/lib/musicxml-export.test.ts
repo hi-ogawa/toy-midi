@@ -134,6 +134,37 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it("fills gaps and remaining measure time with rests", () => {
+    const model = buildModel([
+      makeNote({
+        start: 1, // Beat 1
+        duration: 1, // Quarter note
+      }),
+    ]);
+
+    expect(model.measures[0]).toEqual([
+      {
+        type: "rest",
+        duration: 12,
+        notation: { type: "quarter" },
+      },
+      {
+        type: "note",
+        pitch: 33,
+        duration: 12,
+        notation: { type: "quarter" },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+      {
+        type: "rest",
+        duration: 24,
+        notation: { type: "half" },
+      },
+    ]);
+  });
+
   it("uses the time signature to split measures", () => {
     const model = buildModel([makeNote({ start: 2.5, duration: 1 })], {
       timeSignature: { numerator: 6, denominator: 8 },
