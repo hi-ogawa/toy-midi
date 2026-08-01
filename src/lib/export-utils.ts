@@ -1,9 +1,3 @@
-type ExportFileNameOptions = {
-  baseName: string;
-  extension: string;
-  timestamp?: Date;
-};
-
 export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -15,19 +9,19 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
-function formatTimestamp(timestamp: Date): string {
-  return timestamp
-    .toISOString()
-    .replace(/[T:]/g, "-")
-    .replace(/\.\d+Z$/, "");
-}
+type ExportFileNameOptions = {
+  baseName: string;
+  extension: string;
+};
 
-function normalizeExtension(extension: string): string {
-  const trimmed = extension.trim().toLowerCase();
-  if (!trimmed) {
-    return "";
-  }
-  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+export function buildExportFileName({
+  baseName,
+  extension,
+}: ExportFileNameOptions): string {
+  const safeName = sanitizeBaseName(baseName);
+  const normalizedExtension = normalizeExtension(extension);
+  const formattedTimestamp = formatTimestamp(new Date());
+  return `${safeName}-${formattedTimestamp}${normalizedExtension}`;
 }
 
 function sanitizeBaseName(baseName: string): string {
@@ -38,13 +32,17 @@ function sanitizeBaseName(baseName: string): string {
   return trimmed.replace(/[^a-zA-Z0-9-_]/g, "_");
 }
 
-export function buildExportFileName({
-  baseName,
-  extension,
-  timestamp = new Date(),
-}: ExportFileNameOptions): string {
-  const safeName = sanitizeBaseName(baseName);
-  const normalizedExtension = normalizeExtension(extension);
-  const formattedTimestamp = formatTimestamp(timestamp);
-  return `${safeName}-${formattedTimestamp}${normalizedExtension}`;
+function normalizeExtension(extension: string): string {
+  const trimmed = extension.trim().toLowerCase();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+}
+
+function formatTimestamp(timestamp: Date): string {
+  return timestamp
+    .toISOString()
+    .replace(/[T:]/g, "-")
+    .replace(/\.\d+Z$/, "");
 }
