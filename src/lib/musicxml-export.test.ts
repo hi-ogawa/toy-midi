@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "../types";
 import { exportMusicXml } from "./musicxml-export";
+import { TAB_OPEN_STRING_PRESETS } from "./tab-annotation";
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -22,7 +23,7 @@ function exportNotes(
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
     name: "Test & Song",
-    tabStringCount: 5,
+    openStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
     ...options,
   });
 }
@@ -90,12 +91,27 @@ describe("MusicXML export", () => {
   });
 
   it("exports four-string tuning", () => {
-    const xml = exportNotes([makeNote()], { tabStringCount: 4 });
+    const xml = exportNotes([makeNote()], {
+      openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+    });
 
     expect(xml).toContain("<staff-lines>4</staff-lines>");
     expect(xml).not.toContain("<tuning-step>B</tuning-step>");
     expect(xml).toContain(
       "<tuning-step>E</tuning-step>\n            <tuning-octave>2</tuning-octave>",
+    );
+  });
+
+  it("derives MusicXML tuning from custom open-string pitches", () => {
+    const xml = exportNotes([makeNote()], {
+      openStringPitches: [42, 38, 33, 28],
+    });
+
+    expect(xml).toContain(
+      '<staff-tuning line="1">\n            <tuning-step>E</tuning-step>\n            <tuning-octave>2</tuning-octave>',
+    );
+    expect(xml).toContain(
+      '<staff-tuning line="4">\n            <tuning-step>F</tuning-step>\n            <tuning-alter>1</tuning-alter>\n            <tuning-octave>3</tuning-octave>',
     );
   });
 
@@ -119,7 +135,9 @@ describe("MusicXML export", () => {
 
   it("rejects notes outside the selected bass range", () => {
     expect(() =>
-      exportNotes([makeNote({ pitch: 23 })], { tabStringCount: 4 }),
+      exportNotes([makeNote({ pitch: 23 })], {
+        openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+      }),
     ).toThrow("MIDI note 23 is not playable on a 4-string bass");
   });
 

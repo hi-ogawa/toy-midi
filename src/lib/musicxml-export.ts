@@ -1,4 +1,4 @@
-import type { Note, TabStringCount, TimeSignature } from "../types";
+import type { Note, TimeSignature } from "../types";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 
 const DIVISIONS = 12;
@@ -9,7 +9,7 @@ type MusicXmlExportOptions = {
   tempo: number;
   timeSignature: TimeSignature;
   name: string;
-  tabStringCount: TabStringCount;
+  openStringPitches: readonly number[];
 };
 
 type QuantizedNote = {
@@ -64,17 +64,18 @@ export function exportMusicXml({
   tempo,
   timeSignature,
   name,
-  tabStringCount,
+  openStringPitches,
 }: MusicXmlExportOptions): string {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
   }
 
+  validateOpenStringPitches(openStringPitches);
   const measureDuration = toGridUnits(
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
   );
-  const quantizedNotes = prepareNotes({ notes, tabStringCount });
+  const quantizedNotes = prepareNotes({ notes, openStringPitches });
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
@@ -94,9 +95,9 @@ export function exportMusicXml({
   </work>
   <part-list>
     <score-part id="P1">
-      <part-name>${tabStringCount}-string Bass</part-name>
+      <part-name>${openStringPitches.length}-string Bass</part-name>
       <score-instrument id="P1-I1">
-        <instrument-name>${tabStringCount}-string Electric Bass</instrument-name>
+        <instrument-name>${openStringPitches.length}-string Electric Bass</instrument-name>
         <instrument-sound>pluck.bass.electric</instrument-sound>
       </score-instrument>
       <midi-instrument id="P1-I1">
@@ -114,7 +115,7 @@ ${measures
       measureDuration,
       tempo,
       timeSignature,
-      tabStringCount,
+      openStringPitches,
     }),
   )
   .join("\n")}
@@ -139,10 +140,10 @@ export function downloadMusicXmlFile(xml: string, fileName: string): void {
 
 function prepareNotes({
   notes,
-  tabStringCount,
+  openStringPitches,
 }: {
   notes: Note[];
-  tabStringCount: TabStringCount;
+  openStringPitches: readonly number[];
 }): QuantizedNote[] {
   const result = notes
     .map((note) => {
@@ -159,12 +160,12 @@ function prepareNotes({
       }
       const tabPosition = resolveTabPosition({
         pitch: note.pitch,
-        stringCount: tabStringCount,
+        openStringPitches,
         tabString: note.tabString,
       });
       if (!tabPosition) {
         throw new Error(
-          `MIDI note ${note.pitch} is not playable on a ${tabStringCount}-string bass`,
+          `MIDI note ${note.pitch} is not playable on a ${openStringPitches.length}-string bass`,
         );
       }
       return { note, start, end: start + duration, tabPosition };
@@ -285,14 +286,14 @@ function renderMeasure({
   measureDuration,
   tempo,
   timeSignature,
-  tabStringCount,
+  openStringPitches,
 }: {
   events: MeasureEvent[];
   index: number;
   measureDuration: number;
   tempo: number;
   timeSignature: TimeSignature;
-  tabStringCount: TabStringCount;
+  openStringPitches: readonly number[];
 }): string {
   const attributes =
     index === 0
@@ -314,7 +315,7 @@ function renderMeasure({
         <clef number="2">
           <sign>TAB</sign>
         </clef>
-${renderStaffDetails(tabStringCount)}
+${renderStaffDetails(openStringPitches)}
         <transpose>
           <diatonic>0</diatonic>
           <chromatic>0</chromatic>
@@ -342,31 +343,23 @@ ${events.map((event) => renderEvent(event, 2)).join("\n")}
     </measure>`;
 }
 
-function renderStaffDetails(tabStringCount: TabStringCount): string {
-  const tuning =
-    tabStringCount === 5
-      ? [
-          ["B", 1],
-          ["E", 2],
-          ["A", 2],
-          ["D", 3],
-          ["G", 3],
-        ]
-      : [
-          ["E", 2],
-          ["A", 2],
-          ["D", 3],
-          ["G", 3],
-        ];
+function renderStaffDetails(openStringPitches: readonly number[]): string {
+  const tuning = [...openStringPitches].reverse();
   return `        <staff-details number="2">
-          <staff-lines>${tabStringCount}</staff-lines>
+          <staff-lines>${openStringPitches.length}</staff-lines>
 ${tuning
-  .map(
-    ([step, octave], index) => `          <staff-tuning line="${index + 1}">
-            <tuning-step>${step}</tuning-step>
-            <tuning-octave>${octave}</tuning-octave>
-          </staff-tuning>`,
-  )
+  .map((midi, index) => {
+    const pitch = midiPitchToMusicXml(midi);
+    return `          <staff-tuning line="${index + 1}">
+            <tuning-step>${pitch.step}</tuning-step>${
+              pitch.alter
+                ? `
+            <tuning-alter>${pitch.alter}</tuning-alter>`
+                : ""
+            }
+            <tuning-octave>${pitch.octave}</tuning-octave>
+          </staff-tuning>`;
+  })
   .join("\n")}
         </staff-details>`;
 }
@@ -474,6 +467,19 @@ function toGridUnits(value: number, label: string): number {
     throw new Error(`${label} is not aligned to a supported grid`);
   }
   return units;
+}
+
+function validateOpenStringPitches(pitches: readonly number[]): void {
+  if (pitches.length === 0) {
+    throw new Error("Add at least one open string before exporting MusicXML");
+  }
+  if (
+    pitches.some(
+      (pitch) => !Number.isInteger(pitch) || pitch < 0 || pitch > 127,
+    )
+  ) {
+    throw new Error("Open-string pitches must be MIDI note numbers");
+  }
 }
 
 function escapeXml(value: string): string {

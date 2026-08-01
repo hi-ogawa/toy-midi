@@ -76,7 +76,7 @@ test.describe("Settings Dialog - Project Export", () => {
             velocity: 100,
           },
         ],
-        tabStringCount: 5,
+        tabOpenStringPitches: [43, 38, 33, 28, 23],
       });
     });
     await openSettings(page);

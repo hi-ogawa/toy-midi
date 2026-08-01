@@ -52,7 +52,6 @@ export function Settings({
     tempo,
     timeSignature,
     notes,
-    tabStringCount,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
     tabAnnotationEnabled,
@@ -171,7 +170,7 @@ export function Settings({
         tempo,
         timeSignature,
         name: projectName,
-        tabStringCount,
+        openStringPitches: tabOpenStringPitches,
       });
       const fileName = buildExportFileName({
         baseName: projectName,
