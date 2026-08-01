@@ -31,7 +31,10 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     .getByTestId("tab-string-preset-select")
     .selectOption("fiveStringBass");
   await page.getByRole("button", { name: "Close" }).click();
+
+  // C3 resolves to the G string at fret 5; F#1 is below the viewport.
   await expect(annotations).toHaveText(["G5"]);
+
   const highNote = page.getByTestId("note-high");
   const initialColor = await highNote.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
