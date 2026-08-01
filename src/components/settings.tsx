@@ -9,10 +9,10 @@ import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { audioManager, loadAudioFile } from "../lib/audio";
 import { resolveAudioFiles } from "../lib/audio-files";
-import { buildExportFileName } from "../lib/export-utils";
-import { downloadMidiFile, exportMidi } from "../lib/midi-export";
+import { buildExportFileName, downloadBlob } from "../lib/export-utils";
+import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
-import { downloadProjectFile, exportProjectFile } from "../lib/project-file";
+import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
   type AudioTrack,
@@ -171,14 +171,21 @@ export function Settings({
       extension: ".mid",
     });
 
-    downloadMidiFile(midiData, fileName);
+    downloadBlob(
+      new Blob([midiData as BlobPart], { type: "audio/midi" }),
+      fileName,
+    );
   };
 
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
       const projectData = toSavedProject(useProjectStore.getState());
       const blob = await exportProjectFile(projectName, projectData);
-      downloadProjectFile(blob, projectName);
+      const fileName = buildExportFileName({
+        baseName: projectName,
+        extension: ".toymidi",
+      });
+      downloadBlob(blob, fileName);
     },
     onError: (error) => {
       console.error("Failed to export project:", error);
