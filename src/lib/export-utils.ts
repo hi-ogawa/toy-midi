@@ -1,9 +1,3 @@
-type ExportFileNameOptions = {
-  baseName: string;
-  extension: string;
-  timestamp?: Date;
-};
-
 export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -37,6 +31,12 @@ function sanitizeBaseName(baseName: string): string {
   }
   return trimmed.replace(/[^a-zA-Z0-9-_]/g, "_");
 }
+
+type ExportFileNameOptions = {
+  baseName: string;
+  extension: string;
+  timestamp?: Date;
+};
 
 export function buildExportFileName({
   baseName,
