@@ -437,7 +437,8 @@ function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
 }
 
 function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
-  // Distinct voices keep MuseScore's duplicated standard and TAB streams separate.
+  // MuseScore allocates four voice IDs per staff, so the first voices of staff 1
+  // and staff 2 are 1 and 5 respectively.
   const voice = staff === 1 ? 1 : 5;
   if (event.type === "rest") {
     return hx(
