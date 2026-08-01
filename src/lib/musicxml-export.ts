@@ -21,7 +21,6 @@ export type MusicXmlModelOptions = {
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
-  name: string;
 };
 
 type QuantizedNote = {
@@ -282,7 +281,6 @@ export function exportMusicXml({
   notes,
   tempo,
   timeSignature,
-  name,
   openStringPitches,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
@@ -294,10 +292,7 @@ export function exportMusicXml({
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
-  <work>
-    <work-title>${escapeXml(name)}</work-title>
-  </work>
-${renderPartList(openStringPitches.length)}
+${renderPartList()}
   <part id="P1">
 ${measures
   .map((events, index) =>
@@ -316,13 +311,14 @@ ${measures
 `;
 }
 
-// TODO: Generalize part metadata when MusicXML export supports non-bass instruments.
-function renderPartList(stringCount: number): string {
+// TODO: Add optional work and part names when export naming is designed.
+// TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument data
+// instead of hard-coding Electric Bass when non-bass export is supported.
+function renderPartList(): string {
   return `  <part-list>
     <score-part id="P1">
-      <part-name>${stringCount}-string Bass</part-name>
       <score-instrument id="P1-I1">
-        <instrument-name>${stringCount}-string Electric Bass</instrument-name>
+        <instrument-name>Electric Bass</instrument-name>
         <instrument-sound>pluck.bass.electric</instrument-sound>
       </score-instrument>
       <midi-instrument id="P1-I1">
@@ -515,13 +511,4 @@ function midiPitchToMusicXml(pitch: number): {
   ] as const;
   const [step, alter] = pitchClasses[pitch % 12];
   return { step, alter, octave: Math.floor(pitch / 12) };
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
 }

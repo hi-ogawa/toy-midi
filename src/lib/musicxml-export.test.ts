@@ -30,7 +30,6 @@ function exportNotes(
     notes,
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
-    name: "Test & Song",
     openStringPitches: FIVE_STRING_PITCHES,
     ...options,
   });

@@ -184,7 +184,6 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
-        name: projectName,
         openStringPitches: tabOpenStringPitches,
       });
       const fileName = buildExportFileName({
