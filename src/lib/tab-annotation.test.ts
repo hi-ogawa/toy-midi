@@ -19,24 +19,20 @@ describe("tab annotation positions", () => {
     { pitch: 23, tabString: 5 as const, fret: 0 },
     { pitch: 48, tabString: 1 as const, fret: 5 },
     { pitch: 40, tabString: 2 as const, fret: 2 },
+    {
+      pitch: 27,
+      tabString: 4 as const,
+      openStringPitches: FOUR_STRING_PITCHES,
+      fret: undefined,
+    },
   ])("derives fret $fret for pitch $pitch on string $tabString", (testCase) => {
     expect(
       getFret({
         pitch: testCase.pitch,
         tabString: testCase.tabString,
-        openStringPitches: FIVE_STRING_PITCHES,
+        openStringPitches: testCase.openStringPitches ?? FIVE_STRING_PITCHES,
       }),
     ).toBe(testCase.fret);
-  });
-
-  it("rejects pitches below a string's open pitch", () => {
-    expect(
-      getFret({
-        pitch: 27,
-        tabString: 4,
-        openStringPitches: FOUR_STRING_PITCHES,
-      }),
-    ).toBeUndefined();
   });
 
   it("uses the B string only in five-string mode", () => {
@@ -104,57 +100,62 @@ describe("tab annotation positions", () => {
 describe("moveTabString", () => {
   it.each([
     {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
       tabString: undefined,
       direction: "down" as const,
       expected: { before: 1, after: 2 },
     },
     {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
       tabString: 2 as const,
       direction: "down" as const,
       expected: { before: 2, after: 3 },
     },
     {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
       tabString: 3 as const,
       direction: "up" as const,
       expected: { before: 3, after: 2 },
     },
     {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
       tabString: 1 as const,
       direction: "up" as const,
       expected: { before: 1, after: 1 },
     },
     {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
       tabString: 4 as const,
       direction: "down" as const,
       expected: { before: 4, after: 4 },
     },
+    {
+      pitch: 30,
+      openStringPitches: FOUR_STRING_PITCHES,
+      tabString: 4 as const,
+      direction: "down" as const,
+      expected: { before: 4, after: 4 },
+    },
+    {
+      pitch: 30,
+      openStringPitches: FIVE_STRING_PITCHES,
+      tabString: 4 as const,
+      direction: "down" as const,
+      expected: { before: 4, after: 5 },
+    },
   ])("moves $direction from $tabString to $expected.after", (testCase) => {
     expect(
       moveTabString({
-        pitch: 48,
-        openStringPitches: FOUR_STRING_PITCHES,
+        pitch: testCase.pitch,
+        openStringPitches: testCase.openStringPitches,
         tabString: testCase.tabString,
         direction: testCase.direction,
       }),
     ).toEqual(testCase.expected);
-  });
-
-  it("can move to the B string only in five-string mode", () => {
-    expect(
-      moveTabString({
-        pitch: 30,
-        openStringPitches: FOUR_STRING_PITCHES,
-        tabString: 4,
-        direction: "down",
-      }),
-    ).toEqual({ before: 4, after: 4 });
-    expect(
-      moveTabString({
-        pitch: 30,
-        openStringPitches: FIVE_STRING_PITCHES,
-        tabString: 4,
-        direction: "down",
-      }),
-    ).toEqual({ before: 4, after: 5 });
   });
 });
