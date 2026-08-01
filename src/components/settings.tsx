@@ -258,7 +258,7 @@ export function Settings({
             data-testid="load-audio-button"
             disabled={loadAudioMutation.isPending}
             inputProps={{ "data-testid": "audio-file-input" }}
-            className="h-8 w-full justify-start gap-1.5 rounded-none border-0 px-3 bg-background text-sm text-emerald-300 shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:hover:bg-input/50 disabled:opacity-50"
+            className="h-8 w-full justify-start gap-1.5 rounded-none border-0 px-3 bg-background text-sm text-neutral-300 shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:hover:bg-input/50 disabled:opacity-50"
             onFile={(file) => loadAudioMutation.mutate(file)}
           >
             <UploadIcon className="size-4" />
