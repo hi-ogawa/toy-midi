@@ -103,6 +103,29 @@ test.describe("Settings Dialog - Project Export", () => {
     expect(xml).toContain("<fret>5</fret>");
   });
 
+  test("shows MusicXML validation errors inline", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.setState({
+        notes: [
+          {
+            id: "off-grid",
+            pitch: 33,
+            start: 0.1,
+            duration: 1,
+            velocity: 100,
+          },
+        ],
+      });
+    });
+    await openSettings(page);
+
+    await page.getByTestId("export-musicxml-button").click();
+
+    await expect(page.getByTestId("export-musicxml-error")).toHaveText(
+      "start of note off-grid is not aligned to a supported grid",
+    );
+  });
+
   test("MIDI import confirms and replaces existing notes", async ({ page }) => {
     await evaluateStore(page, (store) => {
       store.getState().addNote({

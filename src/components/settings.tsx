@@ -175,8 +175,8 @@ export function Settings({
     downloadMidiFile(midiData, fileName);
   };
 
-  const handleExportMusicXml = () => {
-    try {
+  const exportMusicXmlMutation = useMutation({
+    mutationFn: async () => {
       const xml = exportMusicXml({
         notes,
         tempo,
@@ -189,13 +189,8 @@ export function Settings({
         extension: ".musicxml",
       });
       downloadMusicXmlFile(xml, fileName);
-    } catch (error) {
-      console.error("Failed to export MusicXML:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to export MusicXML",
-      );
-    }
-  };
+    },
+  });
 
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -358,13 +353,23 @@ export function Settings({
           </Button>
           <Button
             data-testid="export-musicxml-button"
-            onClick={handleExportMusicXml}
-            disabled={notes.length === 0}
+            onClick={() => exportMusicXmlMutation.mutate()}
+            disabled={notes.length === 0 || exportMusicXmlMutation.isPending}
             className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
           >
             <DownloadIcon className="size-4" />
             Export MusicXML
           </Button>
+          {exportMusicXmlMutation.error && (
+            <p
+              data-testid="export-musicxml-error"
+              className="text-xs text-red-300"
+            >
+              {exportMusicXmlMutation.error instanceof Error
+                ? exportMusicXmlMutation.error.message
+                : "Failed to export MusicXML"}
+            </p>
+          )}
           <Button
             data-testid="export-project-button"
             onClick={() => exportProjectMutation.mutate()}
