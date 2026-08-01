@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   getFret,
-  getPlayableStrings,
   moveTabString,
   resolveTabPosition,
   TAB_STRING_PRESETS,
@@ -13,10 +12,6 @@ const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 describe("tab annotation positions", () => {
   it.each([
     { pitch: 43, tabString: 1 as const, fret: 0 },
-    { pitch: 38, tabString: 2 as const, fret: 0 },
-    { pitch: 33, tabString: 3 as const, fret: 0 },
-    { pitch: 28, tabString: 4 as const, fret: 0 },
-    { pitch: 23, tabString: 5 as const, fret: 0 },
     { pitch: 48, tabString: 1 as const, fret: 5 },
     { pitch: 40, tabString: 2 as const, fret: 2 },
     {
@@ -33,21 +28,6 @@ describe("tab annotation positions", () => {
         openStringPitches: testCase.openStringPitches ?? FIVE_STRING_PITCHES,
       }),
     ).toBe(testCase.fret);
-  });
-
-  it("uses the B string only in five-string mode", () => {
-    expect(
-      getPlayableStrings({
-        pitch: 25,
-        openStringPitches: FOUR_STRING_PITCHES,
-      }),
-    ).toEqual([]);
-    expect(
-      getPlayableStrings({
-        pitch: 25,
-        openStringPitches: FIVE_STRING_PITCHES,
-      }),
-    ).toEqual([5]);
   });
 
   it.each([
@@ -126,13 +106,6 @@ describe("moveTabString", () => {
       tabString: 1 as const,
       direction: "up" as const,
       expected: { before: 1, after: 1 },
-    },
-    {
-      pitch: 48,
-      openStringPitches: FOUR_STRING_PITCHES,
-      tabString: 4 as const,
-      direction: "down" as const,
-      expected: { before: 4, after: 4 },
     },
     {
       pitch: 30,

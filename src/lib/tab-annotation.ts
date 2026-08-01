@@ -88,7 +88,7 @@ export function getFret({
   return fret >= 0 ? fret : undefined;
 }
 
-export function getPlayableStrings({
+function getPlayableStrings({
   pitch,
   openStringPitches,
 }: {
