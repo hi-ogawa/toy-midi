@@ -67,6 +67,8 @@ const DURATION_CANDIDATES: DurationCandidate[] = [
   { duration: 4, alignment: 4, type: "eighth", triplet: true },
   { duration: 3, alignment: 3, type: "16th" },
   { duration: 2, alignment: 2, type: "16th", triplet: true },
+  // This one-unit fallback makes every positive integer grid duration
+  // decomposable after toGridUnits has validated its inputs.
   { duration: 1, alignment: 1, type: "32nd", triplet: true },
 ];
 
@@ -247,10 +249,7 @@ function splitDuration({
     // Prefer the longest notation value that starts on its valid beat boundary.
     const candidate = DURATION_CANDIDATES.find(
       (item) => item.duration <= remaining && cursor % item.alignment === 0,
-    );
-    if (!candidate) {
-      throw new Error("Cannot represent note duration in MusicXML");
-    }
+    )!;
     result.push({
       duration: candidate.duration,
       notation: {
