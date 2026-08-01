@@ -16,11 +16,11 @@ export class IdbStore<T> {
   }
 
   async put(value: T): Promise<void> {
-    await this.write((store) => store.put(value));
+    await this.request("readwrite", (store) => store.put(value));
   }
 
   async delete(key: string): Promise<void> {
-    await this.write((store) => store.delete(key));
+    await this.request("readwrite", (store) => store.delete(key));
   }
 
   private openDB(): Promise<IDBDatabase> {
@@ -60,21 +60,7 @@ export class IdbStore<T> {
       const tx = db.transaction(this.options.storeName, mode);
       const request = run(tx.objectStore(this.options.storeName));
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  private async write(
-    run: (store: IDBObjectStore) => IDBRequest,
-  ): Promise<void> {
-    const db = await this.openDB();
-
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(this.options.storeName, "readwrite");
-      run(tx.objectStore(this.options.storeName));
-
-      tx.oncomplete = () => resolve();
+      tx.oncomplete = () => resolve(request.result);
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
