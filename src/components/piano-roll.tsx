@@ -32,7 +32,7 @@ import {
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
-import { resolveTabPosition } from "../lib/tab-annotation";
+import { formatTabPosition, resolveTabPosition } from "../lib/tab-annotation";
 import { GRID_SNAP_VALUES, GridSnap, Note, type TabString } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
@@ -1659,16 +1659,7 @@ function NoteDiv({
           data-testid="tab-annotation"
           className="absolute inset-0 flex items-center justify-center overflow-hidden text-[10px] font-mono font-semibold leading-none text-blue-950 pointer-events-none"
         >
-          {annotation.string === 1
-            ? "G"
-            : annotation.string === 2
-              ? "D"
-              : annotation.string === 3
-                ? "A"
-                : annotation.string === 4
-                  ? "E"
-                  : "B"}
-          {annotation.fret}
+          {formatTabPosition(annotation)}
         </span>
       )}
       {/* Resize handles - always visible for edge grabbing */}

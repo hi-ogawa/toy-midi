@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTabPosition,
   getFret,
   getPlayableStrings,
   moveTabString,
@@ -7,6 +8,14 @@ import {
 } from "./tab-annotation";
 
 describe("tab annotation positions", () => {
+  it.each([
+    { position: { string: 1 as const, fret: 5 }, label: "G5" },
+    { position: { string: 4 as const, fret: 12 }, label: "E12" },
+    { position: { string: 5 as const, fret: 0 }, label: "B0" },
+  ])("formats $label", ({ position, label }) => {
+    expect(formatTabPosition(position)).toBe(label);
+  });
+
   it.each([
     { pitch: 43, string: 1 as const, fret: 0 },
     { pitch: 38, string: 2 as const, fret: 0 },

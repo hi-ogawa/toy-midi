@@ -8,10 +8,22 @@ const OPEN_STRING_PITCHES: Record<TabString, number> = {
   5: 23, // B0
 };
 
+const STRING_LABELS: Record<TabString, string> = {
+  1: "G",
+  2: "D",
+  3: "A",
+  4: "E",
+  5: "B",
+};
+
 export type TabPosition = {
   string: TabString;
   fret: number;
 };
+
+export function formatTabPosition(position: TabPosition): string {
+  return `${STRING_LABELS[position.string]}${position.fret}`;
+}
 
 export function getFret(pitch: number, string: TabString): number | undefined {
   const fret = pitch - OPEN_STRING_PITCHES[string];
