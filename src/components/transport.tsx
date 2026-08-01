@@ -13,11 +13,7 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
-import {
-  type TabStringCount,
-  COMMON_TIME_SIGNATURES,
-  type GridSnap,
-} from "../types";
+import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
@@ -53,8 +49,6 @@ export function Transport({ projectName, controls }: TransportProps) {
     metronomeEnabled,
     autoScrollEnabled,
     gridSnap,
-    tabAnnotationEnabled,
-    tabStringCount,
     setTempo,
     setTimeSignature,
     setMidiProgram,
@@ -63,8 +57,6 @@ export function Transport({ projectName, controls }: TransportProps) {
     setMetronomeEnabled,
     setAutoScrollEnabled,
     setGridSnap,
-    setTabAnnotationEnabled,
-    setTabStringCount,
   } = useProjectStore();
 
   const tapTimesRef = useRef<number[]>([]);
@@ -249,46 +241,6 @@ export function Transport({ projectName, controls }: TransportProps) {
             <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
             <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Divider */}
-      <div className="w-px h-5 bg-border" />
-
-      <Button
-        data-testid="tab-annotation-toggle"
-        onClick={() => setTabAnnotationEnabled(!tabAnnotationEnabled)}
-        aria-pressed={tabAnnotationEnabled}
-        title="Toggle tab annotations"
-        className={cn(
-          "h-8 px-2 font-mono text-xs",
-          tabAnnotationEnabled
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        )}
-      >
-        TAB
-      </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            data-testid="tab-string-count-select"
-            className="h-8 gap-1 px-2 font-mono text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-          >
-            {tabStringCount}-string
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuRadioGroup
-            value={String(tabStringCount)}
-            onValueChange={(value) =>
-              setTabStringCount(Number(value) as TabStringCount)
-            }
-          >
-            <DropdownMenuRadioItem value="4">4-string</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="5">5-string</DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>

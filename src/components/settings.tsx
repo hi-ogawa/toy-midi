@@ -23,6 +23,7 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../lib/project-store";
+import type { TabStringCount } from "../types";
 import { FileDropInput } from "./file-drop-input";
 import { Button, LinkButton } from "./ui/button";
 
@@ -52,8 +53,12 @@ export function Settings({
     notes,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
+    tabAnnotationEnabled,
+    tabStringCount,
     setAutoScrollEnabled,
     setLinkAudioOffsetsEnabled,
+    setTabAnnotationEnabled,
+    setTabStringCount,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -332,6 +337,30 @@ export function Settings({
               className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
             />
             <span className="text-sm text-neutral-300">Link audio offsets</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              data-testid="tab-annotation-toggle"
+              type="checkbox"
+              checked={tabAnnotationEnabled}
+              onChange={(e) => setTabAnnotationEnabled(e.target.checked)}
+              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            <span className="text-sm text-neutral-300">Tab annotations</span>
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm text-neutral-300">
+            String setup
+            <select
+              data-testid="tab-string-count-select"
+              value={tabStringCount}
+              onChange={(e) =>
+                setTabStringCount(Number(e.target.value) as TabStringCount)
+              }
+              className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            >
+              <option value={4}>4-string</option>
+              <option value={5}>5-string</option>
+            </select>
           </label>
         </div>
       </section>
