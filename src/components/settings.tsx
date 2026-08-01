@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   DownloadIcon,
-  FolderIcon,
   SettingsIcon,
   SparklesIcon,
   Trash2Icon,
@@ -24,7 +23,7 @@ import {
   useProjectStore,
 } from "../lib/project-store";
 import { FileDropInput } from "./file-drop-input";
-import { Button, LinkButton } from "./ui/button";
+import { Button } from "./ui/button";
 
 type SettingsProps = {
   // Project section
@@ -193,13 +192,6 @@ export function Settings({
               placeholder="Enter project name"
             />
           </div>
-          <LinkButton
-            href="/"
-            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-          >
-            <FolderIcon className="size-4" />
-            Manage Projects
-          </LinkButton>
         </div>
       </section>
 

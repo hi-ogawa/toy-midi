@@ -11,8 +11,9 @@ test.describe("Help Overlay", () => {
     // Help should not be visible initially
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
 
-    // Click help button to show help
-    await page.getByTestId("help-button").click();
+    // Open help from the application menu
+    await page.getByTestId("app-menu-button").click();
+    await page.getByTestId("help-menu-item").click();
     await expect(page.getByTestId("help-overlay")).toBeVisible();
 
     // Check structure: title and category headers
@@ -45,7 +46,8 @@ test.describe("Help Overlay", () => {
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
 
     // Open again and close with Escape
-    await page.getByTestId("help-button").click();
+    await page.getByTestId("app-menu-button").click();
+    await page.getByTestId("help-menu-item").click();
     await expect(page.getByTestId("help-overlay")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
@@ -57,5 +59,15 @@ test.describe("Help Overlay", () => {
     // Toggle closed with ? shortcut
     await page.keyboard.press("?");
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
+  });
+
+  test("returns to all projects from the application menu", async ({
+    page,
+  }) => {
+    await page.getByTestId("app-menu-button").click();
+    await page.getByTestId("all-projects-menu-item").click();
+
+    await expect(page).toHaveURL("/");
+    await expect(page.getByTestId("startup-screen")).toBeVisible();
   });
 });
