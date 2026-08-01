@@ -3,6 +3,21 @@ export const TAB_OPEN_STRING_PRESETS = {
   fiveString: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
 } as const;
 
+export const TAB_STRING_SETUPS = [
+  {
+    id: "fourString",
+    label: "4-string bass",
+    openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+  },
+  {
+    id: "fiveString",
+    label: "5-string bass",
+    openStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
+  },
+] as const;
+
+export type TabStringSetupId = (typeof TAB_STRING_SETUPS)[number]["id"];
+
 const TAB_STRING_COLORS = [
   { background: "#06b6d4", border: "#0891b2", text: "#083344" },
   { background: "#22c55e", border: "#16a34a", text: "#052e16" },
@@ -30,6 +45,16 @@ export type TabPosition = {
   string: number;
   fret: number;
 };
+
+export function resolveTabStringSetup(openStringPitches: readonly number[]) {
+  return TAB_STRING_SETUPS.find(
+    (setup) =>
+      setup.openStringPitches.length === openStringPitches.length &&
+      setup.openStringPitches.every(
+        (pitch, index) => pitch === openStringPitches[index],
+      ),
+  );
+}
 
 export function getTabStringColor(string: number) {
   return TAB_STRING_COLORS[string - 1];

@@ -6,13 +6,37 @@ import {
   getTabStringColor,
   moveTabString,
   resolveTabPosition,
+  resolveTabStringSetup,
   TAB_OPEN_STRING_PRESETS,
+  TAB_STRING_SETUPS,
 } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fourString;
 const FIVE_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fiveString;
 
 describe("tab annotation positions", () => {
+  it("maps setup definitions to their exact open pitches", () => {
+    expect(
+      TAB_STRING_SETUPS.map((setup) => ({
+        id: setup.id,
+        label: setup.label,
+        resolvedId: resolveTabStringSetup(setup.openStringPitches)?.id,
+      })),
+    ).toEqual([
+      {
+        id: "fourString",
+        label: "4-string bass",
+        resolvedId: "fourString",
+      },
+      {
+        id: "fiveString",
+        label: "5-string bass",
+        resolvedId: "fiveString",
+      },
+    ]);
+    expect(resolveTabStringSetup([43, 38, 33, 27])).toBeUndefined();
+  });
+
   it("assigns a distinct color to each string", () => {
     const colors = Array.from({ length: 5 }, (_, index) =>
       getTabStringColor(index + 1),

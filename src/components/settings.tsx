@@ -21,7 +21,11 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../lib/project-store";
-import { TAB_OPEN_STRING_PRESETS } from "../lib/tab-annotation";
+import {
+  resolveTabStringSetup,
+  type TabStringSetupId,
+  TAB_STRING_SETUPS,
+} from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -235,18 +239,20 @@ export function Settings({
             <select
               aria-label="String setup"
               data-testid="tab-string-setup-select"
-              value={
-                tabOpenStringPitches.length === 5 ? "fiveString" : "fourString"
-              }
+              value={resolveTabStringSetup(tabOpenStringPitches)?.id}
               onChange={(e) => {
-                const setup = e.target
-                  .value as keyof typeof TAB_OPEN_STRING_PRESETS;
-                setTabOpenStringPitches([...TAB_OPEN_STRING_PRESETS[setup]]);
+                const setup = TAB_STRING_SETUPS.find(
+                  ({ id }) => id === (e.target.value as TabStringSetupId),
+                )!;
+                setTabOpenStringPitches([...setup.openStringPitches]);
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              <option value="fourString">4-string</option>
-              <option value="fiveString">5-string</option>
+              {TAB_STRING_SETUPS.map((setup) => (
+                <option key={setup.id} value={setup.id}>
+                  {setup.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
