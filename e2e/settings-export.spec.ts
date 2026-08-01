@@ -55,9 +55,7 @@ test.describe("Settings Dialog - Project Export", () => {
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
   });
 
-  test("MIDI import confirms before replacing existing notes", async ({
-    page,
-  }) => {
+  test("MIDI import confirms and replaces existing notes", async ({ page }) => {
     await evaluateStore(page, (store) => {
       store.getState().addNote({
         id: "existing-note",
@@ -73,7 +71,7 @@ test.describe("Settings Dialog - Project Export", () => {
     page.once("dialog", async (dialog) => {
       expect(dialog.type()).toBe("confirm");
       confirmationMessage = dialog.message();
-      await dialog.dismiss();
+      await dialog.accept();
     });
     await page
       .getByTestId("midi-file-input")
@@ -81,9 +79,12 @@ test.describe("Settings Dialog - Project Export", () => {
 
     expect(confirmationMessage).toContain("Replace existing MIDI notes?");
 
+    await expect(
+      page.getByText(/Imported \d+ notes from MIDI file/),
+    ).toBeVisible();
     const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].id).toBe("existing-note");
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.every((note) => note.id !== "existing-note")).toBe(true);
   });
 
   test("export and import .toymidi restores project data", async ({ page }) => {
