@@ -177,33 +177,34 @@ function buildMeasureEvents({
   measureStart: number;
   measureDuration: number;
 }): MusicXmlMeasureEvent[] {
-  const measureEnd = measureStart + measureDuration;
   const events: MusicXmlMeasureEvent[] = [];
-  let cursor = measureStart;
+  let cursor = 0;
 
   for (const note of notes) {
-    // Clip the assigned note to this measure.
-    const noteStart = Math.max(note.start, measureStart);
-    const noteEnd = Math.min(note.end, measureEnd);
+    // Convert the assigned note to measure-local bounds.
+    const originalNoteStart = note.start - measureStart;
+    const originalNoteEnd = note.end - measureStart;
+    const noteStart = Math.max(originalNoteStart, 0);
+    const noteEnd = Math.min(originalNoteEnd, measureDuration);
 
     // Fill silence before this note, including any gap after the previous note.
     if (noteStart > cursor) {
-      events.push(
-        ...splitDuration({
-          start: cursor - measureStart,
-          duration: noteStart - cursor,
-        }).map(({ duration, notation }) => ({
+      for (const piece of splitDuration({
+        start: cursor,
+        duration: noteStart - cursor,
+      })) {
+        events.push({
           type: "rest" as const,
-          duration,
-          notation,
-        })),
-      );
+          duration: piece.duration,
+          notation: piece.notation,
+        });
+      }
     }
 
     // Split the clipped note into notatable tied pieces.
     let pieceStart = noteStart;
     for (const piece of splitDuration({
-      start: noteStart - measureStart,
+      start: noteStart,
       duration: noteEnd - noteStart,
     })) {
       const pieceEnd = pieceStart + piece.duration;
@@ -215,8 +216,8 @@ function buildMeasureEvents({
         tabPosition: note.tabPosition,
         // Splits within or across measures become one tied chain, which is then
         // rendered identically on both notation staves.
-        tieStart: pieceEnd < note.end,
-        tieStop: pieceStart > note.start,
+        tieStart: pieceEnd < originalNoteEnd,
+        tieStop: pieceStart > originalNoteStart,
       });
       pieceStart = pieceEnd;
     }
@@ -224,17 +225,17 @@ function buildMeasureEvents({
   }
 
   // Fill silence from the final note to the end of the measure.
-  if (cursor < measureEnd) {
-    events.push(
-      ...splitDuration({
-        start: cursor - measureStart,
-        duration: measureEnd - cursor,
-      }).map(({ duration, notation }) => ({
+  if (cursor < measureDuration) {
+    for (const piece of splitDuration({
+      start: cursor,
+      duration: measureDuration - cursor,
+    })) {
+      events.push({
         type: "rest" as const,
-        duration,
-        notation,
-      })),
-    );
+        duration: piece.duration,
+        notation: piece.notation,
+      });
+    }
   }
   return events;
 }
