@@ -286,12 +286,12 @@ export function PianoRoll() {
     return () => stopPreviewNote();
   }, [stopPreviewNote]);
 
-  // Handle keyboard events
   useWindowEvent("pointerdown", (e) => {
     wasLastPointerDownInsideRef.current =
       e.target instanceof Node && rootRef.current?.contains(e.target) === true;
   });
 
+  // Handle keyboard events
   useWindowEvent("keydown", (e) => {
     if (!wasLastPointerDownInsideRef.current) {
       return;
