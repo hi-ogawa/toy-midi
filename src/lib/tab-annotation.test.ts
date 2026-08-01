@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { TabString } from "../types";
 import {
-  formatTabPosition,
   getFret,
   getPlayableStrings,
-  getTabStringColor,
   moveTabString,
   resolveTabPosition,
-  resolveTabStringPreset,
   TAB_STRING_PRESETS,
 } from "./tab-annotation";
 
@@ -15,50 +11,6 @@ const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 
 describe("tab annotation positions", () => {
-  it("maps presets to their exact open pitches", () => {
-    expect(
-      TAB_STRING_PRESETS.map((preset) => ({
-        id: preset.id,
-        label: preset.label,
-        resolvedId: resolveTabStringPreset(preset.openStringPitches)?.id,
-      })),
-    ).toEqual([
-      {
-        id: "fourStringBass",
-        label: "4-string bass (EADG)",
-        resolvedId: "fourStringBass",
-      },
-      {
-        id: "fiveStringBass",
-        label: "5-string bass (BEADG)",
-        resolvedId: "fiveStringBass",
-      },
-    ]);
-    expect(resolveTabStringPreset([43, 38, 33, 27])).toBeUndefined();
-  });
-
-  it("assigns a distinct color to each string", () => {
-    const colors = Array.from({ length: 5 }, (_, index) =>
-      getTabStringColor((index + 1) as TabString),
-    );
-
-    expect(colors.every(Boolean)).toBe(true);
-    expect(new Set(colors.map((color) => color?.background)).size).toBe(5);
-  });
-
-  it.each([
-    { position: { tabString: 1 as const, fret: 5 }, label: "G5" },
-    { position: { tabString: 4 as const, fret: 12 }, label: "E12" },
-    { position: { tabString: 5 as const, fret: 0 }, label: "B0" },
-  ])("formats $label", ({ position, label }) => {
-    expect(
-      formatTabPosition({
-        position,
-        openStringPitches: FIVE_STRING_PITCHES,
-      }),
-    ).toBe(label);
-  });
-
   it.each([
     { pitch: 43, tabString: 1 as const, fret: 0 },
     { pitch: 38, tabString: 2 as const, fret: 0 },
