@@ -13,6 +13,9 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
+  const cursor = page.locator("img[id^='cursorImg']");
+  await expect(cursor).toBeVisible();
+  await expect(cursor).toHaveCSS("z-index", "1");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
