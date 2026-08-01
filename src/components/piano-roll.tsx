@@ -1657,7 +1657,10 @@ function NoteDiv({
       {annotation && (
         <span
           data-testid="tab-annotation"
-          className="absolute inset-0 flex items-center justify-center overflow-hidden text-[10px] font-mono font-semibold leading-none text-blue-950 pointer-events-none"
+          className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none text-blue-950 pointer-events-none"
+          style={{
+            fontSize: Math.max(7, Math.min(14, pixelsPerKey * 0.55)),
+          }}
         >
           {formatTabPosition(annotation)}
         </span>
