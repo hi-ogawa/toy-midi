@@ -86,7 +86,8 @@ test.describe("Copy/Paste", () => {
     page,
   }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    await page.getByTestId("help-button").click();
+    await page.getByTestId("app-menu-button").click();
+    await page.getByTestId("help-menu-item").click();
     await page.getByText("Quick Reference").selectText();
 
     await page.keyboard.press("Control+c");
