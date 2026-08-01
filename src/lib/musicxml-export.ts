@@ -84,6 +84,7 @@ export function buildMusicXmlModel({
   }
 
   validateOpenStringPitches(openStringPitches);
+  // Full measure length in MusicXML grid units, for example 48 in 4/4 and 36 in 6/8.
   const measureDuration = toGridUnits(
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
