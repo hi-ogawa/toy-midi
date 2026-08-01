@@ -75,31 +75,30 @@ describe("tab annotation positions", () => {
       openStringPitches: FIVE_STRING_PITCHES,
       expected: undefined,
     },
-  ])("chooses the lowest-fret default for pitch $pitch", (testCase) => {
-    expect(
-      resolveTabPosition({
-        pitch: testCase.pitch,
-        openStringPitches: testCase.openStringPitches,
-      }),
-    ).toEqual(testCase.expected);
-  });
-
-  it("uses a playable manual string and falls back from an invalid one", () => {
-    expect(
-      resolveTabPosition({
-        pitch: 48,
-        openStringPitches: FOUR_STRING_PITCHES,
-        tabString: 3,
-      }),
-    ).toEqual({ tabString: 3, fret: 15 });
-    expect(
-      resolveTabPosition({
-        pitch: 30,
-        openStringPitches: FOUR_STRING_PITCHES,
-        tabString: 3,
-      }),
-    ).toEqual({ tabString: 4, fret: 2 });
-  });
+    {
+      pitch: 48,
+      openStringPitches: FOUR_STRING_PITCHES,
+      tabString: 3 as const,
+      expected: { tabString: 3, fret: 15 },
+    },
+    {
+      pitch: 30,
+      openStringPitches: FOUR_STRING_PITCHES,
+      tabString: 3 as const,
+      expected: { tabString: 4, fret: 2 },
+    },
+  ])(
+    "resolves tab position for pitch $pitch from string $tabString",
+    (testCase) => {
+      expect(
+        resolveTabPosition({
+          pitch: testCase.pitch,
+          openStringPitches: testCase.openStringPitches,
+          tabString: testCase.tabString,
+        }),
+      ).toEqual(testCase.expected);
+    },
+  );
 });
 
 describe("moveTabString", () => {
