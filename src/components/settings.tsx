@@ -238,11 +238,11 @@ export function Settings({
           </FileDropInput>
         </div>
         {audioTracks.length > 0 && (
-          <div className="overflow-hidden rounded-md border border-neutral-600">
+          <div>
             {audioTracks.map((track) => (
               <div
                 key={track.id}
-                className="flex items-center gap-2 border-b border-neutral-600 p-2 last:border-b-0"
+                className="flex items-center gap-2 py-1.5 pl-2"
               >
                 <div className="flex-1 text-sm text-neutral-200 truncate">
                   {track.fileName}
