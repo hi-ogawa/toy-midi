@@ -140,6 +140,9 @@ function prepareNotes({
     })
     .sort((a, b) => a.start - b.start || a.note.pitch - b.note.pitch);
 
+  // TODO: Support strict chords by grouping notes with identical start/end
+  // times, assigning distinct TAB strings, and emitting MusicXML <chord/> notes.
+  // Unequal durations and partial overlaps still require voice scheduling.
   for (let index = 1; index < result.length; index++) {
     if (result[index].start < result[index - 1].end) {
       throw new Error(
