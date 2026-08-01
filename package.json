@@ -35,6 +35,7 @@
     "react-dom": "^19.2.3",
     "sonner": "^2.0.7",
     "tone": "^15.1.22",
+    "zod": "^4.4.3",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
