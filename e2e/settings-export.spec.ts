@@ -59,7 +59,7 @@ test.describe("Settings Dialog - Project Export", () => {
     await evaluateStore(page, (store) => {
       store.getState().addNote({
         id: "existing-note",
-        pitch: 60,
+        pitch: 61,
         start: 0,
         duration: 1,
         velocity: 100,
@@ -89,10 +89,7 @@ test.describe("Settings Dialog - Project Export", () => {
       tempo: store.getState().tempo,
       timeSignature: store.getState().timeSignature,
     }));
-    expect(imported.notes.length).toBeGreaterThan(0);
-    expect(imported.notes.every((note) => note.id !== "existing-note")).toBe(
-      true,
-    );
+    expect(imported.notes.map((note) => note.pitch)).toEqual([60, 64, 67, 60]);
     expect(imported.tempo).toBe(120);
     expect(imported.timeSignature).toEqual({ numerator: 4, denominator: 4 });
   });
