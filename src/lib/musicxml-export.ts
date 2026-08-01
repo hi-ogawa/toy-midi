@@ -305,6 +305,46 @@ export function exportMusicXml({
     timeSignature,
     openStringPitches,
   });
+  // MusicXML places score-level configuration inside the first measure.
+  const initialMeasureChildren = [
+    hx(
+      "attributes",
+      hx("divisions", DIVISIONS),
+      hx("key", hx("fifths", 0)),
+      hx(
+        "time",
+        hx("beats", timeSignature.numerator),
+        hx("beat-type", timeSignature.denominator),
+      ),
+      hx("staves", 2),
+      h("clef", { number: 1 }, hx("sign", "F"), hx("line", 4)),
+      h("clef", { number: 2 }, hx("sign", "TAB")),
+      renderStaffDetails(openStringPitches),
+      // Bass sounds one octave below its written pitch, so MuseScore transposes
+      // playback while retaining conventional bass notation.
+      hx(
+        "transpose",
+        hx("diatonic", 0),
+        hx("chromatic", 0),
+        hx("octave-change", -1),
+      ),
+    ),
+    h(
+      "direction",
+      { placement: "above" },
+      hx(
+        "direction-type",
+        h(
+          "metronome",
+          { parentheses: "no" },
+          hx("beat-unit", "quarter"),
+          hx("per-minute", tempo),
+        ),
+      ),
+      hx("staff", 1),
+      h("sound", { tempo }),
+    ),
+  ];
 
   // TODO: Add optional <work-title> and <part-name> metadata when export naming
   // is designed. Both are intentionally omitted for now.
@@ -340,9 +380,7 @@ export function exportMusicXml({
           events,
           index,
           measureDuration,
-          tempo,
-          timeSignature,
-          openStringPitches,
+          initialChildren: index === 0 ? initialMeasureChildren : [],
         }),
       ),
     ),
@@ -359,62 +397,18 @@ function renderMeasure({
   events,
   index,
   measureDuration,
-  tempo,
-  timeSignature,
-  openStringPitches,
+  initialChildren,
 }: {
   events: MusicXmlMeasureEvent[];
   index: number;
   measureDuration: number;
-  tempo: number;
-  timeSignature: TimeSignature;
-  openStringPitches: readonly number[];
+  initialChildren: XmlNode[];
 }): XmlElement {
-  // Bass sounds one octave below its written pitch, so MuseScore transposes
-  // playback while retaining conventional bass notation.
-  const attributes = index === 0 && [
-    hx(
-      "attributes",
-      hx("divisions", DIVISIONS),
-      hx("key", hx("fifths", 0)),
-      hx(
-        "time",
-        hx("beats", timeSignature.numerator),
-        hx("beat-type", timeSignature.denominator),
-      ),
-      hx("staves", 2),
-      h("clef", { number: 1 }, hx("sign", "F"), hx("line", 4)),
-      h("clef", { number: 2 }, hx("sign", "TAB")),
-      renderStaffDetails(openStringPitches),
-      hx(
-        "transpose",
-        hx("diatonic", 0),
-        hx("chromatic", 0),
-        hx("octave-change", -1),
-      ),
-    ),
-    h(
-      "direction",
-      { placement: "above" },
-      hx(
-        "direction-type",
-        h(
-          "metronome",
-          { parentheses: "no" },
-          hx("beat-unit", "quarter"),
-          hx("per-minute", tempo),
-        ),
-      ),
-      hx("staff", 1),
-      h("sound", { tempo }),
-    ),
-  ];
-
   // Rewind the measure cursor so staff 2 runs in parallel with staff 1.
   return h(
     "measure",
     { number: index + 1 },
-    ...(attributes || []),
+    ...initialChildren,
     ...events.map((event) => renderEvent(event, 1)),
     hx("backup", hx("duration", measureDuration)),
     ...events.map((event) => renderEvent(event, 2)),
