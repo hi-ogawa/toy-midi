@@ -55,6 +55,45 @@ test.describe("Settings Dialog - Project Export", () => {
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
   });
 
+  test("MIDI import confirms and replaces existing notes", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "existing-note",
+        pitch: 61,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      });
+      store.getState().setTempo(90);
+      store.getState().setTimeSignature({ numerator: 3, denominator: 4 });
+    });
+    await openSettings(page);
+
+    let confirmationMessage: string | undefined;
+    page.once("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      confirmationMessage = dialog.message();
+      await dialog.accept();
+    });
+    await page
+      .getByTestId("midi-file-input")
+      .setInputFiles("e2e/fixtures/test-midi.mid");
+
+    expect(confirmationMessage).toContain("Import MIDI file?");
+
+    await expect(
+      page.getByText(/Imported \d+ notes from MIDI file/),
+    ).toBeVisible();
+    const imported = await evaluateStore(page, (store) => ({
+      notes: store.getState().notes,
+      tempo: store.getState().tempo,
+      timeSignature: store.getState().timeSignature,
+    }));
+    expect(imported.notes.map((note) => note.pitch)).toEqual([60, 64, 67, 60]);
+    expect(imported.tempo).toBe(120);
+    expect(imported.timeSignature).toEqual({ numerator: 4, denominator: 4 });
+  });
+
   test("export and import .toymidi restores project data", async ({ page }) => {
     await evaluateStore(page, (store) => {
       store.getState().addNote({

@@ -13,7 +13,3 @@ export function Button({
     <button type={type} className={cn(buttonClassName, className)} {...props} />
   );
 }
-
-export function LinkButton({ className, ...props }: React.ComponentProps<"a">) {
-  return <a className={cn(buttonClassName, className)} {...props} />;
-}

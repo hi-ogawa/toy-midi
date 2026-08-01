@@ -81,6 +81,23 @@ test.describe("Copy/Paste", () => {
     expect(Math.abs(note2Box.y - note1Box.y)).toBeLessThan(2);
   });
 
+  test("copies selected text outside the piano roll", async ({
+    context,
+    page,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.getByTestId("app-menu-button").click();
+    await page.getByTestId("help-menu-item").click();
+    await page.getByText("Quick Reference").selectText();
+
+    await page.keyboard.press("Control+c");
+
+    const copiedText = await page.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(copiedText).toBe("Quick Reference");
+  });
+
   test("paste snaps to grid", async ({ page }) => {
     const grid = page.getByTestId("piano-roll-grid");
     const gridBox = await grid.boundingBox();
