@@ -35,16 +35,14 @@ function sanitizeBaseName(baseName: string): string {
 type ExportFileNameOptions = {
   baseName: string;
   extension: string;
-  timestamp?: Date;
 };
 
 export function buildExportFileName({
   baseName,
   extension,
-  timestamp = new Date(),
 }: ExportFileNameOptions): string {
   const safeName = sanitizeBaseName(baseName);
   const normalizedExtension = normalizeExtension(extension);
-  const formattedTimestamp = formatTimestamp(timestamp);
+  const formattedTimestamp = formatTimestamp(new Date());
   return `${safeName}-${formattedTimestamp}${normalizedExtension}`;
 }
