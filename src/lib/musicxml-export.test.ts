@@ -98,7 +98,7 @@ describe("MusicXML export", () => {
 
   it("decomposes dotted and triplet durations", () => {
     const model = buildModel([
-      makeNote({ id: "dotted", duration: 1.5 }),
+      makeNote({ id: "dotted", pitch: 33, duration: 1.5 }), // A1
       makeNote({
         id: "triplet",
         start: 2,
