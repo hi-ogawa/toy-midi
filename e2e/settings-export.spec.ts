@@ -64,6 +64,8 @@ test.describe("Settings Dialog - Project Export", () => {
         duration: 1,
         velocity: 100,
       });
+      store.getState().setTempo(90);
+      store.getState().setTimeSignature({ numerator: 3, denominator: 4 });
     });
     await openSettings(page);
 
@@ -82,9 +84,17 @@ test.describe("Settings Dialog - Project Export", () => {
     await expect(
       page.getByText(/Imported \d+ notes from MIDI file/),
     ).toBeVisible();
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes.length).toBeGreaterThan(0);
-    expect(notes.every((note) => note.id !== "existing-note")).toBe(true);
+    const imported = await evaluateStore(page, (store) => ({
+      notes: store.getState().notes,
+      tempo: store.getState().tempo,
+      timeSignature: store.getState().timeSignature,
+    }));
+    expect(imported.notes.length).toBeGreaterThan(0);
+    expect(imported.notes.every((note) => note.id !== "existing-note")).toBe(
+      true,
+    );
+    expect(imported.tempo).toBe(120);
+    expect(imported.timeSignature).toEqual({ numerator: 4, denominator: 4 });
   });
 
   test("export and import .toymidi restores project data", async ({ page }) => {

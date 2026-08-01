@@ -99,7 +99,7 @@ export function Settings({
     if (
       notes.length > 0 &&
       !window.confirm(
-        "Replace existing MIDI notes? Importing this file will replace all notes in the current project.",
+        "Replace existing MIDI notes? Importing this file will replace all notes and may update the tempo and time signature.",
       )
     ) {
       return;
