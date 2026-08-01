@@ -107,7 +107,11 @@ type DragMode =
       currentY: number;
     };
 
-export function PianoRoll() {
+type PianoRollProps = {
+  isShortcutContextActive: boolean;
+};
+
+export function PianoRoll({ isShortcutContextActive }: PianoRollProps) {
   const {
     notes,
     selectedNoteIds,
@@ -286,6 +290,10 @@ export function PianoRoll() {
 
   // Handle keyboard events
   useWindowEvent("keydown", (e) => {
+    if (!isShortcutContextActive) {
+      return;
+    }
+
     // Don't trigger shortcuts if typing in an input
     if (isShortcutTextInputTarget(e.target)) {
       return;
@@ -928,7 +936,10 @@ export function PianoRoll() {
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
+    <div
+      data-piano-roll
+      className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden"
+    >
       {/* Main content area - fixed layout, no native scroll */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: track controls + keyboard labels */}
