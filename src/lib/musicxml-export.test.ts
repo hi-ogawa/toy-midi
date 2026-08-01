@@ -14,7 +14,7 @@ const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 function makeNote(options: Partial<Note> = {}): Note {
   return {
     id: "note-1",
-    pitch: 33,
+    pitch: 33, // A1
     start: 0,
     duration: 1,
     velocity: 100,
@@ -103,7 +103,7 @@ describe("MusicXML export", () => {
         id: "triplet",
         start: 2,
         duration: 1 / 3,
-        pitch: 35,
+        pitch: 35, // B1
       }),
     ]);
 
@@ -151,7 +151,7 @@ describe("MusicXML export", () => {
 
   it("resolves notes against custom open-string pitches", () => {
     const model = buildModel([makeNote()], {
-      openStringPitches: [42, 38, 33, 28],
+      openStringPitches: [42, 38, 33, 28], // F#2 D2 A1 E1
     });
 
     expect(model.measures[0][0]).toMatchObject({
@@ -171,7 +171,7 @@ describe("MusicXML export", () => {
 
   it("rejects notes outside the selected bass range", () => {
     expect(() =>
-      buildModel([makeNote({ pitch: 23 })], {
+      buildModel([makeNote({ pitch: 23 /* B0 */ })], {
         openStringPitches: FOUR_STRING_PITCHES,
       }),
     ).toThrow("MIDI note 23 is not playable on a 4-string bass");
