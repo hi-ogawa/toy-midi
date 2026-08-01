@@ -21,6 +21,10 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../lib/project-store";
+import {
+  resolveTabStringPreset,
+  TAB_STRING_PRESETS,
+} from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -50,8 +54,12 @@ export function Settings({
     notes,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
+    tabAnnotationEnabled,
+    tabOpenStringPitches,
     setAutoScrollEnabled,
     setLinkAudioOffsetsEnabled,
+    setTabAnnotationEnabled,
+    setTabOpenStringPitches,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -216,6 +224,36 @@ export function Settings({
             />
             <span className="text-sm text-neutral-300">Link audio offsets</span>
           </label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                data-testid="tab-annotation-toggle"
+                type="checkbox"
+                checked={tabAnnotationEnabled}
+                onChange={(e) => setTabAnnotationEnabled(e.target.checked)}
+                className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+              />
+              <span className="text-sm text-neutral-300">Tab annotations</span>
+            </label>
+            <select
+              aria-label="Tuning"
+              data-testid="tab-string-preset-select"
+              value={resolveTabStringPreset(tabOpenStringPitches)?.id}
+              onChange={(e) => {
+                const preset = TAB_STRING_PRESETS.find(
+                  ({ id }) => id === e.target.value,
+                )!;
+                setTabOpenStringPitches([...preset.openStringPitches]);
+              }}
+              className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            >
+              {TAB_STRING_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 

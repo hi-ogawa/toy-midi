@@ -32,6 +32,11 @@ import {
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
+import {
+  formatTabPosition,
+  getTabStringColor,
+  resolveTabPosition,
+} from "../lib/tab-annotation";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
@@ -112,6 +117,8 @@ export function PianoRoll() {
     notes,
     selectedNoteIds,
     gridSnap,
+    tabAnnotationEnabled,
+    tabOpenStringPitches,
     tempo,
     timeSignature,
     audioTracks,
@@ -123,6 +130,9 @@ export function PianoRoll() {
     addNote,
     updateNote,
     quantizeSelectedNotes,
+    assignSelectedTabString,
+    moveSelectedTabStrings,
+    clearSelectedTabStrings,
     deleteNotes,
     selectNotes,
     deselectAll,
@@ -290,6 +300,9 @@ export function PianoRoll() {
     if (isShortcutTextInputTarget(e.target)) {
       return;
     }
+    const tabStringShortcut = ([1, 2, 3, 4, 5] as const).find((string) =>
+      matchKeyboardEvent(e, String(string)),
+    );
 
     if (matchKeyboardEvent(e, "Delete") || matchKeyboardEvent(e, "Backspace")) {
       if (selectedNoteIds.size > 0) {
@@ -339,6 +352,18 @@ export function PianoRoll() {
       }
     } else if (matchKeyboardEvent(e, "Q")) {
       quantizeSelectedNotes();
+    } else if (tabAnnotationEnabled && tabStringShortcut) {
+      e.preventDefault();
+      assignSelectedTabString(tabStringShortcut);
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "ArrowUp")) {
+      e.preventDefault();
+      moveSelectedTabStrings("up");
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "ArrowDown")) {
+      e.preventDefault();
+      moveSelectedTabStrings("down");
+    } else if (tabAnnotationEnabled && matchKeyboardEvent(e, "0")) {
+      e.preventDefault();
+      clearSelectedTabStrings();
     } else if (matchKeyboardEvent(e, "L")) {
       // L: Add locator at current playhead position
       const playheadBeat = secondsToBeats(position, tempo);
@@ -510,11 +535,8 @@ export function PianoRoll() {
           // Create duplicates at the same position as originals
           notesToDuplicate.forEach((originalNote) => {
             const duplicateNote: Note = {
+              ...originalNote,
               id: generateNoteId(),
-              pitch: originalNote.pitch,
-              start: originalNote.start,
-              duration: originalNote.duration,
-              velocity: originalNote.velocity,
             };
             addNote(duplicateNote);
             duplicateNoteIds.push(duplicateNote.id);
@@ -1081,6 +1103,8 @@ export function PianoRoll() {
                 scrollX={scrollX}
                 scrollY={scrollY}
                 edgeThreshold={edgeThreshold}
+                tabAnnotationEnabled={tabAnnotationEnabled}
+                tabOpenStringPitches={tabOpenStringPitches}
               />
             ))}
             {/* Preview note while creating */}
@@ -1597,6 +1621,8 @@ function NoteDiv({
   scrollX,
   scrollY,
   edgeThreshold,
+  tabAnnotationEnabled,
+  tabOpenStringPitches,
 }: {
   note: Note;
   selected: boolean;
@@ -1605,11 +1631,23 @@ function NoteDiv({
   scrollX: number;
   scrollY: number;
   edgeThreshold: number;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
 }) {
   // Convert note position to screen coordinates
   const x = (note.start - scrollX) * pixelsPerBeat;
   const y = (MAX_PITCH - scrollY - note.pitch) * pixelsPerKey;
   const width = note.duration * pixelsPerBeat;
+  const annotation = tabAnnotationEnabled
+    ? resolveTabPosition({
+        pitch: note.pitch,
+        openStringPitches: tabOpenStringPitches,
+        tabString: note.tabString,
+      })
+    : undefined;
+  const tabStringColor = annotation
+    ? getTabStringColor(annotation.tabString)
+    : undefined;
 
   // Handle extends edgeThreshold on each side of edge (matching detection zone)
   const handleWidth = Math.round(edgeThreshold * 2);
@@ -1624,11 +1662,29 @@ function NoteDiv({
         top: y + 1,
         width,
         height: pixelsPerKey - 2,
-        backgroundColor: selected ? "#60a5fa" : "#3b82f6",
-        border: `${selected ? 2 : 1}px solid ${selected ? "#93c5fd" : "#2563eb"}`,
+        backgroundColor:
+          tabStringColor?.background ?? (selected ? "#60a5fa" : "#3b82f6"),
+        border: `1px solid ${tabStringColor?.border ?? "#2563eb"}`,
+        outline: selected ? "2px solid #dbeafe" : undefined,
+        outlineOffset: selected ? "-2px" : undefined,
         boxSizing: "border-box",
       }}
     >
+      {annotation && (
+        <span
+          data-testid="tab-annotation"
+          className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none pointer-events-none"
+          style={{
+            fontSize: Math.max(7, Math.min(14, pixelsPerKey * 0.55)),
+            color: tabStringColor?.text,
+          }}
+        >
+          {formatTabPosition({
+            position: annotation,
+            openStringPitches: tabOpenStringPitches,
+          })}
+        </span>
+      )}
       {/* Resize handles - always visible for edge grabbing */}
       <div
         className="absolute top-0 h-full cursor-ew-resize"

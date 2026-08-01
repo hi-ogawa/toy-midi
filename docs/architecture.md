@@ -22,6 +22,8 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 
 The project store is the source of truth for musical content, mixer settings, selections, and viewport state. Components mutate the store rather than synchronizing directly with audio or persistence.
 
+MIDI pitch remains canonical for tab annotations. Projects persist open-string pitches and optional intentional per-note string choices, while fret numbers and automatic lowest-fret assignments are derived. The settings UI currently exposes fixed G-D-A-E and G-D-A-E-B presets.
+
 Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
 
 One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
