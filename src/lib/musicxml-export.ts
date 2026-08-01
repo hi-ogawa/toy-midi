@@ -184,6 +184,8 @@ function buildMeasureEvents({
   for (const note of notes) {
     const noteStart = Math.max(note.start, measureStart);
     const noteEnd = Math.min(note.end, measureEnd);
+
+    // Fill silence before this note, including any gap after the previous note.
     if (noteStart > cursor) {
       events.push(
         ...splitDuration({
@@ -197,6 +199,7 @@ function buildMeasureEvents({
       );
     }
 
+    // Clip the note to this measure and split it into notatable tied pieces.
     let pieceStart = noteStart;
     for (const piece of splitDuration({
       start: noteStart - measureStart,
@@ -219,6 +222,7 @@ function buildMeasureEvents({
     cursor = noteEnd;
   }
 
+  // Fill silence from the final note to the end of the measure.
   if (cursor < measureEnd) {
     events.push(
       ...splitDuration({
