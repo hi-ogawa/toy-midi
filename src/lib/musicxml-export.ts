@@ -143,7 +143,7 @@ function prepareNotes({
   for (let index = 1; index < result.length; index++) {
     if (result[index].start < result[index - 1].end) {
       throw new Error(
-        `Overlapping notes ${result[index - 1].note.id} and ${result[index].note.id} are not supported`,
+        `Polyphonic or overlapping notes ${result[index - 1].note.id} and ${result[index].note.id} are not supported`,
       );
     }
   }

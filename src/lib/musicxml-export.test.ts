@@ -202,13 +202,15 @@ describe("MusicXML export", () => {
     });
   });
 
-  it("rejects overlapping notes", () => {
+  it("rejects a polyphonic chord", () => {
     expect(() =>
       buildModel([
-        makeNote({ id: "first", duration: 2 }),
-        makeNote({ id: "second", start: 1 }),
+        makeNote({ id: "low-g", pitch: 31 }), // G1
+        makeNote({ id: "high-b", pitch: 47 }), // B2, a third over G in the next octave
       ]),
-    ).toThrow("Overlapping notes first and second are not supported");
+    ).toThrow(
+      "Polyphonic or overlapping notes low-g and high-b are not supported",
+    );
   });
 
   it("rejects notes outside the selected bass range", () => {
