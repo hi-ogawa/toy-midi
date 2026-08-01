@@ -336,9 +336,9 @@ ${renderStaffDetails(openStringPitches)}
       </direction>`
       : "";
 
+  // Rewind the measure cursor so staff 2 runs in parallel with staff 1.
   return `    <measure number="${index + 1}">${attributes}
 ${events.map((event) => renderEvent(event, 1)).join("\n")}
-      <!-- Rewind the measure cursor so staff 2 runs in parallel with staff 1. -->
       <backup>
         <duration>${measureDuration}</duration>
       </backup>

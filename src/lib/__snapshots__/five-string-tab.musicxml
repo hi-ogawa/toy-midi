@@ -115,7 +115,6 @@
         <type>eighth</type>
         <staff>1</staff>
       </note>
-      <!-- Rewind the measure cursor so staff 2 runs in parallel with staff 1. -->
       <backup>
         <duration>48</duration>
       </backup>
