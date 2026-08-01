@@ -58,6 +58,8 @@ test.describe("Settings Dialog - Project Export", () => {
 
   test("export MusicXML with standard and TAB staves", async ({ page }) => {
     await evaluateStore(page, (store) => {
+      // A1 (33) forced onto string 4 of BEADG tuning is fret 5, which
+      // verifies that the second staff preserves explicit TAB positions.
       store.setState({
         notes: [
           {
