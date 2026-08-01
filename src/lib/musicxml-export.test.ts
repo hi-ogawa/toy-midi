@@ -185,12 +185,12 @@ describe("MusicXML export", () => {
 
   it("resolves notes against custom open-string pitches", () => {
     const model = buildModel([makeNote()], {
-      openStringPitches: [42, 38, 33, 28], // F#2 D2 A1 E1
+      openStringPitches: [42, 37, 32, 27], // Gb2 Db2 Ab1 Eb1, down 1 semitone
     });
 
     expect(model.measures[0][0]).toMatchObject({
       type: "note",
-      tabPosition: { tabString: 3, fret: 0 },
+      tabPosition: { tabString: 3, fret: 1 },
     });
   });
 
