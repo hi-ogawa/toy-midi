@@ -32,22 +32,12 @@ function exportNotes(
 }
 
 describe("MusicXML export", () => {
-  it("exports synchronized standard and five-string TAB staves", () => {
+  it("exports synchronized standard and five-string TAB staves", async () => {
     const xml = exportNotes([makeNote({ tabString: 4 })]);
 
-    expect(xml).toContain("<work-title>Test &amp; Song</work-title>");
-    expect(xml).toContain("<staves>2</staves>");
-    expect(xml).toContain('<clef number="1">\n          <sign>F</sign>');
-    expect(xml).toContain('<clef number="2">\n          <sign>TAB</sign>');
-    expect(xml).toContain("<staff-lines>5</staff-lines>");
-    expect(xml).toContain(
-      "<tuning-step>B</tuning-step>\n            <tuning-octave>1</tuning-octave>",
+    await expect(xml).toMatchFileSnapshot(
+      "__snapshots__/five-string-tab.musicxml",
     );
-    expect(xml).toContain("<octave>2</octave>");
-    expect(xml).toContain("<string>4</string>\n            <fret>5</fret>");
-    expect(xml.match(/<step>A<\/step>/g)).toHaveLength(2);
-    expect(xml).toContain("<backup>\n        <duration>48</duration>");
-    expect(xml).toContain("<per-minute>120</per-minute>");
   });
 
   it("splits notes at bar lines and ties both staves", () => {
