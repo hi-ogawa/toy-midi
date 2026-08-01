@@ -1,6 +1,12 @@
 import type { Note, TimeSignature } from "../types";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 
+// This format was manually reduced from a MuseScore MusicXML export and
+// iterated through MuseScore import/export in PR #212. In particular, the two
+// explicit staves and the <backup> between their duplicated note streams are
+// required for standard notation and TAB to import together while preserving
+// explicit string/fret assignments.
+
 const DIVISIONS = 12;
 const EPSILON = 1e-6;
 
@@ -59,11 +65,6 @@ const DURATION_CANDIDATES: DurationCandidate[] = [
   { duration: 1, alignment: 1, type: "32nd", triplet: true },
 ];
 
-// This format was manually reduced from a MuseScore MusicXML export and
-// iterated through MuseScore import/export in PR #212. In particular, the two
-// explicit staves and the <backup> between their duplicated note streams are
-// required for standard notation and TAB to import together while preserving
-// explicit string/fret assignments.
 export function exportMusicXml({
   notes,
   tempo,
