@@ -308,43 +308,51 @@ export function exportMusicXml({
 
   // TODO: Add optional <work-title> and <part-name> metadata when export naming
   // is designed. Both are intentionally omitted for now.
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
-<score-partwise version="4.0">
-${renderPartList()}
-  <part id="P1">
-${measures
-  .map((events, index) =>
-    renderMeasure({
-      events,
-      index,
-      measureDuration,
-      tempo,
-      timeSignature,
-      openStringPitches,
-    }),
-  )
-  .join("\n")}
-  </part>
-</score-partwise>
-`;
-}
+  const document = h(
+    "score-partwise",
+    { version: "4.0" },
+    // TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument
+    // data instead of hard-coding Electric Bass when non-bass export is supported.
+    hx(
+      "part-list",
+      h(
+        "score-part",
+        { id: "P1" },
+        h(
+          "score-instrument",
+          { id: "P1-I1" },
+          hx("instrument-name", "Electric Bass"),
+          hx("instrument-sound", "pluck.bass.electric"),
+        ),
+        h(
+          "midi-instrument",
+          { id: "P1-I1" },
+          hx("midi-channel", 1),
+          hx("midi-program", 34),
+        ),
+      ),
+    ),
+    h(
+      "part",
+      { id: "P1" },
+      ...measures.map((events, index) =>
+        renderMeasure({
+          events,
+          index,
+          measureDuration,
+          tempo,
+          timeSignature,
+          openStringPitches,
+        }),
+      ),
+    ),
+  );
 
-// TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument data
-// instead of hard-coding Electric Bass when non-bass export is supported.
-function renderPartList(): string {
-  return `  <part-list>
-    <score-part id="P1">
-      <score-instrument id="P1-I1">
-        <instrument-name>Electric Bass</instrument-name>
-        <instrument-sound>pluck.bass.electric</instrument-sound>
-      </score-instrument>
-      <midi-instrument id="P1-I1">
-        <midi-channel>1</midi-channel>
-        <midi-program>34</midi-program>
-      </midi-instrument>
-    </score-part>
-  </part-list>`;
+  return `\
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+${renderXml(document)}
+`;
 }
 
 function renderMeasure({
@@ -361,157 +369,134 @@ function renderMeasure({
   tempo: number;
   timeSignature: TimeSignature;
   openStringPitches: readonly number[];
-}): string {
+}): XmlElement {
   // Bass sounds one octave below its written pitch, so MuseScore transposes
   // playback while retaining conventional bass notation.
-  const attributes =
-    index === 0
-      ? `
-      <attributes>
-        <divisions>${DIVISIONS}</divisions>
-        <key>
-          <fifths>0</fifths>
-        </key>
-        <time>
-          <beats>${timeSignature.numerator}</beats>
-          <beat-type>${timeSignature.denominator}</beat-type>
-        </time>
-        <staves>2</staves>
-        <clef number="1">
-          <sign>F</sign>
-          <line>4</line>
-        </clef>
-        <clef number="2">
-          <sign>TAB</sign>
-        </clef>
-${renderStaffDetails(openStringPitches)}
-        <transpose>
-          <diatonic>0</diatonic>
-          <chromatic>0</chromatic>
-          <octave-change>-1</octave-change>
-        </transpose>
-      </attributes>
-      <direction placement="above">
-        <direction-type>
-          <metronome parentheses="no">
-            <beat-unit>quarter</beat-unit>
-            <per-minute>${tempo}</per-minute>
-          </metronome>
-        </direction-type>
-        <staff>1</staff>
-        <sound tempo="${tempo}"/>
-      </direction>`
-      : "";
+  const attributes = index === 0 && [
+    hx(
+      "attributes",
+      hx("divisions", DIVISIONS),
+      hx("key", hx("fifths", 0)),
+      hx(
+        "time",
+        hx("beats", timeSignature.numerator),
+        hx("beat-type", timeSignature.denominator),
+      ),
+      hx("staves", 2),
+      h("clef", { number: 1 }, hx("sign", "F"), hx("line", 4)),
+      h("clef", { number: 2 }, hx("sign", "TAB")),
+      renderStaffDetails(openStringPitches),
+      hx(
+        "transpose",
+        hx("diatonic", 0),
+        hx("chromatic", 0),
+        hx("octave-change", -1),
+      ),
+    ),
+    h(
+      "direction",
+      { placement: "above" },
+      hx(
+        "direction-type",
+        h(
+          "metronome",
+          { parentheses: "no" },
+          hx("beat-unit", "quarter"),
+          hx("per-minute", tempo),
+        ),
+      ),
+      hx("staff", 1),
+      h("sound", { tempo }),
+    ),
+  ];
 
   // Rewind the measure cursor so staff 2 runs in parallel with staff 1.
-  return `    <measure number="${index + 1}">${attributes}
-${events.map((event) => renderEvent(event, 1)).join("\n")}
-      <backup>
-        <duration>${measureDuration}</duration>
-      </backup>
-${events.map((event) => renderEvent(event, 2)).join("\n")}
-    </measure>`;
+  return h(
+    "measure",
+    { number: index + 1 },
+    ...(attributes || []),
+    ...events.map((event) => renderEvent(event, 1)),
+    hx("backup", hx("duration", measureDuration)),
+    ...events.map((event) => renderEvent(event, 2)),
+  );
 }
 
-function renderStaffDetails(openStringPitches: readonly number[]): string {
+function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
   // The app stores strings from highest to lowest pitch, while MusicXML numbers
   // TAB staff lines from the lowest line upward.
   const tuning = [...openStringPitches].reverse();
-  return `        <staff-details number="2">
-          <staff-lines>${openStringPitches.length}</staff-lines>
-${tuning
-  .map((midi, index) => {
-    const pitch = midiPitchToMusicXml(midi);
-    return `          <staff-tuning line="${index + 1}">
-            <tuning-step>${pitch.step}</tuning-step>${
-              pitch.alter
-                ? `
-            <tuning-alter>${pitch.alter}</tuning-alter>`
-                : ""
-            }
-            <tuning-octave>${pitch.octave}</tuning-octave>
-          </staff-tuning>`;
-  })
-  .join("\n")}
-        </staff-details>`;
+  return h(
+    "staff-details",
+    { number: 2 },
+    hx("staff-lines", openStringPitches.length),
+    ...tuning.map((midi, index) => {
+      const pitch = midiPitchToMusicXml(midi);
+      return h(
+        "staff-tuning",
+        { line: index + 1 },
+        hx("tuning-step", pitch.step),
+        pitch.alter !== 0 && hx("tuning-alter", pitch.alter),
+        hx("tuning-octave", pitch.octave),
+      );
+    }),
+  );
 }
 
-function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): string {
+function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
   // Distinct voices keep MuseScore's duplicated standard and TAB streams separate.
   const voice = staff === 1 ? 1 : 5;
   if (event.type === "rest") {
-    return `      <note>
-        <rest/>
-        <duration>${event.duration}</duration>
-        <voice>${voice}</voice>
-${renderDurationNotation(event.notation)}
-        <staff>${staff}</staff>
-      </note>`;
+    return hx(
+      "note",
+      hx("rest"),
+      hx("duration", event.duration),
+      hx("voice", voice),
+      ...renderDurationNotation(event.notation),
+      hx("staff", staff),
+    );
   }
 
   const pitch = midiPitchToMusicXml(event.pitch);
   // MusicXML uses <tie> for playback and <tied> for engraved notation, so each
   // model tie must be emitted in both forms.
-  const ties = [
-    event.tieStop ? '        <tie type="stop"/>' : "",
-    event.tieStart ? '        <tie type="start"/>' : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
   const tiedNotations = [
-    event.tieStop ? '          <tied type="stop"/>' : "",
-    event.tieStart ? '          <tied type="start"/>' : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+    event.tieStop && h("tied", { type: "stop" }),
+    event.tieStart && h("tied", { type: "start" }),
+  ];
   const technical =
-    staff === 2
-      ? `
-          <technical>
-            <string>${event.tabPosition.tabString}</string>
-            <fret>${event.tabPosition.fret}</fret>
-          </technical>`
-      : "";
-  const notations =
-    tiedNotations || technical
-      ? `
-        <notations>
-${tiedNotations}${technical}
-        </notations>`
-      : "";
+    staff === 2 &&
+    hx(
+      "technical",
+      hx("string", event.tabPosition.tabString),
+      hx("fret", event.tabPosition.fret),
+    );
 
-  return `      <note>
-        <pitch>
-          <step>${pitch.step}</step>${
-            pitch.alter
-              ? `
-          <alter>${pitch.alter}</alter>`
-              : ""
-          }
-          <octave>${pitch.octave}</octave>
-        </pitch>
-        <duration>${event.duration}</duration>${
-          ties
-            ? `
-${ties}`
-            : ""
-        }
-        <voice>${voice}</voice>
-${renderDurationNotation(event.notation)}
-        <staff>${staff}</staff>${notations}
-      </note>`;
+  return hx(
+    "note",
+    hx(
+      "pitch",
+      hx("step", pitch.step),
+      pitch.alter !== 0 && hx("alter", pitch.alter),
+      hx("octave", pitch.octave),
+    ),
+    hx("duration", event.duration),
+    event.tieStop && h("tie", { type: "stop" }),
+    event.tieStart && h("tie", { type: "start" }),
+    hx("voice", voice),
+    ...renderDurationNotation(event.notation),
+    hx("staff", staff),
+    (tiedNotations.some(Boolean) || technical) &&
+      hx("notations", ...tiedNotations, technical),
+  );
 }
 
-function renderDurationNotation(notation: DurationNotation): string {
-  return `        <type>${notation.type}</type>${"\n        <dot/>".repeat(notation.dots ?? 0)}${
-    notation.triplet
-      ? `
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>`
-      : ""
-  }`;
+function renderDurationNotation(notation: DurationNotation): XmlNode[] {
+  return [
+    hx("type", notation.type),
+    ...Array.from({ length: notation.dots ?? 0 }, () => hx("dot")),
+    notation.triplet &&
+      hx("time-modification", hx("actual-notes", 3), hx("normal-notes", 2)),
+  ];
 }
 
 function midiPitchToMusicXml(pitch: number): {
@@ -537,4 +522,67 @@ function midiPitchToMusicXml(pitch: number): {
   ] as const;
   const [step, alter] = pitchClasses[pitch % 12];
   return { step, alter, octave: Math.floor(pitch / 12) };
+}
+
+// xml hyperscript helpers
+
+type XmlNode = string | number | false | undefined | XmlElement;
+
+type XmlElement = {
+  tag: string;
+  attributes?: Record<string, string | number | undefined>;
+  children: XmlNode[];
+};
+
+function h(
+  tag: string,
+  attributes?: XmlElement["attributes"],
+  ...children: XmlNode[]
+): XmlElement {
+  return { tag, attributes, children };
+}
+
+function hx(tag: string, ...children: XmlNode[]): XmlElement {
+  return h(tag, undefined, ...children);
+}
+
+function renderXml(node: XmlNode, depth = 0): string {
+  if (node === false || node === undefined) {
+    return "";
+  }
+  if (typeof node === "string" || typeof node === "number") {
+    return escapeXml(String(node));
+  }
+  const indent = "  ".repeat(depth);
+  const attributes = Object.entries(node.attributes ?? {})
+    .filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined,
+    )
+    .map(([name, value]) => ` ${name}="${escapeXml(String(value))}"`)
+    .join("");
+  const children = node.children.filter(
+    (child) => child !== false && child !== undefined,
+  );
+  if (children.length === 0) {
+    return `${indent}<${node.tag}${attributes}/>`;
+  }
+  if (
+    children.every(
+      (child) => typeof child === "string" || typeof child === "number",
+    )
+  ) {
+    return `${indent}<${node.tag}${attributes}>${children.map((child) => renderXml(child)).join("")}</${node.tag}>`;
+  }
+  return `${indent}<${node.tag}${attributes}>
+${children.map((child) => renderXml(child, depth + 1)).join("\n")}
+${indent}</${node.tag}>`;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
 }
