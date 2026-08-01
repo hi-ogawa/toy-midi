@@ -14,7 +14,7 @@ const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 function makeNote(options: Partial<Note> = {}): Note {
   return {
     id: "note-1",
-    pitch: 33, // A1
+    pitch: 33, // A1, open A string
     start: 0,
     duration: 1,
     velocity: 100,
