@@ -12,6 +12,7 @@ import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
+import { exportMusicXml } from "../lib/musicxml-export";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -177,6 +178,25 @@ export function Settings({
     );
   };
 
+  const exportMusicXmlMutation = useMutation({
+    mutationFn: async () => {
+      const xml = exportMusicXml({
+        notes,
+        tempo,
+        timeSignature,
+        openStringPitches: tabOpenStringPitches,
+      });
+      const fileName = buildExportFileName({
+        baseName: projectName,
+        extension: ".musicxml",
+      });
+      downloadBlob(
+        new Blob([xml], { type: "application/vnd.recordare.musicxml+xml" }),
+        fileName,
+      );
+    },
+  });
+
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
       const projectData = toSavedProject(useProjectStore.getState());
@@ -340,6 +360,25 @@ export function Settings({
             <DownloadIcon className="size-4" />
             Export MIDI
           </Button>
+          <Button
+            data-testid="export-musicxml-button"
+            onClick={() => exportMusicXmlMutation.mutate()}
+            disabled={notes.length === 0 || exportMusicXmlMutation.isPending}
+            className="h-8 w-full justify-start gap-1.5 px-3 bg-background text-sm shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+          >
+            <DownloadIcon className="size-4" />
+            Export MusicXML
+          </Button>
+          {exportMusicXmlMutation.error && (
+            <p
+              data-testid="export-musicxml-error"
+              className="text-xs text-red-300"
+            >
+              {exportMusicXmlMutation.error instanceof Error
+                ? exportMusicXmlMutation.error.message
+                : "Failed to export MusicXML"}
+            </p>
+          )}
           <Button
             data-testid="export-project-button"
             onClick={() => exportProjectMutation.mutate()}
