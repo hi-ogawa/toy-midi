@@ -26,7 +26,6 @@ type EditorProps = {
 };
 
 export function Editor({ projectId, initialProjectName }: EditorProps) {
-  const [isPianoRollActive, setIsPianoRollActive] = useState(true);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
@@ -65,15 +64,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   });
 
   return (
-    <div
-      className="h-screen flex flex-col bg-neutral-900"
-      onPointerDownCapture={(e) => {
-        setIsPianoRollActive(
-          e.target instanceof Element &&
-            e.target.closest("[data-piano-roll]") !== null,
-        );
-      }}
-    >
+    <div className="h-screen flex flex-col bg-neutral-900">
       <Transport
         projectName={projectName}
         controls={
@@ -110,7 +101,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           </>
         }
       />
-      <PianoRoll isShortcutContextActive={isPianoRollActive} />
+      <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
       {isMixerOpen && (
         <FloatingPanel

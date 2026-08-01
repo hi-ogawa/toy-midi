@@ -107,11 +107,7 @@ type DragMode =
       currentY: number;
     };
 
-type PianoRollProps = {
-  isShortcutContextActive: boolean;
-};
-
-export function PianoRoll({ isShortcutContextActive }: PianoRollProps) {
+export function PianoRoll() {
   const {
     notes,
     selectedNoteIds,
@@ -174,7 +170,9 @@ export function PianoRoll({ isShortcutContextActive }: PianoRollProps) {
   const position = useAudio((state) => state.position);
 
   const gridRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const wasLastPointerDownInsideRef = useRef(true);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
 
   // Track viewport size
@@ -289,8 +287,13 @@ export function PianoRoll({ isShortcutContextActive }: PianoRollProps) {
   }, [stopPreviewNote]);
 
   // Handle keyboard events
+  useWindowEvent("pointerdown", (e) => {
+    wasLastPointerDownInsideRef.current =
+      e.target instanceof Node && rootRef.current?.contains(e.target) === true;
+  });
+
   useWindowEvent("keydown", (e) => {
-    if (!isShortcutContextActive) {
+    if (!wasLastPointerDownInsideRef.current) {
       return;
     }
 
@@ -937,7 +940,7 @@ export function PianoRoll({ isShortcutContextActive }: PianoRollProps) {
 
   return (
     <div
-      data-piano-roll
+      ref={rootRef}
       className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden"
     >
       {/* Main content area - fixed layout, no native scroll */}
