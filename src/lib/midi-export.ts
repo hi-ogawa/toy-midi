@@ -1,5 +1,6 @@
 import { Midi } from "@tonejs/midi";
 import { Note, TimeSignature } from "../types";
+import { downloadBlob } from "./export-utils";
 
 export interface MidiExportOptions {
   notes: Note[];
@@ -66,15 +67,5 @@ export function downloadMidiFile(midiData: Uint8Array, fileName: string): void {
   // Cast to any to avoid TypeScript issues with ArrayBufferLike vs ArrayBuffer
   const blob = new Blob([midiData as any], { type: "audio/midi" });
 
-  // Create a download link and trigger it
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // Clean up the URL
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, fileName);
 }

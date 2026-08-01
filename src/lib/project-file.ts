@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import { buildExportFileName } from "./export-utils";
+import { buildExportFileName, downloadBlob } from "./export-utils";
 import { projectStorage } from "./project-storage";
 import {
   type AnySavedProject,
@@ -127,14 +127,7 @@ export function downloadProjectFile(blob: Blob, projectName: string): void {
     extension: ".toymidi",
   });
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, fileName);
 }
 
 /**
