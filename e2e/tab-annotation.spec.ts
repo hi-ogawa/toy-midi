@@ -23,6 +23,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   const annotations = page.getByTestId("tab-annotation");
   await expect(annotations).toHaveCount(0);
 
+  // Enable annotations with the five-string bass tuning.
   await page.getByTestId("settings-button").click();
   await page.getByTestId("tab-annotation-toggle").check();
   await page
@@ -35,6 +36,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     (element) => getComputedStyle(element).backgroundColor,
   );
 
+  // Absolute assignment updates only notes playable on the requested string.
   await page.keyboard.press("3");
   await expect(annotations).toHaveText(["A15"]);
   expect(
@@ -48,6 +50,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     )
     .not.toBe(initialColor);
 
+  // Relative movement stops at the lowest string in the active tuning.
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["E20"]);
   await page.keyboard.press("ArrowDown");
@@ -55,6 +58,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["B25"]);
 
+  // Switching tuning invalidates manual strings that no longer exist.
   await page.getByTestId("settings-button").click();
   await page
     .getByTestId("tab-string-preset-select")
@@ -64,6 +68,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["D10"]);
 
+  // Returning to automatic assignment remains undoable and redoable.
   await page.keyboard.press("0");
   await expect(annotations).toHaveText(["G5"]);
   await page.keyboard.press("Control+z");
@@ -71,6 +76,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.keyboard.press("Control+Shift+z");
   await expect(annotations).toHaveText(["G5"]);
 
+  // Manual assignments survive copy and paste.
   await page.getByTestId("settings-button").click();
   await page
     .getByTestId("tab-string-preset-select")
@@ -86,6 +92,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   );
   expect(copiedStrings).toEqual([5, 5, 5, 5]);
 
+  // Annotation settings and note assignments persist across reload.
   await evaluateFlushAutoSave(page);
   await page.reload();
   await waitForEditor(page);
