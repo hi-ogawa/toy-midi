@@ -289,6 +289,8 @@ export function exportMusicXml({
     openStringPitches,
   });
 
+  // TODO: Add optional <work-title> and <part-name> metadata when export naming
+  // is designed. Both are intentionally omitted for now.
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
@@ -311,7 +313,6 @@ ${measures
 `;
 }
 
-// TODO: Add optional work and part names when export naming is designed.
 // TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument data
 // instead of hard-coding Electric Bass when non-bass export is supported.
 function renderPartList(): string {
