@@ -15,8 +15,8 @@ function makeNote(options: Partial<Note> = {}): Note {
   return {
     id: "note-1",
     pitch: 33, // A1, open A string
-    start: 0,
-    duration: 1,
+    start: 0, // Beat 0
+    duration: 1, // Quarter note
     velocity: 100,
     ...options,
   };
