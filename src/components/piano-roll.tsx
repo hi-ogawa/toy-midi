@@ -1103,16 +1103,8 @@ export function PianoRoll() {
                 scrollX={scrollX}
                 scrollY={scrollY}
                 edgeThreshold={edgeThreshold}
+                tabAnnotationEnabled={tabAnnotationEnabled}
                 tabOpenStringPitches={tabOpenStringPitches}
-                annotation={
-                  tabAnnotationEnabled
-                    ? resolveTabPosition({
-                        pitch: note.pitch,
-                        openStringPitches: tabOpenStringPitches,
-                        tabString: note.tabString,
-                      })
-                    : undefined
-                }
               />
             ))}
             {/* Preview note while creating */}
@@ -1629,8 +1621,8 @@ function NoteDiv({
   scrollX,
   scrollY,
   edgeThreshold,
+  tabAnnotationEnabled,
   tabOpenStringPitches,
-  annotation,
 }: {
   note: Note;
   selected: boolean;
@@ -1639,13 +1631,20 @@ function NoteDiv({
   scrollX: number;
   scrollY: number;
   edgeThreshold: number;
+  tabAnnotationEnabled: boolean;
   tabOpenStringPitches: number[];
-  annotation?: { string: number; fret: number };
 }) {
   // Convert note position to screen coordinates
   const x = (note.start - scrollX) * pixelsPerBeat;
   const y = (MAX_PITCH - scrollY - note.pitch) * pixelsPerKey;
   const width = note.duration * pixelsPerBeat;
+  const annotation = tabAnnotationEnabled
+    ? resolveTabPosition({
+        pitch: note.pitch,
+        openStringPitches: tabOpenStringPitches,
+        tabString: note.tabString,
+      })
+    : undefined;
   const tabStringColor = annotation
     ? getTabStringColor(annotation.string)
     : undefined;
