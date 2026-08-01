@@ -28,9 +28,18 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.getByTestId("tab-string-setup-select").selectOption("fiveString");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
+  const highNote = page.getByTestId("note-high");
+  const initialColor = await highNote.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
 
   await page.keyboard.press("3");
   await expect(annotations).toHaveText(["A15", "A9"]);
+  await expect
+    .poll(() =>
+      highNote.evaluate((element) => getComputedStyle(element).backgroundColor),
+    )
+    .not.toBe(initialColor);
 
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["E20", "E14"]);

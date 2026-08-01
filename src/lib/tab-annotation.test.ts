@@ -3,6 +3,7 @@ import {
   formatTabPosition,
   getFret,
   getPlayableStrings,
+  getTabStringColor,
   moveTabString,
   resolveTabPosition,
   TAB_OPEN_STRING_PRESETS,
@@ -12,6 +13,16 @@ const FOUR_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fourString;
 const FIVE_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fiveString;
 
 describe("tab annotation positions", () => {
+  it("assigns a distinct color to each string", () => {
+    const colors = Array.from({ length: 5 }, (_, index) =>
+      getTabStringColor(index + 1),
+    );
+
+    expect(colors.every(Boolean)).toBe(true);
+    expect(new Set(colors.map((color) => color?.background)).size).toBe(5);
+    expect(getTabStringColor(6)).toBeUndefined();
+  });
+
   it.each([
     { position: { string: 1 as const, fret: 5 }, label: "G5" },
     { position: { string: 4 as const, fret: 12 }, label: "E12" },

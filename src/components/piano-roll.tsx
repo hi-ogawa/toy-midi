@@ -32,7 +32,11 @@ import {
   secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
-import { formatTabPosition, resolveTabPosition } from "../lib/tab-annotation";
+import {
+  formatTabPosition,
+  getTabStringColor,
+  resolveTabPosition,
+} from "../lib/tab-annotation";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
@@ -1638,6 +1642,9 @@ function NoteDiv({
   const x = (note.start - scrollX) * pixelsPerBeat;
   const y = (MAX_PITCH - scrollY - note.pitch) * pixelsPerKey;
   const width = note.duration * pixelsPerBeat;
+  const tabStringColor = annotation
+    ? getTabStringColor(annotation.string)
+    : undefined;
 
   // Handle extends edgeThreshold on each side of edge (matching detection zone)
   const handleWidth = Math.round(edgeThreshold * 2);
@@ -1652,17 +1659,21 @@ function NoteDiv({
         top: y + 1,
         width,
         height: pixelsPerKey - 2,
-        backgroundColor: selected ? "#60a5fa" : "#3b82f6",
-        border: `${selected ? 2 : 1}px solid ${selected ? "#93c5fd" : "#2563eb"}`,
+        backgroundColor:
+          tabStringColor?.background ?? (selected ? "#60a5fa" : "#3b82f6"),
+        border: `1px solid ${tabStringColor?.border ?? "#2563eb"}`,
+        outline: selected ? "2px solid #dbeafe" : undefined,
+        outlineOffset: selected ? "-2px" : undefined,
         boxSizing: "border-box",
       }}
     >
       {annotation && (
         <span
           data-testid="tab-annotation"
-          className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none text-blue-950 pointer-events-none"
+          className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none pointer-events-none"
           style={{
             fontSize: Math.max(7, Math.min(14, pixelsPerKey * 0.55)),
+            color: tabStringColor?.text,
           }}
         >
           {formatTabPosition({

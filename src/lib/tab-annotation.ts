@@ -3,6 +3,14 @@ export const TAB_OPEN_STRING_PRESETS = {
   fiveString: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
 } as const;
 
+const TAB_STRING_COLORS = [
+  { background: "#06b6d4", border: "#0891b2", text: "#083344" },
+  { background: "#22c55e", border: "#16a34a", text: "#052e16" },
+  { background: "#eab308", border: "#ca8a04", text: "#422006" },
+  { background: "#f97316", border: "#ea580c", text: "#431407" },
+  { background: "#a855f7", border: "#9333ea", text: "#2e1065" },
+] as const;
+
 const PITCH_CLASS_NAMES = [
   "C",
   "C#",
@@ -22,6 +30,10 @@ export type TabPosition = {
   string: number;
   fret: number;
 };
+
+export function getTabStringColor(string: number) {
+  return TAB_STRING_COLORS[string - 1];
+}
 
 export function formatTabPosition({
   position,
