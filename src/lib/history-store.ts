@@ -1,5 +1,7 @@
 import type { Note } from "../types";
 
+export type NoteChanges = Partial<Omit<Note, "id">>;
+
 // History entry types for different operations
 type HistoryEntry =
   | {
@@ -18,8 +20,8 @@ type HistoryEntry =
       type: "update-notes";
       updates: Array<{
         id: string;
-        before: Partial<Omit<Note, "id">>;
-        after: Partial<Omit<Note, "id">>;
+        before: NoteChanges;
+        after: NoteChanges;
       }>;
     }
   | {

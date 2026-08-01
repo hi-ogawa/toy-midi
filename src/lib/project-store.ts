@@ -7,7 +7,7 @@ import {
   type TimeSignature,
 } from "../types";
 import type { AudioView } from "./audio-view";
-import { historyStore } from "./history-store";
+import { historyStore, type NoteChanges } from "./history-store";
 import { snapToGrid } from "./music";
 import {
   getFret,
@@ -18,7 +18,7 @@ import {
 
 type NoteUpdate = {
   id: string;
-  changes: Partial<Omit<Note, "id">>;
+  changes: NoteChanges;
 };
 
 export interface ProjectState {
@@ -69,7 +69,7 @@ export interface ProjectState {
 
   // Actions
   addNote: (note: Note) => void;
-  updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
+  updateNote: (id: string, updates: NoteChanges) => void;
   updateNotes: (updates: NoteUpdate[]) => void; // Batch update for history tracking
   deleteNotes: (ids: string[]) => void;
   replaceAllNotes: (notes: Note[]) => void; // Single undoable operation
@@ -166,10 +166,7 @@ export function generateAudioTrackId(): string {
   return `audio-${crypto.randomUUID()}`;
 }
 
-function getPreviousNoteValues(
-  note: Note,
-  changes: Partial<Omit<Note, "id">>,
-): Partial<Omit<Note, "id">> {
+function getPreviousNoteValues(note: Note, changes: NoteChanges): NoteChanges {
   return (Object.keys(changes) as (keyof typeof changes)[]).reduce(
     (values, key) => ({ ...values, [key]: note[key] }),
     {},
@@ -323,10 +320,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   quantizeSelectedNotes: () => {
     const state = get();
     const gridSize = GRID_SNAP_VALUES[state.gridSnap];
-    const updates: {
-      id: string;
-      changes: Partial<Omit<Note, "id">>;
-    }[] = [];
+    const updates: NoteUpdate[] = [];
     for (const note of state.notes) {
       if (!state.selectedNoteIds.has(note.id)) {
         continue;
