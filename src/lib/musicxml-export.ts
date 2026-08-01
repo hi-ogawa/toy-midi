@@ -12,12 +12,15 @@ import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 const DIVISIONS = 12;
 const EPSILON = 1e-6;
 
-type MusicXmlExportOptions = {
+export type MusicXmlModelOptions = {
   notes: Note[];
-  tempo: number;
   timeSignature: TimeSignature;
-  name: string;
   openStringPitches: readonly number[];
+};
+
+export type MusicXmlExportOptions = MusicXmlModelOptions & {
+  tempo: number;
+  name: string;
 };
 
 type QuantizedNote = {
@@ -72,10 +75,7 @@ export function buildMusicXmlModel({
   notes,
   timeSignature,
   openStringPitches,
-}: Pick<
-  MusicXmlExportOptions,
-  "notes" | "timeSignature" | "openStringPitches"
->): {
+}: MusicXmlModelOptions): {
   measureDuration: number;
   measures: MusicXmlMeasureEvent[][];
 } {

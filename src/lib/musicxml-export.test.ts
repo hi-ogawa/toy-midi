@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "../types";
-import { buildMusicXmlModel, exportMusicXml } from "./musicxml-export";
+import {
+  buildMusicXmlModel,
+  exportMusicXml,
+  type MusicXmlExportOptions,
+  type MusicXmlModelOptions,
+} from "./musicxml-export";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
@@ -19,7 +24,7 @@ function makeNote(options: Partial<Note> = {}): Note {
 
 function exportNotes(
   notes: Note[],
-  options: Partial<Parameters<typeof exportMusicXml>[0]> = {},
+  options: Partial<MusicXmlExportOptions> = {},
 ): string {
   return exportMusicXml({
     notes,
@@ -33,7 +38,7 @@ function exportNotes(
 
 function buildModel(
   notes: Note[],
-  options: Partial<Parameters<typeof buildMusicXmlModel>[0]> = {},
+  options: Partial<MusicXmlModelOptions> = {},
 ) {
   return buildMusicXmlModel({
     notes,
