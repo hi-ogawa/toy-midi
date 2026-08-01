@@ -306,6 +306,10 @@ export function PianoRoll() {
       selectLocator(undefined);
       selectAudioTrack(undefined);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
+      // Let the browser copy selected UI text, such as help overlay content.
+      if (window.getSelection()?.isCollapsed === false) {
+        return;
+      }
       // Ctrl+C: Copy
       e.preventDefault();
       copyNotes();
