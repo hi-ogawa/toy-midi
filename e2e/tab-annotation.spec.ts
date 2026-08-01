@@ -26,7 +26,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.getByTestId("settings-button").click();
   await page.getByTestId("tab-annotation-toggle").check();
   await page
-    .getByTestId("tab-string-setup-select")
+    .getByTestId("tab-string-preset-select")
     .selectOption("fiveStringBass");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
@@ -52,7 +52,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
 
   await page.getByTestId("settings-button").click();
   await page
-    .getByTestId("tab-string-setup-select")
+    .getByTestId("tab-string-preset-select")
     .selectOption("fourStringBass");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
@@ -68,7 +68,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
 
   await page.getByTestId("settings-button").click();
   await page
-    .getByTestId("tab-string-setup-select")
+    .getByTestId("tab-string-preset-select")
     .selectOption("fiveStringBass");
   await page.getByRole("button", { name: "Close" }).click();
   await page.keyboard.press("5");

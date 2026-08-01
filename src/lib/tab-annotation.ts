@@ -39,11 +39,11 @@ export type TabPosition = {
   fret: number;
 };
 
-export function resolveTabStringSetup(openStringPitches: readonly number[]) {
+export function resolveTabStringPreset(openStringPitches: readonly number[]) {
   return TAB_STRING_PRESETS.find(
-    (setup) =>
-      setup.openStringPitches.length === openStringPitches.length &&
-      setup.openStringPitches.every(
+    (preset) =>
+      preset.openStringPitches.length === openStringPitches.length &&
+      preset.openStringPitches.every(
         (pitch, index) => pitch === openStringPitches[index],
       ),
   );

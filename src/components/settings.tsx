@@ -22,7 +22,7 @@ import {
   useProjectStore,
 } from "../lib/project-store";
 import {
-  resolveTabStringSetup,
+  resolveTabStringPreset,
   TAB_STRING_PRESETS,
 } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
@@ -237,19 +237,19 @@ export function Settings({
             </label>
             <select
               aria-label="Tuning"
-              data-testid="tab-string-setup-select"
-              value={resolveTabStringSetup(tabOpenStringPitches)?.id}
+              data-testid="tab-string-preset-select"
+              value={resolveTabStringPreset(tabOpenStringPitches)?.id}
               onChange={(e) => {
-                const setup = TAB_STRING_PRESETS.find(
+                const preset = TAB_STRING_PRESETS.find(
                   ({ id }) => id === e.target.value,
                 )!;
-                setTabOpenStringPitches([...setup.openStringPitches]);
+                setTabOpenStringPitches([...preset.openStringPitches]);
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              {TAB_STRING_PRESETS.map((setup) => (
-                <option key={setup.id} value={setup.id}>
-                  {setup.label}
+              {TAB_STRING_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.label}
                 </option>
               ))}
             </select>
