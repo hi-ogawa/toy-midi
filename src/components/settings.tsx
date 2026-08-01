@@ -221,50 +221,54 @@ export function Settings({
       </section>
 
       <section className="space-y-2 border-t border-neutral-700 pt-5">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-          Audio Sources
-        </h3>
-        <div className="overflow-hidden rounded-md border border-neutral-600">
-          {audioTracks.map((track) => (
-            <div
-              key={track.id}
-              className="flex items-center gap-2 border-b border-neutral-600 p-2"
-            >
-              <div className="flex-1 text-sm text-neutral-200 truncate">
-                {track.fileName}
-              </div>
-              <Button
-                data-testid="audio-to-midi-button"
-                onClick={() => onAudioToMidiClick(track.id)}
-                title={`Transcribe ${track.fileName} to MIDI notes`}
-                className="h-7 gap-1.5 px-2 bg-background text-xs shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-              >
-                <SparklesIcon className="size-4" />
-                To MIDI
-              </Button>
-              <Button
-                data-testid="remove-audio-button"
-                onClick={() => handleRemoveAudio(track)}
-                title={`Remove ${track.fileName}`}
-                className="h-7 gap-1.5 px-2 bg-background text-xs shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-              >
-                <Trash2Icon className="size-4" />
-                Remove
-              </Button>
-            </div>
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            Audio Sources
+          </h3>
           <FileDropInput
             accept="audio/*,.zip,application/zip"
             data-testid="load-audio-button"
             disabled={loadAudioMutation.isPending}
             inputProps={{ "data-testid": "audio-file-input" }}
-            className="h-8 w-full justify-start gap-1.5 rounded-none border-0 px-3 bg-background text-sm text-neutral-300 shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:hover:bg-input/50 disabled:opacity-50"
+            className="h-7 gap-1.5 px-2 bg-background text-xs text-neutral-300 shadow-xs hover:bg-accent hover:text-accent-foreground data-[drag-over=true]:border-emerald-500/60 data-[drag-over=true]:bg-emerald-950/30 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 disabled:opacity-50"
             onFile={(file) => loadAudioMutation.mutate(file)}
           >
             <UploadIcon className="size-4" />
-            {loadAudioMutation.isPending ? "Loading..." : "Add Audio Source"}
+            {loadAudioMutation.isPending ? "Loading..." : "Add audio"}
           </FileDropInput>
         </div>
+        {audioTracks.length > 0 && (
+          <div className="overflow-hidden rounded-md border border-neutral-600">
+            {audioTracks.map((track) => (
+              <div
+                key={track.id}
+                className="flex items-center gap-2 border-b border-neutral-600 p-2 last:border-b-0"
+              >
+                <div className="flex-1 text-sm text-neutral-200 truncate">
+                  {track.fileName}
+                </div>
+                <Button
+                  data-testid="audio-to-midi-button"
+                  onClick={() => onAudioToMidiClick(track.id)}
+                  title={`Transcribe ${track.fileName} to MIDI notes`}
+                  className="h-7 gap-1.5 px-2 bg-background text-xs shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                >
+                  <SparklesIcon className="size-4" />
+                  To MIDI
+                </Button>
+                <Button
+                  data-testid="remove-audio-button"
+                  onClick={() => handleRemoveAudio(track)}
+                  title={`Remove ${track.fileName}`}
+                  className="h-7 gap-1.5 px-2 bg-background text-xs shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                >
+                  <Trash2Icon className="size-4" />
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-2 border-t border-neutral-700 pt-5">
