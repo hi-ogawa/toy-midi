@@ -50,11 +50,20 @@ function buildModel(
 
 describe("MusicXML export", () => {
   it("exports synchronized standard and five-string TAB staves", async () => {
-    const xml = exportNotes([makeNote({ tabString: 4 })]);
+    const xml = exportNotes([makeNote()]);
 
     await expect(xml).toMatchFileSnapshot(
       "__snapshots__/five-string-tab.musicxml",
     );
+  });
+
+  it("preserves an explicit TAB string assignment", () => {
+    const model = buildModel([makeNote({ tabString: 4 })]);
+
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      tabPosition: { tabString: 4, fret: 5 },
+    });
   });
 
   it("splits notes at bar lines and ties the pieces", () => {
