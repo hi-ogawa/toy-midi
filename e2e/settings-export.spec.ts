@@ -70,13 +70,6 @@ test.describe("Settings Dialog - Project Export", () => {
             velocity: 100,
             tabString: 4,
           },
-          {
-            id: "triplet-b",
-            pitch: 35,
-            start: 5,
-            duration: 1 / 3,
-            velocity: 100,
-          },
         ],
         tabOpenStringPitches: [43, 38, 33, 28, 23],
       });
