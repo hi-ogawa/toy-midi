@@ -182,6 +182,7 @@ function buildMeasureEvents({
   let cursor = measureStart;
 
   for (const note of notes) {
+    // Clip the assigned note to this measure.
     const noteStart = Math.max(note.start, measureStart);
     const noteEnd = Math.min(note.end, measureEnd);
 
@@ -199,7 +200,7 @@ function buildMeasureEvents({
       );
     }
 
-    // Clip the note to this measure and split it into notatable tied pieces.
+    // Split the clipped note into notatable tied pieces.
     let pieceStart = noteStart;
     for (const piece of splitDuration({
       start: noteStart - measureStart,
