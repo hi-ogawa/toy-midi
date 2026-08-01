@@ -27,7 +27,7 @@ type QuantizedNote = {
   tabPosition: TabPosition;
 };
 
-type MeasureEvent =
+export type MusicXmlMeasureEvent =
   | { type: "rest"; duration: number; notation: DurationNotation }
   | {
       type: "note";
@@ -67,13 +67,18 @@ const DURATION_CANDIDATES: DurationCandidate[] = [
   { duration: 1, alignment: 1, type: "32nd", triplet: true },
 ];
 
-export function exportMusicXml({
+// Model preprocessing
+export function buildMusicXmlModel({
   notes,
-  tempo,
   timeSignature,
-  name,
   openStringPitches,
-}: MusicXmlExportOptions): string {
+}: Pick<
+  MusicXmlExportOptions,
+  "notes" | "timeSignature" | "openStringPitches"
+>): {
+  measureDuration: number;
+  measures: MusicXmlMeasureEvent[][];
+} {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
   }
@@ -87,54 +92,16 @@ export function exportMusicXml({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
-  const measures = Array.from({ length: measureCount }, (_, index) =>
-    buildMeasureEvents({
-      notes: quantizedNotes,
-      measureStart: index * measureDuration,
-      measureDuration,
-    }),
-  );
-
-  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
-<score-partwise version="4.0">
-  <work>
-    <work-title>${escapeXml(name)}</work-title>
-  </work>
-${renderPartList(openStringPitches.length)}
-  <part id="P1">
-${measures
-  .map((events, index) =>
-    renderMeasure({
-      events,
-      index,
-      measureDuration,
-      tempo,
-      timeSignature,
-      openStringPitches,
-    }),
-  )
-  .join("\n")}
-  </part>
-</score-partwise>
-`;
-}
-
-// TODO: Generalize part metadata when MusicXML export supports non-bass instruments.
-function renderPartList(stringCount: number): string {
-  return `  <part-list>
-    <score-part id="P1">
-      <part-name>${stringCount}-string Bass</part-name>
-      <score-instrument id="P1-I1">
-        <instrument-name>${stringCount}-string Electric Bass</instrument-name>
-        <instrument-sound>pluck.bass.electric</instrument-sound>
-      </score-instrument>
-      <midi-instrument id="P1-I1">
-        <midi-channel>1</midi-channel>
-        <midi-program>34</midi-program>
-      </midi-instrument>
-    </score-part>
-  </part-list>`;
+  return {
+    measureDuration,
+    measures: Array.from({ length: measureCount }, (_, index) =>
+      buildMeasureEvents({
+        notes: quantizedNotes,
+        measureStart: index * measureDuration,
+        measureDuration,
+      }),
+    ),
+  };
 }
 
 function prepareNotes({
@@ -189,9 +156,9 @@ function buildMeasureEvents({
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
-}): MeasureEvent[] {
+}): MusicXmlMeasureEvent[] {
   const measureEnd = measureStart + measureDuration;
-  const events: MeasureEvent[] = [];
+  const events: MusicXmlMeasureEvent[] = [];
   let cursor = measureStart;
 
   for (const note of notes) {
@@ -282,6 +249,83 @@ function splitDuration({
   return result;
 }
 
+function toGridUnits(value: number, label: string): number {
+  const units = Math.round(value * DIVISIONS);
+  if (Math.abs(value * DIVISIONS - units) > EPSILON) {
+    throw new Error(`${label} is not aligned to a supported grid`);
+  }
+  return units;
+}
+
+function validateOpenStringPitches(pitches: readonly number[]): void {
+  if (pitches.length === 0) {
+    throw new Error("Add at least one open string before exporting MusicXML");
+  }
+  if (
+    pitches.some(
+      (pitch) => !Number.isInteger(pitch) || pitch < 0 || pitch > 127,
+    )
+  ) {
+    throw new Error("Open-string pitches must be MIDI note numbers");
+  }
+}
+
+// XML serialization
+export function exportMusicXml({
+  notes,
+  tempo,
+  timeSignature,
+  name,
+  openStringPitches,
+}: MusicXmlExportOptions): string {
+  const { measureDuration, measures } = buildMusicXmlModel({
+    notes,
+    timeSignature,
+    openStringPitches,
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+  <work>
+    <work-title>${escapeXml(name)}</work-title>
+  </work>
+${renderPartList(openStringPitches.length)}
+  <part id="P1">
+${measures
+  .map((events, index) =>
+    renderMeasure({
+      events,
+      index,
+      measureDuration,
+      tempo,
+      timeSignature,
+      openStringPitches,
+    }),
+  )
+  .join("\n")}
+  </part>
+</score-partwise>
+`;
+}
+
+// TODO: Generalize part metadata when MusicXML export supports non-bass instruments.
+function renderPartList(stringCount: number): string {
+  return `  <part-list>
+    <score-part id="P1">
+      <part-name>${stringCount}-string Bass</part-name>
+      <score-instrument id="P1-I1">
+        <instrument-name>${stringCount}-string Electric Bass</instrument-name>
+        <instrument-sound>pluck.bass.electric</instrument-sound>
+      </score-instrument>
+      <midi-instrument id="P1-I1">
+        <midi-channel>1</midi-channel>
+        <midi-program>34</midi-program>
+      </midi-instrument>
+    </score-part>
+  </part-list>`;
+}
+
 function renderMeasure({
   events,
   index,
@@ -290,7 +334,7 @@ function renderMeasure({
   timeSignature,
   openStringPitches,
 }: {
-  events: MeasureEvent[];
+  events: MusicXmlMeasureEvent[];
   index: number;
   measureDuration: number;
   tempo: number;
@@ -369,7 +413,7 @@ ${tuning
         </staff-details>`;
 }
 
-function renderEvent(event: MeasureEvent, staff: 1 | 2): string {
+function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): string {
   if (event.type === "rest") {
     return `      <note>
         <rest/>
@@ -464,27 +508,6 @@ function midiPitchToMusicXml(pitch: number): {
   ] as const;
   const [step, alter] = pitchClasses[pitch % 12];
   return { step, alter, octave: Math.floor(pitch / 12) };
-}
-
-function toGridUnits(value: number, label: string): number {
-  const units = Math.round(value * DIVISIONS);
-  if (Math.abs(value * DIVISIONS - units) > EPSILON) {
-    throw new Error(`${label} is not aligned to a supported grid`);
-  }
-  return units;
-}
-
-function validateOpenStringPitches(pitches: readonly number[]): void {
-  if (pitches.length === 0) {
-    throw new Error("Add at least one open string before exporting MusicXML");
-  }
-  if (
-    pitches.some(
-      (pitch) => !Number.isInteger(pitch) || pitch < 0 || pitch > 127,
-    )
-  ) {
-    throw new Error("Open-string pitches must be MIDI note numbers");
-  }
 }
 
 function escapeXml(value: string): string {

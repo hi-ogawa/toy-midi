@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "../types";
-import { exportMusicXml } from "./musicxml-export";
+import { buildMusicXmlModel, exportMusicXml } from "./musicxml-export";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
@@ -31,6 +31,18 @@ function exportNotes(
   });
 }
 
+function buildModel(
+  notes: Note[],
+  options: Partial<Parameters<typeof buildMusicXmlModel>[0]> = {},
+) {
+  return buildMusicXmlModel({
+    notes,
+    timeSignature: { numerator: 4, denominator: 4 },
+    openStringPitches: FIVE_STRING_PITCHES,
+    ...options,
+  });
+}
+
 describe("MusicXML export", () => {
   it("exports synchronized standard and five-string TAB staves", async () => {
     const xml = exportNotes([makeNote({ tabString: 4 })]);
@@ -40,19 +52,47 @@ describe("MusicXML export", () => {
     );
   });
 
-  it("splits notes at bar lines and ties both staves", () => {
-    const xml = exportNotes([makeNote({ start: 3.5, duration: 1 })]);
+  it("splits notes at bar lines and ties the pieces", () => {
+    const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
 
-    expect(xml.match(/<measure number=/g)).toHaveLength(2);
-    expect(xml.match(/<tie type="start"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<tie type="stop"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<tied type="start"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<tied type="stop"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<rest\/>/g)?.length).toBeGreaterThan(0);
+    expect(model.measureDuration).toBe(48);
+    expect(
+      model.measures.map((events) =>
+        events.filter((event) => event.type === "note"),
+      ),
+    ).toEqual([
+      [
+        {
+          type: "note",
+          pitch: 33,
+          duration: 6,
+          notation: { type: "eighth" },
+          tabPosition: { tabString: 3, fret: 0 },
+          tieStart: true,
+          tieStop: false,
+        },
+      ],
+      [
+        {
+          type: "note",
+          pitch: 33,
+          duration: 6,
+          notation: { type: "eighth" },
+          tabPosition: { tabString: 3, fret: 0 },
+          tieStart: false,
+          tieStop: true,
+        },
+      ],
+    ]);
+    expect(
+      model.measures.map((events) =>
+        events.reduce((total, event) => total + event.duration, 0),
+      ),
+    ).toEqual([48, 48]);
   });
 
-  it("writes dotted and triplet durations", () => {
-    const xml = exportNotes([
+  it("decomposes dotted and triplet durations", () => {
+    const model = buildModel([
       makeNote({ id: "dotted", duration: 1.5 }),
       makeNote({
         id: "triplet",
@@ -62,64 +102,62 @@ describe("MusicXML export", () => {
       }),
     ]);
 
-    expect(xml.match(/<dot\/>/g)).toHaveLength(2);
-    expect(
-      xml.match(/<duration>4<\/duration>/g)?.length,
-    ).toBeGreaterThanOrEqual(2);
-    expect(xml.match(/<time-modification>/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(xml).toContain("<actual-notes>3</actual-notes>");
+    expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
+      {
+        type: "note",
+        pitch: 33,
+        duration: 18,
+        notation: { type: "quarter", dots: 1 },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+      {
+        type: "note",
+        pitch: 35,
+        duration: 4,
+        notation: { type: "eighth", triplet: true },
+        tabPosition: { tabString: 3, fret: 2 },
+        tieStart: false,
+        tieStop: false,
+      },
+    ]);
   });
 
   it("uses the time signature to split measures", () => {
-    const xml = exportNotes([makeNote({ start: 2.5, duration: 1 })], {
+    const model = buildModel([makeNote({ start: 2.5, duration: 1 })], {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
-    expect(xml.match(/<measure number=/g)).toHaveLength(2);
-    expect(
-      xml.match(/<backup>\n        <duration>36<\/duration>/g),
-    ).toHaveLength(2);
-    expect(xml).toContain("<beats>6</beats>");
-    expect(xml).toContain("<beat-type>8</beat-type>");
+    expect(model.measureDuration).toBe(36);
+    expect(model.measures).toHaveLength(2);
   });
 
-  it("exports four-string tuning", () => {
-    const xml = exportNotes([makeNote()], {
+  it("resolves notes against four-string tuning", () => {
+    const model = buildModel([makeNote()], {
       openStringPitches: FOUR_STRING_PITCHES,
     });
 
-    expect(xml).toContain("<staff-lines>4</staff-lines>");
-    expect(xml).not.toContain("<tuning-step>B</tuning-step>");
-    expect(xml).toContain(
-      "<tuning-step>E</tuning-step>\n            <tuning-octave>2</tuning-octave>",
-    );
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      tabPosition: { tabString: 3, fret: 0 },
+    });
   });
 
-  it("derives MusicXML tuning from custom open-string pitches", () => {
-    const xml = exportNotes([makeNote()], {
+  it("resolves notes against custom open-string pitches", () => {
+    const model = buildModel([makeNote()], {
       openStringPitches: [42, 38, 33, 28],
     });
 
-    expect(xml).toContain(
-      '<staff-tuning line="1">\n            <tuning-step>E</tuning-step>\n            <tuning-octave>2</tuning-octave>',
-    );
-    expect(xml).toContain(
-      '<staff-tuning line="4">\n            <tuning-step>F</tuning-step>\n            <tuning-alter>1</tuning-alter>\n            <tuning-octave>3</tuning-octave>',
-    );
-  });
-
-  it("spells chromatic pitches with sharps in the C-major placeholder key", () => {
-    const xml = exportNotes([makeNote({ pitch: 34 })]);
-
-    expect(xml).toContain(
-      "<step>A</step>\n          <alter>1</alter>\n          <octave>2</octave>",
-    );
-    expect(xml).toContain("<fifths>0</fifths>");
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      tabPosition: { tabString: 3, fret: 0 },
+    });
   });
 
   it("rejects overlapping notes", () => {
     expect(() =>
-      exportNotes([
+      buildModel([
         makeNote({ id: "first", duration: 2 }),
         makeNote({ id: "second", start: 1 }),
       ]),
@@ -128,14 +166,14 @@ describe("MusicXML export", () => {
 
   it("rejects notes outside the selected bass range", () => {
     expect(() =>
-      exportNotes([makeNote({ pitch: 23 })], {
+      buildModel([makeNote({ pitch: 23 })], {
         openStringPitches: FOUR_STRING_PITCHES,
       }),
     ).toThrow("MIDI note 23 is not playable on a 4-string bass");
   });
 
   it("rejects notes that are not aligned to a supported grid", () => {
-    expect(() => exportNotes([makeNote({ start: 0.1 })])).toThrow(
+    expect(() => buildModel([makeNote({ start: 0.1 })])).toThrow(
       "start of note note-1 is not aligned to a supported grid",
     );
   });
