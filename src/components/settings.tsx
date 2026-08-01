@@ -23,7 +23,7 @@ import {
 } from "../lib/project-store";
 import {
   resolveTabStringSetup,
-  TAB_STRING_SETUPS,
+  TAB_STRING_PRESETS,
 } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
@@ -240,14 +240,14 @@ export function Settings({
               data-testid="tab-string-setup-select"
               value={resolveTabStringSetup(tabOpenStringPitches)?.id}
               onChange={(e) => {
-                const setup = TAB_STRING_SETUPS.find(
+                const setup = TAB_STRING_PRESETS.find(
                   ({ id }) => id === e.target.value,
                 )!;
                 setTabOpenStringPitches([...setup.openStringPitches]);
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              {TAB_STRING_SETUPS.map((setup) => (
+              {TAB_STRING_PRESETS.map((setup) => (
                 <option key={setup.id} value={setup.id}>
                   {setup.label}
                 </option>

@@ -7,31 +7,30 @@ import {
   moveTabString,
   resolveTabPosition,
   resolveTabStringSetup,
-  TAB_OPEN_STRING_PRESETS,
-  TAB_STRING_SETUPS,
+  TAB_STRING_PRESETS,
 } from "./tab-annotation";
 
-const FOUR_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fourString;
-const FIVE_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fiveString;
+const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
+const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 
 describe("tab annotation positions", () => {
   it("maps setup definitions to their exact open pitches", () => {
     expect(
-      TAB_STRING_SETUPS.map((setup) => ({
+      TAB_STRING_PRESETS.map((setup) => ({
         id: setup.id,
         label: setup.label,
         resolvedId: resolveTabStringSetup(setup.openStringPitches)?.id,
       })),
     ).toEqual([
       {
-        id: "fourString",
+        id: "fourStringBass",
         label: "4-string bass (EADG)",
-        resolvedId: "fourString",
+        resolvedId: "fourStringBass",
       },
       {
-        id: "fiveString",
+        id: "fiveStringBass",
         label: "5-string bass (BEADG)",
-        resolvedId: "fiveString",
+        resolvedId: "fiveStringBass",
       },
     ]);
     expect(resolveTabStringSetup([43, 38, 33, 27])).toBeUndefined();

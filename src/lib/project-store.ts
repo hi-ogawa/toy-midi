@@ -13,7 +13,7 @@ import {
   getFret,
   moveTabString,
   resolveTabPosition,
-  TAB_OPEN_STRING_PRESETS,
+  TAB_STRING_PRESETS,
 } from "./tab-annotation";
 
 export interface ProjectState {
@@ -179,7 +179,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   gridSnap: "1/8",
   clipboard: [], // Clipboard for copied notes (not persisted to storage)
   tabAnnotationEnabled: false,
-  tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
+  tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -728,7 +728,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
   tabAnnotationEnabled: false,
-  tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
+  tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
   locators: [],
   audioTracks: [],
   masterVolume: 1,

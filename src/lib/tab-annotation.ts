@@ -1,18 +1,13 @@
-export const TAB_OPEN_STRING_PRESETS = {
-  fourString: [43, 38, 33, 28], // G2 D2 A1 E1
-  fiveString: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
-} as const;
-
-export const TAB_STRING_SETUPS = [
+export const TAB_STRING_PRESETS = [
   {
-    id: "fourString",
+    id: "fourStringBass",
     label: "4-string bass (EADG)",
-    openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+    openStringPitches: [43, 38, 33, 28], // G2 D2 A1 E1
   },
   {
-    id: "fiveString",
+    id: "fiveStringBass",
     label: "5-string bass (BEADG)",
-    openStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
+    openStringPitches: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
   },
 ] as const;
 
@@ -45,7 +40,7 @@ export type TabPosition = {
 };
 
 export function resolveTabStringSetup(openStringPitches: readonly number[]) {
-  return TAB_STRING_SETUPS.find(
+  return TAB_STRING_PRESETS.find(
     (setup) =>
       setup.openStringPitches.length === openStringPitches.length &&
       setup.openStringPitches.every(
