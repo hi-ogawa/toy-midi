@@ -23,16 +23,11 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   const annotations = page.getByTestId("tab-annotation");
   await expect(annotations).toHaveCount(0);
 
-  const toggle = page.getByTestId("tab-annotation-toggle");
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("settings-button").click();
+  await page.getByTestId("tab-annotation-toggle").check();
+  await page.getByTestId("tab-string-setup-select").selectOption("fiveString");
+  await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
-
-  const stringCountSelect = page.getByTestId("tab-string-count-select");
-  await stringCountSelect.click();
-  await page.getByRole("menuitemradio", { name: "5-string" }).click();
-  await expect(stringCountSelect).toContainText("5-string");
-  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
 
   await page.keyboard.press("3");
   await expect(annotations).toHaveText(["A15", "A9"]);
@@ -44,9 +39,9 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["B25", "B19"]);
 
-  await stringCountSelect.click();
-  await page.getByRole("menuitemradio", { name: "4-string" }).click();
-  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  await page.getByTestId("settings-button").click();
+  await page.getByTestId("tab-string-setup-select").selectOption("fourString");
+  await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
   await page.keyboard.press("ArrowDown");
   await expect(annotations).toHaveText(["D10", "A9"]);
@@ -58,9 +53,9 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.keyboard.press("Control+Shift+z");
   await expect(annotations).toHaveText(["G5", "D4"]);
 
-  await stringCountSelect.click();
-  await page.getByRole("menuitemradio", { name: "5-string" }).click();
-  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  await page.getByTestId("settings-button").click();
+  await page.getByTestId("tab-string-setup-select").selectOption("fiveString");
+  await page.getByRole("button", { name: "Close" }).click();
   await page.keyboard.press("5");
   await expect(annotations).toHaveText(["B25", "B19"]);
 
@@ -75,13 +70,12 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await page.reload();
   await waitForEditor(page);
 
-  await expect(page.getByTestId("tab-annotation-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.getByTestId("tab-string-count-select")).toContainText(
-    "5-string",
-  );
+  expect(
+    await evaluateStore(page, (store) => ({
+      enabled: store.getState().tabAnnotationEnabled,
+      openStringPitches: store.getState().tabOpenStringPitches,
+    })),
+  ).toEqual({ enabled: true, openStringPitches: [43, 38, 33, 28, 23] });
   await expect(page.getByTestId("tab-annotation")).toHaveText([
     "B25",
     "B19",

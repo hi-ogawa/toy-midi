@@ -1,12 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatTabPosition,
   getFret,
   getPlayableStrings,
   moveTabString,
   resolveTabPosition,
+  TAB_OPEN_STRING_PRESETS,
 } from "./tab-annotation";
 
+const FOUR_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fourString;
+const FIVE_STRING_PITCHES = TAB_OPEN_STRING_PRESETS.fiveString;
+
 describe("tab annotation positions", () => {
+  it.each([
+    { position: { string: 1 as const, fret: 5 }, label: "G5" },
+    { position: { string: 4 as const, fret: 12 }, label: "E12" },
+    { position: { string: 5 as const, fret: 0 }, label: "B0" },
+  ])("formats $label", ({ position, label }) => {
+    expect(
+      formatTabPosition({
+        position,
+        openStringPitches: FIVE_STRING_PITCHES,
+      }),
+    ).toBe(label);
+  });
+
   it.each([
     { pitch: 43, string: 1 as const, fret: 0 },
     { pitch: 38, string: 2 as const, fret: 0 },
@@ -16,38 +34,84 @@ describe("tab annotation positions", () => {
     { pitch: 48, string: 1 as const, fret: 5 },
     { pitch: 40, string: 2 as const, fret: 2 },
   ])("derives fret $fret for pitch $pitch on string $string", (testCase) => {
-    expect(getFret(testCase.pitch, testCase.string)).toBe(testCase.fret);
+    expect(
+      getFret({
+        pitch: testCase.pitch,
+        string: testCase.string,
+        openStringPitches: FIVE_STRING_PITCHES,
+      }),
+    ).toBe(testCase.fret);
   });
 
   it("rejects pitches below a string's open pitch", () => {
-    expect(getFret(27, 4)).toBeUndefined();
+    expect(
+      getFret({
+        pitch: 27,
+        string: 4,
+        openStringPitches: FOUR_STRING_PITCHES,
+      }),
+    ).toBeUndefined();
   });
 
   it("uses the B string only in five-string mode", () => {
-    expect(getPlayableStrings({ pitch: 25, stringCount: 4 })).toEqual([]);
-    expect(getPlayableStrings({ pitch: 25, stringCount: 5 })).toEqual([5]);
+    expect(
+      getPlayableStrings({
+        pitch: 25,
+        openStringPitches: FOUR_STRING_PITCHES,
+      }),
+    ).toEqual([]);
+    expect(
+      getPlayableStrings({
+        pitch: 25,
+        openStringPitches: FIVE_STRING_PITCHES,
+      }),
+    ).toEqual([5]);
   });
 
   it.each([
-    { pitch: 43, stringCount: 4 as const, expected: { string: 1, fret: 0 } },
-    { pitch: 42, stringCount: 4 as const, expected: { string: 2, fret: 4 } },
-    { pitch: 28, stringCount: 5 as const, expected: { string: 4, fret: 0 } },
-    { pitch: 22, stringCount: 5 as const, expected: undefined },
+    {
+      pitch: 43,
+      openStringPitches: FOUR_STRING_PITCHES,
+      expected: { string: 1, fret: 0 },
+    },
+    {
+      pitch: 42,
+      openStringPitches: FOUR_STRING_PITCHES,
+      expected: { string: 2, fret: 4 },
+    },
+    {
+      pitch: 28,
+      openStringPitches: FIVE_STRING_PITCHES,
+      expected: { string: 4, fret: 0 },
+    },
+    {
+      pitch: 22,
+      openStringPitches: FIVE_STRING_PITCHES,
+      expected: undefined,
+    },
   ])("chooses the lowest-fret default for pitch $pitch", (testCase) => {
     expect(
       resolveTabPosition({
         pitch: testCase.pitch,
-        stringCount: testCase.stringCount,
+        openStringPitches: testCase.openStringPitches,
       }),
     ).toEqual(testCase.expected);
   });
 
   it("uses a playable manual string and falls back from an invalid one", () => {
     expect(
-      resolveTabPosition({ pitch: 48, stringCount: 4, tabString: 3 }),
+      resolveTabPosition({
+        pitch: 48,
+        openStringPitches: FOUR_STRING_PITCHES,
+        tabString: 3,
+      }),
     ).toEqual({ string: 3, fret: 15 });
     expect(
-      resolveTabPosition({ pitch: 30, stringCount: 4, tabString: 3 }),
+      resolveTabPosition({
+        pitch: 30,
+        openStringPitches: FOUR_STRING_PITCHES,
+        tabString: 3,
+      }),
     ).toEqual({ string: 4, fret: 2 });
   });
 });
@@ -63,7 +127,7 @@ describe("moveTabString", () => {
     expect(
       moveTabString({
         pitch: 48,
-        stringCount: 4,
+        openStringPitches: FOUR_STRING_PITCHES,
         tabString: testCase.tabString,
         direction: testCase.direction,
       }),
@@ -74,7 +138,7 @@ describe("moveTabString", () => {
     expect(
       moveTabString({
         pitch: 30,
-        stringCount: 4,
+        openStringPitches: FOUR_STRING_PITCHES,
         tabString: 4,
         direction: "down",
       }),
@@ -82,7 +146,7 @@ describe("moveTabString", () => {
     expect(
       moveTabString({
         pitch: 30,
-        stringCount: 5,
+        openStringPitches: FIVE_STRING_PITCHES,
         tabString: 4,
         direction: "down",
       }),

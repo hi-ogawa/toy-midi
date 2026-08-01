@@ -1,45 +1,80 @@
-import type { TabString, TabStringCount } from "../types";
+export const TAB_OPEN_STRING_PRESETS = {
+  fourString: [43, 38, 33, 28], // G2 D2 A1 E1
+  fiveString: [43, 38, 33, 28, 23], // G2 D2 A1 E1 B0
+} as const;
 
-const OPEN_STRING_PITCHES: Record<TabString, number> = {
-  1: 43, // G2
-  2: 38, // D2
-  3: 33, // A1
-  4: 28, // E1
-  5: 23, // B0
-};
+const PITCH_CLASS_NAMES = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 
 export type TabPosition = {
-  string: TabString;
+  string: number;
   fret: number;
 };
 
-export function getFret(pitch: number, string: TabString): number | undefined {
-  const fret = pitch - OPEN_STRING_PITCHES[string];
+export function formatTabPosition({
+  position,
+  openStringPitches,
+}: {
+  position: TabPosition;
+  openStringPitches: readonly number[];
+}): string {
+  const openPitch = openStringPitches[position.string - 1];
+  return `${PITCH_CLASS_NAMES[openPitch % 12]}${position.fret}`;
+}
+
+export function getFret({
+  pitch,
+  string,
+  openStringPitches,
+}: {
+  pitch: number;
+  string: number;
+  openStringPitches: readonly number[];
+}): number | undefined {
+  const openPitch = openStringPitches[string - 1];
+  if (openPitch === undefined) {
+    return undefined;
+  }
+  const fret = pitch - openPitch;
   return fret >= 0 ? fret : undefined;
 }
 
 export function getPlayableStrings({
   pitch,
-  stringCount,
+  openStringPitches,
 }: {
   pitch: number;
-  stringCount: TabStringCount;
-}): TabString[] {
-  const strings: TabString[] =
-    stringCount === 4 ? [1, 2, 3, 4] : [1, 2, 3, 4, 5];
-  return strings.filter((string) => getFret(pitch, string) !== undefined);
+  openStringPitches: readonly number[];
+}): number[] {
+  return openStringPitches
+    .map((_openPitch, index) => index + 1)
+    .filter(
+      (string) => getFret({ pitch, string, openStringPitches }) !== undefined,
+    );
 }
 
 export function resolveTabPosition({
   pitch,
-  stringCount,
+  openStringPitches,
   tabString,
 }: {
   pitch: number;
-  stringCount: TabStringCount;
-  tabString?: TabString;
+  openStringPitches: readonly number[];
+  tabString?: number;
 }): TabPosition | undefined {
-  const playableStrings = getPlayableStrings({ pitch, stringCount });
+  const playableStrings = getPlayableStrings({ pitch, openStringPitches });
   const string =
     tabString && playableStrings.includes(tabString)
       ? tabString
@@ -47,22 +82,25 @@ export function resolveTabPosition({
   if (!string) {
     return undefined;
   }
-  return { string, fret: getFret(pitch, string)! };
+  return {
+    string,
+    fret: getFret({ pitch, string, openStringPitches })!,
+  };
 }
 
 export function moveTabString({
   pitch,
-  stringCount,
+  openStringPitches,
   tabString,
   direction,
 }: {
   pitch: number;
-  stringCount: TabStringCount;
-  tabString?: TabString;
+  openStringPitches: readonly number[];
+  tabString?: number;
   direction: "up" | "down";
-}): TabString | undefined {
-  const playableStrings = getPlayableStrings({ pitch, stringCount });
-  const current = resolveTabPosition({ pitch, stringCount, tabString });
+}): number | undefined {
+  const playableStrings = getPlayableStrings({ pitch, openStringPitches });
+  const current = resolveTabPosition({ pitch, openStringPitches, tabString });
   if (!current) {
     return undefined;
   }

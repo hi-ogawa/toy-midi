@@ -24,6 +24,7 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../lib/project-store";
+import { TAB_OPEN_STRING_PRESETS } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button, LinkButton } from "./ui/button";
 
@@ -54,8 +55,12 @@ export function Settings({
     tabStringCount,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
+    tabAnnotationEnabled,
+    tabOpenStringPitches,
     setAutoScrollEnabled,
     setLinkAudioOffsetsEnabled,
+    setTabAnnotationEnabled,
+    setTabOpenStringPitches,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -365,6 +370,34 @@ export function Settings({
               className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
             />
             <span className="text-sm text-neutral-300">Link audio offsets</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              data-testid="tab-annotation-toggle"
+              type="checkbox"
+              checked={tabAnnotationEnabled}
+              onChange={(e) => setTabAnnotationEnabled(e.target.checked)}
+              className="size-4 rounded border-neutral-600 bg-neutral-900 text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            <span className="text-sm text-neutral-300">Tab annotations</span>
+          </label>
+          <label className="flex items-center justify-between gap-3 text-sm text-neutral-300">
+            String setup
+            <select
+              data-testid="tab-string-setup-select"
+              value={
+                tabOpenStringPitches.length === 5 ? "fiveString" : "fourString"
+              }
+              onChange={(e) => {
+                const setup = e.target
+                  .value as keyof typeof TAB_OPEN_STRING_PRESETS;
+                setTabOpenStringPitches([...TAB_OPEN_STRING_PRESETS[setup]]);
+              }}
+              className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            >
+              <option value="fourString">4-string</option>
+              <option value="fiveString">5-string</option>
+            </select>
           </label>
         </div>
       </section>
