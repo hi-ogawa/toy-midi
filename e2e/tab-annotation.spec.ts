@@ -13,8 +13,8 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await evaluateStore(page, (store) => {
     store.setState({
       notes: [
-        { id: "high", pitch: 48, start: 0, duration: 1, velocity: 100 },
-        { id: "low", pitch: 30, start: 2, duration: 1, velocity: 100 },
+        { id: "high", pitch: 48, start: 0, duration: 1, velocity: 100 }, // C3
+        { id: "low", pitch: 30, start: 2, duration: 1, velocity: 100 }, // F#1
       ],
       selectedNoteIds: new Set(["high", "low"]),
     });
