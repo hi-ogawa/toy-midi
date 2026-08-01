@@ -55,6 +55,22 @@ test.describe("Settings Dialog - Project Export", () => {
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
   });
 
+  test("MIDI import confirms for an empty project", async ({ page }) => {
+    await openSettings(page);
+
+    let confirmationMessage: string | undefined;
+    page.once("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      confirmationMessage = dialog.message();
+      await dialog.dismiss();
+    });
+    await page
+      .getByTestId("midi-file-input")
+      .setInputFiles("e2e/fixtures/test-midi.mid");
+
+    expect(confirmationMessage).toContain("Import MIDI file?");
+  });
+
   test("MIDI import confirms and replaces existing notes", async ({ page }) => {
     await evaluateStore(page, (store) => {
       store.getState().addNote({
@@ -79,7 +95,7 @@ test.describe("Settings Dialog - Project Export", () => {
       .getByTestId("midi-file-input")
       .setInputFiles("e2e/fixtures/test-midi.mid");
 
-    expect(confirmationMessage).toContain("Replace existing MIDI notes?");
+    expect(confirmationMessage).toContain("Import MIDI file?");
 
     await expect(
       page.getByText(/Imported \d+ notes from MIDI file/),
