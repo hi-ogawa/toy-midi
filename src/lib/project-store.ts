@@ -4,6 +4,7 @@ import {
   type GridSnap,
   type Locator,
   type Note,
+  type TabString,
   type TimeSignature,
 } from "../types";
 import type { AudioView } from "./audio-view";
@@ -79,7 +80,7 @@ export interface ProjectState {
   setGridSnap: (snap: GridSnap) => void;
   setTabAnnotationEnabled: (enabled: boolean) => void;
   setTabOpenStringPitches: (pitches: number[]) => void;
-  assignSelectedTabString: (string: number) => void;
+  assignSelectedTabString: (tabString: TabString) => void;
   moveSelectedTabStrings: (direction: "up" | "down") => void;
   clearSelectedTabStrings: () => void;
   setTotalBeats: (beats: number) => void;
@@ -356,23 +357,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setTabOpenStringPitches: (pitches) => set({ tabOpenStringPitches: pitches }),
 
-  assignSelectedTabString: (string) => {
+  assignSelectedTabString: (tabString) => {
     const state = get();
-    if (string > state.tabOpenStringPitches.length) {
+    if (tabString > state.tabOpenStringPitches.length) {
       return;
     }
     const updates: NoteUpdate[] = [];
     for (const note of state.notes) {
       if (
         state.selectedNoteIds.has(note.id) &&
-        note.tabString !== string &&
+        note.tabString !== tabString &&
         getFret({
           pitch: note.pitch,
-          string,
+          tabString,
           openStringPitches: state.tabOpenStringPitches,
         }) !== undefined
       ) {
-        updates.push({ id: note.id, changes: { tabString: string } });
+        updates.push({ id: note.id, changes: { tabString } });
       }
     }
     if (updates.length > 0) {
@@ -397,7 +398,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         pitch: note.pitch,
         openStringPitches: state.tabOpenStringPitches,
         tabString: note.tabString,
-      })?.string;
+      })?.tabString;
       if (tabString && tabString !== currentString) {
         updates.push({ id: note.id, changes: { tabString } });
       }

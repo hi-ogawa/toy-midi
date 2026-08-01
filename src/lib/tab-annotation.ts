@@ -1,3 +1,5 @@
+import type { TabString } from "../types";
+
 export const TAB_STRING_PRESETS = [
   {
     id: "fourStringBass",
@@ -35,7 +37,7 @@ const PITCH_CLASS_NAMES = [
 ];
 
 export type TabPosition = {
-  string: number;
+  tabString: TabString;
   fret: number;
 };
 
@@ -49,8 +51,8 @@ export function resolveTabStringPreset(openStringPitches: readonly number[]) {
   );
 }
 
-export function getTabStringColor(string: number) {
-  return TAB_STRING_COLORS[string - 1];
+export function getTabStringColor(tabString: TabString) {
+  return TAB_STRING_COLORS[tabString - 1];
 }
 
 export function formatTabPosition({
@@ -60,20 +62,20 @@ export function formatTabPosition({
   position: TabPosition;
   openStringPitches: readonly number[];
 }): string {
-  const openPitch = openStringPitches[position.string - 1];
+  const openPitch = openStringPitches[position.tabString - 1];
   return `${PITCH_CLASS_NAMES[openPitch % 12]}${position.fret}`;
 }
 
 export function getFret({
   pitch,
-  string,
+  tabString,
   openStringPitches,
 }: {
   pitch: number;
-  string: number;
+  tabString: TabString;
   openStringPitches: readonly number[];
 }): number | undefined {
-  const openPitch = openStringPitches[string - 1];
+  const openPitch = openStringPitches[tabString - 1];
   if (openPitch === undefined) {
     return undefined;
   }
@@ -87,11 +89,12 @@ export function getPlayableStrings({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-}): number[] {
+}): TabString[] {
   return openStringPitches
-    .map((_openPitch, index) => index + 1)
+    .map((_openPitch, index) => (index + 1) as TabString)
     .filter(
-      (string) => getFret({ pitch, string, openStringPitches }) !== undefined,
+      (tabString) =>
+        getFret({ pitch, tabString, openStringPitches }) !== undefined,
     );
 }
 
@@ -102,19 +105,19 @@ export function resolveTabPosition({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-  tabString?: number;
+  tabString?: TabString;
 }): TabPosition | undefined {
   const playableStrings = getPlayableStrings({ pitch, openStringPitches });
-  const string =
+  const resolvedTabString =
     tabString && playableStrings.includes(tabString)
       ? tabString
       : playableStrings[0];
-  if (!string) {
+  if (!resolvedTabString) {
     return undefined;
   }
   return {
-    string,
-    fret: getFret({ pitch, string, openStringPitches })!,
+    tabString: resolvedTabString,
+    fret: getFret({ pitch, tabString: resolvedTabString, openStringPitches })!,
   };
 }
 
@@ -126,15 +129,15 @@ export function moveTabString({
 }: {
   pitch: number;
   openStringPitches: readonly number[];
-  tabString?: number;
+  tabString?: TabString;
   direction: "up" | "down";
-}): number | undefined {
+}): TabString | undefined {
   const playableStrings = getPlayableStrings({ pitch, openStringPitches });
   const current = resolveTabPosition({ pitch, openStringPitches, tabString });
   if (!current) {
     return undefined;
   }
-  const index = playableStrings.indexOf(current.string);
+  const index = playableStrings.indexOf(current.tabString);
   const nextIndex = Math.max(
     0,
     Math.min(playableStrings.length - 1, index + (direction === "up" ? -1 : 1)),

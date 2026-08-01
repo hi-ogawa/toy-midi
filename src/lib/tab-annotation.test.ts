@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { TabString } from "../types";
 import {
   formatTabPosition,
   getFret,
@@ -38,18 +39,17 @@ describe("tab annotation positions", () => {
 
   it("assigns a distinct color to each string", () => {
     const colors = Array.from({ length: 5 }, (_, index) =>
-      getTabStringColor(index + 1),
+      getTabStringColor((index + 1) as TabString),
     );
 
     expect(colors.every(Boolean)).toBe(true);
     expect(new Set(colors.map((color) => color?.background)).size).toBe(5);
-    expect(getTabStringColor(6)).toBeUndefined();
   });
 
   it.each([
-    { position: { string: 1 as const, fret: 5 }, label: "G5" },
-    { position: { string: 4 as const, fret: 12 }, label: "E12" },
-    { position: { string: 5 as const, fret: 0 }, label: "B0" },
+    { position: { tabString: 1 as const, fret: 5 }, label: "G5" },
+    { position: { tabString: 4 as const, fret: 12 }, label: "E12" },
+    { position: { tabString: 5 as const, fret: 0 }, label: "B0" },
   ])("formats $label", ({ position, label }) => {
     expect(
       formatTabPosition({
@@ -60,18 +60,18 @@ describe("tab annotation positions", () => {
   });
 
   it.each([
-    { pitch: 43, string: 1 as const, fret: 0 },
-    { pitch: 38, string: 2 as const, fret: 0 },
-    { pitch: 33, string: 3 as const, fret: 0 },
-    { pitch: 28, string: 4 as const, fret: 0 },
-    { pitch: 23, string: 5 as const, fret: 0 },
-    { pitch: 48, string: 1 as const, fret: 5 },
-    { pitch: 40, string: 2 as const, fret: 2 },
-  ])("derives fret $fret for pitch $pitch on string $string", (testCase) => {
+    { pitch: 43, tabString: 1 as const, fret: 0 },
+    { pitch: 38, tabString: 2 as const, fret: 0 },
+    { pitch: 33, tabString: 3 as const, fret: 0 },
+    { pitch: 28, tabString: 4 as const, fret: 0 },
+    { pitch: 23, tabString: 5 as const, fret: 0 },
+    { pitch: 48, tabString: 1 as const, fret: 5 },
+    { pitch: 40, tabString: 2 as const, fret: 2 },
+  ])("derives fret $fret for pitch $pitch on string $tabString", (testCase) => {
     expect(
       getFret({
         pitch: testCase.pitch,
-        string: testCase.string,
+        tabString: testCase.tabString,
         openStringPitches: FIVE_STRING_PITCHES,
       }),
     ).toBe(testCase.fret);
@@ -81,7 +81,7 @@ describe("tab annotation positions", () => {
     expect(
       getFret({
         pitch: 27,
-        string: 4,
+        tabString: 4,
         openStringPitches: FOUR_STRING_PITCHES,
       }),
     ).toBeUndefined();
@@ -106,17 +106,17 @@ describe("tab annotation positions", () => {
     {
       pitch: 43,
       openStringPitches: FOUR_STRING_PITCHES,
-      expected: { string: 1, fret: 0 },
+      expected: { tabString: 1, fret: 0 },
     },
     {
       pitch: 42,
       openStringPitches: FOUR_STRING_PITCHES,
-      expected: { string: 2, fret: 4 },
+      expected: { tabString: 2, fret: 4 },
     },
     {
       pitch: 28,
       openStringPitches: FIVE_STRING_PITCHES,
-      expected: { string: 4, fret: 0 },
+      expected: { tabString: 4, fret: 0 },
     },
     {
       pitch: 22,
@@ -139,14 +139,14 @@ describe("tab annotation positions", () => {
         openStringPitches: FOUR_STRING_PITCHES,
         tabString: 3,
       }),
-    ).toEqual({ string: 3, fret: 15 });
+    ).toEqual({ tabString: 3, fret: 15 });
     expect(
       resolveTabPosition({
         pitch: 30,
         openStringPitches: FOUR_STRING_PITCHES,
         tabString: 3,
       }),
-    ).toEqual({ string: 4, fret: 2 });
+    ).toEqual({ tabString: 4, fret: 2 });
   });
 });
 

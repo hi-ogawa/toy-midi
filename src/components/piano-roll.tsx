@@ -1646,7 +1646,7 @@ function NoteDiv({
       })
     : undefined;
   const tabStringColor = annotation
-    ? getTabStringColor(annotation.string)
+    ? getTabStringColor(annotation.tabString)
     : undefined;
 
   // Handle extends edgeThreshold on each side of edge (matching detection zone)
