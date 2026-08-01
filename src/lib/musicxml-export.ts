@@ -7,6 +7,8 @@ import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 // required for standard notation and TAB to import together while preserving
 // explicit string/fret assignments.
 
+// Twelve units per quarter note exactly cover the supported straight, dotted,
+// and triplet grid values.
 const DIVISIONS = 12;
 const EPSILON = 1e-6;
 
@@ -218,6 +220,8 @@ function buildMeasureEvents({
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
+        // Splits within or across measures become one tied chain, which is then
+        // rendered identically on both notation staves.
         tieStart: pieceEnd < note.end,
         tieStop: pieceStart > note.start,
       });
@@ -252,6 +256,7 @@ function splitDuration({
   let cursor = start;
   let remaining = duration;
   while (remaining > 0) {
+    // Prefer the longest notation value that starts on its valid beat boundary.
     const candidate = DURATION_CANDIDATES.find(
       (item) => item.duration <= remaining && cursor % item.alignment === 0,
     );
@@ -328,6 +333,7 @@ ${renderStaffDetails(openStringPitches)}
 
   return `    <measure number="${index + 1}">${attributes}
 ${events.map((event) => renderEvent(event, 1)).join("\n")}
+      <!-- Rewind the measure cursor so staff 2 runs in parallel with staff 1. -->
       <backup>
         <duration>${measureDuration}</duration>
       </backup>
@@ -336,6 +342,8 @@ ${events.map((event) => renderEvent(event, 2)).join("\n")}
 }
 
 function renderStaffDetails(openStringPitches: readonly number[]): string {
+  // The app stores strings from highest to lowest pitch, while MusicXML numbers
+  // TAB staff lines from the lowest line upward.
   const tuning = [...openStringPitches].reverse();
   return `        <staff-details number="2">
           <staff-lines>${openStringPitches.length}</staff-lines>
