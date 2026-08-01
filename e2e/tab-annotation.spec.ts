@@ -14,7 +14,8 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     store.setState({
       notes: [
         { id: "high", pitch: 48, start: 0, duration: 1, velocity: 100 }, // C3
-        { id: "low", pitch: 30, start: 2, duration: 1, velocity: 100 }, // F#1
+        // F#1 is below the viewport and verifies assignment through store state.
+        { id: "low", pitch: 30, start: 2, duration: 1, velocity: 100 },
       ],
       selectedNoteIds: new Set(["high", "low"]),
     });
