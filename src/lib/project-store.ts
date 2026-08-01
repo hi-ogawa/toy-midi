@@ -160,6 +160,16 @@ export function generateAudioTrackId(): string {
   return `audio-${crypto.randomUUID()}`;
 }
 
+function getPreviousNoteValues(
+  note: Note,
+  changes: Partial<Omit<Note, "id">>,
+): Partial<Omit<Note, "id">> {
+  return (Object.keys(changes) as (keyof typeof changes)[]).reduce(
+    (values, key) => ({ ...values, [key]: note[key] }),
+    {},
+  );
+}
+
 export const useProjectStore = create<ProjectState>((set, get) => ({
   notes: [],
   selectedNoteIds: new Set(),
@@ -217,15 +227,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     // Track in history (only changed fields)
-    const before: Partial<Omit<Note, "id">> = {};
-    const after: Partial<Omit<Note, "id">> = {};
-    for (const key of Object.keys(updates) as (keyof typeof updates)[]) {
-      Object.assign(before, { [key]: note[key] });
-      Object.assign(after, { [key]: updates[key] });
-    }
     historyStore.pushOperation({
       type: "update-notes",
-      updates: [{ id, before, after }],
+      updates: [
+        {
+          id,
+          before: getPreviousNoteValues(note, updates),
+          after: { ...updates },
+        },
+      ],
     });
 
     set((state) => ({
@@ -244,13 +254,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           return undefined;
         }
 
-        const before: Partial<Omit<Note, "id">> = {};
-        const after: Partial<Omit<Note, "id">> = {};
-        for (const key of Object.keys(changes) as (keyof typeof changes)[]) {
-          Object.assign(before, { [key]: note[key] });
-          Object.assign(after, { [key]: changes[key] });
-        }
-        return { id, before, after };
+        return {
+          id,
+          before: getPreviousNoteValues(note, changes),
+          after: { ...changes },
+        };
       })
       .filter((u) => u !== undefined);
 
