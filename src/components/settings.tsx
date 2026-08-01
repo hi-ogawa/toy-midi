@@ -23,7 +23,6 @@ import {
 } from "../lib/project-store";
 import {
   resolveTabStringSetup,
-  type TabStringSetupId,
   TAB_STRING_SETUPS,
 } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
@@ -237,12 +236,12 @@ export function Settings({
               <span className="text-sm text-neutral-300">Tab annotations</span>
             </label>
             <select
-              aria-label="String setup"
+              aria-label="Tuning"
               data-testid="tab-string-setup-select"
               value={resolveTabStringSetup(tabOpenStringPitches)?.id}
               onChange={(e) => {
                 const setup = TAB_STRING_SETUPS.find(
-                  ({ id }) => id === (e.target.value as TabStringSetupId),
+                  ({ id }) => id === e.target.value,
                 )!;
                 setTabOpenStringPitches([...setup.openStringPitches]);
               }}

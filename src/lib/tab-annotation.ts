@@ -6,17 +6,15 @@ export const TAB_OPEN_STRING_PRESETS = {
 export const TAB_STRING_SETUPS = [
   {
     id: "fourString",
-    label: "4-string bass",
+    label: "4-string bass (EADG)",
     openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
   },
   {
     id: "fiveString",
-    label: "5-string bass",
+    label: "5-string bass (BEADG)",
     openStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
   },
 ] as const;
-
-export type TabStringSetupId = (typeof TAB_STRING_SETUPS)[number]["id"];
 
 const TAB_STRING_COLORS = [
   { background: "#06b6d4", border: "#0891b2", text: "#083344" },

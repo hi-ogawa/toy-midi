@@ -25,12 +25,12 @@ describe("tab annotation positions", () => {
     ).toEqual([
       {
         id: "fourString",
-        label: "4-string bass",
+        label: "4-string bass (EADG)",
         resolvedId: "fourString",
       },
       {
         id: "fiveString",
-        label: "5-string bass",
+        label: "5-string bass (BEADG)",
         resolvedId: "fiveString",
       },
     ]);
