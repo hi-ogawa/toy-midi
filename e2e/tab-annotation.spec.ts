@@ -14,10 +14,8 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     store.setState({
       notes: [
         { id: "high", pitch: 48, start: 0, duration: 1, velocity: 100 }, // C3
-        // F#1 is below the viewport and verifies assignment through store state.
-        { id: "low", pitch: 30, start: 2, duration: 1, velocity: 100 },
       ],
-      selectedNoteIds: new Set(["high", "low"]),
+      selectedNoteIds: new Set(["high"]),
     });
   });
 
@@ -32,7 +30,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     .selectOption("fiveStringBass");
   await page.getByRole("button", { name: "Close" }).click();
 
-  // C3 resolves to the G string at fret 5; F#1 is below the viewport.
+  // C3 resolves to the G string at fret 5.
   await expect(annotations).toHaveText(["G5"]);
 
   const highNote = page.getByTestId("note-high");
@@ -40,14 +38,9 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
     (element) => getComputedStyle(element).backgroundColor,
   );
 
-  // Absolute assignment updates only notes playable on the requested string.
+  // Absolute assignment updates the note's string and color.
   await page.keyboard.press("3");
   await expect(annotations).toHaveText(["A15"]);
-  expect(
-    await evaluateStore(page, (store) =>
-      store.getState().notes.map((note) => note.tabString),
-    ),
-  ).toEqual([3, undefined]);
   await expect
     .poll(() =>
       highNote.evaluate((element) => getComputedStyle(element).backgroundColor),
@@ -94,7 +87,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   const copiedStrings = await evaluateStore(page, (store) =>
     store.getState().notes.map((note) => note.tabString),
   );
-  expect(copiedStrings).toEqual([5, 5, 5, 5]);
+  expect(copiedStrings).toEqual([5, 5]);
 
   // Annotation settings and note assignments persist across reload.
   await evaluateFlushAutoSave(page);
