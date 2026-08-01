@@ -152,12 +152,32 @@ describe("tab annotation positions", () => {
 
 describe("moveTabString", () => {
   it.each([
-    { tabString: undefined, direction: "down" as const, expected: 2 },
-    { tabString: 2 as const, direction: "down" as const, expected: 3 },
-    { tabString: 3 as const, direction: "up" as const, expected: 2 },
-    { tabString: 1 as const, direction: "up" as const, expected: 1 },
-    { tabString: 4 as const, direction: "down" as const, expected: 4 },
-  ])("moves $direction from $tabString to $expected", (testCase) => {
+    {
+      tabString: undefined,
+      direction: "down" as const,
+      expected: { before: 1, after: 2 },
+    },
+    {
+      tabString: 2 as const,
+      direction: "down" as const,
+      expected: { before: 2, after: 3 },
+    },
+    {
+      tabString: 3 as const,
+      direction: "up" as const,
+      expected: { before: 3, after: 2 },
+    },
+    {
+      tabString: 1 as const,
+      direction: "up" as const,
+      expected: { before: 1, after: 1 },
+    },
+    {
+      tabString: 4 as const,
+      direction: "down" as const,
+      expected: { before: 4, after: 4 },
+    },
+  ])("moves $direction from $tabString to $expected.after", (testCase) => {
     expect(
       moveTabString({
         pitch: 48,
@@ -165,7 +185,7 @@ describe("moveTabString", () => {
         tabString: testCase.tabString,
         direction: testCase.direction,
       }),
-    ).toBe(testCase.expected);
+    ).toEqual(testCase.expected);
   });
 
   it("can move to the B string only in five-string mode", () => {
@@ -176,7 +196,7 @@ describe("moveTabString", () => {
         tabString: 4,
         direction: "down",
       }),
-    ).toBe(4);
+    ).toEqual({ before: 4, after: 4 });
     expect(
       moveTabString({
         pitch: 30,
@@ -184,6 +204,6 @@ describe("moveTabString", () => {
         tabString: 4,
         direction: "down",
       }),
-    ).toBe(5);
+    ).toEqual({ before: 4, after: 5 });
   });
 });

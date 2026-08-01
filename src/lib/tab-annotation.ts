@@ -41,6 +41,11 @@ export type TabPosition = {
   fret: number;
 };
 
+export type TabStringMove = {
+  before: TabString;
+  after: TabString;
+};
+
 export function resolveTabStringPreset(openStringPitches: readonly number[]) {
   return TAB_STRING_PRESETS.find(
     (preset) =>
@@ -131,16 +136,19 @@ export function moveTabString({
   openStringPitches: readonly number[];
   tabString?: TabString;
   direction: "up" | "down";
-}): TabString | undefined {
-  const playableStrings = getPlayableStrings({ pitch, openStringPitches });
+}): TabStringMove | undefined {
   const current = resolveTabPosition({ pitch, openStringPitches, tabString });
   if (!current) {
     return undefined;
   }
+  const playableStrings = getPlayableStrings({ pitch, openStringPitches });
   const index = playableStrings.indexOf(current.tabString);
   const nextIndex = Math.max(
     0,
     Math.min(playableStrings.length - 1, index + (direction === "up" ? -1 : 1)),
   );
-  return playableStrings[nextIndex];
+  return {
+    before: current.tabString,
+    after: playableStrings[nextIndex],
+  };
 }

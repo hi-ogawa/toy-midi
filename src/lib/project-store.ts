@@ -10,12 +10,7 @@ import {
 import type { AudioView } from "./audio-view";
 import { historyStore, type NoteChanges } from "./history-store";
 import { snapToGrid } from "./music";
-import {
-  getFret,
-  moveTabString,
-  resolveTabPosition,
-  TAB_STRING_PRESETS,
-} from "./tab-annotation";
+import { getFret, moveTabString, TAB_STRING_PRESETS } from "./tab-annotation";
 
 type NoteUpdate = {
   id: string;
@@ -388,19 +383,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (!state.selectedNoteIds.has(note.id)) {
         continue;
       }
-      const tabString = moveTabString({
+      const move = moveTabString({
         pitch: note.pitch,
         openStringPitches: state.tabOpenStringPitches,
         tabString: note.tabString,
         direction,
       });
-      const currentString = resolveTabPosition({
-        pitch: note.pitch,
-        openStringPitches: state.tabOpenStringPitches,
-        tabString: note.tabString,
-      })?.tabString;
-      if (tabString && tabString !== currentString) {
-        updates.push({ id: note.id, changes: { tabString } });
+      if (move && move.after !== move.before) {
+        updates.push({ id: note.id, changes: { tabString: move.after } });
       }
     }
     if (updates.length > 0) {
