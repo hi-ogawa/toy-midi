@@ -170,9 +170,7 @@ export function PianoRoll() {
   const position = useAudio((state) => state.position);
 
   const gridRef = useRef<HTMLDivElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const wasLastPointerDownInsideRef = useRef(true);
   const [dragMode, setDragMode] = useState<DragMode>({ type: "none" });
 
   // Track viewport size
@@ -286,19 +284,8 @@ export function PianoRoll() {
     return () => stopPreviewNote();
   }, [stopPreviewNote]);
 
-  // Preserve native shortcuts outside the piano roll, such as Ctrl+C/Ctrl+V
-  // for text selected in the help overlay.
-  useWindowEvent("pointerdown", (e) => {
-    wasLastPointerDownInsideRef.current =
-      e.target instanceof Node && rootRef.current?.contains(e.target) === true;
-  });
-
   // Handle keyboard events
   useWindowEvent("keydown", (e) => {
-    if (!wasLastPointerDownInsideRef.current) {
-      return;
-    }
-
     // Don't trigger shortcuts if typing in an input
     if (isShortcutTextInputTarget(e.target)) {
       return;
@@ -319,6 +306,10 @@ export function PianoRoll() {
       selectLocator(undefined);
       selectAudioTrack(undefined);
     } else if (matchKeyboardEvent(e, "Ctrl+C")) {
+      // Let the browser copy selected UI text, such as help overlay content.
+      if (window.getSelection()?.isCollapsed === false) {
+        return;
+      }
       // Ctrl+C: Copy
       e.preventDefault();
       copyNotes();
@@ -941,10 +932,7 @@ export function PianoRoll() {
   };
 
   return (
-    <div
-      ref={rootRef}
-      className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden"
-    >
+    <div className="flex flex-col flex-1 bg-neutral-900 text-neutral-100 select-none overflow-hidden">
       {/* Main content area - fixed layout, no native scroll */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
         {/* Left column: track controls + keyboard labels */}
