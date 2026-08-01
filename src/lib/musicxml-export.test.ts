@@ -100,13 +100,11 @@ describe("MusicXML export", () => {
     const model = buildModel([
       makeNote({
         id: "dotted",
-        pitch: 33, // A1, open A string
         start: 0,
         duration: 1.5, // Dotted quarter note
       }),
       makeNote({
         id: "triplet",
-        pitch: 35, // B1
         start: 2,
         duration: 1 / 3, // Eighth-note triplet
       }),
@@ -124,10 +122,10 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: 35,
+        pitch: 33,
         duration: 4,
         notation: { type: "eighth", triplet: true },
-        tabPosition: { tabString: 3, fret: 2 },
+        tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
         tieStop: false,
       },
