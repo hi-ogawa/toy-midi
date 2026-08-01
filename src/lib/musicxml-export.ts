@@ -392,7 +392,7 @@ ${renderDurationNotation(event.notation)}
     staff === 2
       ? `
           <technical>
-            <string>${event.tabPosition.string}</string>
+            <string>${event.tabPosition.tabString}</string>
             <fret>${event.tabPosition.fret}</fret>
           </technical>`
       : "";

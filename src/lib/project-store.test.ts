@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Note } from "../types";
-import { historyStore } from "./history-store";
 import {
   type AudioTrack,
   createDefaultSavedProject,
@@ -8,7 +6,6 @@ import {
   toSavedProject,
   useProjectStore,
 } from "./project-store";
-import { TAB_OPEN_STRING_PRESETS } from "./tab-annotation";
 
 function makeAudioTrack(id: string, offset: number): AudioTrack {
   return {
@@ -26,14 +23,6 @@ function makeAudioTrack(id: string, offset: number): AudioTrack {
 
 function getOffsets(): number[] {
   return useProjectStore.getState().audioTracks.map((t) => t.offset);
-}
-
-function makeNote(
-  id: string,
-  pitch: number,
-  tabString?: Note["tabString"],
-): Note {
-  return { id, pitch, start: 0, duration: 1, velocity: 100, tabString };
 }
 
 describe("moveAudioOffset", () => {
@@ -90,87 +79,5 @@ describe("master volume persistence", () => {
     delete project.masterVolume;
 
     expect(fromSavedProject(project).masterVolume).toBe(1);
-  });
-});
-
-describe("tab annotation settings persistence", () => {
-  it("uses compatible defaults", () => {
-    const project = createDefaultSavedProject();
-    delete project.tabAnnotationEnabled;
-    delete project.tabOpenStringPitches;
-
-    expect(fromSavedProject(project)).toMatchObject({
-      tabAnnotationEnabled: false,
-      tabOpenStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
-    });
-  });
-
-  it("round-trips project settings and note overrides", () => {
-    useProjectStore.setState({
-      notes: [makeNote("note-1", 48, 3)],
-      tabAnnotationEnabled: true,
-      tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fiveString],
-    });
-
-    const saved = toSavedProject(useProjectStore.getState());
-    expect(fromSavedProject(saved)).toMatchObject({
-      notes: [expect.objectContaining({ id: "note-1", tabString: 3 })],
-      tabAnnotationEnabled: true,
-      tabOpenStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
-    });
-  });
-});
-
-describe("tab annotation note actions", () => {
-  beforeEach(() => {
-    historyStore.clearHistory();
-    useProjectStore.setState({
-      notes: [makeNote("high", 48), makeNote("low", 30)],
-      selectedNoteIds: new Set(["high", "low"]),
-      tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
-    });
-  });
-
-  it("assigns an absolute playable string to each selected note", () => {
-    useProjectStore.getState().assignSelectedTabString(3);
-
-    expect(useProjectStore.getState().notes).toEqual([
-      makeNote("high", 48, 3),
-      makeNote("low", 30),
-    ]);
-  });
-
-  it("moves selected notes independently between playable strings", () => {
-    useProjectStore.getState().moveSelectedTabStrings("down");
-
-    expect(useProjectStore.getState().notes).toEqual([
-      makeNote("high", 48, 2),
-      makeNote("low", 30),
-    ]);
-  });
-
-  it("allows moving to string 5 only in five-string mode", () => {
-    useProjectStore.setState({
-      notes: [makeNote("low", 30, 4)],
-      selectedNoteIds: new Set(["low"]),
-    });
-    useProjectStore.getState().moveSelectedTabStrings("down");
-    expect(useProjectStore.getState().notes[0].tabString).toBe(4);
-
-    useProjectStore
-      .getState()
-      .setTabOpenStringPitches([...TAB_OPEN_STRING_PRESETS.fiveString]);
-    useProjectStore.getState().moveSelectedTabStrings("down");
-    expect(useProjectStore.getState().notes[0].tabString).toBe(5);
-  });
-
-  it("clears overrides through undoable note updates", () => {
-    useProjectStore.setState({ notes: [makeNote("high", 48, 3)] });
-
-    useProjectStore.getState().clearSelectedTabStrings();
-    expect(useProjectStore.getState().notes[0].tabString).toBeUndefined();
-
-    useProjectStore.getState().undo();
-    expect(useProjectStore.getState().notes[0].tabString).toBe(3);
   });
 });

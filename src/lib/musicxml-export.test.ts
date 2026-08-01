@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Note } from "../types";
 import { exportMusicXml } from "./musicxml-export";
-import { TAB_OPEN_STRING_PRESETS } from "./tab-annotation";
+import { TAB_STRING_PRESETS } from "./tab-annotation";
+
+const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
+const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -23,7 +26,7 @@ function exportNotes(
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
     name: "Test & Song",
-    openStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
+    openStringPitches: FIVE_STRING_PITCHES,
     ...options,
   });
 }
@@ -92,7 +95,7 @@ describe("MusicXML export", () => {
 
   it("exports four-string tuning", () => {
     const xml = exportNotes([makeNote()], {
-      openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+      openStringPitches: FOUR_STRING_PITCHES,
     });
 
     expect(xml).toContain("<staff-lines>4</staff-lines>");
@@ -136,7 +139,7 @@ describe("MusicXML export", () => {
   it("rejects notes outside the selected bass range", () => {
     expect(() =>
       exportNotes([makeNote({ pitch: 23 })], {
-        openStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
+        openStringPitches: FOUR_STRING_PITCHES,
       }),
     ).toThrow("MIDI note 23 is not playable on a 4-string bass");
   });
