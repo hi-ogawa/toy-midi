@@ -23,7 +23,7 @@ import {
   toSavedProject,
   useProjectStore,
 } from "../lib/project-store";
-import type { TabStringCount } from "../types";
+import { TAB_OPEN_STRING_PRESETS } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button, LinkButton } from "./ui/button";
 
@@ -54,11 +54,11 @@ export function Settings({
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
     tabAnnotationEnabled,
-    tabStringCount,
+    tabOpenStringPitches,
     setAutoScrollEnabled,
     setLinkAudioOffsetsEnabled,
     setTabAnnotationEnabled,
-    setTabStringCount,
+    setTabOpenStringPitches,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -351,15 +351,19 @@ export function Settings({
           <label className="flex items-center justify-between gap-3 text-sm text-neutral-300">
             String setup
             <select
-              data-testid="tab-string-count-select"
-              value={tabStringCount}
-              onChange={(e) =>
-                setTabStringCount(Number(e.target.value) as TabStringCount)
+              data-testid="tab-string-setup-select"
+              value={
+                tabOpenStringPitches.length === 5 ? "fiveString" : "fourString"
               }
+              onChange={(e) => {
+                const setup = e.target
+                  .value as keyof typeof TAB_OPEN_STRING_PRESETS;
+                setTabOpenStringPitches([...TAB_OPEN_STRING_PRESETS[setup]]);
+              }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              <option value={4}>4-string</option>
-              <option value={5}>5-string</option>
+              <option value="fourString">4-string</option>
+              <option value="fiveString">5-string</option>
             </select>
           </label>
         </div>

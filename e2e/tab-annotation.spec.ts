@@ -25,7 +25,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
 
   await page.getByTestId("settings-button").click();
   await page.getByTestId("tab-annotation-toggle").check();
-  await page.getByTestId("tab-string-count-select").selectOption("5");
+  await page.getByTestId("tab-string-setup-select").selectOption("fiveString");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
 
@@ -40,7 +40,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await expect(annotations).toHaveText(["B25", "B19"]);
 
   await page.getByTestId("settings-button").click();
-  await page.getByTestId("tab-string-count-select").selectOption("4");
+  await page.getByTestId("tab-string-setup-select").selectOption("fourString");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(annotations).toHaveText(["G5", "D4"]);
   await page.keyboard.press("ArrowDown");
@@ -54,7 +54,7 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   await expect(annotations).toHaveText(["G5", "D4"]);
 
   await page.getByTestId("settings-button").click();
-  await page.getByTestId("tab-string-count-select").selectOption("5");
+  await page.getByTestId("tab-string-setup-select").selectOption("fiveString");
   await page.getByRole("button", { name: "Close" }).click();
   await page.keyboard.press("5");
   await expect(annotations).toHaveText(["B25", "B19"]);
@@ -73,9 +73,9 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   expect(
     await evaluateStore(page, (store) => ({
       enabled: store.getState().tabAnnotationEnabled,
-      stringCount: store.getState().tabStringCount,
+      openStringPitches: store.getState().tabOpenStringPitches,
     })),
-  ).toEqual({ enabled: true, stringCount: 5 });
+  ).toEqual({ enabled: true, openStringPitches: [43, 38, 33, 28, 23] });
   await expect(page.getByTestId("tab-annotation")).toHaveText([
     "B25",
     "B19",

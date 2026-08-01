@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import {
   GRID_SNAP_VALUES,
-  type TabString,
-  type TabStringCount,
   type GridSnap,
   type Locator,
   type Note,
@@ -11,7 +9,12 @@ import {
 import type { AudioView } from "./audio-view";
 import { historyStore } from "./history-store";
 import { snapToGrid } from "./music";
-import { getFret, moveTabString, resolveTabPosition } from "./tab-annotation";
+import {
+  getFret,
+  moveTabString,
+  resolveTabPosition,
+  TAB_OPEN_STRING_PRESETS,
+} from "./tab-annotation";
 
 export interface ProjectState {
   // project
@@ -27,7 +30,7 @@ export interface ProjectState {
   gridSnap: GridSnap;
   clipboard: Note[]; // Copied notes (not persisted)
   tabAnnotationEnabled: boolean;
-  tabStringCount: TabStringCount;
+  tabOpenStringPitches: number[];
 
   // Locators (section markers)
   locators: Locator[];
@@ -72,8 +75,8 @@ export interface ProjectState {
   deselectAll: () => void;
   setGridSnap: (snap: GridSnap) => void;
   setTabAnnotationEnabled: (enabled: boolean) => void;
-  setTabStringCount: (count: TabStringCount) => void;
-  assignSelectedTabString: (string: TabString) => void;
+  setTabOpenStringPitches: (pitches: number[]) => void;
+  assignSelectedTabString: (string: number) => void;
   moveSelectedTabStrings: (direction: "up" | "down") => void;
   clearSelectedTabStrings: () => void;
   setTotalBeats: (beats: number) => void;
@@ -176,7 +179,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   gridSnap: "1/8",
   clipboard: [], // Clipboard for copied notes (not persisted to storage)
   tabAnnotationEnabled: false,
-  tabStringCount: 4,
+  tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
@@ -354,11 +357,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setTabAnnotationEnabled: (enabled) => set({ tabAnnotationEnabled: enabled }),
 
-  setTabStringCount: (count) => set({ tabStringCount: count }),
+  setTabOpenStringPitches: (pitches) => set({ tabOpenStringPitches: pitches }),
 
   assignSelectedTabString: (string) => {
     const state = get();
-    if (string > state.tabStringCount) {
+    if (string > state.tabOpenStringPitches.length) {
       return;
     }
     const updates = state.notes
@@ -366,7 +369,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         (note) =>
           state.selectedNoteIds.has(note.id) &&
           note.tabString !== string &&
-          getFret(note.pitch, string) !== undefined,
+          getFret({
+            pitch: note.pitch,
+            string,
+            openStringPitches: state.tabOpenStringPitches,
+          }) !== undefined,
       )
       .map((note) => ({ id: note.id, changes: { tabString: string } }));
     if (updates.length > 0) {
@@ -382,13 +389,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       }
       const tabString = moveTabString({
         pitch: note.pitch,
-        stringCount: state.tabStringCount,
+        openStringPitches: state.tabOpenStringPitches,
         tabString: note.tabString,
         direction,
       });
       const currentString = resolveTabPosition({
         pitch: note.pitch,
-        stringCount: state.tabStringCount,
+        openStringPitches: state.tabOpenStringPitches,
         tabString: note.tabString,
       })?.string;
       return tabString && tabString !== currentString
@@ -679,7 +686,7 @@ export interface SavedProject {
   timeSignature?: TimeSignature; // Optional for backward compatibility
   gridSnap: GridSnap;
   tabAnnotationEnabled?: boolean;
-  tabStringCount?: TabStringCount;
+  tabOpenStringPitches?: number[];
   locators?: Locator[]; // Optional for backward compatibility
   audioTracks: (Omit<SavedAudioTrack, "waveformHeight"> & {
     waveformHeight?: number; // Optional for backward compatibility
@@ -721,7 +728,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
   gridSnap: "1/8",
   tabAnnotationEnabled: false,
-  tabStringCount: 4,
+  tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
   locators: [],
   audioTracks: [],
   masterVolume: 1,
@@ -752,7 +759,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     timeSignature: state.timeSignature,
     gridSnap: state.gridSnap,
     tabAnnotationEnabled: state.tabAnnotationEnabled,
-    tabStringCount: state.tabStringCount,
+    tabOpenStringPitches: state.tabOpenStringPitches,
     locators: state.locators,
     audioTracks: state.audioTracks.map(
       // Strip transient waveform data
@@ -819,7 +826,8 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     gridSnap: merged.gridSnap,
     tabAnnotationEnabled:
       merged.tabAnnotationEnabled ?? DEFAULTS.tabAnnotationEnabled,
-    tabStringCount: merged.tabStringCount ?? DEFAULTS.tabStringCount,
+    tabOpenStringPitches:
+      merged.tabOpenStringPitches ?? DEFAULTS.tabOpenStringPitches,
     locators: merged.locators ?? DEFAULTS.locators,
     // Reattach transient waveform data slot (loaded lazily on project open)
     audioTracks: merged.audioTracks.map((t) => ({

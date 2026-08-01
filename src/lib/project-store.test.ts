@@ -8,6 +8,7 @@ import {
   toSavedProject,
   useProjectStore,
 } from "./project-store";
+import { TAB_OPEN_STRING_PRESETS } from "./tab-annotation";
 
 function makeAudioTrack(id: string, offset: number): AudioTrack {
   return {
@@ -96,11 +97,11 @@ describe("tab annotation settings persistence", () => {
   it("uses compatible defaults", () => {
     const project = createDefaultSavedProject();
     delete project.tabAnnotationEnabled;
-    delete project.tabStringCount;
+    delete project.tabOpenStringPitches;
 
     expect(fromSavedProject(project)).toMatchObject({
       tabAnnotationEnabled: false,
-      tabStringCount: 4,
+      tabOpenStringPitches: TAB_OPEN_STRING_PRESETS.fourString,
     });
   });
 
@@ -108,14 +109,14 @@ describe("tab annotation settings persistence", () => {
     useProjectStore.setState({
       notes: [makeNote("note-1", 48, 3)],
       tabAnnotationEnabled: true,
-      tabStringCount: 5,
+      tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fiveString],
     });
 
     const saved = toSavedProject(useProjectStore.getState());
     expect(fromSavedProject(saved)).toMatchObject({
       notes: [expect.objectContaining({ id: "note-1", tabString: 3 })],
       tabAnnotationEnabled: true,
-      tabStringCount: 5,
+      tabOpenStringPitches: TAB_OPEN_STRING_PRESETS.fiveString,
     });
   });
 });
@@ -126,7 +127,7 @@ describe("tab annotation note actions", () => {
     useProjectStore.setState({
       notes: [makeNote("high", 48), makeNote("low", 30)],
       selectedNoteIds: new Set(["high", "low"]),
-      tabStringCount: 4,
+      tabOpenStringPitches: [...TAB_OPEN_STRING_PRESETS.fourString],
     });
   });
 
@@ -156,7 +157,9 @@ describe("tab annotation note actions", () => {
     useProjectStore.getState().moveSelectedTabStrings("down");
     expect(useProjectStore.getState().notes[0].tabString).toBe(4);
 
-    useProjectStore.getState().setTabStringCount(5);
+    useProjectStore
+      .getState()
+      .setTabOpenStringPitches([...TAB_OPEN_STRING_PRESETS.fiveString]);
     useProjectStore.getState().moveSelectedTabStrings("down");
     expect(useProjectStore.getState().notes[0].tabString).toBe(5);
   });
