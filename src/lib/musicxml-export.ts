@@ -93,11 +93,22 @@ export function buildMusicXmlModel({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
+  const notesByMeasure = Array.from(
+    { length: measureCount },
+    () => [] as QuantizedNote[],
+  );
+  for (const note of quantizedNotes) {
+    const firstMeasure = Math.floor(note.start / measureDuration);
+    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
+    for (let index = firstMeasure; index <= lastMeasure; index++) {
+      notesByMeasure[index].push(note);
+    }
+  }
   return {
     measureDuration,
-    measures: Array.from({ length: measureCount }, (_, index) =>
+    measures: notesByMeasure.map((notes, index) =>
       buildMeasureEvents({
-        notes: quantizedNotes,
+        notes,
         measureStart: index * measureDuration,
         measureDuration,
       }),
@@ -169,9 +180,6 @@ function buildMeasureEvents({
   let cursor = measureStart;
 
   for (const note of notes) {
-    if (note.end <= measureStart || note.start >= measureEnd) {
-      continue;
-    }
     const noteStart = Math.max(note.start, measureStart);
     const noteEnd = Math.min(note.end, measureEnd);
     if (noteStart > cursor) {
