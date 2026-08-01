@@ -362,6 +362,8 @@ function renderMeasure({
   timeSignature: TimeSignature;
   openStringPitches: readonly number[];
 }): string {
+  // Bass sounds one octave below its written pitch, so MuseScore transposes
+  // playback while retaining conventional bass notation.
   const attributes =
     index === 0
       ? `
@@ -435,17 +437,21 @@ ${tuning
 }
 
 function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): string {
+  // Distinct voices keep MuseScore's duplicated standard and TAB streams separate.
+  const voice = staff === 1 ? 1 : 5;
   if (event.type === "rest") {
     return `      <note>
         <rest/>
         <duration>${event.duration}</duration>
-        <voice>${staff === 1 ? 1 : 5}</voice>
+        <voice>${voice}</voice>
 ${renderDurationNotation(event.notation)}
         <staff>${staff}</staff>
       </note>`;
   }
 
   const pitch = midiPitchToMusicXml(event.pitch);
+  // MusicXML uses <tie> for playback and <tied> for engraved notation, so each
+  // model tie must be emitted in both forms.
   const ties = [
     event.tieStop ? '        <tie type="stop"/>' : "",
     event.tieStart ? '        <tie type="start"/>' : "",
@@ -490,7 +496,7 @@ ${tiedNotations}${technical}
 ${ties}`
             : ""
         }
-        <voice>${staff === 1 ? 1 : 5}</voice>
+        <voice>${voice}</voice>
 ${renderDurationNotation(event.notation)}
         <staff>${staff}</staff>${notations}
       </note>`;
@@ -513,6 +519,8 @@ function midiPitchToMusicXml(pitch: number): {
   alter: number;
   octave: number;
 } {
+  // TODO: Derive key-aware enharmonic spelling. Export currently declares C
+  // major and spells every chromatic pitch with a sharp.
   const pitchClasses = [
     ["C", 0],
     ["C", 1],
