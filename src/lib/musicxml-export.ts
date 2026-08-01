@@ -106,6 +106,7 @@ export function buildMusicXmlModel({
   };
 }
 
+/** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
 function prepareNotes({
   notes,
   openStringPitches,
@@ -150,6 +151,7 @@ function prepareNotes({
   return result;
 }
 
+/** Clips notes to one measure and fills its timeline with notated notes and rests. */
 function buildMeasureEvents({
   notes,
   measureStart,
@@ -219,6 +221,7 @@ function buildMeasureEvents({
   return events;
 }
 
+/** Decomposes a grid duration into the longest notation values valid at each offset. */
 function splitDuration({
   start,
   duration,
@@ -251,6 +254,7 @@ function splitDuration({
   return result;
 }
 
+/** Converts quarter-note beats to integer MusicXML divisions and rejects off-grid values. */
 function toGridUnits(value: number, label: string): number {
   const units = Math.round(value * DIVISIONS);
   if (Math.abs(value * DIVISIONS - units) > EPSILON) {
@@ -259,6 +263,7 @@ function toGridUnits(value: number, label: string): number {
   return units;
 }
 
+/** Validates a non-empty tuning of MIDI note numbers. */
 function validateOpenStringPitches(pitches: readonly number[]): void {
   if (pitches.length === 0) {
     throw new Error("Add at least one open string before exporting MusicXML");
