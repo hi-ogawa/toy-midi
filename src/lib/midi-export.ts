@@ -1,6 +1,5 @@
 import { Midi } from "@tonejs/midi";
 import { Note, TimeSignature } from "../types";
-import { downloadBlob } from "./export-utils";
 
 export interface MidiExportOptions {
   notes: Note[];
@@ -55,17 +54,4 @@ export function exportMidi(options: MidiExportOptions): Uint8Array {
 
   // Convert to Uint8Array
   return midi.toArray();
-}
-
-/**
- * Download MIDI file to the user's computer
- * @param midiData - Uint8Array containing MIDI file data
- * @param fileName - Desired file name
- */
-export function downloadMidiFile(midiData: Uint8Array, fileName: string): void {
-  // Create a blob from the byte array
-  // Cast to any to avoid TypeScript issues with ArrayBufferLike vs ArrayBuffer
-  const blob = new Blob([midiData as any], { type: "audio/midi" });
-
-  downloadBlob(blob, fileName);
 }

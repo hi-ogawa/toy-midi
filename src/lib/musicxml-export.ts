@@ -1,5 +1,4 @@
 import type { Note, TimeSignature } from "../types";
-import { downloadBlob } from "./export-utils";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 
 // This format was manually reduced from a MuseScore MusicXML export and
@@ -129,13 +128,6 @@ ${measures
   </part>
 </score-partwise>
 `;
-}
-
-export function downloadMusicXmlFile(xml: string, fileName: string): void {
-  const blob = new Blob([xml], {
-    type: "application/vnd.recordare.musicxml+xml",
-  });
-  downloadBlob(blob, fileName);
 }
 
 function prepareNotes({
