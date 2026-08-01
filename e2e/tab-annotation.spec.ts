@@ -41,11 +41,11 @@ test("edits tab annotations and persists manual strings", async ({ page }) => {
   // Absolute assignment updates the note's string and color.
   await page.keyboard.press("3");
   await expect(annotations).toHaveText(["A15"]);
-  await expect
-    .poll(() =>
-      highNote.evaluate((element) => getComputedStyle(element).backgroundColor),
-    )
-    .not.toBe(initialColor);
+  expect(
+    await highNote.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    ),
+  ).not.toBe(initialColor);
 
   // Relative movement stops at the lowest string in the active tuning.
   await page.keyboard.press("ArrowDown");
