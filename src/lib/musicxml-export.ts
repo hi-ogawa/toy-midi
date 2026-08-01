@@ -101,19 +101,7 @@ export function exportMusicXml({
   <work>
     <work-title>${escapeXml(name)}</work-title>
   </work>
-  <part-list>
-    <score-part id="P1">
-      <part-name>${openStringPitches.length}-string Bass</part-name>
-      <score-instrument id="P1-I1">
-        <instrument-name>${openStringPitches.length}-string Electric Bass</instrument-name>
-        <instrument-sound>pluck.bass.electric</instrument-sound>
-      </score-instrument>
-      <midi-instrument id="P1-I1">
-        <midi-channel>1</midi-channel>
-        <midi-program>34</midi-program>
-      </midi-instrument>
-    </score-part>
-  </part-list>
+${renderPartList(openStringPitches.length)}
   <part id="P1">
 ${measures
   .map((events, index) =>
@@ -130,6 +118,23 @@ ${measures
   </part>
 </score-partwise>
 `;
+}
+
+// TODO: Generalize part metadata when MusicXML export supports non-bass instruments.
+function renderPartList(stringCount: number): string {
+  return `  <part-list>
+    <score-part id="P1">
+      <part-name>${stringCount}-string Bass</part-name>
+      <score-instrument id="P1-I1">
+        <instrument-name>${stringCount}-string Electric Bass</instrument-name>
+        <instrument-sound>pluck.bass.electric</instrument-sound>
+      </score-instrument>
+      <midi-instrument id="P1-I1">
+        <midi-channel>1</midi-channel>
+        <midi-program>34</midi-program>
+      </midi-instrument>
+    </score-part>
+  </part-list>`;
 }
 
 function prepareNotes({
