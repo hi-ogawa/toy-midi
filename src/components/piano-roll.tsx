@@ -286,6 +286,8 @@ export function PianoRoll() {
     return () => stopPreviewNote();
   }, [stopPreviewNote]);
 
+  // Preserve native shortcuts outside the piano roll, such as Ctrl+C/Ctrl+V
+  // for text selected in the help overlay.
   useWindowEvent("pointerdown", (e) => {
     wasLastPointerDownInsideRef.current =
       e.target instanceof Node && rootRef.current?.contains(e.target) === true;
