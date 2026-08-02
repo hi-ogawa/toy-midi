@@ -39,7 +39,15 @@ type CursorPosition = {
 const SCORE_LAYOUT_WIDTH = 1110;
 
 export class ScoreViewerRuntime {
-  // DOM fields are initialized by attach() after the component commits.
+  // attach() initializes the runtime-owned DOM:
+  // <root>
+  //   <scroller>
+  //     <sheet>
+  //       <cursor />
+  //       <container />
+  //     </sheet>
+  //   </scroller>
+  // </root>
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
