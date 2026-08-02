@@ -415,6 +415,7 @@ function buildMeasureTargets(
         target.dataset.measureIndex = String(
           measure.parentSourceMeasure.measureListIndex,
         );
+        // Store OSMD whole-note time on the target for delegated click seeking.
         target.dataset.scoreTime = String(
           measure.parentSourceMeasure.AbsoluteTimestamp.RealValue,
         );
