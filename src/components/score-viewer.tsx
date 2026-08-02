@@ -27,6 +27,7 @@ export function ScoreViewer() {
       container.innerHTML = "";
 
       const osmd = new OpenSheetMusicDisplay(container, {
+        autoBeam: true,
         autoResize: true,
         autoGenerateMultipleRestMeasuresFromRestMeasures: false,
         backend: "svg",

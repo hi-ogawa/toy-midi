@@ -8,7 +8,7 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 
 ## Findings
 
-- **Beaming.** MuseScore groups eighth and sixteenth notes with beams, while the current OSMD rendering shows many of the same notes with individual flags. Determine whether OSMD auto-beaming is sufficient before changing the MusicXML exporter to emit explicit beam data.
+- ~~**Beaming.** MuseScore groups eighth and sixteenth notes with beams, while the current OSMD rendering shows many of the same notes with individual flags.~~ Resolved with OSMD `autoBeam`; explicit MusicXML beam data is unnecessary for the viewer.
 - **System density and wrapping.** OSMD uses wider horizontal spacing and fits fewer measures into each system than MuseScore. The current result is acceptable, although future recording layout work may tune it to consistently show two useful system rows.
 - **Section labels.** The MuseScore reference includes boxed rehearsal marks such as A, B, and C. Toy MIDI locators are not currently exported as score directions or rendered as section labels.
 - **TAB rhythm decoration.** OSMD's TAB staff shows fret numbers and ties but omits much of MuseScore's TAB-side rhythmic decoration, including stems, beams, and rests. This is low priority because the linked standard staff already carries the rhythmic information.
@@ -23,4 +23,4 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 
 ## Current Prototype Assessment
 
-The standard staff and TAB communicate the required notes, rhythms, and string/fret assignments together. The reduced TAB decoration does not remove musical information because the standard staff remains visible above it. Beaming is the main remaining score-rendering improvement that can be investigated independently.
+The standard staff and TAB communicate the required notes, rhythms, and string/fret assignments together. The reduced TAB decoration does not remove musical information because the standard staff remains visible above it.
