@@ -31,6 +31,9 @@ type CursorPosition = {
 
 type RenderMode = "continuous" | "paged";
 
+// OSMD reads its layout width from the container's offsetWidth. This value was
+// calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
+// which is an application-specific scale rather than a physical CSS pixel size.
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
 
