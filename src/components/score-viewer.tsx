@@ -42,6 +42,8 @@ export function ScoreViewer() {
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
+  const [scoreXml, setScoreXml] = useState<string>();
+  const [measureWidth, setMeasureWidth] = useState(1);
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: changeTempo,
@@ -58,9 +60,25 @@ export function ScoreViewer() {
     min: 1,
     max: 4,
   });
+  const measureWidthInput = useDraftInput({
+    value: measureWidth,
+    onCommit: changeMeasureWidth,
+    min: 0.5,
+    max: 1.5,
+    parse: "float",
+    step: 0.05,
+  });
 
   const loadMutation = useMutation({
-    mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
+    mutationFn: async ({
+      measureWidth,
+      name,
+      xml,
+    }: {
+      measureWidth: number;
+      name: string;
+      xml: string;
+    }) => {
       const container = containerRef.current;
       if (!container) {
         throw new Error("Score viewer is not ready");
@@ -83,16 +101,19 @@ export function ScoreViewer() {
         pageBackgroundColor: "#ffffff",
       });
       await osmd.load(xml);
+      osmd.Sheet.MeasureWidthFactor = measureWidth;
       osmd.render();
       return {
         name,
         positions: buildCursorPositions(osmd),
         tempo: parseTempo(xml),
+        xml,
       };
     },
-    onSuccess: ({ name, positions, tempo: importedTempo }) => {
+    onSuccess: ({ name, positions, tempo: importedTempo, xml }) => {
       positionsRef.current = positions;
       setScoreName(name);
+      setScoreXml(xml);
       setTempo(importedTempo);
       setBar(1);
       setBeat(1);
@@ -136,6 +157,18 @@ export function ScoreViewer() {
       startedAtRef.current = performance.now();
     }
     setTempo(value);
+  }
+
+  function changeMeasureWidth(value: number) {
+    if (!scoreName || !scoreXml || value === measureWidth) {
+      return;
+    }
+    setMeasureWidth(value);
+    loadMutation.mutate({
+      measureWidth: value,
+      name: scoreName,
+      xml: scoreXml,
+    });
   }
 
   function seekTo({
@@ -286,6 +319,17 @@ export function ScoreViewer() {
           />
         </label>
 
+        <label className="flex items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">Width:</span>
+          <input
+            aria-label="Measure width"
+            type="text"
+            inputMode="decimal"
+            {...measureWidthInput.props}
+            className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+          />
+        </label>
+
         <div className="h-5 w-px bg-border" />
 
         <span
@@ -316,9 +360,13 @@ export function ScoreViewer() {
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             if (file) {
-              void file
-                .text()
-                .then((xml) => loadMutation.mutate({ name: file.name, xml }));
+              void file.text().then((xml) =>
+                loadMutation.mutate({
+                  measureWidth,
+                  name: file.name,
+                  xml,
+                }),
+              );
             }
           }}
         />
@@ -334,7 +382,11 @@ export function ScoreViewer() {
               <DropdownMenuItem
                 key={sample.id}
                 onSelect={() =>
-                  loadMutation.mutate({ name: sample.name, xml: sample.xml })
+                  loadMutation.mutate({
+                    measureWidth,
+                    name: sample.name,
+                    xml: sample.xml,
+                  })
                 }
                 className="items-start"
               >

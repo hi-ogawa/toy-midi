@@ -16,12 +16,20 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   const cursor = page.getByTestId("continuous-playback-cursor");
   await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
+  await expect(page.getByLabel("Measure width")).toHaveValue("1");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+
+  await page.getByLabel("Measure width").fill("0.75");
+  await page.getByLabel("Measure width").press("Enter");
+  await expect(page.getByLabel("Measure width")).toHaveValue("0.75");
+  await expect(
+    page.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toHaveCount(2);
 });
 
 test("loads and advances the cursor sample", async ({ page }) => {
