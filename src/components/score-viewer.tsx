@@ -456,9 +456,7 @@ export function ScoreViewer() {
         <div
           className={cn(
             "relative mx-auto",
-            renderMode === "continuous"
-              ? "bg-white px-4 shadow-xl"
-              : "score-viewer-paged",
+            renderMode === "continuous" ? "bg-white px-4 shadow-xl" : undefined,
           )}
           style={{ width: SCORE_LAYOUT_WIDTH }}
         >
@@ -470,7 +468,7 @@ export function ScoreViewer() {
           <div
             ref={containerRef}
             data-testid="score-viewer-renderer"
-            data-score-render-mode={renderMode}
+            className="score-viewer-renderer"
             style={{ width: SCORE_LAYOUT_WIDTH }}
           />
         </div>

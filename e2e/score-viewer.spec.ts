@@ -118,15 +118,13 @@ test("switches between continuous and paged score views", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Long score");
 
+  const root = page.locator(".score-viewer-root");
   const renderer = page.getByTestId("score-viewer-renderer");
-  await expect(renderer).toHaveAttribute(
-    "data-score-render-mode",
-    "continuous",
-  );
+  await expect(root).toHaveAttribute("data-render-mode", "continuous");
   await expect(renderer).toHaveCSS("width", "1110px");
 
   await page.getByLabel("Layout").selectOption("paged");
-  await expect(renderer).toHaveAttribute("data-score-render-mode", "paged");
+  await expect(root).toHaveAttribute("data-render-mode", "paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
   const pageCount = await renderer.locator("svg").count();
 
@@ -135,10 +133,7 @@ test("switches between continuous and paged score views", async ({ page }) => {
   await expect(renderer).toHaveCSS("width", "1110px");
 
   await page.getByLabel("Layout").selectOption("continuous");
-  await expect(renderer).toHaveAttribute(
-    "data-score-render-mode",
-    "continuous",
-  );
+  await expect(root).toHaveAttribute("data-render-mode", "continuous");
   await expect(renderer).toHaveCSS("width", "1110px");
 });
 
