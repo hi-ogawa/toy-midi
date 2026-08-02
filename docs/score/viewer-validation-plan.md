@@ -27,8 +27,8 @@ Related findings:
 
 ### System Transitions And Following
 
-- [ ] Make the cursor reach the end barline before moving to the next system. Current behavior freezes at the final score entry for the remainder of the last beat because the geometry timeline has no system-ending point.
-- [ ] Confirm the corrected system transition jumps directly to the next row without diagonal interpolation. The current jump is direct, but it occurs only after the final-entry freeze.
+- [x] Make the cursor reach the end barline before moving to the next system by adding a synthetic geometry point at each system's final timestamp and right border.
+- [x] Confirm the corrected system transition jumps directly to the next row without diagonal interpolation.
 - [ ] Confirm the cursor height and vertical position update to the new system.
 - [ ] Confirm vertical scrolling occurs only when the active system leaves the recording viewport.
 - [ ] Keep two useful system rows visible before and after scrolling.

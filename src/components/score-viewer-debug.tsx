@@ -268,6 +268,9 @@ export function ScoreViewerDebug() {
 
 function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   const result: CursorPosition[] = [];
+  const systems = osmd.GraphicSheet.MusicPages.flatMap(
+    (page) => page.MusicSystems,
+  );
   for (const container of osmd.GraphicSheet
     .VerticalGraphicalStaffEntryContainers) {
     const entry = container.getFirstNonNullStaffEntry();
@@ -291,5 +294,18 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
       systemId: system.Id,
     });
   }
-  return result;
+  for (const system of systems) {
+    const previous = result.findLast(
+      (position) => position.systemId === system.Id,
+    );
+    if (!previous) {
+      continue;
+    }
+    result.push({
+      ...previous,
+      time: system.GetSystemsLastTimeStamp().RealValue,
+      x: system.GetRightBorderAbsoluteXPosition() * 10,
+    });
+  }
+  return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
 }

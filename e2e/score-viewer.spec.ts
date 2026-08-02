@@ -65,4 +65,22 @@ test("preloads and advances the cursor debug score", async ({ page }) => {
     (element) => element.style.transform,
   );
   expect(fastTransform).not.toBe(seekTransform);
+
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByLabel("BPM").fill("60");
+  await page.getByLabel("Bar").fill("3");
+  await page.getByLabel("Beat").fill("4");
+  await page.getByRole("button", { name: "Seek" }).click();
+  await page.getByRole("button", { name: "Play" }).click();
+  await page.waitForTimeout(100);
+  const systemEndStart = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  await page.waitForTimeout(200);
+  const systemEndLater = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  expect(systemEndLater).not.toBe(systemEndStart);
+  await expect(cursor).toHaveAttribute("data-system-id", "0");
+  await expect.poll(() => cursor.getAttribute("data-system-id")).toBe("1");
 });
