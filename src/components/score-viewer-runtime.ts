@@ -63,6 +63,7 @@ export class ScoreViewerRuntime {
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
+  #measureLayer!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
 
@@ -115,11 +116,15 @@ export class ScoreViewerRuntime {
     this.#cursor.className =
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
+    this.#measureLayer = document.createElement("div");
+    this.#measureLayer.className = "absolute inset-0 z-[5]";
+    this.#measureLayer.addEventListener("click", this.#handleMeasureClick);
+
     this.#container = document.createElement("div");
     this.#container.dataset.testid = "score-viewer-renderer";
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
-    this.#sheet.append(this.#cursor, this.#container);
+    this.#sheet.append(this.#cursor, this.#measureLayer, this.#container);
     this.#scroller.append(this.#sheet);
     this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
@@ -149,6 +154,7 @@ export class ScoreViewerRuntime {
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd);
+    buildMeasureTargets(this.#osmd, this.#measureLayer);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -189,11 +195,22 @@ export class ScoreViewerRuntime {
 
   dispose() {
     this.#clock.stop();
+    this.#measureLayer.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
       this.#root.replaceChildren();
     }
   }
+
+  #handleMeasureClick = (event: MouseEvent) => {
+    const target = (event.target as Element).closest<HTMLElement>(
+      "[data-score-time]",
+    );
+    if (!target) {
+      return;
+    }
+    this.seek(Number(target.dataset.scoreTime));
+  };
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
@@ -341,6 +358,39 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
   }
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
+}
+
+function buildMeasureTargets(
+  osmd: OpenSheetMusicDisplay,
+  layer: HTMLDivElement,
+) {
+  const targets: HTMLDivElement[] = [];
+  for (const measures of osmd.GraphicSheet.MeasureList) {
+    const measure = measures.find((candidate) => candidate?.isVisible());
+    const system = measure?.ParentMusicSystem;
+    if (!measure || !system) {
+      continue;
+    }
+
+    const topStaff = system.StaffLines[0];
+    const bottomStaff = system.StaffLines.at(-1)!;
+    const target = document.createElement("div");
+    target.dataset.testid = "score-viewer-measure";
+    target.dataset.measureIndex = String(
+      measure.parentSourceMeasure.measureListIndex,
+    );
+    target.dataset.scoreTime = String(
+      measure.parentSourceMeasure.AbsoluteTimestamp.RealValue,
+    );
+    target.className =
+      "absolute cursor-pointer bg-transparent hover:bg-blue-500/10";
+    target.style.left = `${measure.PositionAndShape.AbsolutePosition.x * 10}px`;
+    target.style.top = `${topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
+    target.style.width = `${measure.PositionAndShape.Size.width * 10}px`;
+    target.style.height = `${(bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.StaffHeight - topStaff.PositionAndShape.AbsolutePosition.y) * 10 + 40}px`;
+    targets.push(target);
+  }
+  layer.replaceChildren(...targets);
 }
 
 // Temporary score-viewer transport matching the snapshot/subscription shape

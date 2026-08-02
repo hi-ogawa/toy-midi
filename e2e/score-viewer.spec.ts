@@ -119,6 +119,21 @@ test("switches between generated score samples", async ({ page }) => {
   await expect(page.getByLabel("BPM")).toHaveValue("200");
 });
 
+test("seeks to the start of a clicked measure", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Cursor and wrapping");
+
+  const renderer = page.getByTestId("score-viewer-renderer");
+  const thirdMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="2"]',
+  );
+  await expect(thirdMeasure).toBeVisible();
+  await thirdMeasure.click({ position: { x: 20, y: 20 } });
+
+  await expect(page.getByText("03|01")).toBeVisible();
+  await expect(renderer).toBeVisible();
+});
+
 test("switches score layout", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Long score");
