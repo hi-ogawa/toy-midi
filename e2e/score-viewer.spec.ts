@@ -173,6 +173,14 @@ test("switches score layout", async ({ page }) => {
   expect(firstSystemMeasures[0].right).toBeCloseTo(firstSystemMeasures[1].left);
   await secondPageMeasure.click({ position: { x: 20, y: 20 } });
   await expect(page.getByText("17|01")).toBeVisible();
+  const cursor = page.getByTestId("score-viewer-cursor");
+  const scroll = page.getByTestId("score-viewer-scroll");
+  await expect
+    .poll(() => scroll.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  expect((await cursor.boundingBox())!.y).toBeGreaterThan(
+    (await firstPageMeasure.boundingBox())!.y,
+  );
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");

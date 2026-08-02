@@ -154,7 +154,7 @@ export class ScoreViewerRuntime {
       layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
-    this.#positions = buildCursorPositions(this.#osmd);
+    this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#clock.stop();
     this.#setState({
@@ -293,7 +293,10 @@ function parseTempo(xml: string) {
   return Number.isFinite(value) && value > 0 ? value : 120;
 }
 
-function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+function buildCursorPositions(
+  osmd: OpenSheetMusicDisplay,
+  container: HTMLDivElement,
+): CursorPosition[] {
   // TODO: Define how simultaneous entries at one timestamp map to a single
   // cursor anchor before MusicXML chord or multi-voice support is added.
   // OSMD has no high-level playback geometry API, so derive anchors from its
@@ -314,6 +317,15 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   // OSMD exposes entry geometry, so add each system's final timestamp and
   // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
+  const containerBounds = container.getBoundingClientRect();
+  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageOffsets = new Map(
+    osmd.GraphicSheet.MusicPages.map((page, index) => [
+      page,
+      (pageElements[index]?.getBoundingClientRect().top ??
+        containerBounds.top) - containerBounds.top,
+    ]),
+  );
 
   // Add real anchors at rendered staff entries and their score timestamps.
   for (const container of osmd.GraphicSheet
@@ -325,8 +337,10 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
     const topStaff = system.StaffLines[0];
     const bottomStaff = system.StaffLines.at(-1)!;
+    const pageTop = pageOffsets.get(system.Parent) ?? 0;
     // 20px padding above and below the system
-    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
+    const top =
+      pageTop + topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
     const bottom =
       (bottomStaff.PositionAndShape.AbsolutePosition.y +
         bottomStaff.StaffHeight) *
