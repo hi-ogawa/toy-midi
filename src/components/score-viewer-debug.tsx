@@ -1,4 +1,4 @@
-import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
+import { CursorType, OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
 import { exportMusicXml } from "../lib/musicxml-export";
 
@@ -35,6 +35,14 @@ export function ScoreViewerDebug() {
       drawTitle: false,
       followCursor: true,
       pageBackgroundColor: "#ffffff",
+      cursorsOptions: [
+        {
+          alpha: 0.65,
+          color: "#ff0000",
+          follow: true,
+          type: CursorType.Standard,
+        },
+      ],
     });
     let disposed = false;
     void osmd
@@ -45,6 +53,7 @@ export function ScoreViewerDebug() {
         }
         osmd.render();
         osmd.cursor.show();
+        makeCursorVisible(osmd);
         osmdRef.current = osmd;
         setIsReady(true);
       })
@@ -87,6 +96,7 @@ export function ScoreViewerDebug() {
       osmd.cursor.iterator.CurrentEnrolledTimestamp.RealValue * 4;
     if (currentQuarter <= targetQuarter && !osmd.cursor.iterator.EndReached) {
       osmd.cursor.next();
+      makeCursorVisible(osmd);
     }
     if (osmd.cursor.iterator.EndReached) {
       setIsPlaying(false);
@@ -119,4 +129,15 @@ export function ScoreViewerDebug() {
       />
     </main>
   );
+}
+
+function makeCursorVisible(osmd: OpenSheetMusicDisplay) {
+  const cursor = osmd.cursor.cursorElement;
+  cursor.src =
+    "data:image/svg+xml," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="100"><rect width="8" height="100" rx="2" fill="#ef4444"/></svg>',
+    );
+  cursor.style.width = "8px";
+  cursor.style.objectFit = "fill";
 }
