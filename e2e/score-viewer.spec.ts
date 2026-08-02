@@ -27,20 +27,12 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   const cursor = page.getByTestId("continuous-playback-cursor");
   await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
-  await expect(page.getByLabel("Score width")).toHaveValue("1110");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
-
-  await page.getByLabel("Score width").fill("800");
-  await page.getByLabel("Score width").press("Enter");
-  await expect(page.getByLabel("Score width")).toHaveValue("800");
-  await expect(
-    page.getByTestId("score-viewer-renderer").locator("svg"),
-  ).toHaveCount(2);
 });
 
 test("loads and advances the cursor sample", async ({ page }) => {
@@ -127,24 +119,45 @@ test("switches between continuous and paged score views", async ({ page }) => {
   await loadSample(page, "Long score");
 
   const renderer = page.getByTestId("score-viewer-renderer");
+  const document = page.getByTestId("score-viewer-document");
+  const frame = page.getByTestId("score-viewer-frame");
   await expect(renderer).toHaveAttribute(
     "data-score-render-mode",
     "continuous",
   );
-  await expect(page.getByLabel("Score width")).toBeEnabled();
+  const continuousLogicalWidth = await document.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  const continuousDisplayWidth = await frame.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  expect(continuousLogicalWidth).toBeLessThanOrEqual(
+    continuousDisplayWidth + 1,
+  );
 
   await page.getByLabel("Layout").selectOption("paged");
   await expect(renderer).toHaveAttribute("data-score-render-mode", "paged");
-  await expect(renderer.locator("svg")).toHaveCount(7);
-  await expect(page.getByLabel("Score width")).toBeDisabled();
+  await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
+  const pageCount = await renderer.locator("svg").count();
+  const wideFrameWidth = await frame.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+
+  await page.setViewportSize({ width: 800, height: 720 });
+  await expect
+    .poll(() =>
+      frame.evaluate((element) => element.getBoundingClientRect().width),
+    )
+    .toBeLessThan(wideFrameWidth);
+  await expect(renderer.locator("svg")).toHaveCount(pageCount);
+  await expect(document).toHaveCSS("width", "1110px");
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(renderer).toHaveAttribute(
     "data-score-render-mode",
     "continuous",
   );
-  await expect(renderer.locator("svg")).toHaveCount(1);
-  await expect(page.getByLabel("Score width")).toBeEnabled();
+  await expect(document).toHaveCSS("width", "1110px");
 });
 
 async function loadSample(page: import("@playwright/test").Page, name: string) {

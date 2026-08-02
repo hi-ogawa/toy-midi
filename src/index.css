@@ -61,6 +61,8 @@
 
 .score-viewer-paged [data-score-render-mode="paged"] svg {
   display: block;
+  width: 100%;
+  height: auto;
   background: white;
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }

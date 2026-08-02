@@ -31,9 +31,14 @@ type CursorPosition = {
 
 type RenderMode = "continuous" | "paged";
 
+// TODO: Expose this as a layout density control without coupling it to view zoom.
+const SCORE_LAYOUT_WIDTH = 1110;
+
 export function ScoreViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const documentRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const displayFrameRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const positionsRef = useRef<CursorPosition[]>([]);
@@ -48,7 +53,8 @@ export function ScoreViewer() {
   const [scoreName, setScoreName] = useState<string>();
   const [scoreXml, setScoreXml] = useState<string>();
   const [renderMode, setRenderMode] = useState<RenderMode>("continuous");
-  const [scoreWidth, setScoreWidth] = useState(1110);
+  const [displayScale, setDisplayScale] = useState(1);
+  const [documentHeight, setDocumentHeight] = useState(0);
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: changeTempo,
@@ -65,14 +71,6 @@ export function ScoreViewer() {
     min: 1,
     max: 4,
   });
-  const scoreWidthInput = useDraftInput({
-    value: scoreWidth,
-    onCommit: changeScoreWidth,
-    min: 600,
-    max: 1600,
-    step: 10,
-  });
-
   const loadMutation = useMutation({
     mutationFn: async ({
       name,
@@ -109,15 +107,24 @@ export function ScoreViewer() {
       });
       await osmd.load(xml);
       osmd.render();
+      const nextDocumentHeight = container.scrollHeight;
       return {
+        documentHeight: nextDocumentHeight,
         name,
         positions: buildCursorPositions(osmd),
         tempo: parseTempo(xml),
         xml,
       };
     },
-    onSuccess: ({ name, positions, tempo: importedTempo, xml }) => {
+    onSuccess: ({
+      documentHeight: nextDocumentHeight,
+      name,
+      positions,
+      tempo: importedTempo,
+      xml,
+    }) => {
       positionsRef.current = positions;
+      setDocumentHeight(nextDocumentHeight);
       setScoreName(name);
       setScoreXml(xml);
       setTempo(importedTempo);
@@ -129,6 +136,22 @@ export function ScoreViewer() {
   });
 
   useEffect(() => () => cancelAnimationFrame(frameRef.current ?? 0), []);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      return;
+    }
+    const updateScale = () => {
+      setDisplayScale(
+        Math.min((scroller.clientWidth - 48) / SCORE_LAYOUT_WIDTH, 1),
+      );
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  }, []);
 
   function togglePlayback() {
     if (isPlaying) {
@@ -163,16 +186,6 @@ export function ScoreViewer() {
       startedAtRef.current = performance.now();
     }
     setTempo(value);
-  }
-
-  function changeScoreWidth(value: number) {
-    if (value === scoreWidth) {
-      return;
-    }
-    setScoreWidth(value);
-    if (scoreName && scoreXml) {
-      loadMutation.mutate({ name: scoreName, renderMode, xml: scoreXml });
-    }
   }
 
   function changeRenderMode(nextRenderMode: RenderMode) {
@@ -265,12 +278,15 @@ export function ScoreViewer() {
     if (scroller) {
       // Match MuseScore's containment behavior: keep the viewport fixed while
       // the complete cursor is visible, then reveal the active system.
-      const cursorBottom = previous.top + previous.height;
+      const cursorTop = previous.top * displayScale;
+      const cursorBottom = (previous.top + previous.height) * displayScale;
       if (
-        previous.top < scroller.scrollTop ||
+        cursorTop < scroller.scrollTop ||
         cursorBottom > scroller.scrollTop + scroller.clientHeight
       ) {
-        scroller.scrollTo({ top: Math.max(previous.top - 24, 0) });
+        scroller.scrollTo({
+          top: Math.max(previous.top * displayScale - 24, 0),
+        });
       }
     }
     return true;
@@ -341,19 +357,6 @@ export function ScoreViewer() {
             inputMode="numeric"
             {...tempoInput.props}
             className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
-          />
-        </label>
-
-        <label className="flex items-center gap-1.5 text-sm">
-          {/* TODO: Label the score width value in pixels, e.g. 1110 px. */}
-          <span className="text-muted-foreground">Score width:</span>
-          <input
-            aria-label="Score width"
-            disabled={renderMode === "paged"}
-            type="text"
-            inputMode="numeric"
-            {...scoreWidthInput.props}
-            className="h-8 w-16 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
           />
         </label>
 
@@ -480,24 +483,43 @@ export function ScoreViewer() {
           </div>
         )}
         <div
+          ref={displayFrameRef}
+          data-testid="score-viewer-frame"
           className={cn(
-            "score-viewer-sheet relative mx-auto",
-            renderMode === "continuous"
-              ? "bg-white px-4 shadow-xl"
-              : "score-viewer-paged",
+            "relative mx-auto",
+            renderMode === "continuous" && "bg-white shadow-xl",
           )}
-          style={{ width: renderMode === "continuous" ? scoreWidth : 793 }}
+          style={{
+            width: SCORE_LAYOUT_WIDTH * displayScale,
+            height: documentHeight * displayScale,
+          }}
         >
           <div
-            ref={cursorRef}
-            data-testid="continuous-playback-cursor"
-            className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
-          />
-          <div
-            ref={containerRef}
-            data-testid="score-viewer-renderer"
-            data-score-render-mode={renderMode}
-          />
+            ref={documentRef}
+            data-testid="score-viewer-document"
+            className={cn(
+              "relative origin-top-left",
+              renderMode === "continuous"
+                ? "bg-white px-4"
+                : "score-viewer-paged",
+            )}
+            style={{
+              width: SCORE_LAYOUT_WIDTH,
+              transform: `scale(${displayScale})`,
+            }}
+          >
+            <div
+              ref={cursorRef}
+              data-testid="continuous-playback-cursor"
+              className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
+            />
+            <div
+              ref={containerRef}
+              data-testid="score-viewer-renderer"
+              data-score-render-mode={renderMode}
+              style={{ width: SCORE_LAYOUT_WIDTH }}
+            />
+          </div>
         </div>
       </section>
     </main>
