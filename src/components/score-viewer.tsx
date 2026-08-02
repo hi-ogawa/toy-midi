@@ -175,7 +175,7 @@ export function ScoreViewer() {
         <div className="h-5 w-px bg-border" />
 
         <label className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">BPM:</span>
+          <span className="text-muted-foreground">BPM</span>
           <input
             aria-label="BPM"
             type="text"
@@ -185,22 +185,8 @@ export function ScoreViewer() {
           />
         </label>
 
-        <div className="h-5 w-px bg-border" />
-
-        <div className="flex-1" />
-
-        <span
-          data-testid="score-name"
-          title={score?.name}
-          className="max-w-[220px] truncate text-sm text-neutral-300"
-        >
-          {score?.name ?? "No score loaded"}
-        </span>
-
-        <div className="h-5 w-px bg-border" />
-
         <label className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">Layout:</span>
+          <span className="text-muted-foreground">Layout</span>
           <select
             aria-label="Layout"
             value={layout}
@@ -213,6 +199,18 @@ export function ScoreViewer() {
             <option value="paged">Paged</option>
           </select>
         </label>
+
+        <div className="flex-1" />
+
+        <span
+          data-testid="score-name"
+          title={score?.name}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
+        >
+          {score?.name ?? "No score loaded"}
+        </span>
+
+        <div className="h-5 w-px bg-border" />
 
         <FileDropInput
           accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
