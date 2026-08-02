@@ -4,27 +4,7 @@ export const MAX_PITCH = 127; // G9
 export const MIN_DB = -60;
 export const MAX_DB = 6;
 const LOG2 = Math.log(2);
-const NOTE_NAMES = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-];
 const MAX_GAIN = dbToGain(MAX_DB);
-
-export function midiToNoteName(midi: number): string {
-  const octave = Math.floor(midi / 12) - 1;
-  const note = NOTE_NAMES[midi % 12];
-  return `${note}${octave}`;
-}
 
 export function isBlackKey(midi: number): boolean {
   const note = midi % 12;

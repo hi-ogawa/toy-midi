@@ -18,11 +18,11 @@ import {
   gainToPercent,
   isBlackKey,
   MAX_PITCH,
-  midiToNoteName,
   MIN_PITCH,
   percentToGain,
   snapToGrid,
 } from "../lib/music";
+import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { projectStorage } from "../lib/project-storage";
 import {
   beatsToSeconds,
@@ -1452,7 +1452,7 @@ function Keyboard({
           }
         }}
       >
-        {isC ? midiToNoteName(pitch) : ""}
+        {isC ? formatChromaticPitch(pitch) : ""}
       </div>,
     );
   }

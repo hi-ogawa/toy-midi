@@ -29,6 +29,7 @@ function exportNotes(
   return exportMusicXml({
     notes,
     tempo: 120,
+    keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
     openStringPitches: FIVE_STRING_PITCHES,
     ...options,
@@ -42,6 +43,7 @@ function buildModel(
   return buildMusicXmlModel({
     notes,
     timeSignature: { numerator: 4, denominator: 4 },
+    keySignature: { fifths: 0, mode: "major" },
     openStringPitches: FIVE_STRING_PITCHES,
     ...options,
   });
@@ -77,7 +79,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: 33,
+          pitch: { step: "A", alter: 0, octave: 2 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -88,7 +90,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: 33,
+          pitch: { step: "A", alter: 0, octave: 2 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -121,7 +123,7 @@ describe("MusicXML export", () => {
     expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 18,
         notation: { type: "quarter", dots: 1 },
         tabPosition: { tabString: 3, fret: 0 },
@@ -130,7 +132,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 4,
         notation: { type: "eighth", triplet: true },
         tabPosition: { tabString: 3, fret: 0 },
@@ -156,7 +158,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 12,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
