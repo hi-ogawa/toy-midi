@@ -24,23 +24,15 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
-  const cursor = page.getByTestId("continuous-playback-cursor");
+  const cursor = page.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
-  await expect(page.getByLabel("Score width")).toHaveValue("1110");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
-
-  await page.getByLabel("Score width").fill("800");
-  await page.getByLabel("Score width").press("Enter");
-  await expect(page.getByLabel("Score width")).toHaveValue("800");
-  await expect(
-    page.getByTestId("score-viewer-renderer").locator("svg"),
-  ).toHaveCount(2);
 });
 
 test("loads and advances the cursor sample", async ({ page }) => {
@@ -49,7 +41,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
 
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
-  const cursor = page.getByTestId("continuous-playback-cursor");
+  const cursor = page.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();
   const initialTransform = await cursor.evaluate(
     (element) => element.style.transform,
@@ -120,6 +112,19 @@ test("switches between generated score samples", async ({ page }) => {
   await loadSample(page, "Fast eighths");
   await expect(page.getByTestId("score-name")).toHaveText("Fast eighths");
   await expect(page.getByLabel("BPM")).toHaveValue("200");
+});
+
+test("switches score layout", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Long score");
+
+  const renderer = page.getByTestId("score-viewer-renderer");
+  await page.getByLabel("Layout").selectOption("paged");
+  await expect(page.getByLabel("Layout")).toHaveValue("paged");
+  await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
+
+  await page.getByLabel("Layout").selectOption("continuous");
+  await expect(page.getByLabel("Layout")).toHaveValue("continuous");
 });
 
 async function loadSample(page: import("@playwright/test").Page, name: string) {

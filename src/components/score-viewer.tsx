@@ -29,6 +29,14 @@ type CursorPosition = {
   systemId: number;
 };
 
+type RenderMode = "continuous" | "paged";
+
+// OSMD reads its layout width from the container's offsetWidth. This value was
+// calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
+// which is an application-specific scale rather than a physical CSS pixel size.
+// TODO: Expose this as a layout density control without coupling it to view zoom.
+const SCORE_LAYOUT_WIDTH = 1110;
+
 export function ScoreViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +53,7 @@ export function ScoreViewer() {
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
   const [scoreXml, setScoreXml] = useState<string>();
-  const [scoreWidth, setScoreWidth] = useState(1110);
+  const [renderMode, setRenderMode] = useState<RenderMode>("continuous");
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: changeTempo,
@@ -62,16 +70,16 @@ export function ScoreViewer() {
     min: 1,
     max: 4,
   });
-  const scoreWidthInput = useDraftInput({
-    value: scoreWidth,
-    onCommit: changeScoreWidth,
-    min: 600,
-    max: 1600,
-    step: 10,
-  });
-
   const loadMutation = useMutation({
-    mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
+    mutationFn: async ({
+      name,
+      renderMode: nextRenderMode,
+      xml,
+    }: {
+      name: string;
+      renderMode: RenderMode;
+      xml: string;
+    }) => {
       // TODO: Dispose the previous OSMD instance, prevent stale overlapping
       // loads, and retain the previous valid score when replacement parsing fails.
       const container = containerRef.current;
@@ -94,6 +102,7 @@ export function ScoreViewer() {
         drawPartNames: false,
         drawTitle: false,
         pageBackgroundColor: "#ffffff",
+        pageFormat: nextRenderMode === "paged" ? "A4_P" : undefined,
       });
       await osmd.load(xml);
       osmd.render();
@@ -153,13 +162,17 @@ export function ScoreViewer() {
     setTempo(value);
   }
 
-  function changeScoreWidth(value: number) {
-    if (value === scoreWidth) {
+  function changeRenderMode(nextRenderMode: RenderMode) {
+    if (nextRenderMode === renderMode) {
       return;
     }
-    setScoreWidth(value);
+    setRenderMode(nextRenderMode);
     if (scoreName && scoreXml) {
-      loadMutation.mutate({ name: scoreName, xml: scoreXml });
+      loadMutation.mutate({
+        name: scoreName,
+        renderMode: nextRenderMode,
+        xml: scoreXml,
+      });
     }
   }
 
@@ -251,7 +264,12 @@ export function ScoreViewer() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950">
+    <main
+      className={cn(
+        "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
+        renderMode === "paged" && "score-viewer-root-paged",
+      )}
+    >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
           data-testid="score-play-pause-button"
@@ -315,18 +333,6 @@ export function ScoreViewer() {
           />
         </label>
 
-        <label className="flex items-center gap-1.5 text-sm">
-          {/* TODO: Label the score width value in pixels, e.g. 1110 px. */}
-          <span className="text-muted-foreground">Score width:</span>
-          <input
-            aria-label="Score width"
-            type="text"
-            inputMode="numeric"
-            {...scoreWidthInput.props}
-            className="h-8 w-16 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
-          />
-        </label>
-
         <div className="h-5 w-px bg-border" />
 
         <span
@@ -338,6 +344,21 @@ export function ScoreViewer() {
         </span>
 
         <div className="flex-1" />
+
+        <label className="flex items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">Layout:</span>
+          <select
+            aria-label="Layout"
+            value={renderMode}
+            onChange={(event) =>
+              changeRenderMode(event.currentTarget.value as RenderMode)
+            }
+            className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+          >
+            <option value="continuous">Continuous</option>
+            <option value="paged">Paged</option>
+          </select>
+        </label>
 
         <Button
           disabled={loadMutation.isPending}
@@ -362,6 +383,7 @@ export function ScoreViewer() {
               void file.text().then((xml) =>
                 loadMutation.mutate({
                   name: file.name,
+                  renderMode,
                   xml,
                 }),
               );
@@ -382,6 +404,7 @@ export function ScoreViewer() {
                 onSelect={() =>
                   loadMutation.mutate({
                     name: sample.name,
+                    renderMode,
                     xml: sample.xml,
                   })
                 }
@@ -422,22 +445,33 @@ export function ScoreViewer() {
           {loadMutation.error.message}
         </p>
       )}
-      <section ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+      <section
+        ref={scrollerRef}
+        data-testid="score-viewer-scroll"
+        className="min-h-0 flex-1 overflow-y-auto p-6"
+      >
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
             Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
         )}
         <div
-          className="relative mx-auto bg-white px-4 shadow-xl"
-          style={{ width: scoreWidth }}
+          className={cn(
+            "relative mx-auto",
+            renderMode === "continuous" ? "bg-white px-4 shadow-xl" : undefined,
+          )}
+          style={{ width: SCORE_LAYOUT_WIDTH }}
         >
           <div
             ref={cursorRef}
-            data-testid="continuous-playback-cursor"
+            data-testid="score-viewer-cursor"
             className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
           />
-          <div ref={containerRef} data-testid="score-viewer-renderer" />
+          <div
+            ref={containerRef}
+            data-testid="score-viewer-renderer"
+            style={{ width: SCORE_LAYOUT_WIDTH }}
+          />
         </div>
       </section>
     </main>
