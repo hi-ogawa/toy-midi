@@ -29,12 +29,23 @@ test("preloads and advances the cursor debug score", async ({ page }) => {
 
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
-  const cursor = page.locator("img[id^='cursorImg']");
+  const cursor = page.getByTestId("continuous-playback-cursor");
   await expect(cursor).toBeVisible();
-  const initialLeft = await cursor.evaluate((element) => element.style.left);
+  const initialTransform = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
 
   await playButton.click();
+  await page.waitForTimeout(100);
+  const firstTransform = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  await page.waitForTimeout(100);
+  const secondTransform = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  expect(secondTransform).not.toBe(firstTransform);
   await expect
-    .poll(() => cursor.evaluate((element) => element.style.left))
-    .not.toBe(initialLeft);
+    .poll(() => cursor.evaluate((element) => element.style.transform))
+    .not.toBe(initialTransform);
 });

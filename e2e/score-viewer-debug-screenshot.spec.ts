@@ -8,7 +8,7 @@ test("capture score viewer debug cursor", async ({ page }) => {
     path: "/tmp/opencode/score-viewer-debug-before.png",
   });
   await playButton.click();
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(1100);
   const screenshot = await page.screenshot({
     path: "/tmp/opencode/score-viewer-debug-playing.png",
   });
