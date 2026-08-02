@@ -37,6 +37,7 @@ export class ScoreViewerRuntime {
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
   #scroller!: HTMLElement;
+  #osmd!: OpenSheetMusicDisplay;
   readonly #listeners = new Set<() => void>();
 
   #positions: CursorPosition[] = [];
@@ -58,17 +59,7 @@ export class ScoreViewerRuntime {
     )!;
     this.#cursor = root.querySelector('[data-testid="score-viewer-cursor"]')!;
     this.#scroller = root.querySelector('[data-testid="score-viewer-scroll"]')!;
-  }
-
-  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
-    this.#stop();
-    this.#setState({ isReady: false });
-
-    // Score replacement is intentionally destructive in this prototype. Keep
-    // OSMD rendering and geometry extraction in this runtime so the component
-    // only coordinates source, layout, and controls.
-    this.#container.innerHTML = "";
-    const osmd = new OpenSheetMusicDisplay(this.#container, {
+    this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
       backend: "svg",
@@ -77,12 +68,19 @@ export class ScoreViewerRuntime {
       drawPartNames: false,
       drawTitle: false,
       pageBackgroundColor: "#ffffff",
-      pageFormat: layout === "paged" ? "A4_P" : undefined,
     });
-    await osmd.load(score.xml);
-    osmd.render();
+  }
 
-    this.#positions = buildCursorPositions(osmd);
+  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+    this.#stop();
+    this.#setState({ isReady: false });
+
+    this.#osmd.clear();
+    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    await this.#osmd.load(score.xml);
+    this.#osmd.render();
+
+    this.#positions = buildCursorPositions(this.#osmd);
     this.#pausedAt = 0;
     this.#setState({
       bar: 1,
@@ -135,6 +133,7 @@ export class ScoreViewerRuntime {
 
   dispose() {
     cancelAnimationFrame(this.#frame ?? 0);
+    this.#osmd.clear();
   }
 
   #stop() {
