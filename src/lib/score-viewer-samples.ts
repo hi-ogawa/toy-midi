@@ -110,17 +110,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       keySignature: { fifths: -3, mode: "minor" },
     }),
   },
-  {
-    id: "print-multipage",
-    name: "Print multipage",
-    description: "64 measures of mixed eighths and sixteenths",
-    tempo: 110,
-    xml: exportSample({
-      notes: createPrintNotes(),
-      tempo: 110,
-      keySignature: { fifths: -3, mode: "minor" },
-    }),
-  },
 ];
 
 function createSequentialNotes({
@@ -137,23 +126,6 @@ function createSequentialNotes({
       duration,
     }),
   );
-}
-
-function createPrintNotes() {
-  return Array.from({ length: 64 }, (_, measure) => {
-    const durations =
-      measure % 2 === 0 ? [0.5, 0.5, 1, 0.5, 0.5, 1] : Array(16).fill(0.25);
-    let start = measure * 4;
-    return durations.map((duration, index) => {
-      const note = createNote({
-        pitch: SAMPLE_PITCHES[(measure + index) % SAMPLE_PITCHES.length],
-        start,
-        duration,
-      });
-      start += duration;
-      return note;
-    });
-  }).flat();
 }
 
 function exportSample({

@@ -6,7 +6,6 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
-  PrinterIcon,
   RotateCcwIcon,
 } from "lucide-react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
@@ -252,8 +251,8 @@ export function ScoreViewer() {
   }
 
   return (
-    <main className="score-viewer-root flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950">
-      <header className="score-viewer-header flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
+    <main className="flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950">
+      <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
           data-testid="score-play-pause-button"
           disabled={!isReady}
@@ -341,15 +340,6 @@ export function ScoreViewer() {
         <div className="flex-1" />
 
         <Button
-          disabled={!isReady}
-          onClick={() => window.print()}
-          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <PrinterIcon className="size-4" />
-          Print
-        </Button>
-
-        <Button
           disabled={loadMutation.isPending}
           onClick={() => fileInputRef.current?.click()}
           className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -432,23 +422,20 @@ export function ScoreViewer() {
           {loadMutation.error.message}
         </p>
       )}
-      <section
-        ref={scrollerRef}
-        className="score-viewer-scroll min-h-0 flex-1 overflow-y-auto p-6"
-      >
+      <section ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto p-6">
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
             Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
         )}
         <div
-          className="score-viewer-sheet relative mx-auto bg-white px-4 shadow-xl"
+          className="relative mx-auto bg-white px-4 shadow-xl"
           style={{ width: scoreWidth }}
         >
           <div
             ref={cursorRef}
             data-testid="continuous-playback-cursor"
-            className="score-viewer-cursor pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
+            className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
           />
           <div ref={containerRef} data-testid="score-viewer-renderer" />
         </div>

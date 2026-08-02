@@ -52,39 +52,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm;
-  }
-
-  body {
-    background: white;
-  }
-
-  .score-viewer-root {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
-  }
-
-  .score-viewer-header,
-  .score-viewer-cursor {
-    display: none !important;
-  }
-
-  .score-viewer-scroll {
-    height: auto !important;
-    overflow: visible !important;
-    padding: 0 !important;
-  }
-
-  .score-viewer-sheet {
-    width: 100% !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
-}
