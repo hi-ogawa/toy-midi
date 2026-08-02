@@ -126,7 +126,13 @@ export function spellMidiPitch({
     keySignature.fifths < 0
       ? FLAT_CHROMATIC_SPELLINGS
       : SHARP_CHROMATIC_SPELLINGS;
-  const [step, alter] = chromaticSpellings[pitchClass];
+  const [step, alter] = chromaticSpellings[pitch % 12];
+  return toSpelledPitch({ pitch, step, alter });
+}
+
+export function spellChromaticPitch(pitch: number): SpelledPitch {
+  const chromaticSpellings = SHARP_CHROMATIC_SPELLINGS;
+  const [step, alter] = chromaticSpellings[pitch % 12];
   return toSpelledPitch({ pitch, step, alter });
 }
 

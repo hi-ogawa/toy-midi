@@ -2,6 +2,7 @@ import type { Note, TimeSignature } from "../types";
 import {
   type KeySignature,
   type SpelledPitch,
+  spellChromaticPitch,
   spellMidiPitch,
 } from "./pitch-spelling";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
@@ -335,7 +336,7 @@ export function exportMusicXml({
       hx("staves", 2),
       h("clef", { number: 1 }, hx("sign", "F"), hx("line", 4)),
       h("clef", { number: 2 }, hx("sign", "TAB")),
-      renderStaffDetails(openStringPitches, keySignature),
+      renderStaffDetails(openStringPitches),
       // Bass sounds one octave below its written pitch, so MuseScore transposes
       // playback while retaining conventional bass notation.
       hx(
@@ -431,10 +432,7 @@ function renderMeasure({
   );
 }
 
-function renderStaffDetails(
-  openStringPitches: readonly number[],
-  keySignature: KeySignature,
-): XmlElement {
+function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
   // The app stores strings from highest to lowest pitch, while MusicXML numbers
   // TAB staff lines from the lowest line upward.
   const tuning = [...openStringPitches].reverse();
@@ -443,7 +441,7 @@ function renderStaffDetails(
     { number: 2 },
     hx("staff-lines", openStringPitches.length),
     ...tuning.map((midi, index) => {
-      const pitch = spellMidiPitch({ pitch: midi, keySignature });
+      const pitch = spellChromaticPitch(midi);
       return h(
         "staff-tuning",
         { line: index + 1 },
