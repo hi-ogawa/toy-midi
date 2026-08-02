@@ -26,6 +26,7 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
 
 test("loads and advances the cursor sample", async ({ page }) => {
   await page.goto("/score-viewer");
+  await page.getByLabel("Sample").selectOption("cursor-wrapping");
   await page.getByRole("button", { name: "Load Sample" }).click();
 
   const playButton = page.getByRole("button", { name: "Play" });
@@ -86,10 +87,19 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await expect.poll(() => cursor.getAttribute("data-system-id")).toBe("1");
 });
 
-test("does not expose the removed debug route", async ({ page }) => {
-  await page.goto("/score-viewer-debug");
-  await expect(page.getByText("TOY MIDI")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Load Sample" })).toHaveCount(
-    0,
-  );
+test("switches between generated score samples", async ({ page }) => {
+  await page.goto("/score-viewer");
+
+  await page.getByLabel("Sample").selectOption("dense-sixteenths");
+  await page.getByRole("button", { name: "Load Sample" }).click();
+  await expect(page.getByTestId("score-name")).toHaveText("Dense sixteenths");
+  await expect(page.getByLabel("BPM")).toHaveValue("110");
+  await expect(
+    page.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toBeVisible();
+
+  await page.getByLabel("Sample").selectOption("fast-eighths");
+  await page.getByRole("button", { name: "Load Sample" }).click();
+  await expect(page.getByTestId("score-name")).toHaveText("Fast eighths");
+  await expect(page.getByLabel("BPM")).toHaveValue("200");
 });

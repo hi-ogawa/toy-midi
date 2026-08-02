@@ -1,21 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
-import { exportMusicXml } from "../lib/musicxml-export";
-
-const SAMPLE_TEMPO = 60;
-const SAMPLE_SCORE = exportMusicXml({
-  notes: Array.from({ length: 64 }, (_, index) => ({
-    id: `sample-${index}`,
-    pitch: [40, 43, 45, 47, 48, 47, 45, 43][index % 8],
-    start: index * 0.5,
-    duration: 0.5,
-    velocity: 100,
-  })),
-  openStringPitches: [43, 38, 33, 28],
-  tempo: SAMPLE_TEMPO,
-  timeSignature: { numerator: 4, denominator: 4 },
-});
+import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 
 type CursorPosition = {
   time: number;
@@ -35,10 +21,11 @@ export function ScoreViewer() {
   const pausedAtRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const [tempo, setTempo] = useState(SAMPLE_TEMPO);
+  const [tempo, setTempo] = useState(SCORE_VIEWER_SAMPLES[0].tempo);
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
+  const [sampleId, setSampleId] = useState(SCORE_VIEWER_SAMPLES[0].id);
 
   const loadMutation = useMutation({
     mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
@@ -203,7 +190,10 @@ export function ScoreViewer() {
         >
           TOY MIDI
         </a>
-        <span className="min-w-0 truncate text-sm text-neutral-400">
+        <span
+          data-testid="score-name"
+          className="min-w-0 truncate text-sm text-neutral-400"
+        >
           {scoreName ?? "Open MusicXML or load a sample"}
         </span>
         <label className="cursor-pointer rounded border border-neutral-700 px-4 py-1.5 text-sm">
@@ -224,19 +214,37 @@ export function ScoreViewer() {
             }}
           />
         </label>
+        <select
+          aria-label="Sample"
+          value={sampleId}
+          onChange={(event) => setSampleId(event.currentTarget.value)}
+          className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+        >
+          {SCORE_VIEWER_SAMPLES.map((sample) => (
+            <option key={sample.id} value={sample.id}>
+              {sample.name}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           disabled={loadMutation.isPending}
-          onClick={() =>
-            loadMutation.mutate({
-              name: "Continuous cursor sample",
-              xml: SAMPLE_SCORE,
-            })
-          }
+          onClick={() => {
+            const sample = SCORE_VIEWER_SAMPLES.find(
+              (candidate) => candidate.id === sampleId,
+            )!;
+            loadMutation.mutate({ name: sample.name, xml: sample.xml });
+          }}
           className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
         >
           Load Sample
         </button>
+        <span className="max-w-52 truncate text-xs text-neutral-500">
+          {
+            SCORE_VIEWER_SAMPLES.find((sample) => sample.id === sampleId)
+              ?.description
+          }
+        </span>
         <label className="flex items-center gap-2 text-sm text-neutral-400">
           BPM
           <input
@@ -307,7 +315,7 @@ export function ScoreViewer() {
       >
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
-            Open a Toy MIDI MusicXML export or load the cursor sample.
+            Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
         )}
         <div className="relative mx-auto max-w-4xl bg-white px-4 shadow-xl">
