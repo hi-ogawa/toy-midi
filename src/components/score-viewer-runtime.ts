@@ -274,6 +274,8 @@ function parseTempo(xml: string) {
 }
 
 function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+  // TODO: Define how simultaneous entries at one timestamp map to a single
+  // cursor anchor before MusicXML chord or multi-voice support is added.
   // OSMD has no high-level playback geometry API, so derive anchors from its
   // typed graphical model after rendering.
   // OSMD's built-in cursor is not usable here: it steps between entries, and
