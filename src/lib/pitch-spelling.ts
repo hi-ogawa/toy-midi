@@ -3,8 +3,10 @@ export interface KeySignature {
   mode: "major" | "minor";
 }
 
+type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+
 export type SpelledPitch = {
-  step: string;
+  step: NoteLetter;
   alter: number;
   octave: number;
 };
@@ -42,7 +44,7 @@ export const KEY_SIGNATURES: (KeySignature & { label: string })[] = [
   { fifths: 7, mode: "minor", label: "A-sharp minor" },
 ];
 
-const NATURAL_PITCH_CLASSES = {
+const NATURAL_PITCH_CLASS_BY_LETTER: Record<NoteLetter, number> = {
   C: 0,
   D: 2,
   E: 4,
@@ -105,9 +107,9 @@ export function spellMidiPitch({
   // Prefer the exact spelling of a scale tone in this key, including altered
   // naturals such as C-flat in E-flat minor and E-sharp in D-sharp minor.
   for (const step of Object.keys(
-    NATURAL_PITCH_CLASSES,
-  ) as (keyof typeof NATURAL_PITCH_CLASSES)[]) {
-    const naturalPitchClass = NATURAL_PITCH_CLASSES[step];
+    NATURAL_PITCH_CLASS_BY_LETTER,
+  ) as NoteLetter[]) {
+    const naturalPitchClass = NATURAL_PITCH_CLASS_BY_LETTER[step];
     const alter = alteredSteps.has(step) ? keyAlter : 0;
     if ((naturalPitchClass + alter + 12) % 12 === pitchClass) {
       return toSpelledPitch({ pitch, step, alter });
@@ -147,7 +149,7 @@ function toSpelledPitch({
   alter,
 }: {
   pitch: number;
-  step: keyof typeof NATURAL_PITCH_CLASSES;
+  step: NoteLetter;
   alter: number;
 }): SpelledPitch {
   return {
@@ -155,6 +157,8 @@ function toSpelledPitch({
     alter,
     // Derive the written octave after applying the accidental because C-flat
     // and B-sharp cross the C octave boundary relative to their sounding pitch.
-    octave: Math.floor((pitch - NATURAL_PITCH_CLASSES[step] - alter) / 12),
+    octave: Math.floor(
+      (pitch - NATURAL_PITCH_CLASS_BY_LETTER[step] - alter) / 12,
+    ),
   };
 }
