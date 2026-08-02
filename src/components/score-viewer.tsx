@@ -174,31 +174,33 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
-        <label className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">BPM</span>
-          <input
-            aria-label="BPM"
-            type="text"
-            inputMode="numeric"
-            {...tempoInput.props}
-            className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
-          />
-        </label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">BPM</span>
+            <input
+              aria-label="BPM"
+              type="text"
+              inputMode="numeric"
+              {...tempoInput.props}
+              className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+            />
+          </label>
 
-        <label className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">Layout</span>
-          <select
-            aria-label="Layout"
-            value={layout}
-            onChange={(event) =>
-              changeLayout(event.currentTarget.value as ScoreLayout)
-            }
-            className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
-          >
-            <option value="continuous">Continuous</option>
-            <option value="paged">Paged</option>
-          </select>
-        </label>
+          <label className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Layout</span>
+            <select
+              aria-label="Layout"
+              value={layout}
+              onChange={(event) =>
+                changeLayout(event.currentTarget.value as ScoreLayout)
+              }
+              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+            >
+              <option value="continuous">Continuous</option>
+              <option value="paged">Paged</option>
+            </select>
+          </label>
+        </div>
 
         <div className="flex-1" />
 
