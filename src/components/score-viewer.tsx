@@ -243,7 +243,7 @@ export function ScoreViewer() {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-neutral-300 text-neutral-950">
+    <main className="flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950">
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
           data-testid="score-play-pause-button"
@@ -392,10 +392,7 @@ export function ScoreViewer() {
           {loadMutation.error.message}
         </p>
       )}
-      <section
-        ref={scrollerRef}
-        className="h-[calc(100vh-4rem)] overflow-y-auto p-6"
-      >
+      <section ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto p-6">
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
             Open a Toy MIDI MusicXML export or load a generated sample.
