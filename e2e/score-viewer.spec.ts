@@ -13,9 +13,9 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
-  const cursor = page.locator("img[id^='cursorImg']");
+  const cursor = page.getByTestId("continuous-playback-cursor");
   await expect(cursor).toBeVisible();
-  await expect(cursor).toHaveCSS("z-index", "1");
+  await expect(page.getByLabel("BPM")).toHaveValue("120");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
@@ -24,8 +24,9 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 });
 
-test("preloads and advances the cursor debug score", async ({ page }) => {
-  await page.goto("/score-viewer-debug");
+test("loads and advances the cursor sample", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await page.getByRole("button", { name: "Load Sample" }).click();
 
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
@@ -83,4 +84,12 @@ test("preloads and advances the cursor debug score", async ({ page }) => {
   expect(systemEndLater).not.toBe(systemEndStart);
   await expect(cursor).toHaveAttribute("data-system-id", "0");
   await expect.poll(() => cursor.getAttribute("data-system-id")).toBe("1");
+});
+
+test("does not expose the removed debug route", async ({ page }) => {
+  await page.goto("/score-viewer-debug");
+  await expect(page.getByText("TOY MIDI")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Load Sample" })).toHaveCount(
+    0,
+  );
 });

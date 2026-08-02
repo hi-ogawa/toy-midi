@@ -20,7 +20,7 @@ Related findings:
 - [x] Render a thin custom cursor across the standard and TAB staves.
 - [x] Interpolate cursor x-position continuously between adjacent score entries.
 - [x] Pause, resume, and restart the visual playback clock.
-- [x] Exercise wrapped layout with multiple systems in `/score-viewer-debug`.
+- [x] Exercise wrapped layout with multiple systems using the built-in `/score-viewer` sample.
 - [x] Keep screenshot captures as local debug artifacts under `.tmp/`.
 
 ## Immediate Validation
@@ -74,12 +74,12 @@ Pass criterion: cursor movement remains monotonic and rhythmically proportional 
 
 ## Implementation Plan
 
-1. Extend the debug fixture with representative rhythm and barline cases.
+1. Extend the built-in sample with representative rhythm and barline cases.
 2. Add explicit measure-ending geometry points because OSMD entry positions alone do not describe the interval from the last entry to the end barline.
 3. Finalize system-boundary behavior so interpolation is horizontal only within one system.
 4. Implement cursor-rectangle viewport containment and restart scroll restoration.
 5. Run the two cover quick checks and document concrete failures in `osmd-rendering-findings.md`.
-6. If the decision gate passes, move the custom cursor and follow logic from the debug route into the standalone file viewer.
+6. Run the same cursor and follow implementation against uploaded MusicXML without sample-specific assumptions.
 7. Only then decide whether integrating the standalone viewer with Toy MIDI project state improves the workflow enough to justify coupling it to the editor.
 
 ## Cover Quick Checks

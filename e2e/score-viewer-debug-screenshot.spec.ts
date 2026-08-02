@@ -1,7 +1,8 @@
 import { test } from "@playwright/test";
 
-test("capture score viewer debug cursor", async ({ page }) => {
-  await page.goto("/score-viewer-debug");
+test("capture score viewer sample cursor", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await page.getByRole("button", { name: "Load Sample" }).click();
   const playButton = page.getByRole("button", { name: "Play" });
   await playButton.waitFor({ state: "visible" });
   await page.screenshot({

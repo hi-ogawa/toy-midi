@@ -51,7 +51,7 @@ OSMD's cursor provides useful score iteration and graphical positions, but it is
 - Changing OSMD cursor type, color, opacity, or z-index does not address continuous movement.
 - Replacing the image source can make it visibly vertical, but OSMD regenerates the bitmap when the iterator advances. This is useful only as a debug aid.
 
-The `/score-viewer-debug` route provides a deterministic 60 BPM score for inspecting these behaviors. Its red cursor override is intentionally diagnostic and should not become the production cursor implementation.
+The `/score-viewer` route includes a deterministic 60 BPM sample for inspecting cursor behavior alongside uploaded MusicXML. The viewer now uses an independent blue browser overlay instead of OSMD's built-in cursor image.
 
 ## Viewer Direction
 
