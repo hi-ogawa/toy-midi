@@ -59,15 +59,6 @@ Validate:
 
 Pass criterion: cursor movement remains monotonic and rhythmically proportional across every fixture case, including the final interval in each measure.
 
-### Cover Quick Checks
-
-Use these completed covers as practical comparisons because together they exercise the useful variation in the current workflow:
-
-- [ ] [tripleS - Baby Flower](https://musescore.com/user/44372771/scores/35142602), with [recorded cover](https://www.youtube.com/watch?v=cBRY91hSQmw): three flats, C minor / E-flat major, 200 BPM, eighth-note-oriented material.
-- [ ] [RESCENE - LOVE ATTACK](https://musescore.com/user/44372771/scores/35265077), with [recorded cover](https://www.youtube.com/watch?v=JSxBCpMg01w): no flats, C major / A minor, 110 BPM, sixteenth-note funk material.
-
-For each cover, load the corresponding Toy MIDI MusicXML export and quickly compare score/TAB content, system layout, cursor progression, and recording readability with the linked MuseScore score and video. Reduce any failure to a concrete fixture or rendering bug.
-
 ## Implementation Plan
 
 1. Extend the debug fixture with representative rhythm and barline cases.
@@ -77,6 +68,15 @@ For each cover, load the corresponding Toy MIDI MusicXML export and quickly comp
 5. Run the two cover quick checks and document concrete failures in `osmd-rendering-findings.md`.
 6. If the decision gate passes, move the custom cursor and follow logic from the debug route into the standalone file viewer.
 7. Only then decide whether integrating the standalone viewer with Toy MIDI project state improves the workflow enough to justify coupling it to the editor.
+
+## Cover Quick Checks
+
+Use these completed covers as practical comparisons because together they exercise the useful variation in the current workflow:
+
+- [ ] [tripleS - Baby Flower](https://musescore.com/user/44372771/scores/35142602), with [recorded cover](https://www.youtube.com/watch?v=cBRY91hSQmw): three flats, C minor / E-flat major, 200 BPM, eighth-note-oriented material.
+- [ ] [RESCENE - LOVE ATTACK](https://musescore.com/user/44372771/scores/35265077), with [recorded cover](https://www.youtube.com/watch?v=JSxBCpMg01w): no flats, C major / A minor, 110 BPM, sixteenth-note funk material.
+
+For each cover, load the corresponding Toy MIDI MusicXML export and quickly compare score/TAB content, system layout, cursor progression, and recording readability with the linked MuseScore score and video. Reduce any failure to a concrete fixture or rendering bug.
 
 ## Deferred Work
 
