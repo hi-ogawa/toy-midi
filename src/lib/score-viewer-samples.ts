@@ -16,18 +16,18 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
   {
     id: "cursor-wrapping",
     name: "Cursor and wrapping",
-    description: "64 eighth notes at 60 BPM",
-    tempo: 60,
+    description: "64 eighth notes at 120 BPM",
+    tempo: 120,
     xml: exportSample({
       notes: createSequentialNotes({ count: 64, duration: 0.5 }),
-      tempo: 60,
+      tempo: 120,
     }),
   },
   {
     id: "rhythm-rests",
     name: "Rhythm and rests",
     description: "Mixed durations, gaps, and a full-measure rest",
-    tempo: 90,
+    tempo: 120,
     xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
@@ -40,14 +40,14 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
         createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
       ],
-      tempo: 90,
+      tempo: 120,
     }),
   },
   {
     id: "ties-barlines",
     name: "Ties and barlines",
     description: "Durations split within and across measures",
-    tempo: 80,
+    tempo: 120,
     xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 2.5 }),
@@ -56,14 +56,14 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 47, start: 7.5, duration: 2.5 }),
         createNote({ pitch: 48, start: 10, duration: 2 }),
       ],
-      tempo: 80,
+      tempo: 120,
     }),
   },
   {
     id: "tab-positions",
     name: "TAB positions",
     description: "Open strings and explicit alternate-string frets",
-    tempo: 70,
+    tempo: 120,
     xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
@@ -85,7 +85,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 38, start: 6, duration: 1 }),
         createNote({ pitch: 43, start: 7, duration: 1 }),
       ],
-      tempo: 70,
+      tempo: 120,
     }),
   },
   {
