@@ -411,6 +411,7 @@ function buildMeasureTargets(
         const topStaff = system.StaffLines[0];
         const bottomStaff = system.StaffLines.at(-1)!;
         const target = document.createElement("div");
+        // Expose the target and its source-measure identity for E2E interaction.
         target.dataset.testid = "score-viewer-measure";
         target.dataset.measureIndex = String(
           measure.parentSourceMeasure.measureListIndex,
