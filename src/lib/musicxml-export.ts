@@ -1,4 +1,10 @@
 import type { Note, TimeSignature } from "../types";
+import {
+  type KeySignature,
+  type SpelledPitch,
+  spellChromaticPitch,
+  spellMidiPitch,
+} from "./pitch-spelling";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 
 // This format was manually reduced from a MuseScore MusicXML export and
@@ -16,6 +22,7 @@ const EPSILON = 1e-6;
 export type MusicXmlModelOptions = {
   notes: Note[];
   timeSignature: TimeSignature;
+  keySignature: KeySignature;
   openStringPitches: readonly number[];
 };
 
@@ -34,7 +41,7 @@ export type MusicXmlMeasureEvent =
   | { type: "rest"; duration: number; notation: DurationNotation }
   | {
       type: "note";
-      pitch: number;
+      pitch: SpelledPitch;
       duration: number;
       notation: DurationNotation;
       tabPosition: TabPosition;
@@ -76,6 +83,7 @@ const DURATION_CANDIDATES: DurationCandidate[] = [
 export function buildMusicXmlModel({
   notes,
   timeSignature,
+  keySignature,
   openStringPitches,
 }: MusicXmlModelOptions): {
   measureDuration: number;
@@ -113,6 +121,7 @@ export function buildMusicXmlModel({
         notes,
         measureStart: index * measureDuration,
         measureDuration,
+        keySignature,
       }),
     ),
   };
@@ -172,10 +181,12 @@ function buildMeasureEvents({
   notes,
   measureStart,
   measureDuration,
+  keySignature,
 }: {
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
+  keySignature: KeySignature;
 }): MusicXmlMeasureEvent[] {
   const events: MusicXmlMeasureEvent[] = [];
   let cursor = 0;
@@ -210,7 +221,9 @@ function buildMeasureEvents({
       const pieceEnd = pieceStart + piece.duration;
       events.push({
         type: "note",
-        pitch: note.note.pitch,
+        pitch: toWrittenBassPitch(
+          spellMidiPitch({ pitch: note.note.pitch, keySignature }),
+        ),
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
@@ -298,11 +311,13 @@ export function exportMusicXml({
   notes,
   tempo,
   timeSignature,
+  keySignature,
   openStringPitches,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
     notes,
     timeSignature,
+    keySignature,
     openStringPitches,
   });
   // MusicXML places score-level configuration inside the first measure.
@@ -310,7 +325,11 @@ export function exportMusicXml({
     hx(
       "attributes",
       hx("divisions", DIVISIONS),
-      hx("key", hx("fifths", 0)),
+      hx(
+        "key",
+        hx("fifths", keySignature.fifths),
+        hx("mode", keySignature.mode),
+      ),
       hx(
         "time",
         hx("beats", timeSignature.numerator),
@@ -424,7 +443,7 @@ function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
     { number: 2 },
     hx("staff-lines", openStringPitches.length),
     ...tuning.map((midi, index) => {
-      const pitch = midiPitchToMusicXml(midi);
+      const pitch = toWrittenBassPitch(spellChromaticPitch(midi));
       return h(
         "staff-tuning",
         { line: index + 1 },
@@ -451,7 +470,6 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
     );
   }
 
-  const pitch = midiPitchToMusicXml(event.pitch);
   // MusicXML uses <tie> for playback and <tied> for engraved notation, so each
   // model tie must be emitted in both forms.
   const tiedNotations = [
@@ -470,9 +488,9 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
     "note",
     hx(
       "pitch",
-      hx("step", pitch.step),
-      pitch.alter !== 0 && hx("alter", pitch.alter),
-      hx("octave", pitch.octave),
+      hx("step", event.pitch.step),
+      event.pitch.alter !== 0 && hx("alter", event.pitch.alter),
+      hx("octave", event.pitch.octave),
     ),
     hx("duration", event.duration),
     event.tieStop && h("tie", { type: "stop" }),
@@ -494,29 +512,10 @@ function renderDurationNotation(notation: DurationNotation): XmlNode[] {
   ];
 }
 
-function midiPitchToMusicXml(pitch: number): {
-  step: string;
-  alter: number;
-  octave: number;
-} {
-  // TODO: Derive key-aware enharmonic spelling. Export currently declares C
-  // major and spells every chromatic pitch with a sharp.
-  const pitchClasses = [
-    ["C", 0],
-    ["C", 1],
-    ["D", 0],
-    ["D", 1],
-    ["E", 0],
-    ["F", 0],
-    ["F", 1],
-    ["G", 0],
-    ["G", 1],
-    ["A", 0],
-    ["A", 1],
-    ["B", 0],
-  ] as const;
-  const [step, alter] = pitchClasses[pitch % 12];
-  return { step, alter, octave: Math.floor(pitch / 12) };
+function toWrittenBassPitch(pitch: SpelledPitch): SpelledPitch {
+  // Bass notation is written one octave above sounding pitch; the matching
+  // MusicXML <transpose> metadata shifts playback back down an octave.
+  return { ...pitch, octave: pitch.octave + 1 };
 }
 
 // xml hyperscript helpers
