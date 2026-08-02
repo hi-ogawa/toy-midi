@@ -215,29 +215,30 @@ export class ScoreViewerRuntime {
     if (nextIndex < 1) {
       nextIndex = 1;
     }
-    const previous = this.#positions[nextIndex - 1];
-    const next = this.#positions[nextIndex];
+    const currentAnchor = this.#positions[nextIndex - 1];
+    const nextAnchor = this.#positions[nextIndex];
 
     // Interpolate x by musical time while retaining the active system geometry.
     const progress =
-      next.systemId === previous.systemId
-        ? (scoreTime - previous.time) / (next.time - previous.time)
+      nextAnchor.systemId === currentAnchor.systemId
+        ? (scoreTime - currentAnchor.time) /
+          (nextAnchor.time - currentAnchor.time)
         : // Do not interpolate diagonally between wrapped systems. The synthetic
           // system endpoint completes the previous row before this direct jump.
           0;
-    this.#cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
-    this.#cursor.style.height = `${previous.height}px`;
+    this.#cursor.style.transform = `translate(${currentAnchor.x + (nextAnchor.x - currentAnchor.x) * progress}px, ${currentAnchor.top}px)`;
+    this.#cursor.style.height = `${currentAnchor.height}px`;
     // Expose the active system for cursor-wrapping E2E coverage.
-    this.#cursor.dataset.systemId = String(previous.systemId);
+    this.#cursor.dataset.systemId = String(currentAnchor.systemId);
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
-    const cursorBottom = previous.top + previous.height;
-    if (
-      previous.top < this.#scroller.scrollTop ||
-      cursorBottom > this.#scroller.scrollTop + this.#scroller.clientHeight
-    ) {
-      this.#scroller.scrollTo({ top: Math.max(previous.top - 24, 0) });
+    const cursorTop = currentAnchor.top;
+    const cursorBottom = cursorTop + currentAnchor.height;
+    const viewportTop = this.#scroller.scrollTop;
+    const viewportBottom = viewportTop + this.#scroller.clientHeight;
+    if (cursorTop < viewportTop || cursorBottom > viewportBottom) {
+      this.#scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
     }
   }
 
