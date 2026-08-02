@@ -25,44 +25,6 @@ export interface TimeSignature {
   denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)
 }
 
-export interface KeySignature {
-  fifths: number; // Number of flats (-) or sharps (+)
-  mode: "major" | "minor";
-}
-
-export const KEY_SIGNATURES: (KeySignature & { label: string })[] = [
-  { fifths: -7, mode: "major", label: "C-flat major" },
-  { fifths: -6, mode: "major", label: "G-flat major" },
-  { fifths: -5, mode: "major", label: "D-flat major" },
-  { fifths: -4, mode: "major", label: "A-flat major" },
-  { fifths: -3, mode: "major", label: "E-flat major" },
-  { fifths: -2, mode: "major", label: "B-flat major" },
-  { fifths: -1, mode: "major", label: "F major" },
-  { fifths: 0, mode: "major", label: "C major" },
-  { fifths: 1, mode: "major", label: "G major" },
-  { fifths: 2, mode: "major", label: "D major" },
-  { fifths: 3, mode: "major", label: "A major" },
-  { fifths: 4, mode: "major", label: "E major" },
-  { fifths: 5, mode: "major", label: "B major" },
-  { fifths: 6, mode: "major", label: "F-sharp major" },
-  { fifths: 7, mode: "major", label: "C-sharp major" },
-  { fifths: -7, mode: "minor", label: "A-flat minor" },
-  { fifths: -6, mode: "minor", label: "E-flat minor" },
-  { fifths: -5, mode: "minor", label: "B-flat minor" },
-  { fifths: -4, mode: "minor", label: "F minor" },
-  { fifths: -3, mode: "minor", label: "C minor" },
-  { fifths: -2, mode: "minor", label: "G minor" },
-  { fifths: -1, mode: "minor", label: "D minor" },
-  { fifths: 0, mode: "minor", label: "A minor" },
-  { fifths: 1, mode: "minor", label: "E minor" },
-  { fifths: 2, mode: "minor", label: "B minor" },
-  { fifths: 3, mode: "minor", label: "F-sharp minor" },
-  { fifths: 4, mode: "minor", label: "C-sharp minor" },
-  { fifths: 5, mode: "minor", label: "G-sharp minor" },
-  { fifths: 6, mode: "minor", label: "D-sharp minor" },
-  { fifths: 7, mode: "minor", label: "A-sharp minor" },
-];
-
 export interface Locator {
   id: string;
   position: number; // Position on timeline in beats

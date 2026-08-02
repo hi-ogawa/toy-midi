@@ -2,7 +2,6 @@ import { create } from "zustand";
 import {
   GRID_SNAP_VALUES,
   type GridSnap,
-  type KeySignature,
   type Locator,
   type Note,
   type TabString,
@@ -11,6 +10,7 @@ import {
 import type { AudioView } from "./audio-view";
 import { historyStore, type NoteChanges } from "./history-store";
 import { snapToGrid } from "./music";
+import type { KeySignature } from "./pitch-spelling";
 import { getFret, moveTabString, TAB_STRING_PRESETS } from "./tab-annotation";
 
 type NoteUpdate = {

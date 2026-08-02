@@ -13,6 +13,7 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { exportMusicXml } from "../lib/musicxml-export";
+import { KEY_SIGNATURES } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -26,7 +27,6 @@ import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
 } from "../lib/tab-annotation";
-import { KEY_SIGNATURES } from "../types";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
