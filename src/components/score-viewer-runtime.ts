@@ -66,6 +66,10 @@ export class ScoreViewerRuntime {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime);
+      if (bar !== this.#state.bar || beat !== this.#state.beat) {
+        this.#setState({ bar, beat });
+      }
       this.#updateCursor(scoreTime);
       const isPlaying = !paused;
       if (isPlaying !== this.#state.isPlaying) {
@@ -185,11 +189,10 @@ export class ScoreViewerRuntime {
     }
     const last = this.#positions.at(-1)!;
     if (scoreTime >= last.time) {
-      this.#cursor.style.transform = `translate(${last.x}px, ${last.top}px)`;
-      this.#cursor.style.height = `${last.height}px`;
-      this.#cursor.dataset.systemId = String(last.systemId);
+      this.#cursor.hidden = true;
       return;
     }
+    this.#cursor.hidden = false;
     let nextIndex = this.#positions.findIndex(
       (position) => position.time > scoreTime,
     );
@@ -207,12 +210,6 @@ export class ScoreViewerRuntime {
     this.#cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
     this.#cursor.style.height = `${previous.height}px`;
     this.#cursor.dataset.systemId = String(previous.systemId);
-    const totalBeats = Math.floor(scoreTime * 4);
-    const bar = Math.floor(totalBeats / 4) + 1;
-    const beat = (totalBeats % 4) + 1;
-    if (bar !== this.#state.bar || beat !== this.#state.beat) {
-      this.#setState({ bar, beat });
-    }
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
@@ -239,6 +236,14 @@ function secondsToScoreTime(seconds: number, tempo: number) {
 
 function scoreTimeToSeconds(scoreTime: number, tempo: number) {
   return scoreTime / (tempo / 60 / 4);
+}
+
+function scoreTimeToBarBeat(scoreTime: number) {
+  const totalBeats = Math.floor(scoreTime * 4);
+  return {
+    bar: Math.floor(totalBeats / 4) + 1,
+    beat: (totalBeats % 4) + 1,
+  };
 }
 
 function parseTempo(xml: string) {
