@@ -66,3 +66,60 @@
   background: white;
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body {
+    background: white;
+  }
+
+  .score-viewer-root[data-render-mode="continuous"] {
+    display: none;
+  }
+
+  .score-viewer-root[data-render-mode="paged"] {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: white;
+  }
+
+  .score-viewer-root[data-render-mode="paged"] > header,
+  [data-testid="continuous-playback-cursor"] {
+    display: none;
+  }
+
+  .score-viewer-scroll {
+    overflow: visible;
+    padding: 0;
+  }
+
+  [data-testid="score-viewer-frame"] {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  [data-testid="score-viewer-document"] {
+    width: 100% !important;
+    transform: none !important;
+  }
+
+  .score-viewer-paged [data-score-render-mode="paged"] {
+    gap: 0;
+  }
+
+  .score-viewer-paged [data-score-render-mode="paged"] svg {
+    break-after: page;
+    break-inside: avoid;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .score-viewer-paged [data-score-render-mode="paged"] svg:last-child {
+    break-after: auto;
+  }
+}
