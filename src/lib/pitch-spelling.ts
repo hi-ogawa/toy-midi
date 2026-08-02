@@ -97,6 +97,9 @@ export function spellMidiPitch({
   pitch: number;
   keySignature: KeySignature;
 }): SpelledPitch {
+  // Build the seven scale-tone spellings from the key signature first. Example:
+  //   Eb minor = 6 flats -> take { B, E, A, D, G, C } from flat order
+  //   MIDI pitch class 11 matches Cb because (C=0) + flat(-1) wraps to 11
   const accidentalOrder =
     keySignature.fifths < 0 ? FLAT_ACCIDENTAL_ORDER : SHARP_ACCIDENTAL_ORDER;
   const keyAlter = Math.sign(keySignature.fifths);
@@ -104,10 +107,6 @@ export function spellMidiPitch({
     accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
   );
   const pitchClass = pitch % 12;
-  // Build the seven scale-tone spellings from the key signature first. Example:
-  //   Eb minor = 6 flats -> altered letters { B, E, A, D, G, C }
-  //   C natural is pitch class 0; applying its flat gives (0 - 1 + 12) % 12 = 11
-  //   so MIDI pitch class 11 matches Cb here instead of falling back to B.
   for (const step of Object.keys(
     NATURAL_PITCH_CLASS_BY_LETTER,
   ) as NoteLetter[]) {
