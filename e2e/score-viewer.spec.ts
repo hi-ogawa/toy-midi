@@ -15,7 +15,7 @@ test("navigates between projects and the score viewer", async ({ page }) => {
 test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page.goto("/score-viewer");
   await page
-    .getByLabel("Open MusicXML")
+    .getByLabel("Upload MusicXML")
     .setInputFiles(
       path.resolve("src/lib/__snapshots__/five-string-tab.musicxml"),
     );

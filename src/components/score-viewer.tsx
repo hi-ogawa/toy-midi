@@ -7,6 +7,7 @@ import {
   PauseIcon,
   PlayIcon,
   RotateCcwIcon,
+  UploadIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
@@ -294,10 +295,26 @@ export function ScoreViewer() {
         className="min-h-0 flex-1 overflow-y-auto p-6"
       >
         {!score && !loadMutation.error && (
-          <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
-            Open a Toy MIDI MusicXML export or load a generated sample.
+          <div className="mb-6 flex justify-center">
+            <FileDropInput
+              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+              disabled={loadMutation.isPending}
+              inputProps={{ "aria-label": "Upload MusicXML" }}
+              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
+            >
+              <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
+                <UploadIcon className="size-5" />
+              </span>
+              <span className="font-medium">Drop a MusicXML score here</span>
+              <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-blue-700">
+                or click to choose an .xml or .musicxml file
+              </span>
+            </FileDropInput>
           </div>
         )}
+        {/* TODO: Do not mount the fixed-width score canvas until a score loads;
+            its 1110px width shifts empty-state centering in narrow windows. */}
         <div
           className={cn(
             "relative mx-auto",
