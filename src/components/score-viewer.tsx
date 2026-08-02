@@ -228,13 +228,17 @@ export function ScoreViewer() {
     const progress =
       next.systemId === previous.systemId
         ? (scoreTime - previous.time) / (next.time - previous.time)
-        : 0;
+        : // Do not interpolate diagonally between wrapped systems. The synthetic
+          // system endpoint completes the previous row before this direct jump.
+          0;
     cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
     cursor.style.height = `${previous.height}px`;
     cursor.dataset.systemId = String(previous.systemId);
 
     const scroller = scrollerRef.current;
     if (scroller) {
+      // Match MuseScore's containment behavior: keep the viewport fixed while
+      // the complete cursor is visible, then reveal the active system.
       const cursorBottom = previous.top + previous.height;
       if (
         previous.top < scroller.scrollTop ||
@@ -452,6 +456,10 @@ function parseTempo(xml: string) {
 }
 
 function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+  // MuseScore interpolates between chord/rest positions and the ending
+  // barline. OSMD exposes entry geometry, so add each system's final timestamp
+  // and right border to prevent a freeze before wrapping.
+  // Reference: MuseScore playbackcursor.cpp::resolveCursorRectByTick.
   const result: CursorPosition[] = [];
   const systems = osmd.GraphicSheet.MusicPages.flatMap(
     (page) => page.MusicSystems,
