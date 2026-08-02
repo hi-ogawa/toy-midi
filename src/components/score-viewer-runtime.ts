@@ -297,12 +297,13 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
     const topStaff = system.StaffLines[0];
     const bottomStaff = system.StaffLines.at(-1)!;
-    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
+    // 20
+    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20; // cursor padding
     const bottom =
       (bottomStaff.PositionAndShape.AbsolutePosition.y +
         bottomStaff.StaffHeight) *
         10 +
-      20;
+      20; // cursor padding
     result.push({
       time: container.AbsoluteTimestamp.RealValue,
       x: entry.PositionAndShape.AbsolutePosition.x * 10,
