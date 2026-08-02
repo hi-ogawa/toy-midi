@@ -85,6 +85,9 @@ const FLAT_CHROMATIC_SPELLINGS = [
   ["B", 0],
 ] as const;
 
+// MuseScore similarly derives diatonic spellings from the exact key signature,
+// then applies heuristics to chromatic notes. See pitchspelling.cpp, especially
+// pitch2tpc(), computeWindow(), and spellNotelist().
 export function spellMidiPitch({
   pitch,
   keySignature,
