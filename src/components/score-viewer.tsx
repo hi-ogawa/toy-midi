@@ -8,10 +8,14 @@ import {
   PlayIcon,
   RotateCcwIcon,
 } from "lucide-react";
-import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import {
+  type ScoreLayout,
+  type ScoreSource,
+  ScoreViewerRuntime,
+} from "./score-viewer-runtime";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -21,16 +25,6 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-type CursorPosition = {
-  time: number;
-  x: number;
-  top: number;
-  height: number;
-  systemId: number;
-};
-
-type RenderMode = "continuous" | "paged";
-
 // OSMD reads its layout width from the container's offsetWidth. This value was
 // calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
 // which is an application-specific scale rather than a physical CSS pixel size.
@@ -38,25 +32,33 @@ type RenderMode = "continuous" | "paged";
 const SCORE_LAYOUT_WIDTH = 1110;
 
 export function ScoreViewer() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLElement>(null);
+  // TODO: don't we have file drop util?
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollerRef = useRef<HTMLElement>(null);
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const positionsRef = useRef<CursorPosition[]>([]);
-  const frameRef = useRef<number>(undefined);
-  const startedAtRef = useRef<number>(undefined);
-  const pausedAtRef = useRef(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [tempo, setTempo] = useState(SCORE_VIEWER_SAMPLES[0].tempo);
+
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
-  const [scoreName, setScoreName] = useState<string>();
-  const [scoreXml, setScoreXml] = useState<string>();
-  const [renderMode, setRenderMode] = useState<RenderMode>("continuous");
+  const [score, setScore] = useState<ScoreSource>();
+  const [renderMode, setRenderMode] = useState<ScoreLayout>("continuous");
+
+  // initialize runtime
+  const [runtime] = useState(() => new ScoreViewerRuntime());
+  const runtimeState = useSyncExternalStore(
+    runtime.subscribe,
+    runtime.getSnapshot,
+  );
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    runtime.attach(root);
+    return () => runtime.dispose();
+  }, [runtime]);
+
   const tempoInput = useDraftInput({
-    value: tempo,
-    onCommit: changeTempo,
+    value: runtimeState.tempo,
+    onCommit: (tempo) => runtime.setTempo(tempo),
     min: 1,
   });
 
@@ -76,106 +78,31 @@ export function ScoreViewer() {
 
   const loadMutation = useMutation({
     mutationFn: async ({
-      name,
       renderMode: nextRenderMode,
-      xml,
+      score: nextScore,
     }: {
-      name: string;
-      renderMode: RenderMode;
-      xml: string;
+      renderMode: ScoreLayout;
+      score: ScoreSource;
     }) => {
-      // TODO: Dispose the previous OSMD instance, prevent stale overlapping
-      // loads, and retain the previous valid score when replacement parsing fails.
-      const container = containerRef.current;
-      if (!container) {
-        throw new Error("Score viewer is not ready");
-      }
-      cancelAnimationFrame(frameRef.current ?? 0);
-      startedAtRef.current = undefined;
-      pausedAtRef.current = 0;
-      setIsPlaying(false);
-      setIsReady(false);
-      container.innerHTML = "";
-
-      const osmd = new OpenSheetMusicDisplay(container, {
-        autoBeam: true,
-        autoGenerateMultipleRestMeasuresFromRestMeasures: false,
-        backend: "svg",
-        disableCursor: true,
-        drawMeasureNumbersOnlyAtSystemStart: true,
-        drawPartNames: false,
-        drawTitle: false,
-        pageBackgroundColor: "#ffffff",
-        pageFormat: nextRenderMode === "paged" ? "A4_P" : undefined,
-      });
-      await osmd.load(xml);
-      osmd.render();
-      return {
-        name,
-        positions: buildCursorPositions(osmd),
-        tempo: parseTempo(xml),
-        xml,
-      };
+      await runtime.load({ score: nextScore, layout: nextRenderMode });
+      return nextScore;
     },
-    onSuccess: ({ name, positions, tempo: importedTempo, xml }) => {
-      positionsRef.current = positions;
-      setScoreName(name);
-      setScoreXml(xml);
-      setTempo(importedTempo);
+    onSuccess: (nextScore) => {
+      setScore(nextScore);
       setBar(1);
       setBeat(1);
-      setIsReady(true);
-      updateCursor(0);
     },
   });
 
-  useEffect(() => () => cancelAnimationFrame(frameRef.current ?? 0), []);
-
-  function togglePlayback() {
-    if (isPlaying) {
-      pausedAtRef.current = getCurrentScoreTime();
-      cancelAnimationFrame(frameRef.current ?? 0);
-      startedAtRef.current = undefined;
-      setIsPlaying(false);
-      return;
-    }
-    startedAtRef.current = performance.now();
-    setIsPlaying(true);
-    frameRef.current = requestAnimationFrame(advance);
-  }
-
-  function restart() {
-    cancelAnimationFrame(frameRef.current ?? 0);
-    startedAtRef.current = undefined;
-    pausedAtRef.current = 0;
-    setIsPlaying(false);
-    setBar(1);
-    setBeat(1);
-    updateCursor(0);
-    scrollerRef.current?.scrollTo({ top: 0 });
-  }
-
-  function changeTempo(value: number) {
-    if (!Number.isFinite(value) || value <= 0) {
-      return;
-    }
-    pausedAtRef.current = getCurrentScoreTime();
-    if (isPlaying) {
-      startedAtRef.current = performance.now();
-    }
-    setTempo(value);
-  }
-
-  function changeRenderMode(nextRenderMode: RenderMode) {
+  function changeRenderMode(nextRenderMode: ScoreLayout) {
     if (nextRenderMode === renderMode) {
       return;
     }
     setRenderMode(nextRenderMode);
-    if (scoreName && scoreXml) {
+    if (score) {
       loadMutation.mutate({
-        name: scoreName,
         renderMode: nextRenderMode,
-        xml: scoreXml,
+        score,
       });
     }
   }
@@ -189,86 +116,14 @@ export function ScoreViewer() {
   }) {
     setBar(nextBar);
     setBeat(nextBeat);
-    pausedAtRef.current =
-      ((Math.max(nextBar, 1) - 1) * 4 + (Math.max(nextBeat, 1) - 1)) / 4;
-    if (isPlaying) {
-      startedAtRef.current = performance.now();
-    }
-    updateCursor(pausedAtRef.current);
-  }
-
-  function getCurrentScoreTime() {
-    const startedAt = startedAtRef.current;
-    if (startedAt === undefined) {
-      return pausedAtRef.current;
-    }
-    return (
-      pausedAtRef.current +
-      ((performance.now() - startedAt) / 1000) * (tempo / 60 / 4)
+    runtime.seek(
+      ((Math.max(nextBar, 1) - 1) * 4 + (Math.max(nextBeat, 1) - 1)) / 4,
     );
-  }
-
-  function advance(now: number) {
-    const startedAt = startedAtRef.current;
-    if (startedAt === undefined) {
-      return;
-    }
-    const scoreTime =
-      pausedAtRef.current + ((now - startedAt) / 1000) * (tempo / 60 / 4);
-    if (!updateCursor(scoreTime)) {
-      pausedAtRef.current = 0;
-      startedAtRef.current = undefined;
-      setIsPlaying(false);
-      return;
-    }
-    frameRef.current = requestAnimationFrame(advance);
-  }
-
-  function updateCursor(scoreTime: number) {
-    const cursor = cursorRef.current;
-    const positions = positionsRef.current;
-    if (!cursor || positions.length < 2) {
-      return false;
-    }
-    const last = positions.at(-1)!;
-    if (scoreTime >= last.time) {
-      return false;
-    }
-    let nextIndex = positions.findIndex(
-      (position) => position.time > scoreTime,
-    );
-    if (nextIndex < 1) {
-      nextIndex = 1;
-    }
-    const previous = positions[nextIndex - 1];
-    const next = positions[nextIndex];
-    const progress =
-      next.systemId === previous.systemId
-        ? (scoreTime - previous.time) / (next.time - previous.time)
-        : // Do not interpolate diagonally between wrapped systems. The synthetic
-          // system endpoint completes the previous row before this direct jump.
-          0;
-    cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
-    cursor.style.height = `${previous.height}px`;
-    cursor.dataset.systemId = String(previous.systemId);
-
-    const scroller = scrollerRef.current;
-    if (scroller) {
-      // Match MuseScore's containment behavior: keep the viewport fixed while
-      // the complete cursor is visible, then reveal the active system.
-      const cursorBottom = previous.top + previous.height;
-      if (
-        previous.top < scroller.scrollTop ||
-        cursorBottom > scroller.scrollTop + scroller.clientHeight
-      ) {
-        scroller.scrollTo({ top: Math.max(previous.top - 24, 0) });
-      }
-    }
-    return true;
   }
 
   return (
     <main
+      ref={rootRef}
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
         renderMode === "paged" && "score-viewer-root-paged",
@@ -277,25 +132,29 @@ export function ScoreViewer() {
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
           data-testid="score-play-pause-button"
-          disabled={!isReady}
-          onClick={togglePlayback}
-          title={isPlaying ? "Pause" : "Play"}
+          disabled={!runtimeState.isReady}
+          onClick={() => runtime.togglePlayback()}
+          title={runtimeState.isPlaying ? "Pause" : "Play"}
           className={cn(
             "size-9",
-            isPlaying
+            runtimeState.isPlaying
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
           )}
         >
-          {isPlaying ? (
+          {runtimeState.isPlaying ? (
             <PauseIcon className="size-5" />
           ) : (
             <PlayIcon className="size-5" />
           )}
         </Button>
         <Button
-          disabled={!isReady}
-          onClick={restart}
+          disabled={!runtimeState.isReady}
+          onClick={() => {
+            runtime.restart();
+            setBar(1);
+            setBeat(1);
+          }}
           title="Restart"
           aria-label="Restart"
           className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -341,10 +200,10 @@ export function ScoreViewer() {
 
         <span
           data-testid="score-name"
-          title={scoreName}
+          title={score?.name}
           className="max-w-[220px] truncate text-sm text-neutral-300"
         >
-          {scoreName ?? "No score loaded"}
+          {score?.name ?? "No score loaded"}
         </span>
 
         <div className="flex-1" />
@@ -355,7 +214,7 @@ export function ScoreViewer() {
             aria-label="Layout"
             value={renderMode}
             onChange={(event) =>
-              changeRenderMode(event.currentTarget.value as RenderMode)
+              changeRenderMode(event.currentTarget.value as ScoreLayout)
             }
             className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
           >
@@ -384,11 +243,11 @@ export function ScoreViewer() {
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             if (file) {
+              // TODO: no
               void file.text().then((xml) =>
                 loadMutation.mutate({
-                  name: file.name,
                   renderMode,
-                  xml,
+                  score: { name: file.name, xml },
                 }),
               );
             }
@@ -407,9 +266,8 @@ export function ScoreViewer() {
                 key={sample.id}
                 onSelect={() =>
                   loadMutation.mutate({
-                    name: sample.name,
                     renderMode,
-                    xml: sample.xml,
+                    score: { name: sample.name, xml: sample.xml },
                   })
                 }
                 className="items-start"
@@ -450,11 +308,10 @@ export function ScoreViewer() {
         </p>
       )}
       <section
-        ref={scrollerRef}
         data-testid="score-viewer-scroll"
         className="min-h-0 flex-1 overflow-y-auto p-6"
       >
-        {!scoreName && !loadMutation.error && (
+        {!score && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
             Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
@@ -467,12 +324,10 @@ export function ScoreViewer() {
           style={{ width: SCORE_LAYOUT_WIDTH }}
         >
           <div
-            ref={cursorRef}
             data-testid="score-viewer-cursor"
             className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
           />
           <div
-            ref={containerRef}
             data-testid="score-viewer-renderer"
             style={{ width: SCORE_LAYOUT_WIDTH }}
           />
@@ -480,71 +335,4 @@ export function ScoreViewer() {
       </section>
     </main>
   );
-}
-
-function parseTempo(xml: string) {
-  const document = new DOMParser().parseFromString(xml, "application/xml");
-  const value = Number(
-    document.querySelector("sound[tempo]")?.getAttribute("tempo") ??
-      document.querySelector("metronome per-minute")?.textContent,
-  );
-  return Number.isFinite(value) && value > 0 ? value : 120;
-}
-
-function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
-  // OSMD's built-in cursor is not usable here: it steps between entries, and
-  // its one-pixel-high bitmap renders as a horizontal mark in the SVG backend.
-  // Keep OSMD for score geometry and render an independent browser overlay.
-  //
-  // MuseScore's playbackcursor.cpp::resolveCursorRectByTick algorithm:
-  // 1. Find the measure containing the playback tick and its system.
-  // 2. Walk visible chord/rest segments in that measure.
-  // 3. Read each segment's tick and canvas x-position.
-  // 4. Use the next visible chord/rest segment as the interval endpoint.
-  // 5. For the final segment, use the measure end tick and end-barline x.
-  // 6. Interpolate within the interval:
-  //      x = x1 + (x2 - x1) * (tick - t1) / (t2 - t1)
-  //
-  // OSMD exposes entry geometry, so add each system's final timestamp and
-  // right border to prevent a freeze before wrapping.
-  const result: CursorPosition[] = [];
-  const systems = osmd.GraphicSheet.MusicPages.flatMap(
-    (page) => page.MusicSystems,
-  );
-  for (const container of osmd.GraphicSheet
-    .VerticalGraphicalStaffEntryContainers) {
-    const entry = container.getFirstNonNullStaffEntry();
-    const system = entry?.parentMeasure.ParentMusicSystem;
-    if (!entry || !system) {
-      continue;
-    }
-    const topStaff = system.StaffLines[0];
-    const bottomStaff = system.StaffLines.at(-1)!;
-    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
-    const bottom =
-      (bottomStaff.PositionAndShape.AbsolutePosition.y +
-        bottomStaff.StaffHeight) *
-        10 +
-      20;
-    result.push({
-      time: container.AbsoluteTimestamp.RealValue,
-      x: entry.PositionAndShape.AbsolutePosition.x * 10,
-      top,
-      height: bottom - top,
-      systemId: system.Id,
-    });
-  }
-  for (const system of systems) {
-    const previous = result.findLast(
-      (position) => position.systemId === system.Id,
-    );
-    if (previous) {
-      result.push({
-        ...previous,
-        time: system.GetSystemsLastTimeStamp().RealValue,
-        x: system.GetRightBorderAbsoluteXPosition() * 10,
-      });
-    }
-  }
-  return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
 }
