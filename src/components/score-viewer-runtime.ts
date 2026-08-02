@@ -286,9 +286,8 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   // OSMD exposes entry geometry, so add each system's final timestamp and
   // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
-  const systems = osmd.GraphicSheet.MusicPages.flatMap(
-    (page) => page.MusicSystems,
-  );
+
+  // Add real anchors at rendered staff entries and their score timestamps.
   for (const container of osmd.GraphicSheet
     .VerticalGraphicalStaffEntryContainers) {
     const entry = container.getFirstNonNullStaffEntry();
@@ -312,6 +311,12 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
       systemId: system.Id,
     });
   }
+
+  // Add a synthetic endpoint so the final note/rest interval can interpolate
+  // from its last real anchor to the system's ending time and right border.
+  const systems = osmd.GraphicSheet.MusicPages.flatMap(
+    (page) => page.MusicSystems,
+  );
   for (const system of systems) {
     const previous = result.findLast(
       (position) => position.systemId === system.Id,
