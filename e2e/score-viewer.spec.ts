@@ -26,8 +26,7 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
 
 test("loads and advances the cursor sample", async ({ page }) => {
   await page.goto("/score-viewer");
-  await page.getByLabel("Sample").selectOption("cursor-wrapping");
-  await page.getByRole("button", { name: "Load Sample" }).click();
+  await loadSample(page, "Cursor and wrapping");
 
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
@@ -54,7 +53,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("Bar").fill("2");
   await page.getByLabel("Beat").fill("3");
-  await page.getByRole("button", { name: "Seek" }).click();
+  await page.getByRole("button", { name: "GO" }).click();
   const seekTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
@@ -72,7 +71,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.getByLabel("BPM").fill("60");
   await page.getByLabel("Bar").fill("3");
   await page.getByLabel("Beat").fill("4");
-  await page.getByRole("button", { name: "Seek" }).click();
+  await page.getByRole("button", { name: "GO" }).click();
   await page.getByRole("button", { name: "Play" }).click();
   await page.waitForTimeout(100);
   const systemEndStart = await cursor.evaluate(
@@ -90,16 +89,19 @@ test("loads and advances the cursor sample", async ({ page }) => {
 test("switches between generated score samples", async ({ page }) => {
   await page.goto("/score-viewer");
 
-  await page.getByLabel("Sample").selectOption("dense-sixteenths");
-  await page.getByRole("button", { name: "Load Sample" }).click();
+  await loadSample(page, "Dense sixteenths");
   await expect(page.getByTestId("score-name")).toHaveText("Dense sixteenths");
   await expect(page.getByLabel("BPM")).toHaveValue("110");
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
 
-  await page.getByLabel("Sample").selectOption("fast-eighths");
-  await page.getByRole("button", { name: "Load Sample" }).click();
+  await loadSample(page, "Fast eighths");
   await expect(page.getByTestId("score-name")).toHaveText("Fast eighths");
   await expect(page.getByLabel("BPM")).toHaveValue("200");
 });
+
+async function loadSample(page: import("@playwright/test").Page, name: string) {
+  await page.getByRole("button", { name: "Samples" }).click();
+  await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+}

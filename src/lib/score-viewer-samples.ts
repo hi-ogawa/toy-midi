@@ -12,13 +12,16 @@ const OPEN_STRINGS = [43, 38, 33, 28] as const;
 const SAMPLE_PITCHES = [40, 43, 45, 47, 48, 47, 45, 43];
 
 export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
-  createRegularSample({
+  createSample({
     id: "cursor-wrapping",
     name: "Cursor and wrapping",
     description: "64 eighth notes at 60 BPM",
-    count: 64,
-    duration: 0.5,
     tempo: 60,
+    notes: Array.from({ length: 64 }, (_, index) => [
+      index * 0.5,
+      0.5,
+      SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
+    ]),
   }),
   createSample({
     id: "rhythm-rests",
@@ -85,51 +88,29 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
-  createRegularSample({
+  createSample({
     id: "dense-sixteenths",
     name: "Dense sixteenths",
     description: "16th-note funk density at 110 BPM",
-    count: 96,
-    duration: 0.25,
     tempo: 110,
+    notes: Array.from({ length: 96 }, (_, index) => [
+      index * 0.25,
+      0.25,
+      SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
+    ]),
   }),
-  createRegularSample({
+  createSample({
     id: "fast-eighths",
     name: "Fast eighths",
     description: "Fast cursor and following at 200 BPM",
-    count: 96,
-    duration: 0.5,
     tempo: 200,
-  }),
-];
-
-function createRegularSample({
-  id,
-  name,
-  description,
-  count,
-  duration,
-  tempo,
-}: {
-  id: string;
-  name: string;
-  description: string;
-  count: number;
-  duration: number;
-  tempo: number;
-}) {
-  return createSample({
-    id,
-    name,
-    description,
-    tempo,
-    notes: Array.from({ length: count }, (_, index) => [
-      index * duration,
-      duration,
+    notes: Array.from({ length: 96 }, (_, index) => [
+      index * 0.5,
+      0.5,
       SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
     ]),
-  });
-}
+  }),
+];
 
 function createSample({
   id,

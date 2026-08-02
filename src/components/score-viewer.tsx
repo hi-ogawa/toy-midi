@@ -1,7 +1,22 @@
 import { useMutation } from "@tanstack/react-query";
+import {
+  ChevronsUpDownIcon,
+  FolderOpenIcon,
+  PauseIcon,
+  PlayIcon,
+  RotateCcwIcon,
+} from "lucide-react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { cn } from "./ui/utils";
 
 type CursorPosition = {
   time: number;
@@ -25,7 +40,6 @@ export function ScoreViewer() {
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
-  const [sampleId, setSampleId] = useState(SCORE_VIEWER_SAMPLES[0].id);
 
   const loadMutation = useMutation({
     mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
@@ -183,21 +197,87 @@ export function ScoreViewer() {
 
   return (
     <main className="h-screen overflow-hidden bg-neutral-300 text-neutral-950">
-      <header className="flex h-16 items-center gap-4 bg-neutral-950 px-6 text-neutral-100">
-        <a
-          href="/"
-          className="font-mono text-sm tracking-[0.2em] text-neutral-500"
+      <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
+        <Button
+          data-testid="score-play-pause-button"
+          disabled={!isReady}
+          onClick={togglePlayback}
+          title={isPlaying ? "Pause" : "Play"}
+          className={cn(
+            "size-9",
+            isPlaying
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          )}
         >
-          TOY MIDI
-        </a>
-        <span
-          data-testid="score-name"
-          className="min-w-0 truncate text-sm text-neutral-400"
+          {isPlaying ? (
+            <PauseIcon className="size-5" />
+          ) : (
+            <PlayIcon className="size-5" />
+          )}
+        </Button>
+        <Button
+          disabled={!isReady}
+          onClick={restart}
+          title="Restart"
+          aria-label="Restart"
+          className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
-          {scoreName ?? "Open MusicXML or load a sample"}
-        </span>
-        <label className="cursor-pointer rounded border border-neutral-700 px-4 py-1.5 text-sm">
-          Open MusicXML
+          <RotateCcwIcon className="size-5" />
+        </Button>
+
+        <div className="h-5 w-px bg-border" />
+
+        <div className="flex items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">Bar:</span>
+          <input
+            aria-label="Bar"
+            type="number"
+            min="1"
+            value={bar}
+            onChange={(event) => setBar(event.currentTarget.valueAsNumber)}
+            className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+          />
+          <span className="text-muted-foreground">Beat:</span>
+          <input
+            aria-label="Beat"
+            type="number"
+            min="1"
+            max="4"
+            value={beat}
+            onChange={(event) => setBeat(event.currentTarget.valueAsNumber)}
+            className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+          />
+          <Button
+            disabled={!isReady}
+            onClick={seek}
+            className="h-8 px-2 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            GO
+          </Button>
+        </div>
+
+        <div className="h-5 w-px bg-border" />
+
+        <label className="flex items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">BPM:</span>
+          <input
+            aria-label="BPM"
+            type="number"
+            min="1"
+            value={tempo}
+            onChange={(event) => changeTempo(event.currentTarget.valueAsNumber)}
+            className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+          />
+        </label>
+
+        <div className="flex-1" />
+
+        <label className="cursor-pointer">
+          <span className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+            <FolderOpenIcon className="size-4" />
+            Open
+          </span>
           <input
             aria-label="Open MusicXML"
             type="file"
@@ -214,95 +294,42 @@ export function ScoreViewer() {
             }}
           />
         </label>
-        <select
-          aria-label="Sample"
-          value={sampleId}
-          onChange={(event) => setSampleId(event.currentTarget.value)}
-          className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+              Samples
+              <ChevronsUpDownIcon className="size-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            {SCORE_VIEWER_SAMPLES.map((sample) => (
+              <DropdownMenuItem
+                key={sample.id}
+                onSelect={() =>
+                  loadMutation.mutate({ name: sample.name, xml: sample.xml })
+                }
+                className="items-start"
+              >
+                <div>
+                  <div>{sample.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {sample.description}
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="h-5 w-px bg-border" />
+
+        <span
+          data-testid="score-name"
+          title={scoreName}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
         >
-          {SCORE_VIEWER_SAMPLES.map((sample) => (
-            <option key={sample.id} value={sample.id}>
-              {sample.name}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={loadMutation.isPending}
-          onClick={() => {
-            const sample = SCORE_VIEWER_SAMPLES.find(
-              (candidate) => candidate.id === sampleId,
-            )!;
-            loadMutation.mutate({ name: sample.name, xml: sample.xml });
-          }}
-          className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
-        >
-          Load Sample
-        </button>
-        <span className="max-w-52 truncate text-xs text-neutral-500">
-          {
-            SCORE_VIEWER_SAMPLES.find((sample) => sample.id === sampleId)
-              ?.description
-          }
+          {scoreName ?? "No score loaded"}
         </span>
-        <label className="flex items-center gap-2 text-sm text-neutral-400">
-          BPM
-          <input
-            aria-label="BPM"
-            type="number"
-            min="1"
-            value={tempo}
-            onChange={(event) => changeTempo(event.currentTarget.valueAsNumber)}
-            className="w-20 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-neutral-400">
-          Bar
-          <input
-            aria-label="Bar"
-            type="number"
-            min="1"
-            value={bar}
-            onChange={(event) => setBar(event.currentTarget.valueAsNumber)}
-            className="w-16 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-neutral-400">
-          Beat
-          <input
-            aria-label="Beat"
-            type="number"
-            min="1"
-            max="4"
-            value={beat}
-            onChange={(event) => setBeat(event.currentTarget.valueAsNumber)}
-            className="w-16 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
-          />
-        </label>
-        <button
-          type="button"
-          disabled={!isReady}
-          onClick={seek}
-          className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
-        >
-          Seek
-        </button>
-        <button
-          type="button"
-          disabled={!isReady}
-          onClick={restart}
-          className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
-        >
-          Restart
-        </button>
-        <button
-          type="button"
-          disabled={!isReady}
-          onClick={togglePlayback}
-          className="rounded bg-emerald-500 px-4 py-1.5 text-sm font-medium text-neutral-950 disabled:opacity-40"
-        >
-          {isPlaying ? "Pause" : "Play"}
-        </button>
       </header>
       {loadMutation.error && (
         <p className="mx-auto mt-4 max-w-6xl text-red-800">
