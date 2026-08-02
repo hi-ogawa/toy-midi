@@ -268,6 +268,8 @@ function parseTempo(xml: string) {
 }
 
 function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+  // OSMD has no high-level playback geometry API, so derive anchors from its
+  // typed graphical model after rendering.
   // OSMD's built-in cursor is not usable here: it steps between entries, and
   // its one-pixel-high bitmap renders as a horizontal mark in the SVG backend.
   // Keep OSMD for score geometry and render an independent browser overlay.
