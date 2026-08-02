@@ -22,7 +22,7 @@ import {
   percentToGain,
   snapToGrid,
 } from "../lib/music";
-import { midiToNoteName } from "../lib/pitch-spelling";
+import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { projectStorage } from "../lib/project-storage";
 import {
   beatsToSeconds,
@@ -1452,7 +1452,7 @@ function Keyboard({
           }
         }}
       >
-        {isC ? midiToNoteName(pitch) : ""}
+        {isC ? formatChromaticPitch(pitch) : ""}
       </div>,
     );
   }

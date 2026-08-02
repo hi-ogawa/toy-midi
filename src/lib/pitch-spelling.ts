@@ -143,9 +143,10 @@ export function spellChromaticPitch(pitch: number): SpelledPitch {
   return toSpelledPitch({ pitch, step, alter });
 }
 
-export function midiToNoteName(midi: number): string {
-  const { step, alter, octave } = spellChromaticPitch(midi);
-  return `${step}${alter === 1 ? "#" : ""}${octave}`;
+export function formatChromaticPitch(pitch: number): string {
+  const { step, alter, octave } = spellChromaticPitch(pitch);
+  const accidental = alter === -1 ? "b" : alter === 1 ? "#" : "";
+  return `${step}${accidental}${octave}`;
 }
 
 function toSpelledPitch({

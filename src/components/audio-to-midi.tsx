@@ -5,7 +5,7 @@ import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
 import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
 import { snapToGrid } from "../lib/music";
-import { midiToNoteName } from "../lib/pitch-spelling";
+import { formatChromaticPitch } from "../lib/pitch-spelling";
 import {
   type AudioTrack,
   generateNoteId,
@@ -203,7 +203,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         {/* Slider bounds are the model's full pitch range (A0-C8) */}
         <ParamSlider
           label="Pitch range"
-          valueText={`${midiToNoteName(params.minPitchMidi)} – ${midiToNoteName(params.maxPitchMidi)}`}
+          valueText={`${formatChromaticPitch(params.minPitchMidi)} – ${formatChromaticPitch(params.maxPitchMidi)}`}
           value={[params.minPitchMidi, params.maxPitchMidi]}
           min={21}
           max={108}

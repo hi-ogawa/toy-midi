@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { midiToNoteName, spellMidiPitch } from "./pitch-spelling";
+import { formatChromaticPitch, spellMidiPitch } from "./pitch-spelling";
 
-it("formats a MIDI pitch name", () => {
-  expect(midiToNoteName(60)).toBe("C4");
-  expect(midiToNoteName(70)).toBe("A#4");
+it("formats a chromatic pitch", () => {
+  expect(formatChromaticPitch(60)).toBe("C4");
+  expect(formatChromaticPitch(70)).toBe("A#4");
 });
 
 describe("spellMidiPitch", () => {
