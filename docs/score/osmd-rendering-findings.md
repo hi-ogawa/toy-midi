@@ -9,7 +9,7 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 ## Findings
 
 - ~~**Beaming.** MuseScore groups eighth and sixteenth notes with beams, while the current OSMD rendering shows many of the same notes with individual flags.~~ Resolved with OSMD `autoBeam`; explicit MusicXML beam data is unnecessary for the viewer.
-- **System density and wrapping.** OSMD uses wider horizontal spacing and fits fewer measures into each system than MuseScore. The current result is acceptable, although future recording layout work may tune it to consistently show two useful system rows.
+- **System density and wrapping.** OSMD uses wider horizontal spacing and fits fewer measures into each system than MuseScore. The current result is acceptable. The recording viewport usually shows roughly two rows, but this is not an invariant because system height depends on notation content.
 - **Section labels.** The MuseScore reference includes boxed rehearsal marks such as A, B, and C. Toy MIDI locators are not currently exported as score directions or rendered as section labels.
 - **TAB rhythm decoration.** OSMD's TAB staff shows fret numbers and ties but omits much of MuseScore's TAB-side rhythmic decoration, including stems, beams, and rests. This is low priority because the linked standard staff already carries the rhythmic information.
 - **General engraving polish.** OSMD uses a more prominent brace and connected barlines. MuseScore also has more compact ties, refined stem placement, denser vertical alignment, and stronger collision handling. These differences can remain deferred unless a concrete passage becomes ambiguous or visually broken.

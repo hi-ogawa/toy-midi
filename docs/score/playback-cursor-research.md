@@ -76,7 +76,7 @@ At each animation frame:
 3. Interpolate x when both positions belong to the same system.
 4. Render a thin blue absolutely positioned rectangle from `systemTop` to `systemBottom`.
 5. At a system boundary, move directly to the next system instead of interpolating diagonally between rows.
-6. Adjust vertical scroll when the active system leaves the intended two-system recording viewport.
+6. Keep the viewport fixed while the complete cursor rectangle is visible. At a system boundary, place the cursor on the new system first, then instantly scroll only if that rectangle is outside the viewport.
 
 Measure-ending barline positions are required as interpolation endpoints because a measure's final note or rest may end before the next system begins. Tempo changes and repeats should remain part of the score-time conversion rather than the geometry interpolation.
 

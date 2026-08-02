@@ -30,13 +30,26 @@ Related findings:
 - [x] Make the cursor reach the end barline before moving to the next system by adding a synthetic geometry point at each system's final timestamp and right border.
 - [x] Confirm the corrected system transition jumps directly to the next row without diagonal interpolation.
 - [ ] Confirm the cursor height and vertical position update to the new system.
-- [ ] Confirm vertical scrolling occurs only when the active system leaves the recording viewport.
-- [ ] Keep two useful system rows visible before and after scrolling.
+- [ ] Update the cursor to the new system before deciding whether to scroll so it remains visible at every system boundary.
+- [ ] Keep the viewport stationary while the complete cursor rectangle is visible, including when the active system is the bottom visible row.
+- [ ] When the complete cursor rectangle is outside the viewport, instantly scroll so the active system starts near the top-left content origin.
+- [ ] Allow the viewport to show roughly two systems rather than forcing an exact row count; system heights vary with notation content.
+- [ ] Allow the final viewport to contain one system when the wrapped system count is odd.
 - [ ] Confirm following does not jitter or issue a scroll operation on every animation frame.
 - [ ] Confirm pause and resume preserve the current system and cursor position after scrolling.
 - [ ] Confirm restart returns the cursor and viewport to the beginning.
 
-Pass criterion: an uninterrupted debug playback progresses through at least three wrapped systems with stable cursor movement and predictable one-system vertical progression.
+Pass criterion: an uninterrupted debug playback progresses through at least three wrapped systems with stable cursor movement and MuseScore-like viewport containment. The cursor is fully visible at every frame, and the viewport changes only when required to reveal the next system.
+
+### Recording Frame
+
+Exact capture dimensions are not a contract because the MuseScore window has been sized by eye and the tab layer is scaled later in Kdenlive. Preserve a wide aspect ratio close to recent captures:
+
+- `1244x628` (`1.98:1`)
+- `1244x602` (`2.07:1`)
+- `1394x652` (`2.14:1`)
+
+Use approximately `2:1` as the default. Keep width and height configurable for screen capture and offline silent video export.
 
 ### Representative Rhythm Geometry
 
@@ -64,7 +77,7 @@ Pass criterion: cursor movement remains monotonic and rhythmically proportional 
 1. Extend the debug fixture with representative rhythm and barline cases.
 2. Add explicit measure-ending geometry points because OSMD entry positions alone do not describe the interval from the last entry to the end barline.
 3. Finalize system-boundary behavior so interpolation is horizontal only within one system.
-4. Implement two-system viewport following and restart scroll restoration.
+4. Implement cursor-rectangle viewport containment and restart scroll restoration.
 5. Run the two cover quick checks and document concrete failures in `osmd-rendering-findings.md`.
 6. If the decision gate passes, move the custom cursor and follow logic from the debug route into the standalone file viewer.
 7. Only then decide whether integrating the standalone viewer with Toy MIDI project state improves the workflow enough to justify coupling it to the editor.
@@ -82,7 +95,7 @@ For each cover, load the corresponding Toy MIDI MusicXML export and quickly comp
 
 These remain part of the broader score presentation workflow but are not required to decide whether the current browser viewer can replace MuseScore for screen recording:
 
-- Offline silent tab-video rendering for use as the scrolling score layer in Kdenlive. The intended production path should extract static two-system SVG or raster backgrounds from OSMD, export piecewise cursor geometry, composite frames at exact timestamps, and encode without real-time screen capture. Per-frame Playwright screenshots are only a correctness spike, not the production renderer.
+- Offline silent tab-video rendering for use as the scrolling score layer in Kdenlive. The intended production path should extract static score viewport SVG or raster backgrounds from OSMD, export piecewise cursor geometry, apply the same cursor-containment viewport rule as interactive playback, composite frames at exact timestamps, and encode without real-time screen capture. Per-frame Playwright screenshots are only a correctness spike, not the production renderer.
 - Key-aware spelling and key signatures, which are tracked separately in issue #220.
 
 ## Out Of Scope
@@ -99,5 +112,5 @@ These remain part of the broader score presentation workflow but are not require
 
 - **Proceed with OSMD:** the real cover passes, and remaining differences are cosmetic or passage-specific.
 - **OSMD plus targeted overlays:** notation is usable, but cursor, labels, or a small number of visual elements require independent browser overlays.
-- **Evaluate another renderer:** required musical information is missing or OSMD layout cannot sustain the two-system recording composition.
+- **Evaluate another renderer:** required musical information is missing or OSMD layout cannot sustain the wide scrolling-score recording composition.
 - **Retain MuseScore rendering:** no browser renderer path meets the workflow without building a custom engraving system disproportionate to the goal.
