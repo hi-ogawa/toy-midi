@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
+import { useDraftInput } from "../hooks/use-draft-input";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { Button } from "./ui/button";
 import {
@@ -41,6 +42,22 @@ export function ScoreViewer() {
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
+  const tempoInput = useDraftInput({
+    value: tempo,
+    onCommit: changeTempo,
+    min: 1,
+  });
+  const barInput = useDraftInput({
+    value: bar,
+    onCommit: (value) => seekTo({ bar: value, beat }),
+    min: 1,
+  });
+  const beatInput = useDraftInput({
+    value: beat,
+    onCommit: (value) => seekTo({ bar, beat: value }),
+    min: 1,
+    max: 4,
+  });
 
   const loadMutation = useMutation({
     mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
@@ -121,9 +138,17 @@ export function ScoreViewer() {
     setTempo(value);
   }
 
-  function seek() {
+  function seekTo({
+    bar: nextBar,
+    beat: nextBeat,
+  }: {
+    bar: number;
+    beat: number;
+  }) {
+    setBar(nextBar);
+    setBeat(nextBeat);
     pausedAtRef.current =
-      ((Math.max(bar, 1) - 1) * 4 + (Math.max(beat, 1) - 1)) / 4;
+      ((Math.max(nextBar, 1) - 1) * 4 + (Math.max(nextBeat, 1) - 1)) / 4;
     if (isPlaying) {
       startedAtRef.current = performance.now();
     }
@@ -233,29 +258,19 @@ export function ScoreViewer() {
           <span className="text-muted-foreground">Bar:</span>
           <input
             aria-label="Bar"
-            type="number"
-            min="1"
-            value={bar}
-            onChange={(event) => setBar(event.currentTarget.valueAsNumber)}
+            type="text"
+            inputMode="numeric"
+            {...barInput.props}
             className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
           />
           <span className="text-muted-foreground">Beat:</span>
           <input
             aria-label="Beat"
-            type="number"
-            min="1"
-            max="4"
-            value={beat}
-            onChange={(event) => setBeat(event.currentTarget.valueAsNumber)}
+            type="text"
+            inputMode="numeric"
+            {...beatInput.props}
             className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
           />
-          <Button
-            disabled={!isReady}
-            onClick={seek}
-            className="h-8 px-2 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-          >
-            GO
-          </Button>
         </div>
 
         <div className="h-5 w-px bg-border" />
@@ -264,10 +279,9 @@ export function ScoreViewer() {
           <span className="text-muted-foreground">BPM:</span>
           <input
             aria-label="BPM"
-            type="number"
-            min="1"
-            value={tempo}
-            onChange={(event) => changeTempo(event.currentTarget.valueAsNumber)}
+            type="text"
+            inputMode="numeric"
+            {...tempoInput.props}
             className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
           />
         </label>

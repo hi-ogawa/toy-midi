@@ -53,13 +53,14 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("Bar").fill("2");
   await page.getByLabel("Beat").fill("3");
-  await page.getByRole("button", { name: "GO" }).click();
+  await page.getByLabel("Beat").press("Enter");
   const seekTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
   expect(seekTransform).not.toBe(initialTransform);
 
   await page.getByLabel("BPM").fill("120");
+  await page.getByLabel("BPM").press("Enter");
   await page.getByRole("button", { name: "Play" }).click();
   await page.waitForTimeout(100);
   const fastTransform = await cursor.evaluate(
@@ -69,9 +70,10 @@ test("loads and advances the cursor sample", async ({ page }) => {
 
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("BPM").fill("60");
+  await page.getByLabel("BPM").press("Enter");
   await page.getByLabel("Bar").fill("3");
   await page.getByLabel("Beat").fill("4");
-  await page.getByRole("button", { name: "GO" }).click();
+  await page.getByLabel("Beat").press("Enter");
   await page.getByRole("button", { name: "Play" }).click();
   await page.waitForTimeout(100);
   const systemEndStart = await cursor.evaluate(
