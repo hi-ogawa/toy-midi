@@ -6,6 +6,7 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
+  PrinterIcon,
   RotateCcwIcon,
 } from "lucide-react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
