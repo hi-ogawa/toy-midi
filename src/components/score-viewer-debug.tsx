@@ -35,6 +35,9 @@ export function ScoreViewerDebug() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string>();
+  const [tempo, setTempo] = useState(DEBUG_TEMPO);
+  const [bar, setBar] = useState(1);
+  const [beat, setBeat] = useState(1);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -74,10 +77,7 @@ export function ScoreViewerDebug() {
 
   function togglePlayback() {
     if (isPlaying) {
-      const startedAt = startedAtRef.current;
-      if (startedAt !== undefined) {
-        pausedAtRef.current += (performance.now() - startedAt) / 1000;
-      }
+      pausedAtRef.current = getCurrentScoreTime();
       cancelAnimationFrame(frameRef.current ?? 0);
       startedAtRef.current = undefined;
       setIsPlaying(false);
@@ -93,7 +93,39 @@ export function ScoreViewerDebug() {
     startedAtRef.current = undefined;
     pausedAtRef.current = 0;
     setIsPlaying(false);
+    setBar(1);
+    setBeat(1);
     updateCursor(0);
+  }
+
+  function changeTempo(value: number) {
+    if (!Number.isFinite(value) || value <= 0) {
+      return;
+    }
+    const scoreTime = getCurrentScoreTime();
+    pausedAtRef.current = scoreTime;
+    if (isPlaying) {
+      startedAtRef.current = performance.now();
+    }
+    setTempo(value);
+  }
+
+  function seek() {
+    const quarterBeat = (Math.max(bar, 1) - 1) * 4 + (Math.max(beat, 1) - 1);
+    pausedAtRef.current = quarterBeat / 4;
+    if (isPlaying) {
+      startedAtRef.current = performance.now();
+    }
+    updateCursor(pausedAtRef.current);
+  }
+
+  function getCurrentScoreTime() {
+    const startedAt = startedAtRef.current;
+    if (startedAt === undefined) {
+      return pausedAtRef.current;
+    }
+    const elapsedSeconds = (performance.now() - startedAt) / 1000;
+    return pausedAtRef.current + (elapsedSeconds * tempo) / 60 / 4;
   }
 
   function advance(now: number) {
@@ -101,8 +133,8 @@ export function ScoreViewerDebug() {
     if (startedAt === undefined) {
       return;
     }
-    const elapsed = pausedAtRef.current + (now - startedAt) / 1000;
-    const scoreTime = (elapsed * DEBUG_TEMPO) / 60 / 4;
+    const scoreTime =
+      pausedAtRef.current + ((now - startedAt) / 1000) * (tempo / 60 / 4);
     if (!updateCursor(scoreTime)) {
       pausedAtRef.current = 0;
       startedAtRef.current = undefined;
@@ -156,14 +188,54 @@ export function ScoreViewerDebug() {
     <main className="h-screen overflow-hidden bg-neutral-300 text-neutral-950">
       <header className="flex h-16 items-center gap-4 bg-neutral-950 px-6 text-neutral-100">
         <h1 className="font-medium">Score viewer cursor debug</h1>
-        <span className="text-sm text-neutral-400">
-          64 eighth notes, 4/4, 60 BPM
-        </span>
+        <span className="text-sm text-neutral-400">64 eighth notes, 4/4</span>
+        <label className="flex items-center gap-2 text-sm text-neutral-400">
+          BPM
+          <input
+            aria-label="BPM"
+            type="number"
+            min="1"
+            value={tempo}
+            onChange={(event) => changeTempo(event.currentTarget.valueAsNumber)}
+            className="w-20 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-neutral-400">
+          Bar
+          <input
+            aria-label="Bar"
+            type="number"
+            min="1"
+            value={bar}
+            onChange={(event) => setBar(event.currentTarget.valueAsNumber)}
+            className="w-16 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm text-neutral-400">
+          Beat
+          <input
+            aria-label="Beat"
+            type="number"
+            min="1"
+            max="4"
+            value={beat}
+            onChange={(event) => setBeat(event.currentTarget.valueAsNumber)}
+            className="w-16 rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-neutral-100"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={!isReady}
+          onClick={seek}
+          className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
+        >
+          Seek
+        </button>
         <button
           type="button"
           disabled={!isReady}
           onClick={restart}
-          className="ml-auto rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
+          className="rounded border border-neutral-700 px-4 py-1.5 text-sm disabled:opacity-40"
         >
           Restart
         </button>

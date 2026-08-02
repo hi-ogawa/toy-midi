@@ -48,4 +48,21 @@ test("preloads and advances the cursor debug score", async ({ page }) => {
   await expect
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .not.toBe(initialTransform);
+
+  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByLabel("Bar").fill("2");
+  await page.getByLabel("Beat").fill("3");
+  await page.getByRole("button", { name: "Seek" }).click();
+  const seekTransform = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  expect(seekTransform).not.toBe(initialTransform);
+
+  await page.getByLabel("BPM").fill("120");
+  await page.getByRole("button", { name: "Play" }).click();
+  await page.waitForTimeout(100);
+  const fastTransform = await cursor.evaluate(
+    (element) => element.style.transform,
+  );
+  expect(fastTransform).not.toBe(seekTransform);
 });
