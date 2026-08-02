@@ -59,6 +59,9 @@ export function ScoreViewer() {
     onCommit: changeTempo,
     min: 1,
   });
+
+  // TODO: parse time signatures from MusicXML (currently hard-coded as 4/4)
+  // TODO: parse score duration or measure count to limit allowed bar/beat inputs
   const barInput = useDraftInput({
     value: bar,
     onCommit: (value) => seekTo({ bar: value, beat }),
@@ -70,6 +73,7 @@ export function ScoreViewer() {
     min: 1,
     max: 4,
   });
+
   const loadMutation = useMutation({
     mutationFn: async ({
       name,
@@ -479,11 +483,6 @@ export function ScoreViewer() {
 }
 
 function parseTempo(xml: string) {
-  // TODO:
-  // - Parse time signatures so bar/beat seeking does not assume 4/4 and bound
-  //   the beat input to 1-4.
-  // - Parse score duration or measure count so bar seeking cannot exceed the
-  //   score.
   const document = new DOMParser().parseFromString(xml, "application/xml");
   const value = Number(
     document.querySelector("sound[tempo]")?.getAttribute("tempo") ??
