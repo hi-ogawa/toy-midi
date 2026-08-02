@@ -312,6 +312,7 @@ export function ScoreViewer() {
         </label>
 
         <label className="flex items-center gap-1.5 text-sm">
+          {/* TODO: Label the score width value in pixels, e.g. 1110 px. */}
           <span className="text-muted-foreground">Score width:</span>
           <input
             aria-label="Score width"
