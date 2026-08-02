@@ -99,7 +99,8 @@
     width: 100% !important;
   }
 
-  /* Map each OSMD page SVG to one browser print page without workspace chrome. */
+  /* Remove workspace gaps and shadows, keep each OSMD SVG intact on its own
+     print page, and avoid a trailing blank page after the final SVG. */
   .score-viewer-paged {
     gap: 0;
   }
