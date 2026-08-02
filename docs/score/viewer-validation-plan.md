@@ -59,19 +59,14 @@ Validate:
 
 Pass criterion: cursor movement remains monotonic and rhythmically proportional across every fixture case, including the final interval in each measure.
 
-### Real Cover Decision Gate
+### Cover Quick Checks
 
-- [ ] Export a representative annotated cover from Toy MIDI.
-- [ ] Load the exported MusicXML without manual modification.
-- [ ] Confirm all required notes, rests, ties, accidentals, and explicit TAB positions render correctly.
-- [ ] Tune viewer width and OSMD spacing for the intended rectangular recording composition.
-- [ ] Confirm the viewport consistently presents two useful system rows.
-- [ ] Play through the complete cover and inspect every system transition.
-- [ ] Confirm the cursor remains synchronized with the exported tempo for the full duration.
-- [ ] Record a short desktop-capture sample and compare readability with the current MuseScore capture.
-- [ ] Record any passage-specific engraving ambiguity as a concrete issue rather than pursuing general parity.
+Use these completed covers as practical comparisons because together they exercise the useful variation in the current workflow:
 
-Pass criterion: the exported cover can be recorded directly from the browser without opening MuseScore or correcting the rendered score.
+- [ ] [tripleS - Baby Flower](https://musescore.com/user/44372771/scores/35142602), with [recorded cover](https://www.youtube.com/watch?v=cBRY91hSQmw): three flats, C minor / E-flat major, 200 BPM, eighth-note-oriented material.
+- [ ] [RESCENE - LOVE ATTACK](https://musescore.com/user/44372771/scores/35265077), with [recorded cover](https://www.youtube.com/watch?v=JSxBCpMg01w): no flats, C major / A minor, 110 BPM, sixteenth-note funk material.
+
+For each cover, load the corresponding Toy MIDI MusicXML export and quickly compare score/TAB content, system layout, cursor progression, and recording readability with the linked MuseScore score and video. Reduce any failure to a concrete fixture or rendering bug.
 
 ## Implementation Plan
 
@@ -79,7 +74,7 @@ Pass criterion: the exported cover can be recorded directly from the browser wit
 2. Add explicit measure-ending geometry points because OSMD entry positions alone do not describe the interval from the last entry to the end barline.
 3. Finalize system-boundary behavior so interpolation is horizontal only within one system.
 4. Implement two-system viewport following and restart scroll restoration.
-5. Run the real-cover decision gate and document the result in `osmd-rendering-findings.md`.
+5. Run the two cover quick checks and document concrete failures in `osmd-rendering-findings.md`.
 6. If the decision gate passes, move the custom cursor and follow logic from the debug route into the standalone file viewer.
 7. Only then decide whether integrating the standalone viewer with Toy MIDI project state improves the workflow enough to justify coupling it to the editor.
 
