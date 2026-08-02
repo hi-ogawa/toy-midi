@@ -32,11 +32,19 @@ type CursorPosition = {
   systemId: number;
 };
 
+// OSMD reads its layout width from the container's offsetWidth. This value was
+// calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
+// which is an application-specific scale rather than a physical CSS pixel size.
+// TODO: Expose this as a layout density control without coupling it to view zoom.
+const SCORE_LAYOUT_WIDTH = 1110;
+
 export class ScoreViewerRuntime {
   // DOM fields are initialized by attach() after the component commits.
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
   #scroller!: HTMLElement;
+  #sheet!: HTMLDivElement;
+  #runtimeRoot!: HTMLDivElement;
   #osmd!: OpenSheetMusicDisplay;
   readonly #listeners = new Set<() => void>();
 
@@ -54,11 +62,27 @@ export class ScoreViewerRuntime {
   };
 
   attach(root: HTMLElement) {
-    this.#container = root.querySelector(
-      '[data-testid="score-viewer-renderer"]',
-    )!;
-    this.#cursor = root.querySelector('[data-testid="score-viewer-cursor"]')!;
     this.#scroller = root.querySelector('[data-testid="score-viewer-scroll"]')!;
+    this.#runtimeRoot = root.querySelector<HTMLDivElement>(
+      '[data-testid="score-viewer-runtime-root"]',
+    )!;
+    this.#runtimeRoot.replaceChildren();
+
+    this.#sheet = document.createElement("div");
+    this.#sheet.className = "absolute invisible";
+    this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+
+    this.#cursor = document.createElement("div");
+    this.#cursor.dataset.testid = "score-viewer-cursor";
+    this.#cursor.className =
+      "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
+
+    this.#container = document.createElement("div");
+    this.#container.dataset.testid = "score-viewer-renderer";
+    this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+
+    this.#sheet.append(this.#cursor, this.#container);
+    this.#runtimeRoot.append(this.#sheet);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
@@ -79,6 +103,11 @@ export class ScoreViewerRuntime {
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
     await this.#osmd.load(score.xml);
     this.#osmd.render();
+
+    this.#sheet.className =
+      layout === "continuous"
+        ? "relative mx-auto bg-white px-4 shadow-xl"
+        : "relative mx-auto";
 
     this.#positions = buildCursorPositions(this.#osmd);
     this.#pausedAt = 0;
@@ -134,6 +163,7 @@ export class ScoreViewerRuntime {
   dispose() {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#osmd.clear();
+    this.#runtimeRoot.replaceChildren();
   }
 
   #stop() {

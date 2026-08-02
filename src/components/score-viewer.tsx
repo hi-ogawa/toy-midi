@@ -30,12 +30,6 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-// OSMD reads its layout width from the container's offsetWidth. This value was
-// calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
-// which is an application-specific scale rather than a physical CSS pixel size.
-// TODO: Expose this as a layout density control without coupling it to view zoom.
-const SCORE_LAYOUT_WIDTH = 1110;
-
 export function ScoreViewer() {
   const rootRef = useRef<HTMLElement>(null);
 
@@ -301,24 +295,7 @@ export function ScoreViewer() {
             </FileDropInput>
           </div>
         )}
-        {/* TODO: Do not mount the fixed-width score canvas until a score loads;
-            its 1110px width shifts empty-state centering in narrow windows. */}
-        <div
-          className={cn(
-            "relative mx-auto",
-            layout === "continuous" ? "bg-white px-4 shadow-xl" : undefined,
-          )}
-          style={{ width: SCORE_LAYOUT_WIDTH }}
-        >
-          <div
-            data-testid="score-viewer-cursor"
-            className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
-          />
-          <div
-            data-testid="score-viewer-renderer"
-            style={{ width: SCORE_LAYOUT_WIDTH }}
-          />
-        </div>
+        <div data-testid="score-viewer-runtime-root" />
       </section>
     </main>
   );
