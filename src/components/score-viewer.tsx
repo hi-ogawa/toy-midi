@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import { CursorType, OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,24 +13,19 @@ export function ScoreViewer() {
   const playbackRef = useRef<PlaybackState>(undefined);
   const frameRef = useRef<number>(undefined);
   const [fileName, setFileName] = useState<string>();
-  const [error, setError] = useState<string>();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => () => cancelAnimationFrame(frameRef.current ?? 0), []);
+  const loadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const container = containerRef.current;
+      if (!container) {
+        throw new Error("Score viewer is not ready");
+      }
 
-  async function loadScore(file: File) {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
+      pause();
+      osmdRef.current = undefined;
+      container.innerHTML = "";
 
-    pause();
-    setError(undefined);
-    setIsReady(false);
-    container.innerHTML = "";
-
-    try {
       const osmd = new OpenSheetMusicDisplay(container, {
         autoResize: true,
         backend: "svg",
@@ -50,14 +46,16 @@ export function ScoreViewer() {
       osmd.cursor.reset();
       osmd.cursor.show();
       osmd.cursor.cursorElement.style.zIndex = "1";
+      return { fileName: file.name, osmd };
+    },
+    onSuccess: ({ fileName: loadedFileName, osmd }) => {
       osmdRef.current = osmd;
       playbackRef.current = undefined;
-      setFileName(file.name);
-      setIsReady(true);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Failed to load score");
-    }
-  }
+      setFileName(loadedFileName);
+    },
+  });
+
+  useEffect(() => () => cancelAnimationFrame(frameRef.current ?? 0), []);
 
   function togglePlayback() {
     if (isPlaying) {
@@ -141,18 +139,19 @@ export function ScoreViewer() {
             <input
               type="file"
               accept=".musicxml,.xml,.mxl,application/vnd.recordare.musicxml+xml"
+              disabled={loadMutation.isPending}
               className="sr-only"
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file) {
-                  void loadScore(file);
+                  loadMutation.mutate(file);
                 }
               }}
             />
           </label>
           <button
             type="button"
-            disabled={!isReady}
+            disabled={!loadMutation.isSuccess || loadMutation.isPending}
             onClick={restart}
             className="rounded border border-neutral-700 px-3 py-1.5 text-sm hover:border-neutral-500 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -160,7 +159,7 @@ export function ScoreViewer() {
           </button>
           <button
             type="button"
-            disabled={!isReady}
+            disabled={!loadMutation.isSuccess || loadMutation.isPending}
             onClick={togglePlayback}
             className="min-w-20 rounded bg-emerald-500 px-3 py-1.5 text-sm font-medium text-neutral-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -170,12 +169,12 @@ export function ScoreViewer() {
       </header>
 
       <section className="h-[calc(100vh-4rem)] overflow-y-auto bg-neutral-300 p-8">
-        {error && (
+        {loadMutation.error && (
           <div className="mx-auto mb-4 max-w-6xl rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-            {error}
+            {loadMutation.error.message}
           </div>
         )}
-        {!fileName && !error && (
+        {!fileName && !loadMutation.error && (
           <div className="mx-auto flex h-48 max-w-6xl items-center justify-center border border-dashed border-neutral-500 bg-neutral-200 text-sm text-neutral-600">
             Open a standard notation and TAB MusicXML file to begin.
           </div>
