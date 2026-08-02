@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { chromium } from "@playwright/test";
 import { Resvg } from "@resvg/resvg-js";
 
@@ -10,9 +12,19 @@ async function main() {
     viewport: { width: 1110, height: 556 },
   });
   await page.goto("http://localhost:5183/score-viewer");
-  await page.evaluate(async (id) => {
-    await window.__toyMidiScoreVideo.loadSample(id);
-  }, options.sampleId);
+  if (isMusicXmlPath(options.input)) {
+    const source = {
+      name: path.basename(options.input),
+      xml: await readFile(options.input, "utf8"),
+    };
+    await page.evaluate(async (score) => {
+      await window.__toyMidiScoreVideo.loadScore(score);
+    }, source);
+  } else {
+    await page.evaluate(async (id) => {
+      await window.__toyMidiScoreVideo.loadSample(id);
+    }, options.input);
+  }
   const scene = await page.evaluate(() =>
     window.__toyMidiScoreVideo.exportScene(),
   );
@@ -103,13 +115,19 @@ function parseOptions(args) {
     }
   }
   if (positional.length > 2) {
-    throw new Error("Expected at most a sample id and output path");
+    throw new Error(
+      "Expected at most a MusicXML path or sample id and output path",
+    );
   }
   return {
     ...options,
-    sampleId: positional[0] ?? "cursor-wrapping",
+    input: positional[0] ?? "cursor-wrapping",
     output: positional[1] ?? ".tmp/score-video.mp4",
   };
+}
+
+function isMusicXmlPath(input) {
+  return input.endsWith(".xml") || input.endsWith(".musicxml");
 }
 
 function deriveHeight(positions) {
