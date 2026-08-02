@@ -145,16 +145,16 @@ function getDiatonicPitchClasses(
     accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
   );
 
-  return (Object.keys(NATURAL_PITCH_CLASS_BY_LETTER) as NoteLetter[]).map(
-    (step) => {
-      const alter = alteredSteps.has(step) ? keyAlter : 0;
-      return {
-        step,
-        alter,
-        pitchClass: (NATURAL_PITCH_CLASS_BY_LETTER[step] + alter + 12) % 12,
-      };
-    },
-  );
+  return (
+    Object.entries(NATURAL_PITCH_CLASS_BY_LETTER) as [NoteLetter, number][]
+  ).map(([step, naturalPitchClass]) => {
+    const alter = alteredSteps.has(step) ? keyAlter : 0;
+    return {
+      step,
+      alter,
+      pitchClass: (naturalPitchClass + alter + 12) % 12,
+    };
+  });
 }
 
 export function spellChromaticPitch(pitch: number): SpelledPitch {
