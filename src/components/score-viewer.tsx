@@ -3,6 +3,7 @@ import {
   ChevronsUpDownIcon,
   FolderIcon,
   FolderOpenIcon,
+  LocateFixedIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -156,14 +157,20 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
-        <Button
-          aria-label="Bar and beat"
-          disabled={!runtimeState.isReady}
-          onClick={promptForPosition}
-          className="h-8 px-2 font-mono text-sm hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
-        </Button>
+        <div className="flex items-center gap-1">
+          <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
+            {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+          </span>
+          <Button
+            aria-label="Seek"
+            title="Seek"
+            disabled={!runtimeState.isReady}
+            onClick={promptForPosition}
+            className="size-7 px-0 text-neutral-400 hover:bg-accent hover:text-white"
+          >
+            <LocateFixedIcon className="size-3.5" />
+          </Button>
+        </div>
 
         <div className="h-5 w-px bg-border" />
 
