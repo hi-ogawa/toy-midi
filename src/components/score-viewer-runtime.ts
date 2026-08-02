@@ -40,11 +40,11 @@ const SCORE_LAYOUT_WIDTH = 1110;
 
 export class ScoreViewerRuntime {
   // DOM fields are initialized by attach() after the component commits.
+  #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
-  #runtimeRoot!: HTMLDivElement;
   #osmd!: OpenSheetMusicDisplay;
   readonly #listeners = new Set<() => void>();
 
@@ -62,14 +62,18 @@ export class ScoreViewerRuntime {
   };
 
   attach(root: HTMLElement) {
-    this.#scroller = root.querySelector('[data-testid="score-viewer-scroll"]')!;
-    this.#runtimeRoot = root.querySelector<HTMLDivElement>(
+    this.#root = root.querySelector<HTMLDivElement>(
       '[data-testid="score-viewer-runtime-root"]',
     )!;
-    this.#runtimeRoot.replaceChildren();
+    this.#root.replaceChildren();
+
+    this.#scroller = document.createElement("section");
+    this.#scroller.dataset.testid = "score-viewer-scroll";
+    this.#scroller.className = "h-full overflow-y-auto p-6";
 
     this.#sheet = document.createElement("div");
-    this.#sheet.className = "absolute invisible";
+    this.#sheet.className = "relative mx-auto";
+    this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
     this.#cursor = document.createElement("div");
@@ -82,7 +86,8 @@ export class ScoreViewerRuntime {
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
     this.#sheet.append(this.#cursor, this.#container);
-    this.#runtimeRoot.append(this.#sheet);
+    this.#scroller.append(this.#sheet);
+    this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
@@ -102,13 +107,13 @@ export class ScoreViewerRuntime {
     this.#osmd.clear();
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
     await this.#osmd.load(score.xml);
+    this.#sheet.hidden = false;
     this.#osmd.render();
 
     this.#sheet.className =
       layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
-
     this.#positions = buildCursorPositions(this.#osmd);
     this.#pausedAt = 0;
     this.#setState({
@@ -162,8 +167,10 @@ export class ScoreViewerRuntime {
 
   dispose() {
     cancelAnimationFrame(this.#frame ?? 0);
-    this.#osmd.clear();
-    this.#runtimeRoot.replaceChildren();
+    if (this.#root.hasChildNodes()) {
+      this.#osmd.clear();
+      this.#root.replaceChildren();
+    }
   }
 
   #stop() {

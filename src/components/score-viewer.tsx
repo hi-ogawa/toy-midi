@@ -267,17 +267,9 @@ export function ScoreViewer() {
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      {loadMutation.error && (
-        <p className="mx-auto mt-4 max-w-6xl text-red-800">
-          {loadMutation.error.message}
-        </p>
-      )}
-      <section
-        data-testid="score-viewer-scroll"
-        className="min-h-0 flex-1 overflow-y-auto p-6"
-      >
-        {!score && !loadMutation.error && (
-          <div className="mb-6 flex justify-center">
+      {!score && !loadMutation.error && (
+        <section className="min-h-0 flex-1 p-6">
+          <div className="flex justify-center">
             <FileDropInput
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
@@ -294,9 +286,14 @@ export function ScoreViewer() {
               </span>
             </FileDropInput>
           </div>
-        )}
-        <div data-testid="score-viewer-runtime-root" />
-      </section>
+        </section>
+      )}
+      {loadMutation.error && (
+        <p className="mx-auto mt-4 max-w-6xl text-red-800">
+          {loadMutation.error.message}
+        </p>
+      )}
+      <div data-testid="score-viewer-runtime-root" className="min-h-0 flex-1" />
     </main>
   );
 }
