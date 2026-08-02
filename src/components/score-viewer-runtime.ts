@@ -65,7 +65,7 @@ export class ScoreViewerRuntime {
   constructor() {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
-      const scoreTime = currentTime * this.#scoreTimePerSecond;
+      const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
       if (!this.#updateCursor(scoreTime) && !paused && currentTime > 0) {
         this.#clock.stop();
         return;
@@ -168,7 +168,7 @@ export class ScoreViewerRuntime {
   }
 
   seek(scoreTime: number) {
-    this.#clock.seek(scoreTime / this.#scoreTimePerSecond);
+    this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
   }
 
   dispose() {
@@ -177,10 +177,6 @@ export class ScoreViewerRuntime {
       this.#osmd.clear();
       this.#root.replaceChildren();
     }
-  }
-
-  get #scoreTimePerSecond() {
-    return this.#state.tempo / 60 / 4;
   }
 
   #updateCursor(scoreTime: number) {
@@ -233,6 +229,14 @@ export class ScoreViewerRuntime {
       listener();
     }
   }
+}
+
+function secondsToScoreTime(seconds: number, tempo: number) {
+  return seconds * (tempo / 60 / 4);
+}
+
+function scoreTimeToSeconds(scoreTime: number, tempo: number) {
+  return scoreTime / (tempo / 60 / 4);
 }
 
 function parseTempo(xml: string) {
