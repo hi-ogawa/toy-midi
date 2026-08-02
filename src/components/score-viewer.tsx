@@ -479,8 +479,11 @@ export function ScoreViewer() {
 }
 
 function parseTempo(xml: string) {
-  // TODO: Parse meter and score duration for bounded bar/beat seeking. Keep
-  // first-tempo-only playback explicit while tempo changes remain out of scope.
+  // TODO:
+  // - Parse time signatures so bar/beat seeking does not assume 4/4 and bound
+  //   the beat input to 1-4.
+  // - Parse score duration or measure count so bar seeking cannot exceed the
+  //   score.
   const document = new DOMParser().parseFromString(xml, "application/xml");
   const value = Number(
     document.querySelector("sound[tempo]")?.getAttribute("tempo") ??
