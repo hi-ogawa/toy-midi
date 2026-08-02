@@ -1,4 +1,4 @@
-import type { Note, TimeSignature } from "../types";
+import type { KeySignature, Note, TimeSignature } from "../types";
 import { resolveTabPosition, type TabPosition } from "./tab-annotation";
 
 // This format was manually reduced from a MuseScore MusicXML export and
@@ -21,6 +21,7 @@ export type MusicXmlModelOptions = {
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
+  keySignature: KeySignature;
 };
 
 type QuantizedNote = {
@@ -298,6 +299,7 @@ export function exportMusicXml({
   notes,
   tempo,
   timeSignature,
+  keySignature,
   openStringPitches,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
@@ -310,7 +312,11 @@ export function exportMusicXml({
     hx(
       "attributes",
       hx("divisions", DIVISIONS),
-      hx("key", hx("fifths", 0)),
+      hx(
+        "key",
+        hx("fifths", keySignature.fifths),
+        hx("mode", keySignature.mode),
+      ),
       hx(
         "time",
         hx("beats", timeSignature.numerator),
@@ -319,7 +325,7 @@ export function exportMusicXml({
       hx("staves", 2),
       h("clef", { number: 1 }, hx("sign", "F"), hx("line", 4)),
       h("clef", { number: 2 }, hx("sign", "TAB")),
-      renderStaffDetails(openStringPitches),
+      renderStaffDetails(openStringPitches, keySignature),
       // Bass sounds one octave below its written pitch, so MuseScore transposes
       // playback while retaining conventional bass notation.
       hx(
@@ -380,6 +386,7 @@ export function exportMusicXml({
           events,
           index,
           measureDuration,
+          keySignature,
           initialChildren: index === 0 ? initialMeasureChildren : [],
         }),
       ),
@@ -397,11 +404,13 @@ function renderMeasure({
   events,
   index,
   measureDuration,
+  keySignature,
   initialChildren,
 }: {
   events: MusicXmlMeasureEvent[];
   index: number;
   measureDuration: number;
+  keySignature: KeySignature;
   initialChildren: XmlNode[];
 }): XmlElement {
   // Rewind the measure cursor so staff 2 runs in parallel with staff 1.
@@ -409,13 +418,16 @@ function renderMeasure({
     "measure",
     { number: index + 1 },
     ...initialChildren,
-    ...events.map((event) => renderEvent(event, 1)),
+    ...events.map((event) => renderEvent(event, 1, keySignature)),
     hx("backup", hx("duration", measureDuration)),
-    ...events.map((event) => renderEvent(event, 2)),
+    ...events.map((event) => renderEvent(event, 2, keySignature)),
   );
 }
 
-function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
+function renderStaffDetails(
+  openStringPitches: readonly number[],
+  keySignature: KeySignature,
+): XmlElement {
   // The app stores strings from highest to lowest pitch, while MusicXML numbers
   // TAB staff lines from the lowest line upward.
   const tuning = [...openStringPitches].reverse();
@@ -424,7 +436,7 @@ function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
     { number: 2 },
     hx("staff-lines", openStringPitches.length),
     ...tuning.map((midi, index) => {
-      const pitch = midiPitchToMusicXml(midi);
+      const pitch = midiPitchToMusicXml(midi, keySignature);
       return h(
         "staff-tuning",
         { line: index + 1 },
@@ -436,7 +448,11 @@ function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
   );
 }
 
-function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
+function renderEvent(
+  event: MusicXmlMeasureEvent,
+  staff: 1 | 2,
+  keySignature: KeySignature,
+): XmlElement {
   // MuseScore allocates four voice IDs per staff, so the first voices of staff 1
   // and staff 2 are 1 and 5 respectively.
   const voice = staff === 1 ? 1 : 5;
@@ -451,7 +467,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
     );
   }
 
-  const pitch = midiPitchToMusicXml(event.pitch);
+  const pitch = midiPitchToMusicXml(event.pitch, keySignature);
   // MusicXML uses <tie> for playback and <tied> for engraved notation, so each
   // model tie must be emitted in both forms.
   const tiedNotations = [
@@ -494,14 +510,15 @@ function renderDurationNotation(notation: DurationNotation): XmlNode[] {
   ];
 }
 
-function midiPitchToMusicXml(pitch: number): {
+function midiPitchToMusicXml(
+  pitch: number,
+  keySignature: KeySignature,
+): {
   step: string;
   alter: number;
   octave: number;
 } {
-  // TODO: Derive key-aware enharmonic spelling. Export currently declares C
-  // major and spells every chromatic pitch with a sharp.
-  const pitchClasses = [
+  const sharpPitchClasses = [
     ["C", 0],
     ["C", 1],
     ["D", 0],
@@ -515,6 +532,22 @@ function midiPitchToMusicXml(pitch: number): {
     ["A", 1],
     ["B", 0],
   ] as const;
+  const flatPitchClasses = [
+    ["C", 0],
+    ["D", -1],
+    ["D", 0],
+    ["E", -1],
+    ["E", 0],
+    ["F", 0],
+    ["G", -1],
+    ["G", 0],
+    ["A", -1],
+    ["A", 0],
+    ["B", -1],
+    ["B", 0],
+  ] as const;
+  const pitchClasses =
+    keySignature.fifths < 0 ? flatPitchClasses : sharpPitchClasses;
   const [step, alter] = pitchClasses[pitch % 12];
   return { step, alter, octave: Math.floor(pitch / 12) };
 }

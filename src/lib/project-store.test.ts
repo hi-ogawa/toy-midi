@@ -81,3 +81,26 @@ describe("master volume persistence", () => {
     expect(fromSavedProject(project).masterVolume).toBe(1);
   });
 });
+
+describe("key signature persistence", () => {
+  it("serializes the project key signature", () => {
+    useProjectStore.setState({
+      keySignature: { fifths: -3, mode: "minor" },
+    });
+
+    expect(toSavedProject(useProjectStore.getState()).keySignature).toEqual({
+      fifths: -3,
+      mode: "minor",
+    });
+  });
+
+  it("defaults old projects to C major", () => {
+    const project = createDefaultSavedProject();
+    delete project.keySignature;
+
+    expect(fromSavedProject(project).keySignature).toEqual({
+      fifths: 0,
+      mode: "major",
+    });
+  });
+});

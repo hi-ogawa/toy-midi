@@ -29,6 +29,7 @@ function exportNotes(
   return exportMusicXml({
     notes,
     tempo: 120,
+    keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
     openStringPitches: FIVE_STRING_PITCHES,
     ...options,
@@ -200,6 +201,16 @@ describe("MusicXML export", () => {
       type: "note",
       tabPosition: { tabString: 3, fret: 1 },
     });
+  });
+
+  it("exports key metadata and key-aware flat spelling", () => {
+    const xml = exportNotes([makeNote({ pitch: 34 })], {
+      keySignature: { fifths: -2, mode: "minor" },
+    });
+
+    expect(xml).toContain("<fifths>-2</fifths>");
+    expect(xml).toContain("<mode>minor</mode>");
+    expect(xml).toContain("<step>B</step>\n          <alter>-1</alter>");
   });
 
   it("rejects a polyphonic chord", () => {

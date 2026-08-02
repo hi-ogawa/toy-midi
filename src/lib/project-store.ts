@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   GRID_SNAP_VALUES,
   type GridSnap,
+  type KeySignature,
   type Locator,
   type Note,
   type TabString,
@@ -22,6 +23,7 @@ export interface ProjectState {
   totalBeats: number; // Timeline length in beats (default 128 = 32 bars)
   tempo: number; // BPM
   timeSignature: TimeSignature; // Time signature (default 4/4)
+  keySignature: KeySignature;
 
   // Midi track
   notes: Note[];
@@ -81,6 +83,7 @@ export interface ProjectState {
   setTotalBeats: (beats: number) => void;
   setTempo: (bpm: number) => void;
   setTimeSignature: (timeSignature: TimeSignature) => void;
+  setKeySignature: (keySignature: KeySignature) => void;
 
   // Locator actions
   addLocator: (locator: Locator) => void;
@@ -179,6 +182,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
+  keySignature: { fifths: 0, mode: "major" },
 
   // Locator state
   locators: [],
@@ -416,6 +420,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setTempo: (bpm) => set({ tempo: bpm }),
 
   setTimeSignature: (timeSignature) => set({ timeSignature }),
+
+  setKeySignature: (keySignature) => set({ keySignature }),
 
   // Locator actions
   addLocator: (locator) =>
@@ -672,6 +678,7 @@ export interface SavedProject {
   notes: Note[];
   tempo: number;
   timeSignature?: TimeSignature; // Optional for backward compatibility
+  keySignature?: KeySignature;
   gridSnap: GridSnap;
   tabAnnotationEnabled?: boolean;
   tabOpenStringPitches?: number[];
@@ -714,6 +721,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   notes: [],
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
+  keySignature: { fifths: 0, mode: "major" },
   gridSnap: "1/8",
   tabAnnotationEnabled: false,
   tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
@@ -745,6 +753,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     notes: state.notes,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
+    keySignature: state.keySignature,
     gridSnap: state.gridSnap,
     tabAnnotationEnabled: state.tabAnnotationEnabled,
     tabOpenStringPitches: state.tabOpenStringPitches,
@@ -811,6 +820,7 @@ export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
     notes: merged.notes,
     tempo: merged.tempo,
     timeSignature: merged.timeSignature ?? DEFAULTS.timeSignature,
+    keySignature: merged.keySignature ?? DEFAULTS.keySignature,
     gridSnap: merged.gridSnap,
     tabAnnotationEnabled:
       merged.tabAnnotationEnabled ?? DEFAULTS.tabAnnotationEnabled,

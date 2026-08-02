@@ -26,6 +26,7 @@ import {
   resolveTabStringPreset,
   TAB_STRING_PRESETS,
 } from "../lib/tab-annotation";
+import { KEY_SIGNATURES } from "../types";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
@@ -52,6 +53,7 @@ export function Settings({
     audioTracks,
     tempo,
     timeSignature,
+    keySignature,
     notes,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
@@ -61,6 +63,7 @@ export function Settings({
     setLinkAudioOffsetsEnabled,
     setTabAnnotationEnabled,
     setTabOpenStringPitches,
+    setKeySignature,
     addAudioTrack,
     deleteAudioTrack,
   } = useProjectStore();
@@ -184,6 +187,7 @@ export function Settings({
         notes,
         tempo,
         timeSignature,
+        keySignature,
         openStringPitches: tabOpenStringPitches,
       });
       const fileName = buildExportFileName({
@@ -277,6 +281,36 @@ export function Settings({
               {TAB_STRING_PRESETS.map((preset) => (
                 <option key={preset.id} value={preset.id}>
                   {preset.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <label
+              htmlFor="key-signature-select"
+              className="text-sm text-neutral-300"
+            >
+              Key signature
+            </label>
+            <select
+              id="key-signature-select"
+              data-testid="key-signature-select"
+              value={`${keySignature.fifths}:${keySignature.mode}`}
+              onChange={(e) => {
+                const [fifths, mode] = e.target.value.split(":");
+                setKeySignature({
+                  fifths: Number(fifths),
+                  mode: mode as "major" | "minor",
+                });
+              }}
+              className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+            >
+              {KEY_SIGNATURES.map((key) => (
+                <option
+                  key={`${key.fifths}:${key.mode}`}
+                  value={`${key.fifths}:${key.mode}`}
+                >
+                  {key.label}
                 </option>
               ))}
             </select>
