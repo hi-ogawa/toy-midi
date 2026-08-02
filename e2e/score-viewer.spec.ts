@@ -142,6 +142,16 @@ test("switches score layout", async ({ page }) => {
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
+  const firstPageMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="0"]',
+  );
+  const secondPageMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="16"]',
+  );
+  await expect(secondPageMeasure).toBeVisible();
+  expect((await secondPageMeasure.boundingBox())!.y).toBeGreaterThan(
+    (await firstPageMeasure.boundingBox())!.y,
+  );
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
