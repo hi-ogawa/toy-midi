@@ -369,23 +369,20 @@ export function ScoreViewer() {
 
         <div className="flex-1" />
 
-        <div className="flex rounded border border-border bg-neutral-900 p-0.5">
-          {(["continuous", "paged"] as const).map((mode) => (
-            <Button
-              key={mode}
-              aria-pressed={renderMode === mode}
-              onClick={() => changeRenderMode(mode)}
-              className={cn(
-                "h-7 rounded-sm px-2.5 capitalize",
-                renderMode === mode
-                  ? "bg-neutral-600 text-white hover:bg-neutral-600"
-                  : "text-neutral-400 hover:bg-neutral-700 hover:text-white",
-              )}
-            >
-              {mode}
-            </Button>
-          ))}
-        </div>
+        <label className="flex items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">Layout:</span>
+          <select
+            aria-label="Layout"
+            value={renderMode}
+            onChange={(event) =>
+              changeRenderMode(event.currentTarget.value as RenderMode)
+            }
+            className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+          >
+            <option value="continuous">Continuous</option>
+            <option value="paged">Paged</option>
+          </select>
+        </label>
 
         <Button
           disabled={loadMutation.isPending}

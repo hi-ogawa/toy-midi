@@ -133,12 +133,12 @@ test("switches between continuous and paged score views", async ({ page }) => {
   );
   await expect(page.getByLabel("Score width")).toBeEnabled();
 
-  await page.getByRole("button", { name: "Paged" }).click();
+  await page.getByLabel("Layout").selectOption("paged");
   await expect(renderer).toHaveAttribute("data-score-render-mode", "paged");
   await expect(renderer.locator("svg")).toHaveCount(7);
   await expect(page.getByLabel("Score width")).toBeDisabled();
 
-  await page.getByRole("button", { name: "Continuous" }).click();
+  await page.getByLabel("Layout").selectOption("continuous");
   await expect(renderer).toHaveAttribute(
     "data-score-render-mode",
     "continuous",
