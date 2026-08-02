@@ -53,14 +53,16 @@ export class ScoreViewerRuntime {
   #cursor!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
+
   #osmd!: OpenSheetMusicDisplay;
-  readonly #listeners = new Set<() => void>();
 
   #positions: CursorPosition[] = [];
   #frame?: number;
   #startedAt?: number;
   #pausedAt = 0;
+
   #state = INITIAL_RUNTIME_STATE;
+  readonly #listeners = new Set<() => void>();
 
   getSnapshot = () => this.#state;
 
@@ -156,11 +158,8 @@ export class ScoreViewerRuntime {
     if (!Number.isFinite(tempo) || tempo <= 0) {
       return;
     }
-    this.#pausedAt = this.#getCurrentScoreTime();
-    if (this.#state.isPlaying) {
-      this.#startedAt = performance.now();
-    }
     this.#setState({ tempo });
+    this.restart();
   }
 
   seek(scoreTime: number) {
