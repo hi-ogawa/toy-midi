@@ -221,7 +221,9 @@ function buildMeasureEvents({
       const pieceEnd = pieceStart + piece.duration;
       events.push({
         type: "note",
-        pitch: spellMidiPitch({ pitch: note.note.pitch, keySignature }),
+        pitch: toWrittenBassPitch(
+          spellMidiPitch({ pitch: note.note.pitch, keySignature }),
+        ),
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
@@ -441,7 +443,7 @@ function renderStaffDetails(openStringPitches: readonly number[]): XmlElement {
     { number: 2 },
     hx("staff-lines", openStringPitches.length),
     ...tuning.map((midi, index) => {
-      const pitch = spellChromaticPitch(midi);
+      const pitch = toWrittenBassPitch(spellChromaticPitch(midi));
       return h(
         "staff-tuning",
         { line: index + 1 },
@@ -508,6 +510,12 @@ function renderDurationNotation(notation: DurationNotation): XmlNode[] {
     notation.triplet &&
       hx("time-modification", hx("actual-notes", 3), hx("normal-notes", 2)),
   ];
+}
+
+function toWrittenBassPitch(pitch: SpelledPitch): SpelledPitch {
+  // Bass notation is written one octave above sounding pitch; the matching
+  // MusicXML <transpose> metadata shifts playback back down an octave.
+  return { ...pitch, octave: pitch.octave + 1 };
 }
 
 // xml hyperscript helpers
