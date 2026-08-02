@@ -139,6 +139,9 @@ test("switches score layout", async ({ page }) => {
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
+
+  // Measure overlays use page-local OSMD geometry. Verify page 2 is placed
+  // below page 1 and the first system has contiguous, ordered hit targets.
   const firstPageMeasure = page.locator(
     '[data-testid="score-viewer-measure"][data-measure-index="0"]',
   );
@@ -168,6 +171,8 @@ test("switches score layout", async ({ page }) => {
     firstSystemMeasures[0].left,
   );
   expect(firstSystemMeasures[0].right).toBeCloseTo(firstSystemMeasures[1].left);
+
+  // Clicking page 2 must seek and scroll the page-aware playback cursor there.
   await secondPageMeasure.click({ position: { x: 20, y: 20 } });
   await expect(page.getByText("17|01")).toBeVisible();
   const cursor = page.getByTestId("score-viewer-cursor");
