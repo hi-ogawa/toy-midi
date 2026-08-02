@@ -373,31 +373,34 @@ function buildMeasureTargets(
   layer: HTMLDivElement,
 ) {
   const targets: HTMLDivElement[] = [];
-  for (const measures of osmd.GraphicSheet.MeasureList) {
-    const measure = measures.find((candidate) => candidate?.isVisible());
-    const system = measure?.ParentMusicSystem;
-    if (!measure || !system) {
-      continue;
-    }
+  for (const page of osmd.GraphicSheet.MusicPages) {
+    for (const system of page.MusicSystems) {
+      for (const measures of system.GraphicalMeasures) {
+        const measure = measures.find((candidate) => candidate?.isVisible());
+        if (!measure) {
+          continue;
+        }
 
-    const topStaff = system.StaffLines[0];
-    const bottomStaff = system.StaffLines.at(-1)!;
-    const pageTop = system.Parent.PositionAndShape.AbsolutePosition.y * 10;
-    const target = document.createElement("div");
-    target.dataset.testid = "score-viewer-measure";
-    target.dataset.measureIndex = String(
-      measure.parentSourceMeasure.measureListIndex,
-    );
-    target.dataset.scoreTime = String(
-      measure.parentSourceMeasure.AbsoluteTimestamp.RealValue,
-    );
-    target.className =
-      "absolute cursor-pointer bg-transparent hover:bg-blue-500/10";
-    target.style.left = `${measure.PositionAndShape.AbsolutePosition.x * 10}px`;
-    target.style.top = `${pageTop + topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
-    target.style.width = `${measure.PositionAndShape.Size.width * 10}px`;
-    target.style.height = `${(bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.StaffHeight - topStaff.PositionAndShape.AbsolutePosition.y) * 10 + 40}px`;
-    targets.push(target);
+        const topStaff = system.StaffLines[0];
+        const bottomStaff = system.StaffLines.at(-1)!;
+        const pageTop = page.PositionAndShape.AbsolutePosition.y * 10;
+        const target = document.createElement("div");
+        target.dataset.testid = "score-viewer-measure";
+        target.dataset.measureIndex = String(
+          measure.parentSourceMeasure.measureListIndex,
+        );
+        target.dataset.scoreTime = String(
+          measure.parentSourceMeasure.AbsoluteTimestamp.RealValue,
+        );
+        target.className =
+          "absolute cursor-pointer bg-transparent hover:bg-blue-500/10";
+        target.style.left = `${measure.PositionAndShape.AbsolutePosition.x * 10}px`;
+        target.style.top = `${pageTop + topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
+        target.style.width = `${measure.PositionAndShape.Size.width * 10}px`;
+        target.style.height = `${(bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.StaffHeight - topStaff.PositionAndShape.AbsolutePosition.y) * 10 + 40}px`;
+        targets.push(target);
+      }
+    }
   }
   layer.replaceChildren(...targets);
 }

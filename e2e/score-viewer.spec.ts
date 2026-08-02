@@ -152,6 +152,23 @@ test("switches score layout", async ({ page }) => {
   expect((await secondPageMeasure.boundingBox())!.y).toBeGreaterThan(
     (await firstPageMeasure.boundingBox())!.y,
   );
+  const firstSystemMeasures = await page
+    .getByTestId("score-viewer-measure")
+    .evaluateAll((elements) =>
+      elements.slice(0, 4).map((element) => ({
+        index: element.getAttribute("data-measure-index"),
+        left: element.getBoundingClientRect().left,
+      })),
+    );
+  expect(firstSystemMeasures.map(({ index }) => index)).toEqual([
+    "0",
+    "1",
+    "2",
+    "3",
+  ]);
+  expect(firstSystemMeasures[1].left).toBeGreaterThan(
+    firstSystemMeasures[0].left,
+  );
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
