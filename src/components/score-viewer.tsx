@@ -265,8 +265,10 @@ export function ScoreViewer() {
 
   return (
     <main
-      data-render-mode={renderMode}
-      className="score-viewer-root flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950"
+      className={cn(
+        "score-viewer-root flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
+        renderMode === "paged" && "score-viewer-root-paged",
+      )}
     >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
