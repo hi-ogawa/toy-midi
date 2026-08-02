@@ -122,8 +122,9 @@ export function spellMidiPitch({
   //   C major,  pitch class 10 -> A# (wrong: Bb in Gm7 -> C7 -> F)
   //   C major,  pitch class 1  -> C# (correct: A7; wrong: Db in Db7)
   //   A minor,  pitch class 8  -> G# (correct: E7; wrong: Ab in Ab7)
-  // TODO: Prefer common chromatic spellings. Contextual cases require harmonic
-  // analysis or an explicit per-note spelling choice.
+  // TODO: Replace this key-direction fallback with contextual spelling or an
+  // explicit per-note spelling choice. MIDI pitch alone cannot distinguish C#
+  // in A7 from Db in Db7.
   const chromaticSpellings =
     keySignature.fifths < 0
       ? FLAT_CHROMATIC_SPELLINGS
@@ -140,10 +141,10 @@ function getDiatonicPitchClasses(
   //   C natural is 0; applying its flat gives (0 - 1 + 12) % 12 = 11 (Cb)
   const accidentalOrder =
     keySignature.fifths < 0 ? FLAT_ACCIDENTAL_ORDER : SHARP_ACCIDENTAL_ORDER;
-  const keyAlter = Math.sign(keySignature.fifths);
   const alteredSteps = new Set(
     accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
   );
+  const keyAlter = Math.sign(keySignature.fifths);
 
   return (
     Object.entries(NATURAL_PITCH_CLASS_BY_LETTER) as [NoteLetter, number][]
