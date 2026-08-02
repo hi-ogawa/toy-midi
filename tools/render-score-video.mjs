@@ -3,18 +3,21 @@ import { chromium } from "@playwright/test";
 import { Resvg } from "@resvg/resvg-js";
 
 async function main() {
-  const { fps, height, output, sampleId } = parseOptions(process.argv.slice(2));
+  const options = parseOptions(process.argv.slice(2));
 
   const browser = await chromium.launch({ channel: "chromium" });
-  const page = await browser.newPage({ viewport: { width: 1110, height } });
+  const page = await browser.newPage({
+    viewport: { width: 1110, height: 556 },
+  });
   await page.goto("http://localhost:5183/score-viewer");
   await page.evaluate(async (id) => {
     await window.__toyMidiScoreVideo.loadSample(id);
-  }, sampleId);
+  }, options.sampleId);
   const scene = await page.evaluate(() =>
     window.__toyMidiScoreVideo.exportScene(),
   );
   await browser.close();
+  const height = options.height ?? deriveHeight(scene.cursorPositions);
   const width = scene.scoreWidth;
   const scorePixels = new Resvg(buildScoreSvg(scene)).render().pixels;
 
@@ -29,7 +32,7 @@ async function main() {
       "-video_size",
       `${width}x${height}`,
       "-framerate",
-      String(fps),
+      String(options.fps),
       "-i",
       "-",
       "-an",
@@ -37,15 +40,15 @@ async function main() {
       "libx264",
       "-pix_fmt",
       "yuv420p",
-      output,
+      options.output,
     ],
     { stdio: ["pipe", "inherit", "inherit"] },
   );
 
-  const frameCount = Math.ceil(scene.duration * fps);
-  let viewportTop = 0;
+  const frameCount = Math.ceil(scene.duration * options.fps);
+  let viewportTop = Math.max(scene.cursorPositions[0].top - 24, 0);
   for (let frame = 0; frame < frameCount; frame++) {
-    const scoreTime = (frame / fps) * (scene.tempo / 60 / 4);
+    const scoreTime = (frame / options.fps) * (scene.tempo / 60 / 4);
     const cursor = resolveCursor(scene.cursorPositions, scoreTime);
     if (
       cursor.top < viewportTop ||
@@ -76,7 +79,7 @@ async function main() {
 
 function parseOptions(args) {
   const positional = [];
-  const options = { fps: 30, height: 556 };
+  const options = { fps: 30 };
   for (let index = 0; index < args.length; index++) {
     const argument = args[index];
     switch (argument) {
@@ -107,6 +110,29 @@ function parseOptions(args) {
     sampleId: positional[0] ?? "cursor-wrapping",
     output: positional[1] ?? ".tmp/score-video.mp4",
   };
+}
+
+function deriveHeight(positions) {
+  const systems = [];
+  const systemIds = new Set();
+  for (const position of positions) {
+    if (!systemIds.has(position.systemId)) {
+      systemIds.add(position.systemId);
+      systems.push({
+        bottom: position.top + position.height,
+        top: position.top,
+      });
+    }
+  }
+  if (systems.length === 0) {
+    throw new Error("Score has no rendered systems");
+  }
+  const lastVisibleSystem = systems[Math.min(1, systems.length - 1)];
+  return roundUpToEven(lastVisibleSystem.bottom - systems[0].top + 48);
+}
+
+function roundUpToEven(value) {
+  return Math.ceil(value / 2) * 2;
 }
 
 function parsePositiveInteger(option, value) {
