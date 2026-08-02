@@ -102,6 +102,8 @@ export function spellMidiPitch({
     accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
   );
   const pitchClass = pitch % 12;
+  // Prefer the exact spelling of a scale tone in this key, including altered
+  // naturals such as C-flat in E-flat minor and E-sharp in D-sharp minor.
   for (const step of Object.keys(
     NATURAL_PITCH_CLASSES,
   ) as (keyof typeof NATURAL_PITCH_CLASSES)[]) {
@@ -151,6 +153,8 @@ function toSpelledPitch({
   return {
     step,
     alter,
+    // Derive the written octave after applying the accidental because C-flat
+    // and B-sharp cross the C octave boundary relative to their sounding pitch.
     octave: Math.floor((pitch - NATURAL_PITCH_CLASSES[step] - alter) / 12),
   };
 }
