@@ -24,5 +24,11 @@ describe("spellMidiPitch", () => {
         keySignature: { fifths: 6, mode: "minor" }, // D# minor
       }),
     ).toEqual({ step: "E", alter: 1, octave: 3 });
+    expect(
+      spellMidiPitch({
+        pitch: 48,
+        keySignature: { fifths: 7, mode: "major" }, // C# major
+      }),
+    ).toEqual({ step: "B", alter: 1, octave: 3 });
   });
 });
