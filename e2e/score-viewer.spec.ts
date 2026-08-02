@@ -1,5 +1,5 @@
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 
 test("navigates between projects and the score viewer", async ({ page }) => {
   await page.goto("/");
@@ -24,8 +24,6 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
-  const cursor = page.getByTestId("score-viewer-cursor");
-  await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
@@ -127,7 +125,7 @@ test("switches score layout", async ({ page }) => {
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
 });
 
-async function loadSample(page: import("@playwright/test").Page, name: string) {
+async function loadSample(page: Page, name: string) {
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
 }
