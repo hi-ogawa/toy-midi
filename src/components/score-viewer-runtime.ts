@@ -199,12 +199,16 @@ export class ScoreViewerRuntime {
     if (this.#positions.length < 2) {
       return;
     }
+
+    // Keep transport time unbounded, but show the cursor only over notation.
     const last = this.#positions.at(-1)!;
     if (scoreTime >= last.time) {
       this.#cursor.hidden = true;
       return;
     }
     this.#cursor.hidden = false;
+
+    // Locate the pair of playback anchors surrounding the current score time.
     let nextIndex = this.#positions.findIndex(
       (position) => position.time > scoreTime,
     );
@@ -213,6 +217,8 @@ export class ScoreViewerRuntime {
     }
     const previous = this.#positions[nextIndex - 1];
     const next = this.#positions[nextIndex];
+
+    // Interpolate x by musical time while retaining the active system geometry.
     const progress =
       next.systemId === previous.systemId
         ? (scoreTime - previous.time) / (next.time - previous.time)
@@ -297,13 +303,13 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
     const topStaff = system.StaffLines[0];
     const bottomStaff = system.StaffLines.at(-1)!;
-    // 20
-    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20; // cursor padding
+    // 20px padding above and below the system
+    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
     const bottom =
       (bottomStaff.PositionAndShape.AbsolutePosition.y +
         bottomStaff.StaffHeight) *
         10 +
-      20; // cursor padding
+      20;
     result.push({
       time: container.AbsoluteTimestamp.RealValue,
       x: entry.PositionAndShape.AbsolutePosition.x * 10,
