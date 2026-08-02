@@ -523,7 +523,7 @@ function midiPitchToMusicXml(
   // Examples:
   //   F major, Bb chord (Bb D F): writes Bb
   //   A minor, E7 chord (E G# B D): writes G#
-  //   C major, Bb chord (Bb D F): writes A# instead of Bb
+  //   C major, Gm7 -> C7 -> F: writes A# instead of Bb in Gm7 and C7
   //   C major, A7 (A C# E G) vs Db7 (Db F Ab Cb): always writes C#
   //   A minor, E7 (E G# B D) vs Ab7 (Ab C Eb Gb): always writes G#
   // TODO: A future heuristic can spell the diatonic scale, including E# or Cb,
