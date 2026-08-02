@@ -23,3 +23,18 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 });
+
+test("preloads and advances the cursor debug score", async ({ page }) => {
+  await page.goto("/score-viewer-debug");
+
+  const playButton = page.getByRole("button", { name: "Play" });
+  await expect(playButton).toBeEnabled();
+  const cursor = page.locator("img[id^='cursorImg']");
+  await expect(cursor).toBeVisible();
+  const initialLeft = await cursor.evaluate((element) => element.style.left);
+
+  await playButton.click();
+  await expect
+    .poll(() => cursor.evaluate((element) => element.style.left))
+    .not.toBe(initialLeft);
+});

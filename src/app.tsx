@@ -1,12 +1,16 @@
 import { Editor } from "./components/editor";
 import { ProjectListView } from "./components/project-list-view";
 import { ScoreViewer } from "./components/score-viewer";
+import { ScoreViewerDebug } from "./components/score-viewer-debug";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { matchKeyboardEvent } from "./lib/keyboard";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
 
 export function App() {
+  if (window.location.pathname === "/score-viewer-debug") {
+    return <ScoreViewerDebug />;
+  }
   if (window.location.pathname === "/score-viewer") {
     return <ScoreViewer />;
   }
