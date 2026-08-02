@@ -19,6 +19,7 @@ import { FileDropInput } from "./file-drop-input";
 import {
   type ScoreLayout,
   type ScoreSource,
+  type ScoreVideoScene,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
 import { Button } from "./ui/button";
@@ -49,6 +50,24 @@ export function ScoreViewer() {
     }
     runtime.attach(root);
     return () => runtime.dispose();
+  }, [runtime]);
+
+  useEffect(() => {
+    window.__toyMidiScoreVideo = {
+      exportScene: () => runtime.exportVideoScene(),
+      loadSample: async (id) => {
+        const sample = SCORE_VIEWER_SAMPLES.find((item) => item.id === id);
+        if (!sample) {
+          throw new Error(`Unknown score sample: ${id}`);
+        }
+        const nextScore = { name: sample.name, xml: sample.xml };
+        await runtime.load({ score: nextScore, layout: "continuous" });
+        setScore(nextScore);
+      },
+    };
+    return () => {
+      delete window.__toyMidiScoreVideo;
+    };
   }, [runtime]);
 
   const tempoInput = useDraftInput({
@@ -299,6 +318,15 @@ export function ScoreViewer() {
       />
     </main>
   );
+}
+
+declare global {
+  interface Window {
+    __toyMidiScoreVideo?: {
+      exportScene: () => ScoreVideoScene;
+      loadSample: (id: string) => Promise<void>;
+    };
+  }
 }
 
 function formatBarBeat(bar: number, beat: number) {

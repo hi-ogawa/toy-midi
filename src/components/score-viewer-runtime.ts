@@ -31,7 +31,7 @@ export type ScoreSource = {
  * system ends let the cursor finish a row before jumping to the next system.
  * Playback interpolates horizontally between adjacent anchors in one system.
  */
-type CursorPosition = {
+export type CursorPosition = {
   /** Score time in whole-note units, matching OSMD's Fraction.RealValue. */
   time: number;
   /** Horizontal cursor position in CSS pixels within the rendered score. */
@@ -42,6 +42,15 @@ type CursorPosition = {
   height: number;
   /** OSMD system identity, used to avoid interpolation across wrapped rows. */
   systemId: number;
+};
+
+export type ScoreVideoScene = {
+  cursorPositions: CursorPosition[];
+  duration: number;
+  scoreHeight: number;
+  scoreSvg: string;
+  scoreWidth: number;
+  tempo: number;
 };
 
 // OSMD reads its layout width from the container's offsetWidth. This value was
@@ -185,6 +194,25 @@ export class ScoreViewerRuntime {
 
   seek(scoreTime: number) {
     this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
+  }
+
+  exportVideoScene(): ScoreVideoScene {
+    if (!this.#state.isReady || this.#positions.length < 2) {
+      throw new Error("Load a score before exporting video scene data");
+    }
+    const scoreSvg = this.#container.querySelector("svg");
+    if (!scoreSvg) {
+      throw new Error("OSMD did not render an SVG score");
+    }
+    const lastPosition = this.#positions.at(-1)!;
+    return {
+      cursorPositions: this.#positions,
+      duration: scoreTimeToSeconds(lastPosition.time, this.#state.tempo),
+      scoreHeight: Math.ceil(this.#container.getBoundingClientRect().height),
+      scoreSvg: new XMLSerializer().serializeToString(scoreSvg),
+      scoreWidth: SCORE_LAYOUT_WIDTH,
+      tempo: this.#state.tempo,
+    };
   }
 
   dispose() {
