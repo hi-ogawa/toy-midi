@@ -517,8 +517,18 @@ function midiPitchToMusicXml(
   pitch: number,
   keySignature: KeySignature,
 ): MusicXmlPitch {
-  // TODO: Spell altered natural notes such as E-sharp and C-flat in keys whose
-  // diatonic scales require them instead of choosing only a sharp/flat bias.
+  // Current heuristic:
+  //   fifths < 0  => prefer flats
+  //   fifths >= 0 => prefer sharps
+  // Examples:
+  //   F major, Bb chord (Bb D F): writes Bb
+  //   A minor, E7 chord (E G# B D): writes G#
+  //   C major, Bb chord (Bb D F): writes A# instead of Bb
+  //   C major, A7 (A C# E G) vs Db7 (Db F Ab Cb): always writes C#
+  //   A minor, E7 (E G# B D) vs Ab7 (Ab C Eb Gb): always writes G#
+  // TODO: A future heuristic can spell the diatonic scale, including E# or Cb,
+  // and prefer common chromatic spellings. Contextual cases require harmonic
+  // analysis or an explicit per-note spelling choice.
   const sharpPitchClasses = [
     ["C", 0],
     ["C", 1],
