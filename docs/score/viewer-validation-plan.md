@@ -137,6 +137,61 @@ These remain part of the broader score presentation workflow but are not require
 - Project-scoped score player routing at `/project/<id>/score`. The route should load the persisted project read-only, generate MusicXML in memory, and open the same score player without a download/upload or `sessionStorage` handoff. `/score-viewer` should remain available for standalone MusicXML files and generated samples. Opening the project score from the editor must flush pending autosave first so a new tab reads the latest project state.
 - Offline silent tab-video rendering for use as the scrolling score layer in Kdenlive. The intended production path should extract static score viewport SVG or raster backgrounds from OSMD, export piecewise cursor geometry, apply the same cursor-containment viewport rule as interactive playback, composite frames at exact timestamps, and encode without real-time screen capture. Per-frame Playwright screenshots are only a correctness spike, not the production renderer.
 
+### Player Ergonomics Draft
+
+This is a provisional list for refining the actual player requirements after the renderer lands.
+
+#### Playback Interaction
+
+- [ ] Toggle play/pause with Space while focus is outside editable controls.
+- [ ] Add a restart shortcut, such as Home or `0`.
+- [ ] Update the displayed bar and beat during playback instead of showing only the last manually entered values.
+- [ ] Clamp bar/beat seeking to the score's valid range.
+- [ ] Leave the cursor at the score end when playback finishes and define what the next Play action does.
+- [ ] Preserve the current score position when changing score width and rebuilding OSMD layout.
+- [ ] Preserve the current score position when changing BPM during playback.
+
+#### Score Navigation
+
+- [ ] Seek by clicking the score near a note, rest, or measure position.
+- [ ] Resolve click positions through OSMD geometry and timestamps rather than inferring time from raw DOM x-coordinates.
+- [ ] Route click seeking and bar/beat seeking through the same cursor and viewport update path.
+- [ ] Decide whether click-to-seek is sufficient or whether dragging a playhead is useful for the cover workflow.
+- [ ] Parse the MusicXML time signature for bar/beat conversion instead of assuming 4/4 and a maximum beat of 4.
+
+#### Header And Source UI
+
+- [ ] Rework the header hierarchy so transport, score position, layout, score identity, and source controls read as distinct groups.
+- [ ] Polish the Restart, Open, and Samples controls so they follow the editor's existing button and icon conventions.
+- [ ] Decide whether the Open control should read `Open MusicXML` rather than `Open`.
+- [ ] Treat generated samples as secondary validation tooling rather than a primary player action.
+- [ ] Put the loaded score name in a stable title position instead of between unrelated controls.
+- [ ] Pause before loading another source, or disable source switching during playback.
+- [ ] Show source-loading progress instead of only disabling controls.
+- [ ] Replace `Open a Toy MIDI MusicXML export or load a generated sample.` with a shorter actionable empty state.
+- [ ] Hide the empty white score canvas until a score is loaded.
+- [ ] Label score width units explicitly, for example `1110 px`.
+- [ ] Decide whether score width belongs in the main header or a secondary View control.
+
+#### Recording Ergonomics
+
+- [ ] Add a distraction-free mode that hides player controls while preserving playback shortcuts.
+- [ ] Add fullscreen entry and exit behavior suitable for screen recording.
+- [ ] Keep player controls outside the score capture area so cropping is predictable.
+- [ ] Decide whether score width, BPM override, and other viewer preferences should persist locally.
+- [ ] Keep score and cursor geometry aligned after browser resize.
+- [ ] Decide whether recording needs configurable canvas/background color.
+
+#### Loading And Lifecycle
+
+- [ ] Dispose the previous OSMD instance when loading or rerendering a score instead of only clearing its container.
+- [ ] Prevent stale results when file/sample loads overlap.
+- [ ] Keep the previous valid score visible when a replacement MusicXML file fails to parse.
+- [ ] Show malformed MusicXML errors inline with a useful message.
+- [ ] Decide whether compressed `.mxl` input is required; the current text-loading path targets plain MusicXML/XML.
+- [ ] Parse score duration and meter metadata needed by seek controls.
+- [ ] Keep first-tempo-only playback as the explicit contract while tempo changes remain out of scope.
+
 ## Out Of Scope
 
 - Tempo changes and a general tempo map.
