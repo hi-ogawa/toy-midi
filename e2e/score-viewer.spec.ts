@@ -42,8 +42,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Cursor and wrapping");
 
-  // Exercise cursor motion, measure-click seeking, tempo changes, and the
-  // transition from the end of one system to the start of the next.
+  // The loaded score starts with a visible cursor at measure 1, beat 1.
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
   const cursor = page.getByTestId("score-viewer-cursor");
@@ -54,6 +53,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
     (element) => element.style.transform,
   );
 
+  // Playback advances the cursor continuously rather than in discrete steps.
   await playButton.click();
   await page.waitForTimeout(100);
   const firstTransform = await cursor.evaluate(
@@ -68,6 +68,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .not.toBe(initialTransform);
 
+  // Clicking measure 2 while paused seeks the cursor to its first beat.
   await page.getByRole("button", { name: "Pause" }).click();
   await page.locator('[data-measure-index="1"]').click();
   await expect(page.getByText("02|01")).toBeVisible();
@@ -76,6 +77,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
   );
   expect(seekTransform).not.toBe(initialTransform);
 
+  // Changing the tempo restarts playback, and the cursor advances from zero.
   await page.getByLabel("BPM").fill("120");
   await page.getByLabel("BPM").press("Enter");
   await page.getByRole("button", { name: "Play" }).click();
@@ -85,6 +87,8 @@ test("loads and advances the cursor sample", async ({ page }) => {
   );
   expect(fastTransform).not.toBe(seekTransform);
 
+  // Slow playback near a system end so the test observes horizontal movement
+  // before the cursor wraps from the first system to the second.
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("BPM").fill("60");
   await page.getByLabel("BPM").press("Enter");
