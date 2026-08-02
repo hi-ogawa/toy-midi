@@ -432,6 +432,7 @@ function buildMeasureTargets(
             ? nextMeasure.PositionAndShape.AbsolutePosition.x * 10
             : system.GetRightBorderAbsoluteXPosition() * 10;
         target.style.left = `${left}px`;
+        // Extend 20px above and below the staves for an easier full-system hit target.
         target.style.top = `${topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
         target.style.width = `${right - left}px`;
         target.style.height = `${(bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.StaffHeight - topStaff.PositionAndShape.AbsolutePosition.y) * 10 + 40}px`;
