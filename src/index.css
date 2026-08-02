@@ -77,10 +77,6 @@
     background: white;
   }
 
-  .score-viewer-root[data-render-mode="continuous"] {
-    display: none;
-  }
-
   .score-viewer-root[data-render-mode="paged"] {
     display: block;
     height: auto;
