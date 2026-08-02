@@ -19,13 +19,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "64 eighth notes at 60 BPM",
     tempo: 60,
     xml: exportSample({
-      notes: Array.from({ length: 64 }, (_, index) =>
-        createNote({
-          pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
-          start: index * 0.5,
-          duration: 0.5,
-        }),
-      ),
+      notes: createSequentialNotes({ count: 64, duration: 0.5 }),
       tempo: 60,
     }),
   },
@@ -100,13 +94,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
     xml: exportSample({
-      notes: Array.from({ length: 96 }, (_, index) =>
-        createNote({
-          pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
-          start: index * 0.25,
-          duration: 0.25,
-        }),
-      ),
+      notes: createSequentialNotes({ count: 96, duration: 0.25 }),
       tempo: 110,
     }),
   },
@@ -116,17 +104,27 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Fast cursor and following at 200 BPM",
     tempo: 200,
     xml: exportSample({
-      notes: Array.from({ length: 96 }, (_, index) =>
-        createNote({
-          pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
-          start: index * 0.5,
-          duration: 0.5,
-        }),
-      ),
+      notes: createSequentialNotes({ count: 96, duration: 0.5 }),
       tempo: 200,
     }),
   },
 ];
+
+function createSequentialNotes({
+  count,
+  duration,
+}: {
+  count: number;
+  duration: number;
+}) {
+  return Array.from({ length: count }, (_, index) =>
+    createNote({
+      pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
+      start: index * duration,
+      duration,
+    }),
+  );
+}
 
 function exportSample({ notes, tempo }: { notes: Note[]; tempo: number }) {
   return exportMusicXml({
