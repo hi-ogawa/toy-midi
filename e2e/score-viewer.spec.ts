@@ -1,6 +1,17 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
+test("navigates between projects and the score viewer", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("score-viewer-link").click();
+  await expect(page).toHaveURL(/\/score-viewer$/);
+
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByTestId("all-projects-menu-item").click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByTestId("startup-screen")).toBeVisible();
+});
+
 test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page.goto("/score-viewer");
   await page

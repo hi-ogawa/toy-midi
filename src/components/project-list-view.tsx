@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { Github, Pencil, Trash2 } from "lucide-react";
+import { Github, Music2Icon, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
@@ -102,6 +102,15 @@ export function ProjectListView({
           </h1>
           <div className="flex items-center justify-center gap-2 mt-2 text-sm text-neutral-500">
             <p>A simple piano roll editor</p>
+            <span className="text-neutral-700">/</span>
+            <a
+              href="/score-viewer"
+              data-testid="score-viewer-link"
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <Music2Icon className="size-4" />
+              Score Viewer
+            </a>
             <span className="text-neutral-700">/</span>
             <a
               href="https://github.com/hi-ogawa/toy-midi/"
