@@ -42,6 +42,8 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Cursor and wrapping");
 
+  // Exercise cursor motion, measure-click seeking, tempo changes, and the
+  // transition from the end of one system to the start of the next.
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
   const cursor = page.getByTestId("score-viewer-cursor");
