@@ -521,11 +521,11 @@ function midiPitchToMusicXml(
   //   fifths < 0  => prefer flats
   //   fifths >= 0 => prefer sharps
   // Examples:
-  //   F major, Bb chord (Bb D F): writes Bb
-  //   A minor, E7 chord (E G# B D): writes G#
-  //   C major, Gm7 -> C7 -> F: writes A# instead of Bb in Gm7 and C7
-  //   C major, A7 (A C# E G) vs Db7 (Db F Ab Cb): always writes C#
-  //   A minor, E7 (E G# B D) vs Ab7 (Ab C Eb Gb): always writes G#
+  //   OK: F major, Bb chord (Bb D F): writes Bb
+  //   OK: A minor, E7 chord (E G# B D): writes G#
+  //   WRONG: C major, Gm7 -> C7 -> F: writes A# instead of Bb
+  //   OK in A7 / WRONG in Db7: C major pitch class 1 always writes C#
+  //   OK in E7 / WRONG in Ab7: A minor pitch class 8 always writes G#
   // TODO: A future heuristic can spell the diatonic scale, including E# or Cb,
   // and prefer common chromatic spellings. Contextual cases require harmonic
   // analysis or an explicit per-note spelling choice.
