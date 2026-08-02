@@ -57,11 +57,22 @@ export class ScoreViewerRuntime {
   #osmd!: OpenSheetMusicDisplay;
 
   #positions: CursorPosition[] = [];
-  #frame?: number;
-  readonly #clock = new PlayheadClock();
-
   #state = INITIAL_RUNTIME_STATE;
   readonly #listeners = new Set<() => void>();
+
+  readonly #clock = new PlayheadClock();
+
+  constructor() {
+    this.#clock.subscribe(() => {
+      const { currentTime, paused } = this.#clock.getSnapshot();
+      const scoreTime = currentTime * this.#scoreTimePerSecond;
+      if (!this.#updateCursor(scoreTime) && !paused && currentTime > 0) {
+        this.#clock.stop();
+        return;
+      }
+      this.#setState({ isPlaying: !paused });
+    });
+  }
 
   getSnapshot = () => this.#state;
 
@@ -108,7 +119,7 @@ export class ScoreViewerRuntime {
   }
 
   async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
-    this.#stop();
+    this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -122,7 +133,7 @@ export class ScoreViewerRuntime {
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd);
-    this.#clock.reset();
+    this.#clock.stop();
     this.#setState({
       bar: 1,
       beat: 1,
@@ -133,22 +144,18 @@ export class ScoreViewerRuntime {
   }
 
   togglePlayback() {
-    if (!this.#clock.paused) {
-      this.#stop();
+    if (!this.#clock.getSnapshot().paused) {
+      this.#clock.pause();
       return;
     }
     if (!this.#state.isReady) {
       return;
     }
     this.#clock.play();
-    this.#setState({ isPlaying: true });
-    this.#frame = requestAnimationFrame(this.#advance);
   }
 
   restart() {
-    this.#stop();
-    this.#clock.reset();
-    this.#updateCursor(0);
+    this.#clock.stop();
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -161,41 +168,20 @@ export class ScoreViewerRuntime {
   }
 
   seek(scoreTime: number) {
-    this.#clock.currentTime = scoreTime / this.#scoreTimePerSecond;
-    this.#updateCursor(scoreTime);
+    this.#clock.seek(scoreTime / this.#scoreTimePerSecond);
   }
 
   dispose() {
-    cancelAnimationFrame(this.#frame ?? 0);
+    this.#clock.stop();
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
       this.#root.replaceChildren();
     }
   }
 
-  #stop() {
-    cancelAnimationFrame(this.#frame ?? 0);
-    this.#frame = undefined;
-    this.#clock.pause();
-    this.#setState({ isPlaying: false });
-  }
-
   get #scoreTimePerSecond() {
     return this.#state.tempo / 60 / 4;
   }
-
-  #advance = () => {
-    if (this.#clock.paused) {
-      return;
-    }
-    const scoreTime = this.#clock.currentTime * this.#scoreTimePerSecond;
-    if (!this.#updateCursor(scoreTime)) {
-      this.#stop();
-      this.#clock.reset();
-      return;
-    }
-    this.#frame = requestAnimationFrame(this.#advance);
-  };
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
@@ -317,37 +303,80 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
 }
 
 class PlayheadClock {
+  // Temporary score-viewer transport matching the snapshot/subscription shape
+  // used by the existing Tone.js transport hook infrastructure.
+  #snapshot: PlayheadSnapshot = { currentTime: 0, paused: true };
   #startedAt?: number;
-  #currentTime = 0;
+  #frame?: number;
+  readonly #listeners = new Set<() => void>();
 
-  get currentTime() {
-    return this.#startedAt === undefined
-      ? this.#currentTime
-      : this.#currentTime + (performance.now() - this.#startedAt) / 1000;
-  }
+  getSnapshot = () => this.#snapshot;
 
-  set currentTime(currentTime: number) {
-    this.#currentTime = currentTime;
-    if (this.#startedAt !== undefined) {
-      this.#startedAt = performance.now();
-    }
-  }
-
-  get paused() {
-    return this.#startedAt === undefined;
-  }
+  subscribe = (listener: () => void) => {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  };
 
   play() {
-    this.#startedAt ??= performance.now();
+    if (!this.#snapshot.paused) {
+      return;
+    }
+    this.#startedAt = performance.now();
+    this.#setSnapshot({ paused: false });
+    this.#frame = requestAnimationFrame(this.#tick);
   }
 
   pause() {
-    this.#currentTime = this.currentTime;
+    if (this.#snapshot.paused) {
+      return;
+    }
+    this.#commitCurrentTime();
+    cancelAnimationFrame(this.#frame ?? 0);
+    this.#frame = undefined;
     this.#startedAt = undefined;
+    this.#setSnapshot({ paused: true });
   }
 
-  reset() {
+  stop() {
+    cancelAnimationFrame(this.#frame ?? 0);
+    this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#currentTime = 0;
+    this.#setSnapshot({ currentTime: 0, paused: true });
+  }
+
+  seek(currentTime: number) {
+    this.#startedAt = this.#snapshot.paused ? undefined : performance.now();
+    this.#setSnapshot({ currentTime });
+  }
+
+  #tick = () => {
+    if (this.#snapshot.paused || this.#startedAt === undefined) {
+      return;
+    }
+    const currentTime =
+      this.#snapshot.currentTime + (performance.now() - this.#startedAt) / 1000;
+    this.#startedAt = performance.now();
+    this.#setSnapshot({ currentTime });
+    this.#frame = requestAnimationFrame(this.#tick);
+  };
+
+  #commitCurrentTime() {
+    this.#setSnapshot({
+      currentTime:
+        this.#snapshot.currentTime +
+        (performance.now() - this.#startedAt!) / 1000,
+    });
+  }
+
+  #setSnapshot(update: Partial<PlayheadSnapshot>) {
+    this.#snapshot = { ...this.#snapshot, ...update };
+    for (const listener of this.#listeners) {
+      listener();
+    }
   }
 }
+
+type PlayheadSnapshot = {
+  currentTime: number;
+  paused: boolean;
+};
