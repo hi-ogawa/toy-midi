@@ -111,7 +111,7 @@ export function spellMidiPitch({
     return toSpelledPitch({ pitch, ...diatonicPitch });
   }
 
-  // Chromatic fallback:
+  // Non-diatonic fallback:
   //   key signature has flats    => prefer flats
   //   key signature has no flats => prefer sharps
   // `fifths` is MusicXML's signed count: negative for flats, positive for
@@ -125,11 +125,11 @@ export function spellMidiPitch({
   // TODO: Replace this key-direction fallback with contextual spelling or an
   // explicit per-note spelling choice. MIDI pitch alone cannot distinguish C#
   // in A7 from Db in Db7.
-  const chromaticSpellings =
+  const nonDiatonicSpellings =
     keySignature.fifths < 0
       ? FLAT_CHROMATIC_SPELLINGS
       : SHARP_CHROMATIC_SPELLINGS;
-  const [step, alter] = chromaticSpellings[pitchClass];
+  const [step, alter] = nonDiatonicSpellings[pitchClass];
   return toSpelledPitch({ pitch, step, alter });
 }
 
