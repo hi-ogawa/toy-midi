@@ -38,8 +38,6 @@ const SCORE_LAYOUT_WIDTH = 1110;
 export function ScoreViewer() {
   const rootRef = useRef<HTMLElement>(null);
 
-  const [bar, setBar] = useState(1);
-  const [beat, setBeat] = useState(1);
   const [score, setScore] = useState<ScoreSource>();
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
 
@@ -62,20 +60,6 @@ export function ScoreViewer() {
     value: runtimeState.tempo,
     onCommit: (tempo) => runtime.setTempo(tempo),
     min: 1,
-  });
-
-  // TODO: parse time signatures from MusicXML (currently hard-coded as 4/4)
-  // TODO: parse score duration or measure count to limit allowed bar/beat inputs
-  const barInput = useDraftInput({
-    value: bar,
-    onCommit: (value) => seekTo({ bar: value, beat }),
-    min: 1,
-  });
-  const beatInput = useDraftInput({
-    value: beat,
-    onCommit: (value) => seekTo({ bar, beat: value }),
-    min: 1,
-    max: 4,
   });
 
   useWindowEvent("keydown", (event) => {
@@ -102,8 +86,6 @@ export function ScoreViewer() {
           : source;
       await runtime.load({ score: nextScore, layout });
       setScore(nextScore);
-      setBar(1);
-      setBeat(1);
     },
   });
 
@@ -120,18 +102,19 @@ export function ScoreViewer() {
     }
   }
 
-  function seekTo({
-    bar: nextBar,
-    beat: nextBeat,
-  }: {
-    bar: number;
-    beat: number;
-  }) {
-    setBar(nextBar);
-    setBeat(nextBeat);
-    runtime.seek(
-      ((Math.max(nextBar, 1) - 1) * 4 + (Math.max(nextBeat, 1) - 1)) / 4,
+  // TODO: Parse time signatures and score bounds for meter-aware seeking.
+  function promptForPosition() {
+    const value = window.prompt(
+      "Go to bar and beat",
+      formatBarBeat(runtimeState.bar, runtimeState.beat),
     );
+    const match = value?.match(/^(\d+)[|:](\d+)$/);
+    if (!match) {
+      return;
+    }
+    const bar = Math.max(Number(match[1]), 1);
+    const beat = Math.min(Math.max(Number(match[2]), 1), 4);
+    runtime.seek(((bar - 1) * 4 + (beat - 1)) / 4);
   }
 
   return (
@@ -163,11 +146,7 @@ export function ScoreViewer() {
         </Button>
         <Button
           disabled={!runtimeState.isReady}
-          onClick={() => {
-            runtime.restart();
-            setBar(1);
-            setBeat(1);
-          }}
+          onClick={() => runtime.restart()}
           title="Restart"
           aria-label="Restart"
           className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -177,24 +156,14 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
-        <div className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">Bar:</span>
-          <input
-            aria-label="Bar"
-            type="text"
-            inputMode="numeric"
-            {...barInput.props}
-            className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
-          />
-          <span className="text-muted-foreground">Beat:</span>
-          <input
-            aria-label="Beat"
-            type="text"
-            inputMode="numeric"
-            {...beatInput.props}
-            className="h-8 w-12 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
-          />
-        </div>
+        <Button
+          aria-label="Bar and beat"
+          disabled={!runtimeState.isReady}
+          onClick={promptForPosition}
+          className="h-8 px-2 font-mono text-sm hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+        </Button>
 
         <div className="h-5 w-px bg-border" />
 
@@ -346,4 +315,8 @@ export function ScoreViewer() {
       </section>
     </main>
   );
+}
+
+function formatBarBeat(bar: number, beat: number) {
+  return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
 }

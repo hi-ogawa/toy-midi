@@ -2,12 +2,16 @@ import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 
 type ScoreViewerRuntimeState = {
+  bar: number;
+  beat: number;
   isPlaying: boolean;
   isReady: boolean;
   tempo: number;
 };
 
 const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
+  bar: 1,
+  beat: 1,
   isPlaying: false,
   isReady: false,
   tempo: SCORE_VIEWER_SAMPLES[0].tempo,
@@ -81,6 +85,8 @@ export class ScoreViewerRuntime {
     this.#positions = buildCursorPositions(osmd);
     this.#pausedAt = 0;
     this.#setState({
+      bar: 1,
+      beat: 1,
       isReady: true,
       tempo: parseTempo(score.xml),
     });
@@ -189,6 +195,12 @@ export class ScoreViewerRuntime {
     this.#cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
     this.#cursor.style.height = `${previous.height}px`;
     this.#cursor.dataset.systemId = String(previous.systemId);
+    const totalBeats = Math.floor(scoreTime * 4);
+    const bar = Math.floor(totalBeats / 4) + 1;
+    const beat = (totalBeats % 4) + 1;
+    if (bar !== this.#state.bar || beat !== this.#state.beat) {
+      this.#setState({ bar, beat });
+    }
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
