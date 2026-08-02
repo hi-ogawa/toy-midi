@@ -66,10 +66,7 @@ export class ScoreViewerRuntime {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      if (!this.#updateCursor(scoreTime) && !paused && currentTime > 0) {
-        this.#clock.stop();
-        return;
-      }
+      this.#updateCursor(scoreTime);
       const isPlaying = !paused;
       if (isPlaying !== this.#state.isPlaying) {
         this.#setState({ isPlaying });
@@ -184,11 +181,14 @@ export class ScoreViewerRuntime {
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
-      return false;
+      return;
     }
     const last = this.#positions.at(-1)!;
     if (scoreTime >= last.time) {
-      return false;
+      this.#cursor.style.transform = `translate(${last.x}px, ${last.top}px)`;
+      this.#cursor.style.height = `${last.height}px`;
+      this.#cursor.dataset.systemId = String(last.systemId);
+      return;
     }
     let nextIndex = this.#positions.findIndex(
       (position) => position.time > scoreTime,
@@ -223,7 +223,6 @@ export class ScoreViewerRuntime {
     ) {
       this.#scroller.scrollTo({ top: Math.max(previous.top - 24, 0) });
     }
-    return true;
   }
 
   #setState(update: Partial<ScoreViewerRuntimeState>) {
@@ -343,11 +342,13 @@ class PlayheadClock {
     if (this.#snapshot.paused) {
       return;
     }
-    this.#commitCurrentTime();
+    const currentTime =
+      this.#snapshot.currentTime +
+      (performance.now() - this.#startedAt!) / 1000;
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#setSnapshot({ paused: true });
+    this.#setSnapshot({ currentTime, paused: true });
   }
 
   stop() {
@@ -372,14 +373,6 @@ class PlayheadClock {
     this.#setSnapshot({ currentTime });
     this.#frame = requestAnimationFrame(this.#tick);
   };
-
-  #commitCurrentTime() {
-    this.#setSnapshot({
-      currentTime:
-        this.#snapshot.currentTime +
-        (performance.now() - this.#startedAt!) / 1000,
-    });
-  }
 
   #setSnapshot(update: Partial<PlayheadSnapshot>) {
     this.#snapshot = { ...this.#snapshot, ...update };
