@@ -16,7 +16,7 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   const cursor = page.getByTestId("continuous-playback-cursor");
   await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
-  await expect(page.getByLabel("Measure width")).toHaveValue("1");
+  await expect(page.getByLabel("Score width")).toHaveValue("1110");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
   await page.getByRole("button", { name: "Play" }).click();
@@ -24,9 +24,9 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 
-  await page.getByLabel("Measure width").fill("0.75");
-  await page.getByLabel("Measure width").press("Enter");
-  await expect(page.getByLabel("Measure width")).toHaveValue("0.75");
+  await page.getByLabel("Score width").fill("800");
+  await page.getByLabel("Score width").press("Enter");
+  await expect(page.getByLabel("Score width")).toHaveValue("800");
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toHaveCount(2);

@@ -43,7 +43,7 @@ export function ScoreViewer() {
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
   const [scoreXml, setScoreXml] = useState<string>();
-  const [measureWidth, setMeasureWidth] = useState(1);
+  const [scoreWidth, setScoreWidth] = useState(1110);
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: changeTempo,
@@ -60,25 +60,16 @@ export function ScoreViewer() {
     min: 1,
     max: 4,
   });
-  const measureWidthInput = useDraftInput({
-    value: measureWidth,
-    onCommit: changeMeasureWidth,
-    min: 0.5,
-    max: 1.5,
-    parse: "float",
-    step: 0.05,
+  const scoreWidthInput = useDraftInput({
+    value: scoreWidth,
+    onCommit: changeScoreWidth,
+    min: 600,
+    max: 1600,
+    step: 10,
   });
 
   const loadMutation = useMutation({
-    mutationFn: async ({
-      measureWidth,
-      name,
-      xml,
-    }: {
-      measureWidth: number;
-      name: string;
-      xml: string;
-    }) => {
+    mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
       const container = containerRef.current;
       if (!container) {
         throw new Error("Score viewer is not ready");
@@ -101,7 +92,6 @@ export function ScoreViewer() {
         pageBackgroundColor: "#ffffff",
       });
       await osmd.load(xml);
-      osmd.Sheet.MeasureWidthFactor = measureWidth;
       osmd.render();
       return {
         name,
@@ -159,16 +149,14 @@ export function ScoreViewer() {
     setTempo(value);
   }
 
-  function changeMeasureWidth(value: number) {
-    if (!scoreName || !scoreXml || value === measureWidth) {
+  function changeScoreWidth(value: number) {
+    if (value === scoreWidth) {
       return;
     }
-    setMeasureWidth(value);
-    loadMutation.mutate({
-      measureWidth: value,
-      name: scoreName,
-      xml: scoreXml,
-    });
+    setScoreWidth(value);
+    if (scoreName && scoreXml) {
+      loadMutation.mutate({ name: scoreName, xml: scoreXml });
+    }
   }
 
   function seekTo({
@@ -320,13 +308,13 @@ export function ScoreViewer() {
         </label>
 
         <label className="flex items-center gap-1.5 text-sm">
-          <span className="text-muted-foreground">Width:</span>
+          <span className="text-muted-foreground">Score width:</span>
           <input
-            aria-label="Measure width"
+            aria-label="Score width"
             type="text"
-            inputMode="decimal"
-            {...measureWidthInput.props}
-            className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
+            inputMode="numeric"
+            {...scoreWidthInput.props}
+            className="h-8 w-16 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
           />
         </label>
 
@@ -362,7 +350,6 @@ export function ScoreViewer() {
             if (file) {
               void file.text().then((xml) =>
                 loadMutation.mutate({
-                  measureWidth,
                   name: file.name,
                   xml,
                 }),
@@ -383,7 +370,6 @@ export function ScoreViewer() {
                 key={sample.id}
                 onSelect={() =>
                   loadMutation.mutate({
-                    measureWidth,
                     name: sample.name,
                     xml: sample.xml,
                   })
@@ -415,7 +401,10 @@ export function ScoreViewer() {
             Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
         )}
-        <div className="relative mx-auto max-w-4xl bg-white px-4 shadow-xl">
+        <div
+          className="relative mx-auto bg-white px-4 shadow-xl"
+          style={{ width: scoreWidth }}
+        >
           <div
             ref={cursorRef}
             data-testid="continuous-playback-cursor"
