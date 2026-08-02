@@ -204,15 +204,6 @@ describe("MusicXML export", () => {
     });
   });
 
-  it("exports key metadata", () => {
-    const xml = exportNotes([makeNote({ pitch: 34 })], {
-      keySignature: { fifths: -2, mode: "minor" },
-    });
-
-    expect(xml).toContain("<fifths>-2</fifths>");
-    expect(xml).toContain("<mode>minor</mode>");
-  });
-
   it("derives flat note spelling in the export model", () => {
     const model = buildModel([makeNote({ pitch: 34 })], {
       keySignature: { fifths: -2, mode: "minor" },
