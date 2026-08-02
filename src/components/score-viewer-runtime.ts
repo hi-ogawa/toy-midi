@@ -237,7 +237,7 @@ export class ScoreViewerRuntime {
     const cursorBottom = cursorTop + currentAnchor.height;
     const viewportTop = this.#scroller.scrollTop;
     const viewportBottom = viewportTop + this.#scroller.clientHeight;
-    if (cursorTop < viewportTop || cursorBottom > viewportBottom) {
+    if (cursorTop < viewportTop || viewportBottom < cursorBottom) {
       this.#scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
     }
   }
