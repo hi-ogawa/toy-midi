@@ -120,6 +120,7 @@ test("seeks to the start of a clicked measure", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Cursor and wrapping");
 
+  // Click inside measure 3 and verify the transport snaps to its first beat.
   const renderer = page.getByTestId("score-viewer-renderer");
   const thirdMeasure = page.locator(
     '[data-testid="score-viewer-measure"][data-measure-index="2"]',
