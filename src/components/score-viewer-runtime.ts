@@ -361,6 +361,8 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
 }
 
+// OSMD does not render measure-level hit targets. Build transparent overlays
+// from its graphical measures so each target spans the full system height.
 function buildMeasureTargets(
   osmd: OpenSheetMusicDisplay,
   layer: HTMLDivElement,
