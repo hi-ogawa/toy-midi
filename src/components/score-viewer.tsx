@@ -38,7 +38,7 @@ export function ScoreViewer() {
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
   const [score, setScore] = useState<ScoreSource>();
-  const [renderMode, setRenderMode] = useState<ScoreLayout>("continuous");
+  const [layout, setLayout] = useState<ScoreLayout>("continuous");
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
@@ -94,14 +94,14 @@ export function ScoreViewer() {
     },
   });
 
-  function changeRenderMode(nextRenderMode: ScoreLayout) {
-    if (nextRenderMode === renderMode) {
+  function changeLayout(nextLayout: ScoreLayout) {
+    if (nextLayout === layout) {
       return;
     }
-    setRenderMode(nextRenderMode);
+    setLayout(nextLayout);
     if (score) {
       loadMutation.mutate({
-        layout: nextRenderMode,
+        layout: nextLayout,
         source: score,
       });
     }
@@ -126,7 +126,7 @@ export function ScoreViewer() {
       ref={rootRef}
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
-        renderMode === "paged" && "score-viewer-root-paged",
+        layout === "paged" && "score-viewer-root-paged",
       )}
     >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
@@ -212,9 +212,9 @@ export function ScoreViewer() {
           <span className="text-muted-foreground">Layout:</span>
           <select
             aria-label="Layout"
-            value={renderMode}
+            value={layout}
             onChange={(event) =>
-              changeRenderMode(event.currentTarget.value as ScoreLayout)
+              changeLayout(event.currentTarget.value as ScoreLayout)
             }
             className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
           >
@@ -227,9 +227,7 @@ export function ScoreViewer() {
           accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
           disabled={loadMutation.isPending}
           inputProps={{ "aria-label": "Open MusicXML" }}
-          onFile={(file) =>
-            loadMutation.mutate({ layout: renderMode, source: file })
-          }
+          onFile={(file) => loadMutation.mutate({ layout, source: file })}
           className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <FolderOpenIcon className="size-4" />
@@ -248,7 +246,7 @@ export function ScoreViewer() {
                 key={sample.id}
                 onSelect={() =>
                   loadMutation.mutate({
-                    layout: renderMode,
+                    layout,
                     source: { name: sample.name, xml: sample.xml },
                   })
                 }
@@ -301,7 +299,7 @@ export function ScoreViewer() {
         <div
           className={cn(
             "relative mx-auto",
-            renderMode === "continuous" ? "bg-white px-4 shadow-xl" : undefined,
+            layout === "continuous" ? "bg-white px-4 shadow-xl" : undefined,
           )}
           style={{ width: SCORE_LAYOUT_WIDTH }}
         >
