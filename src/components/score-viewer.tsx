@@ -30,6 +30,7 @@ export function ScoreViewer() {
         autoResize: true,
         autoGenerateMultipleRestMeasuresFromRestMeasures: false,
         backend: "svg",
+        drawMeasureNumbersOnlyAtSystemStart: true,
         drawPartNames: false,
         drawTitle: false,
         followCursor: true,
