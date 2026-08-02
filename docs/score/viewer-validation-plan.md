@@ -135,7 +135,6 @@ For each cover, load the corresponding Toy MIDI MusicXML export and quickly comp
 These remain part of the broader score presentation workflow but are not required to decide whether the current browser viewer can replace MuseScore for screen recording:
 
 - Offline silent tab-video rendering for use as the scrolling score layer in Kdenlive. The intended production path should extract static score viewport SVG or raster backgrounds from OSMD, export piecewise cursor geometry, apply the same cursor-containment viewport rule as interactive playback, composite frames at exact timestamps, and encode without real-time screen capture. Per-frame Playwright screenshots are only a correctness spike, not the production renderer.
-- Key-aware spelling and key signatures, which are tracked separately in issue #220.
 
 ## Out Of Scope
 

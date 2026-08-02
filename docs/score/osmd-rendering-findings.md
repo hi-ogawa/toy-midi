@@ -19,7 +19,7 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 ## Tracked Separately
 
 - **Playback cursor and system following.** OSMD's built-in cursor advances between score entries rather than interpolating continuously. Continuous cursor geometry and viewport following through wrapped systems are tracked in `playback-cursor-research.md` rather than prioritized as engraving work here. Following means keeping the active-system cursor visible, not enforcing an exact visible system count or fixed scroll increment.
-- **Key signature and accidental spelling.** Toy MIDI exports sharp-only chromatic spelling and a placeholder C-major key signature. Renderer work is blocked on adding project key data and key-aware MusicXML spelling, which is tracked in issue #220.
+- ~~**Key signature and accidental spelling.**~~ Resolved by #222. Toy MIDI now persists project key signatures and exports key-aware MusicXML pitch spelling; the viewer renders that exported metadata through OSMD.
 
 ## Current Prototype Assessment
 

@@ -1,5 +1,6 @@
 import type { Note } from "../types";
 import { exportMusicXml } from "./musicxml-export";
+import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
@@ -106,6 +107,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     xml: exportSample({
       notes: createSequentialNotes({ count: 96, duration: 0.5 }),
       tempo: 200,
+      keySignature: { fifths: -3, mode: "minor" },
     }),
   },
 ];
@@ -126,8 +128,17 @@ function createSequentialNotes({
   );
 }
 
-function exportSample({ notes, tempo }: { notes: Note[]; tempo: number }) {
+function exportSample({
+  notes,
+  tempo,
+  keySignature = { fifths: 0, mode: "major" },
+}: {
+  notes: Note[];
+  tempo: number;
+  keySignature?: KeySignature;
+}) {
   return exportMusicXml({
+    keySignature,
     notes,
     tempo,
     openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
