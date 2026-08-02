@@ -198,6 +198,8 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
+        <div className="flex-1" />
+
         <span
           data-testid="score-name"
           title={score?.name}
@@ -205,8 +207,6 @@ export function ScoreViewer() {
         >
           {score?.name ?? "No score loaded"}
         </span>
-
-        <div className="flex-1" />
 
         <label className="flex items-center gap-1.5 text-sm">
           <span className="text-muted-foreground">Layout:</span>
