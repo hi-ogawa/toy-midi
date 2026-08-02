@@ -9,7 +9,7 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 ## Findings
 
 - ~~**Beaming.** MuseScore groups eighth and sixteenth notes with beams, while the current OSMD rendering shows many of the same notes with individual flags.~~ Resolved with OSMD `autoBeam`; explicit MusicXML beam data is unnecessary for the viewer.
-- **System density and wrapping.** OSMD uses wider horizontal spacing and fits fewer measures into each system than MuseScore. The current result is acceptable. The recording viewport usually shows roughly two rows, but this is not an invariant because system height depends on notation content.
+- **System density and wrapping.** One system is one wrapped horizontal span containing the standard staff above the TAB staff. OSMD uses wider horizontal spacing and fits fewer measures into each system than MuseScore. The current result is acceptable. At recent recording dimensions, the viewport usually shows about two wrapped systems, but visible system count is not a layout invariant because it depends on viewport dimensions, scale, and notation content.
 - **Section labels.** The MuseScore reference includes boxed rehearsal marks such as A, B, and C. Toy MIDI locators are not currently exported as score directions or rendered as section labels.
 - **TAB rhythm decoration.** OSMD's TAB staff shows fret numbers and ties but omits much of MuseScore's TAB-side rhythmic decoration, including stems, beams, and rests. This is low priority because the linked standard staff already carries the rhythmic information.
 - **General engraving polish.** OSMD uses a more prominent brace and connected barlines. MuseScore also has more compact ties, refined stem placement, denser vertical alignment, and stronger collision handling. These differences can remain deferred unless a concrete passage becomes ambiguous or visually broken.
@@ -18,7 +18,7 @@ The current rendering is sufficient for cover recording. The remaining prioritie
 
 ## Tracked Separately
 
-- **Playback cursor and system following.** OSMD's built-in cursor advances between score entries rather than interpolating continuously. Continuous cursor geometry and automatic progression through wrapped systems are tracked in `playback-cursor-research.md` rather than prioritized as engraving work here.
+- **Playback cursor and system following.** OSMD's built-in cursor advances between score entries rather than interpolating continuously. Continuous cursor geometry and viewport following through wrapped systems are tracked in `playback-cursor-research.md` rather than prioritized as engraving work here. Following means keeping the active-system cursor visible, not enforcing an exact visible system count or fixed scroll increment.
 - **Key signature and accidental spelling.** Toy MIDI exports sharp-only chromatic spelling and a placeholder C-major key signature. Renderer work is blocked on adding project key data and key-aware MusicXML spelling, which is tracked in issue #220.
 
 ## Current Prototype Assessment

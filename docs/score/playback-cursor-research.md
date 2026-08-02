@@ -6,6 +6,8 @@ The standalone score viewer prototype uses OpenSheetMusicDisplay (OSMD) to rende
 
 This note records the relevant MuseScore implementation and the resulting direction for the browser viewer. MuseScore source was inspected from the local `MuseScore` checkout. The implementation is GPL-3.0, so this research informs behavior and architecture rather than supplying code to copy.
 
+In this note, a **system** is one wrapped horizontal span containing the standard notation staff above the TAB staff. Multiple systems are stacked vertically when the score wraps. The viewport may show about two systems for the current cover-video composition, but following is based on cursor visibility rather than a fixed system count.
+
 ## MuseScore Cursor Geometry
 
 MuseScore resolves the playback cursor rectangle from the current score tick in `src/notationscene/qml/MuseScore/NotationScene/playbackcursor.cpp`.
@@ -75,7 +77,7 @@ At each animation frame:
 2. Find the surrounding visible score positions.
 3. Interpolate x when both positions belong to the same system.
 4. Render a thin blue absolutely positioned rectangle from `systemTop` to `systemBottom`.
-5. At a system boundary, move directly to the next system instead of interpolating diagonally between rows.
+5. At a system boundary, move directly to the next wrapped system instead of interpolating diagonally between their vertical positions.
 6. Keep the viewport fixed while the complete cursor rectangle is visible. At a system boundary, place the cursor on the new system first, then instantly scroll only if that rectangle is outside the viewport.
 
 Measure-ending barline positions are required as interpolation endpoints because a measure's final note or rest may end before the next system begins. Tempo changes and repeats should remain part of the score-time conversion rather than the geometry interpolation.

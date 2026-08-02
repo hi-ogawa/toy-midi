@@ -9,6 +9,17 @@ Related findings:
 - `osmd-rendering-findings.md` covers current engraving differences and accepted compromises.
 - `playback-cursor-research.md` covers MuseScore's cursor algorithm and the browser implementation direction.
 
+## Terminology And Layout Intent
+
+- **Staff:** one notation staff. This viewer renders one standard bass-clef staff and one TAB staff.
+- **System:** one wrapped horizontal span containing both staves, with standard notation above TAB. A system is the complete visual unit that the playback cursor spans.
+- **Wrapped systems:** the vertical sequence produced when the score is wider than the available content width. Avoid using “row” as a separate layout concept; it means a wrapped system here.
+- **Viewport:** the visible scroll container used for screen recording or interactive playback.
+- **Visible system count:** the number of complete or partial wrapped systems that happen to fit in the viewport. Recent cover compositions usually show about two systems, but this is not a fixed renderer contract. It changes with viewport height, score width, scale, and notation content.
+- **Following:** keep the viewport stationary while the complete active-system cursor is visible. When it leaves the viewport, instantly scroll enough to reveal that cursor. Following does not prescribe one-system increments or an exact number of visible systems.
+
+The current cover-video composition uses a wide viewport sized by eye so approximately two wrapped systems are visible. Other capture dimensions may show a different count without changing score layout or playback behavior.
+
 ## Current Prototype Baseline
 
 - [x] Render Toy MIDI MusicXML with linked standard notation and bass TAB.
@@ -28,18 +39,17 @@ Related findings:
 ### System Transitions And Following
 
 - [x] Make the cursor reach the end barline before moving to the next system by adding a synthetic geometry point at each system's final timestamp and right border.
-- [x] Confirm the corrected system transition jumps directly to the next row without diagonal interpolation.
+- [x] Confirm the corrected system transition jumps directly to the next wrapped system without diagonal interpolation.
 - [ ] Confirm the cursor height and vertical position update to the new system.
 - [ ] Update the cursor to the new system before deciding whether to scroll so it remains visible at every system boundary.
-- [ ] Keep the viewport stationary while the complete cursor rectangle is visible, including when the active system is the bottom visible row.
+- [ ] Keep the viewport stationary while the complete cursor rectangle is visible, including when the active system is the lowest visible system.
 - [ ] When the complete cursor rectangle is outside the viewport, instantly scroll so the active system starts near the top-left content origin.
-- [ ] Allow the viewport to show roughly two systems rather than forcing an exact row count; system heights vary with notation content.
-- [ ] Allow the final viewport to contain one system when the wrapped system count is odd.
+- [ ] Confirm following works with different viewport heights and does not depend on exactly two visible systems.
 - [ ] Confirm following does not jitter or issue a scroll operation on every animation frame.
 - [ ] Confirm pause and resume preserve the current system and cursor position after scrolling.
 - [ ] Confirm restart returns the cursor and viewport to the beginning.
 
-Pass criterion: an uninterrupted debug playback progresses through at least three wrapped systems with stable cursor movement and MuseScore-like viewport containment. The cursor is fully visible at every frame, and the viewport changes only when required to reveal the next system.
+Pass criterion: uninterrupted sample playback progresses through at least three wrapped systems with stable cursor movement and MuseScore-like viewport containment. The cursor remains fully visible, and the viewport changes only when required to reveal the active system.
 
 ### Recording Frame
 
@@ -49,7 +59,7 @@ Exact capture dimensions are not a contract because the MuseScore window has bee
 - `1244x602` (`2.07:1`)
 - `1394x652` (`2.14:1`)
 
-Use approximately `2:1` as the default. Keep width and height configurable for screen capture and offline silent video export.
+Use approximately `2:1` as the default. Keep width and height configurable for screen capture and offline silent video export. The viewport often contains about two wrapped systems at these dimensions, but the target is the overall composition rather than an exact system count.
 
 ### Representative Rhythm Geometry
 
