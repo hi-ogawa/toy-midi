@@ -56,7 +56,7 @@ export class ScoreViewerRuntime {
   //   <scroller>
   //     <sheet>
   //       <cursor />
-  //       <measureLayer />
+  //       <measureLayers />
   //       <container />
   //     </sheet>
   //   </scroller>
@@ -64,7 +64,7 @@ export class ScoreViewerRuntime {
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
-  #measureLayer!: HTMLDivElement;
+  #measureLayers!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
 
@@ -117,16 +117,15 @@ export class ScoreViewerRuntime {
     this.#cursor.className =
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
-    this.#measureLayer = document.createElement("div");
-    this.#measureLayer.className = "absolute inset-y-0 left-4 z-[5]";
-    this.#measureLayer.style.width = `${SCORE_LAYOUT_WIDTH}px`;
-    this.#measureLayer.addEventListener("click", this.#handleMeasureClick);
+    this.#measureLayers = document.createElement("div");
+    this.#measureLayers.className = "absolute inset-0 z-[5]";
+    this.#measureLayers.addEventListener("click", this.#handleMeasureClick);
 
     this.#container = document.createElement("div");
     this.#container.dataset.testid = "score-viewer-renderer";
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
-    this.#sheet.append(this.#cursor, this.#measureLayer, this.#container);
+    this.#sheet.append(this.#cursor, this.#measureLayers, this.#container);
     this.#scroller.append(this.#sheet);
     this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
@@ -155,12 +154,8 @@ export class ScoreViewerRuntime {
       layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
-    this.#measureLayer.className =
-      layout === "continuous"
-        ? "absolute inset-y-0 left-4 z-[5]"
-        : "absolute inset-y-0 left-0 z-[5]";
     this.#positions = buildCursorPositions(this.#osmd);
-    buildMeasureTargets(this.#osmd, this.#measureLayer);
+    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -201,7 +196,7 @@ export class ScoreViewerRuntime {
 
   dispose() {
     this.#clock.stop();
-    this.#measureLayer.removeEventListener("click", this.#handleMeasureClick);
+    this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
       this.#root.replaceChildren();
@@ -370,10 +365,25 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
 // from its graphical measures so each target spans the full system height.
 function buildMeasureTargets(
   osmd: OpenSheetMusicDisplay,
-  layer: HTMLDivElement,
+  layers: HTMLDivElement,
+  container: HTMLDivElement,
 ) {
-  const targets: HTMLDivElement[] = [];
-  for (const page of osmd.GraphicSheet.MusicPages) {
+  const sheetBounds = layers.parentElement!.getBoundingClientRect();
+  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageLayers: HTMLDivElement[] = [];
+  for (const [pageIndex, page] of osmd.GraphicSheet.MusicPages.entries()) {
+    const pageElement = pageElements[pageIndex];
+    if (!pageElement) {
+      continue;
+    }
+    const pageBounds = pageElement.getBoundingClientRect();
+    const pageLayer = document.createElement("div");
+    pageLayer.className = "absolute";
+    pageLayer.style.left = `${pageBounds.left - sheetBounds.left}px`;
+    pageLayer.style.top = `${pageBounds.top - sheetBounds.top}px`;
+    pageLayer.style.width = `${pageBounds.width}px`;
+    pageLayer.style.height = `${pageBounds.height}px`;
+
     for (const system of page.MusicSystems) {
       for (const measures of system.GraphicalMeasures) {
         const measure = measures.find((candidate) => candidate?.isVisible());
@@ -383,7 +393,6 @@ function buildMeasureTargets(
 
         const topStaff = system.StaffLines[0];
         const bottomStaff = system.StaffLines.at(-1)!;
-        const pageTop = page.PositionAndShape.AbsolutePosition.y * 10;
         const target = document.createElement("div");
         target.dataset.testid = "score-viewer-measure";
         target.dataset.measureIndex = String(
@@ -394,15 +403,25 @@ function buildMeasureTargets(
         );
         target.className =
           "absolute cursor-pointer bg-transparent hover:bg-blue-500/10";
-        target.style.left = `${measure.PositionAndShape.AbsolutePosition.x * 10}px`;
-        target.style.top = `${pageTop + topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
-        target.style.width = `${measure.PositionAndShape.Size.width * 10}px`;
+        const measureIndex = system.GraphicalMeasures.indexOf(measures);
+        const nextMeasure = system.GraphicalMeasures[measureIndex + 1]?.find(
+          (candidate) => candidate?.isVisible(),
+        );
+        const left = measure.PositionAndShape.AbsolutePosition.x * 10;
+        const right =
+          nextMeasure?.PositionAndShape.AbsolutePosition.x !== undefined
+            ? nextMeasure.PositionAndShape.AbsolutePosition.x * 10
+            : system.GetRightBorderAbsoluteXPosition() * 10;
+        target.style.left = `${left}px`;
+        target.style.top = `${topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20}px`;
+        target.style.width = `${right - left}px`;
         target.style.height = `${(bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.StaffHeight - topStaff.PositionAndShape.AbsolutePosition.y) * 10 + 40}px`;
-        targets.push(target);
+        pageLayer.append(target);
       }
     }
+    pageLayers.push(pageLayer);
   }
-  layer.replaceChildren(...targets);
+  layers.replaceChildren(...pageLayers);
 }
 
 // Temporary score-viewer transport matching the snapshot/subscription shape

@@ -158,6 +158,7 @@ test("switches score layout", async ({ page }) => {
       elements.slice(0, 4).map((element) => ({
         index: element.getAttribute("data-measure-index"),
         left: element.getBoundingClientRect().left,
+        right: element.getBoundingClientRect().right,
       })),
     );
   expect(firstSystemMeasures.map(({ index }) => index)).toEqual([
@@ -169,6 +170,9 @@ test("switches score layout", async ({ page }) => {
   expect(firstSystemMeasures[1].left).toBeGreaterThan(
     firstSystemMeasures[0].left,
   );
+  expect(firstSystemMeasures[0].right).toBeCloseTo(firstSystemMeasures[1].left);
+  await secondPageMeasure.click({ position: { x: 20, y: 20 } });
+  await expect(page.getByText("17|01")).toBeVisible();
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
