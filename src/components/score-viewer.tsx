@@ -77,20 +77,17 @@ export function ScoreViewer() {
 
   const loadMutation = useMutation({
     mutationFn: async ({
-      renderMode: nextRenderMode,
+      layout,
       source,
     }: {
-      renderMode: ScoreLayout;
+      layout: ScoreLayout;
       source: File | ScoreSource;
     }) => {
       const nextScore =
         source instanceof File
           ? { name: source.name, xml: await source.text() }
           : source;
-      await runtime.load({ score: nextScore, layout: nextRenderMode });
-      return nextScore;
-    },
-    onSuccess: (nextScore) => {
+      await runtime.load({ score: nextScore, layout });
       setScore(nextScore);
       setBar(1);
       setBeat(1);
@@ -104,7 +101,7 @@ export function ScoreViewer() {
     setRenderMode(nextRenderMode);
     if (score) {
       loadMutation.mutate({
-        renderMode: nextRenderMode,
+        layout: nextRenderMode,
         source: score,
       });
     }
@@ -230,7 +227,9 @@ export function ScoreViewer() {
           accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
           disabled={loadMutation.isPending}
           inputProps={{ "aria-label": "Open MusicXML" }}
-          onFile={(file) => loadMutation.mutate({ renderMode, source: file })}
+          onFile={(file) =>
+            loadMutation.mutate({ layout: renderMode, source: file })
+          }
           className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <FolderOpenIcon className="size-4" />
@@ -249,7 +248,7 @@ export function ScoreViewer() {
                 key={sample.id}
                 onSelect={() =>
                   loadMutation.mutate({
-                    renderMode,
+                    layout: renderMode,
                     source: { name: sample.name, xml: sample.xml },
                   })
                 }
