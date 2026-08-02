@@ -20,6 +20,35 @@ Related findings:
 
 The current cover-video composition uses a wide viewport sized by eye so approximately two wrapped systems are visible. Other capture dimensions may show a different count without changing score layout or playback behavior.
 
+One system:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Standard notation staff                                      │
+│ 𝄢  ♩   ♪ ♪   ♩       │ ♩   ♩   ♪ ♪                       │
+│                                                              │
+│ TAB staff                                                    │
+│ G|-------------------|---------------------------------------│
+│ D|------5--7---------|---------------------------------------│
+│ A|--5----------------|--3---5--------------------------------│
+│ E|-------------------|---------------------------------------│
+└──────────────────────────────────────────────────────────────┘
+```
+
+A typical recording viewport may contain approximately two wrapped systems:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ System 1                                                     │
+│ Standard notation                                            │
+│ TAB                                                          │
+├──────────────────────────────────────────────────────────────┤
+│ System 2                                                     │
+│ Standard notation                     │ playback cursor       │
+│ TAB                                   │                       │
+└──────────────────────────────────────────────────────────────┘
+```
+
 ## Current Prototype Baseline
 
 - [x] Render Toy MIDI MusicXML with linked standard notation and bass TAB.
