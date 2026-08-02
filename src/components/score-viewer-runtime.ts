@@ -58,8 +58,7 @@ export class ScoreViewerRuntime {
 
   #positions: CursorPosition[] = [];
   #frame?: number;
-  #startedAt?: number;
-  #pausedAt = 0;
+  readonly #clock = new PlayheadClock();
 
   #state = INITIAL_RUNTIME_STATE;
   readonly #listeners = new Set<() => void>();
@@ -123,7 +122,7 @@ export class ScoreViewerRuntime {
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd);
-    this.#pausedAt = 0;
+    this.#clock.reset();
     this.#setState({
       bar: 1,
       beat: 1,
@@ -134,22 +133,21 @@ export class ScoreViewerRuntime {
   }
 
   togglePlayback() {
-    if (this.#state.isPlaying) {
-      this.#pausedAt = this.#getCurrentScoreTime();
+    if (!this.#clock.paused) {
       this.#stop();
       return;
     }
     if (!this.#state.isReady) {
       return;
     }
-    this.#startedAt = performance.now();
+    this.#clock.play();
     this.#setState({ isPlaying: true });
     this.#frame = requestAnimationFrame(this.#advance);
   }
 
   restart() {
     this.#stop();
-    this.#pausedAt = 0;
+    this.#clock.reset();
     this.#updateCursor(0);
     this.#scroller.scrollTo({ top: 0 });
   }
@@ -163,10 +161,7 @@ export class ScoreViewerRuntime {
   }
 
   seek(scoreTime: number) {
-    this.#pausedAt = scoreTime;
-    if (this.#state.isPlaying) {
-      this.#startedAt = performance.now();
-    }
+    this.#clock.currentTime = scoreTime / this.#scoreTimePerSecond;
     this.#updateCursor(scoreTime);
   }
 
@@ -181,31 +176,22 @@ export class ScoreViewerRuntime {
   #stop() {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
-    this.#startedAt = undefined;
+    this.#clock.pause();
     this.#setState({ isPlaying: false });
   }
 
-  #getCurrentScoreTime() {
-    if (this.#startedAt === undefined) {
-      return this.#pausedAt;
-    }
-    return (
-      this.#pausedAt +
-      ((performance.now() - this.#startedAt) / 1000) *
-        (this.#state.tempo / 60 / 4)
-    );
+  get #scoreTimePerSecond() {
+    return this.#state.tempo / 60 / 4;
   }
 
-  #advance = (now: number) => {
-    if (this.#startedAt === undefined) {
+  #advance = () => {
+    if (this.#clock.paused) {
       return;
     }
-    const scoreTime =
-      this.#pausedAt +
-      ((now - this.#startedAt) / 1000) * (this.#state.tempo / 60 / 4);
+    const scoreTime = this.#clock.currentTime * this.#scoreTimePerSecond;
     if (!this.#updateCursor(scoreTime)) {
-      this.#pausedAt = 0;
       this.#stop();
+      this.#clock.reset();
       return;
     }
     this.#frame = requestAnimationFrame(this.#advance);
@@ -328,4 +314,40 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
   }
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
+}
+
+class PlayheadClock {
+  #startedAt?: number;
+  #currentTime = 0;
+
+  get currentTime() {
+    return this.#startedAt === undefined
+      ? this.#currentTime
+      : this.#currentTime + (performance.now() - this.#startedAt) / 1000;
+  }
+
+  set currentTime(currentTime: number) {
+    this.#currentTime = currentTime;
+    if (this.#startedAt !== undefined) {
+      this.#startedAt = performance.now();
+    }
+  }
+
+  get paused() {
+    return this.#startedAt === undefined;
+  }
+
+  play() {
+    this.#startedAt ??= performance.now();
+  }
+
+  pause() {
+    this.#currentTime = this.currentTime;
+    this.#startedAt = undefined;
+  }
+
+  reset() {
+    this.#startedAt = undefined;
+    this.#currentTime = 0;
+  }
 }
