@@ -78,18 +78,21 @@ Use these completed covers as practical comparisons because together they exerci
 
 For each cover, load the corresponding Toy MIDI MusicXML export and quickly compare score/TAB content, system layout, cursor progression, and recording readability with the linked MuseScore score and video. Reduce any failure to a concrete fixture or rendering bug.
 
-## Deferred Work
+## In-Scope Follow-Ups
 
-Do not expand the prototype for these cases until a real exported cover requires them:
+These remain part of the broader score presentation workflow but are not required to decide whether the current browser viewer can replace MuseScore for screen recording:
+
+- Direct video rendering or export.
+- General instruments and staff configurations beyond the current bass score/TAB pair.
+- Key-aware spelling and key signatures, which are tracked separately in issue #220.
+
+## Out Of Scope
 
 - Tempo changes and a general tempo map.
 - Repeats, jumps, and alternate endings.
 - Audio playback or synchronization with Toy MIDI's transport.
-- Direct video rendering or export.
 - Editing notation in the score viewer.
 - MuseScore-equivalent TAB rhythm decoration.
-- General instruments or arbitrary staff configurations.
-- Key-aware spelling and key signatures, which are tracked separately in issue #220.
 
 ## Decision Outcomes
 
