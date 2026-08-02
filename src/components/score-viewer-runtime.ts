@@ -317,6 +317,9 @@ function buildCursorPositions(
   // OSMD exposes entry geometry, so add each system's final timestamp and
   // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
+  // Each paged backend reports page-local score geometry. Match graphical
+  // pages to their rendered DOM pages to convert cursor y positions to the
+  // shared container coordinate space.
   const containerBounds = container.getBoundingClientRect();
   const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
   const pageOffsets = new Map(
