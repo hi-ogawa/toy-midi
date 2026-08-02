@@ -460,10 +460,17 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   // its one-pixel-high bitmap renders as a horizontal mark in the SVG backend.
   // Keep OSMD for score geometry and render an independent browser overlay.
   //
-  // MuseScore interpolates between chord/rest positions and the ending
-  // barline. OSMD exposes entry geometry, so add each system's final timestamp
-  // and right border to prevent a freeze before wrapping.
-  // Reference: MuseScore playbackcursor.cpp::resolveCursorRectByTick.
+  // MuseScore's playbackcursor.cpp::resolveCursorRectByTick algorithm:
+  // 1. Find the measure containing the playback tick and its system.
+  // 2. Walk visible chord/rest segments in that measure.
+  // 3. Read each segment's tick and canvas x-position.
+  // 4. Use the next visible chord/rest segment as the interval endpoint.
+  // 5. For the final segment, use the measure end tick and end-barline x.
+  // 6. Interpolate within the interval:
+  //      x = x1 + (x2 - x1) * (tick - t1) / (t2 - t1)
+  //
+  // OSMD exposes entry geometry, so add each system's final timestamp and
+  // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
   const systems = osmd.GraphicSheet.MusicPages.flatMap(
     (page) => page.MusicSystems,
