@@ -11,6 +11,12 @@ export type SpelledPitch = {
   octave: number;
 };
 
+type SpelledPitchClass = {
+  pitchClass: number;
+  step: NoteLetter;
+  alter: number;
+};
+
 export const KEY_SIGNATURES: (KeySignature & { label: string })[] = [
   { fifths: -7, mode: "major", label: "C-flat major" },
   { fifths: -6, mode: "major", label: "G-flat major" },
@@ -97,24 +103,12 @@ export function spellMidiPitch({
   pitch: number;
   keySignature: KeySignature;
 }): SpelledPitch {
-  // Build the seven scale-tone spellings from the key signature first. Example:
-  //   Eb minor = 6 flats -> take { B, E, A, D, G, C } from flat order
-  //   MIDI pitch class 11 matches Cb because (C=0) + flat(-1) wraps to 11
-  const accidentalOrder =
-    keySignature.fifths < 0 ? FLAT_ACCIDENTAL_ORDER : SHARP_ACCIDENTAL_ORDER;
-  const keyAlter = Math.sign(keySignature.fifths);
-  const alteredSteps = new Set(
-    accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
-  );
   const pitchClass = pitch % 12;
-  for (const step of Object.keys(
-    NATURAL_PITCH_CLASS_BY_LETTER,
-  ) as NoteLetter[]) {
-    const naturalPitchClass = NATURAL_PITCH_CLASS_BY_LETTER[step];
-    const alter = alteredSteps.has(step) ? keyAlter : 0;
-    if ((naturalPitchClass + alter + 12) % 12 === pitchClass) {
-      return toSpelledPitch({ pitch, step, alter });
-    }
+  const diatonicPitch = getDiatonicPitchClasses(keySignature).find(
+    (candidate) => candidate.pitchClass === pitchClass,
+  );
+  if (diatonicPitch) {
+    return toSpelledPitch({ pitch, ...diatonicPitch });
   }
 
   // Chromatic fallback:
@@ -134,8 +128,33 @@ export function spellMidiPitch({
     keySignature.fifths < 0
       ? FLAT_CHROMATIC_SPELLINGS
       : SHARP_CHROMATIC_SPELLINGS;
-  const [step, alter] = chromaticSpellings[pitch % 12];
+  const [step, alter] = chromaticSpellings[pitchClass];
   return toSpelledPitch({ pitch, step, alter });
+}
+
+function getDiatonicPitchClasses(
+  keySignature: KeySignature,
+): SpelledPitchClass[] {
+  // Build the seven scale-tone spellings from the key signature. Example:
+  //   Eb minor = 6 flats -> take { B, E, A, D, G, C } from flat order
+  //   C natural is 0; applying its flat gives (0 - 1 + 12) % 12 = 11 (Cb)
+  const accidentalOrder =
+    keySignature.fifths < 0 ? FLAT_ACCIDENTAL_ORDER : SHARP_ACCIDENTAL_ORDER;
+  const keyAlter = Math.sign(keySignature.fifths);
+  const alteredSteps = new Set(
+    accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
+  );
+
+  return (Object.keys(NATURAL_PITCH_CLASS_BY_LETTER) as NoteLetter[]).map(
+    (step) => {
+      const alter = alteredSteps.has(step) ? keyAlter : 0;
+      return {
+        step,
+        alter,
+        pitchClass: (NATURAL_PITCH_CLASS_BY_LETTER[step] + alter + 12) % 12,
+      };
+    },
+  );
 }
 
 export function spellChromaticPitch(pitch: number): SpelledPitch {
