@@ -1,4 +1,5 @@
 import { exportMusicXml } from "./musicxml-export";
+import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
   id: string;
@@ -8,7 +9,6 @@ export type ScoreViewerSample = {
   xml: string;
 };
 
-const OPEN_STRINGS = [43, 38, 33, 28] as const;
 const SAMPLE_PITCHES = [40, 43, 45, 47, 48, 47, 45, 43];
 
 export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
@@ -25,7 +25,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         duration: 0.5,
         velocity: 100,
       })),
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 60,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
@@ -71,7 +71,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
           velocity: 100,
         },
       ],
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 90,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
@@ -89,7 +89,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         { id: "tie-3", pitch: 47, start: 7.5, duration: 2.5, velocity: 100 },
         { id: "tie-4", pitch: 48, start: 10, duration: 2, velocity: 100 },
       ],
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 80,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
@@ -124,7 +124,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         { id: "tab-6", pitch: 38, start: 6, duration: 1, velocity: 100 },
         { id: "tab-7", pitch: 43, start: 7, duration: 1, velocity: 100 },
       ],
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 70,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
@@ -142,7 +142,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         duration: 0.25,
         velocity: 100,
       })),
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 110,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
@@ -160,7 +160,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         duration: 0.5,
         velocity: 100,
       })),
-      openStringPitches: OPEN_STRINGS,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 200,
       timeSignature: { numerator: 4, denominator: 4 },
     }),
