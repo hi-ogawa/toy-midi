@@ -97,7 +97,6 @@ export function ScoreViewer() {
     }
   }
 
-  // TODO: Parse time signatures and score bounds for meter-aware seeking.
   function promptForPosition() {
     const value = window.prompt(
       "Go to bar and beat",
@@ -108,8 +107,8 @@ export function ScoreViewer() {
       return;
     }
     const bar = Math.max(Number(match[1]), 1);
-    const beat = Math.min(Math.max(Number(match[2]), 1), 4);
-    runtime.seek(((bar - 1) * 4 + (beat - 1)) / 4);
+    const beat = Math.max(Number(match[2]), 1);
+    runtime.seekToBarBeat({ bar, beat });
   }
 
   return (

@@ -104,6 +104,24 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await expect.poll(() => cursor.getAttribute("data-system-id")).toBe("1");
 });
 
+test("uses MusicXML time signatures for seeking", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await page.getByLabel("Upload MusicXML").setInputFiles({
+    name: "mixed-meter.musicxml",
+    mimeType: "application/vnd.recordare.musicxml+xml",
+    buffer: Buffer.from(mixedMeterMusicXml),
+  });
+
+  const seekButton = page.getByRole("button", { name: "Seek" });
+  page.once("dialog", (dialog) => dialog.accept("2:4"));
+  await seekButton.click();
+  await expect(page.getByText("02|04")).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept("2:8"));
+  await seekButton.click();
+  await expect(page.getByText("02|06")).toBeVisible();
+});
+
 test("switches between generated score samples", async ({ page }) => {
   await page.goto("/score-viewer");
 
@@ -136,3 +154,23 @@ async function loadSample(page: Page, name: string) {
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
 }
+
+const mixedMeterMusicXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name>Music</part-name></score-part></part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>2</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>3</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note><rest/><duration>6</duration><type>half</type><dot/></note>
+    </measure>
+    <measure number="2">
+      <attributes><time><beats>6</beats><beat-type>8</beat-type></time></attributes>
+      <note><rest/><duration>6</duration><type>half</type><dot/></note>
+    </measure>
+  </part>
+</score-partwise>`;

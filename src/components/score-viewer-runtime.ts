@@ -44,6 +44,12 @@ type CursorPosition = {
   systemId: number;
 };
 
+type ScoreMeasure = {
+  start: number;
+  numerator: number;
+  denominator: number;
+};
+
 // OSMD reads its layout width from the container's offsetWidth. This value was
 // calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
 // which is an application-specific scale rather than a physical CSS pixel size.
@@ -69,6 +75,7 @@ export class ScoreViewerRuntime {
   #osmd!: OpenSheetMusicDisplay;
 
   #positions: CursorPosition[] = [];
+  #measures: ScoreMeasure[] = [];
   #state = INITIAL_RUNTIME_STATE;
   readonly #listeners = new Set<() => void>();
 
@@ -78,7 +85,7 @@ export class ScoreViewerRuntime {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#measures);
       if (bar !== this.#state.bar || beat !== this.#state.beat) {
         this.#setState({ bar, beat });
       }
@@ -149,6 +156,7 @@ export class ScoreViewerRuntime {
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd);
+    this.#measures = parseMeasures(score.xml);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -183,7 +191,8 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
-  seek(scoreTime: number) {
+  seekToBarBeat({ bar, beat }: { bar: number; beat: number }) {
+    const scoreTime = barBeatToScoreTime({ bar, beat }, this.#measures);
     this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
   }
 
@@ -258,12 +267,96 @@ function scoreTimeToSeconds(scoreTime: number, tempo: number) {
   return scoreTime / (tempo / 60 / 4);
 }
 
-function scoreTimeToBarBeat(scoreTime: number) {
-  const totalBeats = Math.floor(scoreTime * 4);
+function scoreTimeToBarBeat(scoreTime: number, measures: ScoreMeasure[]) {
+  const measureIndex = Math.max(
+    measures.findLastIndex((measure) => measure.start <= scoreTime),
+    0,
+  );
+  const measure = measures[measureIndex] ?? DEFAULT_MEASURE;
   return {
-    bar: Math.floor(totalBeats / 4) + 1,
-    beat: (totalBeats % 4) + 1,
+    bar: measureIndex + 1,
+    beat: Math.floor((scoreTime - measure.start) * measure.denominator) + 1,
   };
+}
+
+function barBeatToScoreTime(
+  { bar, beat }: { bar: number; beat: number },
+  measures: ScoreMeasure[],
+) {
+  const measure = measures[Math.min(Math.max(bar, 1), measures.length) - 1];
+  if (!measure) {
+    return 0;
+  }
+  const clampedBeat = Math.min(Math.max(beat, 1), measure.numerator);
+  return measure.start + (clampedBeat - 1) / measure.denominator;
+}
+
+const DEFAULT_MEASURE: ScoreMeasure = {
+  start: 0,
+  numerator: 4,
+  denominator: 4,
+};
+
+function parseMeasures(xml: string): ScoreMeasure[] {
+  const document = new DOMParser().parseFromString(xml, "application/xml");
+  const measureElements = document.querySelectorAll(
+    "part:first-of-type > measure",
+  );
+  const measures: ScoreMeasure[] = [];
+  let start = 0;
+  let numerator = DEFAULT_MEASURE.numerator;
+  let denominator = DEFAULT_MEASURE.denominator;
+  let divisions = 1;
+
+  for (const measureElement of measureElements) {
+    const parsedDivisions = Number(
+      measureElement.querySelector(":scope > attributes > divisions")
+        ?.textContent,
+    );
+    if (Number.isFinite(parsedDivisions) && parsedDivisions > 0) {
+      divisions = parsedDivisions;
+    }
+
+    const time = measureElement.querySelector(":scope > attributes > time");
+    const parsedNumerator = Number(time?.querySelector("beats")?.textContent);
+    const parsedDenominator = Number(
+      time?.querySelector("beat-type")?.textContent,
+    );
+    if (Number.isFinite(parsedNumerator) && parsedNumerator > 0) {
+      numerator = parsedNumerator;
+    }
+    if (Number.isFinite(parsedDenominator) && parsedDenominator > 0) {
+      denominator = parsedDenominator;
+    }
+
+    let cursor = 0;
+    let duration = 0;
+    for (const event of measureElement.querySelectorAll(
+      ":scope > note, :scope > backup, :scope > forward",
+    )) {
+      const eventDuration = Number(
+        event.querySelector(":scope > duration")?.textContent,
+      );
+      if (!Number.isFinite(eventDuration) || eventDuration < 0) {
+        continue;
+      }
+      const wholeNoteDuration = eventDuration / divisions / 4;
+      if (event.tagName === "backup") {
+        cursor -= wholeNoteDuration;
+      } else if (event.tagName === "forward") {
+        cursor += wholeNoteDuration;
+        duration = Math.max(duration, cursor);
+      } else if (!event.querySelector(":scope > chord")) {
+        cursor += wholeNoteDuration;
+        duration = Math.max(duration, cursor);
+      }
+    }
+
+    measures.push({ start, numerator, denominator });
+    start += duration > 0 ? duration : numerator / denominator;
+  }
+
+  return measures.length > 0 ? measures : [DEFAULT_MEASURE];
 }
 
 function parseTempo(xml: string) {
