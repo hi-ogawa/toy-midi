@@ -518,8 +518,10 @@ function midiPitchToMusicXml(
   keySignature: KeySignature,
 ): MusicXmlPitch {
   // Current heuristic:
-  //   fifths < 0  => prefer flats
-  //   fifths >= 0 => prefer sharps
+  //   key signature has flats    => prefer flats
+  //   key signature has no flats => prefer sharps
+  // `fifths` is MusicXML's signed count: negative for flats, positive for
+  // sharps, and zero for C major or A minor.
   // Examples:
   //   F major,  pitch class 10 -> Bb (correct: Bb chord)
   //   A minor,  pitch class 8  -> G# (correct: E7)
