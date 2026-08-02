@@ -56,6 +56,7 @@ export class ScoreViewerRuntime {
   //   <scroller>
   //     <sheet>
   //       <cursor />
+  //       <measureLayer />
   //       <container />
   //     </sheet>
   //   </scroller>
