@@ -28,6 +28,7 @@ type CursorPosition = {
 
 export function ScoreViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollerRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const positionsRef = useRef<CursorPosition[]>([]);
@@ -271,29 +272,42 @@ export function ScoreViewer() {
           />
         </label>
 
+        <div className="h-5 w-px bg-border" />
+
+        <span
+          data-testid="score-name"
+          title={scoreName}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
+        >
+          {scoreName ?? "No score loaded"}
+        </span>
+
         <div className="flex-1" />
 
-        <label className="cursor-pointer">
-          <span className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-            <FolderOpenIcon className="size-4" />
-            Open
-          </span>
-          <input
-            aria-label="Open MusicXML"
-            type="file"
-            accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-            disabled={loadMutation.isPending}
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              if (file) {
-                void file
-                  .text()
-                  .then((xml) => loadMutation.mutate({ name: file.name, xml }));
-              }
-            }}
-          />
-        </label>
+        <Button
+          disabled={loadMutation.isPending}
+          onClick={() => fileInputRef.current?.click()}
+          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          <FolderOpenIcon className="size-4" />
+          Open
+        </Button>
+        <input
+          ref={fileInputRef}
+          aria-label="Open MusicXML"
+          type="file"
+          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+          disabled={loadMutation.isPending}
+          className="hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) {
+              void file
+                .text()
+                .then((xml) => loadMutation.mutate({ name: file.name, xml }));
+            }
+          }}
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
@@ -320,16 +334,6 @@ export function ScoreViewer() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <div className="h-5 w-px bg-border" />
-
-        <span
-          data-testid="score-name"
-          title={scoreName}
-          className="max-w-[220px] truncate text-sm text-neutral-300"
-        >
-          {scoreName ?? "No score loaded"}
-        </span>
       </header>
       {loadMutation.error && (
         <p className="mx-auto mt-4 max-w-6xl text-red-800">
