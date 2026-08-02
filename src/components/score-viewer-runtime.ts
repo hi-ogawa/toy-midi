@@ -24,6 +24,13 @@ export type ScoreSource = {
   xml: string;
 };
 
+/**
+ * A playback anchor in OSMD's rendered score.
+ *
+ * Most anchors correspond to graphical staff entries. Synthetic anchors at
+ * system ends let the cursor finish a row before jumping to the next system.
+ * Playback interpolates horizontally between adjacent anchors in one system.
+ */
 type CursorPosition = {
   /** Score time in whole-note units, matching OSMD's Fraction.RealValue. */
   time: number;
