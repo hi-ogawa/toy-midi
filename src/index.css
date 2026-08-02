@@ -71,20 +71,23 @@
   }
 
   .score-viewer-header,
-  .score-viewer-cursor {
+  .score-viewer-cursor,
+  .score-viewer-scroll {
     display: none !important;
   }
 
-  .score-viewer-scroll {
-    height: auto !important;
-    overflow: visible !important;
-    padding: 0 !important;
+  .score-viewer-print-renderer {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
   }
 
-  .score-viewer-sheet {
-    width: 100% !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
+  .score-viewer-print-renderer > div {
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  .score-viewer-print-renderer > div:last-child {
+    break-after: auto;
   }
 }

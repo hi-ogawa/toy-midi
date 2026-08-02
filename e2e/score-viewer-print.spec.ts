@@ -9,6 +9,12 @@ test("capture multipage score PDF", async ({ page }) => {
     .locator("svg")
     .first()
     .waitFor();
+  await page.getByRole("button", { name: "Print" }).click();
+  await page
+    .getByTestId("score-viewer-print-renderer")
+    .locator("svg")
+    .first()
+    .waitFor({ state: "attached" });
 
   await page.pdf({
     path: ".tmp/score-viewer-print.pdf",

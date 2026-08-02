@@ -32,6 +32,7 @@ type CursorPosition = {
 
 export function ScoreViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const printContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollerRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -46,6 +47,7 @@ export function ScoreViewer() {
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
   const [scoreXml, setScoreXml] = useState<string>();
+  const [isPrintReady, setIsPrintReady] = useState(false);
   const [scoreWidth, setScoreWidth] = useState(1110);
   const tempoInput = useDraftInput({
     value: tempo,
@@ -162,6 +164,30 @@ export function ScoreViewer() {
     if (scoreName && scoreXml) {
       loadMutation.mutate({ name: scoreName, xml: scoreXml });
     }
+  }
+
+  async function printScore() {
+    const container = printContainerRef.current;
+    if (!container || !scoreXml) {
+      return;
+    }
+    setIsPrintReady(false);
+    container.innerHTML = "";
+    const osmd = new OpenSheetMusicDisplay(container, {
+      autoBeam: true,
+      autoGenerateMultipleRestMeasuresFromRestMeasures: false,
+      backend: "svg",
+      disableCursor: true,
+      drawMeasureNumbersOnlyAtSystemStart: true,
+      drawPartNames: false,
+      drawTitle: false,
+      pageBackgroundColor: "#ffffff",
+      pageFormat: "A4_P",
+    });
+    await osmd.load(scoreXml);
+    osmd.render();
+    setIsPrintReady(true);
+    requestAnimationFrame(() => window.print());
   }
 
   function seekTo({
@@ -342,7 +368,7 @@ export function ScoreViewer() {
 
         <Button
           disabled={!isReady}
-          onClick={() => window.print()}
+          onClick={() => void printScore()}
           className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <PrinterIcon className="size-4" />
@@ -453,6 +479,12 @@ export function ScoreViewer() {
           <div ref={containerRef} data-testid="score-viewer-renderer" />
         </div>
       </section>
+      <div
+        ref={printContainerRef}
+        data-testid="score-viewer-print-renderer"
+        data-ready={isPrintReady}
+        className="score-viewer-print-renderer absolute left-[-10000px] top-0 w-[793px]"
+      />
     </main>
   );
 }
