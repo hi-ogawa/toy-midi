@@ -227,6 +227,7 @@ export class ScoreViewerRuntime {
           0;
     this.#cursor.style.transform = `translate(${previous.x + (next.x - previous.x) * progress}px, ${previous.top}px)`;
     this.#cursor.style.height = `${previous.height}px`;
+    // Expose the active system for cursor-wrapping E2E coverage.
     this.#cursor.dataset.systemId = String(previous.systemId);
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
