@@ -118,7 +118,8 @@ export class ScoreViewerRuntime {
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
     this.#measureLayer = document.createElement("div");
-    this.#measureLayer.className = "absolute inset-0 z-[5]";
+    this.#measureLayer.className = "absolute inset-y-0 left-4 z-[5]";
+    this.#measureLayer.style.width = `${SCORE_LAYOUT_WIDTH}px`;
     this.#measureLayer.addEventListener("click", this.#handleMeasureClick);
 
     this.#container = document.createElement("div");
@@ -154,6 +155,10 @@ export class ScoreViewerRuntime {
       layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
+    this.#measureLayer.className =
+      layout === "continuous"
+        ? "absolute inset-y-0 left-4 z-[5]"
+        : "absolute inset-y-0 left-0 z-[5]";
     this.#positions = buildCursorPositions(this.#osmd);
     buildMeasureTargets(this.#osmd, this.#measureLayer);
     this.#clock.stop();
