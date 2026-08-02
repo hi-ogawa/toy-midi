@@ -6,7 +6,6 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
-  PrinterIcon,
   RotateCcwIcon,
 } from "lucide-react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
@@ -30,9 +29,10 @@ type CursorPosition = {
   systemId: number;
 };
 
+type RenderMode = "continuous" | "paged";
+
 export function ScoreViewer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const printContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollerRef = useRef<HTMLElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -47,7 +47,7 @@ export function ScoreViewer() {
   const [beat, setBeat] = useState(1);
   const [scoreName, setScoreName] = useState<string>();
   const [scoreXml, setScoreXml] = useState<string>();
-  const [isPrintReady, setIsPrintReady] = useState(false);
+  const [renderMode, setRenderMode] = useState<RenderMode>("continuous");
   const [scoreWidth, setScoreWidth] = useState(1110);
   const tempoInput = useDraftInput({
     value: tempo,
@@ -74,7 +74,15 @@ export function ScoreViewer() {
   });
 
   const loadMutation = useMutation({
-    mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
+    mutationFn: async ({
+      name,
+      renderMode: nextRenderMode,
+      xml,
+    }: {
+      name: string;
+      renderMode: RenderMode;
+      xml: string;
+    }) => {
       // TODO: Dispose the previous OSMD instance, prevent stale overlapping
       // loads, and retain the previous valid score when replacement parsing fails.
       const container = containerRef.current;
@@ -97,6 +105,7 @@ export function ScoreViewer() {
         drawPartNames: false,
         drawTitle: false,
         pageBackgroundColor: "#ffffff",
+        pageFormat: nextRenderMode === "paged" ? "A4_P" : undefined,
       });
       await osmd.load(xml);
       osmd.render();
@@ -162,32 +171,22 @@ export function ScoreViewer() {
     }
     setScoreWidth(value);
     if (scoreName && scoreXml) {
-      loadMutation.mutate({ name: scoreName, xml: scoreXml });
+      loadMutation.mutate({ name: scoreName, renderMode, xml: scoreXml });
     }
   }
 
-  async function printScore() {
-    const container = printContainerRef.current;
-    if (!container || !scoreXml) {
+  function changeRenderMode(nextRenderMode: RenderMode) {
+    if (nextRenderMode === renderMode) {
       return;
     }
-    setIsPrintReady(false);
-    container.innerHTML = "";
-    const osmd = new OpenSheetMusicDisplay(container, {
-      autoBeam: true,
-      autoGenerateMultipleRestMeasuresFromRestMeasures: false,
-      backend: "svg",
-      disableCursor: true,
-      drawMeasureNumbersOnlyAtSystemStart: true,
-      drawPartNames: false,
-      drawTitle: false,
-      pageBackgroundColor: "#ffffff",
-      pageFormat: "A4_P",
-    });
-    await osmd.load(scoreXml);
-    osmd.render();
-    setIsPrintReady(true);
-    requestAnimationFrame(() => window.print());
+    setRenderMode(nextRenderMode);
+    if (scoreName && scoreXml) {
+      loadMutation.mutate({
+        name: scoreName,
+        renderMode: nextRenderMode,
+        xml: scoreXml,
+      });
+    }
   }
 
   function seekTo({
@@ -278,7 +277,10 @@ export function ScoreViewer() {
   }
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950">
+    <main
+      data-render-mode={renderMode}
+      className="score-viewer-root flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950"
+    >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
         <Button
           data-testid="score-play-pause-button"
@@ -347,6 +349,7 @@ export function ScoreViewer() {
           <span className="text-muted-foreground">Score width:</span>
           <input
             aria-label="Score width"
+            disabled={renderMode === "paged"}
             type="text"
             inputMode="numeric"
             {...scoreWidthInput.props}
@@ -366,14 +369,23 @@ export function ScoreViewer() {
 
         <div className="flex-1" />
 
-        <Button
-          disabled={!isReady}
-          onClick={() => void printScore()}
-          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <PrinterIcon className="size-4" />
-          Print
-        </Button>
+        <div className="flex rounded border border-border bg-neutral-900 p-0.5">
+          {(["continuous", "paged"] as const).map((mode) => (
+            <Button
+              key={mode}
+              aria-pressed={renderMode === mode}
+              onClick={() => changeRenderMode(mode)}
+              className={cn(
+                "h-7 rounded-sm px-2.5 capitalize",
+                renderMode === mode
+                  ? "bg-neutral-600 text-white hover:bg-neutral-600"
+                  : "text-neutral-400 hover:bg-neutral-700 hover:text-white",
+              )}
+            >
+              {mode}
+            </Button>
+          ))}
+        </div>
 
         <Button
           disabled={loadMutation.isPending}
@@ -398,6 +410,7 @@ export function ScoreViewer() {
               void file.text().then((xml) =>
                 loadMutation.mutate({
                   name: file.name,
+                  renderMode,
                   xml,
                 }),
               );
@@ -418,6 +431,7 @@ export function ScoreViewer() {
                 onSelect={() =>
                   loadMutation.mutate({
                     name: sample.name,
+                    renderMode,
                     xml: sample.xml,
                   })
                 }
@@ -458,30 +472,37 @@ export function ScoreViewer() {
           {loadMutation.error.message}
         </p>
       )}
-      <section ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto p-6">
+      <section
+        ref={scrollerRef}
+        data-testid="score-viewer-scroll"
+        className="score-viewer-scroll min-h-0 flex-1 overflow-y-auto p-6"
+      >
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
             Open a Toy MIDI MusicXML export or load a generated sample.
           </div>
         )}
         <div
-          className="relative mx-auto bg-white px-4 shadow-xl"
-          style={{ width: scoreWidth }}
+          className={cn(
+            "score-viewer-sheet relative mx-auto",
+            renderMode === "continuous"
+              ? "bg-white px-4 shadow-xl"
+              : "score-viewer-paged",
+          )}
+          style={{ width: renderMode === "continuous" ? scoreWidth : 793 }}
         >
           <div
             ref={cursorRef}
             data-testid="continuous-playback-cursor"
             className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
           />
-          <div ref={containerRef} data-testid="score-viewer-renderer" />
+          <div
+            ref={containerRef}
+            data-testid="score-viewer-renderer"
+            data-score-render-mode={renderMode}
+          />
         </div>
       </section>
-      <div
-        ref={printContainerRef}
-        data-testid="score-viewer-print-renderer"
-        data-ready={isPrintReady}
-        className="score-viewer-print-renderer absolute left-[-10000px] top-0 w-[793px]"
-      />
     </main>
   );
 }

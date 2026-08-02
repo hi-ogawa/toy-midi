@@ -53,41 +53,14 @@
   }
 }
 
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm;
-  }
+.score-viewer-paged [data-score-render-mode="paged"] {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 
-  body {
-    background: white;
-  }
-
-  .score-viewer-root {
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
-    background: white !important;
-  }
-
-  .score-viewer-header,
-  .score-viewer-cursor,
-  .score-viewer-scroll {
-    display: none !important;
-  }
-
-  .score-viewer-print-renderer {
-    display: block !important;
-    position: static !important;
-    width: auto !important;
-  }
-
-  .score-viewer-print-renderer > div {
-    break-after: page;
-    break-inside: avoid;
-  }
-
-  .score-viewer-print-renderer > div:last-child {
-    break-after: auto;
-  }
+.score-viewer-paged [data-score-render-mode="paged"] svg {
+  display: block;
+  background: white;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }

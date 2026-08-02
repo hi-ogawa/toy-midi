@@ -122,6 +122,31 @@ test("switches between generated score samples", async ({ page }) => {
   await expect(page.getByLabel("BPM")).toHaveValue("200");
 });
 
+test("switches between continuous and paged score views", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Long score");
+
+  const renderer = page.getByTestId("score-viewer-renderer");
+  await expect(renderer).toHaveAttribute(
+    "data-score-render-mode",
+    "continuous",
+  );
+  await expect(page.getByLabel("Score width")).toBeEnabled();
+
+  await page.getByRole("button", { name: "Paged" }).click();
+  await expect(renderer).toHaveAttribute("data-score-render-mode", "paged");
+  await expect(renderer.locator("svg")).toHaveCount(7);
+  await expect(page.getByLabel("Score width")).toBeDisabled();
+
+  await page.getByRole("button", { name: "Continuous" }).click();
+  await expect(renderer).toHaveAttribute(
+    "data-score-render-mode",
+    "continuous",
+  );
+  await expect(renderer.locator("svg")).toHaveCount(1);
+  await expect(page.getByLabel("Score width")).toBeEnabled();
+});
+
 async function loadSample(page: import("@playwright/test").Page, name: string) {
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();

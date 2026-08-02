@@ -111,8 +111,8 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     }),
   },
   {
-    id: "print-multipage",
-    name: "Print multipage",
+    id: "long-score",
+    name: "Long score",
     description: "64 measures of mixed eighths and sixteenths",
     tempo: 110,
     xml: exportSample({
