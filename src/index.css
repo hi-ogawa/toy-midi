@@ -98,14 +98,8 @@
     padding: 0;
   }
 
-  [data-testid="score-viewer-frame"] {
+  [data-testid="score-viewer-renderer"] {
     width: 100% !important;
-    height: auto !important;
-  }
-
-  [data-testid="score-viewer-document"] {
-    width: 100% !important;
-    transform: none !important;
   }
 
   .score-viewer-paged [data-score-render-mode="paged"] {

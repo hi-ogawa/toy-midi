@@ -119,45 +119,27 @@ test("switches between continuous and paged score views", async ({ page }) => {
   await loadSample(page, "Long score");
 
   const renderer = page.getByTestId("score-viewer-renderer");
-  const document = page.getByTestId("score-viewer-document");
-  const frame = page.getByTestId("score-viewer-frame");
   await expect(renderer).toHaveAttribute(
     "data-score-render-mode",
     "continuous",
   );
-  const continuousLogicalWidth = await document.evaluate(
-    (element) => element.getBoundingClientRect().width,
-  );
-  const continuousDisplayWidth = await frame.evaluate(
-    (element) => element.getBoundingClientRect().width,
-  );
-  expect(continuousLogicalWidth).toBeLessThanOrEqual(
-    continuousDisplayWidth + 1,
-  );
+  await expect(renderer).toHaveCSS("width", "1110px");
 
   await page.getByLabel("Layout").selectOption("paged");
   await expect(renderer).toHaveAttribute("data-score-render-mode", "paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
   const pageCount = await renderer.locator("svg").count();
-  const wideFrameWidth = await frame.evaluate(
-    (element) => element.getBoundingClientRect().width,
-  );
 
   await page.setViewportSize({ width: 800, height: 720 });
-  await expect
-    .poll(() =>
-      frame.evaluate((element) => element.getBoundingClientRect().width),
-    )
-    .toBeLessThan(wideFrameWidth);
   await expect(renderer.locator("svg")).toHaveCount(pageCount);
-  await expect(document).toHaveCSS("width", "1110px");
+  await expect(renderer).toHaveCSS("width", "1110px");
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(renderer).toHaveAttribute(
     "data-score-render-mode",
     "continuous",
   );
-  await expect(document).toHaveCSS("width", "1110px");
+  await expect(renderer).toHaveCSS("width", "1110px");
 });
 
 async function loadSample(page: import("@playwright/test").Page, name: string) {
