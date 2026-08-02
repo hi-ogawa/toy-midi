@@ -69,10 +69,8 @@ export class ScoreViewerRuntime {
     return () => this.#listeners.delete(listener);
   };
 
-  attach(root: HTMLElement) {
-    this.#root = root.querySelector<HTMLDivElement>(
-      '[data-testid="score-viewer-runtime-root"]',
-    )!;
+  attach(root: HTMLDivElement) {
+    this.#root = root;
     this.#root.replaceChildren();
 
     this.#scroller = document.createElement("section");

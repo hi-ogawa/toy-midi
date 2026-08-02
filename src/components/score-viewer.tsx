@@ -31,7 +31,7 @@ import {
 import { cn } from "./ui/utils";
 
 export function ScoreViewer() {
-  const rootRef = useRef<HTMLElement>(null);
+  const runtimeRootRef = useRef<HTMLDivElement>(null);
 
   const [score, setScore] = useState<ScoreSource>();
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
@@ -43,7 +43,7 @@ export function ScoreViewer() {
     runtime.getSnapshot,
   );
   useEffect(() => {
-    const root = rootRef.current;
+    const root = runtimeRootRef.current;
     if (!root) {
       return;
     }
@@ -114,7 +114,6 @@ export function ScoreViewer() {
 
   return (
     <main
-      ref={rootRef}
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
         layout === "paged" && "score-viewer-root-paged",
@@ -293,7 +292,11 @@ export function ScoreViewer() {
           {loadMutation.error.message}
         </p>
       )}
-      <div data-testid="score-viewer-runtime-root" className="min-h-0 flex-1" />
+      <div
+        ref={runtimeRootRef}
+        data-testid="score-viewer-runtime-root"
+        className="min-h-0 flex-1"
+      />
     </main>
   );
 }
