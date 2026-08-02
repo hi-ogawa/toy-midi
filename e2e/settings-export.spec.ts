@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
 
 // Constants matching piano-roll.tsx
@@ -15,7 +15,7 @@ test.describe("Settings Dialog - Project Export", () => {
     await clickNewProject(page);
   });
 
-  async function openSettings(page: import("@playwright/test").Page) {
+  async function openSettings(page: Page) {
     await page.getByTestId("settings-button").click();
     await page.getByTestId("settings-dialog").waitFor({ state: "visible" });
   }

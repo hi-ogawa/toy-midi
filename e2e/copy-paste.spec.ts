@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { clickNewProject } from "./helpers";
 
 // Constants matching piano-roll.tsx
@@ -8,10 +8,7 @@ const ROW_HEIGHT = 20;
 // TODO: consolidate into fewer user-flow tests (combine paste/snap/preserve/selection)
 
 // Helper to seek playhead by clicking on timeline
-async function seekTobeat(
-  page: import("@playwright/test").Page,
-  beat: number,
-): Promise<void> {
+async function seekTobeat(page: Page, beat: number): Promise<void> {
   const timeline = page.getByTestId("timeline");
   const timelineBox = await timeline.boundingBox();
   if (!timelineBox) {
