@@ -16,12 +16,12 @@ const EPSILON = 1e-6;
 export type MusicXmlModelOptions = {
   notes: Note[];
   timeSignature: TimeSignature;
+  keySignature: KeySignature;
   openStringPitches: readonly number[];
 };
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
-  keySignature: KeySignature;
 };
 
 type QuantizedNote = {
@@ -35,13 +35,19 @@ export type MusicXmlMeasureEvent =
   | { type: "rest"; duration: number; notation: DurationNotation }
   | {
       type: "note";
-      pitch: number;
+      pitch: MusicXmlPitch;
       duration: number;
       notation: DurationNotation;
       tabPosition: TabPosition;
       tieStart: boolean;
       tieStop: boolean;
     };
+
+type MusicXmlPitch = {
+  step: string;
+  alter: number;
+  octave: number;
+};
 
 type DurationNotation = {
   type: string;
@@ -77,6 +83,7 @@ const DURATION_CANDIDATES: DurationCandidate[] = [
 export function buildMusicXmlModel({
   notes,
   timeSignature,
+  keySignature,
   openStringPitches,
 }: MusicXmlModelOptions): {
   measureDuration: number;
@@ -114,6 +121,7 @@ export function buildMusicXmlModel({
         notes,
         measureStart: index * measureDuration,
         measureDuration,
+        keySignature,
       }),
     ),
   };
@@ -173,10 +181,12 @@ function buildMeasureEvents({
   notes,
   measureStart,
   measureDuration,
+  keySignature,
 }: {
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
+  keySignature: KeySignature;
 }): MusicXmlMeasureEvent[] {
   const events: MusicXmlMeasureEvent[] = [];
   let cursor = 0;
@@ -211,7 +221,7 @@ function buildMeasureEvents({
       const pieceEnd = pieceStart + piece.duration;
       events.push({
         type: "note",
-        pitch: note.note.pitch,
+        pitch: midiPitchToMusicXml(note.note.pitch, keySignature),
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
@@ -305,6 +315,7 @@ export function exportMusicXml({
   const { measureDuration, measures } = buildMusicXmlModel({
     notes,
     timeSignature,
+    keySignature,
     openStringPitches,
   });
   // MusicXML places score-level configuration inside the first measure.
@@ -386,7 +397,6 @@ export function exportMusicXml({
           events,
           index,
           measureDuration,
-          keySignature,
           initialChildren: index === 0 ? initialMeasureChildren : [],
         }),
       ),
@@ -404,13 +414,11 @@ function renderMeasure({
   events,
   index,
   measureDuration,
-  keySignature,
   initialChildren,
 }: {
   events: MusicXmlMeasureEvent[];
   index: number;
   measureDuration: number;
-  keySignature: KeySignature;
   initialChildren: XmlNode[];
 }): XmlElement {
   // Rewind the measure cursor so staff 2 runs in parallel with staff 1.
@@ -418,9 +426,9 @@ function renderMeasure({
     "measure",
     { number: index + 1 },
     ...initialChildren,
-    ...events.map((event) => renderEvent(event, 1, keySignature)),
+    ...events.map((event) => renderEvent(event, 1)),
     hx("backup", hx("duration", measureDuration)),
-    ...events.map((event) => renderEvent(event, 2, keySignature)),
+    ...events.map((event) => renderEvent(event, 2)),
   );
 }
 
@@ -448,11 +456,7 @@ function renderStaffDetails(
   );
 }
 
-function renderEvent(
-  event: MusicXmlMeasureEvent,
-  staff: 1 | 2,
-  keySignature: KeySignature,
-): XmlElement {
+function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
   // MuseScore allocates four voice IDs per staff, so the first voices of staff 1
   // and staff 2 are 1 and 5 respectively.
   const voice = staff === 1 ? 1 : 5;
@@ -467,7 +471,6 @@ function renderEvent(
     );
   }
 
-  const pitch = midiPitchToMusicXml(event.pitch, keySignature);
   // MusicXML uses <tie> for playback and <tied> for engraved notation, so each
   // model tie must be emitted in both forms.
   const tiedNotations = [
@@ -486,9 +489,9 @@ function renderEvent(
     "note",
     hx(
       "pitch",
-      hx("step", pitch.step),
-      pitch.alter !== 0 && hx("alter", pitch.alter),
-      hx("octave", pitch.octave),
+      hx("step", event.pitch.step),
+      event.pitch.alter !== 0 && hx("alter", event.pitch.alter),
+      hx("octave", event.pitch.octave),
     ),
     hx("duration", event.duration),
     event.tieStop && h("tie", { type: "stop" }),
@@ -513,11 +516,9 @@ function renderDurationNotation(notation: DurationNotation): XmlNode[] {
 function midiPitchToMusicXml(
   pitch: number,
   keySignature: KeySignature,
-): {
-  step: string;
-  alter: number;
-  octave: number;
-} {
+): MusicXmlPitch {
+  // TODO: Spell altered natural notes such as E-sharp and C-flat in keys whose
+  // diatonic scales require them instead of choosing only a sharp/flat bias.
   const sharpPitchClasses = [
     ["C", 0],
     ["C", 1],

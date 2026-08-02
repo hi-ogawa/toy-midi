@@ -43,6 +43,7 @@ function buildModel(
   return buildMusicXmlModel({
     notes,
     timeSignature: { numerator: 4, denominator: 4 },
+    keySignature: { fifths: 0, mode: "major" },
     openStringPitches: FIVE_STRING_PITCHES,
     ...options,
   });
@@ -78,7 +79,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: 33,
+          pitch: { step: "A", alter: 0, octave: 2 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -89,7 +90,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: 33,
+          pitch: { step: "A", alter: 0, octave: 2 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -122,7 +123,7 @@ describe("MusicXML export", () => {
     expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 18,
         notation: { type: "quarter", dots: 1 },
         tabPosition: { tabString: 3, fret: 0 },
@@ -131,7 +132,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 4,
         notation: { type: "eighth", triplet: true },
         tabPosition: { tabString: 3, fret: 0 },
@@ -157,7 +158,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: 33,
+        pitch: { step: "A", alter: 0, octave: 2 },
         duration: 12,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
@@ -203,14 +204,24 @@ describe("MusicXML export", () => {
     });
   });
 
-  it("exports key metadata and key-aware flat spelling", () => {
+  it("exports key metadata", () => {
     const xml = exportNotes([makeNote({ pitch: 34 })], {
       keySignature: { fifths: -2, mode: "minor" },
     });
 
     expect(xml).toContain("<fifths>-2</fifths>");
     expect(xml).toContain("<mode>minor</mode>");
-    expect(xml).toContain("<step>B</step>\n          <alter>-1</alter>");
+  });
+
+  it("derives flat note spelling in the export model", () => {
+    const model = buildModel([makeNote({ pitch: 34 })], {
+      keySignature: { fifths: -2, mode: "minor" },
+    });
+
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      pitch: { step: "B", alter: -1, octave: 2 },
+    });
   });
 
   it("rejects a polyphonic chord", () => {
