@@ -20,8 +20,8 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "64 eighth notes at 120 BPM",
     tempo: 120,
     xml: exportSample({
-      notes: createSequentialNotes({ count: 64, duration: 0.5 }),
       tempo: 120,
+      notes: createSequentialNotes({ count: 64, duration: 0.5 }),
     }),
   },
   {
@@ -30,6 +30,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Mixed durations, gaps, and a full-measure rest",
     tempo: 120,
     xml: exportSample({
+      tempo: 120,
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 43, start: 1, duration: 0.5 }),
@@ -41,7 +42,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
         createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
       ],
-      tempo: 120,
     }),
   },
   {
@@ -50,6 +50,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Durations split within and across measures",
     tempo: 120,
     xml: exportSample({
+      tempo: 120,
       notes: [
         createNote({ pitch: 40, start: 0, duration: 2.5 }),
         createNote({ pitch: 43, start: 2.5, duration: 2.5 }),
@@ -57,7 +58,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 47, start: 7.5, duration: 2.5 }),
         createNote({ pitch: 48, start: 10, duration: 2 }),
       ],
-      tempo: 120,
     }),
   },
   {
@@ -66,6 +66,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Open strings and explicit alternate-string frets",
     tempo: 120,
     xml: exportSample({
+      tempo: 120,
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 45, start: 1, duration: 1 }),
@@ -86,7 +87,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 38, start: 6, duration: 1 }),
         createNote({ pitch: 43, start: 7, duration: 1 }),
       ],
-      tempo: 120,
     }),
   },
   {
@@ -95,8 +95,8 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
     xml: exportSample({
-      notes: createSequentialNotes({ count: 96, duration: 0.25 }),
       tempo: 110,
+      notes: createSequentialNotes({ count: 96, duration: 0.25 }),
     }),
   },
   {
