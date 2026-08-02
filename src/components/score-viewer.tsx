@@ -456,6 +456,10 @@ function parseTempo(xml: string) {
 }
 
 function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+  // OSMD's built-in cursor is not usable here: it steps between entries, and
+  // its one-pixel-high bitmap renders as a horizontal mark in the SVG backend.
+  // Keep OSMD for score geometry and render an independent browser overlay.
+  //
   // MuseScore interpolates between chord/rest positions and the ending
   // barline. OSMD exposes entry geometry, so add each system's final timestamp
   // and right border to prevent a freeze before wrapping.
