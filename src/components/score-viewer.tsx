@@ -11,6 +11,7 @@ import {
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { FileDropInput } from "./file-drop-input";
 import {
   type ScoreLayout,
   type ScoreSource,
@@ -33,8 +34,6 @@ const SCORE_LAYOUT_WIDTH = 1110;
 
 export function ScoreViewer() {
   const rootRef = useRef<HTMLElement>(null);
-  // TODO: don't we have file drop util?
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [bar, setBar] = useState(1);
   const [beat, setBeat] = useState(1);
@@ -79,11 +78,15 @@ export function ScoreViewer() {
   const loadMutation = useMutation({
     mutationFn: async ({
       renderMode: nextRenderMode,
-      score: nextScore,
+      source,
     }: {
       renderMode: ScoreLayout;
-      score: ScoreSource;
+      source: File | ScoreSource;
     }) => {
+      const nextScore =
+        source instanceof File
+          ? { name: source.name, xml: await source.text() }
+          : source;
       await runtime.load({ score: nextScore, layout: nextRenderMode });
       return nextScore;
     },
@@ -102,7 +105,7 @@ export function ScoreViewer() {
     if (score) {
       loadMutation.mutate({
         renderMode: nextRenderMode,
-        score,
+        source: score,
       });
     }
   }
@@ -223,36 +226,16 @@ export function ScoreViewer() {
           </select>
         </label>
 
-        <Button
+        <FileDropInput
+          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
           disabled={loadMutation.isPending}
-          onClick={() => fileInputRef.current?.click()}
+          inputProps={{ "aria-label": "Open MusicXML" }}
+          onFile={(file) => loadMutation.mutate({ renderMode, source: file })}
           className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
         >
           <FolderOpenIcon className="size-4" />
           Open
-        </Button>
-        <input
-          ref={fileInputRef}
-          aria-label="Open MusicXML"
-          type="file"
-          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-          // TODO: Decide whether compressed .mxl input is required. This path
-          // currently reads plain MusicXML/XML as text.
-          disabled={loadMutation.isPending}
-          className="hidden"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) {
-              // TODO: no
-              void file.text().then((xml) =>
-                loadMutation.mutate({
-                  renderMode,
-                  score: { name: file.name, xml },
-                }),
-              );
-            }
-          }}
-        />
+        </FileDropInput>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
@@ -267,7 +250,7 @@ export function ScoreViewer() {
                 onSelect={() =>
                   loadMutation.mutate({
                     renderMode,
-                    score: { name: sample.name, xml: sample.xml },
+                    source: { name: sample.name, xml: sample.xml },
                   })
                 }
                 className="items-start"
