@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { CursorType, OpenSheetMusicDisplay } from "opensheetmusicdisplay";
+import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { useEffect, useRef, useState } from "react";
 
 type PlaybackState = {
@@ -32,20 +32,12 @@ export function ScoreViewer() {
         drawPartNames: false,
         drawTitle: false,
         followCursor: true,
-        cursorsOptions: [
-          {
-            alpha: 0.8,
-            color: "#10b981",
-            follow: true,
-            type: CursorType.CurrentAreaLeft,
-          },
-        ],
+        pageBackgroundColor: "#ffffff",
       });
       await osmd.load(file);
       osmd.render();
       osmd.cursor.reset();
       osmd.cursor.show();
-      osmd.cursor.cursorElement.style.zIndex = "1";
       return { fileName: file.name, osmd };
     },
     onSuccess: ({ fileName: loadedFileName, osmd }) => {
