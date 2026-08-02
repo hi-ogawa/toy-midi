@@ -27,8 +27,13 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(page.getByLabel("BPM")).toHaveValue("120");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
 
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.keyboard.press("Space");
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+  await page.getByLabel("BPM").press("Space");
+  await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
+  await page.keyboard.press("Space");
+  await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
+  await page.getByRole("button", { name: "Play" }).click();
   await page.getByRole("button", { name: "Restart" }).click();
   await expect(page.getByRole("button", { name: "Play" })).toBeVisible();
 });

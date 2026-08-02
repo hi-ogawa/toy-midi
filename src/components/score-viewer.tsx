@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
+import { useWindowEvent } from "../hooks/use-window-event";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
 import {
@@ -74,6 +76,16 @@ export function ScoreViewer() {
     onCommit: (value) => seekTo({ bar, beat: value }),
     min: 1,
     max: 4,
+  });
+
+  useWindowEvent("keydown", (event) => {
+    if (isShortcutTextInputTarget(event.target)) {
+      return;
+    }
+    if (matchKeyboardEvent(event, "Space") && !event.repeat) {
+      event.preventDefault();
+      runtime.togglePlayback();
+    }
   });
 
   const loadMutation = useMutation({
