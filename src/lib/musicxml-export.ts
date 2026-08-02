@@ -517,7 +517,38 @@ function midiPitchToMusicXml(
   pitch: number,
   keySignature: KeySignature,
 ): MusicXmlPitch {
-  // Current heuristic:
+  const naturalPitchClasses = {
+    C: 0,
+    D: 2,
+    E: 4,
+    F: 5,
+    G: 7,
+    A: 9,
+    B: 11,
+  } as const;
+  const accidentalOrder =
+    keySignature.fifths < 0
+      ? (["B", "E", "A", "D", "G", "C", "F"] as const)
+      : (["F", "C", "G", "D", "A", "E", "B"] as const);
+  const keyAlter = Math.sign(keySignature.fifths);
+  const alteredSteps = new Set(
+    accidentalOrder.slice(0, Math.abs(keySignature.fifths)),
+  );
+  const pitchClass = pitch % 12;
+  for (const [step, naturalPitchClass] of Object.entries(naturalPitchClasses)) {
+    const alter = alteredSteps.has(step as keyof typeof naturalPitchClasses)
+      ? keyAlter
+      : 0;
+    if ((naturalPitchClass + alter + 12) % 12 === pitchClass) {
+      return {
+        step,
+        alter,
+        octave: Math.floor((pitch - naturalPitchClass - alter) / 12),
+      };
+    }
+  }
+
+  // Chromatic fallback:
   //   key signature has flats    => prefer flats
   //   key signature has no flats => prefer sharps
   // `fifths` is MusicXML's signed count: negative for flats, positive for
@@ -528,8 +559,7 @@ function midiPitchToMusicXml(
   //   C major,  pitch class 10 -> A# (wrong: Bb in Gm7 -> C7 -> F)
   //   C major,  pitch class 1  -> C# (correct: A7; wrong: Db in Db7)
   //   A minor,  pitch class 8  -> G# (correct: E7; wrong: Ab in Ab7)
-  // TODO: A future heuristic can spell the diatonic scale, including E# or Cb,
-  // and prefer common chromatic spellings. Contextual cases require harmonic
+  // TODO: Prefer common chromatic spellings. Contextual cases require harmonic
   // analysis or an explicit per-note spelling choice.
   const sharpPitchClasses = [
     ["C", 0],
@@ -562,7 +592,12 @@ function midiPitchToMusicXml(
   const pitchClasses =
     keySignature.fifths < 0 ? flatPitchClasses : sharpPitchClasses;
   const [step, alter] = pitchClasses[pitch % 12];
-  return { step, alter, octave: Math.floor(pitch / 12) };
+  const naturalPitchClass = naturalPitchClasses[step];
+  return {
+    step,
+    alter,
+    octave: Math.floor((pitch - naturalPitchClass - alter) / 12),
+  };
 }
 
 // xml hyperscript helpers

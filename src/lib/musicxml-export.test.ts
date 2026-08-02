@@ -215,6 +215,24 @@ describe("MusicXML export", () => {
     });
   });
 
+  it("derives altered natural spelling from the exact key signature", () => {
+    const flatModel = buildModel([makeNote({ pitch: 47 })], {
+      keySignature: { fifths: -6, mode: "minor" }, // Eb minor
+    });
+    const sharpModel = buildModel([makeNote({ pitch: 41 })], {
+      keySignature: { fifths: 6, mode: "minor" }, // D# minor
+    });
+
+    expect(flatModel.measures[0][0]).toMatchObject({
+      type: "note",
+      pitch: { step: "C", alter: -1, octave: 4 },
+    });
+    expect(sharpModel.measures[0][0]).toMatchObject({
+      type: "note",
+      pitch: { step: "E", alter: 1, octave: 3 },
+    });
+  });
+
   it("rejects a polyphonic chord", () => {
     expect(() =>
       buildModel([
