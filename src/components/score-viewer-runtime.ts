@@ -70,7 +70,10 @@ export class ScoreViewerRuntime {
         this.#clock.stop();
         return;
       }
-      this.#setState({ isPlaying: !paused });
+      const isPlaying = !paused;
+      if (isPlaying !== this.#state.isPlaying) {
+        this.#setState({ isPlaying });
+      }
     });
   }
 
@@ -306,9 +309,15 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
 }
 
+// Temporary score-viewer transport matching the snapshot/subscription shape
+// used by the existing Tone.js transport hook infrastructure.
+
+type PlayheadSnapshot = {
+  currentTime: number;
+  paused: boolean;
+};
+
 class PlayheadClock {
-  // Temporary score-viewer transport matching the snapshot/subscription shape
-  // used by the existing Tone.js transport hook infrastructure.
   #snapshot: PlayheadSnapshot = { currentTime: 0, paused: true };
   #startedAt?: number;
   #frame?: number;
@@ -379,8 +388,3 @@ class PlayheadClock {
     }
   }
 }
-
-type PlayheadSnapshot = {
-  currentTime: number;
-  paused: boolean;
-};
