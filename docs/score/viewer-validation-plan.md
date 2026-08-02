@@ -28,7 +28,7 @@ Related findings:
 ### System Transitions And Following
 
 - [ ] Confirm the cursor reaches the end of a system before moving to the next system.
-- [ ] Confirm a system transition jumps directly to the next row without diagonal interpolation.
+- [x] Confirm a system transition jumps directly to the next row without diagonal interpolation.
 - [ ] Confirm the cursor height and vertical position update to the new system.
 - [ ] Confirm vertical scrolling occurs only when the active system leaves the recording viewport.
 - [ ] Keep two useful system rows visible before and after scrolling.
@@ -83,7 +83,6 @@ For each cover, load the corresponding Toy MIDI MusicXML export and quickly comp
 These remain part of the broader score presentation workflow but are not required to decide whether the current browser viewer can replace MuseScore for screen recording:
 
 - Direct video rendering or export.
-- General instruments and staff configurations beyond the current bass score/TAB pair.
 - Key-aware spelling and key signatures, which are tracked separately in issue #220.
 
 ## Out Of Scope
@@ -93,6 +92,7 @@ These remain part of the broader score presentation workflow but are not require
 - Audio playback or synchronization with Toy MIDI's transport.
 - Editing notation in the score viewer.
 - MuseScore-equivalent TAB rhythm decoration.
+- General instruments and staff configurations beyond the current bass score/TAB pair.
 
 ## Decision Outcomes
 
