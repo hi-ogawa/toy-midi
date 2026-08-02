@@ -134,6 +134,7 @@ For each cover, load the corresponding Toy MIDI MusicXML export and quickly comp
 
 These remain part of the broader score presentation workflow but are not required to decide whether the current browser viewer can replace MuseScore for screen recording:
 
+- Project-scoped score player routing at `/project/<id>/score`. The route should load the persisted project read-only, generate MusicXML in memory, and open the same score player without a download/upload or `sessionStorage` handoff. `/score-viewer` should remain available for standalone MusicXML files and generated samples. Opening the project score from the editor must flush pending autosave first so a new tab reads the latest project state.
 - Offline silent tab-video rendering for use as the scrolling score layer in Kdenlive. The intended production path should extract static score viewport SVG or raster backgrounds from OSMD, export piecewise cursor geometry, apply the same cursor-containment viewport rule as interactive playback, composite frames at exact timestamps, and encode without real-time screen capture. Per-frame Playwright screenshots are only a correctness spike, not the production renderer.
 
 ## Out Of Scope
