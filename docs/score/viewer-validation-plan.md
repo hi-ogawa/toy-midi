@@ -144,7 +144,6 @@ This is a provisional list for refining the actual player requirements after the
 #### Playback Interaction
 
 - [ ] Toggle play/pause with Space while focus is outside editable controls.
-- [ ] Add a restart shortcut, such as Home or `0`.
 - [ ] Update the displayed bar and beat during playback instead of showing only the last manually entered values.
 - [ ] Clamp bar/beat seeking to the score's valid range.
 - [ ] Leave the cursor at the score end when playback finishes and define what the next Play action does.
@@ -181,16 +180,6 @@ This is a provisional list for refining the actual player requirements after the
 - [ ] Decide whether score width, BPM override, and other viewer preferences should persist locally.
 - [ ] Keep score and cursor geometry aligned after browser resize.
 - [ ] Decide whether recording needs configurable canvas/background color.
-
-#### Loading And Lifecycle
-
-- [ ] Dispose the previous OSMD instance when loading or rerendering a score instead of only clearing its container.
-- [ ] Prevent stale results when file/sample loads overlap.
-- [ ] Keep the previous valid score visible when a replacement MusicXML file fails to parse.
-- [ ] Show malformed MusicXML errors inline with a useful message.
-- [ ] Decide whether compressed `.mxl` input is required; the current text-loading path targets plain MusicXML/XML.
-- [ ] Parse score duration and meter metadata needed by seek controls.
-- [ ] Keep first-tempo-only playback as the explicit contract while tempo changes remain out of scope.
 
 ## Out Of Scope
 

@@ -1,7 +1,9 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   ChevronsUpDownIcon,
+  FolderIcon,
   FolderOpenIcon,
+  MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
   RotateCcwIcon,
@@ -70,6 +72,8 @@ export function ScoreViewer() {
 
   const loadMutation = useMutation({
     mutationFn: async ({ name, xml }: { name: string; xml: string }) => {
+      // TODO: Dispose the previous OSMD instance, prevent stale overlapping
+      // loads, and retain the previous valid score when replacement parsing fails.
       const container = containerRef.current;
       if (!container) {
         throw new Error("Score viewer is not ready");
@@ -343,6 +347,8 @@ export function ScoreViewer() {
           aria-label="Open MusicXML"
           type="file"
           accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+          // TODO: Decide whether compressed .mxl input is required. This path
+          // currently reads plain MusicXML/XML as text.
           disabled={loadMutation.isPending}
           className="hidden"
           onChange={(event) => {
@@ -386,6 +392,25 @@ export function ScoreViewer() {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              title="More"
+              aria-label="More"
+              className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <MoreVerticalIcon className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <a href="/" data-testid="all-projects-menu-item">
+                <FolderIcon />
+                All Projects
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
       {loadMutation.error && (
         <p className="mx-auto mt-4 max-w-6xl text-red-800">
@@ -415,6 +440,8 @@ export function ScoreViewer() {
 }
 
 function parseTempo(xml: string) {
+  // TODO: Parse meter and score duration for bounded bar/beat seeking. Keep
+  // first-tempo-only playback explicit while tempo changes remain out of scope.
   const document = new DOMParser().parseFromString(xml, "application/xml");
   const value = Number(
     document.querySelector("sound[tempo]")?.getAttribute("tempo") ??
