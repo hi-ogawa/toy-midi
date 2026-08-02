@@ -46,7 +46,6 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await expect(playButton).toBeEnabled();
   const cursor = page.getByTestId("score-viewer-cursor");
   const position = page.getByText("01|01");
-  const seekButton = page.getByRole("button", { name: "Seek" });
   await expect(cursor).toBeVisible();
   await expect(position).toBeVisible();
   const initialTransform = await cursor.evaluate(
@@ -68,9 +67,8 @@ test("loads and advances the cursor sample", async ({ page }) => {
     .not.toBe(initialTransform);
 
   await page.getByRole("button", { name: "Pause" }).click();
-  page.once("dialog", (dialog) => dialog.accept("2:3"));
-  await seekButton.click();
-  await expect(page.getByText("02|03")).toBeVisible();
+  await page.locator('[data-measure-index="1"]').click();
+  await expect(page.getByText("02|01")).toBeVisible();
   const seekTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
@@ -88,8 +86,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("BPM").fill("60");
   await page.getByLabel("BPM").press("Enter");
-  page.once("dialog", (dialog) => dialog.accept("3|4"));
-  await seekButton.click();
+  await page.locator('[data-measure-index="3"]').click();
   await page.getByRole("button", { name: "Play" }).click();
   await page.waitForTimeout(100);
   const systemEndStart = await cursor.evaluate(
