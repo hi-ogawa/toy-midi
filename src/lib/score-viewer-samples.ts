@@ -18,7 +18,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "Cursor and wrapping",
     description: "64 eighth notes at 60 BPM",
     tempo: 60,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: Array.from({ length: 64 }, (_, index) =>
         createNote({
           pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
@@ -26,9 +26,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
           duration: 0.5,
         }),
       ),
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 60,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
   {
@@ -36,7 +34,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "Rhythm and rests",
     description: "Mixed durations, gaps, and a full-measure rest",
     tempo: 90,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 43, start: 1, duration: 0.5 }),
@@ -48,9 +46,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
         createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
       ],
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 90,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
   {
@@ -58,7 +54,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "Ties and barlines",
     description: "Durations split within and across measures",
     tempo: 80,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 2.5 }),
         createNote({ pitch: 43, start: 2.5, duration: 2.5 }),
@@ -66,9 +62,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 47, start: 7.5, duration: 2.5 }),
         createNote({ pitch: 48, start: 10, duration: 2 }),
       ],
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 80,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
   {
@@ -76,7 +70,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "TAB positions",
     description: "Open strings and explicit alternate-string frets",
     tempo: 70,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 45, start: 1, duration: 1 }),
@@ -97,9 +91,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
         createNote({ pitch: 38, start: 6, duration: 1 }),
         createNote({ pitch: 43, start: 7, duration: 1 }),
       ],
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 70,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
   {
@@ -107,7 +99,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "Dense sixteenths",
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: Array.from({ length: 96 }, (_, index) =>
         createNote({
           pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
@@ -115,9 +107,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
           duration: 0.25,
         }),
       ),
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 110,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
   {
@@ -125,7 +115,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     name: "Fast eighths",
     description: "Fast cursor and following at 200 BPM",
     tempo: 200,
-    xml: exportMusicXml({
+    xml: exportSample({
       notes: Array.from({ length: 96 }, (_, index) =>
         createNote({
           pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
@@ -133,12 +123,19 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
           duration: 0.5,
         }),
       ),
-      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
       tempo: 200,
-      timeSignature: { numerator: 4, denominator: 4 },
     }),
   },
 ];
+
+function exportSample({ notes, tempo }: { notes: Note[]; tempo: number }) {
+  return exportMusicXml({
+    notes,
+    tempo,
+    openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
+    timeSignature: { numerator: 4, denominator: 4 },
+  });
+}
 
 function createNote(note: Omit<Note, "id" | "velocity">): Note {
   return { ...note, id: crypto.randomUUID(), velocity: 100 };
