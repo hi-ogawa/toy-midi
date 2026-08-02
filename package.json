@@ -15,7 +15,7 @@
     "test": "vitest",
     "test-e2e": "playwright test",
     "basic-pitch": "node tools/basic-pitch.mjs",
-    "render-score-video": "node tools/render-score-video.mjs"
+    "render-score-video": "tsx tools/render-score-video.ts"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -46,6 +46,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "fallow": "^2.50.0",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.23.4",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plus": "^0.1.16",

@@ -1,8 +1,22 @@
 import { spawn } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { chromium } from "@playwright/test";
 import { Resvg } from "@resvg/resvg-js";
+import {
+  type CursorPosition,
+  type ScoreVideoScene,
+} from "../src/components/score-viewer-runtime";
+
+type Options = {
+  fps: number;
+  height?: number;
+  input: string;
+  output: string;
+};
+
+type Cursor = Pick<CursorPosition, "height" | "top" | "x">;
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
@@ -18,16 +32,25 @@ async function main() {
       xml: await readFile(options.input, "utf8"),
     };
     await page.evaluate(async (score) => {
+      if (!window.__toyMidiScoreVideo) {
+        throw new Error("Score video bridge is unavailable");
+      }
       await window.__toyMidiScoreVideo.loadScore(score);
     }, source);
   } else {
     await page.evaluate(async (id) => {
+      if (!window.__toyMidiScoreVideo) {
+        throw new Error("Score video bridge is unavailable");
+      }
       await window.__toyMidiScoreVideo.loadSample(id);
     }, options.input);
   }
-  const scene = await page.evaluate(() =>
-    window.__toyMidiScoreVideo.exportScene(),
-  );
+  const scene = await page.evaluate<ScoreVideoScene>(() => {
+    if (!window.__toyMidiScoreVideo) {
+      throw new Error("Score video bridge is unavailable");
+    }
+    return window.__toyMidiScoreVideo.exportScene();
+  });
   await browser.close();
   const height = options.height ?? deriveHeight(scene.cursorPositions);
   const width = scene.scoreWidth;
@@ -89,50 +112,41 @@ async function main() {
   }
 }
 
-function parseOptions(args) {
-  const positional = [];
-  const options = { fps: 30 };
-  for (let index = 0; index < args.length; index++) {
-    const argument = args[index];
-    switch (argument) {
-      case "--height": {
-        options.height = parsePositiveInteger(argument, args[++index]);
-        if (options.height % 2 !== 0) {
-          throw new Error("--height must be even for H.264 YUV420 output");
-        }
-        break;
-      }
-      case "--fps": {
-        options.fps = parsePositiveInteger(argument, args[++index]);
-        break;
-      }
-      default: {
-        if (argument.startsWith("--")) {
-          throw new Error(`Unknown option: ${argument}`);
-        }
-        positional.push(argument);
-      }
-    }
-  }
-  if (positional.length > 2) {
+function parseOptions(args: string[]): Options {
+  const { positionals, values } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      fps: { type: "string", default: "30" },
+      height: { type: "string" },
+    },
+  });
+  if (positionals.length > 2) {
     throw new Error(
       "Expected at most a MusicXML path or sample id and output path",
     );
   }
+  const height = values.height
+    ? parsePositiveInteger("--height", values.height)
+    : undefined;
+  if (height && height % 2 !== 0) {
+    throw new Error("--height must be even for H.264 YUV420 output");
+  }
   return {
-    ...options,
-    input: positional[0] ?? "cursor-wrapping",
-    output: positional[1] ?? ".tmp/score-video.mp4",
+    fps: parsePositiveInteger("--fps", values.fps),
+    height,
+    input: positionals[0] ?? "cursor-wrapping",
+    output: positionals[1] ?? ".tmp/score-video.mp4",
   };
 }
 
-function isMusicXmlPath(input) {
+function isMusicXmlPath(input: string) {
   return input.endsWith(".xml") || input.endsWith(".musicxml");
 }
 
-function deriveHeight(positions) {
-  const systems = [];
-  const systemIds = new Set();
+function deriveHeight(positions: CursorPosition[]) {
+  const systems: { bottom: number; top: number }[] = [];
+  const systemIds = new Set<number>();
   for (const position of positions) {
     if (!systemIds.has(position.systemId)) {
       systemIds.add(position.systemId);
@@ -149,11 +163,11 @@ function deriveHeight(positions) {
   return roundUpToEven(lastVisibleSystem.bottom - systems[0].top + 48);
 }
 
-function roundUpToEven(value) {
+function roundUpToEven(value: number) {
   return Math.ceil(value / 2) * 2;
 }
 
-function parsePositiveInteger(option, value) {
+function parsePositiveInteger(option: string, value?: string) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`${option} requires a positive integer`);
@@ -161,7 +175,7 @@ function parsePositiveInteger(option, value) {
   return parsed;
 }
 
-function resolveCursor(positions, scoreTime) {
+function resolveCursor(positions: CursorPosition[], scoreTime: number): Cursor {
   let nextIndex = positions.findIndex((position) => position.time > scoreTime);
   if (nextIndex < 1) {
     nextIndex = Math.min(Math.max(nextIndex, 1), positions.length - 1);
@@ -179,7 +193,7 @@ function resolveCursor(positions, scoreTime) {
   };
 }
 
-function buildScoreSvg(scene) {
+function buildScoreSvg(scene: ScoreVideoScene) {
   const scoreSvg = scene.scoreSvg
     .replace(/^<svg[^>]*>/, "")
     .replace(/<\/svg>\s*$/, "");
@@ -196,6 +210,13 @@ function compositeFrame({
   scorePixels,
   viewportTop,
   width,
+}: {
+  cursor: Cursor;
+  height: number;
+  scene: ScoreVideoScene;
+  scorePixels: Uint8Array;
+  viewportTop: number;
+  width: number;
 }) {
   const pixels = Buffer.alloc(width * height * 4, 0xff);
   for (let index = 3; index < pixels.length; index += 4) {
