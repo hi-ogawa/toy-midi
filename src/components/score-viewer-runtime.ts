@@ -25,10 +25,15 @@ export type ScoreSource = {
 };
 
 type CursorPosition = {
+  /** Score time in whole-note units, matching OSMD's Fraction.RealValue. */
   time: number;
+  /** Horizontal cursor position in CSS pixels within the rendered score. */
   x: number;
+  /** Top edge of the active system in CSS pixels. */
   top: number;
+  /** Cursor height spanning the active system in CSS pixels. */
   height: number;
+  /** OSMD system identity, used to avoid interpolation across wrapped rows. */
   systemId: number;
 };
 
