@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
 import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
-import { midiToNoteName, snapToGrid } from "../lib/music";
+import { snapToGrid } from "../lib/music";
+import { midiToNoteName } from "../lib/pitch-spelling";
 import {
   type AudioTrack,
   generateNoteId,

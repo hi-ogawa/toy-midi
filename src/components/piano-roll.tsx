@@ -18,11 +18,11 @@ import {
   gainToPercent,
   isBlackKey,
   MAX_PITCH,
-  midiToNoteName,
   MIN_PITCH,
   percentToGain,
   snapToGrid,
 } from "../lib/music";
+import { midiToNoteName } from "../lib/pitch-spelling";
 import { projectStorage } from "../lib/project-storage";
 import {
   beatsToSeconds,

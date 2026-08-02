@@ -143,6 +143,11 @@ export function spellChromaticPitch(pitch: number): SpelledPitch {
   return toSpelledPitch({ pitch, step, alter });
 }
 
+export function midiToNoteName(midi: number): string {
+  const { step, alter, octave } = spellChromaticPitch(midi);
+  return `${step}${alter === 1 ? "#" : ""}${octave}`;
+}
+
 function toSpelledPitch({
   pitch,
   step,
@@ -157,8 +162,8 @@ function toSpelledPitch({
     alter,
     // Derive the written octave after applying the accidental because C-flat
     // and B-sharp cross the C octave boundary relative to their sounding pitch.
-    octave: Math.floor(
-      (pitch - NATURAL_PITCH_CLASS_BY_LETTER[step] - alter) / 12,
-    ),
+    octave:
+      Math.floor((pitch - NATURAL_PITCH_CLASS_BY_LETTER[step] - alter) / 12) -
+      1,
   };
 }

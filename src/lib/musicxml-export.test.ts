@@ -79,7 +79,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: { step: "A", alter: 0, octave: 2 },
+          pitch: { step: "A", alter: 0, octave: 1 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -90,7 +90,7 @@ describe("MusicXML export", () => {
       [
         {
           type: "note",
-          pitch: { step: "A", alter: 0, octave: 2 },
+          pitch: { step: "A", alter: 0, octave: 1 },
           duration: 6,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
@@ -123,7 +123,7 @@ describe("MusicXML export", () => {
     expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
       {
         type: "note",
-        pitch: { step: "A", alter: 0, octave: 2 },
+        pitch: { step: "A", alter: 0, octave: 1 },
         duration: 18,
         notation: { type: "quarter", dots: 1 },
         tabPosition: { tabString: 3, fret: 0 },
@@ -132,7 +132,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: { step: "A", alter: 0, octave: 2 },
+        pitch: { step: "A", alter: 0, octave: 1 },
         duration: 4,
         notation: { type: "eighth", triplet: true },
         tabPosition: { tabString: 3, fret: 0 },
@@ -158,7 +158,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "note",
-        pitch: { step: "A", alter: 0, octave: 2 },
+        pitch: { step: "A", alter: 0, octave: 1 },
         duration: 12,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
