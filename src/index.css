@@ -53,6 +53,7 @@
   }
 }
 
+/* Present OSMD's page SVGs as separate sheets on the workspace. */
 .score-viewer-paged {
   display: flex;
   flex-direction: column;
@@ -98,6 +99,7 @@
     width: 100% !important;
   }
 
+  /* Map each OSMD page SVG to one browser print page without workspace chrome. */
   .score-viewer-paged {
     gap: 0;
   }
@@ -105,7 +107,6 @@
   .score-viewer-paged svg {
     break-after: page;
     break-inside: avoid;
-    width: 100%;
     box-shadow: none;
   }
 
