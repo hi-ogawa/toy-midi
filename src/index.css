@@ -54,13 +54,13 @@
 }
 
 /* Present OSMD's page SVGs as separate sheets on the workspace. */
-.score-viewer-root-paged .score-viewer-renderer {
+.score-viewer-root-paged [data-testid="score-viewer-renderer"] {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.score-viewer-root-paged .score-viewer-renderer svg {
+.score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
   display: block;
   width: 100%;
   height: auto;
@@ -86,29 +86,31 @@
   }
 
   .score-viewer-root-paged > header,
-  [data-testid="continuous-playback-cursor"] {
+  [data-testid="score-viewer-cursor"] {
     display: none;
   }
 
-  .score-viewer-scroll {
+  [data-testid="score-viewer-scroll"] {
     overflow: visible;
     padding: 0;
   }
 
-  .score-viewer-root-paged .score-viewer-renderer {
+  .score-viewer-root-paged [data-testid="score-viewer-renderer"] {
     width: 100% !important;
     gap: 0;
   }
 
   /* Remove workspace shadows, keep each OSMD SVG intact on its own print page,
      and avoid a trailing blank page after the final SVG. */
-  .score-viewer-root-paged .score-viewer-renderer svg {
+  .score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
     break-after: page;
     break-inside: avoid;
     box-shadow: none;
   }
 
-  .score-viewer-root-paged .score-viewer-renderer svg:last-child {
+  .score-viewer-root-paged
+    [data-testid="score-viewer-renderer"]
+    svg:last-child {
     break-after: auto;
   }
 }

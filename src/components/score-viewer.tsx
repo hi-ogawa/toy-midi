@@ -266,7 +266,7 @@ export function ScoreViewer() {
   return (
     <main
       className={cn(
-        "score-viewer-root flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
+        "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
         renderMode === "paged" && "score-viewer-root-paged",
       )}
     >
@@ -448,7 +448,7 @@ export function ScoreViewer() {
       <section
         ref={scrollerRef}
         data-testid="score-viewer-scroll"
-        className="score-viewer-scroll min-h-0 flex-1 overflow-y-auto p-6"
+        className="min-h-0 flex-1 overflow-y-auto p-6"
       >
         {!scoreName && !loadMutation.error && (
           <div className="mx-auto mb-4 flex h-32 max-w-4xl items-center justify-center border border-dashed border-neutral-500 text-sm text-neutral-600">
@@ -464,13 +464,12 @@ export function ScoreViewer() {
         >
           <div
             ref={cursorRef}
-            data-testid="continuous-playback-cursor"
+            data-testid="score-viewer-cursor"
             className="pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500"
           />
           <div
             ref={containerRef}
             data-testid="score-viewer-renderer"
-            className="score-viewer-renderer"
             style={{ width: SCORE_LAYOUT_WIDTH }}
           />
         </div>

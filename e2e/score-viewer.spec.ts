@@ -24,7 +24,7 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
-  const cursor = page.getByTestId("continuous-playback-cursor");
+  const cursor = page.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();
   await expect(page.getByLabel("BPM")).toHaveValue("120");
   await expect(page.getByRole("button", { name: "Play" })).toBeEnabled();
@@ -41,7 +41,7 @@ test("loads and advances the cursor sample", async ({ page }) => {
 
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
-  const cursor = page.getByTestId("continuous-playback-cursor");
+  const cursor = page.getByTestId("score-viewer-cursor");
   await expect(cursor).toBeVisible();
   const initialTransform = await cursor.evaluate(
     (element) => element.style.transform,
