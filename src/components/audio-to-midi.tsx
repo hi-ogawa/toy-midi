@@ -4,10 +4,7 @@ import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
 import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
-import {
-  bassPitchClient,
-  CONVERSION_CANCELLED_MESSAGE,
-} from "../lib/bass-pitch/client";
+import { bassPitchClient } from "../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
   DEFAULT_GRID_SPLIT_THRESHOLD,
@@ -126,9 +123,6 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
       setProgress(0);
     },
     onError: (error) => {
-      if (error.message === CONVERSION_CANCELLED_MESSAGE) {
-        return;
-      }
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
     },
@@ -143,9 +137,7 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const conversionStatus = convertMutation.isPending
     ? `Converting ${Math.round((progress ?? 0) * 100)}%`
     : convertMutation.error
-      ? convertMutation.error.message === CONVERSION_CANCELLED_MESSAGE
-        ? "Conversion cancelled"
-        : "Conversion failed"
+      ? "Conversion failed"
       : convertMutation.data === 0
         ? "No notes detected. Check the project tempo and the track offset."
         : convertMutation.data !== undefined && convertElapsedMs !== undefined
@@ -197,15 +189,6 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
         >
           {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
         </Button>
-        {convertMutation.isPending && (
-          <Button
-            data-testid="cancel-convert-button"
-            onClick={() => bassPitchClient.cancel()}
-            className="h-9 w-full bg-background px-3 text-sm shadow-xs dark:border-input dark:bg-input/30"
-          >
-            Cancel
-          </Button>
-        )}
         <p
           data-testid="audio-to-midi-conversion-status"
           aria-live="polite"
