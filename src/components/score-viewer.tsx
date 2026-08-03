@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronsUpDownIcon,
   FolderIcon,
@@ -9,13 +9,7 @@ import {
   RotateCcwIcon,
   UploadIcon,
 } from "lucide-react";
-import {
-  useEffect,
-  useEffectEvent,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
@@ -44,6 +38,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
@@ -67,38 +62,48 @@ export function ScoreViewer({
     }
   });
 
-  const loadMutation = useMutation({
-    mutationFn: async ({
-      layout,
-      source,
-    }: {
-      layout: ScoreLayout;
-      source: File | ScoreSource;
-    }) => {
-      const nextScore =
-        source instanceof File
-          ? { name: source.name, xml: await source.text() }
-          : source;
-      if (await runtime.load({ score: nextScore, layout })) {
-        setScore(nextScore);
+  async function loadScore({
+    layout,
+    source,
+  }: {
+    layout: ScoreLayout;
+    source: File | ScoreSource;
+  }) {
+    const nextScore =
+      source instanceof File
+        ? { name: source.name, xml: await source.text() }
+        : source;
+    await runtime.load({ score: nextScore, layout });
+    setScore(nextScore);
+    return nextScore;
+  }
+
+  const loadMutation = useMutation({ mutationFn: loadScore });
+  const initialLoadQuery = useQuery({
+    queryKey: ["score-viewer-initial-source", initialSource],
+    enabled: isRuntimeAttached && initialSource !== undefined,
+    staleTime: Infinity,
+    queryFn: async () => {
+      if (!initialSource) {
+        throw new Error("Initial score source is missing");
       }
+      return await loadScore({
+        layout: "continuous",
+        source: initialSource,
+      });
     },
   });
+  const loadError = loadMutation.error ?? initialLoadQuery.error;
 
-  const loadInitialSource = useEffectEvent((source: ScoreSource) => {
-    loadMutation.mutate({ layout: "continuous", source });
-  });
   useEffect(() => {
     const root = runtimeRootRef.current;
     if (!root) {
       return;
     }
     runtime.attach(root);
-    if (initialSource) {
-      loadInitialSource(initialSource);
-    }
+    setIsRuntimeAttached(true);
     return () => runtime.dispose();
-  }, [initialSource, runtime]);
+  }, [runtime]);
 
   function changeLayout(nextLayout: ScoreLayout) {
     if (nextLayout === layout) {
@@ -260,7 +265,7 @@ export function ScoreViewer({
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      {!score && !loadMutation.error && (
+      {!score && !loadError && (
         <section className="min-h-0 flex-1 p-6">
           <div className="flex justify-center">
             <FileDropInput
@@ -281,9 +286,9 @@ export function ScoreViewer({
           </div>
         </section>
       )}
-      {loadMutation.error && (
+      {loadError && (
         <p className="mx-auto mt-4 max-w-6xl text-red-800">
-          {loadMutation.error.message}
+          {loadError.message}
         </p>
       )}
       <div
