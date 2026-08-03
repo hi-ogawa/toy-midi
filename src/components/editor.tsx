@@ -1,5 +1,6 @@
 import {
   CircleHelpIcon,
+  FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
   SettingsIcon,
@@ -9,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { AudioToMidi } from "./audio-to-midi";
@@ -110,6 +112,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`/project/${projectId}/score`}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-testid="view-score-menu-item"
+                    onPointerDown={flushAutoSave}
+                    onClick={flushAutoSave}
+                  >
+                    <FileMusicIcon />
+                    View Score
+                  </a>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href="/" data-testid="all-projects-menu-item">
                     <FolderIcon />

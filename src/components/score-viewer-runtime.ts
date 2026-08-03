@@ -69,6 +69,7 @@ export class ScoreViewerRuntime {
   #sheet!: HTMLDivElement;
 
   #osmd!: OpenSheetMusicDisplay;
+  #loadGeneration = 0;
 
   #positions: CursorPosition[] = [];
   #state = INITIAL_RUNTIME_STATE;
@@ -100,6 +101,7 @@ export class ScoreViewerRuntime {
   };
 
   attach(root: HTMLDivElement) {
+    this.#loadGeneration++;
     this.#root = root;
     this.#root.replaceChildren();
 
@@ -141,21 +143,26 @@ export class ScoreViewerRuntime {
   }
 
   async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+    const loadGeneration = ++this.#loadGeneration;
+    const osmd = this.#osmd;
     this.#clock.stop();
     this.#setState({ isReady: false });
 
-    this.#osmd.clear();
-    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
-    await this.#osmd.load(score.xml);
+    osmd.clear();
+    osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    await osmd.load(score.xml);
+    if (loadGeneration !== this.#loadGeneration) {
+      return false;
+    }
     this.#sheet.hidden = false;
-    this.#osmd.render();
+    osmd.render();
 
     this.#sheet.className =
       layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
-    this.#positions = buildCursorPositions(this.#osmd, this.#container);
-    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
+    this.#positions = buildCursorPositions(osmd, this.#container);
+    buildMeasureTargets(osmd, this.#measureLayers, this.#container);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -164,6 +171,7 @@ export class ScoreViewerRuntime {
       tempo: parseTempo(score.xml),
     });
     this.#updateCursor(0);
+    return true;
   }
 
   togglePlayback() {
@@ -195,6 +203,7 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
+    this.#loadGeneration++;
     this.#clock.stop();
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {

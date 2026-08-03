@@ -1,5 +1,6 @@
 import path from "node:path";
 import { expect, Page, test } from "@playwright/test";
+import { clickNewProject } from "./helpers";
 
 test("navigates between projects and the score viewer", async ({ page }) => {
   await page.goto("/");
@@ -10,6 +11,47 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await page.getByTestId("all-projects-menu-item").click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("startup-screen")).toBeVisible();
+});
+
+test("opens the latest project state as a score in a new tab", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await clickNewProject(page);
+  const projectId = await page.evaluate(() =>
+    window.__e2e.projectStorage.getLastProjectId(),
+  );
+  await page.getByTestId("app-menu-button").click();
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.evaluate(() => {
+    const state = window.__e2e.useProjectStore.getState();
+    state.addNote({
+      id: "note-project-score",
+      pitch: 48,
+      start: 0,
+      duration: 1,
+      velocity: 100,
+    });
+    state.setTempo(137);
+    document
+      .querySelector<HTMLElement>("[data-testid=view-score-menu-item]")!
+      .click();
+  });
+  const scorePage = await popupPromise;
+
+  await expect(scorePage).toHaveURL(`/project/${projectId}/score`);
+  await expect(scorePage.getByTestId("score-name")).toHaveText(
+    "Untitled.musicxml",
+  );
+  await expect(
+    scorePage.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toBeVisible();
+  await expect(scorePage.getByLabel("BPM")).toHaveValue("137");
+  await expect(scorePage.getByRole("button", { name: "Samples" })).toHaveCount(
+    0,
+  );
+  await expect(scorePage.getByLabel("Open MusicXML")).toHaveCount(0);
 });
 
 test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {

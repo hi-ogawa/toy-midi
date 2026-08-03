@@ -717,7 +717,7 @@ export type SavedProjectV1 = Omit<SavedProject, "version" | "audioTracks"> & {
 export type AnySavedProject = SavedProjectV1 | SavedProject;
 
 // Default values for new/missing fields
-const DEFAULTS: Omit<SavedProject, "version"> = {
+const DEFAULTS = {
   notes: [],
   tempo: 120,
   timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
@@ -740,7 +740,7 @@ const DEFAULTS: Omit<SavedProject, "version"> = {
   scrollY: 51, // MAX_PITCH (127) - DEFAULT_VIEW_MAX_PITCH (76)
   pixelsPerBeat: 80,
   pixelsPerKey: 20,
-};
+} satisfies Omit<SavedProject, "version">;
 
 export function createDefaultSavedProject(): SavedProject {
   return { version: STORAGE_VERSION, ...DEFAULTS };
@@ -802,8 +802,18 @@ export function migrateSavedProject(data: AnySavedProject): SavedProject {
   return data;
 }
 
-// Pure deserialization: SavedProject -> Partial<ProjectState>
-export function fromSavedProject(data: AnySavedProject): Partial<ProjectState> {
+// Pure deserialization: SavedProject -> persisted ProjectState fields
+export function fromSavedProject(
+  data: AnySavedProject,
+): Partial<ProjectState> &
+  Pick<
+    ProjectState,
+    | "notes"
+    | "tempo"
+    | "timeSignature"
+    | "keySignature"
+    | "tabOpenStringPitches"
+  > {
   // Version check: only reject if major breaking change
   if (data.version > STORAGE_VERSION) {
     console.warn("Project from newer version, some data may be lost");

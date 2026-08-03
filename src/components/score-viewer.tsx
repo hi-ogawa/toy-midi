@@ -9,7 +9,13 @@ import {
   RotateCcwIcon,
   UploadIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
@@ -29,10 +35,14 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-export function ScoreViewer() {
+export function ScoreViewer({
+  initialSource,
+}: {
+  initialSource?: ScoreSource;
+}) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
-  const [score, setScore] = useState<ScoreSource>();
+  const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
 
   // initialize runtime
@@ -41,15 +51,6 @@ export function ScoreViewer() {
     runtime.subscribe,
     runtime.getSnapshot,
   );
-  useEffect(() => {
-    const root = runtimeRootRef.current;
-    if (!root) {
-      return;
-    }
-    runtime.attach(root);
-    return () => runtime.dispose();
-  }, [runtime]);
-
   const tempoInput = useDraftInput({
     value: runtimeState.tempo,
     onCommit: (tempo) => runtime.setTempo(tempo),
@@ -78,10 +79,26 @@ export function ScoreViewer() {
         source instanceof File
           ? { name: source.name, xml: await source.text() }
           : source;
-      await runtime.load({ score: nextScore, layout });
-      setScore(nextScore);
+      if (await runtime.load({ score: nextScore, layout })) {
+        setScore(nextScore);
+      }
     },
   });
+
+  const loadInitialSource = useEffectEvent((source: ScoreSource) => {
+    loadMutation.mutate({ layout: "continuous", source });
+  });
+  useEffect(() => {
+    const root = runtimeRootRef.current;
+    if (!root) {
+      return;
+    }
+    runtime.attach(root);
+    if (initialSource) {
+      loadInitialSource(initialSource);
+    }
+    return () => runtime.dispose();
+  }, [initialSource, runtime]);
 
   function changeLayout(nextLayout: ScoreLayout) {
     if (nextLayout === layout) {
@@ -178,47 +195,51 @@ export function ScoreViewer() {
           {score?.name ?? "No score loaded"}
         </span>
 
-        <div className="h-5 w-px bg-border" />
+        {!initialSource && (
+          <>
+            <div className="h-5 w-px bg-border" />
 
-        <FileDropInput
-          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-          disabled={loadMutation.isPending}
-          inputProps={{ "aria-label": "Open MusicXML" }}
-          onFile={(file) => loadMutation.mutate({ layout, source: file })}
-          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <FolderOpenIcon className="size-4" />
-          Open
-        </FileDropInput>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-              Samples
-              <ChevronsUpDownIcon className="size-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            {SCORE_VIEWER_SAMPLES.map((sample) => (
-              <DropdownMenuItem
-                key={sample.id}
-                onSelect={() =>
-                  loadMutation.mutate({
-                    layout,
-                    source: { name: sample.name, xml: sample.xml },
-                  })
-                }
-                className="items-start"
-              >
-                <div>
-                  <div>{sample.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {sample.description}
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <FileDropInput
+              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+              disabled={loadMutation.isPending}
+              inputProps={{ "aria-label": "Open MusicXML" }}
+              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <FolderOpenIcon className="size-4" />
+              Open
+            </FileDropInput>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+                  Samples
+                  <ChevronsUpDownIcon className="size-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {SCORE_VIEWER_SAMPLES.map((sample) => (
+                  <DropdownMenuItem
+                    key={sample.id}
+                    onSelect={() =>
+                      loadMutation.mutate({
+                        layout,
+                        source: { name: sample.name, xml: sample.xml },
+                      })
+                    }
+                    className="items-start"
+                  >
+                    <div>
+                      <div>{sample.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {sample.description}
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
