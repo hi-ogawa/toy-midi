@@ -1,5 +1,6 @@
-import path from "path";
-import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { expect, type Page, test } from "@playwright/test";
 import { clickNewProject, evaluateStore } from "./helpers";
 
 // Constants matching piano-roll.tsx
@@ -14,7 +15,7 @@ test.describe("Settings Dialog - Project Export", () => {
     await clickNewProject(page);
   });
 
-  async function openSettings(page: import("@playwright/test").Page) {
+  async function openSettings(page: Page) {
     await page.getByTestId("settings-button").click();
     await page.getByTestId("settings-dialog").waitFor({ state: "visible" });
   }
@@ -53,6 +54,110 @@ test.describe("Settings Dialog - Project Export", () => {
 
     // Project export should be enabled (empty project is valid)
     await expect(page.getByTestId("export-project-button")).toBeEnabled();
+  });
+
+  test("export MusicXML with standard and TAB staves", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      // A1 (33) forced onto string 4 of BEADG tuning is fret 5, which
+      // verifies that the second staff preserves explicit TAB positions.
+      store.setState({
+        notes: [
+          {
+            id: "forced-a",
+            pitch: 33,
+            start: 3.5,
+            duration: 1,
+            velocity: 100,
+            tabString: 4,
+          },
+        ],
+        tabOpenStringPitches: [43, 38, 33, 28, 23],
+      });
+    });
+    await openSettings(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-musicxml-button").click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/\.musicxml$/);
+
+    const downloadPath = test.info().outputPath("export.musicxml");
+    await download.saveAs(downloadPath);
+    const xml = await readFile(downloadPath, "utf8");
+    const parseError = await page.evaluate(
+      (value) =>
+        new DOMParser()
+          .parseFromString(value, "application/xml")
+          .querySelector("parsererror")?.textContent ?? null,
+      xml,
+    );
+    expect(parseError).toBeNull();
+    expect(xml).toContain("<staves>2</staves>");
+    expect(xml).toContain("<sign>TAB</sign>");
+    expect(xml).toContain("<string>4</string>");
+    expect(xml).toContain("<fret>5</fret>");
+  });
+
+  test("shows MusicXML validation errors inline", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.setState({
+        notes: [
+          {
+            id: "off-grid",
+            pitch: 33,
+            start: 0.1,
+            duration: 1,
+            velocity: 100,
+          },
+        ],
+      });
+    });
+    await openSettings(page);
+
+    await page.getByTestId("export-musicxml-button").click();
+
+    await expect(page.getByTestId("export-musicxml-error")).toHaveText(
+      "start of note off-grid is not aligned to a supported grid",
+    );
+  });
+
+  test("MIDI import confirms and replaces existing notes", async ({ page }) => {
+    await evaluateStore(page, (store) => {
+      store.getState().addNote({
+        id: "existing-note",
+        pitch: 61,
+        start: 0,
+        duration: 1,
+        velocity: 100,
+      });
+      store.getState().setTempo(90);
+      store.getState().setTimeSignature({ numerator: 3, denominator: 4 });
+    });
+    await openSettings(page);
+
+    let confirmationMessage: string | undefined;
+    page.once("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      confirmationMessage = dialog.message();
+      await dialog.accept();
+    });
+    await page
+      .getByTestId("midi-file-input")
+      .setInputFiles("e2e/fixtures/test-midi.mid");
+
+    expect(confirmationMessage).toContain("Import MIDI file?");
+
+    await expect(
+      page.getByText(/Imported \d+ notes from MIDI file/),
+    ).toBeVisible();
+    const imported = await evaluateStore(page, (store) => ({
+      notes: store.getState().notes,
+      tempo: store.getState().tempo,
+      timeSignature: store.getState().timeSignature,
+    }));
+    expect(imported.notes.map((note) => note.pitch)).toEqual([60, 64, 67, 60]);
+    expect(imported.tempo).toBe(120);
+    expect(imported.timeSignature).toEqual({ numerator: 4, denominator: 4 });
   });
 
   test("export and import .toymidi restores project data", async ({ page }) => {

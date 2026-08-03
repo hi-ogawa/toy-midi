@@ -13,7 +13,8 @@ import {
   DEFAULT_GRID_SPLIT_THRESHOLD,
   makeGridTranscribeParams,
 } from "../lib/bass-pitch/transcription";
-import { midiToNoteName, snapToGrid } from "../lib/music";
+import { snapToGrid } from "../lib/music";
+import { formatChromaticPitch } from "../lib/pitch-spelling";
 import {
   type AudioTrack,
   generateNoteId,
@@ -395,7 +396,7 @@ function BasicPitchConvert({ track }: { track: AudioTrack }) {
         {/* Slider bounds are the model's full pitch range (A0-C8) */}
         <ParamSlider
           label="Pitch range"
-          valueText={`${midiToNoteName(params.minPitchMidi)} – ${midiToNoteName(params.maxPitchMidi)}`}
+          valueText={`${formatChromaticPitch(params.minPitchMidi)} – ${formatChromaticPitch(params.maxPitchMidi)}`}
           value={[params.minPitchMidi, params.maxPitchMidi]}
           min={21}
           max={108}

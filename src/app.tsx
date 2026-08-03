@@ -1,11 +1,15 @@
 import { Editor } from "./components/editor";
 import { ProjectListView } from "./components/project-list-view";
+import { ScoreViewer } from "./components/score-viewer";
 import { useWindowEvent } from "./hooks/use-window-event";
 import { matchKeyboardEvent } from "./lib/keyboard";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
 
 export function App() {
+  if (window.location.pathname === "/score-viewer") {
+    return <ScoreViewer />;
+  }
   const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
   if (match) {
     return <ProjectRoute projectId={match[1]} />;

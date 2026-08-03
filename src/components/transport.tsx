@@ -169,7 +169,7 @@ export function Transport({ projectName, controls }: TransportProps) {
 
       {/* Tempo: BPM input + tap button + time signature */}
       <div className="flex items-center gap-1.5">
-        <span className="text-muted-foreground">BPM:</span>
+        <span className="text-muted-foreground">BPM</span>
         <input
           data-testid="tempo-input"
           type="text"

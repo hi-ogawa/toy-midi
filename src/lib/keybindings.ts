@@ -87,6 +87,21 @@ export const KEYBOARD_SHORTCUTS: KeyBinding[] = [
     description: "Add locator at playhead",
     category: "editing",
   },
+  {
+    key: "1-5",
+    description: "Assign tab string to selected notes",
+    category: "editing",
+  },
+  {
+    key: "ArrowUp / ArrowDown",
+    description: "Move selected notes between tab strings",
+    category: "editing",
+  },
+  {
+    key: "0",
+    description: "Clear selected tab string assignments",
+    category: "editing",
+  },
 
   // Navigation
   {

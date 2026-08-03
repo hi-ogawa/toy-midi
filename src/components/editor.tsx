@@ -1,5 +1,7 @@
 import {
   CircleHelpIcon,
+  FolderIcon,
+  MoreVerticalIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
   SparklesIcon,
@@ -17,6 +19,12 @@ import { Settings } from "./settings";
 import { Transport } from "./transport";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
 
@@ -72,7 +80,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             <Button
               data-testid="settings-button"
               onClick={() => setIsSettingsOpen(true)}
-              title="Settings"
+              title="Project"
               className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <SettingsIcon className="size-5" />
@@ -90,14 +98,33 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             >
               <SlidersHorizontalIcon className="size-5" />
             </Button>
-            <Button
-              data-testid="help-button"
-              onClick={() => setIsHelpOpen(true)}
-              title="Show keyboard shortcuts (?)"
-              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-            >
-              <CircleHelpIcon className="size-5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  data-testid="app-menu-button"
+                  title="More"
+                  aria-label="More"
+                  className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+                >
+                  <MoreVerticalIcon className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <a href="/" data-testid="all-projects-menu-item">
+                    <FolderIcon />
+                    All Projects
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-testid="help-menu-item"
+                  onSelect={() => setIsHelpOpen(true)}
+                >
+                  <CircleHelpIcon />
+                  Help &amp; Shortcuts
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       />
@@ -133,7 +160,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       <Dialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        title="Settings"
+        title="Project"
         testId="settings-dialog"
       >
         <Settings

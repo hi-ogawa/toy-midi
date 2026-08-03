@@ -60,8 +60,9 @@ export class IdbStore<T> {
       const tx = db.transaction(this.options.storeName, mode);
       const request = run(tx.objectStore(this.options.storeName));
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      tx.oncomplete = () => resolve(request.result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
     });
   }
 }
