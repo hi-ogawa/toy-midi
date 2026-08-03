@@ -3,7 +3,6 @@ import {
   ChevronsUpDownIcon,
   FolderIcon,
   FolderOpenIcon,
-  LocateFixedIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -97,21 +96,6 @@ export function ScoreViewer() {
     }
   }
 
-  // TODO: Parse time signatures and score bounds for meter-aware seeking.
-  function promptForPosition() {
-    const value = window.prompt(
-      "Go to bar and beat",
-      formatBarBeat(runtimeState.bar, runtimeState.beat),
-    );
-    const match = value?.match(/^(\d+)[|:](\d+)$/);
-    if (!match) {
-      return;
-    }
-    const bar = Math.max(Number(match[1]), 1);
-    const beat = Math.min(Math.max(Number(match[2]), 1), 4);
-    runtime.seek(((bar - 1) * 4 + (beat - 1)) / 4);
-  }
-
   return (
     <main
       className={cn(
@@ -150,20 +134,9 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
-        <div className="flex items-center gap-1">
-          <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
-            {formatBarBeat(runtimeState.bar, runtimeState.beat)}
-          </span>
-          <Button
-            aria-label="Seek"
-            title="Seek"
-            disabled={!runtimeState.isReady}
-            onClick={promptForPosition}
-            className="size-7 px-0 text-neutral-400 hover:bg-accent hover:text-white"
-          >
-            <LocateFixedIcon className="size-3.5" />
-          </Button>
-        </div>
+        <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
+          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+        </span>
 
         <div className="h-5 w-px bg-border" />
 

@@ -42,17 +42,18 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Cursor and wrapping");
 
+  // The loaded score starts with a visible cursor at measure 1, beat 1.
   const playButton = page.getByRole("button", { name: "Play" });
   await expect(playButton).toBeEnabled();
   const cursor = page.getByTestId("score-viewer-cursor");
   const position = page.getByText("01|01");
-  const seekButton = page.getByRole("button", { name: "Seek" });
   await expect(cursor).toBeVisible();
   await expect(position).toBeVisible();
   const initialTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
 
+  // Playback advances the cursor continuously rather than in discrete steps.
   await playButton.click();
   await page.waitForTimeout(100);
   const firstTransform = await cursor.evaluate(
@@ -67,15 +68,16 @@ test("loads and advances the cursor sample", async ({ page }) => {
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .not.toBe(initialTransform);
 
+  // Clicking measure 2 while paused seeks the cursor to its first beat.
   await page.getByRole("button", { name: "Pause" }).click();
-  page.once("dialog", (dialog) => dialog.accept("2:3"));
-  await seekButton.click();
-  await expect(page.getByText("02|03")).toBeVisible();
+  await page.locator('[data-measure-index="1"]').click();
+  await expect(page.getByText("02|01")).toBeVisible();
   const seekTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
   expect(seekTransform).not.toBe(initialTransform);
 
+  // Changing the tempo restarts playback, and the cursor advances from zero.
   await page.getByLabel("BPM").fill("120");
   await page.getByLabel("BPM").press("Enter");
   await page.getByRole("button", { name: "Play" }).click();
@@ -85,11 +87,12 @@ test("loads and advances the cursor sample", async ({ page }) => {
   );
   expect(fastTransform).not.toBe(seekTransform);
 
+  // Slow playback near a system end so the test observes horizontal movement
+  // before the cursor wraps from the first system to the second.
   await page.getByRole("button", { name: "Pause" }).click();
   await page.getByLabel("BPM").fill("60");
   await page.getByLabel("BPM").press("Enter");
-  page.once("dialog", (dialog) => dialog.accept("3|4"));
-  await seekButton.click();
+  await page.locator('[data-measure-index="3"]').click();
   await page.getByRole("button", { name: "Play" }).click();
   await page.waitForTimeout(100);
   const systemEndStart = await cursor.evaluate(
@@ -119,6 +122,22 @@ test("switches between generated score samples", async ({ page }) => {
   await expect(page.getByLabel("BPM")).toHaveValue("200");
 });
 
+test("seeks to the start of a clicked measure", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Cursor and wrapping");
+
+  // Click inside measure 3 and verify the transport snaps to its first beat.
+  const renderer = page.getByTestId("score-viewer-renderer");
+  const thirdMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="2"]',
+  );
+  await expect(thirdMeasure).toBeVisible();
+  await thirdMeasure.click({ position: { x: 20, y: 20 } });
+
+  await expect(page.getByText("03|01")).toBeVisible();
+  await expect(renderer).toBeVisible();
+});
+
 test("switches score layout", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Long score");
@@ -127,6 +146,50 @@ test("switches score layout", async ({ page }) => {
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
+
+  // Measure overlays use page-local OSMD geometry. Verify page 2 is placed
+  // below page 1 and the first system has contiguous, ordered hit targets.
+  const firstPageMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="0"]',
+  );
+  const secondPageMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="16"]',
+  );
+  await expect(secondPageMeasure).toBeVisible();
+  expect((await secondPageMeasure.boundingBox())!.y).toBeGreaterThan(
+    (await firstPageMeasure.boundingBox())!.y,
+  );
+  const firstSystemMeasures = await page
+    .getByTestId("score-viewer-measure")
+    .evaluateAll((elements) =>
+      elements.slice(0, 4).map((element) => ({
+        index: element.getAttribute("data-measure-index"),
+        left: element.getBoundingClientRect().left,
+        right: element.getBoundingClientRect().right,
+      })),
+    );
+  expect(firstSystemMeasures.map(({ index }) => index)).toEqual([
+    "0",
+    "1",
+    "2",
+    "3",
+  ]);
+  expect(firstSystemMeasures[1].left).toBeGreaterThan(
+    firstSystemMeasures[0].left,
+  );
+  expect(firstSystemMeasures[0].right).toBeCloseTo(firstSystemMeasures[1].left);
+
+  // Clicking page 2 must seek and scroll the page-aware playback cursor there.
+  await secondPageMeasure.click({ position: { x: 20, y: 20 } });
+  await expect(page.getByText("17|01")).toBeVisible();
+  const cursor = page.getByTestId("score-viewer-cursor");
+  const scroll = page.getByTestId("score-viewer-scroll");
+  await expect
+    .poll(() => scroll.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  expect((await cursor.boundingBox())!.y).toBeGreaterThan(
+    (await firstPageMeasure.boundingBox())!.y,
+  );
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
