@@ -157,7 +157,7 @@ export function ProjectListView({
             )}
 
             {!hasProjects && (
-              <div className="flex min-h-44 flex-col items-center justify-center text-center">
+              <div className="flex min-h-36 flex-col items-center justify-center text-center">
                 <p className="text-base font-medium text-neutral-300">
                   No projects yet
                 </p>
@@ -176,7 +176,7 @@ export function ProjectListView({
                 data-testid="new-project-button"
                 disabled={isLoading}
                 onClick={onNewProject}
-                className={`px-4 ${
+                className={`px-5 py-2.5 ${
                   hasProjects
                     ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
                     : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
@@ -188,7 +188,7 @@ export function ProjectListView({
                 data-testid="import-project-button"
                 disabled={isLoading}
                 onClick={handleImportClick}
-                className="bg-neutral-700 px-4 text-neutral-200 hover:bg-neutral-600"
+                className="bg-neutral-700 px-5 py-2.5 text-neutral-200 hover:bg-neutral-600"
               >
                 {isLoading ? "Importing..." : "Import Project"}
               </Button>
@@ -225,7 +225,7 @@ function ProjectListItem({
       aria-current={isLastProject ? "true" : undefined}
       className={`group flex h-[4.5rem] w-full items-center rounded-lg border px-4 transition-colors ${
         isLastProject
-          ? "border-emerald-700/60 bg-emerald-900/20 shadow-[inset_3px_0_0_#10b981] hover:bg-emerald-900/30"
+          ? "border-emerald-700/60 bg-emerald-900/20 hover:bg-emerald-900/30"
           : "border-neutral-700/60 bg-neutral-800/70 hover:bg-neutral-800"
       }`}
     >
