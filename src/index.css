@@ -52,3 +52,65 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Present OSMD's page SVGs as separate sheets on the workspace. */
+.score-viewer-root-paged [data-testid="score-viewer-renderer"] {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: white;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body {
+    background: white;
+  }
+
+  .score-viewer-root-paged {
+    display: block;
+    height: auto;
+    overflow: visible;
+    background: white;
+  }
+
+  .score-viewer-root-paged > header,
+  [data-testid="score-viewer-cursor"] {
+    display: none;
+  }
+
+  [data-testid="score-viewer-scroll"] {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .score-viewer-root-paged [data-testid="score-viewer-renderer"] {
+    width: 100% !important;
+    gap: 0;
+  }
+
+  /* Remove workspace shadows, keep each OSMD SVG intact on its own print page,
+     and avoid a trailing blank page after the final SVG. */
+  .score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
+    break-after: page;
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .score-viewer-root-paged
+    [data-testid="score-viewer-renderer"]
+    svg:last-child {
+    break-after: auto;
+  }
+}
