@@ -176,7 +176,7 @@ export function ProjectListView({
                 data-testid="new-project-button"
                 disabled={isLoading}
                 onClick={onNewProject}
-                className={`px-5 py-2.5 ${
+                className={`px-4 py-2 text-sm ${
                   hasProjects
                     ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
                     : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
@@ -188,7 +188,7 @@ export function ProjectListView({
                 data-testid="import-project-button"
                 disabled={isLoading}
                 onClick={handleImportClick}
-                className="bg-neutral-700 px-5 py-2.5 text-neutral-200 hover:bg-neutral-600"
+                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
               >
                 {isLoading ? "Importing..." : "Import Project"}
               </Button>
