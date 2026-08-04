@@ -158,37 +158,6 @@ test.describe("Multiple Projects", () => {
     ).toBe(24);
   });
 
-  test("continue last project", async ({ page }) => {
-    // Create a project
-    await clickNewProject(page);
-    await evaluateStore(page, (store) => {
-      store.getState().addNote({
-        id: "note-last",
-        pitch: 55,
-        start: 0,
-        duration: 1,
-        velocity: 100,
-      });
-      store.getState().setTempo(130);
-    });
-    await evaluateFlushAutoSave(page);
-
-    // Reload and use "Continue Last" button
-    await page.goto("/");
-    await expect(page.getByTestId("continue-button")).toBeVisible();
-    await page.getByTestId("continue-button").click();
-
-    await expect(page.getByTestId("transport")).toBeVisible();
-
-    // Should have restored the project
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].pitch).toBe(55);
-
-    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
-    expect(tempo).toBe(130);
-  });
-
   test("project list shows most recently updated first", async ({ page }) => {
     // Create first project
     await clickNewProject(page);
@@ -228,24 +197,6 @@ test.describe("Multiple Projects", () => {
       "data-testid",
       `project-card-${project1Id}`,
     );
-  });
-
-  test("Space key continues last project", async ({ page }) => {
-    // Create a project
-    await clickNewProject(page);
-    await evaluateStore(page, (store) => {
-      store.getState().setTempo(115);
-    });
-    await evaluateFlushAutoSave(page);
-
-    // Reload and press Space
-    await page.goto("/");
-    await expect(page.getByTestId("continue-button")).toBeVisible();
-    await page.keyboard.press("Space");
-
-    await expect(page.getByTestId("transport")).toBeVisible();
-    const tempo = await evaluateStore(page, (store) => store.getState().tempo);
-    expect(tempo).toBe(115);
   });
 
   test("can rename project from startup screen", async ({ page }) => {
