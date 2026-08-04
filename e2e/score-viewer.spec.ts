@@ -21,8 +21,6 @@ test("opens the latest project state as a score in a new tab", async ({
   const projectId = await page.evaluate(() =>
     window.__e2e.projectStorage.getLastProjectId(),
   );
-  await page.getByTestId("app-menu-button").click();
-
   await page.evaluate(() => {
     const state = window.__e2e.useProjectStore.getState();
     state.addNote({
@@ -34,10 +32,12 @@ test("opens the latest project state as a score in a new tab", async ({
     });
     state.setTempo(137);
   });
+  await page.getByTestId("settings-button").click();
   const popupPromise = page.waitForEvent("popup");
-  await page.getByTestId("view-score-menu-item").click();
+  await page.getByTestId("view-score-button").click();
   const scorePage = await popupPromise;
 
+  await expect(page.getByTestId("settings-dialog")).not.toBeVisible();
   await expect(scorePage).toHaveURL(`/project/${projectId}/score`);
   await expect(scorePage.getByTestId("score-name")).toHaveText(
     "Untitled.musicxml",

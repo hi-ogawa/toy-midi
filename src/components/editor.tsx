@@ -1,6 +1,5 @@
 import {
   CircleHelpIcon,
-  FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
   SettingsIcon,
@@ -113,18 +112,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a
-                    href={`/project/${projectId}/score`}
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid="view-score-menu-item"
-                    onClick={flushAutoSave}
-                  >
-                    <FileMusicIcon />
-                    View Score
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
                   <a href="/" data-testid="all-projects-menu-item">
                     <FolderIcon />
                     All Projects
@@ -179,11 +166,16 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       >
         <Settings
           projectName={projectName}
+          projectScoreHref={`/project/${projectId}/score`}
           onProjectNameChange={(name) => {
             if (name && name !== projectName) {
               projectStorage.updateMetadata(projectId, { name });
               setProjectName(name);
             }
+          }}
+          onProjectScoreOpen={() => {
+            flushAutoSave();
+            setIsSettingsOpen(false);
           }}
           onAudioToMidiClick={(trackId) => {
             setIsSettingsOpen(false);
