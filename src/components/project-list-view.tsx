@@ -155,11 +155,6 @@ export function ProjectListView({
                     project={project}
                     isLastProject={project.id === lastProjectId}
                     isRenaming={project.id === renamingProjectId}
-                    onContinue={
-                      project.id === lastProjectId
-                        ? () => onSelectProject(project.id)
-                        : undefined
-                    }
                     onRenameStart={(e) => handleRenameStart(e, project.id)}
                     onRenameSubmit={(nextName) =>
                       handleRenameSubmit(project.id, nextName)
@@ -225,7 +220,6 @@ type ProjectListItemProps = {
   project: ProjectMetadata;
   isLastProject: boolean;
   isRenaming: boolean;
-  onContinue?: () => void;
   onRenameStart: (e: React.MouseEvent) => void;
   onRenameSubmit: (name: string) => void;
   onRenameCancel: () => void;
@@ -236,7 +230,6 @@ function ProjectListItem({
   project,
   isLastProject,
   isRenaming,
-  onContinue,
   onRenameStart,
   onRenameSubmit,
   onRenameCancel,
@@ -260,27 +253,29 @@ function ProjectListItem({
         />
       ) : (
         <div className="flex flex-1 items-center justify-between">
-          <a href={`/project/${project.id}`} className="flex-1 text-left">
-            <div className="font-medium text-neutral-100">{project.name}</div>
-            <div className="mt-1 text-xs text-neutral-500">
-              Last edited{" "}
-              {new Date(project.updatedAt).toLocaleDateString(undefined, {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+          <a
+            href={`/project/${project.id}`}
+            data-testid={isLastProject ? "continue-button" : undefined}
+            className="flex flex-1 items-center justify-between text-left"
+          >
+            <div>
+              <div className="font-medium text-neutral-100">{project.name}</div>
+              <div className="mt-1 text-xs text-neutral-500">
+                Last edited{" "}
+                {new Date(project.updatedAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </div>
             </div>
+            {isLastProject && (
+              <span className="mr-3 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
+                Continue
+              </span>
+            )}
           </a>
           <div className="flex items-center gap-1">
-            {isLastProject && onContinue && (
-              <Button
-                data-testid="continue-button"
-                onClick={onContinue}
-                className="mr-2 bg-emerald-600 px-4 text-white hover:bg-emerald-500"
-              >
-                Continue
-              </Button>
-            )}
             <button
               type="button"
               data-testid={`rename-button-${project.id}`}
