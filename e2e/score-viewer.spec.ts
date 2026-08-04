@@ -23,7 +23,6 @@ test("opens the latest project state as a score in a new tab", async ({
   );
   await page.getByTestId("app-menu-button").click();
 
-  const popupPromise = page.waitForEvent("popup");
   await page.evaluate(() => {
     const state = window.__e2e.useProjectStore.getState();
     state.addNote({
@@ -34,10 +33,9 @@ test("opens the latest project state as a score in a new tab", async ({
       velocity: 100,
     });
     state.setTempo(137);
-    document
-      .querySelector<HTMLElement>("[data-testid=view-score-menu-item]")!
-      .click();
   });
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByTestId("view-score-menu-item").click();
   const scorePage = await popupPromise;
 
   await expect(scorePage).toHaveURL(`/project/${projectId}/score`);

@@ -803,17 +803,7 @@ export function migrateSavedProject(data: AnySavedProject): SavedProject {
 }
 
 // Pure deserialization: SavedProject -> persisted ProjectState fields
-export function fromSavedProject(
-  data: AnySavedProject,
-): Partial<ProjectState> &
-  Pick<
-    ProjectState,
-    | "notes"
-    | "tempo"
-    | "timeSignature"
-    | "keySignature"
-    | "tabOpenStringPitches"
-  > {
+export function fromSavedProject(data: AnySavedProject) {
   // Version check: only reject if major breaking change
   if (data.version > STORAGE_VERSION) {
     console.warn("Project from newer version, some data may be lost");
@@ -860,5 +850,5 @@ export function fromSavedProject(
     selectedNoteIds: new Set(),
     selectedLocatorId: undefined,
     selectedAudioTrackId: undefined,
-  };
+  } satisfies Partial<ProjectState>;
 }

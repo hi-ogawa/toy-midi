@@ -118,7 +118,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
                     target="_blank"
                     rel="noreferrer"
                     data-testid="view-score-menu-item"
-                    onPointerDown={flushAutoSave}
                     onClick={flushAutoSave}
                   >
                     <FileMusicIcon />
