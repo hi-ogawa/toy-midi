@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { AudioToMidi } from "./audio-to-midi";
@@ -165,11 +166,16 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       >
         <Settings
           projectName={projectName}
+          projectScoreHref={`/project/${projectId}/score`}
           onProjectNameChange={(name) => {
             if (name && name !== projectName) {
               projectStorage.updateMetadata(projectId, { name });
               setProjectName(name);
             }
+          }}
+          onProjectScoreOpen={() => {
+            flushAutoSave();
+            setIsSettingsOpen(false);
           }}
           onAudioToMidiClick={(trackId) => {
             setIsSettingsOpen(false);
