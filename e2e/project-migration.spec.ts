@@ -3,7 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { exportProjectFileV1 } from "../src/lib/project-file";
 import type { SavedProjectV1 } from "../src/lib/project-store";
-import { clickContinue, evaluateStore, waitForEditor } from "./helpers";
+import { evaluateStore, waitForEditor } from "./helpers";
 
 const TEST_AUDIO_PATH = path.join(
   import.meta.dirname,
@@ -50,7 +50,8 @@ test.describe("Project Migration", () => {
     );
 
     await page.goto("/");
-    await clickContinue(page);
+    await page.locator('[data-testid^="project-card-"]').click();
+    await waitForEditor(page);
 
     const audioTracks = await evaluateStore(page, (store) => {
       return store.getState().audioTracks.map((track) => ({
@@ -152,10 +153,15 @@ test.describe("Project Migration", () => {
       137,
     );
 
-    // Continue (last-project pointer) survives the migration, and a second
-    // load is a no-op migration
+    // The last-project pointer survives the migration, and a second load is a
+    // no-op migration
     await page.goto("/");
-    await clickContinue(page);
+    await expect(page.getByTestId(`project-card-${bareId}`)).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    await page.getByTestId(`project-card-${bareId}`).click();
+    await waitForEditor(page);
     expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
       137,
     );

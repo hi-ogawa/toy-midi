@@ -150,16 +150,6 @@ export function ProjectListView({
 
         <div className="flex flex-col items-center gap-4">
           <div className="flex gap-4">
-            {hasProjects && (
-              <Button
-                data-testid="continue-button"
-                disabled={isLoading}
-                onClick={() => lastProjectId && onSelectProject(lastProjectId)}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30"
-              >
-                Continue
-              </Button>
-            )}
             <Button
               data-testid="new-project-button"
               disabled={isLoading}
@@ -181,13 +171,6 @@ export function ProjectListView({
               {isLoading ? "Importing..." : "Import Project"}
             </Button>
           </div>
-          <p className="text-neutral-600 text-sm">
-            Press{" "}
-            <kbd className="px-2 py-1 bg-neutral-800 text-neutral-400 rounded font-mono text-xs border border-neutral-700">
-              Space
-            </kbd>{" "}
-            to {hasProjects ? "continue" : "start"}
-          </p>
         </div>
       </div>
     </div>

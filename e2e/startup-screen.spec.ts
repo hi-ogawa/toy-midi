@@ -22,9 +22,6 @@ test.describe("Startup Screen", () => {
     const newProjectButton = page.getByTestId("new-project-button");
     await expect(newProjectButton).toBeVisible();
 
-    // Continue button should NOT be visible (no saved project)
-    await expect(page.getByTestId("continue-button")).not.toBeVisible();
-
     // Click new project
     await newProjectButton.click();
 
@@ -40,7 +37,7 @@ test.describe("Startup Screen", () => {
     expect(tempo).toBe(120);
   });
 
-  test("continue project flow", async ({ page }) => {
+  test("open existing project flow", async ({ page }) => {
     // First, create a project with some data via store
     const newProjectButton = page.getByTestId("new-project-button");
     await newProjectButton.click();
@@ -59,12 +56,9 @@ test.describe("Startup Screen", () => {
 
     await evaluateFlushAutoSave(page);
 
-    // Back on the project list, continue button should now be visible
+    // Open the saved project from the project list
     await page.goto("/");
-
-    const continueButton = page.getByTestId("continue-button");
-    await expect(continueButton).toBeVisible();
-    await continueButton.click();
+    await page.locator('[data-testid^="project-card-"]').click();
 
     // Main UI should be visible with restored state
     await expect(page.getByTestId("transport")).toBeVisible();
@@ -74,34 +68,5 @@ test.describe("Startup Screen", () => {
 
     const tempo = await evaluateStore(page, (store) => store.getState().tempo);
     expect(tempo).toBe(140);
-  });
-
-  test("Space key shortcut", async ({ page }) => {
-    // Without saved project, Space should start new project
-    await expect(page.getByTestId("startup-screen")).toBeVisible();
-    await page.keyboard.press("Space");
-    await expect(page.getByTestId("transport")).toBeVisible();
-
-    // Add a note and reload
-    await evaluateStore(page, (store) => {
-      store.getState().addNote({
-        id: "test-note-enter",
-        pitch: 65,
-        start: 0.5,
-        duration: 1.5,
-        velocity: 90,
-      });
-    });
-    await evaluateFlushAutoSave(page);
-
-    // With saved project, Space should continue
-    await page.goto("/");
-    await expect(page.getByTestId("continue-button")).toBeVisible();
-    await page.keyboard.press("Space");
-    await expect(page.getByTestId("transport")).toBeVisible();
-
-    const notes = await evaluateStore(page, (store) => store.getState().notes);
-    expect(notes).toHaveLength(1);
-    expect(notes[0].pitch).toBe(65);
   });
 });
