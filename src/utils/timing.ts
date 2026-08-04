@@ -1,19 +1,35 @@
 // Copied from ../acpella/src/utils/timing.ts.
-export function debounce(fn: () => void, ms: number) {
+export function debounce(
+  fn: () => void,
+  { wait, maxWait }: { wait: number; maxWait?: number },
+) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  let maxTimeout: ReturnType<typeof setTimeout> | undefined;
 
   function schedule() {
-    cancel();
+    if (typeof timeout !== "undefined") {
+      clearTimeout(timeout);
+    }
     timeout = setTimeout(() => {
-      timeout = undefined;
+      cancel();
       fn();
-    }, ms);
+    }, wait);
+    if (typeof maxWait !== "undefined") {
+      maxTimeout ??= setTimeout(() => {
+        cancel();
+        fn();
+      }, maxWait);
+    }
   }
 
   function cancel() {
     if (typeof timeout !== "undefined") {
       clearTimeout(timeout);
       timeout = undefined;
+    }
+    if (typeof maxTimeout !== "undefined") {
+      clearTimeout(maxTimeout);
+      maxTimeout = undefined;
     }
   }
 

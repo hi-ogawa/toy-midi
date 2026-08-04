@@ -66,17 +66,24 @@ function openProjectSession(projectId: string): ProjectSession {
   const autoSaveDebounceMs = Number(
     import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 1000,
   );
-  const saveDebouncer = debounce(() => {
-    try {
-      projectStorage.save(
-        projectId,
-        toSavedProject(useProjectStore.getState()),
-      );
-    } catch (e) {
-      console.error("Failed to save project:", e);
-      toast.error("Failed to save project. Changes may be lost.");
-    }
-  }, autoSaveDebounceMs);
+  const autoSaveMaxWaitMs = 10_000;
+  const saveDebouncer = debounce(
+    () => {
+      try {
+        projectStorage.save(
+          projectId,
+          toSavedProject(useProjectStore.getState()),
+        );
+      } catch (e) {
+        console.error("Failed to save project:", e);
+        toast.error("Failed to save project. Changes may be lost.");
+      }
+    },
+    {
+      wait: autoSaveDebounceMs,
+      maxWait: autoSaveMaxWaitMs,
+    },
+  );
   const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
   activeSaveDebouncer = saveDebouncer;
 
