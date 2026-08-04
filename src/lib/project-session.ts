@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { debounce } from "../utils/timing";
+import { throttle } from "../utils/timing";
 import { audioManager, loadAudioFile } from "./audio";
 import { historyStore } from "./history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
@@ -62,30 +62,23 @@ function openProjectSession(projectId: string): ProjectSession {
     audioManager.applyState(state, prevState);
   });
 
-  // Auto-save on state changes (debounced)
-  const autoSaveDebounceMs = Number(
-    import.meta.env.VITE_AUTO_SAVE_DEBOUNCE_MS ?? 1000,
+  // Auto-save on state changes (throttled)
+  const autoSaveThrottleMs = Number(
+    import.meta.env.VITE_AUTO_SAVE_THROTTLE_MS ?? 1000,
   );
-  const autoSaveMaxWaitMs = 10_000;
-  const saveDebouncer = debounce(
-    () => {
-      try {
-        projectStorage.save(
-          projectId,
-          toSavedProject(useProjectStore.getState()),
-        );
-      } catch (e) {
-        console.error("Failed to save project:", e);
-        toast.error("Failed to save project. Changes may be lost.");
-      }
-    },
-    {
-      wait: autoSaveDebounceMs,
-      maxWait: autoSaveMaxWaitMs,
-    },
-  );
-  const unsubscribeAutoSave = useProjectStore.subscribe(saveDebouncer.schedule);
-  activeSaveDebouncer = saveDebouncer;
+  const saveThrottle = throttle(() => {
+    try {
+      projectStorage.save(
+        projectId,
+        toSavedProject(useProjectStore.getState()),
+      );
+    } catch (e) {
+      console.error("Failed to save project:", e);
+      toast.error("Failed to save project. Changes may be lost.");
+    }
+  }, autoSaveThrottleMs);
+  const unsubscribeAutoSave = useProjectStore.subscribe(saveThrottle.schedule);
+  activeSaveThrottle = saveThrottle;
 
   // Session lifetime as an AbortController: dispose aborts, which detaches
   // the shortcut listener and stops the background audio attach.
@@ -134,8 +127,8 @@ function openProjectSession(projectId: string): ProjectSession {
       abortController.abort();
       unsubscribeAudioSync();
       unsubscribeAutoSave();
-      saveDebouncer.flush();
-      activeSaveDebouncer = undefined;
+      saveThrottle.flush();
+      activeSaveThrottle = undefined;
       historyStore.clearHistory();
     },
   };
@@ -198,10 +191,10 @@ async function loadStoredTrackAudio(track: AudioTrack) {
   return await loadAudioFile(new File([asset.blob], asset.name));
 }
 
-// Auto-save debouncer of the active session, so e2e tests can force a save
-// instead of waiting out the debounce.
-let activeSaveDebouncer: ReturnType<typeof debounce> | undefined;
+// Auto-save throttle of the active session, so e2e tests can force a save
+// instead of waiting out the throttle.
+let activeSaveThrottle: ReturnType<typeof throttle> | undefined;
 
 export function flushAutoSave() {
-  activeSaveDebouncer?.flush();
+  activeSaveThrottle?.flush();
 }

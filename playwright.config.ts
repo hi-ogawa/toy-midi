@@ -7,7 +7,7 @@ export default defineConfig({
     url: "http://localhost:5183",
     reuseExistingServer: false,
     env: {
-      VITE_AUTO_SAVE_DEBOUNCE_MS: "50",
+      VITE_AUTO_SAVE_THROTTLE_MS: "50",
       ...(process.env.CI ? { VITE_FAKE_BASIC_PITCH: "true" } : {}),
     },
   },

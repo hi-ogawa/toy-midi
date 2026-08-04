@@ -39,8 +39,8 @@ test.describe("Project Persistence", () => {
     const note = page.locator("[data-testid^='note-']");
     await expect(note).toHaveCount(1);
 
-    // Wait out the real debounce (50ms via VITE_AUTO_SAVE_DEBOUNCE_MS). This
-    // test intentionally covers the debounced auto-save path end-to-end;
+    // Wait out the real throttle (50ms via VITE_AUTO_SAVE_THROTTLE_MS). This
+    // test intentionally covers the throttled auto-save path end-to-end;
     // other tests use evaluateFlushAutoSave() instead.
     await page.waitForTimeout(100);
 

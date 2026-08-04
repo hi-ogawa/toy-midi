@@ -62,7 +62,7 @@ export async function loadAudioFile(
 
 /**
  * Force a pending auto-save to run immediately instead of waiting out the
- * debounce.
+ * throttle.
  */
 export async function evaluateFlushAutoSave(page: Page): Promise<void> {
   await page.waitForFunction(() => window.__e2e !== undefined);

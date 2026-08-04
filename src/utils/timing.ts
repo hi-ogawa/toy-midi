@@ -1,24 +1,23 @@
 // Copied from ../acpella/src/utils/timing.ts.
-export function debounce(
-  fn: () => void,
-  { wait, maxWait }: { wait: number; maxWait?: number },
-) {
+export function throttle(fn: () => void, ms: number) {
   let timeout: ReturnType<typeof setTimeout> | undefined;
-  let maxTimeout: ReturnType<typeof setTimeout> | undefined;
+  let pending = false;
 
   function schedule() {
-    if (typeof timeout !== "undefined") {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(() => {
-      cancel();
+    if (typeof timeout === "undefined") {
+      timeout = setTimeout(runTrailing, ms);
       fn();
-    }, wait);
-    if (typeof maxWait !== "undefined") {
-      maxTimeout ??= setTimeout(() => {
-        cancel();
-        fn();
-      }, maxWait);
+    } else {
+      pending = true;
+    }
+  }
+
+  function runTrailing() {
+    timeout = undefined;
+    if (pending) {
+      pending = false;
+      timeout = setTimeout(runTrailing, ms);
+      fn();
     }
   }
 
@@ -27,14 +26,11 @@ export function debounce(
       clearTimeout(timeout);
       timeout = undefined;
     }
-    if (typeof maxTimeout !== "undefined") {
-      clearTimeout(maxTimeout);
-      maxTimeout = undefined;
-    }
+    pending = false;
   }
 
   function flush() {
-    const shouldRun = typeof timeout !== "undefined";
+    const shouldRun = pending;
     cancel();
     if (shouldRun) {
       fn();
