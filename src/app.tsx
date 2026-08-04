@@ -1,8 +1,6 @@
 import { Editor } from "./components/editor";
 import { ProjectListView } from "./components/project-list-view";
 import { ScoreViewer } from "./components/score-viewer";
-import { useWindowEvent } from "./hooks/use-window-event";
-import { matchKeyboardEvent } from "./lib/keyboard";
 import { exportMusicXml } from "./lib/musicxml-export";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
@@ -97,29 +95,6 @@ function ProjectRoute({ projectId }: { projectId: string }) {
 }
 
 function StartupApp() {
-  // Space to continue/start project
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      if (matchKeyboardEvent(e, "Space")) {
-        e.preventDefault();
-        e.stopPropagation();
-        openProject(
-          projectStorage.getLastProjectId() ?? projectStorage.createNew(),
-        );
-      }
-    },
-    true,
-  );
-
   return (
     <ProjectListView
       onSelectProject={openProject}
