@@ -46,6 +46,16 @@ export function ScoreViewer({
     runtime.subscribe,
     runtime.getSnapshot,
   );
+  useEffect(() => {
+    const root = runtimeRootRef.current;
+    if (!root) {
+      return;
+    }
+    runtime.attach(root);
+    setIsRuntimeAttached(true);
+    return () => runtime.dispose();
+  }, [runtime]);
+
   const tempoInput = useDraftInput({
     value: runtimeState.tempo,
     onCommit: (tempo) => runtime.setTempo(tempo),
@@ -62,48 +72,36 @@ export function ScoreViewer({
     }
   });
 
-  async function loadScore({
-    layout,
-    source,
-  }: {
-    layout: ScoreLayout;
-    source: File | ScoreSource;
-  }) {
-    const nextScore =
-      source instanceof File
-        ? { name: source.name, xml: await source.text() }
-        : source;
-    await runtime.load({ score: nextScore, layout });
-    setScore(nextScore);
-    return nextScore;
-  }
+  const loadMutation = useMutation({
+    mutationFn: async ({
+      layout,
+      source,
+    }: {
+      layout: ScoreLayout;
+      source: File | ScoreSource;
+    }) => {
+      const nextScore =
+        source instanceof File
+          ? { name: source.name, xml: await source.text() }
+          : source;
+      await runtime.load({ score: nextScore, layout });
+      setScore(nextScore);
+    },
+  });
 
-  const loadMutation = useMutation({ mutationFn: loadScore });
-  const initialLoadQuery = useQuery({
+  // Use the query cache to deduplicate initial loading under Strict Mode.
+  useQuery({
     queryKey: ["score-viewer-initial-source", initialSource],
     enabled: isRuntimeAttached && initialSource !== undefined,
     staleTime: Infinity,
     queryFn: async () => {
-      if (!initialSource) {
-        throw new Error("Initial score source is missing");
-      }
-      return await loadScore({
-        layout: "continuous",
-        source: initialSource,
+      loadMutation.mutate({
+        layout,
+        source: initialSource!,
       });
+      return true;
     },
   });
-  const loadError = loadMutation.error ?? initialLoadQuery.error;
-
-  useEffect(() => {
-    const root = runtimeRootRef.current;
-    if (!root) {
-      return;
-    }
-    runtime.attach(root);
-    setIsRuntimeAttached(true);
-    return () => runtime.dispose();
-  }, [runtime]);
 
   function changeLayout(nextLayout: ScoreLayout) {
     if (nextLayout === layout) {
@@ -265,7 +263,7 @@ export function ScoreViewer({
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
-      {!score && !loadError && (
+      {!score && !loadMutation.error && (
         <section className="min-h-0 flex-1 p-6">
           <div className="flex justify-center">
             <FileDropInput
@@ -286,9 +284,9 @@ export function ScoreViewer({
           </div>
         </section>
       )}
-      {loadError && (
+      {loadMutation.error && (
         <p className="mx-auto mt-4 max-w-6xl text-red-800">
-          {loadError.message}
+          {loadMutation.error.message}
         </p>
       )}
       <div
