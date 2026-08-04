@@ -81,9 +81,8 @@ export function ProjectListView({
   return (
     <div
       data-testid="startup-screen"
-      className="fixed inset-0 bg-neutral-900 flex items-center justify-center z-50 overflow-hidden"
+      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
     >
-      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -93,16 +92,19 @@ export function ProjectListView({
       />
 
       {/* Gradient glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_center,#10b98125_0%,transparent_70%)] pointer-events-none" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
 
-      <div className="flex flex-col items-center gap-8 w-full px-6 relative">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
-            Toy MIDI
-          </h1>
-          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-neutral-500">
-            <p>A simple piano roll editor</p>
-            <span className="text-neutral-700">/</span>
+      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
+        <header className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
+              Toy MIDI
+            </h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              A simple piano roll editor
+            </p>
+          </div>
+          <nav className="flex items-center gap-4 text-sm text-neutral-500">
             <a
               href="/score-viewer"
               data-testid="score-viewer-link"
@@ -111,7 +113,6 @@ export function ProjectListView({
               <Music2Icon className="size-4" />
               Score Viewer
             </a>
-            <span className="text-neutral-700">/</span>
             <a
               href="https://github.com/hi-ogawa/toy-midi/"
               target="_blank"
@@ -121,57 +122,80 @@ export function ProjectListView({
               <Github className="size-4" />
               GitHub
             </a>
-          </div>
-        </div>
+          </nav>
+        </header>
 
-        {hasProjects && (
-          <div className="w-full max-w-lg">
-            <h2 className="text-sm font-medium text-neutral-400 uppercase tracking-wider mb-4">
+        <main className="mt-14 min-h-0 flex-1">
+          <div className="mb-4">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
               Your Projects
             </h2>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {projects.map((project) => (
-                <ProjectListItem
-                  key={project.id}
-                  project={project}
-                  isLastProject={project.id === lastProjectId}
-                  isRenaming={project.id === renamingProjectId}
-                  onRenameStart={(e) => handleRenameStart(e, project.id)}
-                  onRenameSubmit={(nextName) =>
-                    handleRenameSubmit(project.id, nextName)
-                  }
-                  onRenameCancel={handleRenameCancel}
-                  onDelete={(e) => handleDelete(e, project.id)}
-                />
-              ))}
-            </div>
+            <p className="mt-2 text-sm text-neutral-600">
+              {hasProjects
+                ? "Open a project to continue editing."
+                : "Create a project to start arranging MIDI."}
+            </p>
           </div>
-        )}
 
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex gap-4">
-            <Button
-              data-testid="new-project-button"
-              disabled={isLoading}
-              onClick={onNewProject}
-              className={`px-6 py-2.5 ${
-                hasProjects
-                  ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30"
+          <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+            {hasProjects && (
+              <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+                {projects.map((project) => (
+                  <ProjectListItem
+                    key={project.id}
+                    project={project}
+                    isLastProject={project.id === lastProjectId}
+                    isRenaming={project.id === renamingProjectId}
+                    onRenameStart={(e) => handleRenameStart(e, project.id)}
+                    onRenameSubmit={(nextName) =>
+                      handleRenameSubmit(project.id, nextName)
+                    }
+                    onRenameCancel={handleRenameCancel}
+                    onDelete={(e) => handleDelete(e, project.id)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!hasProjects && (
+              <div className="flex min-h-36 flex-col items-center justify-center text-center">
+                <p className="text-base font-medium text-neutral-300">
+                  No projects yet
+                </p>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Start from an empty piano roll or import an existing project.
+                </p>
+              </div>
+            )}
+
+            <div
+              className={`flex items-center gap-2 ${
+                hasProjects ? "mt-4 border-t border-neutral-700/70 pt-4" : ""
               }`}
             >
-              {hasProjects ? "New Project" : "Create Your First Project"}
-            </Button>
-            <Button
-              data-testid="import-project-button"
-              disabled={isLoading}
-              onClick={handleImportClick}
-              className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
-            >
-              {isLoading ? "Importing..." : "Import Project"}
-            </Button>
-          </div>
-        </div>
+              <Button
+                data-testid="new-project-button"
+                disabled={isLoading}
+                onClick={onNewProject}
+                className={`px-4 py-2 text-sm ${
+                  hasProjects
+                    ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
+                    : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+                }`}
+              >
+                {hasProjects ? "New Project" : "Create Your First Project"}
+              </Button>
+              <Button
+                data-testid="import-project-button"
+                disabled={isLoading}
+                onClick={handleImportClick}
+                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+              >
+                {isLoading ? "Importing..." : "Import Project"}
+              </Button>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
   );
@@ -200,10 +224,10 @@ function ProjectListItem({
     <div
       data-testid={`project-card-${project.id}`}
       aria-current={isLastProject ? "true" : undefined}
-      className={`group w-full h-20 px-5 rounded-xl border transition-colors flex items-center ${
+      className={`group flex h-[4.5rem] w-full items-center rounded-lg border px-4 transition-colors ${
         isLastProject
-          ? "bg-emerald-900/25 hover:bg-emerald-900/35 border-emerald-700/50"
-          : "bg-neutral-800/60 hover:bg-neutral-800 border-neutral-700/50"
+          ? "border-emerald-700/60 bg-emerald-900/20 hover:bg-emerald-900/30"
+          : "border-neutral-700/60 bg-neutral-800/70 hover:bg-neutral-800"
       }`}
     >
       {isRenaming ? (
@@ -213,12 +237,10 @@ function ProjectListItem({
           onCancel={onRenameCancel}
         />
       ) : (
-        <div className="flex justify-between items-center flex-1">
+        <div className="flex flex-1 items-center justify-between">
           <a href={`/project/${project.id}`} className="flex-1 text-left">
-            <div className="text-neutral-100 font-medium text-lg">
-              {project.name}
-            </div>
-            <div className="text-neutral-500 text-sm mt-1">
+            <div className="font-medium text-neutral-100">{project.name}</div>
+            <div className="mt-1 text-xs text-neutral-500">
               Last edited{" "}
               {new Date(project.updatedAt).toLocaleDateString(undefined, {
                 month: "short",
