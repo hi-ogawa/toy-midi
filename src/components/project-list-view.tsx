@@ -22,7 +22,6 @@ export function ProjectListView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
-  const lastProjectId = projectStorage.getLastProjectId();
 
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -125,25 +124,15 @@ export function ProjectListView({
         </header>
 
         <main className="mt-14 min-h-0 flex-1">
-          <div className="mb-4 flex items-end justify-between">
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
-                Your Projects
-              </h2>
-              <p className="mt-2 text-sm text-neutral-600">
-                {hasProjects
-                  ? "Continue editing or open another project."
-                  : "Create a project to start arranging MIDI."}
-              </p>
-            </div>
-            {hasProjects && (
-              <p className="text-xs text-neutral-600">
-                <kbd className="rounded border border-neutral-700 bg-neutral-800 px-1.5 py-0.5 font-mono text-neutral-400">
-                  Space
-                </kbd>{" "}
-                to continue
-              </p>
-            )}
+          <div className="mb-4">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
+              Your Projects
+            </h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              {hasProjects
+                ? "Open a project to continue editing."
+                : "Create a project to start arranging MIDI."}
+            </p>
           </div>
 
           <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
@@ -153,7 +142,6 @@ export function ProjectListView({
                   <ProjectListItem
                     key={project.id}
                     project={project}
-                    isLastProject={project.id === lastProjectId}
                     isRenaming={project.id === renamingProjectId}
                     onRenameStart={(e) => handleRenameStart(e, project.id)}
                     onRenameSubmit={(nextName) =>
@@ -202,12 +190,6 @@ export function ProjectListView({
               >
                 {isLoading ? "Importing..." : "Import Project"}
               </Button>
-              {!hasProjects && (
-                <p className="ml-auto text-xs text-neutral-600">
-                  Press <kbd className="font-mono text-neutral-400">Space</kbd>{" "}
-                  to start
-                </p>
-              )}
             </div>
           </section>
         </main>
@@ -218,7 +200,6 @@ export function ProjectListView({
 
 type ProjectListItemProps = {
   project: ProjectMetadata;
-  isLastProject: boolean;
   isRenaming: boolean;
   onRenameStart: (e: React.MouseEvent) => void;
   onRenameSubmit: (name: string) => void;
@@ -228,7 +209,6 @@ type ProjectListItemProps = {
 
 function ProjectListItem({
   project,
-  isLastProject,
   isRenaming,
   onRenameStart,
   onRenameSubmit,
@@ -238,12 +218,7 @@ function ProjectListItem({
   return (
     <div
       data-testid={`project-card-${project.id}`}
-      aria-current={isLastProject ? "true" : undefined}
-      className={`group flex h-[4.5rem] w-full items-center rounded-lg border px-4 transition-colors ${
-        isLastProject
-          ? "border-emerald-700/60 bg-emerald-900/20 shadow-[inset_3px_0_0_#10b981] hover:bg-emerald-900/30"
-          : "border-neutral-700/60 bg-neutral-800/70 hover:bg-neutral-800"
-      }`}
+      className="group flex h-[4.5rem] w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800"
     >
       {isRenaming ? (
         <ProjectRenameInput
@@ -253,27 +228,16 @@ function ProjectListItem({
         />
       ) : (
         <div className="flex flex-1 items-center justify-between">
-          <a
-            href={`/project/${project.id}`}
-            data-testid={isLastProject ? "continue-button" : undefined}
-            className="flex flex-1 items-center justify-between text-left"
-          >
-            <div>
-              <div className="font-medium text-neutral-100">{project.name}</div>
-              <div className="mt-1 text-xs text-neutral-500">
-                Last edited{" "}
-                {new Date(project.updatedAt).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </div>
+          <a href={`/project/${project.id}`} className="flex-1 text-left">
+            <div className="font-medium text-neutral-100">{project.name}</div>
+            <div className="mt-1 text-xs text-neutral-500">
+              Last edited{" "}
+              {new Date(project.updatedAt).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </div>
-            {isLastProject && (
-              <span className="mr-3 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
-                Continue
-              </span>
-            )}
           </a>
           <div className="flex items-center gap-1">
             <button
