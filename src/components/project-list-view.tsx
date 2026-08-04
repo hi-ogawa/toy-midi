@@ -22,6 +22,7 @@ export function ProjectListView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
+  const lastProjectId = projectStorage.getLastProjectId();
 
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -142,6 +143,7 @@ export function ProjectListView({
                   <ProjectListItem
                     key={project.id}
                     project={project}
+                    isLastProject={project.id === lastProjectId}
                     isRenaming={project.id === renamingProjectId}
                     onRenameStart={(e) => handleRenameStart(e, project.id)}
                     onRenameSubmit={(nextName) =>
@@ -200,6 +202,7 @@ export function ProjectListView({
 
 type ProjectListItemProps = {
   project: ProjectMetadata;
+  isLastProject: boolean;
   isRenaming: boolean;
   onRenameStart: (e: React.MouseEvent) => void;
   onRenameSubmit: (name: string) => void;
@@ -209,6 +212,7 @@ type ProjectListItemProps = {
 
 function ProjectListItem({
   project,
+  isLastProject,
   isRenaming,
   onRenameStart,
   onRenameSubmit,
@@ -218,7 +222,12 @@ function ProjectListItem({
   return (
     <div
       data-testid={`project-card-${project.id}`}
-      className="group flex h-[4.5rem] w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800"
+      aria-current={isLastProject ? "true" : undefined}
+      className={`group flex h-[4.5rem] w-full items-center rounded-lg border px-4 transition-colors ${
+        isLastProject
+          ? "border-emerald-700/60 bg-emerald-900/20 shadow-[inset_3px_0_0_#10b981] hover:bg-emerald-900/30"
+          : "border-neutral-700/60 bg-neutral-800/70 hover:bg-neutral-800"
+      }`}
     >
       {isRenaming ? (
         <ProjectRenameInput

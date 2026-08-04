@@ -153,8 +153,13 @@ test.describe("Project Migration", () => {
       137,
     );
 
-    // A second load is a no-op migration
+    // The last-project pointer survives the migration, and a second load is a
+    // no-op migration
     await page.goto("/");
+    await expect(page.getByTestId(`project-card-${bareId}`)).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
     await page.getByTestId(`project-card-${bareId}`).click();
     await waitForEditor(page);
     expect(await evaluateStore(page, (store) => store.getState().tempo)).toBe(
