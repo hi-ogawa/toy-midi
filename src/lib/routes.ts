@@ -12,6 +12,7 @@ export const routes = route({
 });
 
 type RouteName = keyof typeof routes;
+
 type RouteMatch = {
   [name in RouteName]: (typeof routes)[name] extends Route<
     infer _method,
