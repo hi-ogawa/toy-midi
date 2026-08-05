@@ -13,7 +13,6 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { exportMusicXml } from "../lib/musicxml-export";
-import { KEY_SIGNATURES } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -29,6 +28,51 @@ import {
 } from "../lib/tab-annotation";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
+
+const KEY_SIGNATURE_OPTION_GROUPS = [
+  {
+    label: "Major",
+    mode: "major",
+    options: [
+      { fifths: 0, label: "C major" },
+      { fifths: 1, label: "G major" },
+      { fifths: 2, label: "D major" },
+      { fifths: 3, label: "A major" },
+      { fifths: 4, label: "E major" },
+      { fifths: 5, label: "B major" },
+      { fifths: 6, label: "F♯ major" },
+      { fifths: 7, label: "C♯ major" },
+      { fifths: -1, label: "F major" },
+      { fifths: -2, label: "B♭ major" },
+      { fifths: -3, label: "E♭ major" },
+      { fifths: -4, label: "A♭ major" },
+      { fifths: -5, label: "D♭ major" },
+      { fifths: -6, label: "G♭ major" },
+      { fifths: -7, label: "C♭ major" },
+    ],
+  },
+  {
+    label: "Minor",
+    mode: "minor",
+    options: [
+      { fifths: 0, label: "A minor" },
+      { fifths: 1, label: "E minor" },
+      { fifths: 2, label: "B minor" },
+      { fifths: 3, label: "F♯ minor" },
+      { fifths: 4, label: "C♯ minor" },
+      { fifths: 5, label: "G♯ minor" },
+      { fifths: 6, label: "D♯ minor" },
+      { fifths: 7, label: "A♯ minor" },
+      { fifths: -1, label: "D minor" },
+      { fifths: -2, label: "G minor" },
+      { fifths: -3, label: "C minor" },
+      { fifths: -4, label: "F minor" },
+      { fifths: -5, label: "B♭ minor" },
+      { fifths: -6, label: "E♭ minor" },
+      { fifths: -7, label: "A♭ minor" },
+    ],
+  },
+] as const;
 
 type SettingsProps = {
   // Project section
@@ -305,13 +349,17 @@ export function Settings({
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              {KEY_SIGNATURES.map((key) => (
-                <option
-                  key={`${key.fifths}:${key.mode}`}
-                  value={`${key.fifths}:${key.mode}`}
-                >
-                  {key.label}
-                </option>
+              {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
+                <optgroup key={group.mode} label={group.label}>
+                  {group.options.map((key) => (
+                    <option
+                      key={`${key.fifths}:${group.mode}`}
+                      value={`${key.fifths}:${group.mode}`}
+                    >
+                      {key.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
