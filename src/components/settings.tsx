@@ -14,7 +14,7 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { exportMusicXml } from "../lib/musicxml-export";
-import { KEY_SIGNATURES } from "../lib/pitch-spelling";
+import { KEY_SIGNATURE_OPTION_GROUPS } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -310,13 +310,17 @@ export function Settings({
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              {KEY_SIGNATURES.map((key) => (
-                <option
-                  key={`${key.fifths}:${key.mode}`}
-                  value={`${key.fifths}:${key.mode}`}
-                >
-                  {key.label}
-                </option>
+              {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
+                <optgroup key={group.mode} label={group.label}>
+                  {group.options.map((key) => (
+                    <option
+                      key={`${key.fifths}:${group.mode}`}
+                      value={`${key.fifths}:${group.mode}`}
+                    >
+                      {key.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
