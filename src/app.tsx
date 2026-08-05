@@ -4,10 +4,10 @@ import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
-import { routeMatcher, routes } from "./lib/routes";
+import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
-  const match = routeMatcher.match(window.location.href);
+  const match = matchRoute(window.location.href);
 
   switch (match?.data) {
     case "scoreViewer": {

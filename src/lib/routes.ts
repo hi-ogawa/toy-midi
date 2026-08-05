@@ -24,10 +24,8 @@ for (const name of Object.keys(routes) as RouteName[]) {
   matcher.add(routes[name].pattern, name);
 }
 
-export const routeMatcher = {
-  match(url: string | URL) {
-    // MultiMatcher tracks pattern and data as independent unions. These entries
-    // are registered together above, so restore their correlation for callers.
-    return matcher.match(url) as RouteMatch | null;
-  },
-};
+export function matchRoute(url: string | URL) {
+  // MultiMatcher tracks pattern and data as independent unions. These entries
+  // are registered together above, so restore their correlation for callers.
+  return matcher.match(url) as RouteMatch | null;
+}
