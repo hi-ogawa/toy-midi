@@ -4,23 +4,26 @@ import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
-import { routes } from "./lib/routes";
+import { routeMatcher, routes } from "./lib/routes";
 
 export function App() {
-  if (window.location.pathname === "/score-viewer") {
-    return <ScoreViewer />;
+  const match = routeMatcher.match(window.location.href);
+
+  switch (match?.data) {
+    case "scoreViewer": {
+      return <ScoreViewer />;
+    }
+    case "projectScore": {
+      return <ProjectScoreRoute projectId={match.params.projectId!} />;
+    }
+    case "project": {
+      return <ProjectRoute projectId={match.params.projectId!} />;
+    }
+    case "home":
+    default: {
+      return <StartupApp />;
+    }
   }
-  const scoreMatch = window.location.pathname.match(
-    /^\/project\/([^/]+)\/score$/,
-  );
-  if (scoreMatch) {
-    return <ProjectScoreRoute projectId={scoreMatch[1]} />;
-  }
-  const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
-  if (match) {
-    return <ProjectRoute projectId={match[1]} />;
-  }
-  return <StartupApp />;
 }
 
 function ProjectScoreRoute({ projectId }: { projectId: string }) {
