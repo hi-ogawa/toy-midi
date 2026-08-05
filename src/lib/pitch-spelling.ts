@@ -17,6 +17,51 @@ type SpelledPitchClass = {
   alter: number;
 };
 
+export const KEY_SIGNATURE_OPTION_GROUPS = [
+  {
+    label: "Major",
+    mode: "major",
+    options: [
+      { fifths: 0, label: "C major" },
+      { fifths: 1, label: "G major" },
+      { fifths: 2, label: "D major" },
+      { fifths: 3, label: "A major" },
+      { fifths: 4, label: "E major" },
+      { fifths: 5, label: "B major" },
+      { fifths: 6, label: "F♯ major" },
+      { fifths: 7, label: "C♯ major" },
+      { fifths: -1, label: "F major" },
+      { fifths: -2, label: "B♭ major" },
+      { fifths: -3, label: "E♭ major" },
+      { fifths: -4, label: "A♭ major" },
+      { fifths: -5, label: "D♭ major" },
+      { fifths: -6, label: "G♭ major" },
+      { fifths: -7, label: "C♭ major" },
+    ],
+  },
+  {
+    label: "Minor",
+    mode: "minor",
+    options: [
+      { fifths: 0, label: "A minor" },
+      { fifths: 1, label: "E minor" },
+      { fifths: 2, label: "B minor" },
+      { fifths: 3, label: "F♯ minor" },
+      { fifths: 4, label: "C♯ minor" },
+      { fifths: 5, label: "G♯ minor" },
+      { fifths: 6, label: "D♯ minor" },
+      { fifths: 7, label: "A♯ minor" },
+      { fifths: -1, label: "D minor" },
+      { fifths: -2, label: "G minor" },
+      { fifths: -3, label: "C minor" },
+      { fifths: -4, label: "F minor" },
+      { fifths: -5, label: "B♭ minor" },
+      { fifths: -6, label: "E♭ minor" },
+      { fifths: -7, label: "A♭ minor" },
+    ],
+  },
+] as const;
+
 const NATURAL_PITCH_CLASS_BY_LETTER: Record<NoteLetter, number> = {
   C: 0,
   D: 2,
