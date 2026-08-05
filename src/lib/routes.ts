@@ -1,6 +1,9 @@
 import { type Route, route } from "@remix-run/fetch-router/routes";
 import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 
+// borrow type-safe routing utils from remix
+// with minor twist to make it work as standalone route mathcing helper
+
 export const routes = route({
   home: "/",
   scoreViewer: "/score-viewer",
