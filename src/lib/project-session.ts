@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { memo } from "../utils/memo";
 import { debounce } from "../utils/timing";
 import { audioManager, loadAudioFile } from "./audio";
 import { historyStore } from "./history-store";
@@ -12,13 +13,13 @@ import {
   useProjectStore,
 } from "./project-store";
 
-export interface ProjectSession {
+interface ProjectSession {
   projectId: string;
   projectName: string;
   dispose: () => void;
 }
 
-export type ProjectSessionResult =
+type ProjectSessionResult =
   | { ok: true; value: ProjectSession }
   | { ok: false; error: unknown };
 
@@ -27,19 +28,14 @@ export type ProjectSessionResult =
 // double render. Failures are cached like successes, so an open is attempted
 // exactly once per id. Entries live until full-page navigation, matching the
 // previous react-query gcTime: Infinity behavior.
-const sessionResults = new Map<string, ProjectSessionResult>();
+export const getProjectSession = memo(getProjectSessionImpl);
 
-export function getProjectSession(projectId: string): ProjectSessionResult {
-  let result = sessionResults.get(projectId);
-  if (!result) {
-    try {
-      result = { ok: true, value: openProjectSession(projectId) };
-    } catch (error) {
-      result = { ok: false, error };
-    }
-    sessionResults.set(projectId, result);
+function getProjectSessionImpl(projectId: string): ProjectSessionResult {
+  try {
+    return { ok: true, value: openProjectSession(projectId) };
+  } catch (error) {
+    return { ok: false, error };
   }
-  return result;
 }
 
 // Open a project as the active document: hydrate the store synchronously,

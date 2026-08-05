@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   DownloadIcon,
+  FileMusicIcon,
   SparklesIcon,
   Trash2Icon,
   UploadIcon,
@@ -33,14 +34,18 @@ import { Button } from "./ui/button";
 type SettingsProps = {
   // Project section
   projectName: string;
+  projectScoreHref: string;
   onProjectNameChange: (name: string) => void;
+  onProjectScoreOpen: () => void;
   // Closes settings and opens the transcription panel for the track
   onAudioToMidiClick: (trackId: string) => void;
 };
 
 export function Settings({
   projectName,
+  projectScoreHref,
   onProjectNameChange,
+  onProjectScoreOpen,
   onAudioToMidiClick,
 }: SettingsProps) {
   const projectNameInput = useDraftTextInput({
@@ -398,6 +403,17 @@ export function Settings({
             <DownloadIcon className="size-4" />
             Export MIDI
           </Button>
+          <a
+            href={projectScoreHref}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="view-score-button"
+            onClick={onProjectScoreOpen}
+            className="inline-flex h-8 w-full items-center justify-start gap-1.5 rounded-md border border-border bg-background px-3 text-sm shadow-xs transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
+          >
+            <FileMusicIcon className="size-4" />
+            View Score
+          </a>
           <Button
             data-testid="export-musicxml-button"
             onClick={() => exportMusicXmlMutation.mutate()}
