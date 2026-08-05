@@ -12,6 +12,7 @@ import {
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
+import { appPath } from "../lib/app-route";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
@@ -255,7 +256,7 @@ export function ScoreViewer({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <a href="/" data-testid="all-projects-menu-item">
+              <a href={appPath.projects} data-testid="all-projects-menu-item">
                 <FolderIcon />
                 All Projects
               </a>

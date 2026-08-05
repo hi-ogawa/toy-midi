@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
+import { appPath } from "../lib/app-route";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
@@ -112,7 +113,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a href="/" data-testid="all-projects-menu-item">
+                  <a
+                    href={appPath.projects}
+                    data-testid="all-projects-menu-item"
+                  >
                     <FolderIcon />
                     All Projects
                   </a>
@@ -166,7 +170,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       >
         <Settings
           projectName={projectName}
-          projectScoreHref={`/project/${projectId}/score`}
+          projectScoreHref={appPath.projectScore({ projectId })}
           onProjectNameChange={(name) => {
             if (name && name !== projectName) {
               projectStorage.updateMetadata(projectId, { name });

@@ -3,6 +3,7 @@ import { Github, Music2Icon, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
+import { appPath } from "../lib/app-route";
 import { matchKeyboardEvent } from "../lib/keyboard";
 import { parseProjectFile } from "../lib/project-file";
 import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
@@ -106,7 +107,7 @@ export function ProjectListView({
           </div>
           <nav className="flex items-center gap-4 text-sm text-neutral-500">
             <a
-              href="/score-viewer"
+              href={appPath.scoreViewer}
               data-testid="score-viewer-link"
               className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >
@@ -238,7 +239,10 @@ function ProjectListItem({
         />
       ) : (
         <div className="flex flex-1 items-center justify-between">
-          <a href={`/project/${project.id}`} className="flex-1 text-left">
+          <a
+            href={appPath.project({ projectId: project.id })}
+            className="flex-1 text-left"
+          >
             <div className="font-medium text-neutral-100">{project.name}</div>
             <div className="mt-1 text-xs text-neutral-500">
               Last edited{" "}
