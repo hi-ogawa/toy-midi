@@ -4,22 +4,26 @@ import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
+import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
-  if (window.location.pathname === "/score-viewer") {
-    return <ScoreViewer />;
+  const match = matchRoute(window.location.href);
+
+  switch (match?.data) {
+    case "scoreViewer": {
+      return <ScoreViewer />;
+    }
+    case "projectScore": {
+      return <ProjectScoreRoute projectId={match.params.projectId} />;
+    }
+    case "project": {
+      return <ProjectRoute projectId={match.params.projectId} />;
+    }
+    case "home":
+    default: {
+      return <StartupApp />;
+    }
   }
-  const scoreMatch = window.location.pathname.match(
-    /^\/project\/([^/]+)\/score$/,
-  );
-  if (scoreMatch) {
-    return <ProjectScoreRoute projectId={scoreMatch[1]} />;
-  }
-  const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
-  if (match) {
-    return <ProjectRoute projectId={match[1]} />;
-  }
-  return <StartupApp />;
 }
 
 function ProjectScoreRoute({ projectId }: { projectId: string }) {
@@ -29,7 +33,7 @@ function ProjectScoreRoute({ projectId }: { projectId: string }) {
     return (
       <RouteError
         error={score.error}
-        backHref={`/project/${projectId}`}
+        backHref={routes.project.href({ projectId })}
         backLabel="Back to project"
       />
     );
@@ -41,7 +45,7 @@ function ProjectScoreRoute({ projectId }: { projectId: string }) {
 // All project opens are full-page navigation; ProjectRoute is the only way
 // into the editor.
 function openProject(projectId: string) {
-  window.location.href = `/project/${projectId}`;
+  window.location.href = routes.project.href({ projectId });
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
@@ -62,7 +66,7 @@ function ProjectRoute({ projectId }: { projectId: string }) {
     return (
       <RouteError
         error={session.error}
-        backHref="/"
+        backHref={routes.home.href()}
         backLabel="Back to projects"
       />
     );
