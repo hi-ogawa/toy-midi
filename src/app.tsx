@@ -14,10 +14,10 @@ export function App() {
       return <ScoreViewer />;
     }
     case "projectScore": {
-      return <ProjectScoreRoute projectId={match.params.projectId!} />;
+      return <ProjectScoreRoute projectId={match.params.projectId} />;
     }
     case "project": {
-      return <ProjectRoute projectId={match.params.projectId!} />;
+      return <ProjectRoute projectId={match.params.projectId} />;
     }
     case "home":
     default: {

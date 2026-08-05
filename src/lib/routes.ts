@@ -1,5 +1,5 @@
-import { route } from "@remix-run/fetch-router/routes";
-import { createMultiMatcher } from "@remix-run/route-pattern/match";
+import { type Route, route } from "@remix-run/fetch-router/routes";
+import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 
 export const routes = route({
   home: "/",
@@ -8,8 +8,24 @@ export const routes = route({
   projectScore: "/project/:projectId/score",
 });
 
-export const routeMatcher = createMultiMatcher<keyof typeof routes>();
+type RouteName = keyof typeof routes;
+type RouteMatch = {
+  [name in RouteName]: (typeof routes)[name] extends Route<
+    infer _method,
+    infer pattern
+  >
+    ? Match<pattern, name>
+    : never;
+}[RouteName];
 
-for (const [name, route] of Object.entries(routes)) {
-  routeMatcher.add(route.pattern, name as any);
+const matcher = createMultiMatcher<RouteName>();
+
+for (const name of Object.keys(routes) as RouteName[]) {
+  matcher.add(routes[name].pattern, name);
 }
+
+export const routeMatcher = {
+  match(url: string | URL) {
+    return matcher.match(url) as RouteMatch | null;
+  },
+};
