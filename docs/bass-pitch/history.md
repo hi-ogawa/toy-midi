@@ -108,12 +108,12 @@ Validation exceeded the decision-level gate:
 
 The core reports completed and total chunks. The native CLI prints progress, and the worker forwards a fraction to the panel. Cancellation terminates the worker because an in-band message cannot interrupt a synchronous WASM call on the worker thread.
 
-## Current Diagnostic Workflow
+## Current Development Workflow
 
-Install Python dependencies with `uv sync`. The Python harness remains useful as an independent reference:
+Iterate with the native Rust CLI because it runs the same core pipeline as the WASM application:
 
 ```sh
-uv run python tools/bass-pitch/main.py path/to/bass.wav \
+cargo run --release -p bass-pitch -- path/to/bass.wav \
   --bpm 105 \
   --cells-per-beat 4 \
   --offset 2.389 \
@@ -128,10 +128,10 @@ Use `--mode activity` or `--mode onset` for fixed-pitch intermediate MIDI. The C
 - `activity` rows with median RMS, dBFS thresholds, and the activity decision.
 - `segmented_pitch` rows with region placement, pitch evidence, winner and runner-up weights, and margin.
 
-The deterministic tone fixture can exercise the complete current pipeline:
+The deterministic tone fixture exercises the complete current pipeline:
 
 ```sh
-uv run python tools/bass-pitch/main.py e2e/fixtures/test-tones.wav \
+cargo run --release -p bass-pitch -- e2e/fixtures/test-tones.wav \
   --duration 4 \
   --bpm 120 \
   --cells-per-beat 1 \
@@ -141,6 +141,21 @@ uv run python tools/bass-pitch/main.py e2e/fixtures/test-tones.wav \
 ```
 
 It produces eight segmented notes because boundary-aligned attacks raise the onset envelope in both adjacent cells. This is a deterministic integration check, not evidence of real-stem transcription quality.
+
+For behavior changes, compare the native CLI's MIDI and CSV on bar 11, the 30-second excerpt, and the full stem. Then run the grid-bass browser E2E to verify the WASM worker and application integration.
+
+### Python Reference Harness
+
+The Python harness is an independent librosa-based reference for investigating DSP differences, not the primary iteration path. Install its dependencies with `uv sync`, then run the same inputs and parameters through `tools/bass-pitch/main.py` when a Rust result needs comparison:
+
+```sh
+uv run python tools/bass-pitch/main.py path/to/bass.wav \
+  --bpm 105 \
+  --cells-per-beat 4 \
+  --offset 2.389 \
+  --midi .tmp/bass-pitch-python.mid \
+  --csv .tmp/bass-pitch-python.csv
+```
 
 ## Remaining Work
 
