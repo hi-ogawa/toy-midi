@@ -145,19 +145,18 @@ test.describe("Audio to MIDI", () => {
     const panel = page.getByTestId("audio-to-midi-panel");
     await expect(panel).toBeVisible();
 
-    // Grid bass is the default method and has no separate analyze stage; the
-    // real pYIN wasm runs in the worker, taking a few seconds for the fixture.
+    // Grid bass is the default method
     await expect(panel.getByTestId("audio-to-midi-method")).toHaveValue(
       "grid-bass",
     );
+
+    // Run audio to midi
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
     ).toHaveText(/^Created \d+ notes in (\d+ms|\d+\.\d+s)$/);
 
-    // The fixture arpeggio's tones inside the bass-oriented pitch range
-    // resolve to their true pitches, and all timing lands on the project grid
-    // (default 1/8 snap = half-beat cells).
+    // Verify generated midi notes
     const notes = await getNotes(page);
     for (const pitch of [60, 64, 67]) {
       expect(notes.map((note) => note.pitch)).toContain(pitch);
