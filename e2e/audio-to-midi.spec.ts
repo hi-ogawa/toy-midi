@@ -134,7 +134,7 @@ test.describe("Audio to MIDI", () => {
     expect(await getNoteIds(page)).toEqual(idsAfterQuantizedConvert);
   });
 
-  test("grid bass converts in one step and stays grid-aligned", async ({
+  test("Bass Pitch converts in one step and stays grid-aligned", async ({
     page,
   }) => {
     await page.goto("/");
@@ -145,9 +145,9 @@ test.describe("Audio to MIDI", () => {
     const panel = page.getByTestId("audio-to-midi-panel");
     await expect(panel).toBeVisible();
 
-    // Grid bass is the default method
+    // Bass Pitch is the default method
     await expect(panel.getByTestId("audio-to-midi-method")).toHaveValue(
-      "grid-bass",
+      "bass-pitch",
     );
 
     // Run audio to midi

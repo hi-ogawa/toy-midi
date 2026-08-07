@@ -1,6 +1,6 @@
 # Grid-Guided Bass Transcription: Algorithm
 
-This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the grid-bass audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation history and validation live in `docs/bass-pitch/history.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
+This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the Bass Pitch audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation history and validation live in `docs/bass-pitch/history.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
 
 ## The Core Idea
 

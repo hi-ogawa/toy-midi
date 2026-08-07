@@ -23,15 +23,14 @@ import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 
-// TODO: rename "grid-bass"
-type ConversionMethod = "grid-bass" | "basic-pitch";
+type ConversionMethod = "bass-pitch" | "basic-pitch";
 
 // Each method is an independent flow component owning its own state, so
 // switching methods resets staged parameters and per-run status. That is
 // acceptable because the expensive Basic Pitch analysis is cached
 // worker-side by audio asset, not in this component.
 export function AudioToMidi({ track }: { track: AudioTrack }) {
-  const [method, setMethod] = useState<ConversionMethod>("grid-bass");
+  const [method, setMethod] = useState<ConversionMethod>("bass-pitch");
 
   return (
     <div className="w-96 space-y-4">
@@ -54,13 +53,13 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
             }
             className="h-8 flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-200"
           >
-            <option value="grid-bass">Grid bass (pYIN)</option>
+            <option value="bass-pitch">Bass Pitch</option>
             <option value="basic-pitch">Basic Pitch</option>
           </select>
         </label>
       </section>
 
-      {method === "grid-bass" ? (
+      {method === "bass-pitch" ? (
         <GridBassConvert track={track} />
       ) : (
         <BasicPitchConvert track={track} />

@@ -89,7 +89,7 @@ The Rust core was wrapped with wasm-bindgen in `crates/bass-pitch-wasm` and call
 
 The upstream pYIN crate could not build for `wasm32-unknown-unknown` because its C FFI wrapper depends on `libc`. It was vendored at `crates/pyin` with the FFI and binary removed, and its output was verified byte-identical against the registry build.
 
-Grid bass became the default method in the Audio to MIDI panel, with Basic Pitch retained for general-purpose transcription. The grid resolution follows the current project snap, tempo and track offset come from project state, and the two song-dependent thresholds are exposed as controls. One Convert press runs analysis and grid decisions in the worker, then commits one `replaceAllNotes` history entry.
+Bass Pitch became the default method in the Audio to MIDI panel, with Basic Pitch retained for general-purpose transcription. The grid resolution follows the current project snap, tempo and track offset come from project state, and the two song-dependent thresholds are exposed as controls. One Convert press runs analysis and grid decisions in the worker, then commits one `replaceAllNotes` history entry.
 
 The WASM package builds from source and is not committed. `pnpm build-wasm` bootstraps a minimal Rust toolchain only when Cloudflare Workers Builds sets `WORKERS_CI` and Cargo is absent. GitHub CI runners already provide Rust.
 
@@ -142,7 +142,7 @@ cargo run --release -p bass-pitch -- e2e/fixtures/test-tones.wav \
 
 It produces eight segmented notes because boundary-aligned attacks raise the onset envelope in both adjacent cells. This is a deterministic integration check, not evidence of real-stem transcription quality.
 
-For behavior changes, compare the native CLI's MIDI and CSV on bar 11, the 30-second excerpt, and the full stem. Then run the grid-bass browser E2E to verify the WASM worker and application integration.
+For behavior changes, compare the native CLI's MIDI and CSV on bar 11, the 30-second excerpt, and the full stem. Then run the Bass Pitch browser E2E to verify the WASM worker and application integration.
 
 ### Python Reference Harness
 
