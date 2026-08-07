@@ -390,40 +390,12 @@
                 width="196"
                 height="62"
                 rx="8"
-                fill="#ecfdf5"
-                stroke="#059669"
-              />
-              <text
-                x="310"
-                y="48"
-                text-anchor="middle"
-                font-weight="600"
-                fill="#065f46"
-              >
-                pYIN (chunked)
-              </text>
-              <text
-                x="310"
-                y="66"
-                text-anchor="middle"
-                fill="#047857"
-                font-size="12"
-              >
-                f0 · voiced flag · probability
-              </text>
-
-              <rect
-                x="212"
-                y="118"
-                width="196"
-                height="62"
-                rx="8"
                 fill="#eff6ff"
                 stroke="#3b82f6"
               />
               <text
                 x="310"
-                y="142"
+                y="48"
                 text-anchor="middle"
                 font-weight="600"
                 fill="#1d4ed8"
@@ -432,7 +404,7 @@
               </text>
               <text
                 x="310"
-                y="160"
+                y="66"
                 text-anchor="middle"
                 fill="#2563eb"
                 font-size="12"
@@ -442,7 +414,7 @@
 
               <rect
                 x="212"
-                y="212"
+                y="118"
                 width="196"
                 height="62"
                 rx="8"
@@ -451,7 +423,7 @@
               />
               <text
                 x="310"
-                y="236"
+                y="142"
                 text-anchor="middle"
                 font-weight="600"
                 fill="#9a3412"
@@ -460,12 +432,40 @@
               </text>
               <text
                 x="310"
-                y="254"
+                y="160"
                 text-anchor="middle"
                 fill="#c2410c"
                 font-size="12"
               >
                 onset novelty, p95-normalized
+              </text>
+
+              <rect
+                x="212"
+                y="212"
+                width="196"
+                height="62"
+                rx="8"
+                fill="#ecfdf5"
+                stroke="#059669"
+              />
+              <text
+                x="310"
+                y="236"
+                text-anchor="middle"
+                font-weight="600"
+                fill="#065f46"
+              >
+                pYIN (chunked)
+              </text>
+              <text
+                x="310"
+                y="254"
+                text-anchor="middle"
+                fill="#047857"
+                font-size="12"
+              >
+                f0 · voiced flag · probability
               </text>
 
               <text
@@ -707,20 +707,17 @@
       <section id="stages">
         <h2><a href="#stages">Stage ideas</a></h2>
         <div class="stagegrid">
-          <div class="stage pitch">
-            <h3>pYIN pitch tracking</h3>
+          <div class="stage presence">
+            <h3>Activity (presence)</h3>
             <p>
-              Per frame, YIN autocorrelation yields a probability distribution
-              over pitch candidates instead of one guess; a Viterbi decode over
-              (pitch × voicing) states with a small-step transition prior picks
-              the most likely path. Temporal continuity is what resolves the
-              octave ambiguity every individual bass frame has.
+              A cell is active when its median root mean square (RMS) amplitude
+              clears a dBFS threshold, with on/off hysteresis. Runs of active
+              cells form regions.
             </p>
             <div class="insight">
-              Confidence is never a gate. Vote weight is
-              <code>0.1 + 0.9 × probability</code> — the 0.1 floor means an
-              uncertain pYIN can weaken a pitch vote but can never erase a note
-              that presence already established.
+              Presence detection favors recall, so decay tails can remain active
+              instead of risking dropped notes. Sustain-versus-decay
+              classification is a planned refinement.
             </div>
           </div>
           <div class="stage segment">
@@ -737,18 +734,20 @@
               (otherwise every peak lands one cell early).
             </div>
           </div>
-          <div class="stage presence">
-            <h3>Activity (presence)</h3>
+          <div class="stage pitch">
+            <h3>pYIN pitch tracking</h3>
             <p>
-              A cell is active when its median root mean square (RMS) amplitude
-              clears a dBFS threshold, with on/off hysteresis. Runs of active
-              cells form regions.
+              Per frame, YIN autocorrelation yields a probability distribution
+              over pitch candidates instead of one guess; a Viterbi decode over
+              (pitch × voicing) states with a small-step transition prior picks
+              the most likely path. Temporal continuity is what resolves the
+              octave ambiguity every individual bass frame has.
             </p>
             <div class="insight">
-              Deliberately recall-first and deliberately dumb: decay tails stay
-              "active" (over-sustain) rather than risking dropped notes.
-              Sustain-versus-decay classification is a planned refinement, not a
-              bug being ignored.
+              Confidence is never a gate. Vote weight is
+              <code>0.1 + 0.9 × probability</code> — the 0.1 floor means an
+              uncertain pYIN can weaken a pitch vote but can never erase a note
+              that presence already established.
             </div>
           </div>
           <div class="stage segment">
@@ -1178,12 +1177,12 @@
             <td>Frame features</td>
             <td>
               <a
-                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L249"
-                ><code>onset_strength</code></a
-              >,
-              <a
                 href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L337"
                 ><code>rms_frames</code></a
+              >,
+              <a
+                href="https://github.com/hi-ogawa/toy-midi/blob/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/bass-pitch/src/lib.rs#L249"
+                ><code>onset_strength</code></a
               >, vendored
               <a
                 href="https://github.com/hi-ogawa/toy-midi/tree/4746a02f1965a1d2438e66183982e74b8d5044d9/crates/pyin"

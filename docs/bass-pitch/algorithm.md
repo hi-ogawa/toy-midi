@@ -16,10 +16,10 @@ Two principles shape every stage:
 ```
 mono audio, 22.05 kHz
    │
-   ├── pYIN (chunked) ──────────► f0, voiced flag, voiced probability   ┐
-   ├── RMS, 2048-sample window ─► loudness                              ├ per frame (hop 256 ≈ 11.6 ms)
-   └── mel-band log spectral ───► onset novelty, normalized             ┘
-       flux, half-window delay
+   ├── RMS, 2048-sample window ─► loudness                              ┐
+   ├── mel-band log spectral ───► onset novelty, normalized             ├ per frame (hop 256 ≈ 11.6 ms)
+   │   flux, half-window delay                                           │
+   └── pYIN (chunked) ──────────► f0, voiced flag, voiced probability   ┘
    │
    ▼  pool frames into grid cells (from project BPM, grid snap, track offset)
    │
@@ -35,14 +35,14 @@ notes in project seconds → MIDI ticks at project BPM (grid-aligned by construc
 
 Three per-frame signals are computed once and shared by all later decisions (`analyze`, `crates/bass-pitch/src/lib.rs`).
 
-**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch/pyin.md` and its visual companion `docs/bass-pitch/pyin.html`.
-
 **Loudness: root mean square (RMS).** RMS summarizes the average signal amplitude within each analysis window and serves as a simple loudness estimate. It is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
 
 **Onset novelty: mel-banded log spectral flux** (`onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
 
 - Band aggregation must happen before rectification. Per-bin flux rectifies the random per-bin jitter of a decaying note into a steady stream of false positives; summing bins into bands first lets that jitter cancel, so only coherent broadband energy rises, which is what an attack is.
 - The envelope must be delayed by half an analysis window (`frame_length / (2 * hop)` frames), matching librosa's `center=True` compensation. A centered STFT starts seeing an attack half a window early, so without the delay every onset peak lands one grid cell before the attack.
+
+**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch/pyin.md` and its visual companion `docs/bass-pitch/pyin.html`.
 
 ## Stage 2: The Grid as Decision Unit
 
@@ -83,7 +83,7 @@ Reading it stage by stage: activity keeps cells 0–6, 8–9, and 13–15 (cell 
 | Decision        | Function (`crates/bass-pitch/src/lib.rs`)              |
 | --------------- | ------------------------------------------------------ |
 | Orchestration   | `run_pipeline`, `analyze`, `pyin_chunked`              |
-| Frame features  | `onset_strength`, `rms_frames`, vendored `crates/pyin` |
+| Frame features  | `rms_frames`, `onset_strength`, vendored `crates/pyin` |
 | Grid derivation | `make_grid_cells`                                      |
 | Presence        | `detect_activity`, `make_activity_notes`               |
 | Segmentation    | `make_activity_onset_notes`                            |

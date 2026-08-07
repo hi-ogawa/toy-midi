@@ -87,6 +87,16 @@ def main() -> None:
     )
 
     started_at = time.monotonic()
+    rms = librosa.feature.rms(
+        y=audio,
+        frame_length=args.frame_length,
+        hop_length=args.hop_length,
+    )[0]
+    onset = librosa.onset.onset_strength(
+        y=audio,
+        sr=sample_rate,
+        hop_length=args.hop_length,
+    )
     f0, voiced_flag, voiced_probability = librosa.pyin(
         audio,
         fmin=args.fmin,
@@ -101,24 +111,14 @@ def main() -> None:
         hop_length=args.hop_length,
     )
     midi_pitch = librosa.hz_to_midi(f0)
-    onset = librosa.onset.onset_strength(
-        y=audio,
-        sr=sample_rate,
-        hop_length=args.hop_length,
-    )
-    rms = librosa.feature.rms(
-        y=audio,
-        frame_length=args.frame_length,
-        hop_length=args.hop_length,
-    )[0]
-    frame_count = min(len(frame_times), len(onset), len(rms))
+    frame_count = min(len(rms), len(onset), len(frame_times))
     frame_times = frame_times[:frame_count]
+    rms = rms[:frame_count]
+    onset = normalize_feature(onset[:frame_count])
     f0 = f0[:frame_count]
     midi_pitch = midi_pitch[:frame_count]
     voiced_flag = voiced_flag[:frame_count]
     voiced_probability = voiced_probability[:frame_count]
-    onset = normalize_feature(onset[:frame_count])
-    rms = rms[:frame_count]
     print(f"analysis: completed in {time.monotonic() - started_at:.1f}s ({frame_count} frames)")
 
     cells = make_grid_cells(
@@ -530,15 +530,15 @@ def write_diagnostics(
         "source_end",
         "project_start",
         "project_end",
+        "rms",
+        "rms_db",
+        "onset_score",
         "f0_hz",
         "midi_pitch",
         "pitch",
         "voiced",
         "confidence",
         "voiced_frame_count",
-        "onset_score",
-        "rms",
-        "rms_db",
         "activity_off_db",
         "activity_on_db",
         "active",
@@ -559,12 +559,12 @@ def write_diagnostics(
                     "index": index,
                     "source_start": source_time,
                     "project_start": source_time + track_offset,
+                    "rms": rms[index],
+                    "onset_score": onset[index],
                     "f0_hz": finite_or_empty(f0[index]),
                     "midi_pitch": finite_or_empty(midi_pitch[index]),
                     "voiced": int(voiced_flag[index]),
                     "confidence": voiced_probability[index],
-                    "onset_score": onset[index],
-                    "rms": rms[index],
                 }
             )
         for cell in cells:

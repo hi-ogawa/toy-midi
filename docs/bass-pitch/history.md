@@ -97,7 +97,7 @@ The WASM package builds from source and is not committed. `pnpm build-wasm` boot
 
 The first browser implementation made one monolithic WASM call. A full-song stem was projected to take 35-50 seconds in WASM, so static "Converting..." feedback was insufficient.
 
-pYIN was split into roughly 10-second, frame-aligned chunks with 32 context frames on each side. Context output is discarded, while RMS and onset remain whole-excerpt computations so their normalization does not change. pYIN's Viterbi decode is formally global, but path hypotheses converge within the overlap margin on the evaluated material.
+RMS and onset remain whole-excerpt computations so their normalization does not change. pYIN was split into roughly 10-second, frame-aligned chunks with 32 context frames on each side, and context output is discarded. pYIN's Viterbi decode is formally global, but path hypotheses converge within the overlap margin on the evaluated material.
 
 Validation exceeded the decision-level gate:
 
@@ -123,7 +123,7 @@ cargo run --release -p bass-pitch -- path/to/bass.wav \
 
 Use `--mode activity` or `--mode onset` for fixed-pitch intermediate MIDI. The CSV contains:
 
-- `frame` rows with source/project time, f0, fractional MIDI pitch, pYIN voicing and confidence, onset novelty, and RMS.
+- `frame` rows with source/project time, RMS, onset novelty, f0, fractional MIDI pitch, and pYIN voicing and confidence.
 - `cell` rows with source and project timing for each grid interval.
 - `activity` rows with median RMS, dBFS thresholds, and the activity decision.
 - `segmented_pitch` rows with region placement, pitch evidence, winner and runner-up weights, and margin.
