@@ -1,6 +1,6 @@
 use crate::{Params, Pipeline};
 
-const CSV_COLUMNS: [&str; 23] = [
+const CSV_COLUMNS: [&str; 24] = [
     "record_type",
     "index",
     "source_start",
@@ -9,6 +9,7 @@ const CSV_COLUMNS: [&str; 23] = [
     "project_end",
     "f0_hz",
     "midi_pitch",
+    "pitch",
     "voiced",
     "confidence",
     "voiced_frame_count",
@@ -127,5 +128,75 @@ fn finite_or_empty(value: f64) -> String {
         value.to_string()
     } else {
         String::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Frames, Note, PitchDecision};
+
+    #[test]
+    fn writes_segmented_pitch_rows() {
+        let params = Params {
+            start: 0.0,
+            offset: 0.0,
+            bpm: 120.0,
+            cells_per_beat: 2,
+            grid_origin: 0.0,
+            activity_off_db: -25.0,
+            activity_on_db: -25.0,
+            activity_pitch: 36,
+            fmin: 30.0,
+            fmax: 400.0,
+            boundary_onset_threshold: 0.4,
+            sample_rate: 22_050,
+            frame_length: 2048,
+            hop_length: 256,
+        };
+        let pipeline = Pipeline {
+            frames: Frames {
+                times: vec![],
+                f0: vec![],
+                midi_pitch: vec![],
+                voiced_flag: vec![],
+                voiced_probability: vec![],
+                onset: vec![],
+                rms: vec![],
+            },
+            cells: vec![],
+            activity_cells: vec![],
+            activity_notes: vec![],
+            onset_notes: vec![],
+            pitch_decisions: vec![PitchDecision {
+                note: Note {
+                    pitch: 40,
+                    project_start: 0.0,
+                    project_end: 0.5,
+                    first_cell: 0,
+                    last_cell: 0,
+                },
+                evidence_frames: 4,
+                winner_weight: 3.0,
+                runner_up_pitch: None,
+                runner_up_weight: 0.0,
+                margin: 1.0,
+            }],
+        };
+
+        let csv = diagnostics_csv(&pipeline, &params);
+
+        assert!(csv
+            .lines()
+            .next()
+            .unwrap()
+            .split(',')
+            .any(|column| column == "pitch"));
+        assert!(csv
+            .lines()
+            .nth(1)
+            .unwrap()
+            .split(',')
+            .any(|value| value == "40"));
     }
 }

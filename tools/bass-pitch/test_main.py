@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -13,6 +14,40 @@ assert SPEC is not None and SPEC.loader is not None
 bass_pitch = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = bass_pitch
 SPEC.loader.exec_module(bass_pitch)
+
+
+def test_diagnostics_include_segmented_pitch(tmp_path: Path) -> None:
+    path = tmp_path / "diagnostics.csv"
+    decision = bass_pitch.PitchDecision(
+        note=bass_pitch.Note(40, 0.0, 0.5, 0, 0),
+        evidence_frames=4,
+        winner_weight=3.0,
+        runner_up_pitch=None,
+        runner_up_weight=0.0,
+        margin=1.0,
+    )
+
+    bass_pitch.write_diagnostics(
+        path,
+        frame_times=np.array([]),
+        f0=np.array([]),
+        midi_pitch=np.array([]),
+        voiced_flag=np.array([]),
+        voiced_probability=np.array([]),
+        onset=np.array([]),
+        rms=np.array([]),
+        cells=[],
+        activity_cells=[],
+        activity_off_db=-25.0,
+        activity_on_db=-25.0,
+        pitch_decisions=[decision],
+        track_offset=0.0,
+    )
+
+    with path.open(newline="", encoding="utf-8") as file:
+        rows = list(csv.DictReader(file))
+    assert rows[0]["record_type"] == "segmented_pitch"
+    assert rows[0]["pitch"] == "40"
 
 
 def test_grid_seconds_and_ticks_preserve_project_alignment() -> None:

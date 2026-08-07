@@ -532,6 +532,7 @@ def write_diagnostics(
         "project_end",
         "f0_hz",
         "midi_pitch",
+        "pitch",
         "voiced",
         "confidence",
         "voiced_frame_count",
