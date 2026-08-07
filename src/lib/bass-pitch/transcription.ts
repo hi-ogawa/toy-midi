@@ -26,7 +26,7 @@ export interface GridTranscribedNote {
   last_cell: number;
 }
 
-// Defaults mirror the evaluated CLI baseline in docs/bass-pitch/evaluation.md.
+// Defaults mirror the evaluated CLI baseline in docs/bass-pitch/history.md.
 export const DEFAULT_GRID_ACTIVITY_DB = -25;
 export const DEFAULT_GRID_SPLIT_THRESHOLD = 0.4;
 

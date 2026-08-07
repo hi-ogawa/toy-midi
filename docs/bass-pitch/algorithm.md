@@ -1,6 +1,6 @@
 # Grid-Guided Bass Transcription: Algorithm
 
-This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the grid-bass audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation status and validation live in `docs/bass-pitch/rust-port.md`, and the original experiment history lives in `docs/bass-pitch/evaluation.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
+This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the grid-bass audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation history and validation live in `docs/bass-pitch/history.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
 
 ## The Core Idea
 
@@ -50,7 +50,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Stage 3: Presence (Activity)
 
-`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when a human would call it a rest. That is accepted because the priority is never dropping real notes; distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/rust-port.md`, Remaining Work), and the extra sustain is cheap to trim by hand.
+`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when a human would call it a rest. That is accepted because the priority is never dropping real notes; distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/history.md`, Remaining Work), and the extra sustain is cheap to trim by hand.
 
 ## Stage 4: Segmentation (Note Starts)
 
