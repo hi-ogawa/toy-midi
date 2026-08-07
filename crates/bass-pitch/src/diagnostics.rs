@@ -1,6 +1,6 @@
 use crate::{Params, Pipeline};
 
-const CSV_COLUMNS: [&str; 31] = [
+const CSV_COLUMNS: [&str; 23] = [
     "record_type",
     "index",
     "source_start",
@@ -9,11 +9,8 @@ const CSV_COLUMNS: [&str; 31] = [
     "project_end",
     "f0_hz",
     "midi_pitch",
-    "pitch",
     "voiced",
     "confidence",
-    "voiced_coverage",
-    "frame_count",
     "voiced_frame_count",
     "onset_score",
     "rms",
@@ -21,11 +18,6 @@ const CSV_COLUMNS: [&str; 31] = [
     "activity_off_db",
     "activity_on_db",
     "active",
-    "rms_dip_score",
-    "confidence_dip_score",
-    "evidence_score",
-    "split",
-    "reason",
     "first_cell",
     "last_cell",
     "winner_weight",
@@ -69,11 +61,6 @@ pub fn diagnostics_csv(pipeline: &Pipeline, params: &Params) -> String {
                 ("source_end", cell.source_end.to_string()),
                 ("project_start", cell.project_start.to_string()),
                 ("project_end", cell.project_end.to_string()),
-                ("pitch", cell.pitch.map_or(String::new(), |p| p.to_string())),
-                ("confidence", cell.vote_confidence.to_string()),
-                ("voiced_coverage", cell.voiced_coverage.to_string()),
-                ("frame_count", cell.frame_count.to_string()),
-                ("voiced_frame_count", cell.voiced_frame_count.to_string()),
             ],
         );
     }
@@ -92,43 +79,6 @@ pub fn diagnostics_csv(pipeline: &Pipeline, params: &Params) -> String {
                 ("activity_off_db", params.activity_off_db.to_string()),
                 ("activity_on_db", params.activity_on_db.to_string()),
                 ("active", (cell.active as u8).to_string()),
-            ],
-        );
-    }
-    for boundary in &pipeline.boundaries {
-        push_csv_row(
-            &mut out,
-            &[
-                ("record_type", "boundary".into()),
-                (
-                    "index",
-                    format!("{}:{}", boundary.left_cell, boundary.right_cell),
-                ),
-                ("source_start", boundary.source_time.to_string()),
-                ("project_start", boundary.project_time.to_string()),
-                ("onset_score", boundary.onset_score.to_string()),
-                ("rms_dip_score", boundary.rms_dip_score.to_string()),
-                (
-                    "confidence_dip_score",
-                    boundary.confidence_dip_score.to_string(),
-                ),
-                ("evidence_score", boundary.evidence_score.to_string()),
-                ("split", (boundary.split as u8).to_string()),
-                ("reason", boundary.reason.into()),
-            ],
-        );
-    }
-    for (i, note) in pipeline.legacy_notes.iter().enumerate() {
-        push_csv_row(
-            &mut out,
-            &[
-                ("record_type", "note".into()),
-                ("index", i.to_string()),
-                ("project_start", note.project_start.to_string()),
-                ("project_end", note.project_end.to_string()),
-                ("pitch", note.pitch.to_string()),
-                ("first_cell", note.first_cell.to_string()),
-                ("last_cell", note.last_cell.to_string()),
             ],
         );
     }

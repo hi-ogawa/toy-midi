@@ -80,18 +80,17 @@ Reading it stage by stage: activity keeps cells 0–6, 8–9, and 13–15 (cell 
 
 ## Function Map
 
-| Decision                | Function (`crates/bass-pitch/src/lib.rs`)              |
-| ----------------------- | ------------------------------------------------------ |
-| Orchestration           | `run_pipeline`, `analyze`, `pyin_chunked`              |
-| Frame features          | `onset_strength`, `rms_frames`, vendored `crates/pyin` |
-| Grid derivation         | `make_grid_cells`                                      |
-| Presence                | `detect_activity`, `make_activity_notes`               |
-| Segmentation            | `make_activity_onset_notes`                            |
-| Pitch                   | `assign_region_pitches`                                |
-| Legacy diagnostics mode | `vote_cell`, `evaluate_boundaries`, `merge_cells`      |
-| Output                  | `midi_bytes`, `diagnostics_csv`                        |
+| Decision        | Function (`crates/bass-pitch/src/lib.rs`)              |
+| --------------- | ------------------------------------------------------ |
+| Orchestration   | `run_pipeline`, `analyze`, `pyin_chunked`              |
+| Frame features  | `onset_strength`, `rms_frames`, vendored `crates/pyin` |
+| Grid derivation | `make_grid_cells`                                      |
+| Presence        | `detect_activity`, `make_activity_notes`               |
+| Segmentation    | `make_activity_onset_notes`                            |
+| Pitch           | `assign_region_pitches`                                |
+| Output          | `midi_bytes`, `diagnostics_csv`                        |
 
-The legacy mode is the original cell-level pipeline (per-cell confidence-gated pitch votes merged across boundaries with onset/dip evidence). It survives behind `--mode legacy` for diagnostics and for the deterministic smoke test, but it embodies the confidence-as-gate mistake and is not the shipping path.
+The removed original cell-level pipeline used per-cell confidence-gated pitch votes merged across boundaries with onset/dip evidence. It was useful during evaluation, but it embodied the confidence-as-gate mistake and was deleted after the activity/onset/region-pitch pipeline replaced it.
 
 ## Glossary
 

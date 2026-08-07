@@ -6,7 +6,7 @@
 //! thresholds tuned against the Python harness must be re-swept, as recorded
 //! in `docs/bass-pitch-evaluation.md`.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
 use pyin::{Framing, PYINExecutor, PadMode};
@@ -53,14 +53,8 @@ pub struct Params {
     pub fmin: f64,
     /// Highest frequency considered by pYIN, in hertz.
     pub fmax: f64,
-    /// Minimum pYIN voiced probability accepted by legacy cell voting.
-    pub voicing_threshold: f64,
-    /// Minimum accepted-frame fraction required by legacy cell voting.
-    pub min_voiced_coverage: f64,
     /// Normalized onset score required to split an active region.
     pub boundary_onset_threshold: f64,
-    /// Seconds searched on either side of a boundary by legacy split detection.
-    pub boundary_tolerance: f64,
     /// Input audio sample rate in hertz.
     pub sample_rate: u32,
     /// Analysis window length in samples.
@@ -88,7 +82,7 @@ pub struct Frames {
 }
 
 #[derive(Clone, Debug)]
-/// One project-grid interval and its legacy per-cell pitch vote.
+/// One project-grid interval used to pool frame-level evidence.
 pub struct GridCell {
     /// Grid-relative index, which may be negative before grid boundary zero.
     pub index: i64,
@@ -100,14 +94,6 @@ pub struct GridCell {
     pub project_start: f64,
     /// Cell end in project seconds.
     pub project_end: f64,
-    /// Winning rounded MIDI pitch, or no pitch when legacy voting emits a rest.
-    pub pitch: Option<i32>,
-    /// Fraction of cell frames accepted as voiced by legacy voting.
-    pub voiced_coverage: f64,
-    /// Mean pYIN probability of frames that voted for the winning pitch.
-    pub vote_confidence: f64,
-    pub frame_count: usize,
-    pub voiced_frame_count: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -124,28 +110,6 @@ pub struct ActivityCell {
     pub rms_db: f64,
     /// Hysteresis state after evaluating this cell.
     pub active: bool,
-}
-
-#[derive(Clone, Debug)]
-/// Diagnostic split decision between two adjacent legacy pitch-vote cells.
-pub struct Boundary {
-    pub left_cell: i64,
-    pub right_cell: i64,
-    /// Boundary position in source-audio seconds.
-    pub source_time: f64,
-    /// Boundary position in project seconds.
-    pub project_time: f64,
-    /// Peak normalized onset novelty near the boundary.
-    pub onset_score: f64,
-    /// Relative local RMS trough depth near the boundary.
-    pub rms_dip_score: f64,
-    /// Relative local pYIN-confidence trough depth near the boundary.
-    pub confidence_dip_score: f64,
-    /// Maximum of the onset and dip evidence scores.
-    pub evidence_score: f64,
-    pub split: bool,
-    /// Stable diagnostic label describing why the boundary split or merged.
-    pub reason: &'static str,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -182,13 +146,8 @@ pub struct PitchDecision {
 /// Full transcription result, including each observable diagnostic stage.
 pub struct Pipeline {
     pub frames: Frames,
-    /// Grid cells carrying legacy confidence-gated pitch votes.
     pub cells: Vec<GridCell>,
     pub activity_cells: Vec<ActivityCell>,
-    /// Legacy adjacent-cell split decisions.
-    pub boundaries: Vec<Boundary>,
-    /// Notes produced by the original confidence-gated cell pipeline.
-    pub legacy_notes: Vec<Note>,
     /// Fixed-pitch regions produced from activity alone.
     pub activity_notes: Vec<Note>,
     /// Fixed-pitch activity regions split by onset evidence.
@@ -204,13 +163,8 @@ pub fn run_pipeline(
 ) -> Pipeline {
     let frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
-    let mut cells = make_grid_cells(params, excerpt_end);
+    let cells = make_grid_cells(params, excerpt_end);
     let activity_cells = detect_activity(&cells, &frames, params);
-    for cell in &mut cells {
-        vote_cell(cell, &frames, params);
-    }
-    let boundaries = evaluate_boundaries(&cells, &frames, params);
-    let legacy_notes = merge_cells(&cells, &boundaries);
     let activity_notes = make_activity_notes(&activity_cells, params.activity_pitch);
     let onset_notes = make_activity_onset_notes(&cells, &activity_cells, &frames, params);
     let pitch_decisions = assign_region_pitches(&onset_notes, &frames, params);
@@ -218,8 +172,6 @@ pub fn run_pipeline(
         frames,
         cells,
         activity_cells,
-        boundaries,
-        legacy_notes,
         activity_notes,
         onset_notes,
         pitch_decisions,
@@ -463,11 +415,6 @@ fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
             source_end: source_origin + (index + 1) as f64 * cell_duration,
             project_start: params.grid_origin + index as f64 * cell_duration,
             project_end: params.grid_origin + (index + 1) as f64 * cell_duration,
-            pitch: None,
-            voiced_coverage: 0.0,
-            vote_confidence: 0.0,
-            frame_count: 0,
-            voiced_frame_count: 0,
         })
         .collect()
 }
@@ -518,191 +465,6 @@ fn rms_to_db(value: f64) -> f64 {
         return f64::NEG_INFINITY;
     }
     20.0 * value.log10()
-}
-
-fn vote_cell(cell: &mut GridCell, frames: &Frames, params: &Params) {
-    let mut frame_count = 0usize;
-    let mut voiced: Vec<(f64, f64)> = Vec::new();
-    for i in 0..frames.times.len() {
-        let time = frames.times[i];
-        if time < cell.source_start || time >= cell.source_end {
-            continue;
-        }
-        frame_count += 1;
-        if frames.voiced_flag[i]
-            && frames.midi_pitch[i].is_finite()
-            && frames.voiced_probability[i] >= params.voicing_threshold
-        {
-            voiced.push((frames.midi_pitch[i], frames.voiced_probability[i]));
-        }
-    }
-    cell.frame_count = frame_count;
-    cell.voiced_frame_count = voiced.len();
-    cell.voiced_coverage = if frame_count > 0 {
-        voiced.len() as f64 / frame_count as f64
-    } else {
-        0.0
-    };
-    if voiced.is_empty() || cell.voiced_coverage < params.min_voiced_coverage {
-        return;
-    }
-    let weight_sum: f64 = voiced.iter().map(|(_, weight)| weight).sum();
-    let weighted_mean = voiced
-        .iter()
-        .map(|(pitch, weight)| pitch * weight)
-        .sum::<f64>()
-        / weight_sum;
-    let mut weight_by_pitch: BTreeMap<i32, f64> = BTreeMap::new();
-    for (pitch, weight) in &voiced {
-        *weight_by_pitch.entry(pitch.round() as i32).or_default() += weight;
-    }
-    // Tie-break order matches the Python tuple: weight, closeness to the
-    // weighted mean, then lower pitch.
-    let selected_pitch = weight_by_pitch
-        .iter()
-        .max_by(|a, b| {
-            let key = |(&pitch, &weight): &(&i32, &f64)| {
-                (weight, -((pitch as f64) - weighted_mean).abs(), -pitch)
-            };
-            key(a).partial_cmp(&key(b)).expect("finite vote keys")
-        })
-        .map(|(&pitch, _)| pitch)
-        .expect("non-empty votes");
-    let selected: Vec<f64> = voiced
-        .iter()
-        .filter(|(pitch, _)| pitch.round() as i32 == selected_pitch)
-        .map(|(_, weight)| *weight)
-        .collect();
-    cell.vote_confidence = selected.iter().sum::<f64>() / selected.len() as f64;
-    cell.pitch = Some(selected_pitch);
-}
-
-fn evaluate_boundaries(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<Boundary> {
-    cells
-        .windows(2)
-        .map(|pair| {
-            let (left, right) = (&pair[0], &pair[1]);
-            let source_time = left.source_end;
-            let mut onset_score = 0.0;
-            let mut rms_dip_score = 0.0;
-            let mut confidence_dip_score = 0.0;
-            let mut evidence_score = 0.0;
-            let (split, reason) = if left.pitch != right.pitch {
-                let reason = if left.pitch.is_none() || right.pitch.is_none() {
-                    "voiced-rest"
-                } else {
-                    "pitch-change"
-                };
-                (true, reason)
-            } else if left.pitch.is_none() {
-                (false, "rest")
-            } else {
-                onset_score = frames
-                    .times
-                    .iter()
-                    .zip(&frames.onset)
-                    .filter(|(&time, _)| (time - source_time).abs() <= params.boundary_tolerance)
-                    .map(|(_, &onset)| onset)
-                    .fold(0.0, f64::max);
-                rms_dip_score =
-                    local_dip_score(frames, &frames.rms, source_time, params.boundary_tolerance);
-                confidence_dip_score = local_dip_score(
-                    frames,
-                    &frames.voiced_probability,
-                    source_time,
-                    params.boundary_tolerance,
-                );
-                evidence_score = onset_score.max(rms_dip_score).max(confidence_dip_score);
-                let split = evidence_score >= params.boundary_onset_threshold;
-                (
-                    split,
-                    if split {
-                        "same-pitch-onset"
-                    } else {
-                        "same-pitch-merge"
-                    },
-                )
-            };
-            Boundary {
-                left_cell: left.index,
-                right_cell: right.index,
-                source_time,
-                project_time: left.project_end,
-                onset_score,
-                rms_dip_score,
-                confidence_dip_score,
-                evidence_score,
-                split,
-                reason,
-            }
-        })
-        .collect()
-}
-
-fn local_dip_score(frames: &Frames, values: &[f64], boundary_time: f64, tolerance: f64) -> f64 {
-    let mut before_max = f64::NEG_INFINITY;
-    let mut after_max = f64::NEG_INFINITY;
-    let mut around_min = f64::INFINITY;
-    for (&time, &value) in frames.times.iter().zip(values) {
-        let before = time >= boundary_time - tolerance && time < boundary_time;
-        let after = time >= boundary_time && time <= boundary_time + tolerance;
-        if before {
-            before_max = before_max.max(value);
-        }
-        if after {
-            after_max = after_max.max(value);
-        }
-        if before || after {
-            around_min = around_min.min(value);
-        }
-    }
-    if !before_max.is_finite() || !after_max.is_finite() {
-        return 0.0;
-    }
-    let baseline = before_max.min(after_max);
-    if baseline <= 0.0 {
-        return 0.0;
-    }
-    ((baseline - around_min) / baseline).clamp(0.0, 1.0)
-}
-
-fn merge_cells(cells: &[GridCell], boundaries: &[Boundary]) -> Vec<Note> {
-    let boundary_by_left: HashMap<i64, &Boundary> = boundaries
-        .iter()
-        .map(|boundary| (boundary.left_cell, boundary))
-        .collect();
-    let mut notes: Vec<Note> = Vec::new();
-    let mut current: Option<Note> = None;
-    for cell in cells {
-        let Some(pitch) = cell.pitch else {
-            if let Some(note) = current.take() {
-                notes.push(note);
-            }
-            continue;
-        };
-        let split = match &current {
-            None => true,
-            Some(note) => boundary_by_left[&note.last_cell].split,
-        };
-        if split {
-            if let Some(note) = current.take() {
-                notes.push(note);
-            }
-            current = Some(Note {
-                pitch,
-                project_start: cell.project_start,
-                project_end: cell.project_end,
-                first_cell: cell.index,
-                last_cell: cell.index,
-            });
-        } else {
-            let note = current.as_mut().expect("merge continues an open note");
-            note.project_end = cell.project_end;
-            note.last_cell = cell.index;
-        }
-    }
-    notes.extend(current);
-    notes
 }
 
 fn make_activity_notes(cells: &[ActivityCell], pitch: i32) -> Vec<Note> {

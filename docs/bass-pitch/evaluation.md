@@ -1,8 +1,8 @@
 # Grid-Guided Bass Pitch Evaluation
 
-`tools/bass-pitch/main.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, votes for pitch or rest in each known project-grid cell, and merges adjacent equal-pitch cells unless local onset, RMS-dip, or confidence-dip evidence indicates a repeated articulation.
+`tools/bass-pitch/main.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, detects activity on the known project grid, splits active regions with onset evidence, and assigns a pitch to each resulting region.
 
-The default segmented output detects RMS activity, splits active regions at grid cells with onset evidence, and assigns a provisional pYIN pitch to each region. Use `--mode activity` or `--mode onset` to emit fixed-pitch diagnostic stages, or `--mode legacy` to inspect the original cell-level confidence-gated pipeline.
+The default segmented output detects RMS activity, splits active regions at grid cells with onset evidence, and assigns a provisional pYIN pitch to each region. Use `--mode activity` or `--mode onset` to emit fixed-pitch diagnostic stages. The original cell-level confidence-gated mode described below was removed after the segmented pipeline replaced it.
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
@@ -35,12 +35,11 @@ uv run python tools/bass-pitch/main.py e2e/fixtures/test-tones.wav \
   --bpm 120 \
   --cells-per-beat 1 \
   --fmax 600 \
-  --mode legacy \
   --midi .tmp/bass-pitch-smoke.mid \
   --csv .tmp/bass-pitch-smoke.csv
 ```
 
-With `--mode legacy` this produces four notes, MIDI 60, 64, 67, and 72. The default segmented mode produces eight notes because each boundary-aligned attack raises the onset envelope above the split threshold in both adjacent cells, which halves every tone. It verifies audio loading, pYIN, grid voting, merging, diagnostics, and MIDI writing. Synthetic tones do not establish transcription quality on a real bass stem.
+This produces eight notes because each boundary-aligned attack raises the onset envelope above the split threshold in both adjacent cells, which halves every tone. The historical confidence-gated mode produced four notes, MIDI 60, 64, 67, and 72. The current smoke test verifies audio loading, pYIN, activity and onset decisions, region pitch assignment, diagnostics, and MIDI writing. Synthetic tones do not establish transcription quality on a real bass stem.
 
 ## Real Bass-Stem Run
 
@@ -70,13 +69,11 @@ uv run python tools/bass-pitch/main.py path/to/demucs/bass.wav --bpm 96 --mode o
 The CSV uses `record_type` rows:
 
 - `frame` preserves source/project time, raw f0 Hz, fractional MIDI pitch, pYIN voicing and confidence, normalized onset strength, and RMS.
-- `cell` records pitch/rest votes, voiced coverage, confidence, and frame counts.
+- `cell` records source and project timing for each grid interval.
 - `activity` records cell RMS and dBFS, the configured thresholds, and the hysteresis decision.
-- `boundary` records forced pitch/rest transitions or same-pitch onset evidence and split decisions.
-- `note` records the final project placement, pitch, and contributing cell range.
 - `segmented_pitch` records the provisional region pitch, voiced evidence count, winning and runner-up vote weights, and winner margin.
 
-Inspect the CSV in that order to distinguish pYIN errors, cell-voting errors, same-pitch split/merge errors, and MIDI construction errors. Tune thresholds only against representative real excerpts, and judge the synchronized MIDI after importing it into toy-midi.
+Inspect the CSV in that order to distinguish pYIN errors, activity errors, onset-splitting errors, region-pitch errors, and MIDI construction errors. Tune thresholds only against representative real excerpts, and judge the synchronized MIDI after importing it into toy-midi.
 
 ## Primrose Iteration Baseline
 

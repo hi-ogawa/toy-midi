@@ -56,18 +56,9 @@ struct Args {
     /// Maximum pYIN frequency in Hz
     #[arg(long, default_value_t = 400.0)]
     fmax: f64,
-    /// Minimum pYIN voiced probability used for a cell vote
-    #[arg(long, default_value_t = 0.5)]
-    voicing_threshold: f64,
-    /// Minimum fraction of cell frames that must pass the voicing threshold
-    #[arg(long, default_value_t = 0.5)]
-    min_voiced_coverage: f64,
-    /// Same-pitch split threshold for combined boundary evidence
+    /// Onset threshold for splitting active regions
     #[arg(long, default_value_t = 0.4)]
     boundary_onset_threshold: f64,
-    /// Seconds searched on each side of a grid boundary
-    #[arg(long, default_value_t = 0.06)]
-    boundary_tolerance: f64,
     #[arg(long, default_value_t = 22_050)]
     sample_rate: u32,
     #[arg(long, default_value_t = 2048)]
@@ -81,7 +72,6 @@ enum Mode {
     Segmented,
     Activity,
     Onset,
-    Legacy,
 }
 
 fn main() -> Result<()> {
@@ -119,29 +109,10 @@ fn main() -> Result<()> {
             .collect::<Vec<_>>(),
         Mode::Activity => &pipeline.activity_notes,
         Mode::Onset => &pipeline.onset_notes,
-        Mode::Legacy => &pipeline.legacy_notes,
     };
     write_output(&args.midi, &midi_bytes(output_notes, params.bpm))?;
     write_output(&args.csv, diagnostics_csv(&pipeline, &params).as_bytes())?;
 
-    let pitched_cells = pipeline
-        .cells
-        .iter()
-        .filter(|cell| cell.pitch.is_some())
-        .count();
-    let split_count = pipeline
-        .boundaries
-        .iter()
-        .filter(|boundary| boundary.split)
-        .count();
-    println!(
-        "decisions: cells={} pitched={} boundaries={} splits={} notes={}",
-        pipeline.cells.len(),
-        pitched_cells,
-        pipeline.boundaries.len(),
-        split_count,
-        pipeline.legacy_notes.len(),
-    );
     println!(
         "activity: cells={}/{} regions={} thresholds={}/{}dBFS",
         pipeline
@@ -166,7 +137,6 @@ fn main() -> Result<()> {
             Mode::Segmented => "segmented",
             Mode::Activity => "activity",
             Mode::Onset => "onset",
-            Mode::Legacy => "legacy",
         },
         output_notes.len(),
         resolved_pitches,
@@ -205,19 +175,9 @@ fn validate_args(args: &Args) -> Result<Params> {
         args.fmin > 0.0 && args.fmax > args.fmin,
         "--fmin must be positive and less than --fmax"
     );
-    for (name, value) in [
-        ("--voicing-threshold", args.voicing_threshold),
-        ("--min-voiced-coverage", args.min_voiced_coverage),
-        ("--boundary-onset-threshold", args.boundary_onset_threshold),
-    ] {
-        ensure!(
-            (0.0..=1.0).contains(&value),
-            "{name} must be between 0 and 1"
-        );
-    }
     ensure!(
-        args.boundary_tolerance >= 0.0,
-        "--boundary-tolerance must be non-negative"
+        (0.0..=1.0).contains(&args.boundary_onset_threshold),
+        "--boundary-onset-threshold must be between 0 and 1"
     );
     ensure!(
         args.sample_rate > 0 && args.frame_length > 0 && args.hop_length > 0,
@@ -234,10 +194,7 @@ fn validate_args(args: &Args) -> Result<Params> {
         activity_pitch: args.activity_pitch,
         fmin: args.fmin,
         fmax: args.fmax,
-        voicing_threshold: args.voicing_threshold,
-        min_voiced_coverage: args.min_voiced_coverage,
         boundary_onset_threshold: args.boundary_onset_threshold,
-        boundary_tolerance: args.boundary_tolerance,
         sample_rate: args.sample_rate,
         frame_length: args.frame_length,
         hop_length: args.hop_length,

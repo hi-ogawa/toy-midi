@@ -12,10 +12,7 @@ export interface GridTranscribeParams {
   activity_pitch: number;
   fmin: number;
   fmax: number;
-  voicing_threshold: number;
-  min_voiced_coverage: number;
   boundary_onset_threshold: number;
-  boundary_tolerance: number;
   sample_rate: number;
   frame_length: number;
   hop_length: number;
@@ -57,10 +54,7 @@ export function makeGridTranscribeParams({
     activity_pitch: 36,
     fmin: 30,
     fmax: 400,
-    voicing_threshold: 0.5,
-    min_voiced_coverage: 0.5,
     boundary_onset_threshold: splitThreshold,
-    boundary_tolerance: 0.06,
     sample_rate: 22050,
     frame_length: 2048,
     hop_length: 256,
