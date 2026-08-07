@@ -145,12 +145,14 @@ test.describe("Audio to MIDI", () => {
     const panel = page.getByTestId("audio-to-midi-panel");
     await expect(panel).toBeVisible();
 
+    // TODO: assert default method
     // Grid bass is the default method and has no separate analyze stage; the
     // real pYIN wasm runs in the worker, taking a few seconds for the fixture.
     await panel.getByTestId("convert-button").click();
     await expect(
       panel.getByTestId("audio-to-midi-conversion-status"),
     ).toHaveText(/^Created \d+ notes in (\d+ms|\d+\.\d+s)$/, {
+      // TODO: verify timeout
       timeout: 15_000,
     });
 

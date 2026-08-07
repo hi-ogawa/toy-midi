@@ -23,6 +23,7 @@ import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
 
+// TODO: rename "grid-bass"
 type ConversionMethod = "grid-bass" | "basic-pitch";
 
 // Each method is an independent flow component owning its own state, so

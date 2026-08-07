@@ -14,4 +14,3 @@ pnpm dev
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md)
-- [Grid-guided bass pitch evaluation](docs/bass-pitch/evaluation.md)
