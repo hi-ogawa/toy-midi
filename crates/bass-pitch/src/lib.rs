@@ -156,6 +156,9 @@ pub struct Pipeline {
     pub pitch_decisions: Vec<PitchDecision>,
 }
 
+/// Runs feature extraction followed by activity detection, onset segmentation,
+/// and region-level pitch assignment, retaining every intermediate stage for
+/// diagnostics.
 pub fn run_pipeline(
     audio: &[f32],
     params: &Params,
@@ -178,6 +181,10 @@ pub fn run_pipeline(
     }
 }
 
+/// Computes aligned pYIN, onset, and RMS frame series from mono input samples.
+///
+/// Feature implementations can produce slightly different lengths, so output
+/// arrays are truncated to their common prefix before frame times are assigned.
 pub fn analyze(
     audio: &[f32],
     params: &Params,
@@ -358,6 +365,8 @@ fn onset_strength(
     shifted
 }
 
+/// Computes RMS over zero-padded windows centered on the same hop grid as pYIN
+/// and onset analysis.
 fn rms_frames(audio: &[f64], frame_length: usize, hop_length: usize) -> Vec<f64> {
     let n_frames = audio.len() / hop_length + 1;
     (0..n_frames)
@@ -382,6 +391,8 @@ fn hz_to_midi(hz: f64) -> f64 {
     12.0 * (hz / 440.0).log2() + 69.0
 }
 
+/// Scales positive finite values by their interpolated 95th percentile and
+/// clamps the result to 0 through 1, preserving zero for an empty signal.
 fn normalize_feature(values: &[f64]) -> Vec<f64> {
     let mut positive: Vec<f64> = values
         .iter()
@@ -402,6 +413,8 @@ fn normalize_feature(values: &[f64]) -> Vec<f64> {
         .collect()
 }
 
+/// Builds the complete project-grid cells contained in the source excerpt,
+/// preserving equivalent source and project time coordinates for each cell.
 fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
     let cell_duration = 60.0 / params.bpm / params.cells_per_beat as f64;
     let source_origin = params.grid_origin - params.offset;
@@ -419,6 +432,8 @@ fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
         .collect()
 }
 
+/// Classifies note presence from median cell RMS with separate thresholds for
+/// entering and leaving an active run.
 fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<ActivityCell> {
     let mut active = false;
     cells
@@ -467,6 +482,8 @@ fn rms_to_db(value: f64) -> f64 {
     20.0 * value.log10()
 }
 
+/// Coalesces consecutive active cells into fixed-pitch regions for the
+/// activity-only diagnostic stage.
 fn make_activity_notes(cells: &[ActivityCell], pitch: i32) -> Vec<Note> {
     let mut notes: Vec<Note> = Vec::new();
     let mut current: Option<Note> = None;
@@ -495,6 +512,8 @@ fn make_activity_notes(cells: &[ActivityCell], pitch: i32) -> Vec<Note> {
     notes
 }
 
+/// Splits active runs at cells whose peak normalized onset reaches the
+/// configured threshold, while preserving inactive cells as gaps.
 fn make_activity_onset_notes(
     cells: &[GridCell],
     activity_cells: &[ActivityCell],
@@ -534,6 +553,11 @@ fn make_activity_onset_notes(
     notes
 }
 
+/// Assigns one MIDI pitch to each segmented region by confidence-weighted
+/// voting over all finite voiced frames in that region.
+///
+/// Every voiced frame contributes at least 0.1 weight, so low pYIN confidence
+/// can weaken a pitch decision but cannot erase a region established earlier.
 fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Vec<PitchDecision> {
     notes
         .iter()
