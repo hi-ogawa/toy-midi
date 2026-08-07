@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   DownloadIcon,
+  FileMusicIcon,
   SparklesIcon,
   Trash2Icon,
   UploadIcon,
@@ -13,7 +14,7 @@ import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
 import { exportMusicXml } from "../lib/musicxml-export";
-import { KEY_SIGNATURES } from "../lib/pitch-spelling";
+import { KEY_SIGNATURE_OPTION_GROUPS } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
 import {
@@ -33,14 +34,18 @@ import { Button } from "./ui/button";
 type SettingsProps = {
   // Project section
   projectName: string;
+  projectScoreHref: string;
   onProjectNameChange: (name: string) => void;
+  onProjectScoreOpen: () => void;
   // Closes settings and opens the transcription panel for the track
   onAudioToMidiClick: (trackId: string) => void;
 };
 
 export function Settings({
   projectName,
+  projectScoreHref,
   onProjectNameChange,
+  onProjectScoreOpen,
   onAudioToMidiClick,
 }: SettingsProps) {
   const projectNameInput = useDraftTextInput({
@@ -305,13 +310,17 @@ export function Settings({
               }}
               className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
             >
-              {KEY_SIGNATURES.map((key) => (
-                <option
-                  key={`${key.fifths}:${key.mode}`}
-                  value={`${key.fifths}:${key.mode}`}
-                >
-                  {key.label}
-                </option>
+              {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
+                <optgroup key={group.mode} label={group.label}>
+                  {group.options.map((key) => (
+                    <option
+                      key={`${key.fifths}:${group.mode}`}
+                      value={`${key.fifths}:${group.mode}`}
+                    >
+                      {key.label}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
@@ -394,6 +403,17 @@ export function Settings({
             <DownloadIcon className="size-4" />
             Export MIDI
           </Button>
+          <a
+            href={projectScoreHref}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="view-score-button"
+            onClick={onProjectScoreOpen}
+            className="inline-flex h-8 w-full items-center justify-start gap-1.5 rounded-md border border-border bg-background px-3 text-sm shadow-xs transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
+          >
+            <FileMusicIcon className="size-4" />
+            View Score
+          </a>
           <Button
             data-testid="export-musicxml-button"
             onClick={() => exportMusicXmlMutation.mutate()}

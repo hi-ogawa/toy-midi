@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronsUpDownIcon,
   FolderIcon,
@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
 import {
@@ -29,11 +30,16 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-export function ScoreViewer() {
+export function ScoreViewer({
+  initialSource,
+}: {
+  initialSource?: ScoreSource;
+}) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
-  const [score, setScore] = useState<ScoreSource>();
+  const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
@@ -47,6 +53,7 @@ export function ScoreViewer() {
       return;
     }
     runtime.attach(root);
+    setIsRuntimeAttached(true);
     return () => runtime.dispose();
   }, [runtime]);
 
@@ -80,6 +87,20 @@ export function ScoreViewer() {
           : source;
       await runtime.load({ score: nextScore, layout });
       setScore(nextScore);
+    },
+  });
+
+  // Use the query cache to deduplicate initial loading under Strict Mode.
+  useQuery({
+    queryKey: ["score-viewer-initial-source", initialSource],
+    enabled: isRuntimeAttached && initialSource !== undefined,
+    staleTime: Infinity,
+    queryFn: async () => {
+      loadMutation.mutate({
+        layout,
+        source: initialSource!,
+      });
+      return true;
     },
   });
 
@@ -178,47 +199,51 @@ export function ScoreViewer() {
           {score?.name ?? "No score loaded"}
         </span>
 
-        <div className="h-5 w-px bg-border" />
+        {!initialSource && (
+          <>
+            <div className="h-5 w-px bg-border" />
 
-        <FileDropInput
-          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-          disabled={loadMutation.isPending}
-          inputProps={{ "aria-label": "Open MusicXML" }}
-          onFile={(file) => loadMutation.mutate({ layout, source: file })}
-          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <FolderOpenIcon className="size-4" />
-          Open
-        </FileDropInput>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-              Samples
-              <ChevronsUpDownIcon className="size-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            {SCORE_VIEWER_SAMPLES.map((sample) => (
-              <DropdownMenuItem
-                key={sample.id}
-                onSelect={() =>
-                  loadMutation.mutate({
-                    layout,
-                    source: { name: sample.name, xml: sample.xml },
-                  })
-                }
-                className="items-start"
-              >
-                <div>
-                  <div>{sample.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {sample.description}
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <FileDropInput
+              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+              disabled={loadMutation.isPending}
+              inputProps={{ "aria-label": "Open MusicXML" }}
+              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <FolderOpenIcon className="size-4" />
+              Open
+            </FileDropInput>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+                  Samples
+                  <ChevronsUpDownIcon className="size-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {SCORE_VIEWER_SAMPLES.map((sample) => (
+                  <DropdownMenuItem
+                    key={sample.id}
+                    onSelect={() =>
+                      loadMutation.mutate({
+                        layout,
+                        source: { name: sample.name, xml: sample.xml },
+                      })
+                    }
+                    className="items-start"
+                  >
+                    <div>
+                      <div>{sample.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {sample.description}
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -231,7 +256,7 @@ export function ScoreViewer() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <a href="/" data-testid="all-projects-menu-item">
+              <a href={routes.home.href()} data-testid="all-projects-menu-item">
                 <FolderIcon />
                 All Projects
               </a>

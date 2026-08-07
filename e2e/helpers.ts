@@ -10,14 +10,6 @@ export async function clickNewProject(page: Page): Promise<void> {
 }
 
 /**
- * Click "Continue" on startup screen to restore saved project.
- */
-export async function clickContinue(page: Page): Promise<void> {
-  await page.getByTestId("continue-button").click();
-  await page.getByTestId("transport").waitFor({ state: "visible" });
-}
-
-/**
  * Wait for the editor UI after navigating or reloading into /project/:id.
  * The editor mounts before audio is ready; use waitForAudioReady before
  * driving playback via keyboard.

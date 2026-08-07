@@ -1,26 +1,51 @@
 import { Editor } from "./components/editor";
 import { ProjectListView } from "./components/project-list-view";
 import { ScoreViewer } from "./components/score-viewer";
-import { useWindowEvent } from "./hooks/use-window-event";
-import { matchKeyboardEvent } from "./lib/keyboard";
+import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
 import { projectStorage } from "./lib/project-storage";
+import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
-  if (window.location.pathname === "/score-viewer") {
-    return <ScoreViewer />;
+  const match = matchRoute(window.location.href);
+
+  switch (match?.data) {
+    case "scoreViewer": {
+      return <ScoreViewer />;
+    }
+    case "projectScore": {
+      return <ProjectScoreRoute projectId={match.params.projectId} />;
+    }
+    case "project": {
+      return <ProjectRoute projectId={match.params.projectId} />;
+    }
+    case "home":
+    default: {
+      return <StartupApp />;
+    }
   }
-  const match = window.location.pathname.match(/^\/project\/([^/]+)$/);
-  if (match) {
-    return <ProjectRoute projectId={match[1]} />;
+}
+
+function ProjectScoreRoute({ projectId }: { projectId: string }) {
+  const score = getProjectScoreSource(projectId);
+
+  if (!score.ok) {
+    return (
+      <RouteError
+        error={score.error}
+        backHref={routes.project.href({ projectId })}
+        backLabel="Back to project"
+      />
+    );
   }
-  return <StartupApp />;
+
+  return <ScoreViewer initialSource={score.value} />;
 }
 
 // All project opens are full-page navigation; ProjectRoute is the only way
 // into the editor.
 function openProject(projectId: string) {
-  window.location.href = `/project/${projectId}`;
+  window.location.href = routes.project.href({ projectId });
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
@@ -39,12 +64,11 @@ function ProjectRoute({ projectId }: { projectId: string }) {
 
   if (!session.ok) {
     return (
-      <div className="fixed inset-0 bg-neutral-900 flex flex-col items-center justify-center gap-4 text-neutral-400">
-        {String(session.error)}
-        <a href="/" className="text-emerald-400 hover:text-emerald-300">
-          Back to projects
-        </a>
-      </div>
+      <RouteError
+        error={session.error}
+        backHref={routes.home.href()}
+        backLabel="Back to projects"
+      />
     );
   }
 
@@ -56,30 +80,26 @@ function ProjectRoute({ projectId }: { projectId: string }) {
   );
 }
 
-function StartupApp() {
-  // Space to continue/start project
-  useWindowEvent(
-    "keydown",
-    (e) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      if (matchKeyboardEvent(e, "Space")) {
-        e.preventDefault();
-        e.stopPropagation();
-        openProject(
-          projectStorage.getLastProjectId() ?? projectStorage.createNew(),
-        );
-      }
-    },
-    true,
+function RouteError({
+  error,
+  backHref,
+  backLabel,
+}: {
+  error: unknown;
+  backHref: string;
+  backLabel: string;
+}) {
+  return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-900 text-neutral-400">
+      {String(error)}
+      <a href={backHref} className="text-emerald-400 hover:text-emerald-300">
+        {backLabel}
+      </a>
+    </div>
   );
+}
 
+function StartupApp() {
   return (
     <ProjectListView
       onSelectProject={openProject}

@@ -99,4 +99,14 @@ test.describe("Project Route", () => {
       page.getByText("Project does-not-exist metadata not found"),
     ).toBeVisible();
   });
+
+  test("unknown project score id shows error", async ({ page }) => {
+    await page.goto("/project/does-not-exist/score");
+    await expect(
+      page.getByText("Project does-not-exist metadata not found"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Back to project" }),
+    ).toHaveAttribute("href", "/project/does-not-exist");
+  });
 });

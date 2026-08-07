@@ -17,6 +17,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/hooks/use-audio.ts` exposes reactive audio state to the UI.
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.
+- `src/components/score-viewer.tsx` owns standalone and project-backed score playback.
 
 ## State And Audio Flow
 
@@ -43,5 +44,7 @@ Project documents and their metadata index live in localStorage. Binary audio as
 Compatible document changes migrate when a project is loaded. Breaking or lossy storage changes require a new storage layout and a copy-before-delete migration so the previous data remains recoverable until commit.
 
 An active project session coordinates hydration, audio synchronization, autosave, asset restoration, shortcuts, and cleanup. The editor renders from hydrated project data immediately, while audio initialization and restoration continue in the background.
+
+Project score routes read persisted documents directly and generate MusicXML in memory. They do not establish an active project session or mutate editor state; the editor flushes pending autosave before opening a score snapshot.
 
 Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.

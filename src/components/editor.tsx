@@ -9,8 +9,10 @@ import {
 import { useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
+import { routes } from "../lib/routes";
 import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
@@ -111,7 +113,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a href="/" data-testid="all-projects-menu-item">
+                  <a
+                    href={routes.home.href()}
+                    data-testid="all-projects-menu-item"
+                  >
                     <FolderIcon />
                     All Projects
                   </a>
@@ -165,11 +170,16 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       >
         <Settings
           projectName={projectName}
+          projectScoreHref={routes.projectScore.href({ projectId })}
           onProjectNameChange={(name) => {
             if (name && name !== projectName) {
               projectStorage.updateMetadata(projectId, { name });
               setProjectName(name);
             }
+          }}
+          onProjectScoreOpen={() => {
+            flushAutoSave();
+            setIsSettingsOpen(false);
           }}
           onAudioToMidiClick={(trackId) => {
             setIsSettingsOpen(false);
