@@ -6,7 +6,8 @@
   "scripts": {
     "prepare": "vp config",
     "dev": "vite dev --config vite.app.config.ts",
-    "build": "pnpm build-wasm && vite build --config vite.app.config.ts",
+    "build": "pnpm build-wasm && pnpm build-app",
+    "build-app": "vite build --config vite.app.config.ts",
     "build-wasm": "([ -z \"$WORKERS_CI\" ] || command -v cargo >/dev/null || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal) && PATH=\"$HOME/.cargo/bin:$PATH\" pnpm -C crates/bass-pitch-wasm build",
     "preview": "vite preview --config vite.app.config.ts",
     "typecheck": "tsc -b",
