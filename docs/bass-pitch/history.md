@@ -68,7 +68,7 @@ cargo run --release -p bass-pitch -- path/to/bass.wav --bpm 105
 
 ### DSP Findings
 
-The upstream `pyin` crate, based on librosa 0.9.1, passed the initial spike, so no YIN fallback was needed. Two onset details proved load-bearing:
+The upstream `pyin` crate, based on librosa 0.9.1, passed the initial evaluation, so no YIN fallback was needed. Two onset details were required to match the fixtures:
 
 - Mel-style band aggregation must happen before rectification. Per-bin flux turns decay-tail jitter into false onsets.
 - The onset envelope must be delayed by `frame_length / (2 * hop_length)` frames to compensate for centered analysis. Without the delay, attacks land one grid cell early.

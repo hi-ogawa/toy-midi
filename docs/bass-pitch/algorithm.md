@@ -37,9 +37,9 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 **Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch/pyin.md` and its visual companion `docs/bass-pitch/pyin.html`.
 
-**Loudness: RMS.** Deliberately the dumbest possible presence signal, because presence must favor recall: audible bass must never be dropped by a clever feature having a bad frame.
+**Loudness: RMS.** RMS is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
 
-**Onset novelty: mel-banded log spectral flux** (`onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Two details are load-bearing rather than cosmetic, and both were found by fixture failures:
+**Onset novelty: mel-banded log spectral flux** (`onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
 
 - Band aggregation must happen before rectification. Per-bin flux rectifies the random per-bin jitter of a decaying note into a steady stream of false positives; summing bins into bands first lets that jitter cancel, so only coherent broadband energy rises, which is what an attack is.
 - The envelope must be delayed by half an analysis window (`frame_length / (2 * hop)` frames), matching librosa's `center=True` compensation. A centered STFT starts seeing an attack half a window early, so without the delay every onset peak lands one grid cell before the attack.
@@ -50,7 +50,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Stage 3: Presence (Activity)
 
-`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when a human would call it a rest. That is accepted because the priority is never dropping real notes; distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/history.md`, Remaining Work), and the extra sustain is cheap to trim by hand.
+`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when it should be a rest. This favors retaining real notes. Distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/history.md`, Remaining Work), and users can trim the extra sustain manually.
 
 ## Stage 4: Segmentation (Note Starts)
 
@@ -99,6 +99,6 @@ Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and
 - **Frame / hop** — analysis slices the audio into overlapping windows ("frames", 2048 samples ≈ 93 ms) advanced by a fixed step (the "hop", 256 samples ≈ 11.6 ms), so every per-frame value is a time series at ~86 values per second.
 - **RMS / dBFS** — root-mean-square, the standard average loudness of a window; dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one. Logarithmic, matching how loudness is perceived.
 - **Mel scale / mel bands** — a frequency axis warped to perceptual pitch spacing, dense at low frequencies and sparse at high ones; a "band" sums the FFT bins falling in one mel-sized slice, here 128 bands covering 0–11 kHz.
-- **Spectral flux** — the frame-to-frame _increase_ of spectral energy, with decreases discarded ("rectified"): a note attack lights up energy across many bands at once, so summed rectified increase spikes at onsets.
+- **Spectral flux** — the frame-to-frame _increase_ of spectral energy, with decreases discarded ("rectified"). A note attack increases energy across many bands at once, so the summed rectified increase peaks at onsets.
 - **Hysteresis** — using two thresholds, one to turn a state on and a lower one to turn it off, so a value hovering near the boundary does not flicker the decision. The evaluated baseline happens to keep both at −25 dBFS, disabling the effect until it is needed.
 - **95th-percentile normalization** — dividing a signal by the value that 95% of its samples fall below, so "0.4" means "40% as strong as the excerpt's near-maximum" and thresholds transfer across quiet and loud material.

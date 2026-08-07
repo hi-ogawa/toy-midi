@@ -892,15 +892,15 @@
           </svg>
           <figcaption>
             Gray dots are what single-frame YIN (deepest trough, no HMM)
-            reports; the green line is the shipped Viterbi decode. On 193 of 197
-            frames they agree — per-frame YIN is genuinely good on clean bass.
-            The 4 orange frames are where it breaks, all sub-octave errors at
-            note transitions (A1 and C#2 attacks), and the path absorbs every
-            one: the sub-octave is unreachable within ±5 semitones/frame, and a
-            momentary voicing flip costs more than coasting. Also visible: the
-            decoded line wanders within a couple of semitones during decays —
-            which is exactly why the pipeline assigns the final pitch by
-            region-level voting rather than reading any single frame.
+            reports; the green line is the Viterbi decode. They agree on 193 of
+            197 frames, which shows that per-frame YIN is accurate on most of
+            this clean bass fixture. The 4 orange frames are sub-octave errors
+            at note transitions (A1 and C#2 attacks). The decoded path corrects
+            them because the sub-octave is outside the ±5 semitone transition
+            range and a momentary voicing change has a higher transition cost.
+            The decoded pitch also varies by a few semitones during decays, so
+            the pipeline assigns final pitch by region-level voting instead of
+            using one frame.
           </figcaption>
         </figure>
       </section>

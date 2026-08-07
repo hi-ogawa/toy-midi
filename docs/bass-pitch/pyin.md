@@ -1,6 +1,6 @@
 # pYIN: Algorithm Breakdown
 
-The pitch stage of the grid-guided bass pipeline (`docs/bass-pitch/algorithm.md`) uses pYIN (Mauch & Dixon 2014) via the vendored `crates/pyin`, a Rust port of librosa's implementation. This doc opens that box: what each internal stage computes, with real numbers from the bar-11 fixture, so the pipeline's claims about confidence and octave handling are checkable rather than folklore. The visual companion is `docs/bass-pitch/pyin.html`.
+The pitch stage of the grid-guided bass pipeline (`docs/bass-pitch/algorithm.md`) uses pYIN (Mauch & Dixon 2014) via the vendored `crates/pyin`, a Rust port of librosa's implementation. This document explains what each internal stage computes, using measurements from the bar-11 fixture so the behavior of confidence and octave handling can be verified. The visual companion is `docs/bass-pitch/pyin.html`.
 
 pYIN is classic YIN plus two upgrades: it replaces YIN's single hard threshold with a probability distribution over thresholds, and it replaces YIN's per-frame decision with an HMM decoded over the whole signal. Everything else is bookkeeping.
 
@@ -8,11 +8,11 @@ pYIN is classic YIN plus two upgrades: it replaces YIN's single hard threshold w
 
 Per frame (2048 samples), compute the difference function `d(τ) = Σ (x[j] − x[j+τ])²` over a 1024-sample window: how badly the signal mismatches itself when shifted by lag τ. A periodic signal has deep minima at its period and multiples. This is computed via FFT autocorrelation (`frame_cum_mean_norm_diff` in `crates/pyin/src/pyin.rs`), then normalized into the cumulative-mean-normalized difference `d'(τ) = d(τ) · τ / Σ_{j≤τ} d(j)`. The normalization pins `d'` near 1 for aperiodic lags and removes both the trivial dip at τ = 0 and overall loudness, so trough depth becomes a loudness-independent measure of periodicity evidence.
 
-With our parameters (22.05 kHz, fmin 30, fmax 400), lags run from 55 to 735 samples. Classic YIN would now take the first trough below an absolute threshold of about 0.1, which is exactly the brittleness pYIN removes: a slightly-too-shallow true dip gets skipped in favor of the sub-octave dip at 2τ (octave error), and a hard threshold makes voicing a cliff.
+With our parameters (22.05 kHz, fmin 30, fmax 400), lags run from 55 to 735 samples. Classic YIN would now take the first trough below an absolute threshold of about 0.1. If the true trough is slightly above that threshold, YIN can skip it in favor of the sub-octave trough at 2τ, causing an octave error. The fixed threshold also makes the voiced decision change abruptly near 0.1.
 
 ## Stage 2: From Troughs to a Probability Distribution
 
-Instead of one threshold, pYIN integrates over 100 thresholds drawn from a Beta(2, 18) prior (mass concentrated around 0.03–0.15). For each threshold, the troughs below it split that threshold's probability mass, weighted by a Boltzmann prior over trough order (λ = 2) that favors earlier troughs, meaning shorter periods, YIN's original first-dip heuristic in soft form. Thresholds with no trough below them contribute only a small fallback (`no_trough_prob` = 0.01) to the global minimum trough — that mass is essentially the frame's "unvoiced" verdict.
+Instead of one threshold, pYIN integrates over 100 thresholds drawn from a Beta(2, 18) prior (mass concentrated around 0.03–0.15). For each threshold, the troughs below it split that threshold's probability mass, weighted by a Boltzmann prior over trough order (λ = 2) that gives more weight to earlier troughs and therefore shorter periods. This is a probabilistic version of YIN's first-dip rule. Thresholds with no trough below them contribute only a small fallback (`no_trough_prob` = 0.01) to the global minimum trough. The remaining mass represents the frame's unvoiced probability.
 
 The result per frame is a probability for each pitch candidate (trough, refined by parabolic interpolation and mapped to 0.1-semitone bins), and their sum is the frame's **voiced probability** — the "confidence" the rest of the pipeline consumes. Two real frames from bar 11 make the mechanism concrete:
 
@@ -30,7 +30,7 @@ The per-frame distributions feed an HMM with `2 × n_bins` states: every 0.1-sem
 
 Viterbi then finds the most likely state path through the whole excerpt (chunked with overlap by `pyin_chunked`; see the main algorithm doc for why that is safe). The output f0 is the decoded bin's center frequency, so it is quantized to 0.1 semitone, which is harmless downstream because region voting rounds to integer MIDI anyway.
 
-Frame 188 shows all three mechanisms cooperating. Naive per-frame YIN reads it as C#1 (the deepest trough). The threshold distribution declares the evidence nearly void. And the Viterbi path, anchored by strong C#2 evidence in the surrounding frames, keeps the decode at C#2: the 12-semitone jump to C#1 is simply outside the ±5-semitone transition window, and flipping to unvoiced for one frame costs more than coasting through on weak evidence. Across all of bar 11, the naive reading deviates from the decode by more than 1.5 semitones on exactly 4 of 197 frames — all sub-octave errors at note transitions, all absorbed by the path.
+Frame 188 shows how the three mechanisms interact. Per-frame YIN reads it as C#1 because that is the deepest trough. The threshold distribution assigns very little confidence to that evidence. The Viterbi path keeps the decoded pitch at C#2 because surrounding frames provide strong C#2 evidence, the 12-semitone jump to C#1 is outside the ±5-semitone transition window, and changing to unvoiced for one frame has a transition penalty. Across bar 11, the per-frame reading differs from the decoded path by more than 1.5 semitones on 4 of 197 frames. All four are sub-octave errors at note transitions that the path corrects.
 
 ## Parameters as Configured
 
@@ -40,7 +40,7 @@ Frame 188 shows all three mechanisms cooperating. Naive per-frame YIN reads it a
 | lag range            | 55–735 samples                 | 30–400 Hz search band                                     |
 | pitch bins           | 449 (0.1 semitone)             | 898 HMM states; dominant Viterbi cost                     |
 | threshold prior      | Beta(2, 18), 100 thresholds    | confidence mass concentrated near d' ≈ 0.03–0.15          |
-| trough prior         | Boltzmann, λ = 2               | soft version of YIN's first-dip rule                      |
+| trough prior         | Boltzmann, λ = 2               | probabilistic version of YIN's first-dip rule             |
 | no-trough fallback   | 0.01 to global min             | shallow-evidence frames decay toward unvoiced             |
 | transition window    | ±5 semitones/frame, triangular | octave jumps between adjacent frames impossible           |
 | voicing switch       | 0.01                           | voicing changes need sustained evidence                   |

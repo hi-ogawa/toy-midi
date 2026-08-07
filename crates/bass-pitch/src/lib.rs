@@ -274,9 +274,9 @@ fn pyin_chunked(
 
 /// Mel-banded log-power spectral flux as an onset novelty signal, following
 /// the shape of librosa's `onset_strength` without exact mel filter weights.
-/// Banding before the rectified diff is load-bearing: per-bin jitter on decay
-/// tails cancels inside a band, while rectifying per-bin differences turns
-/// that jitter into spurious flux peaks on decaying notes.
+/// Banding must happen before the rectified difference. Per-bin jitter on
+/// decay tails cancels inside a band, while rectifying per-bin differences
+/// turns that jitter into false flux peaks on decaying notes.
 fn onset_strength(
     audio: &[f64],
     frame_length: usize,
