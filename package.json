@@ -16,7 +16,6 @@
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
     "test-e2e": "playwright test",
-    "bass-pitch": "uv run python tools/bass-pitch/main.py",
     "bass-pitch-rs": "cargo run --release -p bass-pitch --"
   },
   "dependencies": {

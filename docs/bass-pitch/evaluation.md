@@ -30,7 +30,7 @@ Only complete grid cells contained in the selected excerpt are evaluated. The ou
 The fixture contains one second each of C4, E4, G4, and C5. Its upper pitches are outside the bass-oriented default range, so widen `--fmax`:
 
 ```sh
-pnpm bass-pitch e2e/fixtures/test-tones.wav \
+uv run python tools/bass-pitch/main.py e2e/fixtures/test-tones.wav \
   --duration 4 \
   --bpm 120 \
   --cells-per-beat 1 \
@@ -47,7 +47,7 @@ With `--mode legacy` this produces four notes, MIDI 60, 64, 67, and 72. The defa
 Use the BPM, grid origin, and audio-track offset from the matching toy-midi project:
 
 ```sh
-pnpm bass-pitch path/to/demucs/bass.wav \
+uv run python tools/bass-pitch/main.py path/to/demucs/bass.wav \
   --start 42.5 \
   --duration 20 \
   --bpm 96 \
@@ -63,8 +63,8 @@ pnpm bass-pitch path/to/demucs/bass.wav \
 The real-stem defaults are `--mode segmented`, `--activity-on-db -25`, `--activity-off-db -25`, and `--boundary-onset-threshold 0.4`. Override these explicitly when comparing thresholds. Diagnostic examples:
 
 ```sh
-pnpm bass-pitch path/to/demucs/bass.wav --bpm 96 --mode activity --midi .tmp/activity.mid
-pnpm bass-pitch path/to/demucs/bass.wav --bpm 96 --mode onset --midi .tmp/onset.mid
+uv run python tools/bass-pitch/main.py path/to/demucs/bass.wav --bpm 96 --mode activity --midi .tmp/activity.mid
+uv run python tools/bass-pitch/main.py path/to/demucs/bass.wav --bpm 96 --mode onset --midi .tmp/onset.mid
 ```
 
 The CSV uses `record_type` rows:
