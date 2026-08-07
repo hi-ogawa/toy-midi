@@ -2,8 +2,8 @@
 // browser. Prints the detected notes.
 //
 // Usage:
-//   pnpm basic-pitch input.wav    # any audio format supported by ffmpeg
-//   pnpm basic-pitch input.wav --onset 0.5 --frame 0.3 --min-length 5
+//   node tools/basic-pitch.mjs input.wav    # any audio format supported by ffmpeg
+//   node tools/basic-pitch.mjs input.wav --onset 0.5 --frame 0.3 --min-length 5
 //
 // A synthetic C4/E4/G4/C5 test input lives at e2e/fixtures/test-tones.pcm
 // (regeneration documented in e2e/fixtures/README.md).
@@ -34,7 +34,7 @@ const MODEL_SAMPLE_RATE = 22050;
 const TMP_DIR = path.join(import.meta.dirname, "../.tmp");
 
 const USAGE = `\
-usage: pnpm basic-pitch <input-audio> [options]
+usage: node tools/basic-pitch.mjs <input-audio> [options]
 
 options:
   --onset <0-1>        onset threshold, higher = fewer note splits (default 0.5)
