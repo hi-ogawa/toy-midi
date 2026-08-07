@@ -22,110 +22,178 @@ const CHUNK_SECONDS: usize = 10;
 const CHUNK_DISCARD_FRAMES: usize = 32;
 
 #[derive(Clone, Copy, Debug)]
+/// Progress through the independently analyzed pYIN chunks.
 pub struct ChunkProgress {
+    /// Number of chunks whose retained frames are available.
     pub completed: usize,
+    /// Total number of chunks for the selected audio excerpt.
     pub total: usize,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
+/// Analysis, grid, and decision parameters shared by the native and WASM frontends.
 pub struct Params {
+    /// Start of the analyzed excerpt in source-audio seconds.
     pub start: f64,
+    /// Project placement of source time zero, in seconds.
     pub offset: f64,
+    /// Project tempo in quarter-note beats per minute.
     pub bpm: f64,
+    /// Number of decision cells in one quarter-note beat.
     pub cells_per_beat: u32,
+    /// Project time, in seconds, of grid boundary zero.
     pub grid_origin: f64,
+    /// dBFS threshold below which an active run ends.
     pub activity_off_db: f64,
+    /// dBFS threshold at which an inactive run begins.
     pub activity_on_db: f64,
+    /// Fallback MIDI pitch used by diagnostic stages with no pitch evidence.
     pub activity_pitch: i32,
+    /// Lowest frequency considered by pYIN, in hertz.
     pub fmin: f64,
+    /// Highest frequency considered by pYIN, in hertz.
     pub fmax: f64,
+    /// Minimum pYIN voiced probability accepted by legacy cell voting.
     pub voicing_threshold: f64,
+    /// Minimum accepted-frame fraction required by legacy cell voting.
     pub min_voiced_coverage: f64,
+    /// Normalized onset score required to split an active region.
     pub boundary_onset_threshold: f64,
+    /// Seconds searched on either side of a boundary by legacy split detection.
     pub boundary_tolerance: f64,
+    /// Input audio sample rate in hertz.
     pub sample_rate: u32,
+    /// Analysis window length in samples.
     pub frame_length: usize,
+    /// Distance between consecutive frame centers in samples.
     pub hop_length: usize,
 }
 
-/// Per-frame analysis features. Times are in source seconds.
+/// Parallel arrays of per-frame analysis features.
 pub struct Frames {
+    /// Frame-center times in source-audio seconds.
     pub times: Vec<f64>,
+    /// pYIN fundamental frequency estimates in hertz, or NaN when unvoiced.
     pub f0: Vec<f64>,
+    /// Fundamental frequency converted to fractional MIDI pitch.
     pub midi_pitch: Vec<f64>,
+    /// Viterbi-decoded pYIN voiced state.
     pub voiced_flag: Vec<bool>,
+    /// pYIN periodicity confidence in the range 0 through 1.
     pub voiced_probability: Vec<f64>,
+    /// Onset novelty normalized against the excerpt's 95th percentile.
     pub onset: Vec<f64>,
+    /// Root-mean-square amplitude for each analysis window.
     pub rms: Vec<f64>,
 }
 
 #[derive(Clone, Debug)]
+/// One project-grid interval and its legacy per-cell pitch vote.
 pub struct GridCell {
+    /// Grid-relative index, which may be negative before grid boundary zero.
     pub index: i64,
+    /// Cell start in source-audio seconds.
     pub source_start: f64,
+    /// Cell end in source-audio seconds.
     pub source_end: f64,
+    /// Cell start in project seconds.
     pub project_start: f64,
+    /// Cell end in project seconds.
     pub project_end: f64,
+    /// Winning rounded MIDI pitch, or no pitch when legacy voting emits a rest.
     pub pitch: Option<i32>,
+    /// Fraction of cell frames accepted as voiced by legacy voting.
     pub voiced_coverage: f64,
+    /// Mean pYIN probability of frames that voted for the winning pitch.
     pub vote_confidence: f64,
     pub frame_count: usize,
     pub voiced_frame_count: usize,
 }
 
 #[derive(Clone, Debug)]
+/// One grid cell's loudness-based note-presence decision.
 pub struct ActivityCell {
     pub index: i64,
     pub source_start: f64,
     pub source_end: f64,
     pub project_start: f64,
     pub project_end: f64,
+    /// Median RMS amplitude of frame centers inside the cell.
     pub rms: f64,
+    /// Cell RMS converted to dBFS.
     pub rms_db: f64,
+    /// Hysteresis state after evaluating this cell.
     pub active: bool,
 }
 
 #[derive(Clone, Debug)]
+/// Diagnostic split decision between two adjacent legacy pitch-vote cells.
 pub struct Boundary {
     pub left_cell: i64,
     pub right_cell: i64,
+    /// Boundary position in source-audio seconds.
     pub source_time: f64,
+    /// Boundary position in project seconds.
     pub project_time: f64,
+    /// Peak normalized onset novelty near the boundary.
     pub onset_score: f64,
+    /// Relative local RMS trough depth near the boundary.
     pub rms_dip_score: f64,
+    /// Relative local pYIN-confidence trough depth near the boundary.
     pub confidence_dip_score: f64,
+    /// Maximum of the onset and dip evidence scores.
     pub evidence_score: f64,
     pub split: bool,
+    /// Stable diagnostic label describing why the boundary split or merged.
     pub reason: &'static str,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
+/// A grid-aligned monophonic MIDI note in project time.
 pub struct Note {
+    /// Integer MIDI note number.
     pub pitch: i32,
+    /// Inclusive note start in project seconds.
     pub project_start: f64,
+    /// Exclusive note end in project seconds.
     pub project_end: f64,
+    /// First grid cell included in the note.
     pub first_cell: i64,
+    /// Last grid cell included in the note.
     pub last_cell: i64,
 }
 
 #[derive(Clone, Debug)]
+/// Pitch-vote result and diagnostics for one activity/onset note region.
 pub struct PitchDecision {
+    /// Region relabeled with the winning pitch or fallback pitch.
     pub note: Note,
+    /// Number of finite pYIN voiced frames contributing evidence.
     pub evidence_frames: usize,
+    /// Sum of confidence-derived weights for the winning pitch.
     pub winner_weight: f64,
+    /// Second-highest rounded MIDI pitch, when one exists.
     pub runner_up_pitch: Option<i32>,
     pub runner_up_weight: f64,
+    /// Winner weight divided by the total vote weight.
     pub margin: f64,
 }
 
+/// Full transcription result, including each observable diagnostic stage.
 pub struct Pipeline {
     pub frames: Frames,
+    /// Grid cells carrying legacy confidence-gated pitch votes.
     pub cells: Vec<GridCell>,
     pub activity_cells: Vec<ActivityCell>,
+    /// Legacy adjacent-cell split decisions.
     pub boundaries: Vec<Boundary>,
+    /// Notes produced by the original confidence-gated cell pipeline.
     pub legacy_notes: Vec<Note>,
+    /// Fixed-pitch regions produced from activity alone.
     pub activity_notes: Vec<Note>,
+    /// Fixed-pitch activity regions split by onset evidence.
     pub onset_notes: Vec<Note>,
+    /// Shipping segmented regions with their assigned pitches and diagnostics.
     pub pitch_decisions: Vec<PitchDecision>,
 }
 
