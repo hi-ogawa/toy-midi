@@ -1,12 +1,12 @@
 # Grid-Guided Bass Pitch Evaluation
 
-`tools/bass-pitch.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, votes for pitch or rest in each known project-grid cell, and merges adjacent equal-pitch cells unless local onset, RMS-dip, or confidence-dip evidence indicates a repeated articulation.
+`tools/bass-pitch/main.py` is an offline evaluation harness for extracting approximate monophonic MIDI from a Demucs bass stem. It uses `librosa.pyin` for pitch and voicing, votes for pitch or rest in each known project-grid cell, and merges adjacent equal-pitch cells unless local onset, RMS-dip, or confidence-dip evidence indicates a repeated articulation.
 
 The default segmented output detects RMS activity, splits active regions at grid cells with onset evidence, and assigns a provisional pYIN pitch to each region. Use `--mode activity` or `--mode onset` to emit fixed-pitch diagnostic stages, or `--mode legacy` to inspect the original cell-level confidence-gated pipeline.
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
-A native Rust port with the same flags and outputs lives at `crates/bass-pitch` (`pnpm bass-pitch-rs`); see `docs/bass-pitch-rust-port.md` for its validation status against this harness.
+A native Rust port with the same flags and outputs lives at `crates/bass-pitch` (`pnpm bass-pitch-rs`); see `docs/bass-pitch/rust-port.md` for its validation status against this harness.
 
 ## Setup
 

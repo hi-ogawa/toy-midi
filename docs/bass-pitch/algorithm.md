@@ -1,6 +1,6 @@
 # Grid-Guided Bass Transcription: Algorithm
 
-This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the grid-bass audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation status and validation live in `docs/bass-pitch-rust-port.md`, and the original experiment history lives in `docs/bass-pitch-evaluation.md`. A skimmable visual companion is `docs/bass-pitch-algorithm.html`.
+This explains the algorithmic ideas behind `crates/bass-pitch`, the pipeline that powers the grid-bass audio-to-MIDI method. It covers what each stage computes and why it is shaped that way; implementation status and validation live in `docs/bass-pitch/rust-port.md`, and the original experiment history lives in `docs/bass-pitch/evaluation.md`. A skimmable visual companion is `docs/bass-pitch/algorithm.html`.
 
 ## The Core Idea
 
@@ -35,7 +35,7 @@ notes in project seconds → MIDI ticks at project BPM (grid-aligned by construc
 
 Three per-frame signals are computed once and shared by all later decisions (`analyze`, `crates/bass-pitch/src/lib.rs`).
 
-**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch-pyin.md` and its visual companion `docs/bass-pitch-pyin.html`.
+**Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch/pyin.md` and its visual companion `docs/bass-pitch/pyin.html`.
 
 **Loudness: RMS.** Deliberately the dumbest possible presence signal, because presence must favor recall: audible bass must never be dropped by a clever feature having a bad frame.
 
@@ -50,7 +50,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Stage 3: Presence (Activity)
 
-`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when a human would call it a rest. That is accepted because the priority is never dropping real notes; distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch-rust-port.md`, Remaining Work), and the extra sustain is cheap to trim by hand.
+`detect_activity` marks a cell active when its median RMS in dBFS clears a threshold, with on/off hysteresis available (the evaluated baseline keeps both at −25 dBFS). Runs of active cells become regions. This intentionally over-detects: a decaying note tail is energetic and stays "active" even when a human would call it a rest. That is accepted because the priority is never dropping real notes; distinguishing intentional sustain from decay is a planned refinement (`docs/bass-pitch/rust-port.md`, Remaining Work), and the extra sustain is cheap to trim by hand.
 
 ## Stage 4: Segmentation (Note Starts)
 
@@ -95,7 +95,7 @@ The legacy mode is the original cell-level pipeline (per-cell confidence-gated p
 
 ## Glossary
 
-Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and friends) are glossed in `docs/bass-pitch-pyin.md`.
+Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and friends) are glossed in `docs/bass-pitch/pyin.md`.
 
 - **Frame / hop** — analysis slices the audio into overlapping windows ("frames", 2048 samples ≈ 93 ms) advanced by a fixed step (the "hop", 256 samples ≈ 11.6 ms), so every per-frame value is a time series at ~86 values per second.
 - **RMS / dBFS** — root-mean-square, the standard average loudness of a window; dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one. Logarithmic, matching how loudness is perceived.

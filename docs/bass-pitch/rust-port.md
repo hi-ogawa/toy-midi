@@ -1,6 +1,6 @@
 # Grid-Guided Bass Pitch: Rust/WASM Port Plan
 
-This plan ports the evaluated Python harness from `docs/bass-pitch-evaluation.md` to Rust so the same pipeline can run fully client-side, following the approach proven in the `demucs-onnx` repository (Rust core, native CLI first, wasm-bindgen package second). The port is realistic and smaller than demucs-onnx because the pipeline is classical DSP with no neural model, so there is no ONNX export, no runtime dependency, and no model-weight distribution.
+This plan ports the evaluated Python harness from `docs/bass-pitch/evaluation.md` to Rust so the same pipeline can run fully client-side, following the approach proven in the `demucs-onnx` repository (Rust core, native CLI first, wasm-bindgen package second). The port is realistic and smaller than demucs-onnx because the pipeline is classical DSP with no neural model, so there is no ONNX export, no runtime dependency, and no model-weight distribution.
 
 ## Scope Decisions
 
@@ -16,9 +16,9 @@ A native Rust CLI that reproduces the grid-guided workflow end to end on the exi
 1. Scaffold one crate (lib plus bin) inside toy-midi, wired up as `pnpm bass-pitch-rs`. For input, spawn ffmpeg and read `pcm_f32le` mono at the analysis rate from stdout. This accepts any input format and eliminates decode and resample dependencies entirely.
 2. Spike the `pyin` crate against `e2e/fixtures/test-tones.wav` with the smoke-test gate from the evaluation doc, which is four notes at MIDI 60, 64, 67, and 72. Fall back to `pyin-rs`, then plain YIN, only if the API or output is unusable.
 3. Hand-write only the trivial features. Per-frame RMS is a few lines. For onset strength, skip librosa's mel-band flux and start with the simplest novelty signal that could work, normalized rectified spectral flux over a plain FFT magnitude via `realfft`, or a log-RMS difference as the first attempt.
-4. Mechanically port the decision layer from `tools/bass-pitch.py`, covering activity hysteresis, boundary onset splitting, region pitch voting, and merging. Keep the CSV `record_type` schema and the staged MIDI outputs (via [`midly`](https://crates.io/crates/midly)) so stage-attributable debugging carries over unchanged.
+4. Mechanically port the decision layer from `tools/bass-pitch/main.py`, covering activity hysteresis, boundary onset splitting, region pitch voting, and merging. Keep the CSV `record_type` schema and the staged MIDI outputs (via [`midly`](https://crates.io/crates/midly)) so stage-attributable debugging carries over unchanged.
 5. Re-validate behaviorally. The smoke test must be exact. Bar 11 must recover attack cells `0, 2, 5, 8, 13, 14, 15` and the pitch sequence of repeated D1 followed by A1, B1, and C#2 at some threshold setting, because the Rust features approximate librosa's and the documented thresholds must be re-swept rather than reused. Then import a 30-second run into toy-midi next to the Python output for a side-by-side judgment.
-6. Record the retuned baseline and timing numbers in `docs/bass-pitch-evaluation.md`.
+6. Record the retuned baseline and timing numbers in `docs/bass-pitch/evaluation.md`.
 
 Done means the CLI produces a segmented pitch MIDI on the Primrose material that is as usable as the Python one, with retuned thresholds documented, at native speed at least matching Python's 6-7x realtime.
 
@@ -46,7 +46,7 @@ Grid bass is now the default method in the `AudioToMidi` panel, with Basic Pitch
 - The upstream `pyin` crate does not build on `wasm32-unknown-unknown` because its C FFI wrapper uses `libc`. It is vendored at `crates/pyin` with the FFI and binary removed; output was verified byte-identical against the registry build.
 - `crates/bass-pitch-wasm` exposes one `transcribe(samples, params_json)` function; the JSON contract is the core crate's `Params` and `Note` structs. `src/lib/bass-pitch/` holds the worker, client, and wire types, mirroring `src/lib/basic-pitch/`.
 - The wasm build follows the demucs-onnx pattern: `crates/bass-pitch-wasm` doubles as the pnpm workspace package `@hiogawa/bass-pitch-wasm` (wasm-pack pinned as a devDependency, generated `pkg/` gitignored), the app depends on it as `workspace:*`, and `pnpm build` runs `build-wasm` first. Cloudflare's build environment has no Rust, so `build` bootstraps a minimal rustup when the Workers-Builds-injected `WORKERS_CI` variable is set and `cargo` is absent, which keeps the dashboard build command a plain `pnpm build`. CI builds the wasm on GitHub runners, which already ship Rust.
-- Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch-evaluation.md`. The two song-dependent thresholds, activity dBFS and the repeated-note split threshold, are adjustable sliders in the panel.
+- Grid cell resolution follows the current grid snap (`cells per beat = 1 / grid snap beats`), the track offset and project tempo come from the project store, and other thresholds use the evaluated CLI defaults from `docs/bass-pitch/evaluation.md`. The two song-dependent thresholds, activity dBFS and the repeated-note split threshold, are adjustable sliders in the panel.
 - There is no analyze stage: one Convert press resamples to 22.05 kHz mono on the main thread, runs pYIN plus grid decisions in the worker, and commits one `replaceAllNotes` undo entry. The e2e spec covers the default grid-bass flow with the real wasm and the Basic Pitch flow via the method selector.
 
 ## Blocker: Chunked Analysis With Progress

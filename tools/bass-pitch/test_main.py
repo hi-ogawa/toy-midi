@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-SCRIPT_PATH = Path(__file__).with_name("bass-pitch.py")
+SCRIPT_PATH = Path(__file__).with_name("main.py")
 SPEC = importlib.util.spec_from_file_location("bass_pitch", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 bass_pitch = importlib.util.module_from_spec(SPEC)

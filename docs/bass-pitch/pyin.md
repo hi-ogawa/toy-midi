@@ -1,6 +1,6 @@
 # pYIN: Algorithm Breakdown
 
-The pitch stage of the grid-guided bass pipeline (`docs/bass-pitch-algorithm.md`) uses pYIN (Mauch & Dixon 2014) via the vendored `crates/pyin`, a Rust port of librosa's implementation. This doc opens that box: what each internal stage computes, with real numbers from the bar-11 fixture, so the pipeline's claims about confidence and octave handling are checkable rather than folklore. The visual companion is `docs/bass-pitch-pyin.html`.
+The pitch stage of the grid-guided bass pipeline (`docs/bass-pitch/algorithm.md`) uses pYIN (Mauch & Dixon 2014) via the vendored `crates/pyin`, a Rust port of librosa's implementation. This doc opens that box: what each internal stage computes, with real numbers from the bar-11 fixture, so the pipeline's claims about confidence and octave handling are checkable rather than folklore. The visual companion is `docs/bass-pitch/pyin.html`.
 
 pYIN is classic YIN plus two upgrades: it replaces YIN's single hard threshold with a probability distribution over thresholds, and it replaces YIN's per-frame decision with an HMM decoded over the whole signal. Everything else is bookkeeping.
 
