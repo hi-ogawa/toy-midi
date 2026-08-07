@@ -15,8 +15,7 @@
     "lint-check": "vp check && pnpm lint-dead-code && pnpm typecheck",
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
-    "test-e2e": "playwright test",
-    "bass-pitch-rs": "cargo run --release -p bass-pitch --"
+    "test-e2e": "playwright test"
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "workspace:*",

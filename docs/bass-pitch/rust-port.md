@@ -13,7 +13,7 @@ This plan ports the evaluated Python harness from `docs/bass-pitch/evaluation.md
 
 A native Rust CLI that reproduces the grid-guided workflow end to end on the existing Primrose fixtures. Wasm is deferred because packaging and worker integration are solved problems from demucs-onnx, while the only real unknown is whether crate-based DSP produces usable decisions.
 
-1. Scaffold one crate (lib plus bin) inside toy-midi, wired up as `pnpm bass-pitch-rs`. For input, spawn ffmpeg and read `pcm_f32le` mono at the analysis rate from stdout. This accepts any input format and eliminates decode and resample dependencies entirely.
+1. Scaffold one crate (lib plus bin) inside toy-midi, runnable with `cargo run --release -p bass-pitch --`. For input, spawn ffmpeg and read `pcm_f32le` mono at the analysis rate from stdout. This accepts any input format and eliminates decode and resample dependencies entirely.
 2. Spike the `pyin` crate against `e2e/fixtures/test-tones.wav` with the smoke-test gate from the evaluation doc, which is four notes at MIDI 60, 64, 67, and 72. Fall back to `pyin-rs`, then plain YIN, only if the API or output is unusable.
 3. Hand-write only the trivial features. Per-frame RMS is a few lines. For onset strength, skip librosa's mel-band flux and start with the simplest novelty signal that could work, normalized rectified spectral flux over a plain FFT magnitude via `realfft`, or a log-RMS difference as the first attempt.
 4. Mechanically port the decision layer from `tools/bass-pitch/main.py`, covering activity hysteresis, boundary onset splitting, region pitch voting, and merging. Keep the CSV `record_type` schema and the staged MIDI outputs (via [`midly`](https://crates.io/crates/midly)) so stage-attributable debugging carries over unchanged.
@@ -24,7 +24,7 @@ Done means the CLI produces a segmented pitch MIDI on the Primrose material that
 
 ### First Deliverable Status (2026-07-29)
 
-The native CLI is implemented at `crates/bass-pitch` (`pnpm bass-pitch-rs`) and validated against the Python harness:
+The native CLI is implemented at `crates/bass-pitch` (`cargo run --release -p bass-pitch --`) and validated against the Python harness:
 
 - The `pyin` crate spike passed directly, so no fallback was needed. The smoke fixture produces the same four legacy notes (MIDI 60, 64, 67, 72) and the identical eight segmented notes as Python, because both implementations split boundary-aligned attacks into both adjacent cells on that fixture.
 - No threshold re-tuning was needed. Bar 11 reproduces the documented baseline exactly at the default `-25/-25 dBFS` and `0.4` onset thresholds: the same seven notes, regions `0+2, 2+3, 5+3, 8+4, 13+1, 14+1, 15+1`, and pitches D1 (repeated), A1, B1, C#2.

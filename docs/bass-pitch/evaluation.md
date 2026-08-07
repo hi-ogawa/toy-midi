@@ -6,7 +6,7 @@ The default segmented output detects RMS activity, splits active regions at grid
 
 This is a diagnostic workflow, not toy-midi app integration. Its success criterion is whether the result reduces absolute manual bass-transcription effort on real stems.
 
-A native Rust port with the same flags and outputs lives at `crates/bass-pitch` (`pnpm bass-pitch-rs`); see `docs/bass-pitch/rust-port.md` for its validation status against this harness.
+A native Rust port with the same flags and outputs lives at `crates/bass-pitch` (`cargo run --release -p bass-pitch --`); see `docs/bass-pitch/rust-port.md` for its validation status against this harness.
 
 ## Setup
 
