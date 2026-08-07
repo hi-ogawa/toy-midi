@@ -41,10 +41,10 @@ struct Args {
     /// Audio track project offset; project seconds = source seconds + offset
     #[arg(long, default_value_t = 0.0)]
     offset: f64,
-    /// Cell RMS dBFS threshold below which activity ends
+    /// Cell root mean square (RMS) dBFS threshold below which activity ends
     #[arg(long, default_value_t = -25.0)]
     activity_off_db: f64,
-    /// Cell RMS dBFS threshold at which activity begins
+    /// Cell root mean square (RMS) dBFS threshold at which activity begins
     #[arg(long, default_value_t = -25.0)]
     activity_on_db: f64,
     /// Fixed MIDI pitch for activity-only output

@@ -77,7 +77,7 @@ pub struct Frames {
     pub voiced_probability: Vec<f64>,
     /// Onset novelty normalized against the excerpt's 95th percentile.
     pub onset: Vec<f64>,
-    /// Root-mean-square amplitude for each analysis window.
+    /// Root mean square (RMS) amplitude for each analysis window.
     pub rms: Vec<f64>,
 }
 
@@ -104,7 +104,7 @@ pub struct ActivityCell {
     pub source_end: f64,
     pub project_start: f64,
     pub project_end: f64,
-    /// Median RMS amplitude of frame centers inside the cell.
+    /// Median root mean square (RMS) amplitude of frames inside the cell.
     pub rms: f64,
     /// Cell RMS converted to dBFS.
     pub rms_db: f64,
@@ -181,7 +181,8 @@ pub fn run_pipeline(
     }
 }
 
-/// Computes aligned pYIN, onset, and RMS frame series from mono input samples.
+/// Computes aligned pYIN, onset, and root mean square (RMS) frame series from
+/// mono input samples.
 ///
 /// Feature implementations can produce slightly different lengths, so output
 /// arrays are truncated to their common prefix before frame times are assigned.
@@ -365,8 +366,8 @@ fn onset_strength(
     shifted
 }
 
-/// Computes RMS over zero-padded windows centered on the same hop grid as pYIN
-/// and onset analysis.
+/// Computes root mean square (RMS) amplitude over zero-padded windows centered
+/// on the same hop grid as pYIN and onset analysis.
 fn rms_frames(audio: &[f64], frame_length: usize, hop_length: usize) -> Vec<f64> {
     let n_frames = audio.len() / hop_length + 1;
     (0..n_frames)

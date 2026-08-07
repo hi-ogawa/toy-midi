@@ -26,7 +26,7 @@ This established the central rule: voiced probability describes pitch certainty,
 
 The replacement separated transcription into three ordered decisions:
 
-1. **Presence:** median RMS per grid cell, with dBFS on/off thresholds and optional hysteresis, identifies broad active runs.
+1. **Presence:** median root mean square (RMS) amplitude per grid cell, with dBFS on/off thresholds and optional hysteresis, identifies broad active runs.
 2. **Segmentation:** normalized onset novelty starts a new note inside an active run, including repeated notes at the same pitch.
 3. **Pitch:** all finite voiced pYIN frames in the resulting region vote for rounded MIDI pitch with weight `0.1 + 0.9 * confidence`.
 

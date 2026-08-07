@@ -37,7 +37,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 **Pitch: pYIN** (vendored `crates/pyin`, the librosa-compatible algorithm). Per frame, the YIN difference function yields candidate periods; sampling many thresholds from a beta distribution converts them into a probability distribution over pitch states rather than a single guess. A Viterbi decode over (pitch bin × voiced/unvoiced) states with a transition prior that favors small pitch steps and penalizes voicing flips then picks the most likely path through time. The decode is what gives octave consistency and voicing hysteresis, because bass frames are individually octave-ambiguous (f0, f0/2, and 2f0 all score well) and only temporal continuity disambiguates them. Output per frame: f0, a voiced flag, and a voiced probability used strictly as a vote weight later. A full breakdown of pYIN's internals with measured fixture data is in `docs/bass-pitch/pyin.md` and its visual companion `docs/bass-pitch/pyin.html`.
 
-**Loudness: RMS.** RMS is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
+**Loudness: root mean square (RMS).** RMS summarizes the average signal amplitude within each analysis window and serves as a simple loudness estimate. It is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
 
 **Onset novelty: mel-banded log spectral flux** (`onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
 
@@ -97,7 +97,7 @@ The removed original cell-level pipeline used per-cell confidence-gated pitch vo
 Signal-processing terms used above; pYIN-specific terms (CMND, HMM, Viterbi, and friends) are glossed in `docs/bass-pitch/pyin.md`.
 
 - **Frame / hop** — analysis slices the audio into overlapping windows ("frames", 2048 samples ≈ 93 ms) advanced by a fixed step (the "hop", 256 samples ≈ 11.6 ms), so every per-frame value is a time series at ~86 values per second.
-- **RMS / dBFS** — root-mean-square, the standard average loudness of a window; dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one. Logarithmic, matching how loudness is perceived.
+- **RMS / dBFS** — root mean square, a measure of average signal amplitude within a window. dBFS expresses it in decibels relative to full scale, so 0 dBFS is the loudest possible signal and −25 dBFS is a moderately quiet one.
 - **Mel scale / mel bands** — a frequency axis warped to perceptual pitch spacing, dense at low frequencies and sparse at high ones; a "band" sums the FFT bins falling in one mel-sized slice, here 128 bands covering 0–11 kHz.
 - **Spectral flux** — the frame-to-frame _increase_ of spectral energy, with decreases discarded ("rectified"). A note attack increases energy across many bands at once, so the summed rectified increase peaks at onsets.
 - **Hysteresis** — using two thresholds, one to turn a state on and a lower one to turn it off, so a value hovering near the boundary does not flicker the decision. The evaluated baseline happens to keep both at −25 dBFS, disabling the effect until it is needed.
