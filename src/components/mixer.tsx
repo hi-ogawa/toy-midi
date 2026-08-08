@@ -119,8 +119,9 @@ export function Mixer() {
             title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
             className={cn(
               "h-8 min-w-8 px-1.5 text-xs font-semibold",
-              !metronomeEnabled &&
-                "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
+              !metronomeEnabled
+                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+                : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >
             M
@@ -198,8 +199,9 @@ function TrackToggles({
         title={muted ? `Unmute ${label}` : `Mute ${label}`}
         className={cn(
           "h-8 min-w-8 px-1.5 text-xs font-semibold",
-          muted &&
-            "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
+          muted
+            ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
+            : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
         )}
       >
         M
@@ -211,8 +213,9 @@ function TrackToggles({
         title={soloed ? `Disable ${label} solo` : `Solo ${label}`}
         className={cn(
           "h-8 min-w-8 px-1.5 text-xs font-semibold",
-          soloed &&
-            "bg-amber-500 text-neutral-950 hover:bg-amber-400 hover:text-neutral-950",
+          soloed
+            ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+            : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
         )}
       >
         S
