@@ -139,37 +139,53 @@ export function buildMusicXmlModel({
           measureDuration,
           keySignature,
         }),
-        locators: locators
-          .map((locator) => ({
-            id: locator.id,
-            label: locator.label,
-            position:
-              toGridUnits(
-                locator.position,
-                `position of locator ${locator.id}`,
-              ) - firstMeasureStart,
-          }))
-          .map((locator) => {
-            if (locator.position < 0) {
-              throw new Error(
-                `position of locator ${locator.id} must not be negative`,
-              );
-            }
-            return locator;
-          })
-          .filter(
-            ({ position }) =>
-              position >= measureStart &&
-              position < measureStart + measureDuration,
-          )
-          .sort((a, b) => a.position - b.position)
-          .map(({ label, position }) => ({
-            label,
-            offset: position - measureStart,
-          })),
+        locators: buildMeasureLocators({
+          locators,
+          firstMeasureStart,
+          measureStart,
+          measureDuration,
+        }),
       };
     }),
   };
+}
+
+function buildMeasureLocators({
+  locators,
+  firstMeasureStart,
+  measureStart,
+  measureDuration,
+}: {
+  locators: Locator[];
+  firstMeasureStart: number;
+  measureStart: number;
+  measureDuration: number;
+}): MusicXmlMeasure["locators"] {
+  return locators
+    .map((locator) => ({
+      id: locator.id,
+      label: locator.label,
+      position:
+        toGridUnits(locator.position, `position of locator ${locator.id}`) -
+        firstMeasureStart,
+    }))
+    .map((locator) => {
+      if (locator.position < 0) {
+        throw new Error(
+          `position of locator ${locator.id} must not be negative`,
+        );
+      }
+      return locator;
+    })
+    .filter(
+      ({ position }) =>
+        position >= measureStart && position < measureStart + measureDuration,
+    )
+    .sort((a, b) => a.position - b.position)
+    .map(({ label, position }) => ({
+      label,
+      offset: position - measureStart,
+    }));
 }
 
 /** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
