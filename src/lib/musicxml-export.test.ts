@@ -54,7 +54,7 @@ function buildModel(
 }
 
 describe("MusicXML export", () => {
-  it("exports a title with synchronized standard and five-string TAB staves", async () => {
+  it("exports synchronized standard and five-string TAB staves", async () => {
     const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
 
     await expect(xml).toMatchFileSnapshot(
