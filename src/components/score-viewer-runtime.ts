@@ -140,12 +140,21 @@ export class ScoreViewerRuntime {
     });
   }
 
-  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+  async load({
+    score,
+    layout,
+    showRehearsalMarks,
+  }: {
+    score: ScoreSource;
+    layout: ScoreLayout;
+    showRehearsalMarks: boolean;
+  }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
@@ -180,22 +189,6 @@ export class ScoreViewerRuntime {
   restart() {
     this.#clock.stop();
     this.#scroller.scrollTo({ top: 0 });
-  }
-
-  setRehearsalMarksVisible(visible: boolean) {
-    this.#osmd.EngravingRules.RenderRehearsalMarks = visible;
-    if (!this.#state.isReady) {
-      return;
-    }
-    this.#osmd.render();
-    this.#positions = buildCursorPositions(this.#osmd, this.#container);
-    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
-    this.#updateCursor(
-      secondsToScoreTime(
-        this.#clock.getSnapshot().currentTime,
-        this.#state.tempo,
-      ),
-    );
   }
 
   setTempo(tempo: number) {
