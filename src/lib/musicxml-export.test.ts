@@ -60,6 +60,14 @@ describe("MusicXML export", () => {
     );
   });
 
+  it("exports an optional escaped score title", () => {
+    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
+
+    expect(xml).toContain(
+      "<work-title>Rock &amp; Roll &lt;Bass&gt;</work-title>",
+    );
+  });
+
   it("preserves an explicit TAB string assignment", () => {
     const model = buildModel([makeNote({ tabString: 4 })]);
 

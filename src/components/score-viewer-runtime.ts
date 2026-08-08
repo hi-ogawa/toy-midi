@@ -140,12 +140,21 @@ export class ScoreViewerRuntime {
     });
   }
 
-  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+  async load({
+    score,
+    layout,
+    showTitle,
+  }: {
+    score: ScoreSource;
+    layout: ScoreLayout;
+    showTitle: boolean;
+  }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    this.#osmd.setOptions({ drawTitle: showTitle });
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();

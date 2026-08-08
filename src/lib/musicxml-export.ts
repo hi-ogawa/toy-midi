@@ -28,6 +28,7 @@ export type MusicXmlModelOptions = {
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
+  title?: string;
 };
 
 type QuantizedNote = {
@@ -317,6 +318,7 @@ function validateOpenStringPitches(pitches: readonly number[]): void {
 export function exportMusicXml({
   notes,
   tempo,
+  title,
   timeSignature,
   keySignature,
   openStringPitches,
@@ -372,11 +374,10 @@ export function exportMusicXml({
     ),
   ];
 
-  // TODO: Add optional <work-title> and <part-name> metadata when export naming
-  // is designed. Both are intentionally omitted for now.
   const document = h(
     "score-partwise",
     { version: "4.0" },
+    title && hx("work", hx("work-title", title)),
     // TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument
     // data instead of hard-coding Electric Bass when non-bass export is supported.
     hx(

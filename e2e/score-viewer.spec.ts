@@ -46,6 +46,12 @@ test("opens the latest project state as a score in a new tab", async ({
     scorePage.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
   await expect(scorePage.getByLabel("BPM")).toHaveValue("137");
+  const renderer = scorePage.getByTestId("score-viewer-renderer");
+  await expect(renderer.getByText("Untitled", { exact: true })).toHaveCount(0);
+  await scorePage.getByLabel("Title").selectOption("show");
+  await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
+  await scorePage.getByLabel("Title").selectOption("hide");
+  await expect(renderer.getByText("Untitled", { exact: true })).toHaveCount(0);
   await expect(scorePage.getByRole("button", { name: "Samples" })).toHaveCount(
     0,
   );

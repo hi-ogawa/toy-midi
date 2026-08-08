@@ -28,6 +28,7 @@ function getProjectScoreSourceImpl(projectId: string): ProjectScoreResult {
         xml: exportMusicXml({
           notes: project.notes,
           tempo: project.tempo,
+          title: metadata.name,
           timeSignature: project.timeSignature,
           keySignature: project.keySignature,
           openStringPitches: project.tabOpenStringPitches,

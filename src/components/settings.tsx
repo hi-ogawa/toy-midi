@@ -192,6 +192,7 @@ export function Settings({
       const xml = exportMusicXml({
         notes,
         tempo,
+        title: projectName,
         timeSignature,
         keySignature,
         openStringPitches: tabOpenStringPitches,

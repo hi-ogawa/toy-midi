@@ -39,6 +39,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [showTitle, setShowTitle] = useState(false);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   // initialize runtime
@@ -76,16 +77,18 @@ export function ScoreViewer({
   const loadMutation = useMutation({
     mutationFn: async ({
       layout,
+      showTitle,
       source,
     }: {
       layout: ScoreLayout;
+      showTitle: boolean;
       source: File | ScoreSource;
     }) => {
       const nextScore =
         source instanceof File
           ? { name: source.name, xml: await source.text() }
           : source;
-      await runtime.load({ score: nextScore, layout });
+      await runtime.load({ score: nextScore, layout, showTitle });
       setScore(nextScore);
     },
   });
@@ -98,6 +101,7 @@ export function ScoreViewer({
     queryFn: async () => {
       loadMutation.mutate({
         layout,
+        showTitle,
         source: initialSource!,
       });
       return true;
@@ -112,6 +116,21 @@ export function ScoreViewer({
     if (score) {
       loadMutation.mutate({
         layout: nextLayout,
+        showTitle,
+        source: score,
+      });
+    }
+  }
+
+  function changeTitleVisible(visible: boolean) {
+    if (visible === showTitle) {
+      return;
+    }
+    setShowTitle(visible);
+    if (score) {
+      loadMutation.mutate({
+        layout,
+        showTitle: visible,
         source: score,
       });
     }
@@ -187,6 +206,21 @@ export function ScoreViewer({
               <option value="paged">Paged</option>
             </select>
           </label>
+
+          <label className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Title</span>
+            <select
+              aria-label="Title"
+              value={showTitle ? "show" : "hide"}
+              onChange={(event) =>
+                changeTitleVisible(event.currentTarget.value === "show")
+              }
+              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+            >
+              <option value="show">Show</option>
+              <option value="hide">Hide</option>
+            </select>
+          </label>
         </div>
 
         <div className="flex-1" />
@@ -207,7 +241,9 @@ export function ScoreViewer({
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
               inputProps={{ "aria-label": "Open MusicXML" }}
-              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              onFile={(file) =>
+                loadMutation.mutate({ layout, showTitle, source: file })
+              }
               className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <FolderOpenIcon className="size-4" />
@@ -227,6 +263,7 @@ export function ScoreViewer({
                     onSelect={() =>
                       loadMutation.mutate({
                         layout,
+                        showTitle,
                         source: { name: sample.name, xml: sample.xml },
                       })
                     }
@@ -271,7 +308,9 @@ export function ScoreViewer({
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
               inputProps={{ "aria-label": "Upload MusicXML" }}
-              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              onFile={(file) =>
+                loadMutation.mutate({ layout, showTitle, source: file })
+              }
               className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
