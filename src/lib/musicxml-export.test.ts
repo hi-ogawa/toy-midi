@@ -84,7 +84,7 @@ describe("MusicXML export", () => {
       [{ label: "A", offset: 0 }],
       [
         { label: "C", offset: 0 },
-        { label: "B", offset: 24 },
+        { label: "B", offset: 2 * QUARTER_NOTE_DURATION },
       ],
     ]);
   });
@@ -99,9 +99,9 @@ describe("MusicXML export", () => {
     });
 
     expect(model.measures[0].locators).toEqual([
-      { label: "A", offset: 12 },
-      { label: "B", offset: 12 },
-      { label: "C", offset: 36 },
+      { label: "A", offset: QUARTER_NOTE_DURATION },
+      { label: "B", offset: QUARTER_NOTE_DURATION },
+      { label: "C", offset: 3 * QUARTER_NOTE_DURATION },
     ]);
   });
 
