@@ -2,7 +2,3 @@ packages:
   - crates/bass-pitch-wasm
 onlyBuiltDependencies:
   - wasm-pack
-
-# See docs/rust-development.md.
-# overrides:
-#   "@hiogawa/bass-pitch-wasm": "workspace:*"

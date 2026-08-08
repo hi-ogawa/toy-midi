@@ -416,7 +416,7 @@ packages:
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
   '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732':
-    resolution: {integrity: sha512-of+7YyBs8soni4hgHLoi0SOpjRmkZCQWhUFhNfqYBBccQol6pcn1UIOf33d4a/WuTWdW/RlhaRQh/BV0iMVgag==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
+    resolution: {tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
     version: 0.0.0
 
   '@isaacs/fs-minipass@4.0.1':

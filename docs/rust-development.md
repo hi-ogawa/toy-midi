@@ -6,7 +6,7 @@ Rust changes use a two-phase pull request workflow so the application first test
 
 ## Develop From Source
 
-Add and commit this override in `pnpm-workspace.yaml`:
+Run `pnpm override-wasm`, which will blabla todo. add and commit this override in `pnpm-workspace.yaml`:
 
 ```yaml
 overrides:
