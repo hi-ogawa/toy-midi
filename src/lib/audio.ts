@@ -157,17 +157,17 @@ class AudioManager {
       this.setNotes(state.notes);
     }
     if (state.audioTracks !== prevState?.audioTracks) {
-      this.syncAudioTracks(
-        state.audioTracks,
-        prevState?.audioTracks,
+      this.syncAudioTracks({
+        tracks: state.audioTracks,
+        prevTracks: prevState?.audioTracks,
         anyTrackSoloed,
-      );
+      });
     } else if (state.midiSoloed !== prevState?.midiSoloed) {
-      this.syncAudioTracks(
-        state.audioTracks,
-        state.audioTracks,
+      this.syncAudioTracks({
+        tracks: state.audioTracks,
+        prevTracks: state.audioTracks,
         anyTrackSoloed,
-      );
+      });
     }
     if (state.timeSignature.numerator !== prevState?.timeSignature.numerator) {
       this.setMetronomeSequence(state.timeSignature.numerator);
@@ -226,11 +226,15 @@ class AudioManager {
   }
 
   // Reconcile the player map with the store's audio tracks
-  private syncAudioTracks(
-    tracks: AudioTrack[],
-    prevTracks?: AudioTrack[],
-    anyTrackSoloed = tracks.some((track) => track.soloed),
-  ): void {
+  private syncAudioTracks({
+    tracks,
+    prevTracks,
+    anyTrackSoloed,
+  }: {
+    tracks: AudioTrack[];
+    prevTracks?: AudioTrack[];
+    anyTrackSoloed: boolean;
+  }): void {
     const prevById = new Map((prevTracks ?? []).map((t) => [t.id, t]));
     const currentIds = new Set(tracks.map((t) => t.id));
 
