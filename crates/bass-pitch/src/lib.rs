@@ -142,7 +142,7 @@ pub struct Note {
 #[derive(Clone, Debug)]
 /// Pitch-vote result and diagnostics for one activity/onset note region.
 pub struct PitchDecision {
-    /// Region relabeled with the winning pitch or fallback pitch.
+    /// Region relabeled with the winning pitch.
     pub note: Note,
     /// Number of finite pYIN voiced frames contributing evidence.
     pub evidence_frames: usize,
@@ -200,8 +200,7 @@ pub fn run_pipeline(
         params.activity_pitch,
         params.boundary_onset_threshold,
     );
-    let pitch_decisions =
-        assign_region_pitches(&onset_notes, &frames, params.offset, params.activity_pitch);
+    let pitch_decisions = assign_region_pitches(&onset_notes, &frames, params.offset);
     Pipeline {
         frames,
         cells,
@@ -602,16 +601,12 @@ fn make_activity_onset_notes(
 /// voting over all finite voiced frames in that region.
 ///
 /// Every voiced frame contributes at least 0.1 weight, so low pYIN confidence
-/// can weaken a pitch decision but cannot erase a region established earlier.
-fn assign_region_pitches(
-    notes: &[Note],
-    frames: &Frames,
-    offset: f64,
-    fallback_pitch: i32,
-) -> Vec<PitchDecision> {
+/// can weaken a pitch decision but cannot reject an available pitch estimate.
+/// Regions without any finite voiced pitch estimate are omitted.
+fn assign_region_pitches(notes: &[Note], frames: &Frames, offset: f64) -> Vec<PitchDecision> {
     notes
         .iter()
-        .map(|note| {
+        .filter_map(|note| {
             let source_start = note.project_start - offset;
             let source_end = note.project_end - offset;
             let mut weight_by_pitch: BTreeMap<i32, f64> = BTreeMap::new();
@@ -635,24 +630,12 @@ fn assign_region_pitches(
                     .expect("finite weights")
                     .then(a.1.cmp(&b.1))
             });
-            let (pitch, winner_weight, runner_up_pitch, runner_up_weight, margin) =
-                match pitch_weights.first() {
-                    Some(&(winner_weight, pitch)) => {
-                        let (runner_up_weight, runner_up_pitch) = pitch_weights
-                            .get(1)
-                            .map_or((0.0, None), |&(weight, pitch)| (weight, Some(pitch)));
-                        let total: f64 = pitch_weights.iter().map(|(weight, _)| weight).sum();
-                        (
-                            pitch,
-                            winner_weight,
-                            runner_up_pitch,
-                            runner_up_weight,
-                            winner_weight / total,
-                        )
-                    }
-                    None => (fallback_pitch, 0.0, None, 0.0, 0.0),
-                };
-            PitchDecision {
+            let &(winner_weight, pitch) = pitch_weights.first()?;
+            let (runner_up_weight, runner_up_pitch) = pitch_weights
+                .get(1)
+                .map_or((0.0, None), |&(weight, pitch)| (weight, Some(pitch)));
+            let total: f64 = pitch_weights.iter().map(|(weight, _)| weight).sum();
+            Some(PitchDecision {
                 note: Note {
                     pitch,
                     ..note.clone()
@@ -661,8 +644,8 @@ fn assign_region_pitches(
                 winner_weight,
                 runner_up_pitch,
                 runner_up_weight,
-                margin,
-            }
+                margin: winner_weight / total,
+            })
         })
         .collect()
 }
