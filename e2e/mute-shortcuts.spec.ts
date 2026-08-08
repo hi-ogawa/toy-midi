@@ -105,6 +105,7 @@ test.describe("Track Mute Shortcuts", () => {
   test("solo and mute states remain independent and persist", async ({
     page,
   }) => {
+    // Load audio so both musical tracks can be soloed
     await loadAudioFile(page);
 
     const midiSolo = page.getByRole("button", {
@@ -114,6 +115,7 @@ test.describe("Track Mute Shortcuts", () => {
       name: "Toggle Audio solo",
     });
 
+    // Solo both tracks, then mute MIDI without changing either solo state
     await midiSolo.click();
     await audioSolo.click();
     await page.keyboard.press("Shift+1");
@@ -122,10 +124,12 @@ test.describe("Track Mute Shortcuts", () => {
     await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
     expect((await getMuteState(page)).midiMuted).toBe(true);
 
+    // Wait for auto-save, then reload the project
     await page.waitForTimeout(100);
     await page.reload();
     await waitForEditor(page);
 
+    // Solo and explicit mute states should be restored independently
     await expect(midiSolo).toHaveAttribute("aria-pressed", "true");
     await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
     expect((await getMuteState(page)).midiMuted).toBe(true);
