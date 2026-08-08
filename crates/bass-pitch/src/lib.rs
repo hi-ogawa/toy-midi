@@ -57,9 +57,13 @@ pub struct Params {
     pub boundary_onset_threshold: f64,
     /// Input audio sample rate in hertz.
     pub sample_rate: u32,
-    /// Analysis window length in samples.
+    /// Analysis window length in samples. The default 2048 samples is about
+    /// 92.9 ms at 22.05 kHz, which includes several cycles of a low bass note.
     pub frame_length: usize,
-    /// Distance between consecutive frame centers in samples.
+    /// Distance between consecutive frame centers in samples. The default 256
+    /// samples is about 11.6 ms, so adjacent 2048-sample windows overlap by
+    /// 87.5%. This keeps the long window needed for low-pitch detection while
+    /// producing frequent measurements for onset and grid timing.
     pub hop_length: usize,
 }
 
