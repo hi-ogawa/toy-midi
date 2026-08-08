@@ -175,10 +175,11 @@ describe("MusicXML export", () => {
 
   it("removes complete empty measures before the first note", () => {
     const model = buildModel([
-      makeNote({ id: "first", start: 12 }),
-      makeNote({ id: "later", start: 20 }),
+      makeNote({ id: "first", start: 12 }), // Project bar 4, beat 1
+      makeNote({ id: "later", start: 20 }), // Project bar 6, beat 1
     ]);
 
+    // The three-bar count-in disappears, so project bars 4 and 6 become score bars 1 and 3.
     expect(model.measures).toHaveLength(3);
     expect(model.measures[0][0]).toMatchObject({
       type: "note",
@@ -191,8 +192,9 @@ describe("MusicXML export", () => {
   });
 
   it("preserves silence within the first retained measure", () => {
-    const model = buildModel([makeNote({ start: 14 })]);
+    const model = buildModel([makeNote({ start: 14 })]); // Project bar 4, beat 3
 
+    // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0]).toEqual([
       {
@@ -227,10 +229,12 @@ describe("MusicXML export", () => {
   });
 
   it("uses the time signature when trimming empty measures", () => {
+    // In 6/8, each bar spans three quarter-note units, so this note is at bar 3, beat 5.
     const model = buildModel([makeNote({ start: 8 })], {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
+    // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measureDuration).toBe(36);
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0][0]).toMatchObject({
