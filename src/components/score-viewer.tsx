@@ -39,7 +39,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
-  const [showTitle, setShowTitle] = useState(false);
+  const [showTitle, setShowTitle] = useState(true);
   const [showRehearsalMarks, setShowRehearsalMarks] = useState(true);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
