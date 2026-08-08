@@ -28,13 +28,13 @@ test.describe("Multiple Audio Tracks", () => {
   test("supports multiple audio tracks", async ({ page }) => {
     await loadAudioFile(page, "test-audio.wav");
     await loadAudioFile(page, "test-audio-2.wav");
-    await loadAudioFile(page, "test-audio.wav");
+    await loadAudioFile(page, "test-audio-3.wav");
 
     let tracks = await getAudioTracks(page);
     expect(tracks).toHaveLength(3);
     expect(tracks[0].fileName).toBe("test-audio.wav");
     expect(tracks[1].fileName).toBe("test-audio-2.wav");
-    expect(tracks[2].fileName).toBe("test-audio.wav");
+    expect(tracks[2].fileName).toBe("test-audio-3.wav");
     await expect(page.getByTestId("audio-track-region")).toHaveCount(3);
 
     // Loading remains available after more than two tracks.
@@ -65,7 +65,7 @@ test.describe("Multiple Audio Tracks", () => {
     tracks = await getAudioTracks(page);
     expect(tracks).toHaveLength(2);
     expect(tracks[0].fileName).toBe("test-audio-2.wav");
-    expect(tracks[1].fileName).toBe("test-audio.wav");
+    expect(tracks[1].fileName).toBe("test-audio-3.wav");
   });
 
   test("resizes audio track lanes independently", async ({ page }) => {

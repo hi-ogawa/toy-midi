@@ -25,7 +25,12 @@ jobs:
       - run: pnpm build
 
   e2e:
+    name: e2e (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -35,10 +40,10 @@ jobs:
       - run: pnpm i
       - run: pnpm build-wasm
       - run: pnpm exec playwright install chromium --with-deps --no-shell
-      - run: pnpm test-e2e
+      - run: pnpm test-e2e --shard=${{ matrix.shard }}/2
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: test-results/
           retention-days: 7

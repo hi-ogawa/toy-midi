@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import {
   waitForEditor,
   clickNewProject,
+  evaluateFlushAutoSave,
   evaluateStore,
   loadAudioFile,
 } from "./helpers";
@@ -88,8 +89,7 @@ test.describe("Track Mute Shortcuts", () => {
     expect(muteState.midiMuted).toBe(true);
     expect(muteState.audioMuted).toBe(true);
 
-    // Wait for auto-save
-    await page.waitForTimeout(100);
+    await evaluateFlushAutoSave(page);
 
     // Reload page
     await page.reload();
@@ -100,6 +100,39 @@ test.describe("Track Mute Shortcuts", () => {
     muteState = await getMuteState(page);
     expect(muteState.midiMuted).toBe(true);
     expect(muteState.audioMuted).toBe(true);
+  });
+
+  test("solo and mute states remain independent and persist", async ({
+    page,
+  }) => {
+    // Load audio so both musical tracks can be soloed
+    await loadAudioFile(page);
+
+    const midiSolo = page.getByRole("button", {
+      name: "Toggle MIDI solo",
+    });
+    const audioSolo = page.getByRole("button", {
+      name: "Toggle Audio solo",
+    });
+
+    // Solo both tracks, then mute MIDI without changing either solo state
+    await midiSolo.click();
+    await audioSolo.click();
+    await page.keyboard.press("Shift+1");
+
+    await expect(midiSolo).toHaveAttribute("aria-pressed", "true");
+    await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
+    expect((await getMuteState(page)).midiMuted).toBe(true);
+
+    // Flush auto-save, then reload the project
+    await evaluateFlushAutoSave(page);
+    await page.reload();
+    await waitForEditor(page);
+
+    // Solo and explicit mute states should be restored independently
+    await expect(midiSolo).toHaveAttribute("aria-pressed", "true");
+    await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
+    expect((await getMuteState(page)).midiMuted).toBe(true);
   });
 
   test("mute shortcuts don't trigger in text input", async ({ page }) => {
