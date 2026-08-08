@@ -237,7 +237,7 @@ pub fn analyze(
             .map(|i| params.start + (i * params.hop_length) as f64 / params.sample_rate as f64)
             .collect(),
         rms: rms[..count].to_vec(),
-        onset: normalize_feature(&onset[..count]),
+        onset: onset[..count].to_vec(),
         f0: f0.into_iter().take(count).collect(),
         voiced_flag: voiced_flag.into_iter().take(count).collect(),
         voiced_probability: voiced_probability.into_iter().take(count).collect(),
@@ -356,7 +356,31 @@ fn calculate_onset_strength(
     let shift = frame_length / (2 * hop_length);
     let mut shifted = vec![0.0; shift.min(n_frames)];
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
-    shifted
+    normalize_onset_strength(&shifted)
+}
+
+/// Scales onset strength by the 95th percentile of its positive finite values,
+/// then clamps it to 0 through 1 so thresholds are relative to the excerpt.
+/// Returns zeros when no positive finite onset value exists. The percentile is
+/// an empirical policy retained from the Python evaluation harness.
+fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
+    let mut positive: Vec<f64> = values
+        .iter()
+        .copied()
+        .filter(|value| value.is_finite() && *value > 0.0)
+        .collect();
+    if positive.is_empty() {
+        return vec![0.0; values.len()];
+    }
+    positive.sort_by(f64::total_cmp);
+    let rank = 0.95 * (positive.len() - 1) as f64;
+    let low = positive[rank.floor() as usize];
+    let high = positive[rank.ceil() as usize];
+    let scale = low + (high - low) * rank.fract();
+    values
+        .iter()
+        .map(|value| (value / scale).clamp(0.0, 1.0))
+        .collect()
 }
 
 const CHUNK_SECONDS: usize = 10;
@@ -421,28 +445,6 @@ fn calculate_pyin_frames(
 
 fn hz_to_midi(hz: f64) -> f64 {
     12.0 * (hz / 440.0).log2() + 69.0
-}
-
-/// Scales positive finite values by their interpolated 95th percentile and
-/// clamps the result to 0 through 1, preserving zero for an empty signal.
-fn normalize_feature(values: &[f64]) -> Vec<f64> {
-    let mut positive: Vec<f64> = values
-        .iter()
-        .copied()
-        .filter(|value| value.is_finite() && *value > 0.0)
-        .collect();
-    if positive.is_empty() {
-        return vec![0.0; values.len()];
-    }
-    positive.sort_by(f64::total_cmp);
-    let rank = 0.95 * (positive.len() - 1) as f64;
-    let low = positive[rank.floor() as usize];
-    let high = positive[rank.ceil() as usize];
-    let scale = low + (high - low) * rank.fract();
-    values
-        .iter()
-        .map(|value| (value / scale).clamp(0.0, 1.0))
-        .collect()
 }
 
 /// Builds the complete project-grid cells contained in the source excerpt,
