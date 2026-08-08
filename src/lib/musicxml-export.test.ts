@@ -82,7 +82,7 @@ describe("MusicXML export", () => {
         {
           type: "note",
           pitch: { step: "A", alter: 0, octave: 2 },
-          duration: 6,
+          duration: QUARTER_NOTE_DURATION / 2,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
           tieStart: true,
@@ -93,7 +93,7 @@ describe("MusicXML export", () => {
         {
           type: "note",
           pitch: { step: "A", alter: 0, octave: 2 },
-          duration: 6,
+          duration: QUARTER_NOTE_DURATION / 2,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
           tieStart: false,
@@ -126,7 +126,7 @@ describe("MusicXML export", () => {
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 18,
+        duration: 1.5 * QUARTER_NOTE_DURATION,
         notation: { type: "quarter", dots: 1 },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -135,7 +135,7 @@ describe("MusicXML export", () => {
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 4,
+        duration: QUARTER_NOTE_DURATION / 3,
         notation: { type: "eighth", triplet: true },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
