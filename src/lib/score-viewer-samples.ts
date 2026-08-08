@@ -21,6 +21,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 120,
     xml: exportSample({
       tempo: 120,
+      locators: [],
       notes: createSequentialNotes({ count: 64, duration: 0.5 }),
     }),
   },
@@ -31,6 +32,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 120,
     xml: exportSample({
       tempo: 120,
+      locators: [],
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 43, start: 1, duration: 0.5 }),
@@ -51,6 +53,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 120,
     xml: exportSample({
       tempo: 120,
+      locators: [],
       notes: [
         createNote({ pitch: 40, start: 0, duration: 2.5 }),
         createNote({ pitch: 43, start: 2.5, duration: 2.5 }),
@@ -67,6 +70,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 120,
     xml: exportSample({
       tempo: 120,
+      locators: [],
       notes: [
         createNote({ pitch: 40, start: 0, duration: 1 }),
         createNote({ pitch: 45, start: 1, duration: 1 }),
@@ -96,6 +100,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     tempo: 110,
     xml: exportSample({
       tempo: 110,
+      locators: [],
       notes: createSequentialNotes({ count: 96, duration: 0.25 }),
     }),
   },
@@ -107,6 +112,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     xml: exportSample({
       notes: createSequentialNotes({ count: 96, duration: 0.5 }),
       tempo: 200,
+      locators: [],
       keySignature: { fifths: -3, mode: "minor" },
     }),
   },
@@ -118,6 +124,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     xml: exportSample({
       notes: createPrintNotes(),
       tempo: 110,
+      locators: [],
       keySignature: { fifths: -3, mode: "minor" },
     }),
   },
@@ -174,12 +181,12 @@ function createPrintNotes() {
 function exportSample({
   notes,
   tempo,
-  locators = [],
+  locators,
   keySignature = { fifths: 0, mode: "major" },
 }: {
   notes: Note[];
   tempo: number;
-  locators?: Locator[];
+  locators: Locator[];
   keySignature?: KeySignature;
 }) {
   return exportMusicXml({

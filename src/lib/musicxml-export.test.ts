@@ -28,6 +28,7 @@ function exportNotes(
 ): string {
   return exportMusicXml({
     notes,
+    locators: [],
     tempo: 120,
     keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
@@ -42,6 +43,7 @@ function buildModel(
 ) {
   return buildMusicXmlModel({
     notes,
+    locators: [],
     timeSignature: { numerator: 4, denominator: 4 },
     keySignature: { fifths: 0, mode: "major" },
     openStringPitches: FIVE_STRING_PITCHES,

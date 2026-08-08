@@ -24,7 +24,7 @@ export type MusicXmlModelOptions = {
   timeSignature: TimeSignature;
   keySignature: KeySignature;
   openStringPitches: readonly number[];
-  locators?: Locator[];
+  locators: Locator[];
 };
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
@@ -91,7 +91,7 @@ export function buildMusicXmlModel({
   timeSignature,
   keySignature,
   openStringPitches,
-  locators = [],
+  locators,
 }: MusicXmlModelOptions): {
   measureDuration: number;
   measures: MusicXmlMeasure[];
@@ -350,7 +350,7 @@ export function exportMusicXml({
   timeSignature,
   keySignature,
   openStringPitches,
-  locators = [],
+  locators,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
     notes,
