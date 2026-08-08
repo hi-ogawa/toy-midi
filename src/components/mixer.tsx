@@ -117,12 +117,7 @@ export function Mixer() {
             onChange={(muted) => setMetronomeEnabled(!muted)}
             aria-label="Toggle metronome mute"
             title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
-            className={cn(
-              "h-8 min-w-8 px-1.5 text-xs font-semibold",
-              !metronomeEnabled
-                ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-                : undefined,
-            )}
+            className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           >
             M
           </Toggle>
@@ -197,26 +192,17 @@ function TrackToggles({
         onChange={onMutedChange}
         aria-label={`Toggle ${label} mute`}
         title={muted ? `Unmute ${label}` : `Mute ${label}`}
-        className={cn(
-          "h-8 min-w-8 px-1.5 text-xs font-semibold",
-          muted
-            ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-            : undefined,
-        )}
+        className="h-8 min-w-8 px-1.5 text-xs font-semibold"
       >
         M
       </Toggle>
       <Toggle
         value={soloed}
+        variant="primary"
         onChange={onSoloedChange}
         aria-label={`Toggle ${label} solo`}
         title={soloed ? `Disable ${label} solo` : `Solo ${label}`}
-        className={cn(
-          "h-8 min-w-8 px-1.5 text-xs font-semibold",
-          soloed
-            ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-            : undefined,
-        )}
+        className="h-8 min-w-8 px-1.5 text-xs font-semibold"
       >
         S
       </Toggle>

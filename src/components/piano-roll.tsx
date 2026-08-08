@@ -1369,26 +1369,17 @@ function TrackControl({
               onChange={onMutedChange}
               aria-label={`Toggle ${label} mute`}
               title={muteTitle}
-              className={cn(
-                "size-4.5",
-                muted
-                  ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-                  : undefined,
-              )}
+              className="size-4.5"
             >
               M
             </Toggle>
             <Toggle
               value={soloed ?? false}
+              variant="primary"
               onChange={onSoloedChange}
               aria-label={`Toggle ${label} solo`}
               title={soloed ? `Disable ${label} solo` : `Solo ${label}`}
-              className={cn(
-                "size-4.5",
-                soloed
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-                  : undefined,
-              )}
+              className="size-4.5"
             >
               S
             </Toggle>
