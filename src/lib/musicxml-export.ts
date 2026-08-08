@@ -100,12 +100,12 @@ export function buildMusicXmlModel({
     "time signature",
   );
   const preparedNotes = prepareNotes({ notes, openStringPitches });
-  const trimOffset =
+  const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
-    start: note.start - trimOffset,
-    end: note.end - trimOffset,
+    start: note.start - firstMeasureStart,
+    end: note.end - firstMeasureStart,
   }));
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
