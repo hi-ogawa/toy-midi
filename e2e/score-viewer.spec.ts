@@ -162,6 +162,20 @@ test("switches between generated score samples", async ({ page }) => {
   await expect(page.getByLabel("BPM")).toHaveValue("200");
 });
 
+test("toggles rehearsal marks", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Rehearsal marks");
+
+  const renderer = page.getByTestId("score-viewer-renderer");
+  await expect(renderer.getByText("A", { exact: true })).toBeVisible();
+
+  await page.getByLabel("Section labels").selectOption("hide");
+  await expect(renderer.getByText("A", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel("Section labels").selectOption("show");
+  await expect(renderer.getByText("A", { exact: true })).toBeVisible();
+});
+
 test("seeks to the start of a clicked measure", async ({ page }) => {
   await page.goto("/score-viewer");
   await loadSample(page, "Cursor and wrapping");

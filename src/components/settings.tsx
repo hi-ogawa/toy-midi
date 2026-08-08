@@ -60,6 +60,7 @@ export function Settings({
     timeSignature,
     keySignature,
     notes,
+    locators,
     autoScrollEnabled,
     linkAudioOffsetsEnabled,
     tabAnnotationEnabled,
@@ -191,6 +192,7 @@ export function Settings({
     mutationFn: async () => {
       const xml = exportMusicXml({
         notes,
+        locators,
         tempo,
         timeSignature,
         keySignature,

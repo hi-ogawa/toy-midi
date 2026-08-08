@@ -140,12 +140,21 @@ export class ScoreViewerRuntime {
     });
   }
 
-  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+  async load({
+    score,
+    layout,
+    showRehearsalMarks,
+  }: {
+    score: ScoreSource;
+    layout: ScoreLayout;
+    showRehearsalMarks: boolean;
+  }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
