@@ -175,8 +175,8 @@ describe("MusicXML export", () => {
 
   it("removes complete empty measures before the first note", () => {
     const model = buildModel([
-      makeNote({ id: "first", start: 12 }), // Project bar 4, beat 1
-      makeNote({ id: "later", start: 20 }), // Project bar 6, beat 1
+      makeNote({ id: "first", start: 12 }), // Bar 4, beat 1
+      makeNote({ id: "later", start: 20 }), // Bar 6, beat 1
     ]);
 
     // The three-bar count-in disappears, so project bars 4 and 6 become score bars 1 and 3.
@@ -192,7 +192,7 @@ describe("MusicXML export", () => {
   });
 
   it("preserves silence within the first retained measure", () => {
-    const model = buildModel([makeNote({ start: 14 })]); // Project bar 4, beat 3
+    const model = buildModel([makeNote({ start: 14 })]); // Bar 4, beat 3
 
     // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
