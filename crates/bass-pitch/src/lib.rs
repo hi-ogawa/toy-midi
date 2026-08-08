@@ -455,12 +455,12 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
                 (in_cell[in_cell.len() / 2 - 1] + in_cell[in_cell.len() / 2]) / 2.0
             };
             let rms_db = gain_to_db(rms);
-            active = rms_db
-                >= if active {
-                    params.activity_off_db
-                } else {
-                    params.activity_on_db
-                };
+            let threshold = if active {
+                params.activity_off_db
+            } else {
+                params.activity_on_db
+            };
+            active = rms_db >= threshold;
             ActivityCell {
                 index: cell.index,
                 source_start: cell.source_start,
