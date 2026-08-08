@@ -384,13 +384,16 @@ fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
 }
 
 const PYIN_CHUNK_SECONDS: usize = 10;
-const PYIN_CHUNK_DISCARD_FRAMES: usize = 32;
+const PYIN_CONTEXT_FRAMES: usize = 32;
 
-/// pYIN dominates analysis time, so it runs demucs-style: an orchestration
-/// loop feeds frame-aligned chunks with discarded real-audio context on both
-/// sides to the unmodified pyin crate and reports per-chunk progress. Viterbi
-/// decoding is formally global, but competing paths merge within tens of
-/// frames, so the discard margin absorbs chunk-boundary effects; a single
+/// pYIN dominates analysis time, so it runs on frame-aligned chunks and reports
+/// progress after each chunk. Every chunk includes extra audio frames on both
+/// sides because pYIN's Viterbi decode uses neighboring frames. Without that
+/// context, each chunk edge would look like an artificial signal boundary and
+/// could change pitch or voicing near the edge. Results for the context frames
+/// are discarded, leaving only frames whose decode had surrounding evidence.
+/// Viterbi decoding is formally global, but competing paths merge within tens
+/// of frames, so the discard margin absorbs chunk-boundary effects. A single
 /// chunk sees the whole excerpt and is bit-identical to unchunked analysis.
 fn calculate_pyin_frames(
     audio: &[f64],
@@ -416,8 +419,8 @@ fn calculate_pyin_frames(
     for chunk in 0..total {
         let first = chunk * frames_per_chunk;
         let last = ((chunk + 1) * frames_per_chunk).min(n_frames);
-        let context_first = first.saturating_sub(PYIN_CHUNK_DISCARD_FRAMES);
-        let context_last = (last + PYIN_CHUNK_DISCARD_FRAMES).min(n_frames);
+        let context_first = first.saturating_sub(PYIN_CONTEXT_FRAMES);
+        let context_last = (last + PYIN_CONTEXT_FRAMES).min(n_frames);
         // The slice starts on the hop grid so chunk frame centers coincide
         // with global frame centers, and it extends half a window past the
         // last needed center so kept frames see only real audio. Frames whose
@@ -442,7 +445,6 @@ fn calculate_pyin_frames(
     }
     (f0, voiced_flag, voiced_probability)
 }
-
 
 /// Builds the complete project-grid cells contained in the source excerpt,
 /// preserving equivalent source and project time coordinates for each cell.
