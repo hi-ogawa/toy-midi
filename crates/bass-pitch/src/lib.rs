@@ -18,9 +18,6 @@ mod midi;
 pub use diagnostics::diagnostics_csv;
 pub use midi::{midi_bytes, seconds_to_ticks, TICKS_PER_BEAT};
 
-const CHUNK_SECONDS: usize = 10;
-const CHUNK_DISCARD_FRAMES: usize = 32;
-
 #[derive(Clone, Copy, Debug)]
 /// Progress through the independently analyzed pYIN chunks.
 pub struct ChunkProgress {
@@ -362,6 +359,9 @@ fn calculate_onset_strength(
     shifted.extend_from_slice(&flux[..n_frames - shifted.len()]);
     shifted
 }
+
+const CHUNK_SECONDS: usize = 10;
+const CHUNK_DISCARD_FRAMES: usize = 32;
 
 /// pYIN dominates analysis time, so it runs demucs-style: an orchestration
 /// loop feeds frame-aligned chunks with discarded real-audio context on both
