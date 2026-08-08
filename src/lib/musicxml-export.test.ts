@@ -236,10 +236,10 @@ describe("MusicXML export", () => {
 
     // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
-    expect(model.measures[0][0]).toMatchObject({
-      type: "rest",
-      duration: 24,
-    });
+    expect(model.measures[0]).toMatchObject([
+      { type: "rest", duration: 24 },
+      { type: "note", duration: 12 },
+    ]);
   });
 
   it("resolves notes against four-string tuning", () => {
