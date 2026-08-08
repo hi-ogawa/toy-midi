@@ -454,7 +454,7 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
             } else {
                 (in_cell[in_cell.len() / 2 - 1] + in_cell[in_cell.len() / 2]) / 2.0
             };
-            let rms_db = rms_to_db(rms);
+            let rms_db = gain_to_db(rms);
             active = rms_db
                 >= if active {
                     params.activity_off_db
@@ -475,7 +475,7 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
         .collect()
 }
 
-fn rms_to_db(value: f64) -> f64 {
+fn gain_to_db(value: f64) -> f64 {
     if value <= 0.0 {
         return f64::NEG_INFINITY;
     }
