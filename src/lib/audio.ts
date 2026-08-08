@@ -140,7 +140,9 @@ class AudioManager {
     // Cheap operations - always apply
     this.setMasterVolume(state.masterVolume);
     this.setMidiVolume(state.midiVolume);
-    this.setMidiMuted(state.midiMuted);
+    const anyTrackSoloed =
+      state.midiSoloed || state.audioTracks.some((track) => track.soloed);
+    this.setMidiMuted(state.midiMuted || (anyTrackSoloed && !state.midiSoloed));
     this.setMetronomeVolume(state.metronomeVolume);
     this.setMetronomeEnabled(state.metronomeEnabled);
     Tone.getTransport().bpm.value = state.tempo;
@@ -154,8 +156,15 @@ class AudioManager {
     if (state.notes !== prevState?.notes) {
       this.setNotes(state.notes);
     }
-    if (state.audioTracks !== prevState?.audioTracks) {
-      this.syncAudioTracks(state.audioTracks, prevState?.audioTracks);
+    if (
+      state.audioTracks !== prevState?.audioTracks ||
+      state.midiSoloed !== prevState?.midiSoloed
+    ) {
+      this.syncAudioTracks({
+        tracks: state.audioTracks,
+        prevTracks: prevState?.audioTracks,
+        anyTrackSoloed,
+      });
     }
     if (state.timeSignature.numerator !== prevState?.timeSignature.numerator) {
       this.setMetronomeSequence(state.timeSignature.numerator);
@@ -214,10 +223,15 @@ class AudioManager {
   }
 
   // Reconcile the player map with the store's audio tracks
-  private syncAudioTracks(
-    tracks: AudioTrack[],
-    prevTracks?: AudioTrack[],
-  ): void {
+  private syncAudioTracks({
+    tracks,
+    prevTracks,
+    anyTrackSoloed,
+  }: {
+    tracks: AudioTrack[];
+    prevTracks?: AudioTrack[];
+    anyTrackSoloed: boolean;
+  }): void {
     const prevById = new Map((prevTracks ?? []).map((t) => [t.id, t]));
     const currentIds = new Set(tracks.map((t) => t.id));
 
@@ -234,7 +248,7 @@ class AudioManager {
       const prev = prevById.get(track.id);
       const playback = this.getAudioTrack(track.id);
       playback.setVolume(track.volume);
-      playback.setMuted(track.muted);
+      playback.setMuted(track.muted || (anyTrackSoloed && !track.soloed));
       // Re-sync to Transport when newly added or offset changed
       if (!prev || prev.offset !== track.offset) {
         playback.sync(track.offset);
