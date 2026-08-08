@@ -10,6 +10,8 @@ import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
+// Keep in sync with the exporter's divisions per quarter note.
+const QUARTER_NOTE_DURATION = 12;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -128,7 +130,7 @@ describe("MusicXML export", () => {
   it("splits notes at bar lines and ties the pieces", () => {
     const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
 
-    expect(model.measureDuration).toBe(48);
+    expect(model.measureDuration).toBe(4 * QUARTER_NOTE_DURATION);
     expect(
       model.measures.map((events) =>
         events.events.filter((event) => event.type === "note"),
@@ -138,7 +140,7 @@ describe("MusicXML export", () => {
         {
           type: "note",
           pitch: { step: "A", alter: 0, octave: 2 },
-          duration: 6,
+          duration: QUARTER_NOTE_DURATION / 2,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
           tieStart: true,
@@ -149,7 +151,7 @@ describe("MusicXML export", () => {
         {
           type: "note",
           pitch: { step: "A", alter: 0, octave: 2 },
-          duration: 6,
+          duration: QUARTER_NOTE_DURATION / 2,
           notation: { type: "eighth" },
           tabPosition: { tabString: 3, fret: 0 },
           tieStart: false,
@@ -161,7 +163,7 @@ describe("MusicXML export", () => {
       model.measures.map((events) =>
         events.events.reduce((total, event) => total + event.duration, 0),
       ),
-    ).toEqual([48, 48]);
+    ).toEqual([4 * QUARTER_NOTE_DURATION, 4 * QUARTER_NOTE_DURATION]);
   });
 
   it("decomposes dotted and triplet durations", () => {
@@ -184,7 +186,7 @@ describe("MusicXML export", () => {
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 18,
+        duration: 1.5 * QUARTER_NOTE_DURATION,
         notation: { type: "quarter", dots: 1 },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -193,7 +195,7 @@ describe("MusicXML export", () => {
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 4,
+        duration: QUARTER_NOTE_DURATION / 3,
         notation: { type: "eighth", triplet: true },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -213,13 +215,13 @@ describe("MusicXML export", () => {
     expect(model.measures[0].events).toEqual([
       {
         type: "rest",
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
       },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -227,8 +229,54 @@ describe("MusicXML export", () => {
       },
       {
         type: "rest",
-        duration: 24,
+        duration: 2 * QUARTER_NOTE_DURATION,
         notation: { type: "half" },
+      },
+    ]);
+  });
+
+  it("removes complete empty measures before the first note", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 12 }), // Bar 4, beat 1
+      makeNote({ id: "later", start: 20 }), // Bar 6, beat 1
+    ]);
+
+    // The three-bar count-in disappears, so project bars 4 and 6 become score bars 1 and 3.
+    expect(model.measures).toHaveLength(3);
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      duration: QUARTER_NOTE_DURATION,
+    });
+    expect(model.measures[2][0]).toMatchObject({
+      type: "note",
+      duration: QUARTER_NOTE_DURATION,
+    });
+  });
+
+  it("preserves silence within the first retained measure", () => {
+    const model = buildModel([makeNote({ start: 14 })]); // Bar 4, beat 3
+
+    // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
+    expect(model.measures).toHaveLength(1);
+    expect(model.measures[0]).toEqual([
+      {
+        type: "rest",
+        duration: 2 * QUARTER_NOTE_DURATION,
+        notation: { type: "half" },
+      },
+      {
+        type: "note",
+        pitch: { step: "A", alter: 0, octave: 2 },
+        duration: QUARTER_NOTE_DURATION,
+        notation: { type: "quarter" },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+      {
+        type: "rest",
+        duration: QUARTER_NOTE_DURATION,
+        notation: { type: "quarter" },
       },
     ]);
   });
@@ -238,8 +286,22 @@ describe("MusicXML export", () => {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
-    expect(model.measureDuration).toBe(36);
+    expect(model.measureDuration).toBe(3 * QUARTER_NOTE_DURATION);
     expect(model.measures).toHaveLength(2);
+  });
+
+  it("uses the time signature when trimming empty measures", () => {
+    // In 6/8, each bar spans three quarter-note units, so this note is at bar 3, beat 5.
+    const model = buildModel([makeNote({ start: 8 })], {
+      timeSignature: { numerator: 6, denominator: 8 },
+    });
+
+    // Two complete bars disappear while the four eighth-note rest before the note remains.
+    expect(model.measures).toHaveLength(1);
+    expect(model.measures[0]).toMatchObject([
+      { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
+      { type: "note", duration: QUARTER_NOTE_DURATION },
+    ]);
   });
 
   it("resolves notes against four-string tuning", () => {
