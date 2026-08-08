@@ -1,5 +1,7 @@
 # toy-midi
 
+<!-- TODO: rework readme -->
+
 A web-based MIDI piano roll for simple transcription workflow.
 
 ![Demo](docs/assets/demo.png)
@@ -10,7 +12,3 @@ A web-based MIDI piano roll for simple transcription workflow.
 pnpm install
 pnpm dev
 ```
-
-## Documentation
-
-- [Documentation index](docs/README.md)
