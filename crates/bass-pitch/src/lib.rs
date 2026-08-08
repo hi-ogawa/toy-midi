@@ -181,11 +181,30 @@ pub fn run_pipeline(
 ) -> Pipeline {
     let frames = analyze(audio, params, on_progress);
     let excerpt_end = params.start + audio.len() as f64 / params.sample_rate as f64;
-    let cells = make_grid_cells(params, excerpt_end);
-    let activity_cells = detect_activity(&cells, &frames, params);
+    let cells = make_grid_cells(
+        params.start,
+        excerpt_end,
+        params.offset,
+        params.bpm,
+        params.cells_per_beat,
+        params.grid_origin,
+    );
+    let activity_cells = detect_activity(
+        &cells,
+        &frames,
+        db_to_gain(params.activity_off_db),
+        db_to_gain(params.activity_on_db),
+    );
     let activity_notes = make_activity_notes(&activity_cells, params.activity_pitch);
-    let onset_notes = make_activity_onset_notes(&cells, &activity_cells, &frames, params);
-    let pitch_decisions = assign_region_pitches(&onset_notes, &frames, params);
+    let onset_notes = make_activity_onset_notes(
+        &cells,
+        &activity_cells,
+        &frames,
+        params.activity_pitch,
+        params.boundary_onset_threshold,
+    );
+    let pitch_decisions =
+        assign_region_pitches(&onset_notes, &frames, params.offset, params.activity_pitch);
     Pipeline {
         frames,
         cells,
@@ -429,26 +448,38 @@ fn normalize_feature(values: &[f64]) -> Vec<f64> {
 
 /// Builds the complete project-grid cells contained in the source excerpt,
 /// preserving equivalent source and project time coordinates for each cell.
-fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
-    let cell_duration = 60.0 / params.bpm / params.cells_per_beat as f64;
-    let source_origin = params.grid_origin - params.offset;
+fn make_grid_cells(
+    excerpt_start: f64,
+    excerpt_end: f64,
+    offset: f64,
+    bpm: f64,
+    cells_per_beat: u32,
+    grid_origin: f64,
+) -> Vec<GridCell> {
+    let cell_duration = 60.0 / bpm / cells_per_beat as f64;
+    let source_origin = grid_origin - offset;
     let epsilon = 1e-9;
-    let first_index = ((params.start - source_origin - epsilon) / cell_duration).ceil() as i64;
+    let first_index = ((excerpt_start - source_origin - epsilon) / cell_duration).ceil() as i64;
     let last_index = ((excerpt_end - source_origin + epsilon) / cell_duration).floor() as i64 - 1;
     (first_index..=last_index)
         .map(|index| GridCell {
             index,
             source_start: source_origin + index as f64 * cell_duration,
             source_end: source_origin + (index + 1) as f64 * cell_duration,
-            project_start: params.grid_origin + index as f64 * cell_duration,
-            project_end: params.grid_origin + (index + 1) as f64 * cell_duration,
+            project_start: grid_origin + index as f64 * cell_duration,
+            project_end: grid_origin + (index + 1) as f64 * cell_duration,
         })
         .collect()
 }
 
 /// Classifies note presence from median cell RMS with separate thresholds for
 /// entering and leaving an active run.
-fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<ActivityCell> {
+fn detect_activity(
+    cells: &[GridCell],
+    frames: &Frames,
+    off_threshold: f64,
+    on_threshold: f64,
+) -> Vec<ActivityCell> {
     let mut active = false;
     cells
         .iter()
@@ -458,13 +489,8 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
                 .map(|index| frames.rms[index])
                 .collect();
             let rms = calculate_median(&mut in_cell);
-            let rms_db = gain_to_db(rms);
-            let threshold = if active {
-                params.activity_off_db
-            } else {
-                params.activity_on_db
-            };
-            active = rms_db >= threshold;
+            let threshold = if active { off_threshold } else { on_threshold };
+            active = rms >= threshold;
             ActivityCell {
                 index: cell.index,
                 source_start: cell.source_start,
@@ -483,6 +509,10 @@ fn gain_to_db(value: f64) -> f64 {
         return f64::NEG_INFINITY;
     }
     20.0 * value.log10()
+}
+
+fn db_to_gain(value: f64) -> f64 {
+    10.0_f64.powf(value / 20.0)
 }
 
 fn calculate_median(values: &mut [f64]) -> f64 {
@@ -535,7 +565,8 @@ fn make_activity_onset_notes(
     cells: &[GridCell],
     activity_cells: &[ActivityCell],
     frames: &Frames,
-    params: &Params,
+    pitch: i32,
+    onset_threshold: f64,
 ) -> Vec<Note> {
     let mut notes: Vec<Note> = Vec::new();
     let mut current: Option<Note> = None;
@@ -548,10 +579,10 @@ fn make_activity_onset_notes(
             .indices_in_range(cell.source_start, cell.source_end)
             .map(|index| frames.onset[index])
             .fold(0.0, f64::max);
-        if current.is_none() || onset_score >= params.boundary_onset_threshold {
+        if current.is_none() || onset_score >= onset_threshold {
             notes.extend(current.take());
             current = Some(Note {
-                pitch: params.activity_pitch,
+                pitch,
                 project_start: cell.project_start,
                 project_end: cell.project_end,
                 first_cell: cell.index,
@@ -572,12 +603,17 @@ fn make_activity_onset_notes(
 ///
 /// Every voiced frame contributes at least 0.1 weight, so low pYIN confidence
 /// can weaken a pitch decision but cannot erase a region established earlier.
-fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Vec<PitchDecision> {
+fn assign_region_pitches(
+    notes: &[Note],
+    frames: &Frames,
+    offset: f64,
+    fallback_pitch: i32,
+) -> Vec<PitchDecision> {
     notes
         .iter()
         .map(|note| {
-            let source_start = note.project_start - params.offset;
-            let source_end = note.project_end - params.offset;
+            let source_start = note.project_start - offset;
+            let source_end = note.project_end - offset;
             let mut weight_by_pitch: BTreeMap<i32, f64> = BTreeMap::new();
             let mut evidence_frames = 0usize;
             for i in frames.indices_in_range(source_start, source_end) {
@@ -614,7 +650,7 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
                             winner_weight / total,
                         )
                     }
-                    None => (params.activity_pitch, 0.0, None, 0.0, 0.0),
+                    None => (fallback_pitch, 0.0, None, 0.0, 0.0),
                 };
             PitchDecision {
                 note: Note {
@@ -633,7 +669,12 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
 
 #[cfg(test)]
 mod tests {
-    use super::{calculate_median, Frames};
+    use super::{calculate_median, db_to_gain, gain_to_db, Frames};
+
+    #[test]
+    fn converts_between_db_and_gain() {
+        assert!((gain_to_db(db_to_gain(-25.0)) + 25.0).abs() < 1e-12);
+    }
 
     #[test]
     fn calculates_median() {
