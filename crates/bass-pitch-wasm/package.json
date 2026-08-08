@@ -1,7 +1,6 @@
 {
   "name": "@hiogawa/bass-pitch-wasm",
   "version": "0.0.0",
-  "private": true,
   "files": [
     "pkg"
   ],
