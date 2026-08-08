@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import {
   waitForEditor,
   clickNewProject,
+  evaluateFlushAutoSave,
   evaluateStore,
   loadAudioFile,
 } from "./helpers";
@@ -124,8 +125,8 @@ test.describe("Track Mute Shortcuts", () => {
     await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
     expect((await getMuteState(page)).midiMuted).toBe(true);
 
-    // Wait for auto-save, then reload the project
-    await page.waitForTimeout(100);
+    // Flush auto-save, then reload the project
+    await evaluateFlushAutoSave(page);
     await page.reload();
     await waitForEditor(page);
 
