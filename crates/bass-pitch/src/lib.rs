@@ -104,8 +104,6 @@ pub struct ActivityCell {
     pub project_end: f64,
     /// Median root mean square (RMS) amplitude of frames inside the cell.
     pub rms: f64,
-    /// Cell RMS converted to dBFS.
-    pub rms_db: f64,
     /// Hysteresis state after evaluating this cell.
     pub active: bool,
 }
@@ -461,7 +459,6 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
                 project_start: cell.project_start,
                 project_end: cell.project_end,
                 rms,
-                rms_db,
                 active,
             }
         })

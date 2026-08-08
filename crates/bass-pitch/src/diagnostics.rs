@@ -1,4 +1,4 @@
-use crate::{hz_to_midi, Params, Pipeline};
+use crate::{gain_to_db, hz_to_midi, Params, Pipeline};
 
 const CSV_COLUMNS: [&str; 24] = [
     "record_type",
@@ -76,7 +76,7 @@ pub fn diagnostics_csv(pipeline: &Pipeline, params: &Params) -> String {
                 ("project_start", cell.project_start.to_string()),
                 ("project_end", cell.project_end.to_string()),
                 ("rms", cell.rms.to_string()),
-                ("rms_db", finite_or_empty(cell.rms_db)),
+                ("rms_db", finite_or_empty(gain_to_db(cell.rms))),
                 ("activity_off_db", params.activity_off_db.to_string()),
                 ("activity_on_db", params.activity_on_db.to_string()),
                 ("active", (cell.active as u8).to_string()),
