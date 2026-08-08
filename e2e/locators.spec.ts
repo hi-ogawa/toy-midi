@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { clickNewProject, waitForEditor } from "./helpers";
+import {
+  clickNewProject,
+  evaluateFlushAutoSave,
+  waitForEditor,
+} from "./helpers";
 
 // TODO: consolidate into fewer user-flow tests (combine add/select/delete/deselect)
 test.describe("Locators", () => {
@@ -139,8 +143,7 @@ test.describe("Locators", () => {
     );
     await page.keyboard.press("l");
 
-    // Wait for auto-save
-    await page.waitForTimeout(1000);
+    await evaluateFlushAutoSave(page);
 
     // Verify locators exist
     await expect(page.getByText("Section 1")).toBeVisible();
