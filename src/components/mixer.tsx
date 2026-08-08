@@ -120,7 +120,7 @@ export function Mixer() {
             className={cn(
               "h-8 min-w-8 px-1.5",
               !metronomeEnabled &&
-                "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+                "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
             )}
           >
             <VolumeXIcon className="size-4" />
@@ -199,7 +199,7 @@ function TrackToggles({
         className={cn(
           "h-8 min-w-8 px-1.5",
           muted &&
-            "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+            "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
         )}
       >
         <VolumeXIcon className="size-4" />
@@ -212,7 +212,7 @@ function TrackToggles({
         className={cn(
           "h-8 min-w-8 px-1.5 text-xs font-semibold",
           soloed &&
-            "border-amber-500 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 hover:text-amber-200",
+            "bg-amber-500 text-neutral-950 hover:bg-amber-400 hover:text-neutral-950",
         )}
       >
         S
