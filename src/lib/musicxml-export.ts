@@ -114,7 +114,6 @@ export function buildMusicXmlModel({
 }: MusicXmlModelOptions): {
   measureDuration: number;
   measures: MusicXmlMeasure[];
-  initialKeySignature: KeySignature;
 } {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
@@ -157,11 +156,6 @@ export function buildMusicXmlModel({
   );
   const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
-  const initialKeySignature = resolveKeySignature({
-    initialKeySignature: keySignature,
-    events: keySignatureEvents,
-    position: firstMeasureStart,
-  });
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
     start: note.start - firstMeasureStart,
@@ -183,7 +177,6 @@ export function buildMusicXmlModel({
   }
   return {
     measureDuration,
-    initialKeySignature,
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
       const projectMeasureStart = firstMeasureStart + measureStart;
@@ -202,7 +195,14 @@ export function buildMusicXmlModel({
           measureStart,
           measureDuration,
         }),
-        keySignature: index > 0 ? keySignatureEvent?.keySignature : undefined,
+        keySignature:
+          index === 0
+            ? resolveKeySignature({
+                initialKeySignature: keySignature,
+                events: keySignatureEvents,
+                position: projectMeasureStart,
+              })
+            : keySignatureEvent?.keySignature,
       };
     }),
   };
@@ -530,21 +530,18 @@ export function exportMusicXml({
   openStringPitches,
   locators,
 }: MusicXmlExportOptions): string {
-  const { initialKeySignature, measureDuration, measures } = buildMusicXmlModel(
-    {
-      notes,
-      timeSignature,
-      keySignature,
-      openStringPitches,
-      locators,
-    },
-  );
+  const { measureDuration, measures } = buildMusicXmlModel({
+    notes,
+    timeSignature,
+    keySignature,
+    openStringPitches,
+    locators,
+  });
   // MusicXML places score-level configuration inside the first measure.
   const initialMeasureChildren = [
     hx(
       "attributes",
       hx("divisions", DIVISIONS),
-      renderKeySignature(initialKeySignature),
       hx(
         "time",
         hx("beats", timeSignature.numerator),

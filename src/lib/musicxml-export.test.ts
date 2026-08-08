@@ -171,7 +171,10 @@ describe("MusicXML export", () => {
       locators: [{ id: "earlier-key", position: 8, label: "[!key: E♭ major]" }],
     });
 
-    expect(model.initialKeySignature).toEqual({ fifths: -3, mode: "major" });
+    expect(model.measures[0].keySignature).toEqual({
+      fifths: -3,
+      mode: "major",
+    });
     expect(model.measures[0].locators).toEqual([]);
     expect(
       model.measures[0].events.find((event) => event.type === "note"),
