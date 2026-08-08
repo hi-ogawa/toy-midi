@@ -67,9 +67,10 @@ pub struct Params {
     pub hop_length: usize,
 }
 
-/// Parallel arrays of per-frame analysis features.
+/// Parallel feature series with one record per analysis-window center. The
+/// overlapping waveform windows used to compute these records are not stored.
 pub struct Frames {
-    /// Frame-center times in source-audio seconds.
+    /// Center time of each feature record in source-audio seconds.
     pub times: Vec<f64>,
     /// Root mean square (RMS) amplitude for each analysis window.
     pub rms: Vec<f64>,
