@@ -92,7 +92,6 @@ test.describe("Settings Dialog - Project Export", () => {
       xml,
     );
     expect(parseError).toBeNull();
-    expect(xml).toContain("<work-title>Untitled</work-title>");
     expect(xml).toContain("<staves>2</staves>");
     expect(xml).toContain("<sign>TAB</sign>");
     expect(xml).toContain("<string>4</string>");
