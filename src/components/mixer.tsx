@@ -197,12 +197,12 @@ function TrackToggles({
         aria-label={`Toggle ${label} mute`}
         title={muted ? `Unmute ${label}` : `Mute ${label}`}
         className={cn(
-          "h-8 min-w-8 px-1.5",
+          "h-8 min-w-8 px-1.5 text-xs font-semibold",
           muted &&
             "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
         )}
       >
-        <VolumeXIcon className="size-4" />
+        M
       </Toggle>
       <Toggle
         value={soloed}
