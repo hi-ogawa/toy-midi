@@ -1,5 +1,6 @@
 import type { Locator, Note, TimeSignature } from "../types";
 import {
+  KEY_SIGNATURE_OPTION_GROUPS,
   type KeySignature,
   type SpelledPitch,
   spellChromaticPitch,
@@ -34,13 +35,30 @@ export type MusicXmlExportOptions = MusicXmlModelOptions & {
 export type MusicXmlMeasure = {
   events: MusicXmlMeasureEvent[];
   locators: { label: string; offset: number }[];
+  keySignature?: KeySignature;
 };
 
-type QuantizedNote = {
+type PreparedNote = {
   note: Note;
   start: number;
   end: number;
   tabPosition: TabPosition;
+};
+
+type QuantizedNote = PreparedNote & {
+  pitch: SpelledPitch;
+};
+
+type PreparedLocator = {
+  id: string;
+  position: number;
+  label?: string;
+  keySignature?: KeySignature;
+};
+
+type KeySignatureEvent = {
+  position: number;
+  keySignature: KeySignature;
 };
 
 export type MusicXmlMeasureEvent =
@@ -95,6 +113,7 @@ export function buildMusicXmlModel({
 }: MusicXmlModelOptions): {
   measureDuration: number;
   measures: MusicXmlMeasure[];
+  initialKeySignature: KeySignature;
 } {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
@@ -106,9 +125,42 @@ export function buildMusicXmlModel({
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
   );
-  const preparedNotes = prepareNotes({ notes, openStringPitches });
+  const preparedLocators = prepareLocators({ locators, measureDuration });
+  const keySignatureEvents = preparedLocators
+    .filter(
+      (
+        locator,
+      ): locator is PreparedLocator & {
+        keySignature: KeySignature;
+      } => locator.keySignature !== undefined,
+    )
+    .map(({ position, keySignature }) => ({
+      position,
+      keySignature,
+    }))
+    .sort((a, b) => a.position - b.position);
+  const preparedNotes = prepareNotes({ notes, openStringPitches }).map(
+    (note): QuantizedNote => ({
+      ...note,
+      pitch: toWrittenBassPitch(
+        spellMidiPitch({
+          pitch: note.note.pitch,
+          keySignature: resolveKeySignature({
+            initialKeySignature: keySignature,
+            events: keySignatureEvents,
+            position: note.start,
+          }),
+        }),
+      ),
+    }),
+  );
   const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
+  const initialKeySignature = resolveKeySignature({
+    initialKeySignature: keySignature,
+    events: keySignatureEvents,
+    position: firstMeasureStart,
+  });
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
     start: note.start - firstMeasureStart,
@@ -130,24 +182,142 @@ export function buildMusicXmlModel({
   }
   return {
     measureDuration,
+    initialKeySignature,
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
+      const projectMeasureStart = firstMeasureStart + measureStart;
+      const keySignatureEvent = keySignatureEvents.find(
+        (event) => event.position === projectMeasureStart,
+      );
       return {
         events: buildMeasureEvents({
           notes,
           measureStart,
           measureDuration,
-          keySignature,
         }),
         locators: buildMeasureLocators({
-          locators,
+          locators: preparedLocators,
           firstMeasureStart,
           measureStart,
           measureDuration,
         }),
+        keySignature: index > 0 ? keySignatureEvent?.keySignature : undefined,
       };
     }),
   };
+}
+
+function prepareLocators({
+  locators,
+  measureDuration,
+}: {
+  locators: Locator[];
+  measureDuration: number;
+}): PreparedLocator[] {
+  const prepared = locators.map((locator) => {
+    const position = toGridUnits(
+      locator.position,
+      `position of locator ${locator.id}`,
+    );
+    const parsed = parseLocatorLabel(locator);
+    if (parsed.keySignature && position <= 0) {
+      throw new Error(
+        `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
+      );
+    }
+    if (parsed.keySignature && position % measureDuration !== 0) {
+      throw new Error(
+        `Key signature locator ${locator.id} must be at the start of a measure`,
+      );
+    }
+    return { id: locator.id, position, ...parsed };
+  });
+
+  const positions = new Map<number, string>();
+  for (const locator of prepared) {
+    if (!locator.keySignature) {
+      continue;
+    }
+    const duplicate = positions.get(locator.position);
+    if (duplicate) {
+      throw new Error(
+        `Key signature locators ${duplicate} and ${locator.id} are at the same measure`,
+      );
+    }
+    positions.set(locator.position, locator.id);
+  }
+  return prepared;
+}
+
+function parseLocatorLabel(locator: Locator): {
+  label?: string;
+  keySignature?: KeySignature;
+} {
+  let keySignature: KeySignature | undefined;
+  const labelWithoutDirectives = locator.label.replace(
+    /\[!([a-z][a-z0-9-]*):\s*([^\]]*)\]/gi,
+    (_directive, name: string, value: string) => {
+      if (name.toLowerCase() !== "key") {
+        throw new Error(
+          `Unknown score directive ${name} in locator ${locator.id}`,
+        );
+      }
+      if (keySignature) {
+        throw new Error(
+          `Locator ${locator.id} has multiple key signature directives`,
+        );
+      }
+      keySignature = parseKeySignature(value, locator.id);
+      return "";
+    },
+  );
+  if (labelWithoutDirectives.includes("[!")) {
+    throw new Error(`Malformed score directive in locator ${locator.id}`);
+  }
+  const label = keySignature
+    ? labelWithoutDirectives.replace(/\s+/g, " ").trim()
+    : locator.label;
+  return { label: label || undefined, keySignature };
+}
+
+function parseKeySignature(value: string, locatorId: string): KeySignature {
+  const normalized = normalizeKeySignatureLabel(value);
+  for (const group of KEY_SIGNATURE_OPTION_GROUPS) {
+    const option = group.options.find(
+      (candidate) => normalizeKeySignatureLabel(candidate.label) === normalized,
+    );
+    if (option) {
+      return { fifths: option.fifths, mode: group.mode };
+    }
+  }
+  throw new Error(
+    `Unsupported key signature "${value.trim()}" in locator ${locatorId}`,
+  );
+}
+
+function normalizeKeySignatureLabel(value: string): string {
+  return value
+    .trim()
+    .replaceAll("♯", "#")
+    .replaceAll("♭", "b")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function resolveKeySignature({
+  initialKeySignature,
+  events,
+  position,
+}: {
+  initialKeySignature: KeySignature;
+  events: KeySignatureEvent[];
+  position: number;
+}): KeySignature {
+  return events.reduce(
+    (keySignature, event) =>
+      event.position <= position ? event.keySignature : keySignature,
+    initialKeySignature,
+  );
 }
 
 function buildMeasureLocators({
@@ -156,18 +326,19 @@ function buildMeasureLocators({
   measureStart,
   measureDuration,
 }: {
-  locators: Locator[];
+  locators: PreparedLocator[];
   firstMeasureStart: number;
   measureStart: number;
   measureDuration: number;
 }): MusicXmlMeasure["locators"] {
   return locators
+    .filter(
+      (locator): locator is PreparedLocator & { label: string } =>
+        locator.label !== undefined,
+    )
     .map((locator) => ({
       label: locator.label,
-      offset:
-        toGridUnits(locator.position, `position of locator ${locator.id}`) -
-        firstMeasureStart -
-        measureStart,
+      offset: locator.position - firstMeasureStart - measureStart,
     }))
     .filter(({ offset }) => offset >= 0 && offset < measureDuration)
     .sort((a, b) => a.offset - b.offset);
@@ -180,7 +351,7 @@ function prepareNotes({
 }: {
   notes: Note[];
   openStringPitches: readonly number[];
-}): QuantizedNote[] {
+}): PreparedNote[] {
   const result = notes
     .map((note) => {
       const start = toGridUnits(note.start, `start of note ${note.id}`);
@@ -227,12 +398,10 @@ function buildMeasureEvents({
   notes,
   measureStart,
   measureDuration,
-  keySignature,
 }: {
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
-  keySignature: KeySignature;
 }): MusicXmlMeasureEvent[] {
   const events: MusicXmlMeasureEvent[] = [];
   let cursor = 0;
@@ -267,9 +436,7 @@ function buildMeasureEvents({
       const pieceEnd = pieceStart + piece.duration;
       events.push({
         type: "note",
-        pitch: toWrittenBassPitch(
-          spellMidiPitch({ pitch: note.note.pitch, keySignature }),
-        ),
+        pitch: note.pitch,
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
@@ -361,23 +528,21 @@ export function exportMusicXml({
   openStringPitches,
   locators,
 }: MusicXmlExportOptions): string {
-  const { measureDuration, measures } = buildMusicXmlModel({
-    notes,
-    timeSignature,
-    keySignature,
-    openStringPitches,
-    locators,
-  });
+  const { initialKeySignature, measureDuration, measures } = buildMusicXmlModel(
+    {
+      notes,
+      timeSignature,
+      keySignature,
+      openStringPitches,
+      locators,
+    },
+  );
   // MusicXML places score-level configuration inside the first measure.
   const initialMeasureChildren = [
     hx(
       "attributes",
       hx("divisions", DIVISIONS),
-      hx(
-        "key",
-        hx("fifths", keySignature.fifths),
-        hx("mode", keySignature.mode),
-      ),
+      renderKeySignature(initialKeySignature),
       hx(
         "time",
         hx("beats", timeSignature.numerator),
@@ -476,10 +641,20 @@ function renderMeasure({
     "measure",
     { number: index + 1 },
     ...initialChildren,
+    measure.keySignature &&
+      hx("attributes", renderKeySignature(measure.keySignature)),
     ...measure.locators.map(renderRehearsalDirection),
     ...measure.events.map((event) => renderEvent(event, 1)),
     hx("backup", hx("duration", measureDuration)),
     ...measure.events.map((event) => renderEvent(event, 2)),
+  );
+}
+
+function renderKeySignature(keySignature: KeySignature): XmlElement {
+  return hx(
+    "key",
+    hx("fifths", keySignature.fifths),
+    hx("mode", keySignature.mode),
   );
 }
 

@@ -129,6 +129,104 @@ describe("MusicXML export", () => {
     ).toThrow("position of locator section-a is not aligned");
   });
 
+  it("applies an embedded key directive and preserves its rehearsal label", () => {
+    const notes = [
+      makeNote({ id: "tied", pitch: 34, start: 3.5, duration: 1 }),
+      makeNote({ id: "after", pitch: 34, start: 5, duration: 1 }),
+    ];
+    const locators = [
+      {
+        id: "last-chorus",
+        position: 4,
+        label: "Last chorus [!key: Gb major]",
+      },
+    ];
+    const model = buildModel(notes, { locators });
+
+    expect(model.measures[1]).toMatchObject({
+      keySignature: { fifths: -6, mode: "major" },
+      locators: [{ label: "Last chorus", offset: 0 }],
+    });
+    expect(
+      model.measures.flatMap((measure) =>
+        measure.events
+          .filter((event) => event.type === "note")
+          .map((event) => event.pitch),
+      ),
+    ).toEqual([
+      { step: "A", alter: 1, octave: 2 },
+      { step: "A", alter: 1, octave: 2 },
+      { step: "B", alter: -1, octave: 2 },
+    ]);
+
+    const xml = exportNotes(notes, { locators });
+    expect(xml).toMatch(
+      /<measure number="2">[\s\S]*?<attributes>[\s\S]*?<fifths>-6<\/fifths>/,
+    );
+  });
+
+  it("uses a directive before trimmed measures as the initial score key", () => {
+    const model = buildModel([makeNote({ pitch: 34, start: 12 })], {
+      locators: [{ id: "earlier-key", position: 8, label: "[!key: E♭ major]" }],
+    });
+
+    expect(model.initialKeySignature).toEqual({ fifths: -3, mode: "major" });
+    expect(model.measures[0].locators).toEqual([]);
+    expect(
+      model.measures[0].events.find((event) => event.type === "note"),
+    ).toMatchObject({
+      type: "note",
+      pitch: { step: "B", alter: -1, octave: 2 },
+    });
+  });
+
+  it.each([
+    {
+      label: "[!key: F# major]",
+      position: 0,
+      error: "must be after beat 0",
+    },
+    {
+      label: "[!key: F# major]",
+      position: 2,
+      error: "must be at the start of a measure",
+    },
+    {
+      label: "[!tempo: 120]",
+      position: 4,
+      error: "Unknown score directive tempo",
+    },
+    {
+      label: "[!key F# major]",
+      position: 4,
+      error: "Malformed score directive",
+    },
+    {
+      label: "[!key: D# major]",
+      position: 4,
+      error: 'Unsupported key signature "D# major"',
+    },
+  ])("rejects invalid score directive $label", ({ label, position, error }) => {
+    expect(() =>
+      buildModel([makeNote({ duration: 8 })], {
+        locators: [{ id: "invalid", position, label }],
+      }),
+    ).toThrow(error);
+  });
+
+  it("rejects multiple key directives at one measure", () => {
+    expect(() =>
+      buildModel([makeNote({ duration: 8 })], {
+        locators: [
+          { id: "first", position: 4, label: "[!key: F# major]" },
+          { id: "second", position: 4, label: "[!key: Eb minor]" },
+        ],
+      }),
+    ).toThrow(
+      "Key signature locators first and second are at the same measure",
+    );
+  });
+
   it("splits notes at bar lines and ties the pieces", () => {
     const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
 
