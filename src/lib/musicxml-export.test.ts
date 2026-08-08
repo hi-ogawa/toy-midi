@@ -173,6 +173,50 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it("removes complete empty measures before the first note", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 12 }),
+      makeNote({ id: "later", start: 20 }),
+    ]);
+
+    expect(model.measures).toHaveLength(3);
+    expect(model.measures[0][0]).toMatchObject({
+      type: "note",
+      duration: 12,
+    });
+    expect(model.measures[2][0]).toMatchObject({
+      type: "note",
+      duration: 12,
+    });
+  });
+
+  it("preserves silence within the first retained measure", () => {
+    const model = buildModel([makeNote({ start: 14 })]);
+
+    expect(model.measures).toHaveLength(1);
+    expect(model.measures[0]).toEqual([
+      {
+        type: "rest",
+        duration: 24,
+        notation: { type: "half" },
+      },
+      {
+        type: "note",
+        pitch: { step: "A", alter: 0, octave: 2 },
+        duration: 12,
+        notation: { type: "quarter" },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+      {
+        type: "rest",
+        duration: 12,
+        notation: { type: "quarter" },
+      },
+    ]);
+  });
+
   it("uses the time signature to split measures", () => {
     const model = buildModel([makeNote({ start: 2.5, duration: 1 })], {
       timeSignature: { numerator: 6, denominator: 8 },
@@ -180,6 +224,19 @@ describe("MusicXML export", () => {
 
     expect(model.measureDuration).toBe(36);
     expect(model.measures).toHaveLength(2);
+  });
+
+  it("uses the time signature when trimming empty measures", () => {
+    const model = buildModel([makeNote({ start: 8 })], {
+      timeSignature: { numerator: 6, denominator: 8 },
+    });
+
+    expect(model.measureDuration).toBe(36);
+    expect(model.measures).toHaveLength(1);
+    expect(model.measures[0][0]).toMatchObject({
+      type: "rest",
+      duration: 24,
+    });
   });
 
   it("resolves notes against four-string tuning", () => {

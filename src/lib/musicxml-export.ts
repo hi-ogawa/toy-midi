@@ -99,7 +99,14 @@ export function buildMusicXmlModel({
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
   );
-  const quantizedNotes = prepareNotes({ notes, openStringPitches });
+  const preparedNotes = prepareNotes({ notes, openStringPitches });
+  const trimOffset =
+    Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
+  const quantizedNotes = preparedNotes.map((note) => ({
+    ...note,
+    start: note.start - trimOffset,
+    end: note.end - trimOffset,
+  }));
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
