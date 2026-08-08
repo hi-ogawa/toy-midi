@@ -383,8 +383,8 @@ fn normalize_onset_strength(values: &[f64]) -> Vec<f64> {
         .collect()
 }
 
-const CHUNK_SECONDS: usize = 10;
-const CHUNK_DISCARD_FRAMES: usize = 32;
+const PYIN_CHUNK_SECONDS: usize = 10;
+const PYIN_CHUNK_DISCARD_FRAMES: usize = 32;
 
 /// pYIN dominates analysis time, so it runs demucs-style: an orchestration
 /// loop feeds frame-aligned chunks with discarded real-audio context on both
@@ -399,7 +399,7 @@ fn calculate_pyin_frames(
 ) -> (Vec<f64>, Vec<bool>, Vec<f64>) {
     let hop = params.hop_length;
     let n_frames = audio.len() / hop + 1;
-    let frames_per_chunk = (CHUNK_SECONDS * params.sample_rate as usize).div_ceil(hop);
+    let frames_per_chunk = (PYIN_CHUNK_SECONDS * params.sample_rate as usize).div_ceil(hop);
     let total = n_frames.div_ceil(frames_per_chunk).max(1);
     let mut executor = PYINExecutor::<f64>::new(
         params.fmin,
@@ -416,8 +416,8 @@ fn calculate_pyin_frames(
     for chunk in 0..total {
         let first = chunk * frames_per_chunk;
         let last = ((chunk + 1) * frames_per_chunk).min(n_frames);
-        let context_first = first.saturating_sub(CHUNK_DISCARD_FRAMES);
-        let context_last = (last + CHUNK_DISCARD_FRAMES).min(n_frames);
+        let context_first = first.saturating_sub(PYIN_CHUNK_DISCARD_FRAMES);
+        let context_last = (last + PYIN_CHUNK_DISCARD_FRAMES).min(n_frames);
         // The slice starts on the hop grid so chunk frame centers coincide
         // with global frame centers, and it extends half a window past the
         // last needed center so kept frames see only real audio. Frames whose
@@ -443,9 +443,6 @@ fn calculate_pyin_frames(
     (f0, voiced_flag, voiced_probability)
 }
 
-fn hz_to_midi(hz: f64) -> f64 {
-    12.0 * (hz / 440.0).log2() + 69.0
-}
 
 /// Builds the complete project-grid cells contained in the source excerpt,
 /// preserving equivalent source and project time coordinates for each cell.
@@ -503,31 +500,6 @@ fn detect_activity(
             }
         })
         .collect()
-}
-
-fn gain_to_db(value: f64) -> f64 {
-    if value <= 0.0 {
-        return f64::NEG_INFINITY;
-    }
-    20.0 * value.log10()
-}
-
-fn db_to_gain(value: f64) -> f64 {
-    10.0_f64.powf(value / 20.0)
-}
-
-fn calculate_median(values: &mut [f64]) -> f64 {
-    if values.is_empty() {
-        return 0.0;
-    }
-
-    values.sort_by(f64::total_cmp);
-    let middle = values.len() / 2;
-    if values.len() % 2 == 0 {
-        (values[middle - 1] + values[middle]) / 2.0
-    } else {
-        values[middle]
-    }
 }
 
 /// Coalesces consecutive active cells into fixed-pitch regions for the
@@ -650,6 +622,35 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, offset: f64) -> Vec<Pi
             })
         })
         .collect()
+}
+
+fn hz_to_midi(hz: f64) -> f64 {
+    12.0 * (hz / 440.0).log2() + 69.0
+}
+
+fn gain_to_db(value: f64) -> f64 {
+    if value <= 0.0 {
+        return f64::NEG_INFINITY;
+    }
+    20.0 * value.log10()
+}
+
+fn db_to_gain(value: f64) -> f64 {
+    10.0_f64.powf(value / 20.0)
+}
+
+fn calculate_median(values: &mut [f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    values.sort_by(f64::total_cmp);
+    let middle = values.len() / 2;
+    if values.len() % 2 == 0 {
+        (values[middle - 1] + values[middle]) / 2.0
+    } else {
+        values[middle]
+    }
 }
 
 #[cfg(test)]
