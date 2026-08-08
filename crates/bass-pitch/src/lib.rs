@@ -433,6 +433,9 @@ fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
 /// entering and leaving an active run.
 fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<ActivityCell> {
     let mut active = false;
+    // Decision stages scan frames per cell or region. This is O(cells * frames),
+    // but pYIN dominates runtime at current track sizes. If profiling changes
+    // that, ordered frame cursors can make these scans O(cells + frames).
     cells
         .iter()
         .map(|cell| {
