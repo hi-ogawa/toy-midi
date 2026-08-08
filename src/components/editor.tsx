@@ -1,5 +1,6 @@
 import {
   CircleHelpIcon,
+  FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
   SettingsIcon,
@@ -17,6 +18,7 @@ import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
 import { PianoRoll } from "./piano-roll";
+import { ScorePreview } from "./score-preview";
 import { Settings } from "./settings";
 import { Transport } from "./transport";
 import { Button } from "./ui/button";
@@ -39,6 +41,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
   const [projectName, setProjectName] = useState(initialProjectName);
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
@@ -88,6 +91,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               <SettingsIcon className="size-5" />
             </Button>
             <Button
+              data-testid="score-preview-button"
+              onClick={() => setIsScorePreviewOpen((open) => !open)}
+              aria-pressed={isScorePreviewOpen}
+              title="Score Preview"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isScorePreviewOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              <FileMusicIcon className="size-5" />
+            </Button>
+            <Button
               data-testid="mixer-button"
               onClick={() => setIsMixerOpen((open) => !open)}
               aria-pressed={isMixerOpen}
@@ -135,6 +151,17 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       />
       <PianoRoll />
       <HelpOverlay isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      {isScorePreviewOpen && (
+        <FloatingPanel
+          closeLabel="Close Score Preview"
+          onClose={() => setIsScorePreviewOpen(false)}
+          title="Score Preview"
+          testId="score-preview-panel"
+          className="left-4 right-auto"
+        >
+          <ScorePreview />
+        </FloatingPanel>
+      )}
       {isMixerOpen && (
         <FloatingPanel
           closeLabel="Close Mixer"
