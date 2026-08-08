@@ -1373,7 +1373,7 @@ function TrackControl({
                 "size-4.5",
                 muted
                   ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-                  : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+                  : undefined,
               )}
             >
               M
@@ -1387,7 +1387,7 @@ function TrackControl({
                 "size-4.5",
                 soloed
                   ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-                  : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+                  : undefined,
               )}
             >
               S

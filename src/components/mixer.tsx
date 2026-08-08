@@ -121,7 +121,7 @@ export function Mixer() {
               "h-8 min-w-8 px-1.5 text-xs font-semibold",
               !metronomeEnabled
                 ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-                : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+                : undefined,
             )}
           >
             M
@@ -201,7 +201,7 @@ function TrackToggles({
           "h-8 min-w-8 px-1.5 text-xs font-semibold",
           muted
             ? "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:text-secondary-foreground"
-            : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+            : undefined,
         )}
       >
         M
@@ -215,7 +215,7 @@ function TrackToggles({
           "h-8 min-w-8 px-1.5 text-xs font-semibold",
           soloed
             ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-            : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+            : undefined,
         )}
       >
         S
