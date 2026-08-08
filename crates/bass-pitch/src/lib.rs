@@ -446,14 +446,7 @@ fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<
                 .filter(|(&time, _)| time >= cell.source_start && time < cell.source_end)
                 .map(|(_, &rms)| rms)
                 .collect();
-            in_cell.sort_by(f64::total_cmp);
-            let rms = if in_cell.is_empty() {
-                0.0
-            } else if in_cell.len() % 2 == 1 {
-                in_cell[in_cell.len() / 2]
-            } else {
-                (in_cell[in_cell.len() / 2 - 1] + in_cell[in_cell.len() / 2]) / 2.0
-            };
+            let rms = calculate_median(&mut in_cell);
             let rms_db = gain_to_db(rms);
             let threshold = if active {
                 params.activity_off_db
@@ -480,6 +473,20 @@ fn gain_to_db(value: f64) -> f64 {
         return f64::NEG_INFINITY;
     }
     20.0 * value.log10()
+}
+
+fn calculate_median(values: &mut [f64]) -> f64 {
+    if values.is_empty() {
+        return 0.0;
+    }
+
+    values.sort_by(f64::total_cmp);
+    let middle = values.len() / 2;
+    if values.len() % 2 == 0 {
+        (values[middle - 1] + values[middle]) / 2.0
+    } else {
+        values[middle]
+    }
 }
 
 /// Coalesces consecutive active cells into fixed-pitch regions for the
@@ -620,4 +627,16 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::calculate_median;
+
+    #[test]
+    fn calculates_median() {
+        assert_eq!(calculate_median(&mut []), 0.0);
+        assert_eq!(calculate_median(&mut [3.0, 1.0, 2.0]), 2.0);
+        assert_eq!(calculate_median(&mut [4.0, 1.0, 3.0, 2.0]), 2.5);
+    }
 }
