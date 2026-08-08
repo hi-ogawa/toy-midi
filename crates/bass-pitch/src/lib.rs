@@ -200,14 +200,13 @@ pub fn analyze(
     let (f0, voiced_flag, voiced_probability) = pyin_chunked(&audio, params, on_progress);
 
     let count = rms.len().min(onset.len()).min(f0.len());
-    let f0: Vec<f64> = f0.iter().take(count).copied().collect();
     Frames {
         times: (0..count)
             .map(|i| params.start + (i * params.hop_length) as f64 / params.sample_rate as f64)
             .collect(),
         rms: rms[..count].to_vec(),
         onset: normalize_feature(&onset[..count]),
-        f0,
+        f0: f0.into_iter().take(count).collect(),
         voiced_flag: voiced_flag.into_iter().take(count).collect(),
         voiced_probability: voiced_probability.into_iter().take(count).collect(),
     }
