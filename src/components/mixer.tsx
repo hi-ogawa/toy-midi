@@ -1,4 +1,4 @@
-import { GaugeIcon, MusicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { GaugeIcon, MusicIcon, Volume2Icon } from "lucide-react";
 import { type ComponentProps, type ReactNode, useCallback } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import {
@@ -118,12 +118,12 @@ export function Mixer() {
             aria-label="Toggle metronome mute"
             title={metronomeEnabled ? "Mute metronome" : "Unmute metronome"}
             className={cn(
-              "h-8 min-w-8 px-1.5",
+              "h-8 min-w-8 px-1.5 text-xs font-semibold",
               !metronomeEnabled &&
                 "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
             )}
           >
-            <VolumeXIcon className="size-4" />
+            M
           </Toggle>
         }
       />
@@ -197,12 +197,12 @@ function TrackToggles({
         aria-label={`Toggle ${label} mute`}
         title={muted ? `Unmute ${label}` : `Mute ${label}`}
         className={cn(
-          "h-8 min-w-8 px-1.5",
+          "h-8 min-w-8 px-1.5 text-xs font-semibold",
           muted &&
             "bg-neutral-200 text-neutral-900 hover:bg-neutral-300 hover:text-neutral-900",
         )}
       >
-        <VolumeXIcon className="size-4" />
+        M
       </Toggle>
       <Toggle
         value={soloed}
