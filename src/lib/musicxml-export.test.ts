@@ -32,6 +32,7 @@ function exportNotes(
     notes,
     locators: [],
     tempo: 120,
+    title: "Test Score",
     keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
     openStringPitches: FIVE_STRING_PITCHES,

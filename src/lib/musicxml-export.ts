@@ -29,7 +29,7 @@ export type MusicXmlModelOptions = {
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
-  title?: string;
+  title: string;
 };
 
 export type MusicXmlMeasure = {
@@ -418,7 +418,7 @@ export function exportMusicXml({
   const document = h(
     "score-partwise",
     { version: "4.0" },
-    title && hx("work", hx("work-title", title)),
+    hx("work", hx("work-title", title)),
     // TODO: Populate part and MIDI instrument metadata from Toy MIDI instrument
     // data instead of hard-coding Electric Bass when non-bass export is supported.
     hx(
