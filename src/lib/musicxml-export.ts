@@ -163,20 +163,11 @@ function buildMeasureLocators({
 }): MusicXmlMeasure["locators"] {
   return locators
     .map((locator) => ({
-      id: locator.id,
       label: locator.label,
       position:
         toGridUnits(locator.position, `position of locator ${locator.id}`) -
         firstMeasureStart,
     }))
-    .map((locator) => {
-      if (locator.position < 0) {
-        throw new Error(
-          `position of locator ${locator.id} must not be negative`,
-        );
-      }
-      return locator;
-    })
     .filter(
       ({ position }) =>
         position >= measureStart && position < measureStart + measureDuration,

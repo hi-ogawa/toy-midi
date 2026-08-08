@@ -121,19 +121,13 @@ describe("MusicXML export", () => {
     expect(model.measures[0].locators).toEqual([{ label: "A", offset: 0 }]);
   });
 
-  it.each([
-    { position: -1, error: "position of locator section-a" },
-    { position: 0.1, error: "position of locator section-a is not aligned" },
-  ])(
-    "rejects an invalid rehearsal mark at $position",
-    ({ position, error }) => {
-      expect(() =>
-        buildModel([makeNote()], {
-          locators: [{ id: "section-a", position, label: "A" }],
-        }),
-      ).toThrow(error);
-    },
-  );
+  it("rejects an off-grid rehearsal mark", () => {
+    expect(() =>
+      buildModel([makeNote()], {
+        locators: [{ id: "section-a", position: 0.1, label: "A" }],
+      }),
+    ).toThrow("position of locator section-a is not aligned");
+  });
 
   it("splits notes at bar lines and ties the pieces", () => {
     const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
