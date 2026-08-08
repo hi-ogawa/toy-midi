@@ -1,4 +1,4 @@
-use crate::{Params, Pipeline};
+use crate::{hz_to_midi, Params, Pipeline};
 
 const CSV_COLUMNS: [&str; 24] = [
     "record_type",
@@ -46,7 +46,7 @@ pub fn diagnostics_csv(pipeline: &Pipeline, params: &Params) -> String {
                 ("rms", frames.rms[i].to_string()),
                 ("onset_score", frames.onset[i].to_string()),
                 ("f0_hz", finite_or_empty(frames.f0[i])),
-                ("midi_pitch", finite_or_empty(frames.midi_pitch[i])),
+                ("midi_pitch", finite_or_empty(hz_to_midi(frames.f0[i]))),
                 ("voiced", (frames.voiced_flag[i] as u8).to_string()),
                 ("confidence", frames.voiced_probability[i].to_string()),
             ],
@@ -160,7 +160,6 @@ mod tests {
                 rms: vec![],
                 onset: vec![],
                 f0: vec![],
-                midi_pitch: vec![],
                 voiced_flag: vec![],
                 voiced_probability: vec![],
             },
@@ -198,5 +197,50 @@ mod tests {
             .unwrap()
             .split(',')
             .any(|value| value == "40"));
+    }
+
+    #[test]
+    fn derives_midi_pitch_from_f0() {
+        let params = Params {
+            start: 0.0,
+            offset: 0.0,
+            bpm: 120.0,
+            cells_per_beat: 2,
+            grid_origin: 0.0,
+            activity_off_db: -25.0,
+            activity_on_db: -25.0,
+            activity_pitch: 36,
+            fmin: 30.0,
+            fmax: 400.0,
+            boundary_onset_threshold: 0.4,
+            sample_rate: 22_050,
+            frame_length: 2048,
+            hop_length: 256,
+        };
+        let pipeline = Pipeline {
+            frames: Frames {
+                times: vec![0.0],
+                rms: vec![0.0],
+                onset: vec![0.0],
+                f0: vec![440.0],
+                voiced_flag: vec![true],
+                voiced_probability: vec![1.0],
+            },
+            cells: vec![],
+            activity_cells: vec![],
+            activity_notes: vec![],
+            onset_notes: vec![],
+            pitch_decisions: vec![],
+        };
+
+        let csv = diagnostics_csv(&pipeline, &params);
+        let columns: Vec<_> = csv.lines().next().unwrap().split(',').collect();
+        let values: Vec<_> = csv.lines().nth(1).unwrap().split(',').collect();
+        let midi_pitch = columns
+            .iter()
+            .position(|column| *column == "midi_pitch")
+            .unwrap();
+
+        assert_eq!(values[midi_pitch], "69");
     }
 }

@@ -73,8 +73,6 @@ pub struct Frames {
     pub onset: Vec<f64>,
     /// pYIN fundamental frequency estimates in hertz, or NaN when unvoiced.
     pub f0: Vec<f64>,
-    /// Fundamental frequency converted to fractional MIDI pitch.
-    pub midi_pitch: Vec<f64>,
     /// Viterbi-decoded pYIN voiced state.
     pub voiced_flag: Vec<bool>,
     /// pYIN periodicity confidence in the range 0 through 1.
@@ -209,7 +207,6 @@ pub fn analyze(
             .collect(),
         rms: rms[..count].to_vec(),
         onset: normalize_feature(&onset[..count]),
-        midi_pitch: f0.iter().map(|&hz| hz_to_midi(hz)).collect(),
         f0,
         voiced_flag: voiced_flag.into_iter().take(count).collect(),
         voiced_probability: voiced_probability.into_iter().take(count).collect(),
@@ -572,12 +569,12 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
                 if time >= source_start
                     && time < source_end
                     && frames.voiced_flag[i]
-                    && frames.midi_pitch[i].is_finite()
+                    && frames.f0[i].is_finite()
                 {
                     evidence_frames += 1;
                     let weight = 0.1 + 0.9 * frames.voiced_probability[i];
                     *weight_by_pitch
-                        .entry(frames.midi_pitch[i].round() as i32)
+                        .entry(hz_to_midi(frames.f0[i]).round() as i32)
                         .or_default() += weight;
                 }
             }
