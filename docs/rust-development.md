@@ -6,17 +6,11 @@ Rust changes use a two-phase pull request workflow so the application first test
 
 ## Develop From Source
 
-Run `pnpm override-wasm`, which will blabla todo. add and commit this override in `pnpm-workspace.yaml`:
+Run `pnpm override-wasm`, then install dependencies and commit the resulting workspace and lockfile changes. This adds the following override to `pnpm-workspace.yaml`:
 
 ```yaml
 overrides:
   "@hiogawa/bass-pitch-wasm": "workspace:*"
-```
-
-Regenerate and commit the lockfile after enabling the override:
-
-```sh
-pnpm install
 ```
 
 No scripts or workflows need changing. `pnpm build-wasm` detects that pnpm resolved the dependency to the workspace and builds it. The existing application build, CI, and Cloudflare commands call this script, so they all consume the modified Rust implementation.

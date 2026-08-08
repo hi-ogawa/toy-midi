@@ -1,11 +1,11 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 package_path="$(realpath node_modules/@hiogawa/bass-pitch-wasm)"
 workspace_path="$(realpath crates/bass-pitch-wasm)"
 
 if [ "$package_path" != "$workspace_path" ]; then
-  echo Using prebuilt wasm package
+  echo "Skipped build. Using prebuilt WASM package."
   exit 0
 fi
 
