@@ -19,7 +19,6 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
-      - run: pnpm build-wasm
       - run: pnpm lint-check
       - run: pnpm test
       - run: pnpm build
@@ -38,7 +37,6 @@ jobs:
           node-version: "lts/*"
       - run: corepack enable
       - run: pnpm i
-      - run: pnpm build-wasm
       - run: pnpm exec playwright install chromium --with-deps --no-shell
       - run: pnpm test-e2e --shard=${{ matrix.shard }}/2
       - uses: actions/upload-artifact@v4
