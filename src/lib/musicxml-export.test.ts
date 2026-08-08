@@ -10,6 +10,8 @@ import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
+// Keep in sync with the exporter's divisions per quarter note.
+const QUARTER_NOTE_DURATION = 12;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -70,7 +72,7 @@ describe("MusicXML export", () => {
   it("splits notes at bar lines and ties the pieces", () => {
     const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
 
-    expect(model.measureDuration).toBe(48);
+    expect(model.measureDuration).toBe(4 * QUARTER_NOTE_DURATION);
     expect(
       model.measures.map((events) =>
         events.filter((event) => event.type === "note"),
@@ -103,7 +105,7 @@ describe("MusicXML export", () => {
       model.measures.map((events) =>
         events.reduce((total, event) => total + event.duration, 0),
       ),
-    ).toEqual([48, 48]);
+    ).toEqual([4 * QUARTER_NOTE_DURATION, 4 * QUARTER_NOTE_DURATION]);
   });
 
   it("decomposes dotted and triplet durations", () => {
@@ -153,13 +155,13 @@ describe("MusicXML export", () => {
     expect(model.measures[0]).toEqual([
       {
         type: "rest",
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
       },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -167,7 +169,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "rest",
-        duration: 24,
+        duration: 2 * QUARTER_NOTE_DURATION,
         notation: { type: "half" },
       },
     ]);
@@ -178,7 +180,7 @@ describe("MusicXML export", () => {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
-    expect(model.measureDuration).toBe(36);
+    expect(model.measureDuration).toBe(3 * QUARTER_NOTE_DURATION);
     expect(model.measures).toHaveLength(2);
   });
 
