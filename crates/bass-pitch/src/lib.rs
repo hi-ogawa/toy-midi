@@ -79,6 +79,19 @@ pub struct Frames {
     pub voiced_probability: Vec<f64>,
 }
 
+impl Frames {
+    /// Returns frame indices whose center time is in the half-open source-time
+    /// range. This currently scans all frames for each cell or region because
+    /// pYIN dominates runtime. An ordered cursor can replace it if needed.
+    fn indices_in_range(&self, start: f64, end: f64) -> impl Iterator<Item = usize> + '_ {
+        self.times
+            .iter()
+            .enumerate()
+            .filter(move |(_, &time)| time >= start && time < end)
+            .map(|(index, _)| index)
+    }
+}
+
 #[derive(Clone, Debug)]
 /// One project-grid interval used to pool frame-level evidence.
 pub struct GridCell {
@@ -431,18 +444,12 @@ fn make_grid_cells(params: &Params, excerpt_end: f64) -> Vec<GridCell> {
 /// entering and leaving an active run.
 fn detect_activity(cells: &[GridCell], frames: &Frames, params: &Params) -> Vec<ActivityCell> {
     let mut active = false;
-    // Decision stages scan frames per cell or region. This is O(cells * frames),
-    // but pYIN dominates runtime at current track sizes. If profiling changes
-    // that, ordered frame cursors can make these scans O(cells + frames).
     cells
         .iter()
         .map(|cell| {
             let mut in_cell: Vec<f64> = frames
-                .times
-                .iter()
-                .zip(&frames.rms)
-                .filter(|(&time, _)| time >= cell.source_start && time < cell.source_end)
-                .map(|(_, &rms)| rms)
+                .indices_in_range(cell.source_start, cell.source_end)
+                .map(|index| frames.rms[index])
                 .collect();
             let rms = calculate_median(&mut in_cell);
             let rms_db = gain_to_db(rms);
@@ -532,11 +539,8 @@ fn make_activity_onset_notes(
             continue;
         }
         let onset_score = frames
-            .times
-            .iter()
-            .zip(&frames.onset)
-            .filter(|(&time, _)| time >= cell.source_start && time < cell.source_end)
-            .map(|(_, &onset)| onset)
+            .indices_in_range(cell.source_start, cell.source_end)
+            .map(|index| frames.onset[index])
             .fold(0.0, f64::max);
         if current.is_none() || onset_score >= params.boundary_onset_threshold {
             notes.extend(current.take());
@@ -570,13 +574,8 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
             let source_end = note.project_end - params.offset;
             let mut weight_by_pitch: BTreeMap<i32, f64> = BTreeMap::new();
             let mut evidence_frames = 0usize;
-            for i in 0..frames.times.len() {
-                let time = frames.times[i];
-                if time >= source_start
-                    && time < source_end
-                    && frames.voiced_flag[i]
-                    && frames.f0[i].is_finite()
-                {
+            for i in frames.indices_in_range(source_start, source_end) {
+                if frames.voiced_flag[i] && frames.f0[i].is_finite() {
                     evidence_frames += 1;
                     let weight = 0.1 + 0.9 * frames.voiced_probability[i];
                     *weight_by_pitch
@@ -628,12 +627,29 @@ fn assign_region_pitches(notes: &[Note], frames: &Frames, params: &Params) -> Ve
 
 #[cfg(test)]
 mod tests {
-    use super::calculate_median;
+    use super::{calculate_median, Frames};
 
     #[test]
     fn calculates_median() {
         assert_eq!(calculate_median(&mut []), 0.0);
         assert_eq!(calculate_median(&mut [3.0, 1.0, 2.0]), 2.0);
         assert_eq!(calculate_median(&mut [4.0, 1.0, 3.0, 2.0]), 2.5);
+    }
+
+    #[test]
+    fn selects_frames_in_half_open_time_range() {
+        let frames = Frames {
+            times: vec![0.0, 0.5, 1.0, 1.5],
+            rms: vec![],
+            onset: vec![],
+            f0: vec![],
+            voiced_flag: vec![],
+            voiced_probability: vec![],
+        };
+
+        assert_eq!(
+            frames.indices_in_range(0.5, 1.5).collect::<Vec<_>>(),
+            [1, 2]
+        );
     }
 }
