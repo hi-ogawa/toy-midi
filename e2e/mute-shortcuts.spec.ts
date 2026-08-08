@@ -102,6 +102,35 @@ test.describe("Track Mute Shortcuts", () => {
     expect(muteState.audioMuted).toBe(true);
   });
 
+  test("solo and mute states remain independent and persist", async ({
+    page,
+  }) => {
+    await loadAudioFile(page);
+
+    const midiSolo = page.getByRole("button", {
+      name: "Toggle MIDI solo",
+    });
+    const audioSolo = page.getByRole("button", {
+      name: "Toggle Audio solo",
+    });
+
+    await midiSolo.click();
+    await audioSolo.click();
+    await page.keyboard.press("Shift+1");
+
+    await expect(midiSolo).toHaveAttribute("aria-pressed", "true");
+    await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
+    expect((await getMuteState(page)).midiMuted).toBe(true);
+
+    await page.waitForTimeout(100);
+    await page.reload();
+    await waitForEditor(page);
+
+    await expect(midiSolo).toHaveAttribute("aria-pressed", "true");
+    await expect(audioSolo).toHaveAttribute("aria-pressed", "true");
+    expect((await getMuteState(page)).midiMuted).toBe(true);
+  });
+
   test("mute shortcuts don't trigger in text input", async ({ page }) => {
     // Open settings dialog
     await page.getByTestId("settings-button").click();
