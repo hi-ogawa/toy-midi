@@ -164,19 +164,13 @@ function buildMeasureLocators({
   return locators
     .map((locator) => ({
       label: locator.label,
-      position:
+      offset:
         toGridUnits(locator.position, `position of locator ${locator.id}`) -
-        firstMeasureStart,
+        firstMeasureStart -
+        measureStart,
     }))
-    .filter(
-      ({ position }) =>
-        position >= measureStart && position < measureStart + measureDuration,
-    )
-    .sort((a, b) => a.position - b.position)
-    .map(({ label, position }) => ({
-      label,
-      offset: position - measureStart,
-    }));
+    .filter(({ offset }) => offset >= 0 && offset < measureDuration)
+    .sort((a, b) => a.offset - b.offset);
 }
 
 /** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
