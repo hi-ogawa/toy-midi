@@ -37,7 +37,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 **Loudness: root mean square (RMS).** RMS summarizes the average signal amplitude within each analysis window and serves as a simple loudness estimate. It is used because presence detection must favor recall. A more selective feature could drop audible bass when one frame is unreliable.
 
-**Onset novelty: mel-banded log spectral flux** (`onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
+**Onset novelty: mel-banded log spectral flux** (`calculate_onset_strength`). Rectified frame-to-frame increase of log band energy, averaged over 128 mel-scale bands, then normalized by its own 95th percentile so the split threshold is relative to the excerpt. Fixture tests showed that two implementation details are required:
 
 - Band aggregation must happen before rectification. Per-bin flux rectifies the random per-bin jitter of a decaying note into a steady stream of false positives; summing bins into bands first lets that jitter cancel, so only coherent broadband energy rises, which is what an attack is.
 - The envelope must be delayed by half an analysis window (`frame_length / (2 * hop)` frames), matching librosa's `center=True` compensation. A centered STFT starts seeing an attack half a window early, so without the delay every onset peak lands one grid cell before the attack.
@@ -62,7 +62,7 @@ Three per-frame signals are computed once and shared by all later decisions (`an
 
 ## Chunked Orchestration
 
-pYIN dominates runtime, so `pyin_chunked` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. The Viterbi decode is formally global, but competing path hypotheses merge within tens of frames, so the discard margin absorbs chunk-boundary effects; on the full Ring stem, chunked and unchunked analysis differ in one frame record out of 14022 and in zero decisions. Chunking exists for progress reporting and future parallelism, not correctness; RMS and onset stay whole-excerpt because their normalization is defined over the whole excerpt and they are cheap.
+pYIN dominates runtime, so `calculate_pyin_frames` runs it demucs-style: an orchestration loop feeds roughly 10-second frame-aligned chunks with 32 extra context frames per side to the unmodified pYIN core, discards the context frames, and concatenates. The Viterbi decode is formally global, but competing path hypotheses merge within tens of frames, so the discard margin absorbs chunk-boundary effects; on the full Ring stem, chunked and unchunked analysis differ in one frame record out of 14022 and in zero decisions. Chunking exists for progress reporting and future parallelism, not correctness; RMS and onset stay whole-excerpt because their normalization is defined over the whole excerpt and they are cheap.
 
 ## Worked Example: Primrose Bar 11
 
@@ -80,15 +80,15 @@ Reading it stage by stage: activity keeps cells 0–6, 8–9, and 13–15 (cell 
 
 ## Function Map
 
-| Decision        | Function (`crates/bass-pitch/src/lib.rs`)              |
-| --------------- | ------------------------------------------------------ |
-| Orchestration   | `run_pipeline`, `analyze`, `pyin_chunked`              |
-| Frame features  | `rms_frames`, `onset_strength`, vendored `crates/pyin` |
-| Grid derivation | `make_grid_cells`                                      |
-| Presence        | `detect_activity`, `make_activity_notes`               |
-| Segmentation    | `make_activity_onset_notes`                            |
-| Pitch           | `assign_region_pitches`                                |
-| Output          | `midi_bytes`, `diagnostics_csv`                        |
+| Decision        | Function (`crates/bass-pitch/src/lib.rs`)                                  |
+| --------------- | -------------------------------------------------------------------------- |
+| Orchestration   | `run_pipeline`, `analyze`, `calculate_pyin_frames`                         |
+| Frame features  | `calculate_rms_frames`, `calculate_onset_strength`, vendored `crates/pyin` |
+| Grid derivation | `make_grid_cells`                                                          |
+| Presence        | `detect_activity`, `make_activity_notes`                                   |
+| Segmentation    | `make_activity_onset_notes`                                                |
+| Pitch           | `assign_region_pitches`                                                    |
+| Output          | `midi_bytes`, `diagnostics_csv`                                            |
 
 The removed original cell-level pipeline used per-cell confidence-gated pitch votes merged across boundaries with onset/dip evidence. It was useful during evaluation, but it embodied the confidence-as-gate mistake and was deleted after the activity/onset/region-pitch pipeline replaced it.
 

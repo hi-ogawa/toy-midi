@@ -207,14 +207,14 @@ pub fn analyze(
     on_progress: &mut dyn FnMut(ChunkProgress),
 ) -> Frames {
     let audio: Vec<f64> = audio.iter().map(|&sample| sample as f64).collect();
-    let rms = rms_frames(&audio, params.frame_length, params.hop_length);
-    let onset = onset_strength(
+    let rms = calculate_rms_frames(&audio, params.frame_length, params.hop_length);
+    let onset = calculate_onset_strength(
         &audio,
         params.frame_length,
         params.hop_length,
         params.sample_rate,
     );
-    let (f0, voiced_flag, voiced_probability) = pyin_chunked(&audio, params, on_progress);
+    let (f0, voiced_flag, voiced_probability) = calculate_pyin_frames(&audio, params, on_progress);
 
     let count = rms.len().min(onset.len()).min(f0.len());
     Frames {
@@ -231,7 +231,7 @@ pub fn analyze(
 
 /// Computes root mean square (RMS) amplitude over zero-padded windows centered
 /// on the same hop grid as onset and pYIN analysis.
-fn rms_frames(audio: &[f64], frame_length: usize, hop_length: usize) -> Vec<f64> {
+fn calculate_rms_frames(audio: &[f64], frame_length: usize, hop_length: usize) -> Vec<f64> {
     let n_frames = audio.len() / hop_length + 1;
     (0..n_frames)
         .map(|frame| {
@@ -256,7 +256,7 @@ fn rms_frames(audio: &[f64], frame_length: usize, hop_length: usize) -> Vec<f64>
 /// Banding must happen before the rectified difference. Per-bin jitter on
 /// decay tails cancels inside a band, while rectifying per-bin differences
 /// turns that jitter into false flux peaks on decaying notes.
-fn onset_strength(
+fn calculate_onset_strength(
     audio: &[f64],
     frame_length: usize,
     hop_length: usize,
@@ -350,7 +350,7 @@ fn onset_strength(
 /// decoding is formally global, but competing paths merge within tens of
 /// frames, so the discard margin absorbs chunk-boundary effects; a single
 /// chunk sees the whole excerpt and is bit-identical to unchunked analysis.
-fn pyin_chunked(
+fn calculate_pyin_frames(
     audio: &[f64],
     params: &Params,
     on_progress: &mut dyn FnMut(ChunkProgress),

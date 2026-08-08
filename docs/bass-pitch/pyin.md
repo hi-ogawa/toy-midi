@@ -28,7 +28,7 @@ The per-frame distributions feed an HMM with `2 × n_bins` states: every 0.1-sem
 - **Pitch inertia**: a triangular window allows at most ±5 semitones per frame (from `max_transition_rate` 35.92 octaves/s at our 11.6 ms hop), with small steps strongly preferred.
 - **Voicing inertia**: switching voiced↔unvoiced costs `switch_prob` = 0.01 per frame.
 
-Viterbi then finds the most likely state path through the whole excerpt (chunked with overlap by `pyin_chunked`; see the main algorithm doc for why that is safe). The output f0 is the decoded bin's center frequency, so it is quantized to 0.1 semitone, which is harmless downstream because region voting rounds to integer MIDI anyway.
+Viterbi then finds the most likely state path through the whole excerpt (chunked with overlap by `calculate_pyin_frames`; see the main algorithm doc for why that is safe). The output f0 is the decoded bin's center frequency, so it is quantized to 0.1 semitone, which is harmless downstream because region voting rounds to integer MIDI anyway.
 
 Frame 188 shows how the three mechanisms interact. Per-frame YIN reads it as C#1 because that is the deepest trough. The threshold distribution assigns very little confidence to that evidence. The Viterbi path keeps the decoded pitch at C#2 because surrounding frames provide strong C#2 evidence, the 12-semitone jump to C#1 is outside the ±5-semitone transition window, and changing to unvoiced for one frame has a transition penalty. Across bar 11, the per-frame reading differs from the decoded path by more than 1.5 semitones on 4 of 197 frames. All four are sub-octave errors at note transitions that the path corrects.
 
@@ -50,13 +50,13 @@ Frame 188 shows how the three mechanisms interact. Per-frame YIN reads it as C#1
 
 All in vendored `crates/pyin/src/` (upstream `Sytronik/pyin-rs` v1.2.0, librosa-0.9.1-compatible, FFI removed for wasm):
 
-| Stage                                                              | Location                                       |
-| ------------------------------------------------------------------ | ---------------------------------------------- |
-| Framing + CMND via FFT autocorrelation                             | `pyin.rs`, `frame_cum_mean_norm_diff`          |
-| Troughs, Beta thresholds, Boltzmann prior, candidate probabilities | `pyin.rs`, `pyin` (steps 1–5 comments)         |
-| Parabolic refinement + bin mapping + observation matrix            | `pyin.rs`, `pyin`                              |
-| Viterbi decode                                                     | `viterbi.rs`                                   |
-| Chunked orchestration wrapper                                      | `crates/bass-pitch/src/lib.rs`, `pyin_chunked` |
+| Stage                                                              | Location                                                |
+| ------------------------------------------------------------------ | ------------------------------------------------------- |
+| Framing + CMND via FFT autocorrelation                             | `pyin.rs`, `frame_cum_mean_norm_diff`                   |
+| Troughs, Beta thresholds, Boltzmann prior, candidate probabilities | `pyin.rs`, `pyin` (steps 1–5 comments)                  |
+| Parabolic refinement + bin mapping + observation matrix            | `pyin.rs`, `pyin`                                       |
+| Viterbi decode                                                     | `viterbi.rs`                                            |
+| Chunked orchestration wrapper                                      | `crates/bass-pitch/src/lib.rs`, `calculate_pyin_frames` |
 
 ## Glossary
 
