@@ -67,8 +67,9 @@ pub struct Params {
     pub hop_length: usize,
 }
 
-/// Parallel feature series with one record per analysis-window center. The
-/// overlapping waveform windows used to compute these records are not stored.
+/// Struct of arrays with one record per analysis-window center. Values at the
+/// same index belong to one feature record. The overlapping waveform windows
+/// used to compute these records are not stored.
 pub struct Frames {
     /// Center time of each feature record in source-audio seconds.
     pub times: Vec<f64>,
