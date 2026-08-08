@@ -190,7 +190,7 @@ function TrackToggles({
   onSoloedChange: (soloed: boolean) => void;
 }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex flex-col gap-1">
       <Toggle
         value={muted}
         onChange={onMutedChange}
