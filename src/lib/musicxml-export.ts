@@ -64,7 +64,7 @@ type KeySignatureEvent = {
 
 type MeasureKeySignature = {
   active: KeySignature;
-  declaration?: KeySignature;
+  emit: boolean;
 };
 
 export type MusicXmlMeasureEvent =
@@ -186,6 +186,7 @@ export function buildMusicXmlModel({
     measureDuration,
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
+      const measureKeySignature = keySignaturesByMeasure[index];
       return {
         events: buildMeasureEvents({
           notes,
@@ -198,7 +199,9 @@ export function buildMusicXmlModel({
           measureStart,
           measureDuration,
         }),
-        keySignature: keySignaturesByMeasure[index].declaration,
+        keySignature: measureKeySignature.emit
+          ? measureKeySignature.active
+          : undefined,
       };
     }),
   };
@@ -221,19 +224,16 @@ function buildMeasureKeySignatures({
   let eventIndex = 0;
   return Array.from({ length: measureCount }, (_, measureIndex) => {
     const position = firstMeasureStart + measureIndex * measureDuration;
-    let declaration: KeySignature | undefined;
+    let emit = false;
     while (events[eventIndex]?.position <= position) {
       const event = events[eventIndex];
       active = event.keySignature;
       if (event.position === position) {
-        declaration = active;
+        emit = true;
       }
       eventIndex++;
     }
-    if (measureIndex === 0) {
-      return { active, declaration: active };
-    }
-    return declaration ? { active, declaration } : { active };
+    return { active, emit: measureIndex === 0 || emit };
   });
 }
 
