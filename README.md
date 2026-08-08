@@ -11,6 +11,6 @@ pnpm install
 pnpm dev
 ```
 
-## Docs
+## Documentation
 
-- [docs/architecture.md](docs/architecture.md)
+- [Documentation index](docs/README.md)
