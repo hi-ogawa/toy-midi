@@ -52,7 +52,9 @@ export async function loadAudioFile(
     mimeType: "audio/wav",
     buffer: await fs.readFile(testAudioPath),
   });
-  await page.waitForTimeout(500); // Wait for audio to load
+  await expect(
+    page.getByTestId("settings-dialog").getByText(fileName, { exact: true }),
+  ).toBeVisible();
 
   // Close settings dialog
   await page.keyboard.press("Escape");
