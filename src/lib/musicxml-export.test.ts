@@ -54,19 +54,11 @@ function buildModel(
 }
 
 describe("MusicXML export", () => {
-  it("exports synchronized standard and five-string TAB staves", async () => {
-    const xml = exportNotes([makeNote()]);
+  it("exports a title with synchronized standard and five-string TAB staves", async () => {
+    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
 
     await expect(xml).toMatchFileSnapshot(
       "__snapshots__/five-string-tab.musicxml",
-    );
-  });
-
-  it("exports an optional escaped score title", () => {
-    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
-
-    expect(xml).toContain(
-      "<work-title>Rock &amp; Roll &lt;Bass&gt;</work-title>",
     );
   });
 
