@@ -47,6 +47,7 @@ export interface ProjectState {
   masterVolume: number;
   midiVolume: number; // 0-1
   midiMuted: boolean;
+  midiSoloed: boolean;
   midiProgram: number; // GM program number 0-127
   metronomeEnabled: boolean;
   metronomeVolume: number; // 0-1
@@ -115,6 +116,7 @@ export interface ProjectState {
   setMasterVolume: (volume: number) => void;
   setMidiVolume: (volume: number) => void;
   setMidiMuted: (muted: boolean) => void;
+  setMidiSoloed: (soloed: boolean) => void;
   setMidiProgram: (program: number) => void;
   setMetronomeEnabled: (enabled: boolean) => void;
   setMetronomeVolume: (volume: number) => void;
@@ -147,6 +149,7 @@ export interface AudioTrack {
   offset: number; // in seconds - timeline position where audio starts (>= 0)
   volume: number; // 0-1
   muted: boolean;
+  soloed?: boolean;
   waveformHeight: number;
   audioWaveform: AudioWaveform;
 }
@@ -196,6 +199,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   masterVolume: 1,
   midiVolume: 0.8,
   midiMuted: false,
+  midiSoloed: false,
   midiProgram: 0, // Acoustic Grand Piano
   metronomeEnabled: false,
   metronomeVolume: 0.5,
@@ -495,6 +499,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   setMasterVolume: (volume) => set({ masterVolume: volume }),
   setMidiVolume: (volume) => set({ midiVolume: volume }),
   setMidiMuted: (muted) => set({ midiMuted: muted }),
+  setMidiSoloed: (soloed) => set({ midiSoloed: soloed }),
   setMidiProgram: (program) => set({ midiProgram: program }),
   setMetronomeEnabled: (enabled) => set({ metronomeEnabled: enabled }),
   setMetronomeVolume: (volume) => set({ metronomeVolume: volume }),
@@ -689,6 +694,7 @@ export interface SavedProject {
   masterVolume?: number;
   midiVolume: number;
   midiMuted?: boolean; // Optional for backward compatibility
+  midiSoloed?: boolean;
   midiProgram?: number; // Optional for backward compatibility
   metronomeEnabled: boolean;
   metronomeVolume: number;
@@ -730,6 +736,7 @@ const DEFAULTS = {
   masterVolume: 1,
   midiVolume: 0.8,
   midiMuted: false,
+  midiSoloed: false,
   midiProgram: 0,
   metronomeEnabled: false,
   metronomeVolume: 0.5,
@@ -765,6 +772,7 @@ export function toSavedProject(state: ProjectState): SavedProject {
     masterVolume: state.masterVolume,
     midiVolume: state.midiVolume,
     midiMuted: state.midiMuted,
+    midiSoloed: state.midiSoloed,
     midiProgram: state.midiProgram,
     metronomeEnabled: state.metronomeEnabled,
     metronomeVolume: state.metronomeVolume,
@@ -793,6 +801,7 @@ export function migrateSavedProject(data: AnySavedProject): SavedProject {
                 offset: data.audioOffset,
                 volume: data.audioVolume,
                 muted: data.audioMuted ?? false,
+                soloed: false,
               },
             ]
           : [],
@@ -830,12 +839,14 @@ export function fromSavedProject(data: AnySavedProject) {
     // Reattach transient waveform data slot (loaded lazily on project open)
     audioTracks: merged.audioTracks.map((t) => ({
       ...t,
+      soloed: t.soloed ?? false,
       waveformHeight: t.waveformHeight ?? legacyWaveformHeight,
       audioWaveform: { status: "pending" as const },
     })),
     masterVolume: merged.masterVolume ?? DEFAULTS.masterVolume,
     midiVolume: merged.midiVolume,
     midiMuted: merged.midiMuted ?? DEFAULTS.midiMuted,
+    midiSoloed: merged.midiSoloed ?? DEFAULTS.midiSoloed,
     midiProgram: merged.midiProgram ?? DEFAULTS.midiProgram,
     metronomeEnabled: merged.metronomeEnabled,
     metronomeVolume: merged.metronomeVolume,

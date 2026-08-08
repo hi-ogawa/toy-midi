@@ -126,6 +126,7 @@ export function PianoRoll() {
     masterVolume,
     midiVolume,
     midiMuted,
+    midiSoloed,
     autoScrollEnabled,
     addNote,
     updateNote,
@@ -165,6 +166,7 @@ export function PianoRoll() {
     setMasterVolume,
     setMidiVolume,
     setMidiMuted,
+    setMidiSoloed,
   } = useProjectStore();
 
   const totalWaveformHeight = audioTracks.reduce(
@@ -978,6 +980,7 @@ export function PianoRoll() {
                 height={track.waveformHeight}
                 volume={track.volume}
                 muted={track.muted}
+                soloed={track.soloed}
                 muteTitle={
                   track.muted
                     ? "Unmute audio (Shift+2)"
@@ -987,17 +990,22 @@ export function PianoRoll() {
                   updateAudioTrack(track.id, { volume })
                 }
                 onMutedChange={(muted) => updateAudioTrack(track.id, { muted })}
+                onSoloedChange={(soloed) =>
+                  updateAudioTrack(track.id, { soloed })
+                }
               />
             ))}
             <TrackControl
               label="MIDI"
               volume={midiVolume}
               muted={midiMuted}
+              soloed={midiSoloed}
               muteTitle={
                 midiMuted ? "Unmute MIDI (Shift+1)" : "Mute MIDI (Shift+1)"
               }
               onVolumeChange={setMidiVolume}
               onMutedChange={setMidiMuted}
+              onSoloedChange={setMidiSoloed}
             />
           </div>
           <div
@@ -1318,10 +1326,12 @@ type TrackControlProps = {
   height?: number;
   volume: number;
   muted?: boolean;
+  soloed?: boolean;
   muteTitle?: string;
   sliderTestId?: string;
   onVolumeChange: (volume: number) => void;
   onMutedChange?: (muted: boolean) => void;
+  onSoloedChange?: (soloed: boolean) => void;
 };
 
 function TrackControl({
@@ -1330,10 +1340,12 @@ function TrackControl({
   height,
   volume,
   muted,
+  soloed,
   muteTitle,
   sliderTestId,
   onVolumeChange,
   onMutedChange,
+  onSoloedChange,
 }: TrackControlProps) {
   return (
     <div
@@ -1350,20 +1362,28 @@ function TrackControl({
         >
           {label}
         </span>
-        {onMutedChange && (
-          <Toggle
-            value={muted ?? false}
-            onChange={onMutedChange}
-            aria-label={`Toggle ${label} mute`}
-            title={muteTitle}
-            className={cn(
-              "size-4.5",
-              muted &&
-                "bg-red-900/50 border-red-700 text-red-300 hover:bg-red-900/70 hover:text-red-200",
-            )}
-          >
-            M
-          </Toggle>
+        {onMutedChange && onSoloedChange && (
+          <div className="flex gap-1">
+            <Toggle
+              value={muted ?? false}
+              onChange={onMutedChange}
+              aria-label={`Toggle ${label} mute`}
+              title={muteTitle}
+              className="size-4.5"
+            >
+              M
+            </Toggle>
+            <Toggle
+              value={soloed ?? false}
+              variant="primary"
+              onChange={onSoloedChange}
+              aria-label={`Toggle ${label} solo`}
+              title={soloed ? `Disable ${label} solo` : `Solo ${label}`}
+              className="size-4.5"
+            >
+              S
+            </Toggle>
+          </div>
         )}
       </div>
       <div className="relative">
