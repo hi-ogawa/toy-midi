@@ -156,16 +156,13 @@ class AudioManager {
     if (state.notes !== prevState?.notes) {
       this.setNotes(state.notes);
     }
-    if (state.audioTracks !== prevState?.audioTracks) {
+    if (
+      state.audioTracks !== prevState?.audioTracks ||
+      state.midiSoloed !== prevState?.midiSoloed
+    ) {
       this.syncAudioTracks({
         tracks: state.audioTracks,
         prevTracks: prevState?.audioTracks,
-        anyTrackSoloed,
-      });
-    } else if (state.midiSoloed !== prevState?.midiSoloed) {
-      this.syncAudioTracks({
-        tracks: state.audioTracks,
-        prevTracks: state.audioTracks,
         anyTrackSoloed,
       });
     }
