@@ -122,9 +122,8 @@ test.describe("Project Persistence", () => {
     ]);
     await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
 
-    // Close settings dialog and wait for audio to load
+    // Close settings dialog
     await page.keyboard.press("Escape");
-    await page.waitForTimeout(1000);
 
     // Check waveform is visible (audio loaded)
     const waveform = page.locator(".bg-emerald-700, .bg-emerald-600").first();

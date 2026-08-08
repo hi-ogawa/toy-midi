@@ -89,8 +89,7 @@ test.describe("Track Mute Shortcuts", () => {
     expect(muteState.midiMuted).toBe(true);
     expect(muteState.audioMuted).toBe(true);
 
-    // Wait for auto-save
-    await page.waitForTimeout(100);
+    await evaluateFlushAutoSave(page);
 
     // Reload page
     await page.reload();
