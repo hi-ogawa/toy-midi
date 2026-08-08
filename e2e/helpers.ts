@@ -41,7 +41,6 @@ export async function loadAudioFile(
 ): Promise<void> {
   // Open settings dialog
   await page.getByTestId("settings-button").click();
-  await page.waitForTimeout(100);
 
   // Find audio file input within settings dialog
   const fileInput = page.getByTestId("audio-file-input");
@@ -57,7 +56,7 @@ export async function loadAudioFile(
 
   // Close settings dialog
   await page.keyboard.press("Escape");
-  await page.waitForTimeout(100);
+  await expect(page.getByTestId("settings-dialog")).toBeHidden();
 }
 
 /**
