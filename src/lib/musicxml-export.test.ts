@@ -113,6 +113,14 @@ describe("MusicXML export", () => {
     expect(model.measures.map((measure) => measure.locators)).toEqual([[]]);
   });
 
+  it("shifts rehearsal marks with trimmed empty measures", () => {
+    const model = buildModel([makeNote({ start: 12 })], {
+      locators: [{ id: "section-a", position: 12, label: "A" }],
+    });
+
+    expect(model.measures[0].locators).toEqual([{ label: "A", offset: 0 }]);
+  });
+
   it.each([
     { position: -1, error: "position of locator section-a" },
     { position: 0.1, error: "position of locator section-a is not aligned" },
@@ -243,11 +251,11 @@ describe("MusicXML export", () => {
 
     // The three-bar count-in disappears, so project bars 4 and 6 become score bars 1 and 3.
     expect(model.measures).toHaveLength(3);
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       duration: QUARTER_NOTE_DURATION,
     });
-    expect(model.measures[2][0]).toMatchObject({
+    expect(model.measures[2].events[0]).toMatchObject({
       type: "note",
       duration: QUARTER_NOTE_DURATION,
     });
@@ -258,7 +266,7 @@ describe("MusicXML export", () => {
 
     // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
-    expect(model.measures[0]).toEqual([
+    expect(model.measures[0].events).toEqual([
       {
         type: "rest",
         duration: 2 * QUARTER_NOTE_DURATION,
@@ -298,7 +306,7 @@ describe("MusicXML export", () => {
 
     // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
-    expect(model.measures[0]).toMatchObject([
+    expect(model.measures[0].events).toMatchObject([
       { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
       { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);

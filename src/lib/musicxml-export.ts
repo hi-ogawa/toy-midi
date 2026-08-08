@@ -143,10 +143,11 @@ export function buildMusicXmlModel({
           .map((locator) => ({
             id: locator.id,
             label: locator.label,
-            position: toGridUnits(
-              locator.position,
-              `position of locator ${locator.id}`,
-            ),
+            position:
+              toGridUnits(
+                locator.position,
+                `position of locator ${locator.id}`,
+              ) - firstMeasureStart,
           }))
           .map((locator) => {
             if (locator.position < 0) {
