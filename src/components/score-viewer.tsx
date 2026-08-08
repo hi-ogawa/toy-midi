@@ -39,6 +39,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [showTitle, setShowTitle] = useState(false);
   const [showRehearsalMarks, setShowRehearsalMarks] = useState(true);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
@@ -77,10 +78,12 @@ export function ScoreViewer({
   const loadMutation = useMutation({
     mutationFn: async ({
       layout,
+      showTitle,
       showRehearsalMarks,
       source,
     }: {
       layout: ScoreLayout;
+      showTitle: boolean;
       showRehearsalMarks: boolean;
       source: File | ScoreSource;
     }) => {
@@ -88,7 +91,12 @@ export function ScoreViewer({
         source instanceof File
           ? { name: source.name, xml: await source.text() }
           : source;
-      await runtime.load({ score: nextScore, layout, showRehearsalMarks });
+      await runtime.load({
+        score: nextScore,
+        layout,
+        showTitle,
+        showRehearsalMarks,
+      });
       setScore(nextScore);
     },
   });
@@ -101,6 +109,7 @@ export function ScoreViewer({
     queryFn: async () => {
       loadMutation.mutate({
         layout,
+        showTitle,
         showRehearsalMarks,
         source: initialSource!,
       });
@@ -116,6 +125,22 @@ export function ScoreViewer({
     if (score) {
       loadMutation.mutate({
         layout: nextLayout,
+        showTitle,
+        showRehearsalMarks,
+        source: score,
+      });
+    }
+  }
+
+  function changeTitleVisible(visible: boolean) {
+    if (visible === showTitle) {
+      return;
+    }
+    setShowTitle(visible);
+    if (score) {
+      loadMutation.mutate({
+        layout,
+        showTitle: visible,
         showRehearsalMarks,
         source: score,
       });
@@ -130,6 +155,7 @@ export function ScoreViewer({
     if (score) {
       loadMutation.mutate({
         layout,
+        showTitle,
         showRehearsalMarks: visible,
         source: score,
       });
@@ -208,6 +234,21 @@ export function ScoreViewer({
           </label>
 
           <label className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Title</span>
+            <select
+              aria-label="Title"
+              value={showTitle ? "show" : "hide"}
+              onChange={(event) =>
+                changeTitleVisible(event.currentTarget.value === "show")
+              }
+              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+            >
+              <option value="show">Show</option>
+              <option value="hide">Hide</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-1.5 text-sm">
             <span className="text-muted-foreground">Section labels</span>
             <select
               aria-label="Section labels"
@@ -246,6 +287,7 @@ export function ScoreViewer({
               onFile={(file) =>
                 loadMutation.mutate({
                   layout,
+                  showTitle,
                   showRehearsalMarks,
                   source: file,
                 })
@@ -269,6 +311,7 @@ export function ScoreViewer({
                     onSelect={() =>
                       loadMutation.mutate({
                         layout,
+                        showTitle,
                         showRehearsalMarks,
                         source: { name: sample.name, xml: sample.xml },
                       })
@@ -317,6 +360,7 @@ export function ScoreViewer({
               onFile={(file) =>
                 loadMutation.mutate({
                   layout,
+                  showTitle,
                   showRehearsalMarks,
                   source: file,
                 })

@@ -29,6 +29,7 @@ function getProjectScoreSourceImpl(projectId: string): ProjectScoreResult {
           notes: project.notes,
           locators: project.locators,
           tempo: project.tempo,
+          title: metadata.name,
           timeSignature: project.timeSignature,
           keySignature: project.keySignature,
           openStringPitches: project.tabOpenStringPitches,

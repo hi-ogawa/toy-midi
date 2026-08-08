@@ -32,6 +32,7 @@ function exportNotes(
     notes,
     locators: [],
     tempo: 120,
+    title: "Test Score",
     keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
     openStringPitches: FIVE_STRING_PITCHES,
@@ -55,7 +56,7 @@ function buildModel(
 
 describe("MusicXML export", () => {
   it("exports synchronized standard and five-string TAB staves", async () => {
-    const xml = exportNotes([makeNote()]);
+    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
 
     await expect(xml).toMatchFileSnapshot(
       "__snapshots__/five-string-tab.musicxml",

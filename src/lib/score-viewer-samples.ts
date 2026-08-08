@@ -20,6 +20,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "64 eighth notes at 120 BPM",
     tempo: 120,
     xml: exportSample({
+      title: "Cursor and wrapping",
       tempo: 120,
       locators: [],
       notes: createSequentialNotes({ count: 64, duration: 0.5 }),
@@ -31,6 +32,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Mixed durations, gaps, and a full-measure rest",
     tempo: 120,
     xml: exportSample({
+      title: "Rhythm and rests",
       tempo: 120,
       locators: [],
       notes: [
@@ -52,6 +54,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Durations split within and across measures",
     tempo: 120,
     xml: exportSample({
+      title: "Ties and barlines",
       tempo: 120,
       locators: [],
       notes: [
@@ -69,6 +72,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Open strings and explicit alternate-string frets",
     tempo: 120,
     xml: exportSample({
+      title: "TAB positions",
       tempo: 120,
       locators: [],
       notes: [
@@ -99,6 +103,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
     xml: exportSample({
+      title: "Dense sixteenths",
       tempo: 110,
       locators: [],
       notes: createSequentialNotes({ count: 96, duration: 0.25 }),
@@ -110,6 +115,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Fast cursor and following at 200 BPM",
     tempo: 200,
     xml: exportSample({
+      title: "Fast eighths",
       notes: createSequentialNotes({ count: 96, duration: 0.5 }),
       tempo: 200,
       locators: [],
@@ -122,6 +128,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "64 measures of mixed eighths and sixteenths",
     tempo: 110,
     xml: exportSample({
+      title: "Long score",
       notes: createPrintNotes(),
       tempo: 110,
       locators: [],
@@ -134,6 +141,7 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     description: "Boxed section labels at measure and mid-measure positions",
     tempo: 120,
     xml: exportSample({
+      title: "Rehearsal marks",
       tempo: 120,
       notes: createSequentialNotes({ count: 32, duration: 0.5 }),
       locators: [
@@ -181,11 +189,13 @@ function createPrintNotes() {
 function exportSample({
   notes,
   tempo,
+  title,
   locators,
   keySignature = { fifths: 0, mode: "major" },
 }: {
   notes: Note[];
   tempo: number;
+  title: string;
   locators: Locator[];
   keySignature?: KeySignature;
 }) {
@@ -193,6 +203,7 @@ function exportSample({
     keySignature,
     notes,
     tempo,
+    title,
     locators,
     openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
     timeSignature: { numerator: 4, denominator: 4 },
