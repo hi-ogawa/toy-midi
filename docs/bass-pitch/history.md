@@ -91,7 +91,7 @@ The upstream pYIN crate could not build for `wasm32-unknown-unknown` because its
 
 Bass Pitch became the default method in the Audio to MIDI panel, with Basic Pitch retained for general-purpose transcription. The grid resolution follows the current project snap, tempo and track offset come from project state, and the two song-dependent thresholds are exposed as controls. One Convert press runs analysis and grid decisions in the worker, then commits one `replaceAllNotes` history entry.
 
-The WASM package builds from source and is not committed. `pnpm build-wasm` bootstraps a minimal Rust toolchain only when Cloudflare Workers Builds sets `WORKERS_CI` and Cargo is absent. GitHub CI runners already provide Rust.
+The WASM package builds from source and is not committed. The application normally consumes a prebuilt package, while Rust changes use the source override and preview-package process documented in [Rust Development Workflow](../rust-development.md).
 
 ## Chunking, Progress, and Cancellation
 

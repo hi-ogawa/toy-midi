@@ -27,7 +27,9 @@ jobs:
 
       - run: corepack enable
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm override-wasm
+
+      - run: pnpm install --no-frozen-lockfile
 
       - run: pnpm build-wasm
 

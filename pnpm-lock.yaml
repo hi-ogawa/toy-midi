@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@hiogawa/bass-pitch-wasm':
-        specifier: workspace:*
-        version: link:crates/bass-pitch-wasm
+        specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
+        version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
         version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -414,6 +414,10 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732':
+    resolution: {tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
+    version: 0.0.0
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -2823,6 +2827,8 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
 
   '@floating-ui/utils@0.2.10': {}
+
+  '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732': {}
 
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
