@@ -144,6 +144,7 @@ export function Settings({
           offset: 0,
           volume: 0.8,
           muted: false,
+          soloed: false,
           waveformHeight: DEFAULT_WAVEFORM_HEIGHT,
           audioWaveform: audioView
             ? { status: "ready", view: audioView }

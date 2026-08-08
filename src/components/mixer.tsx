@@ -22,12 +22,14 @@ export function Mixer() {
     midiVolume,
     metronomeVolume,
     midiMuted,
+    midiSoloed,
     metronomeEnabled,
     audioTracks,
     setMasterVolume,
     setMidiVolume,
     setMetronomeVolume,
     setMidiMuted,
+    setMidiSoloed,
     setMetronomeEnabled,
   } = useProjectStore();
   const zeroDbPercent = dbToPercent(0);
@@ -91,19 +93,13 @@ export function Mixer() {
         dbInputProps={midiDbInput.props}
         zeroDbPercent={zeroDbPercent}
         action={
-          <Toggle
-            value={midiMuted}
-            onChange={setMidiMuted}
-            aria-label="Toggle MIDI mute"
-            title={midiMuted ? "Unmute MIDI" : "Mute MIDI"}
-            className={cn(
-              "h-8 min-w-8 px-1.5",
-              midiMuted &&
-                "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
-            )}
-          >
-            <VolumeXIcon className="size-4" />
-          </Toggle>
+          <TrackToggles
+            label="MIDI"
+            muted={midiMuted}
+            soloed={midiSoloed}
+            onMutedChange={setMidiMuted}
+            onSoloedChange={setMidiSoloed}
+          />
         }
       />
 
@@ -168,21 +164,60 @@ function AudioMixerChannel({
       dbInputProps={dbInput.props}
       zeroDbPercent={zeroDbPercent}
       action={
-        <Toggle
-          value={track.muted}
-          onChange={(muted) => updateAudioTrack(track.id, { muted })}
-          aria-label={`Toggle ${label} mute`}
-          title={track.muted ? `Unmute ${label}` : `Mute ${label}`}
-          className={cn(
-            "h-8 min-w-8 px-1.5",
-            track.muted &&
-              "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
-          )}
-        >
-          <VolumeXIcon className="size-4" />
-        </Toggle>
+        <TrackToggles
+          label={label}
+          muted={track.muted}
+          soloed={track.soloed ?? false}
+          onMutedChange={(muted) => updateAudioTrack(track.id, { muted })}
+          onSoloedChange={(soloed) => updateAudioTrack(track.id, { soloed })}
+        />
       }
     />
+  );
+}
+
+function TrackToggles({
+  label,
+  muted,
+  soloed,
+  onMutedChange,
+  onSoloedChange,
+}: {
+  label: string;
+  muted: boolean;
+  soloed: boolean;
+  onMutedChange: (muted: boolean) => void;
+  onSoloedChange: (soloed: boolean) => void;
+}) {
+  return (
+    <div className="flex gap-1">
+      <Toggle
+        value={muted}
+        onChange={onMutedChange}
+        aria-label={`Toggle ${label} mute`}
+        title={muted ? `Unmute ${label}` : `Mute ${label}`}
+        className={cn(
+          "h-8 min-w-8 px-1.5",
+          muted &&
+            "bg-red-900/50 border-red-700 text-red-400 hover:bg-red-900/70 hover:text-red-300",
+        )}
+      >
+        <VolumeXIcon className="size-4" />
+      </Toggle>
+      <Toggle
+        value={soloed}
+        onChange={onSoloedChange}
+        aria-label={`Toggle ${label} solo`}
+        title={soloed ? `Disable ${label} solo` : `Solo ${label}`}
+        className={cn(
+          "h-8 min-w-8 px-1.5 text-xs font-semibold",
+          soloed &&
+            "border-amber-500 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 hover:text-amber-200",
+        )}
+      >
+        S
+      </Toggle>
+    </div>
   );
 }
 
