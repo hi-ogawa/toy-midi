@@ -234,8 +234,6 @@ test.describe("Settings Dialog - Project Export", () => {
     );
     await fileChooser.setFiles(testAudioPath);
 
-    // Wait for audio to load - waveform should be visible
-    await page.waitForTimeout(500);
     const waveform = page.locator(".bg-emerald-700, .bg-emerald-600").first();
     await expect(waveform).toBeVisible();
   });
