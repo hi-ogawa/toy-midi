@@ -62,6 +62,11 @@ type KeySignatureEvent = {
   keySignature: KeySignature;
 };
 
+type MeasureKeySignature = {
+  active: KeySignature;
+  declaration?: KeySignature;
+};
+
 export type MusicXmlMeasureEvent =
   | { type: "rest"; duration: number; notation: DurationNotation }
   | {
@@ -139,21 +144,7 @@ export function buildMusicXmlModel({
       keySignature,
     }))
     .sort((a, b) => a.position - b.position);
-  const preparedNotes = prepareNotes({ notes, openStringPitches }).map(
-    (note): QuantizedNote => ({
-      ...note,
-      pitch: toWrittenBassPitch(
-        spellMidiPitch({
-          pitch: note.note.pitch,
-          keySignature: resolveKeySignature({
-            initialKeySignature: keySignature,
-            events: keySignatureEvents,
-            position: note.start,
-          }),
-        }),
-      ),
-    }),
-  );
+  const preparedNotes = prepareNotes({ notes, openStringPitches });
   const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
@@ -164,6 +155,13 @@ export function buildMusicXmlModel({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
+  const keySignaturesByMeasure = buildMeasureKeySignatures({
+    initialKeySignature: keySignature,
+    events: keySignatureEvents,
+    firstMeasureStart,
+    measureCount,
+    measureDuration,
+  });
   const notesByMeasure = Array.from(
     { length: measureCount },
     () => [] as QuantizedNote[],
@@ -171,18 +169,23 @@ export function buildMusicXmlModel({
   for (const note of quantizedNotes) {
     const firstMeasure = Math.floor(note.start / measureDuration);
     const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
+    const quantizedNote: QuantizedNote = {
+      ...note,
+      pitch: toWrittenBassPitch(
+        spellMidiPitch({
+          pitch: note.note.pitch,
+          keySignature: keySignaturesByMeasure[firstMeasure].active,
+        }),
+      ),
+    };
     for (let index = firstMeasure; index <= lastMeasure; index++) {
-      notesByMeasure[index].push(note);
+      notesByMeasure[index].push(quantizedNote);
     }
   }
   return {
     measureDuration,
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
-      const projectMeasureStart = firstMeasureStart + measureStart;
-      const keySignatureEvent = keySignatureEvents.find(
-        (event) => event.position === projectMeasureStart,
-      );
       return {
         events: buildMeasureEvents({
           notes,
@@ -195,17 +198,43 @@ export function buildMusicXmlModel({
           measureStart,
           measureDuration,
         }),
-        keySignature:
-          index === 0
-            ? resolveKeySignature({
-                initialKeySignature: keySignature,
-                events: keySignatureEvents,
-                position: projectMeasureStart,
-              })
-            : keySignatureEvent?.keySignature,
+        keySignature: keySignaturesByMeasure[index].declaration,
       };
     }),
   };
+}
+
+function buildMeasureKeySignatures({
+  initialKeySignature,
+  events,
+  firstMeasureStart,
+  measureCount,
+  measureDuration,
+}: {
+  initialKeySignature: KeySignature;
+  events: KeySignatureEvent[];
+  firstMeasureStart: number;
+  measureCount: number;
+  measureDuration: number;
+}): MeasureKeySignature[] {
+  let active = initialKeySignature;
+  let eventIndex = 0;
+  return Array.from({ length: measureCount }, (_, measureIndex) => {
+    const position = firstMeasureStart + measureIndex * measureDuration;
+    let declaration: KeySignature | undefined;
+    while (events[eventIndex]?.position <= position) {
+      const event = events[eventIndex];
+      active = event.keySignature;
+      if (event.position === position) {
+        declaration = active;
+      }
+      eventIndex++;
+    }
+    if (measureIndex === 0) {
+      return { active, declaration: active };
+    }
+    return declaration ? { active, declaration } : { active };
+  });
 }
 
 function prepareLocators({
@@ -303,22 +332,6 @@ function normalizeKeySignatureLabel(value: string): string {
     .replaceAll("♭", "b")
     .replace(/\s+/g, " ")
     .toLowerCase();
-}
-
-function resolveKeySignature({
-  initialKeySignature,
-  events,
-  position,
-}: {
-  initialKeySignature: KeySignature;
-  events: KeySignatureEvent[];
-  position: number;
-}): KeySignature {
-  return events.reduce(
-    (keySignature, event) =>
-      event.position <= position ? event.keySignature : keySignature,
-    initialKeySignature,
-  );
 }
 
 function buildMeasureLocators({
