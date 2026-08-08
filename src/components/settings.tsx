@@ -194,6 +194,7 @@ export function Settings({
         notes,
         locators,
         tempo,
+        title: projectName,
         timeSignature,
         keySignature,
         openStringPitches: tabOpenStringPitches,
