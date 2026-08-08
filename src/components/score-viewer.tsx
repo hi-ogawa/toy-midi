@@ -307,7 +307,7 @@ export function ScoreViewer({
               <DropdownMenuContent align="end" className="w-72">
                 {SCORE_VIEWER_SAMPLES.map((sample) => (
                   <DropdownMenuItem
-                    key={sample.id}
+                    key={sample.name}
                     onSelect={() =>
                       loadMutation.mutate({
                         layout,

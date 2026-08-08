@@ -4,7 +4,6 @@ import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
-  id: string;
   name: string;
   description: string;
   tempo: number;
@@ -21,14 +20,12 @@ const SAMPLE_PITCHES = [40, 43, 45, 47, 48, 47, 45, 43];
 
 export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
   createSample({
-    id: "cursor-wrapping",
     name: "Cursor and wrapping",
     description: "64 eighth notes at 120 BPM",
     tempo: 120,
     notes: createSequentialNotes({ count: 64, duration: 0.5 }),
   }),
   createSample({
-    id: "rhythm-rests",
     name: "Rhythm and rests",
     description: "Mixed durations, gaps, and a full-measure rest",
     tempo: 120,
@@ -45,7 +42,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
-    id: "ties-barlines",
     name: "Ties and barlines",
     description: "Durations split within and across measures",
     tempo: 120,
@@ -58,7 +54,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
-    id: "tab-positions",
     name: "TAB positions",
     description: "Open strings and explicit alternate-string frets",
     tempo: 120,
@@ -84,14 +79,12 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
-    id: "dense-sixteenths",
     name: "Dense sixteenths",
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
     notes: createSequentialNotes({ count: 96, duration: 0.25 }),
   }),
   createSample({
-    id: "fast-eighths",
     name: "Fast eighths",
     description: "Fast cursor and following at 200 BPM",
     tempo: 200,
@@ -99,7 +92,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     keySignature: { fifths: -3, mode: "minor" },
   }),
   createSample({
-    id: "long-score",
     name: "Long score",
     description: "64 measures of mixed eighths and sixteenths",
     tempo: 110,
@@ -107,7 +99,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     keySignature: { fifths: -3, mode: "minor" },
   }),
   createSample({
-    id: "rehearsal-marks",
     name: "Rehearsal marks",
     description: "Boxed section labels at measure and mid-measure positions",
     tempo: 120,
@@ -154,7 +145,6 @@ function createPrintNotes() {
 }
 
 function createSample({
-  id,
   name,
   description,
   notes,
@@ -163,7 +153,6 @@ function createSample({
   keySignature = { fifths: 0, mode: "major" },
 }: ScoreViewerSampleDefinition): ScoreViewerSample {
   return {
-    id,
     name,
     description,
     tempo,
