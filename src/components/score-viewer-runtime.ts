@@ -182,6 +182,22 @@ export class ScoreViewerRuntime {
     this.#scroller.scrollTo({ top: 0 });
   }
 
+  setRehearsalMarksVisible(visible: boolean) {
+    this.#osmd.EngravingRules.RenderRehearsalMarks = visible;
+    if (!this.#state.isReady) {
+      return;
+    }
+    this.#osmd.render();
+    this.#positions = buildCursorPositions(this.#osmd, this.#container);
+    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
+    this.#updateCursor(
+      secondsToScoreTime(
+        this.#clock.getSnapshot().currentTime,
+        this.#state.tempo,
+      ),
+    );
+  }
+
   setTempo(tempo: number) {
     if (!Number.isFinite(tempo) || tempo <= 0) {
       return;

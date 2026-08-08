@@ -1,4 +1,4 @@
-import type { Note } from "../types";
+import type { Locator, Note } from "../types";
 import { exportMusicXml } from "./musicxml-export";
 import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
@@ -121,6 +121,21 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       keySignature: { fifths: -3, mode: "minor" },
     }),
   },
+  {
+    id: "rehearsal-marks",
+    name: "Rehearsal marks",
+    description: "Boxed section labels at measure and mid-measure positions",
+    tempo: 120,
+    xml: exportSample({
+      tempo: 120,
+      notes: createSequentialNotes({ count: 32, duration: 0.5 }),
+      locators: [
+        createLocator({ position: 0, label: "A" }),
+        createLocator({ position: 6, label: "B" }),
+        createLocator({ position: 12, label: "C" }),
+      ],
+    }),
+  },
 ];
 
 function createSequentialNotes({
@@ -159,19 +174,26 @@ function createPrintNotes() {
 function exportSample({
   notes,
   tempo,
+  locators = [],
   keySignature = { fifths: 0, mode: "major" },
 }: {
   notes: Note[];
   tempo: number;
+  locators?: Locator[];
   keySignature?: KeySignature;
 }) {
   return exportMusicXml({
     keySignature,
     notes,
     tempo,
+    locators,
     openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
     timeSignature: { numerator: 4, denominator: 4 },
   });
+}
+
+function createLocator(locator: Omit<Locator, "id">): Locator {
+  return { ...locator, id: crypto.randomUUID() };
 }
 
 function createNote(note: Omit<Note, "id" | "velocity">): Note {

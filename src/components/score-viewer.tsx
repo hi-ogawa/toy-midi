@@ -39,6 +39,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [showRehearsalMarks, setShowRehearsalMarks] = useState(true);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   // initialize runtime
@@ -185,6 +186,23 @@ export function ScoreViewer({
             >
               <option value="continuous">Continuous</option>
               <option value="paged">Paged</option>
+            </select>
+          </label>
+
+          <label className="flex items-center gap-1.5 text-sm">
+            <span className="text-muted-foreground">Section labels</span>
+            <select
+              aria-label="Section labels"
+              value={showRehearsalMarks ? "show" : "hide"}
+              onChange={(event) => {
+                const visible = event.currentTarget.value === "show";
+                setShowRehearsalMarks(visible);
+                runtime.setRehearsalMarksVisible(visible);
+              }}
+              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
+            >
+              <option value="show">Show</option>
+              <option value="hide">Hide</option>
             </select>
           </label>
         </div>

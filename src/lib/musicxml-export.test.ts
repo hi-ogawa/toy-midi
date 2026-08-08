@@ -61,11 +61,67 @@ describe("MusicXML export", () => {
   it("preserves an explicit TAB string assignment", () => {
     const model = buildModel([makeNote({ tabString: 4 })]);
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 4, fret: 5 },
     });
   });
+
+  it("places rehearsal marks at measure boundaries and local offsets", () => {
+    const model = buildModel([makeNote({ duration: 8 })], {
+      locators: [
+        { id: "section-a", position: 0, label: "A" },
+        { id: "section-b", position: 6, label: "B" },
+        { id: "section-c", position: 4, label: "C" },
+      ],
+    });
+
+    expect(model.measures.map((measure) => measure.locators)).toEqual([
+      [{ label: "A", offset: 0 }],
+      [
+        { label: "C", offset: 0 },
+        { label: "B", offset: 24 },
+      ],
+    ]);
+  });
+
+  it("orders rehearsal marks while preserving duplicate positions", () => {
+    const model = buildModel([makeNote({ duration: 4 })], {
+      locators: [
+        { id: "section-c", position: 3, label: "C" },
+        { id: "section-a", position: 1, label: "A" },
+        { id: "section-b", position: 1, label: "B" },
+      ],
+    });
+
+    expect(model.measures[0].locators).toEqual([
+      { label: "A", offset: 12 },
+      { label: "B", offset: 12 },
+      { label: "C", offset: 36 },
+    ]);
+  });
+
+  it("ignores rehearsal marks after the final note", () => {
+    const model = buildModel([makeNote()], {
+      locators: [{ id: "section-b", position: 4, label: "B" }],
+    });
+
+    expect(model.measures.map((measure) => measure.locators)).toEqual([[]]);
+  });
+
+  it.each([
+    { position: -1, error: "position of locator section-a" },
+    { position: 0.1, error: "position of locator section-a is not aligned" },
+  ])(
+    "rejects an invalid rehearsal mark at $position",
+    ({ position, error }) => {
+      expect(() =>
+        buildModel([makeNote()], {
+          locators: [{ id: "section-a", position, label: "A" }],
+        }),
+      ).toThrow(error);
+    },
+  );
 
   it("splits notes at bar lines and ties the pieces", () => {
     const model = buildModel([makeNote({ start: 3.5, duration: 1 })]);
@@ -73,7 +129,7 @@ describe("MusicXML export", () => {
     expect(model.measureDuration).toBe(48);
     expect(
       model.measures.map((events) =>
-        events.filter((event) => event.type === "note"),
+        events.events.filter((event) => event.type === "note"),
       ),
     ).toEqual([
       [
@@ -101,7 +157,7 @@ describe("MusicXML export", () => {
     ]);
     expect(
       model.measures.map((events) =>
-        events.reduce((total, event) => total + event.duration, 0),
+        events.events.reduce((total, event) => total + event.duration, 0),
       ),
     ).toEqual([48, 48]);
   });
@@ -120,7 +176,9 @@ describe("MusicXML export", () => {
       }),
     ]);
 
-    expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
+    expect(
+      model.measures[0].events.filter((event) => event.type === "note"),
+    ).toEqual([
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
@@ -150,7 +208,7 @@ describe("MusicXML export", () => {
       }),
     ]);
 
-    expect(model.measures[0]).toEqual([
+    expect(model.measures[0].events).toEqual([
       {
         type: "rest",
         duration: 12,
@@ -187,7 +245,7 @@ describe("MusicXML export", () => {
       openStringPitches: FOUR_STRING_PITCHES,
     });
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 3, fret: 0 },
     });
@@ -198,7 +256,7 @@ describe("MusicXML export", () => {
       openStringPitches: [42, 37, 32, 27], // Gb2 Db2 Ab1 Eb1, down 1 semitone
     });
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 3, fret: 1 },
     });
