@@ -1,6 +1,14 @@
 import { expect, type Page } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
 
+/** Log elapsed checkpoints while investigating E2E timing. */
+export function createCheckpoint(): (label: string) => void {
+  const startedAt = performance.now();
+  return (label) => {
+    console.log(`[${Math.round(performance.now() - startedAt)}ms] ${label}`);
+  };
+}
+
 /**
  * Click "New Project" on startup screen to get to main UI with empty state.
  */

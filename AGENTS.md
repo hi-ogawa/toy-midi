@@ -24,6 +24,7 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 - File names: kebab-case
 - Prefer the smallest correct change, and avoid speculative abstractions or compatibility paths
 - When an existing test fails, first verify from first principles whether its expectation is correct. Do not compensate in the implementation merely to preserve an incorrect test.
+- Before adding or increasing an E2E timeout, instrument the focused test with `createCheckpoint()` from `e2e/helpers.ts` and run it repeatedly (for example, `pnpm test-e2e e2e/example.spec.ts --repeat-each=10`). Prefer Playwright's existing auto-waiting when measurements fit comfortably within its timeout; derive any custom timeout from the observed range with reasonable headroom.
 - Keep cohesive implementation together, and split files only for reuse or a clear module boundary
 - Order functions by reading flow, with primary entry points and callers before their implementation helpers
 - Prefer `undefined` over `null`
