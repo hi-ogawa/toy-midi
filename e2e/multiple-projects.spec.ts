@@ -226,9 +226,6 @@ test.describe("Multiple Projects", () => {
     // Click the Save button instead of pressing Enter
     await page.getByRole("button", { name: "Save" }).click();
 
-    // Wait a bit for the update to happen
-    await page.waitForTimeout(100);
-
     // Should update the card
     await expect(page.getByText("My Song")).toBeVisible();
   });
