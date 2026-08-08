@@ -185,11 +185,11 @@ describe("MusicXML export", () => {
     expect(model.measures).toHaveLength(3);
     expect(model.measures[0][0]).toMatchObject({
       type: "note",
-      duration: 12,
+      duration: QUARTER_NOTE_DURATION,
     });
     expect(model.measures[2][0]).toMatchObject({
       type: "note",
-      duration: 12,
+      duration: QUARTER_NOTE_DURATION,
     });
   });
 
@@ -201,13 +201,13 @@ describe("MusicXML export", () => {
     expect(model.measures[0]).toEqual([
       {
         type: "rest",
-        duration: 24,
+        duration: 2 * QUARTER_NOTE_DURATION,
         notation: { type: "half" },
       },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
@@ -215,7 +215,7 @@ describe("MusicXML export", () => {
       },
       {
         type: "rest",
-        duration: 12,
+        duration: QUARTER_NOTE_DURATION,
         notation: { type: "quarter" },
       },
     ]);
@@ -239,8 +239,8 @@ describe("MusicXML export", () => {
     // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0]).toMatchObject([
-      { type: "rest", duration: 24 },
-      { type: "note", duration: 12 },
+      { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
+      { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);
   });
 
