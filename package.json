@@ -6,8 +6,9 @@
   "scripts": {
     "prepare": "vp config",
     "dev": "vite dev --config vite.app.config.ts",
-    "build": "vite build --config vite.app.config.ts",
-    "build-wasm": "pnpm -C crates/bass-pitch-wasm build",
+    "build": "pnpm build-wasm && pnpm build-app",
+    "build-app": "vite build --config vite.app.config.ts",
+    "build-wasm": "sh tools/build-wasm.sh",
     "preview": "vite preview --config vite.app.config.ts",
     "typecheck": "tsc -b",
     "lint": "cargo fmt && vp check --fix && pnpm lint-dead-code && pnpm typecheck",
