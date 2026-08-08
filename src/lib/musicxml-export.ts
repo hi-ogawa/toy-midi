@@ -53,7 +53,7 @@ type QuantizedNote = PreparedNote & {
 type PreparedLocator = {
   id: string;
   position: number;
-  label?: string;
+  label: string;
   keySignature?: KeySignature;
 };
 
@@ -280,7 +280,7 @@ function prepareLocators({
 }
 
 function parseLocatorLabel(locator: Locator): {
-  label?: string;
+  label: string;
   keySignature?: KeySignature;
 } {
   let keySignature: KeySignature | undefined;
@@ -307,7 +307,7 @@ function parseLocatorLabel(locator: Locator): {
   const label = keySignature
     ? labelWithoutDirectives.replace(/\s+/g, " ").trim()
     : locator.label;
-  return { label: label || undefined, keySignature };
+  return { label, keySignature };
 }
 
 function parseKeySignature(value: string, locatorId: string): KeySignature {
@@ -346,10 +346,7 @@ function buildMeasureLocators({
   measureDuration: number;
 }): MusicXmlMeasure["locators"] {
   return locators
-    .filter(
-      (locator): locator is PreparedLocator & { label: string } =>
-        locator.label !== undefined,
-    )
+    .filter((locator) => locator.label !== "")
     .map((locator) => ({
       label: locator.label,
       offset: locator.position - firstMeasureStart - measureStart,
