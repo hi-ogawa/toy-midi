@@ -30,6 +30,7 @@ function exportNotes(
 ): string {
   return exportMusicXml({
     notes,
+    locators: [],
     tempo: 120,
     keySignature: { fifths: 0, mode: "major" },
     timeSignature: { numerator: 4, denominator: 4 },
@@ -44,6 +45,7 @@ function buildModel(
 ) {
   return buildMusicXmlModel({
     notes,
+    locators: [],
     timeSignature: { numerator: 4, denominator: 4 },
     keySignature: { fifths: 0, mode: "major" },
     openStringPitches: FIVE_STRING_PITCHES,
@@ -71,10 +73,68 @@ describe("MusicXML export", () => {
   it("preserves an explicit TAB string assignment", () => {
     const model = buildModel([makeNote({ tabString: 4 })]);
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 4, fret: 5 },
     });
+  });
+
+  it("places rehearsal marks at measure boundaries and local offsets", () => {
+    const model = buildModel([makeNote({ duration: 8 })], {
+      locators: [
+        { id: "section-a", position: 0, label: "A" },
+        { id: "section-b", position: 6, label: "B" },
+        { id: "section-c", position: 4, label: "C" },
+      ],
+    });
+
+    expect(model.measures.map((measure) => measure.locators)).toEqual([
+      [{ label: "A", offset: 0 }],
+      [
+        { label: "C", offset: 0 },
+        { label: "B", offset: 2 * QUARTER_NOTE_DURATION },
+      ],
+    ]);
+  });
+
+  it("orders rehearsal marks while preserving duplicate positions", () => {
+    const model = buildModel([makeNote({ duration: 4 })], {
+      locators: [
+        { id: "section-c", position: 3, label: "C" },
+        { id: "section-a", position: 1, label: "A" },
+        { id: "section-b", position: 1, label: "B" },
+      ],
+    });
+
+    expect(model.measures[0].locators).toEqual([
+      { label: "A", offset: QUARTER_NOTE_DURATION },
+      { label: "B", offset: QUARTER_NOTE_DURATION },
+      { label: "C", offset: 3 * QUARTER_NOTE_DURATION },
+    ]);
+  });
+
+  it("ignores rehearsal marks after the final note", () => {
+    const model = buildModel([makeNote()], {
+      locators: [{ id: "section-b", position: 4, label: "B" }],
+    });
+
+    expect(model.measures.map((measure) => measure.locators)).toEqual([[]]);
+  });
+
+  it("shifts rehearsal marks with trimmed empty measures", () => {
+    const model = buildModel([makeNote({ start: 12 })], {
+      locators: [{ id: "section-a", position: 12, label: "A" }],
+    });
+
+    expect(model.measures[0].locators).toEqual([{ label: "A", offset: 0 }]);
+  });
+
+  it("rejects an off-grid rehearsal mark", () => {
+    expect(() =>
+      buildModel([makeNote()], {
+        locators: [{ id: "section-a", position: 0.1, label: "A" }],
+      }),
+    ).toThrow("position of locator section-a is not aligned");
   });
 
   it("splits notes at bar lines and ties the pieces", () => {
@@ -83,7 +143,7 @@ describe("MusicXML export", () => {
     expect(model.measureDuration).toBe(4 * QUARTER_NOTE_DURATION);
     expect(
       model.measures.map((events) =>
-        events.filter((event) => event.type === "note"),
+        events.events.filter((event) => event.type === "note"),
       ),
     ).toEqual([
       [
@@ -111,7 +171,7 @@ describe("MusicXML export", () => {
     ]);
     expect(
       model.measures.map((events) =>
-        events.reduce((total, event) => total + event.duration, 0),
+        events.events.reduce((total, event) => total + event.duration, 0),
       ),
     ).toEqual([4 * QUARTER_NOTE_DURATION, 4 * QUARTER_NOTE_DURATION]);
   });
@@ -130,7 +190,9 @@ describe("MusicXML export", () => {
       }),
     ]);
 
-    expect(model.measures[0].filter((event) => event.type === "note")).toEqual([
+    expect(
+      model.measures[0].events.filter((event) => event.type === "note"),
+    ).toEqual([
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
@@ -160,7 +222,7 @@ describe("MusicXML export", () => {
       }),
     ]);
 
-    expect(model.measures[0]).toEqual([
+    expect(model.measures[0].events).toEqual([
       {
         type: "rest",
         duration: QUARTER_NOTE_DURATION,
@@ -191,11 +253,11 @@ describe("MusicXML export", () => {
 
     // The three-bar count-in disappears, so project bars 4 and 6 become score bars 1 and 3.
     expect(model.measures).toHaveLength(3);
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       duration: QUARTER_NOTE_DURATION,
     });
-    expect(model.measures[2][0]).toMatchObject({
+    expect(model.measures[2].events[0]).toMatchObject({
       type: "note",
       duration: QUARTER_NOTE_DURATION,
     });
@@ -206,7 +268,7 @@ describe("MusicXML export", () => {
 
     // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
-    expect(model.measures[0]).toEqual([
+    expect(model.measures[0].events).toEqual([
       {
         type: "rest",
         duration: 2 * QUARTER_NOTE_DURATION,
@@ -246,7 +308,7 @@ describe("MusicXML export", () => {
 
     // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
-    expect(model.measures[0]).toMatchObject([
+    expect(model.measures[0].events).toMatchObject([
       { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
       { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);
@@ -257,7 +319,7 @@ describe("MusicXML export", () => {
       openStringPitches: FOUR_STRING_PITCHES,
     });
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 3, fret: 0 },
     });
@@ -268,7 +330,7 @@ describe("MusicXML export", () => {
       openStringPitches: [42, 37, 32, 27], // Gb2 Db2 Ab1 Eb1, down 1 semitone
     });
 
-    expect(model.measures[0][0]).toMatchObject({
+    expect(model.measures[0].events[0]).toMatchObject({
       type: "note",
       tabPosition: { tabString: 3, fret: 1 },
     });

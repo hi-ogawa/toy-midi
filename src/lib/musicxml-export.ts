@@ -1,4 +1,4 @@
-import type { Note, TimeSignature } from "../types";
+import type { Locator, Note, TimeSignature } from "../types";
 import {
   type KeySignature,
   type SpelledPitch,
@@ -24,11 +24,17 @@ export type MusicXmlModelOptions = {
   timeSignature: TimeSignature;
   keySignature: KeySignature;
   openStringPitches: readonly number[];
+  locators: Locator[];
 };
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
   title?: string;
+};
+
+export type MusicXmlMeasure = {
+  events: MusicXmlMeasureEvent[];
+  locators: { label: string; offset: number }[];
 };
 
 type QuantizedNote = {
@@ -86,9 +92,10 @@ export function buildMusicXmlModel({
   timeSignature,
   keySignature,
   openStringPitches,
+  locators,
 }: MusicXmlModelOptions): {
   measureDuration: number;
-  measures: MusicXmlMeasureEvent[][];
+  measures: MusicXmlMeasure[];
 } {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
@@ -124,15 +131,47 @@ export function buildMusicXmlModel({
   }
   return {
     measureDuration,
-    measures: notesByMeasure.map((notes, index) =>
-      buildMeasureEvents({
-        notes,
-        measureStart: index * measureDuration,
-        measureDuration,
-        keySignature,
-      }),
-    ),
+    measures: notesByMeasure.map((notes, index) => {
+      const measureStart = index * measureDuration;
+      return {
+        events: buildMeasureEvents({
+          notes,
+          measureStart,
+          measureDuration,
+          keySignature,
+        }),
+        locators: buildMeasureLocators({
+          locators,
+          firstMeasureStart,
+          measureStart,
+          measureDuration,
+        }),
+      };
+    }),
   };
+}
+
+function buildMeasureLocators({
+  locators,
+  firstMeasureStart,
+  measureStart,
+  measureDuration,
+}: {
+  locators: Locator[];
+  firstMeasureStart: number;
+  measureStart: number;
+  measureDuration: number;
+}): MusicXmlMeasure["locators"] {
+  return locators
+    .map((locator) => ({
+      label: locator.label,
+      offset:
+        toGridUnits(locator.position, `position of locator ${locator.id}`) -
+        firstMeasureStart -
+        measureStart,
+    }))
+    .filter(({ offset }) => offset >= 0 && offset < measureDuration)
+    .sort((a, b) => a.offset - b.offset);
 }
 
 /** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
@@ -322,12 +361,14 @@ export function exportMusicXml({
   timeSignature,
   keySignature,
   openStringPitches,
+  locators,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
     notes,
     timeSignature,
     keySignature,
     openStringPitches,
+    locators,
   });
   // MusicXML places score-level configuration inside the first measure.
   const initialMeasureChildren = [
@@ -402,9 +443,9 @@ export function exportMusicXml({
     h(
       "part",
       { id: "P1" },
-      ...measures.map((events, index) =>
+      ...measures.map((measure, index) =>
         renderMeasure({
-          events,
+          measure,
           index,
           measureDuration,
           initialChildren: index === 0 ? initialMeasureChildren : [],
@@ -421,12 +462,12 @@ ${renderXml(document)}
 }
 
 function renderMeasure({
-  events,
+  measure,
   index,
   measureDuration,
   initialChildren,
 }: {
-  events: MusicXmlMeasureEvent[];
+  measure: MusicXmlMeasure;
   index: number;
   measureDuration: number;
   initialChildren: XmlNode[];
@@ -436,9 +477,26 @@ function renderMeasure({
     "measure",
     { number: index + 1 },
     ...initialChildren,
-    ...events.map((event) => renderEvent(event, 1)),
+    ...measure.locators.map(renderRehearsalDirection),
+    ...measure.events.map((event) => renderEvent(event, 1)),
     hx("backup", hx("duration", measureDuration)),
-    ...events.map((event) => renderEvent(event, 2)),
+    ...measure.events.map((event) => renderEvent(event, 2)),
+  );
+}
+
+function renderRehearsalDirection({
+  label,
+  offset,
+}: {
+  label: string;
+  offset: number;
+}): XmlElement {
+  return h(
+    "direction",
+    { placement: "above" },
+    hx("direction-type", hx("rehearsal", label)),
+    offset > 0 && hx("offset", offset),
+    hx("staff", 1),
   );
 }
 

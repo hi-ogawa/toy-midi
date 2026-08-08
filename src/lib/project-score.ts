@@ -27,6 +27,7 @@ function getProjectScoreSourceImpl(projectId: string): ProjectScoreResult {
         name: `${metadata.name}.musicxml`,
         xml: exportMusicXml({
           notes: project.notes,
+          locators: project.locators,
           tempo: project.tempo,
           title: metadata.name,
           timeSignature: project.timeSignature,

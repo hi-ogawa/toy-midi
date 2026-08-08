@@ -144,10 +144,12 @@ export class ScoreViewerRuntime {
     score,
     layout,
     showTitle,
+    showRehearsalMarks,
   }: {
     score: ScoreSource;
     layout: ScoreLayout;
     showTitle: boolean;
+    showRehearsalMarks: boolean;
   }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
@@ -155,6 +157,7 @@ export class ScoreViewerRuntime {
     this.#osmd.clear();
     this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
     this.#osmd.setOptions({ drawTitle: showTitle });
+    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
