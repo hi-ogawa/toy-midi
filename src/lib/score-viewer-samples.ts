@@ -143,6 +143,19 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       ],
     }),
   },
+  {
+    id: "key-changes",
+    name: "Key changes",
+    description: "C major to G-flat major at measure 3",
+    tempo: 120,
+    xml: exportSample({
+      tempo: 120,
+      notes: createSequentialNotes({ count: 32, duration: 0.5 }),
+      locators: [
+        createLocator({ position: 8, label: "G-flat major [!key: Gb major]" }),
+      ],
+    }),
+  },
 ];
 
 function createSequentialNotes({
