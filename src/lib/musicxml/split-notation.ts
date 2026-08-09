@@ -34,6 +34,11 @@ type MetricContext = {
   beatDuration: number;
 };
 
+type DurationPath = {
+  candidates: DurationCandidate[];
+  score: number;
+};
+
 const DURATION_CANDIDATES: DurationCandidate[] = [
   { duration: 48, type: "whole" },
   { duration: 36, type: "half", dots: 1 },
@@ -149,7 +154,7 @@ function buildMetricContext({
   return { measureDuration, beatDuration };
 }
 
-/** Decomposes a grid duration into the longest notation values valid at each offset. */
+/** Chooses the lowest-cost complete notation path for a grid duration. */
 function splitDuration({
   start,
   duration,
@@ -161,30 +166,47 @@ function splitDuration({
   durationType: "note" | "rest";
   metric: MetricContext;
 }): { duration: number; notation: DurationNotation }[] {
-  const result: { duration: number; notation: DurationNotation }[] = [];
-  let cursor = start;
-  let remaining = duration;
-  while (remaining > 0) {
-    const candidate = DURATION_CANDIDATES.find(
-      (item) =>
-        item.duration <= remaining &&
-        isValidPlacement({ candidate: item, cursor, durationType, metric }),
-    )!;
-    result.push({
-      duration: candidate.duration,
-      notation: {
-        type: candidate.type,
-        dots: candidate.dots,
-        triplet: candidate.triplet,
-      },
-    });
-    cursor += candidate.duration;
-    remaining -= candidate.duration;
+  const end = start + duration;
+  const memo = new Map<number, DurationPath>();
+
+  function visit(cursor: number): DurationPath {
+    if (cursor === end) {
+      return { candidates: [], score: 0 };
+    }
+    const cached = memo.get(cursor);
+    if (cached) {
+      return cached;
+    }
+
+    const result = DURATION_CANDIDATES.filter(
+      (candidate) => cursor + candidate.duration <= end,
+    )
+      .map((candidate) => {
+        const suffix = visit(cursor + candidate.duration);
+        return {
+          candidates: [candidate, ...suffix.candidates],
+          score:
+            scoreCandidate({ candidate, cursor, durationType, metric }) +
+            scoreTransition(candidate, suffix.candidates[0]) +
+            suffix.score,
+        };
+      })
+      .toSorted(comparePaths)[0];
+    memo.set(cursor, result);
+    return result;
   }
-  return result;
+
+  return visit(start).candidates.map((candidate) => ({
+    duration: candidate.duration,
+    notation: {
+      type: candidate.type,
+      dots: candidate.dots,
+      triplet: candidate.triplet,
+    },
+  }));
 }
 
-function isValidPlacement({
+function scoreCandidate({
   candidate,
   cursor,
   durationType,
@@ -194,27 +216,47 @@ function isValidPlacement({
   cursor: number;
   durationType: "note" | "rest";
   metric: MetricContext;
-}): boolean {
-  if (candidate.triplet) {
-    return (
-      cursor % candidate.duration === 0 ||
-      (candidate.duration <= MUSICXML_DIVISIONS &&
-        (cursor + candidate.duration) % MUSICXML_DIVISIONS === 0)
-    );
-  }
-
+}): number {
   const end = cursor + candidate.duration;
-  if (
-    candidate.duration >= metric.beatDuration &&
-    cursor % candidate.duration !== 0
+  let score = 1;
+
+  for (
+    let boundary = metric.beatDuration;
+    boundary < metric.measureDuration;
+    boundary += metric.beatDuration
   ) {
-    return false;
-  }
-  if (durationType === "note" && metric.measureDuration === 48) {
-    const midpoint = metric.measureDuration / 2;
-    if (cursor < midpoint && end > midpoint) {
-      return false;
+    if (cursor < boundary && end > boundary) {
+      const isMidpoint = boundary === metric.measureDuration / 2;
+      score += isMidpoint ? 100 : durationType === "rest" ? 40 : 20;
     }
   }
-  return true;
+
+  if (candidate.triplet) {
+    const startsOnTripletGrid = cursor % 4 === 0;
+    const endsOnTripletGrid = end % 4 === 0;
+    score += startsOnTripletGrid && endsOnTripletGrid ? 0 : 12;
+  } else if (cursor % 3 !== 0 || end % 3 !== 0) {
+    score += 8;
+  }
+  return score;
+}
+
+function scoreTransition(
+  candidate: DurationCandidate,
+  next: DurationCandidate | undefined,
+): number {
+  if (!next) {
+    return 0;
+  }
+  let score = candidate.triplet === next.triplet ? 0 : 8;
+  if (next.duration * 4 <= candidate.duration) {
+    score += 10;
+  }
+  return score;
+}
+
+function comparePaths(left: DurationPath, right: DurationPath): number {
+  return (
+    left.score - right.score || left.candidates.length - right.candidates.length
+  );
 }

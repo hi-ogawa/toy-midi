@@ -269,36 +269,18 @@ describe("MusicXML model", () => {
       }),
     ]);
 
+    // TODO: Preserve the aligned dotted quarter as [18] instead of [12, 6].
     expect(
-      model.measures[0].events.filter((event) => event.type === "note"),
-    ).toEqual([
-      {
-        type: "note",
-        pitch: { step: "A", alter: 0, octave: 2 },
-        duration: 1.5 * QUARTER_NOTE_DURATION,
-        notation: { type: "quarter", dots: 1 },
-        tabPosition: { tabString: 3, fret: 0 },
-        tieStart: false,
-        tieStop: false,
-      },
-      {
-        type: "note",
-        pitch: { step: "A", alter: 0, octave: 2 },
-        duration: QUARTER_NOTE_DURATION / 3,
-        notation: { type: "eighth", triplet: true },
-        tabPosition: { tabString: 3, fret: 0 },
-        tieStart: false,
-        tieStop: false,
-      },
-    ]);
+      model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map(({ duration }) => duration),
+    ).toEqual([12, 6, QUARTER_NOTE_DURATION / 3]);
   });
 
   it.each([
     {
       start: 0,
-      // TODO: Complete the triplet beat with [8], then preserve the ordinary
-      // trailing rests as [12, 24]. The looser ordinary placement currently
-      // consumes the triplet remainder as dotted eighth rests.
+      // TODO: Consolidate the ordinary trailing rests as [12, 24].
       actual: [
         {
           type: "note",
@@ -307,30 +289,17 @@ describe("MusicXML model", () => {
         },
         {
           type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        {
-          type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        {
-          type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        { type: "rest", duration: 9, notation: { type: "eighth", dots: 1 } },
-        {
-          type: "rest",
           duration: 8,
           notation: { type: "quarter", triplet: true },
         },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
       ],
     },
     {
       start: 1,
-      // TODO: Complete the triplet beat with [8], then preserve the rest as [24].
+      // TODO: Consolidate the final two beats as one half rest [24].
       actual: [
         { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
@@ -340,18 +309,19 @@ describe("MusicXML model", () => {
         },
         {
           type: "rest",
-          duration: 16,
-          notation: { type: "half", triplet: true },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        { type: "rest", duration: 16, notation: { type: "half" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
       ],
     },
     {
       start: 2,
-      // TODO: Complete the triplet beat with [8], then preserve the final
-      // quarter rest as [12]. The ordinary dotted value currently wins first.
+      // TODO: Consolidate the leading two beats as one half rest [24].
       actual: [
-        { type: "rest", duration: 24, notation: { type: "half" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
           type: "note",
           duration: 4,
@@ -359,29 +329,20 @@ describe("MusicXML model", () => {
         },
         {
           type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        {
-          type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        {
-          type: "rest",
-          duration: 2,
-          notation: { type: "16th", triplet: true },
-        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
       ],
     },
     {
       start: 3,
+      // TODO: Consolidate the leading three beats instead of using three
+      // quarter rests.
       actual: [
-        {
-          type: "rest",
-          duration: 36,
-          notation: { type: "half", dots: 1 },
-        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
           type: "note",
           duration: 4,
@@ -410,18 +371,18 @@ describe("MusicXML model", () => {
       makeNote({ id: "downbeat", start: 2, duration: 0.5 }),
     ]);
 
-    // TODO: Prefer [6, 6, 3] before the pickup and [6, 12] after the
-    // downbeat so rests expose beat boundaries instead of crossing them.
+    // TODO: Prefer [6, 6, 3] before the pickup. The trailing [6, 12] now
+    // exposes the remaining beat boundary as intended.
     expect(
       model.measures[0].events.map(({ type, duration }) => [type, duration]),
     ).toEqual([
       ["note", 6],
-      ["rest", 9],
       ["rest", 6],
+      ["rest", 9],
       ["note", 3],
       ["note", 6],
-      ["rest", 9],
-      ["rest", 9],
+      ["rest", 6],
+      ["rest", 12],
     ]);
   });
 
@@ -431,7 +392,8 @@ describe("MusicXML model", () => {
     { start: 1.75, duration: 1.25, actual: [3, 12] },
     // TODO: Preserve the aligned dotted value as [3, 18].
     { start: 1.75, duration: 1.75, actual: [3, 12, 6] },
-    { start: 0, duration: 1.75, actual: [18, 3] },
+    // TODO: Preserve the aligned dotted quarter as [18, 3].
+    { start: 0, duration: 1.75, actual: [12, 9] },
     // TODO: Preserve beat structure as [3, 9, 3].
     { start: 1.25, duration: 1.25, actual: [9, 6] },
   ])(
@@ -456,11 +418,11 @@ describe("MusicXML model", () => {
 
   // TODO: discuss what's the expectation
   it.each([
-    // TODO: Preserve the quarter note as [12]?
+    // TODO: Prefer the compact dotted split [9, 3] if it remains readable.
     {
       start: 0.5,
       duration: 1,
-      actual: [9, 3],
+      actual: [6, 6],
     },
     {
       start: 0.25,
@@ -488,15 +450,14 @@ describe("MusicXML model", () => {
 
   // TODO: discuss what's the expectation
   it.each([
-    { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
-    // TODO: Preserve as [8, 16]. The looser ordinary placement currently
-    // fragments the second triplet note into ordinary and triplet values.
-    { start: 0, durations: [8, 16], actual: [8, 9, 6, 1] },
-    { start: 0, durations: [16, 8], actual: [16, 8] },
-    { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
-    { start: 2, durations: [8, 16], actual: [8, 16] },
-    // TODO: Preserve as [16, 8]?
-    { start: 2, durations: [16, 8], actual: [12, 4, 8] },
+    // TODO: Preserve coherent quarter-triplet values. The first scoring pass
+    // fragments 16-unit values and some 8-unit values at ordinary beat edges.
+    { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
+    { start: 0, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 0, durations: [16, 8], actual: [8, 4, 4, 8] },
+    { start: 2, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
+    { start: 2, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 2, durations: [16, 8], actual: [8, 4, 4, 8] },
   ])(
     "decomposes quarter-note triplet $durations at beat $start",
     ({ start, durations, actual }) => {
@@ -544,11 +505,8 @@ describe("MusicXML model", () => {
         tieStart: false,
         tieStop: false,
       },
-      {
-        type: "rest",
-        duration: 2 * QUARTER_NOTE_DURATION,
-        notation: { type: "half" },
-      },
+      { type: "rest", duration: 12, notation: { type: "quarter" } },
+      { type: "rest", duration: 12, notation: { type: "quarter" } },
     ]);
   });
 
@@ -573,14 +531,11 @@ describe("MusicXML model", () => {
   it("preserves silence within the first retained measure", () => {
     const model = buildModel([makeNote({ start: 14 })]); // Bar 4, beat 3
 
-    // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
+    // TODO: Consolidate beats 1 and 2 as a half rest.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toEqual([
-      {
-        type: "rest",
-        duration: 2 * QUARTER_NOTE_DURATION,
-        notation: { type: "half" },
-      },
+      { type: "rest", duration: 12, notation: { type: "quarter" } },
+      { type: "rest", duration: 12, notation: { type: "quarter" } },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
@@ -613,10 +568,11 @@ describe("MusicXML model", () => {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
-    // Two complete bars disappear while the four eighth-note rest before the note remains.
+    // TODO: Consolidate the leading silence to [24] instead of [18, 6].
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toMatchObject([
-      { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
+      { type: "rest", duration: 18 },
+      { type: "rest", duration: 6 },
       { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);
   });

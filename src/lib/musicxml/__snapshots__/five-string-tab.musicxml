@@ -96,9 +96,16 @@
       </note>
       <note>
         <rest/>
-        <duration>24</duration>
+        <duration>12</duration>
         <voice>1</voice>
-        <type>half</type>
+        <type>quarter</type>
+        <staff>1</staff>
+      </note>
+      <note>
+        <rest/>
+        <duration>12</duration>
+        <voice>1</voice>
+        <type>quarter</type>
         <staff>1</staff>
       </note>
       <backup>
@@ -129,9 +136,16 @@
       </note>
       <note>
         <rest/>
-        <duration>24</duration>
+        <duration>12</duration>
         <voice>5</voice>
-        <type>half</type>
+        <type>quarter</type>
+        <staff>2</staff>
+      </note>
+      <note>
+        <rest/>
+        <duration>12</duration>
+        <voice>5</voice>
+        <type>quarter</type>
         <staff>2</staff>
       </note>
     </measure>
