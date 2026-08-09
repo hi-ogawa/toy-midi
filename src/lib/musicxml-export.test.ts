@@ -464,6 +464,44 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it("groups a note followed by two triplet rests", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
+    ]);
+
+    expect(model.measures[0].events).toMatchObject([
+      {
+        type: "note",
+        duration: 4,
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: { boundary: "start" },
+        },
+      },
+      {
+        type: "rest",
+        duration: 4,
+        notation: { type: "eighth", triplet: true },
+      },
+      {
+        type: "rest",
+        duration: 8,
+        notation: { type: "quarter", triplet: true },
+      },
+      { type: "rest", duration: 16, notation: { type: "half", triplet: true } },
+      {
+        type: "rest",
+        duration: 16,
+        notation: {
+          type: "half",
+          triplet: true,
+          tuplet: { boundary: "stop" },
+        },
+      },
+    ]);
+  });
+
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([
       makeNote({
