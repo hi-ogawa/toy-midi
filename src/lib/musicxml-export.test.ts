@@ -322,6 +322,183 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it.each([
+    {
+      start: 0,
+      // TODO: Complete the triplet beat with [8], then preserve the ordinary
+      // trailing rests as [12, 24]. The looser ordinary placement currently
+      // consumes the triplet remainder as dotted eighth rests.
+      actual: [
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        { type: "rest", duration: 9, notation: { type: "eighth", dots: 1 } },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+      ],
+    },
+    {
+      start: 1,
+      // TODO: Complete the triplet beat with [8], then preserve the rest as [24].
+      actual: [
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 16,
+          notation: { type: "half", triplet: true },
+        },
+        { type: "rest", duration: 16, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 2,
+      // TODO: Complete the triplet beat with [8], then preserve the final
+      // quarter rest as [12]. The ordinary dotted value currently wins first.
+      actual: [
+        { type: "rest", duration: 24, notation: { type: "half" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 2,
+          notation: { type: "16th", triplet: true },
+        },
+      ],
+    },
+    {
+      start: 3,
+      actual: [
+        {
+          type: "rest",
+          duration: 36,
+          notation: { type: "half", dots: 1 },
+        },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+      ],
+    },
+  ])(
+    "decomposes an eighth-note triplet at beat $start",
+    ({ start, actual }) => {
+      const model = buildModel([makeNote({ start, duration: 1 / 3 })]);
+
+      expect(model.measures[0].events).toMatchObject(actual);
+    },
+  );
+
+  // TODO: discuss what's the expectation
+  it.each([
+    // TODO: Preserve the quarter note as [12]?
+    {
+      start: 0.5,
+      duration: 1,
+      actual: [9, 3],
+    },
+    {
+      start: 0.25,
+      duration: 0.5,
+      actual: [6],
+    },
+    // Preserve the strong midpoint of 4/4 rather than writing a half note
+    // across it.
+    {
+      start: 1,
+      duration: 2,
+      actual: [12, 12],
+    },
+  ])(
+    "decomposes a $duration-beat note after a rest at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map((event) => event.duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
+  // TODO: discuss what's the expectation
+  it.each([
+    { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
+    // TODO: Preserve as [8, 16]. The looser ordinary placement currently
+    // fragments the second triplet note into ordinary and triplet values.
+    { start: 0, durations: [8, 16], actual: [8, 9, 6, 1] },
+    { start: 0, durations: [16, 8], actual: [16, 8] },
+    { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 2, durations: [8, 16], actual: [8, 16] },
+    // TODO: Preserve as [16, 8]?
+    { start: 2, durations: [16, 8], actual: [12, 4, 8] },
+  ])(
+    "decomposes quarter-note triplet $durations at beat $start",
+    ({ start, durations, actual }) => {
+      let position = start;
+      const model = buildModel(
+        durations.map((duration, index) => {
+          const note = makeNote({
+            id: `triplet-${index}`,
+            start: position,
+            duration: duration / QUARTER_NOTE_DURATION,
+          });
+          position += duration / QUARTER_NOTE_DURATION;
+          return note;
+        }),
+      );
+
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map(({ duration }) => duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([
       makeNote({
