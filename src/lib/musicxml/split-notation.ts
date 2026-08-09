@@ -187,7 +187,6 @@ function splitDuration({
           candidates: [candidate, ...suffix.candidates],
           score:
             scoreCandidate({ candidate, cursor, durationType, metric }) +
-            scoreTransition(candidate, suffix.candidates[0]) +
             suffix.score,
         };
       })
@@ -228,11 +227,10 @@ function scoreCandidate({
   const end = cursor + candidate.duration;
   // Every symbol has a small cost, so equally musical paths stay compact.
   let score = 1;
-  const startStrength = metricStrength(cursor, metric);
 
-  // Crossing a boundary is acceptable when the value begins from an equally
-  // strong position. For example, an aligned half note may cross an ordinary
-  // beat, while a half note from a weak beat should not hide the 4/4 midpoint.
+  // Prefer exposing metric boundaries when symbol count is otherwise equal,
+  // while strongly protecting boundaries that are stronger than the onset.
+  const startStrength = metricStrength(cursor, metric);
   for (
     let boundary = metric.beatDuration;
     boundary < metric.measureDuration;
@@ -240,6 +238,7 @@ function scoreCandidate({
   ) {
     if (cursor < boundary && end > boundary) {
       const crossedStrength = metricStrength(boundary, metric);
+      score += 1;
       if (crossedStrength > startStrength) {
         const weight = durationType === "rest" ? 40 : 20;
         score += (crossedStrength - startStrength) * weight;
@@ -275,20 +274,4 @@ function metricStrength(position: number, metric: MetricContext): number {
     return 1;
   }
   return 0;
-}
-
-function scoreTransition(
-  candidate: DurationCandidate,
-  next: DurationCandidate | undefined,
-): number {
-  if (!next) {
-    return 0;
-  }
-  // Avoid switching between ordinary and triplet notation without evidence,
-  // and discourage a large value followed by a tiny cleanup fragment.
-  let score = candidate.triplet === next.triplet ? 0 : 8;
-  if (next.duration * 4 <= candidate.duration) {
-    score += 10;
-  }
-  return score;
 }
