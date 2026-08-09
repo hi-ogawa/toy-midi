@@ -4,6 +4,7 @@ import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../types";
+import { range } from "../utils/array";
 import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
 import { clampGain } from "./music";
@@ -321,9 +322,7 @@ class AudioManager {
   setMetronomeSequence(beatsPerBar: number): void {
     // Create new sequence with updated beats per bar
     this.metronomeSeq.clear();
-    this.metronomeSeq.events = Array.from({ length: beatsPerBar }, (_, i) =>
-      i === 0 ? 1 : 0,
-    );
+    this.metronomeSeq.events = range(beatsPerBar).map((i) => (i === 0 ? 1 : 0));
   }
 
   setProgram(programNumber: number): void {

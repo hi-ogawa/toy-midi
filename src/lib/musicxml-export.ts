@@ -1,4 +1,5 @@
 import type { Locator, Note, TimeSignature } from "../types";
+import { range } from "../utils/array";
 import {
   type KeySignature,
   type SpelledPitch,
@@ -118,10 +119,7 @@ export function buildMusicXmlModel({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
-  const notesByMeasure = Array.from(
-    { length: measureCount },
-    () => [] as QuantizedNote[],
-  );
+  const notesByMeasure = range(measureCount).map((): QuantizedNote[] => []);
   for (const note of quantizedNotes) {
     const firstMeasure = Math.floor(note.start / measureDuration);
     const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
@@ -572,7 +570,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
 function renderDurationNotation(notation: DurationNotation): XmlNode[] {
   return [
     hx("type", notation.type),
-    ...Array.from({ length: notation.dots ?? 0 }, () => hx("dot")),
+    ...range(notation.dots ?? 0).map(() => hx("dot")),
     notation.triplet &&
       hx("time-modification", hx("actual-notes", 3), hx("normal-notes", 2)),
   ];
