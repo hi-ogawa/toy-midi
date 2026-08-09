@@ -26,15 +26,15 @@ export type MusicXmlModelResult = {
   measures: MusicXmlMeasure[];
 };
 
-export type MusicXmlLocator = {
-  label: string;
-  offset: number;
-};
-
 export type MusicXmlMeasure = {
   events: MusicXmlMeasureEvent[];
   locators: MusicXmlLocator[];
   keySignature?: KeySignature;
+};
+
+export type MusicXmlLocator = {
+  label: string;
+  offset: number;
 };
 
 type PreparedNote = {
