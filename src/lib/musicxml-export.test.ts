@@ -132,10 +132,14 @@ describe("MusicXML export", () => {
 
   it("applies an embedded key directive and preserves its rehearsal label", () => {
     const notes = [
+      // MIDI pitch 34 (A-sharp/B-flat 2)
+      // bar 1 beat 4.5 ties into bar 2
       makeNote({ id: "tied", pitch: 34, start: 3.5, duration: 1 }),
+      // bar 2 beat 2
       makeNote({ id: "after", pitch: 34, start: 5, duration: 1 }),
     ];
     const locators = [
+      // bar 2 in G-flat
       {
         id: "last-chorus",
         position: 4,
@@ -155,8 +159,11 @@ describe("MusicXML export", () => {
           .map((event) => event.pitch),
       ),
     ).toEqual([
+      // A# start in 1st bar in C major (non diatonic)
       { step: "A", alter: 1, octave: 2 },
+      // Tied note in 2nd bar is still spelled A# though already in Gb major
       { step: "A", alter: 1, octave: 2 },
+      // New note at the same pitch is now spelled as Bb in Gb major (diatonic)
       { step: "B", alter: -1, octave: 2 },
     ]);
   });
