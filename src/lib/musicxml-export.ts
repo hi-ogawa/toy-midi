@@ -156,14 +156,14 @@ export function buildMusicXmlModel({
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
   // Resolve the active key signature for every exported measure.
-  const keySignaturesByMeasure = buildKeySignaturesByMeasure({
-    initialKeySignature: keySignature,
-    events: quantizedKeySignatureEvents,
+  const locatorsByMeasure = buildLocatorsByMeasure({
+    locators: quantizedLocators,
     measureCount,
     measureDuration,
   });
-  const locatorsByMeasure = buildLocatorsByMeasure({
-    locators: quantizedLocators,
+  const keySignaturesByMeasure = buildKeySignaturesByMeasure({
+    initialKeySignature: keySignature,
+    events: quantizedKeySignatureEvents,
     measureCount,
     measureDuration,
   });
