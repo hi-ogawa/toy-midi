@@ -81,6 +81,10 @@ export function buildMusicXmlModel({
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
   );
+  const beatDuration =
+    timeSignature.denominator === 8 && timeSignature.numerator % 3 === 0
+      ? 1.5 * MUSICXML_DIVISIONS
+      : (4 / timeSignature.denominator) * MUSICXML_DIVISIONS;
   const preparedNotes = prepareNotes({ notes, openStringPitches });
   const { preparedLocators, keySignatureEvents } = prepareLocators({
     locators,
@@ -137,6 +141,10 @@ export function buildMusicXmlModel({
           notes: measureNotes,
           measureStart,
           measureDuration,
+          metric: {
+            measureDuration,
+            beatDuration,
+          },
         }),
         locators: locatorsByMeasure[index],
         keySignature: measureKeySignature.emit

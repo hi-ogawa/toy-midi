@@ -89,32 +89,16 @@
       </note>
       <note>
         <rest/>
-        <duration>18</duration>
+        <duration>12</duration>
         <voice>1</voice>
         <type>quarter</type>
-        <dot/>
         <staff>1</staff>
       </note>
       <note>
         <rest/>
-        <duration>9</duration>
+        <duration>24</duration>
         <voice>1</voice>
-        <type>eighth</type>
-        <dot/>
-        <staff>1</staff>
-      </note>
-      <note>
-        <rest/>
-        <duration>3</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <staff>1</staff>
-      </note>
-      <note>
-        <rest/>
-        <duration>6</duration>
-        <voice>1</voice>
-        <type>eighth</type>
+        <type>half</type>
         <staff>1</staff>
       </note>
       <backup>
@@ -138,32 +122,16 @@
       </note>
       <note>
         <rest/>
-        <duration>18</duration>
+        <duration>12</duration>
         <voice>5</voice>
         <type>quarter</type>
-        <dot/>
         <staff>2</staff>
       </note>
       <note>
         <rest/>
-        <duration>9</duration>
+        <duration>24</duration>
         <voice>5</voice>
-        <type>eighth</type>
-        <dot/>
-        <staff>2</staff>
-      </note>
-      <note>
-        <rest/>
-        <duration>3</duration>
-        <voice>5</voice>
-        <type>16th</type>
-        <staff>2</staff>
-      </note>
-      <note>
-        <rest/>
-        <duration>6</duration>
-        <voice>5</voice>
-        <type>eighth</type>
+        <type>half</type>
         <staff>2</staff>
       </note>
     </measure>

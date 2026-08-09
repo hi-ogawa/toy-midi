@@ -296,7 +296,6 @@ describe("MusicXML model", () => {
   it.each([
     {
       start: 0,
-      // TODO: Preserve the ordinary trailing rests as [12, 24].
       actual: [
         {
           type: "note",
@@ -308,23 +307,12 @@ describe("MusicXML model", () => {
           duration: 8,
           notation: { type: "quarter", triplet: true },
         },
-        {
-          type: "rest",
-          duration: 18,
-          notation: { type: "quarter", dots: 1 },
-        },
-        {
-          type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        { type: "rest", duration: 3, notation: { type: "16th" } },
-        { type: "rest", duration: 6, notation: { type: "eighth" } },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
     {
       start: 1,
-      // TODO: Complete the triplet beat with [8], then preserve the rest as [24].
       actual: [
         { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
@@ -334,10 +322,10 @@ describe("MusicXML model", () => {
         },
         {
           type: "rest",
-          duration: 16,
-          notation: { type: "half", triplet: true },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        { type: "rest", duration: 16, notation: { type: "half" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
     {
@@ -386,25 +374,77 @@ describe("MusicXML model", () => {
     },
   );
 
-  // TODO: discuss what's the expectation
+  // 16th notes examples from the bass line in Billlie's "OFF AIR".
+  // https://www.youtube.com/watch?v=knp40WxQgOI
+  it("characterizes rests around a 16th pickup into beat 3", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 0.5 }),
+      makeNote({ id: "pickup", start: 1.75, duration: 0.25 }),
+      makeNote({ id: "downbeat", start: 2, duration: 0.5 }),
+    ]);
+
+    // MuseScore splits the pre-pickup silence as [6, 6, 3], while [6, 9] is
+    // also conventional. Future heuristic tuning may prefer either engraving.
+    expect(
+      model.measures[0].events.map(({ type, duration }) => [type, duration]),
+    ).toEqual([
+      ["note", 6],
+      ["rest", 6],
+      ["rest", 9],
+      ["note", 3],
+      ["note", 6],
+      ["rest", 6],
+      ["rest", 12],
+    ]);
+  });
+
+  // Keep syncopated spans compact while exposing strong beat boundaries where
+  // the onset or continuation makes them musically significant.
   it.each([
-    // TODO: Preserve the quarter note as [12]?
+    { start: 0.25, duration: 0.75, actual: [9] },
+    { start: 1.75, duration: 1.25, actual: [3, 12] },
+    { start: 1.75, duration: 1.75, actual: [3, 18] },
+    { start: 0, duration: 1.75, actual: [12, 9] },
+    { start: 1.25, duration: 1.25, actual: [9, 6] },
+  ])(
+    "characterizes a syncopated $duration-beat note at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events.filter(
+        (event) => event.type === "note",
+      );
+
+      expect(noteEvents.map((event) => event.duration)).toEqual(actual);
+      expect(
+        noteEvents.map(({ tieStart, tieStop }) => ({ tieStart, tieStop })),
+      ).toEqual(
+        actual.map((_, index) => ({
+          tieStart: index < actual.length - 1,
+          tieStop: index > 0,
+        })),
+      );
+    },
+  );
+
+  it.each([
+    // Split around the beat boundary rather than hiding it with a dotted value.
     {
       start: 0.5,
       duration: 1,
-      actual: [9, 3],
+      actual: [6, 6],
     },
-    // TODO: Preserve the eighth note as [6]?
+    // Preserve the complete eighth note even though it begins on a subdivision.
     {
       start: 0.25,
       duration: 0.5,
-      actual: [3, 3],
+      actual: [6],
     },
-    // TODO: Preserve the half note as [24]?
+    // Preserve the strong midpoint of 4/4 rather than writing a half note
+    // across it.
     {
       start: 1,
       duration: 2,
-      actual: [18, 6],
+      actual: [12, 12],
     },
   ])(
     "decomposes a $duration-beat note after a rest at beat $start",
@@ -418,16 +458,13 @@ describe("MusicXML model", () => {
     },
   );
 
-  // TODO: discuss what's the expectation
   it.each([
     { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
-    // TODO: Preserve as [8, 16]?
-    { start: 0, durations: [8, 16], actual: [8, 8, 8] },
+    { start: 0, durations: [8, 16], actual: [8, 16] },
     { start: 0, durations: [16, 8], actual: [16, 8] },
     { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
     { start: 2, durations: [8, 16], actual: [8, 16] },
-    // TODO: Preserve as [16, 8]?
-    { start: 2, durations: [16, 8], actual: [12, 4, 8] },
+    { start: 2, durations: [16, 8], actual: [16, 8] },
   ])(
     "decomposes quarter-note triplet $durations at beat $start",
     ({ start, durations, actual }) => {
