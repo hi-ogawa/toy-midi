@@ -156,34 +156,23 @@ export function buildMusicXmlModel({
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
   // Resolve the active key signature for every exported measure.
-  const keySignaturesByMeasure = buildMeasureKeySignatures({
+  const keySignaturesByMeasure = buildKeySignaturesByMeasure({
     initialKeySignature: keySignature,
     events: quantizedKeySignatureEvents,
     measureCount,
     measureDuration,
   });
-  // Spell each note in the key where it begins, then assign it to every
-  // measure it spans so tied segments retain the original spelling.
-  const notesByMeasure = Array.from(
-    { length: measureCount },
-    () => [] as QuantizedNote[],
-  );
-  for (const note of quantizedNotes) {
-    const firstMeasure = Math.floor(note.start / measureDuration);
-    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
-    const quantizedNote: QuantizedNote = {
-      ...note,
-      pitch: toWrittenBassPitch(
-        spellMidiPitch({
-          pitch: note.note.pitch,
-          keySignature: keySignaturesByMeasure[firstMeasure].active,
-        }),
-      ),
-    };
-    for (let index = firstMeasure; index <= lastMeasure; index++) {
-      notesByMeasure[index].push(quantizedNote);
-    }
-  }
+  const locatorsByMeasure = buildLocatorsByMeasure({
+    locators: quantizedLocators,
+    measureCount,
+    measureDuration,
+  });
+  const notesByMeasure = buildNotesByMeasure({
+    notes: quantizedNotes,
+    keySignaturesByMeasure,
+    measureCount,
+    measureDuration,
+  });
   return {
     measureDuration,
     measures: notesByMeasure.map((notes, index) => {
@@ -195,11 +184,7 @@ export function buildMusicXmlModel({
           measureStart,
           measureDuration,
         }),
-        locators: buildMeasureLocators({
-          locators: quantizedLocators,
-          measureStart,
-          measureDuration,
-        }),
+        locators: locatorsByMeasure[index],
         keySignature: measureKeySignature.emit
           ? measureKeySignature.active
           : undefined,
@@ -252,7 +237,7 @@ function prepareLocators({
   return { preparedLocators, keySignatureEvents };
 }
 
-function buildMeasureKeySignatures({
+function buildKeySignaturesByMeasure({
   initialKeySignature,
   events,
   measureCount,
@@ -282,23 +267,69 @@ function buildMeasureKeySignatures({
   return result;
 }
 
-function buildMeasureLocators({
+function buildLocatorsByMeasure({
   locators,
-  measureStart,
+  measureCount,
   measureDuration,
 }: {
   locators: PreparedLocator[];
-  measureStart: number;
+  measureCount: number;
   measureDuration: number;
-}): MusicXmlMeasure["locators"] {
-  return locators
-    .filter((locator) => locator.label !== "")
-    .map((locator) => ({
+}): MusicXmlMeasure["locators"][] {
+  const result = Array.from(
+    { length: measureCount },
+    () => [] as MusicXmlMeasure["locators"],
+  );
+  for (const locator of locators) {
+    if (locator.label === "") {
+      continue;
+    }
+    const measureIndex = Math.floor(locator.position / measureDuration);
+    if (measureIndex < 0 || measureIndex >= measureCount) {
+      continue;
+    }
+    result[measureIndex].push({
       label: locator.label,
-      offset: locator.position - measureStart,
-    }))
-    .filter(({ offset }) => offset >= 0 && offset < measureDuration)
-    .sort((a, b) => a.offset - b.offset);
+      offset: locator.position - measureIndex * measureDuration,
+    });
+  }
+  return result;
+}
+
+function buildNotesByMeasure({
+  notes,
+  keySignaturesByMeasure,
+  measureCount,
+  measureDuration,
+}: {
+  notes: PreparedNote[];
+  keySignaturesByMeasure: MeasureKeySignature[];
+  measureCount: number;
+  measureDuration: number;
+}): QuantizedNote[][] {
+  const result = Array.from(
+    { length: measureCount },
+    () => [] as QuantizedNote[],
+  );
+  // Spell each note in the key where it begins, then assign it to every
+  // measure it spans so tied segments retain the original spelling.
+  for (const note of notes) {
+    const firstMeasure = Math.floor(note.start / measureDuration);
+    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
+    const quantizedNote: QuantizedNote = {
+      ...note,
+      pitch: toWrittenBassPitch(
+        spellMidiPitch({
+          pitch: note.note.pitch,
+          keySignature: keySignaturesByMeasure[firstMeasure].active,
+        }),
+      ),
+    };
+    for (let index = firstMeasure; index <= lastMeasure; index++) {
+      result[index].push(quantizedNote);
+    }
+  }
+  return result;
 }
 
 /** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
