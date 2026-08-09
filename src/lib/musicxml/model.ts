@@ -21,6 +21,11 @@ export type MusicXmlModelOptions = {
   locators: Locator[];
 };
 
+export type MusicXmlModelResult = {
+  measureDuration: number;
+  measures: MusicXmlMeasure[];
+};
+
 export type MusicXmlMeasure = {
   events: MusicXmlMeasureEvent[];
   locators: { label: string; offset: number }[];
@@ -58,10 +63,7 @@ export function buildMusicXmlModel({
   keySignature,
   openStringPitches,
   locators,
-}: MusicXmlModelOptions): {
-  measureDuration: number;
-  measures: MusicXmlMeasure[];
-} {
+}: MusicXmlModelOptions): MusicXmlModelResult {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
   }
