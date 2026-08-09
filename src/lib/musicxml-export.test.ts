@@ -5,7 +5,7 @@ import {
   exportMusicXml,
   type MusicXmlExportOptions,
   type MusicXmlModelOptions,
-} from "./musicxml-export";
+} from "./musicxml/export";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;

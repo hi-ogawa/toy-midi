@@ -1,5 +1,5 @@
 import { memo } from "../utils/memo";
-import { exportMusicXml } from "./musicxml-export";
+import { exportMusicXml } from "./musicxml/export";
 import { projectStorage } from "./project-storage";
 import { fromSavedProject } from "./project-store";
 
