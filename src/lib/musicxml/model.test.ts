@@ -425,14 +425,14 @@ describe("MusicXML model", () => {
     },
   );
 
-  // TODO: discuss what's the expectation
   it.each([
-    // TODO: Prefer the compact dotted split [9, 3] if it remains readable.
+    // Split around the beat boundary rather than hiding it with a dotted value.
     {
       start: 0.5,
       duration: 1,
       actual: [6, 6],
     },
+    // Preserve the complete eighth note even though it begins on a subdivision.
     {
       start: 0.25,
       duration: 0.5,
@@ -457,7 +457,6 @@ describe("MusicXML model", () => {
     },
   );
 
-  // TODO: discuss what's the expectation
   it.each([
     // TODO: Preserve coherent quarter-triplet values. The first scoring pass
     // still fragments some 8-unit values at ordinary beat edges.
