@@ -136,7 +136,21 @@ export function buildMeasureEvents({
   return events;
 }
 
-/** Chooses the lowest-cost complete notation path for a grid duration. */
+/**
+ * Chooses the lowest-cost complete notation path for a grid duration.
+ *
+ * Treat each grid offset from `start` through `end` as a node in a directed
+ * acyclic graph. A duration candidate that fits creates an edge from the
+ * current offset to the offset after that candidate. `visit(cursor)` finds the
+ * best path from one node to `end`, so memoizing by cursor evaluates each
+ * suffix once while preserving the natural right-to-left transition scoring.
+ *
+ * For a span of D grid units and C duration candidates, the search examines
+ * O(D * C) candidate edges and stores O(D) memoized states. The current states
+ * contain complete suffix arrays, so constructing candidate paths can copy up
+ * to O(D) elements per edge, giving a pessimistic O(D^2 * C) implementation
+ * bound. D is at most a small measure-sized grid in normal use.
+ */
 function splitDuration({
   start,
   duration,
