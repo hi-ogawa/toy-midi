@@ -175,7 +175,7 @@ describe("MusicXML export", () => {
   it("uses a directive before trimmed measures as the initial score key", () => {
     const model = buildModel(
       [
-        // bar 3
+        // Bb at bar 3
         makeNote({ pitch: 34, start: 12 }),
       ],
       {
