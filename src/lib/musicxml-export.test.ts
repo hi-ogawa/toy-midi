@@ -332,7 +332,7 @@ describe("MusicXML export", () => {
       makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
     ]);
 
-    expect(model.measures[0].events.slice(0, 3)).toMatchObject([
+    expect(model.measures[0].events).toMatchObject([
       {
         type: "note",
         notation: { triplet: true, tuplet: { boundary: "start" } },
@@ -342,6 +342,10 @@ describe("MusicXML export", () => {
         type: "note",
         notation: { triplet: true, tuplet: { boundary: "stop" } },
       },
+      { type: "rest", duration: 18, notation: { type: "quarter", dots: 1 } },
+      { type: "rest", duration: 9, notation: { type: "eighth", dots: 1 } },
+      { type: "rest", duration: 3, notation: { type: "16th" } },
+      { type: "rest", duration: 6, notation: { type: "eighth" } },
     ]);
   });
 
