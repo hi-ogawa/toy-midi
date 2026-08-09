@@ -1,6 +1,6 @@
 import type { Locator, Note } from "../types";
 import { range } from "../utils/array";
-import { exportMusicXml } from "./musicxml/export";
+import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
