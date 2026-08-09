@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Note } from "../types";
+import type { Note } from "../../types";
+import { TAB_STRING_PRESETS } from "../tab-annotation";
 import {
   buildMusicXmlModel,
   exportMusicXml,
   type MusicXmlExportOptions,
   type MusicXmlModelOptions,
-} from "./musicxml/export";
-import { TAB_STRING_PRESETS } from "./tab-annotation";
+} from "./export";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
