@@ -63,7 +63,7 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page
     .getByLabel("Upload MusicXML")
     .setInputFiles(
-      path.resolve("src/lib/__snapshots__/five-string-tab.musicxml"),
+      path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
     );
 
   await expect(page.getByText("five-string-tab.musicxml")).toBeVisible();

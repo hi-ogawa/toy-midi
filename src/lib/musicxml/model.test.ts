@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Note } from "../types";
-import {
-  buildMusicXmlModel,
-  exportMusicXml,
-  type MusicXmlExportOptions,
-  type MusicXmlModelOptions,
-} from "./musicxml-export";
-import { TAB_STRING_PRESETS } from "./tab-annotation";
+import type { Note } from "../../types";
+import { TAB_STRING_PRESETS } from "../tab-annotation";
+import { buildMusicXmlModel, type MusicXmlModelOptions } from "./model";
+import { MUSICXML_DIVISIONS } from "./split-notation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
-// Keep in sync with the exporter's divisions per quarter note.
-const QUARTER_NOTE_DURATION = 12;
+const QUARTER_NOTE_DURATION = MUSICXML_DIVISIONS;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -22,22 +17,6 @@ function makeNote(options: Partial<Note> = {}): Note {
     velocity: 100,
     ...options,
   };
-}
-
-function exportNotes(
-  notes: Note[],
-  options: Partial<MusicXmlExportOptions> = {},
-): string {
-  return exportMusicXml({
-    notes,
-    locators: [],
-    tempo: 120,
-    title: "Test Score",
-    keySignature: { fifths: 0, mode: "major" },
-    timeSignature: { numerator: 4, denominator: 4 },
-    openStringPitches: FIVE_STRING_PITCHES,
-    ...options,
-  });
 }
 
 function buildModel(
@@ -54,15 +33,7 @@ function buildModel(
   });
 }
 
-describe("MusicXML export", () => {
-  it("exports synchronized standard and five-string TAB staves", async () => {
-    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
-
-    await expect(xml).toMatchFileSnapshot(
-      "__snapshots__/five-string-tab.musicxml",
-    );
-  });
-
+describe("MusicXML model", () => {
   it("preserves an explicit TAB string assignment", () => {
     const model = buildModel([makeNote({ tabString: 4 })]);
 

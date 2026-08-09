@@ -13,7 +13,7 @@ import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
 import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
-import { exportMusicXml } from "../lib/musicxml-export";
+import { exportMusicXml } from "../lib/musicxml/render";
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
 import { projectStorage } from "../lib/project-storage";
