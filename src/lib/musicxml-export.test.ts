@@ -173,10 +173,20 @@ describe("MusicXML export", () => {
   });
 
   it("uses a directive before trimmed measures as the initial score key", () => {
-    const model = buildModel([makeNote({ pitch: 34, start: 12 })], {
-      locators: [{ id: "earlier-key", position: 8, label: "[!key: E♭ major]" }],
-    });
+    const model = buildModel(
+      [
+        // bar 3
+        makeNote({ pitch: 34, start: 12 }),
+      ],
+      {
+        locators: [
+          // bar 2
+          { id: "earlier-key", position: 8, label: "[!key: E♭ major]" },
+        ],
+      },
+    );
 
+    expect(model.measures.length).toBe(1);
     expect(model.measures[0].keySignature).toEqual({
       fifths: -3,
       mode: "major",
