@@ -374,6 +374,8 @@ describe("MusicXML model", () => {
     },
   );
 
+  // 16th notes examples from the bass line in Billlie's "OFF AIR".
+  // https://www.youtube.com/watch?v=knp40WxQgOI
   it("characterizes rests around a 16th pickup into beat 3", () => {
     const model = buildModel([
       makeNote({ id: "first", start: 0, duration: 0.5 }),
@@ -381,8 +383,8 @@ describe("MusicXML model", () => {
       makeNote({ id: "downbeat", start: 2, duration: 0.5 }),
     ]);
 
-    // TODO: Prefer [6, 6, 3] before the pickup. The trailing [6, 12] now
-    // exposes the remaining beat boundary as intended.
+    // MuseScore splits the pre-pickup silence as [6, 6, 3], while [6, 9] is
+    // also conventional. Future heuristic tuning may prefer either engraving.
     expect(
       model.measures[0].events.map(({ type, duration }) => [type, duration]),
     ).toEqual([
@@ -396,14 +398,13 @@ describe("MusicXML model", () => {
     ]);
   });
 
+  // Keep syncopated spans compact while exposing strong beat boundaries where
+  // the onset or continuation makes them musically significant.
   it.each([
-    // TODO: Preserve beat structure as [3, 6].
     { start: 0.25, duration: 0.75, actual: [9] },
     { start: 1.75, duration: 1.25, actual: [3, 12] },
     { start: 1.75, duration: 1.75, actual: [3, 18] },
-    // TODO: Preserve the aligned dotted quarter as [18, 3].
     { start: 0, duration: 1.75, actual: [12, 9] },
-    // TODO: Preserve beat structure as [3, 9, 3].
     { start: 1.25, duration: 1.25, actual: [9, 6] },
   ])(
     "characterizes a syncopated $duration-beat note at beat $start",
