@@ -50,10 +50,7 @@ type QuantizedNote = PreparedNote & {
   pitch: SpelledPitch;
 };
 
-type PreparedLocator = {
-  id: string;
-  position: number;
-  label: string;
+type PreparedLocator = Locator & {
   keySignature?: KeySignature;
 };
 
