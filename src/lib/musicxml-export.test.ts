@@ -153,18 +153,22 @@ describe("MusicXML export", () => {
       locators: [{ label: "Last chorus", offset: 0 }],
     });
     expect(
-      model.measures.flatMap((measure) =>
+      model.measures.map((measure) =>
         measure.events
           .filter((event) => event.type === "note")
           .map((event) => event.pitch),
       ),
     ).toEqual([
-      // A# start in 1st bar in C major (non diatonic)
-      { step: "A", alter: 1, octave: 2 },
-      // Tied note in 2nd bar is still spelled A# though already in Gb major
-      { step: "A", alter: 1, octave: 2 },
-      // New note at the same pitch is now spelled as Bb in Gb major (diatonic)
-      { step: "B", alter: -1, octave: 2 },
+      [
+        // A# start in 1st bar in C major (non diatonic)
+        { step: "A", alter: 1, octave: 2 },
+      ],
+      [
+        // Tied note in 2nd bar is still spelled A# though already in Gb major
+        { step: "A", alter: 1, octave: 2 },
+        // New note at the same pitch is now spelled as Bb in Gb major (diatonic)
+        { step: "B", alter: -1, octave: 2 },
+      ],
     ]);
   });
 
