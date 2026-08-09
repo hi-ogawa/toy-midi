@@ -1,4 +1,3 @@
-import type { TimeSignature } from "../../types";
 import type { SpelledPitch } from "../pitch-spelling";
 import type { TabPosition } from "../tab-annotation";
 import type { QuantizedNote } from "./model";
@@ -29,7 +28,7 @@ type DurationCandidate = DurationNotation & {
   duration: number;
 };
 
-type MetricContext = {
+export type MetricContext = {
   measureDuration: number;
   beatDuration: number;
 };
@@ -61,15 +60,14 @@ export function buildMeasureEvents({
   notes,
   measureStart,
   measureDuration,
-  timeSignature,
+  metric,
 }: {
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
-  timeSignature: TimeSignature;
+  metric: MetricContext;
 }): MusicXmlMeasureEvent[] {
   const events: MusicXmlMeasureEvent[] = [];
-  const metric = buildMetricContext({ timeSignature });
   let cursor = 0;
 
   for (const note of notes) {
@@ -136,22 +134,6 @@ export function buildMeasureEvents({
     }
   }
   return events;
-}
-
-function buildMetricContext({
-  timeSignature,
-}: {
-  timeSignature: TimeSignature;
-}): MetricContext {
-  const measureDuration =
-    timeSignature.numerator *
-    (4 / timeSignature.denominator) *
-    MUSICXML_DIVISIONS;
-  const beatDuration =
-    timeSignature.denominator === 8 && timeSignature.numerator % 3 === 0
-      ? 1.5 * MUSICXML_DIVISIONS
-      : (4 / timeSignature.denominator) * MUSICXML_DIVISIONS;
-  return { measureDuration, beatDuration };
 }
 
 /** Chooses the lowest-cost complete notation path for a grid duration. */
