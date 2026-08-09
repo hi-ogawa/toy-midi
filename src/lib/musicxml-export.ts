@@ -458,6 +458,8 @@ function splitDuration({
   let remaining = duration;
   while (remaining > 0) {
     const offsetInBeat = cursor % DIVISIONS;
+    // A triplet value inside a beat must complete that beat before ordinary
+    // notation resumes, for example an eighth-triplet followed by a quarter-triplet.
     const tripletCompletion =
       offsetInBeat !== 0 && offsetInBeat % (DIVISIONS / 3) === 0
         ? DURATION_CANDIDATES.find(
@@ -465,11 +467,12 @@ function splitDuration({
               item.triplet && item.duration === DIVISIONS - offsetInBeat,
           )
         : undefined;
-    // Prefer the longest notation value that starts on its valid beat boundary.
     const candidate =
       (tripletCompletion && tripletCompletion.duration <= remaining
         ? tripletCompletion
         : undefined) ??
+      // Longer values must start on their own natural boundary so they do not
+      // cross strong beats; shorter values retain their subdivision alignment.
       DURATION_CANDIDATES.find(
         (item) =>
           item.duration <= remaining &&
