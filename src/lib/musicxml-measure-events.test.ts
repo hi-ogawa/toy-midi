@@ -80,4 +80,109 @@ describe("MusicXML measure events", () => {
       notation: { type: "quarter", dots: 1 },
     });
   });
+
+  it.each([
+    {
+      start: 0,
+      expected: [
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 2,
+          notation: { type: "16th", triplet: true },
+        },
+        { type: "rest", duration: 24, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 12,
+      expected: [
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 16,
+          notation: { type: "half", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 16,
+          notation: { type: "half", triplet: true },
+        },
+      ],
+    },
+    {
+      start: 24,
+      expected: [
+        { type: "rest", duration: 24, notation: { type: "half" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 16,
+          notation: { type: "half", triplet: true },
+        },
+      ],
+    },
+    {
+      start: 36,
+      expected: [
+        { type: "rest", duration: 36, notation: { type: "half", dots: 1 } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+      ],
+    },
+  ])(
+    "decomposes a triplet eighth at grid offset $start",
+    ({ start, expected }) => {
+      const events = buildMeasureEvents({
+        notes: [makeNote({ start, end: start + 4 })],
+        measureStart: 0,
+        measureDuration: 4 * MUSICXML_DIVISIONS,
+        timeSignature: FOUR_FOUR,
+      });
+
+      expect(
+        events.map(({ type, duration, notation }) => ({
+          type,
+          duration,
+          notation,
+        })),
+      ).toEqual(expected);
+    },
+  );
 });
