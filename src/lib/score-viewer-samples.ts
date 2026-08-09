@@ -1,4 +1,5 @@
 import type { Locator, Note } from "../types";
+import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml-export";
 import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
@@ -115,6 +116,29 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       createLocator({ position: 12, label: "C" }),
     ],
   }),
+  createSample({
+    name: "Key changes",
+    description:
+      "Tied accidentals and diatonic notes across flat and sharp keys",
+    tempo: 120,
+    notes: [
+      // A# crosses into G-flat major, where the following pitch is spelled Bb.
+      createNote({ pitch: 34, start: 3.5, duration: 1 }),
+      createNote({ pitch: 34, start: 5, duration: 1 }),
+      // Gb, Bb, and Db are diatonic in G-flat major.
+      createNote({ pitch: 42, start: 6, duration: 0.5 }),
+      createNote({ pitch: 46, start: 6.5, duration: 0.5 }),
+      createNote({ pitch: 49, start: 7, duration: 1 }),
+      // F#, A#, and C# are diatonic in F-sharp major.
+      createNote({ pitch: 42, start: 8, duration: 1 }),
+      createNote({ pitch: 46, start: 9, duration: 1 }),
+      createNote({ pitch: 49, start: 10, duration: 1 }),
+    ],
+    locators: [
+      createLocator({ position: 4, label: "G-flat major [!key: Gb major]" }),
+      createLocator({ position: 8, label: "F-sharp major [!key: F# major]" }),
+    ],
+  }),
 ];
 
 function createSequentialNotes({
@@ -124,7 +148,7 @@ function createSequentialNotes({
   count: number;
   duration: number;
 }) {
-  return Array.from({ length: count }, (_, index) =>
+  return range(count).map((index) =>
     createNote({
       pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
       start: index * duration,
@@ -178,7 +202,7 @@ function tripletRest(units: 1 | 2) {
 }
 
 function createPrintNotes() {
-  return Array.from({ length: 64 }, (_, measure) => {
+  return range(64).flatMap((measure) => {
     const durations =
       measure % 2 === 0 ? [0.5, 0.5, 1, 0.5, 0.5, 1] : Array(16).fill(0.25);
     let start = measure * 4;
@@ -191,7 +215,7 @@ function createPrintNotes() {
       start += duration;
       return note;
     });
-  }).flat();
+  });
 }
 
 function createSample({
