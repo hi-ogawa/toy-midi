@@ -257,7 +257,8 @@ function buildMeasureKeySignatures({
 }): MeasureKeySignature[] {
   let active = initialKeySignature;
   let eventIndex = 0;
-  return Array.from({ length: measureCount }, (_, measureIndex) => {
+  const result: MeasureKeySignature[] = [];
+  for (let measureIndex = 0; measureIndex < measureCount; measureIndex++) {
     const position = firstMeasureStart + measureIndex * measureDuration;
     let emit = false;
     while (events[eventIndex]?.position <= position) {
@@ -268,8 +269,9 @@ function buildMeasureKeySignatures({
       }
       eventIndex++;
     }
-    return { active, emit: measureIndex === 0 || emit };
-  });
+    result.push({ active, emit: measureIndex === 0 || emit });
+  }
+  return result;
 }
 
 function buildMeasureLocators({
