@@ -201,36 +201,6 @@ export function buildMusicXmlModel({
   };
 }
 
-function buildMeasureKeySignatures({
-  initialKeySignature,
-  events,
-  firstMeasureStart,
-  measureCount,
-  measureDuration,
-}: {
-  initialKeySignature: KeySignature;
-  events: KeySignatureEvent[];
-  firstMeasureStart: number;
-  measureCount: number;
-  measureDuration: number;
-}): MeasureKeySignature[] {
-  let active = initialKeySignature;
-  let eventIndex = 0;
-  return Array.from({ length: measureCount }, (_, measureIndex) => {
-    const position = firstMeasureStart + measureIndex * measureDuration;
-    let emit = false;
-    while (events[eventIndex]?.position <= position) {
-      const event = events[eventIndex];
-      active = event.keySignature;
-      if (event.position === position) {
-        emit = true;
-      }
-      eventIndex++;
-    }
-    return { active, emit: measureIndex === 0 || emit };
-  });
-}
-
 function prepareLocators({
   locators,
   measureDuration,
@@ -273,6 +243,36 @@ function prepareLocators({
     preparedLocators.push({ id: locator.id, position, ...parsed });
   }
   return { preparedLocators, keySignatureEvents };
+}
+
+function buildMeasureKeySignatures({
+  initialKeySignature,
+  events,
+  firstMeasureStart,
+  measureCount,
+  measureDuration,
+}: {
+  initialKeySignature: KeySignature;
+  events: KeySignatureEvent[];
+  firstMeasureStart: number;
+  measureCount: number;
+  measureDuration: number;
+}): MeasureKeySignature[] {
+  let active = initialKeySignature;
+  let eventIndex = 0;
+  return Array.from({ length: measureCount }, (_, measureIndex) => {
+    const position = firstMeasureStart + measureIndex * measureDuration;
+    let emit = false;
+    while (events[eventIndex]?.position <= position) {
+      const event = events[eventIndex];
+      active = event.keySignature;
+      if (event.position === position) {
+        emit = true;
+      }
+      eventIndex++;
+    }
+    return { active, emit: measureIndex === 0 || emit };
+  });
 }
 
 function buildMeasureLocators({
