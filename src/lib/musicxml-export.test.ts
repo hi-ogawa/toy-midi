@@ -325,6 +325,7 @@ describe("MusicXML export", () => {
   it.each([
     {
       start: 0,
+      // TODO: Preserve the ordinary trailing rests as [12, 24].
       actual: [
         {
           type: "note",
@@ -336,12 +337,23 @@ describe("MusicXML export", () => {
           duration: 8,
           notation: { type: "quarter", triplet: true },
         },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 24, notation: { type: "half" } },
+        {
+          type: "rest",
+          duration: 18,
+          notation: { type: "quarter", dots: 1 },
+        },
+        {
+          type: "rest",
+          duration: 9,
+          notation: { type: "eighth", dots: 1 },
+        },
+        { type: "rest", duration: 3, notation: { type: "16th" } },
+        { type: "rest", duration: 6, notation: { type: "eighth" } },
       ],
     },
     {
       start: 1,
+      // TODO: Complete the triplet beat with [8], then preserve the rest as [24].
       actual: [
         { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
@@ -351,10 +363,10 @@ describe("MusicXML export", () => {
         },
         {
           type: "rest",
-          duration: 8,
-          notation: { type: "quarter", triplet: true },
+          duration: 16,
+          notation: { type: "half", triplet: true },
         },
-        { type: "rest", duration: 24, notation: { type: "half" } },
+        { type: "rest", duration: 16, notation: { type: "half" } },
       ],
     },
     {
@@ -420,7 +432,7 @@ describe("MusicXML export", () => {
     {
       start: 1,
       duration: 2,
-      actual: [12, 12],
+      actual: [18, 6],
     },
   ])(
     "decomposes a $duration-beat note after a rest at beat $start",
@@ -435,15 +447,12 @@ describe("MusicXML export", () => {
   );
 
   it.each([
-    // TODO: Preserve as [8, 8, 8].
-    { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
+    { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
     // TODO: Preserve as [8, 16].
-    { start: 0, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 0, durations: [8, 16], actual: [8, 8, 8] },
     { start: 0, durations: [16, 8], actual: [16, 8] },
-    // TODO: Preserve as [8, 8, 8].
-    { start: 2, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
-    // TODO: Preserve as [8, 16].
-    { start: 2, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 2, durations: [8, 16], actual: [8, 16] },
     // TODO: Preserve as [16, 8].
     { start: 2, durations: [16, 8], actual: [12, 4, 8] },
   ])(
