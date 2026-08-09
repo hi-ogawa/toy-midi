@@ -357,23 +357,18 @@ function buildLocatorsByMeasure({
   measureCount: number;
   measureDuration: number;
 }): MusicXmlMeasure["locators"][] {
-  const result: MusicXmlMeasure["locators"][] = range(measureCount).map(
-    () => [],
+  return range(measureCount).map((measureIndex) =>
+    locators
+      .filter(
+        (locator) =>
+          locator.label !== "" &&
+          Math.floor(locator.position / measureDuration) === measureIndex,
+      )
+      .map((locator) => ({
+        label: locator.label,
+        offset: locator.position - measureIndex * measureDuration,
+      })),
   );
-  for (const locator of locators) {
-    if (locator.label === "") {
-      continue;
-    }
-    const measureIndex = Math.floor(locator.position / measureDuration);
-    if (measureIndex < 0 || measureIndex >= measureCount) {
-      continue;
-    }
-    result[measureIndex].push({
-      label: locator.label,
-      offset: locator.position - measureIndex * measureDuration,
-    });
-  }
-  return result;
 }
 
 /** Clips notes to one measure and fills its timeline with notated notes and rests. */
