@@ -219,6 +219,7 @@ function scoreCandidate({
 }): number {
   const end = cursor + candidate.duration;
   let score = 1;
+  const startStrength = metricStrength(cursor, metric);
 
   for (
     let boundary = metric.beatDuration;
@@ -226,8 +227,11 @@ function scoreCandidate({
     boundary += metric.beatDuration
   ) {
     if (cursor < boundary && end > boundary) {
-      const isMidpoint = boundary === metric.measureDuration / 2;
-      score += isMidpoint ? 100 : durationType === "rest" ? 40 : 20;
+      const crossedStrength = metricStrength(boundary, metric);
+      if (crossedStrength > startStrength) {
+        const weight = durationType === "rest" ? 40 : 20;
+        score += (crossedStrength - startStrength) * weight;
+      }
     }
   }
 
@@ -239,6 +243,22 @@ function scoreCandidate({
     score += 8;
   }
   return score;
+}
+
+function metricStrength(position: number, metric: MetricContext): number {
+  if (position % metric.measureDuration === 0) {
+    return 3;
+  }
+  if (
+    metric.measureDuration === 4 * metric.beatDuration &&
+    position % (metric.measureDuration / 2) === 0
+  ) {
+    return 2;
+  }
+  if (position % metric.beatDuration === 0) {
+    return 1;
+  }
+  return 0;
 }
 
 function scoreTransition(

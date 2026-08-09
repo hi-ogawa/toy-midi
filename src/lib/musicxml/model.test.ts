@@ -269,18 +269,16 @@ describe("MusicXML model", () => {
       }),
     ]);
 
-    // TODO: Preserve the aligned dotted quarter as [18] instead of [12, 6].
     expect(
       model.measures[0].events
         .filter((event) => event.type === "note")
         .map(({ duration }) => duration),
-    ).toEqual([12, 6, QUARTER_NOTE_DURATION / 3]);
+    ).toEqual([18, QUARTER_NOTE_DURATION / 3]);
   });
 
   it.each([
     {
       start: 0,
-      // TODO: Consolidate the ordinary trailing rests as [12, 24].
       actual: [
         {
           type: "note",
@@ -293,13 +291,11 @@ describe("MusicXML model", () => {
           notation: { type: "quarter", triplet: true },
         },
         { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
     {
       start: 1,
-      // TODO: Consolidate the final two beats as one half rest [24].
       actual: [
         { type: "rest", duration: 12, notation: { type: "quarter" } },
         {
@@ -312,16 +308,13 @@ describe("MusicXML model", () => {
           duration: 8,
           notation: { type: "quarter", triplet: true },
         },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
     {
       start: 2,
-      // TODO: Consolidate the leading two beats as one half rest [24].
       actual: [
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
         {
           type: "note",
           duration: 4,
@@ -337,12 +330,12 @@ describe("MusicXML model", () => {
     },
     {
       start: 3,
-      // TODO: Consolidate the leading three beats instead of using three
-      // quarter rests.
       actual: [
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
-        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        {
+          type: "rest",
+          duration: 36,
+          notation: { type: "half", dots: 1 },
+        },
         {
           type: "note",
           duration: 4,
@@ -390,8 +383,7 @@ describe("MusicXML model", () => {
     // TODO: Preserve beat structure as [3, 6].
     { start: 0.25, duration: 0.75, actual: [9] },
     { start: 1.75, duration: 1.25, actual: [3, 12] },
-    // TODO: Preserve the aligned dotted value as [3, 18].
-    { start: 1.75, duration: 1.75, actual: [3, 12, 6] },
+    { start: 1.75, duration: 1.75, actual: [3, 18] },
     // TODO: Preserve the aligned dotted quarter as [18, 3].
     { start: 0, duration: 1.75, actual: [12, 9] },
     // TODO: Preserve beat structure as [3, 9, 3].
@@ -451,13 +443,13 @@ describe("MusicXML model", () => {
   // TODO: discuss what's the expectation
   it.each([
     // TODO: Preserve coherent quarter-triplet values. The first scoring pass
-    // fragments 16-unit values and some 8-unit values at ordinary beat edges.
+    // still fragments some 8-unit values at ordinary beat edges.
     { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
     { start: 0, durations: [8, 16], actual: [8, 4, 12] },
-    { start: 0, durations: [16, 8], actual: [8, 4, 4, 8] },
+    { start: 0, durations: [16, 8], actual: [16, 8] },
     { start: 2, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
     { start: 2, durations: [8, 16], actual: [8, 4, 12] },
-    { start: 2, durations: [16, 8], actual: [8, 4, 4, 8] },
+    { start: 2, durations: [16, 8], actual: [16, 8] },
   ])(
     "decomposes quarter-note triplet $durations at beat $start",
     ({ start, durations, actual }) => {
@@ -505,8 +497,7 @@ describe("MusicXML model", () => {
         tieStart: false,
         tieStop: false,
       },
-      { type: "rest", duration: 12, notation: { type: "quarter" } },
-      { type: "rest", duration: 12, notation: { type: "quarter" } },
+      { type: "rest", duration: 24, notation: { type: "half" } },
     ]);
   });
 
@@ -531,11 +522,10 @@ describe("MusicXML model", () => {
   it("preserves silence within the first retained measure", () => {
     const model = buildModel([makeNote({ start: 14 })]); // Bar 4, beat 3
 
-    // TODO: Consolidate beats 1 and 2 as a half rest.
+    // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toEqual([
-      { type: "rest", duration: 12, notation: { type: "quarter" } },
-      { type: "rest", duration: 12, notation: { type: "quarter" } },
+      { type: "rest", duration: 24, notation: { type: "half" } },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
@@ -568,11 +558,10 @@ describe("MusicXML model", () => {
       timeSignature: { numerator: 6, denominator: 8 },
     });
 
-    // TODO: Consolidate the leading silence to [24] instead of [18, 6].
+    // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toMatchObject([
-      { type: "rest", duration: 18 },
-      { type: "rest", duration: 6 },
+      { type: "rest", duration: 24 },
       { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);
   });
