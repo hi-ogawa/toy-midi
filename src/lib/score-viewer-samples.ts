@@ -1,4 +1,5 @@
 import type { Locator, Note } from "../types";
+import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml-export";
 import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
@@ -118,7 +119,7 @@ function createSequentialNotes({
   count: number;
   duration: number;
 }) {
-  return Array.from({ length: count }, (_, index) =>
+  return range(count).map((index) =>
     createNote({
       pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
       start: index * duration,
@@ -128,7 +129,7 @@ function createSequentialNotes({
 }
 
 function createPrintNotes() {
-  return Array.from({ length: 64 }, (_, measure) => {
+  return range(64).flatMap((measure) => {
     const durations =
       measure % 2 === 0 ? [0.5, 0.5, 1, 0.5, 0.5, 1] : Array(16).fill(0.25);
     let start = measure * 4;
@@ -141,7 +142,7 @@ function createPrintNotes() {
       start += duration;
       return note;
     });
-  }).flat();
+  });
 }
 
 function createSample({
