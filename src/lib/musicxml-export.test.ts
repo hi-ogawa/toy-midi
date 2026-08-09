@@ -199,12 +199,164 @@ describe("MusicXML export", () => {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
         duration: QUARTER_NOTE_DURATION / 3,
-        notation: { type: "eighth", triplet: true },
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "start",
+          },
+        },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
         tieStop: false,
       },
     ]);
+  });
+
+  it("groups beat-aligned eighth-note triplet partitions", () => {
+    const model = buildModel([
+      makeNote({ id: "one-a", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "one-b", start: 1 / 3, duration: 1 / 3 }),
+      makeNote({ id: "one-c", start: 2 / 3, duration: 1 / 3 }),
+      makeNote({ id: "one-two-a", start: 1, duration: 1 / 3 }),
+      makeNote({ id: "one-two-b", start: 4 / 3, duration: 2 / 3 }),
+      makeNote({ id: "two-one-a", start: 2, duration: 2 / 3 }),
+      makeNote({ id: "two-one-b", start: 8 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 7).map((event) => ({
+        type: event.type,
+        duration: event.duration,
+        notation: event.notation,
+      })),
+    ).toEqual([
+      {
+        type: "note",
+        duration: 4,
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "start",
+          },
+        },
+      },
+      {
+        type: "note",
+        duration: 4,
+        notation: { type: "eighth", triplet: true },
+      },
+      {
+        type: "note",
+        duration: 4,
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "stop",
+          },
+        },
+      },
+      {
+        type: "note",
+        duration: 4,
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "start",
+          },
+        },
+      },
+      {
+        type: "note",
+        duration: 8,
+        notation: {
+          type: "quarter",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "stop",
+          },
+        },
+      },
+      {
+        type: "note",
+        duration: 8,
+        notation: {
+          type: "quarter",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "start",
+          },
+        },
+      },
+      {
+        type: "note",
+        duration: 4,
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2,
+            number: 1,
+            boundary: "stop",
+          },
+        },
+      },
+    ]);
+  });
+
+  it("groups generated rests within triplets", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(model.measures[0].events.slice(0, 3)).toMatchObject([
+      {
+        type: "note",
+        notation: { triplet: true, tuplet: { boundary: "start" } },
+      },
+      { type: "rest", notation: { triplet: true } },
+      {
+        type: "note",
+        notation: { triplet: true, tuplet: { boundary: "stop" } },
+      },
+    ]);
+  });
+
+  it("exports matching tuplet groups on standard and TAB staves", () => {
+    const xml = exportNotes([
+      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(xml.match(/<tuplet type="start" number="1"\/>/g)).toHaveLength(2);
+    expect(xml.match(/<tuplet type="stop" number="1"\/>/g)).toHaveLength(2);
+    expect(xml.match(/<time-modification>/g)).toHaveLength(6);
+    expect(xml).toContain(
+      '<notations>\n          <technical>\n            <string>3</string>\n            <fret>0</fret>\n          </technical>\n          <tuplet type="start" number="1"/>',
+    );
   });
 
   it("fills gaps and remaining measure time with rests", () => {

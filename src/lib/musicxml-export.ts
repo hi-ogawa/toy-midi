@@ -60,6 +60,12 @@ type DurationNotation = {
   type: string;
   dots?: number;
   triplet?: boolean;
+  tuplet?: {
+    actualNotes: 3;
+    normalNotes: 2;
+    number: 1;
+    boundary: "start" | "stop";
+  };
 };
 
 type DurationCandidate = DurationNotation & {
@@ -134,12 +140,14 @@ export function buildMusicXmlModel({
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
       return {
-        events: buildMeasureEvents({
-          notes,
-          measureStart,
-          measureDuration,
-          keySignature,
-        }),
+        events: annotateTuplets(
+          buildMeasureEvents({
+            notes,
+            measureStart,
+            measureDuration,
+            keySignature,
+          }),
+        ),
         locators: buildMeasureLocators({
           locators,
           firstMeasureStart,
@@ -300,6 +308,63 @@ function buildMeasureEvents({
   return events;
 }
 
+/** Marks complete beat-aligned eighth-note triplet groups for engraving. */
+function annotateTuplets(
+  events: MusicXmlMeasureEvent[],
+): MusicXmlMeasureEvent[] {
+  const result = events.map((event) => ({
+    ...event,
+    notation: event.notation,
+  }));
+  let offset = 0;
+  let groupStartIndex: number | undefined;
+
+  for (let index = 0; index < result.length; index++) {
+    const event = result[index];
+    const eventEnd = offset + event.duration;
+
+    if (offset % DIVISIONS === 0) {
+      groupStartIndex = event.notation.triplet ? index : undefined;
+    } else if (!event.notation.triplet) {
+      groupStartIndex = undefined;
+    }
+
+    if (eventEnd % DIVISIONS === 0) {
+      if (groupStartIndex !== undefined && index > groupStartIndex) {
+        result[groupStartIndex] = {
+          ...result[groupStartIndex],
+          notation: {
+            ...result[groupStartIndex].notation,
+            tuplet: {
+              actualNotes: 3,
+              normalNotes: 2,
+              number: 1,
+              boundary: "start",
+            },
+          },
+        };
+        result[index] = {
+          ...event,
+          notation: {
+            ...event.notation,
+            tuplet: {
+              actualNotes: 3,
+              normalNotes: 2,
+              number: 1,
+              boundary: "stop",
+            },
+          },
+        };
+      }
+      groupStartIndex = undefined;
+    }
+
+    offset = eventEnd;
+  }
+
+  return result;
+}
+
 /** Decomposes a grid duration into the longest notation values valid at each offset. */
 function splitDuration({
   start,
@@ -320,8 +385,8 @@ function splitDuration({
       duration: candidate.duration,
       notation: {
         type: candidate.type,
-        dots: candidate.dots,
-        triplet: candidate.triplet,
+        ...(candidate.dots && { dots: candidate.dots }),
+        ...(candidate.triplet && { triplet: true }),
       },
     });
     cursor += candidate.duration;
@@ -525,6 +590,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
   // MuseScore allocates four voice IDs per staff, so the first voices of staff 1
   // and staff 2 are 1 and 5 respectively.
   const voice = staff === 1 ? 1 : 5;
+  const tupletNotation = renderTupletNotation(event.notation);
   if (event.type === "rest") {
     return hx(
       "note",
@@ -533,6 +599,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
       hx("voice", voice),
       ...renderDurationNotation(event.notation),
       hx("staff", staff),
+      tupletNotation && hx("notations", tupletNotation),
     );
   }
 
@@ -564,8 +631,18 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
     hx("voice", voice),
     ...renderDurationNotation(event.notation),
     hx("staff", staff),
-    (tiedNotations.some(Boolean) || technical) &&
-      hx("notations", ...tiedNotations, technical),
+    (tiedNotations.some(Boolean) || technical || tupletNotation) &&
+      hx("notations", ...tiedNotations, technical, tupletNotation),
+  );
+}
+
+function renderTupletNotation(notation: DurationNotation): XmlNode {
+  return (
+    notation.tuplet &&
+    h("tuplet", {
+      type: notation.tuplet.boundary,
+      number: notation.tuplet.number,
+    })
   );
 }
 
