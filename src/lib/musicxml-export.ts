@@ -1,4 +1,5 @@
 import type { Locator, Note, TimeSignature } from "../types";
+import { range } from "../utils/array";
 import { parseLocatorLabel } from "./locators";
 import {
   type KeySignature,
@@ -483,10 +484,6 @@ function toGridUnits(value: number, label: string): number {
   return units;
 }
 
-function range(length: number): number[] {
-  return [...Array(length).keys()];
-}
-
 /** Validates a non-empty tuning of MIDI note numbers. */
 function validateOpenStringPitches(pitches: readonly number[]): void {
   if (pitches.length === 0) {
@@ -725,7 +722,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
 function renderDurationNotation(notation: DurationNotation): XmlNode[] {
   return [
     hx("type", notation.type),
-    ...Array.from({ length: notation.dots ?? 0 }, () => hx("dot")),
+    ...range(notation.dots ?? 0).map(() => hx("dot")),
     notation.triplet &&
       hx("time-modification", hx("actual-notes", 3), hx("normal-notes", 2)),
   ];

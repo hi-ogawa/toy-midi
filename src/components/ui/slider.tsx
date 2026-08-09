@@ -1,5 +1,6 @@
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import * as React from "react";
+import { range } from "../../utils/array";
 import { cn } from "./utils";
 
 export function Slider({
@@ -66,7 +67,7 @@ export function Slider({
           )}
         />
       </SliderPrimitive.Track>
-      {Array.from({ length: _values.length }, (_, index) => (
+      {range(_values.length).map((index) => (
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
