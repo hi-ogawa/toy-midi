@@ -182,6 +182,14 @@ function splitDuration({
     return result;
   }
 
+  function comparePaths(left: DurationPath, right: DurationPath): number {
+    // Musical penalties decide first; symbol count breaks otherwise equal paths.
+    return (
+      left.score - right.score ||
+      left.candidates.length - right.candidates.length
+    );
+  }
+
   return visit(start).candidates.map((candidate) => ({
     duration: candidate.duration,
     notation: {
@@ -269,11 +277,4 @@ function scoreTransition(
     score += 10;
   }
   return score;
-}
-
-function comparePaths(left: DurationPath, right: DurationPath): number {
-  // Musical penalties decide first; symbol count breaks otherwise equal paths.
-  return (
-    left.score - right.score || left.candidates.length - right.candidates.length
-  );
 }
