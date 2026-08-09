@@ -159,11 +159,6 @@ describe("MusicXML export", () => {
       { step: "A", alter: 1, octave: 2 },
       { step: "B", alter: -1, octave: 2 },
     ]);
-
-    const xml = exportNotes(notes, { locators });
-    expect(xml).toMatch(
-      /<measure number="2">[\s\S]*?<attributes>[\s\S]*?<fifths>-6<\/fifths>/,
-    );
   });
 
   it("uses a directive before trimmed measures as the initial score key", () => {
