@@ -403,6 +403,57 @@ describe("MusicXML model", () => {
     },
   );
 
+  it("characterizes rests around a 16th pickup into beat 3", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 0.5 }),
+      makeNote({ id: "pickup", start: 1.75, duration: 0.25 }),
+      makeNote({ id: "downbeat", start: 2, duration: 0.5 }),
+    ]);
+
+    // TODO: Prefer [6, 6, 3] before the pickup and [6, 12] after the
+    // downbeat so rests expose beat boundaries instead of crossing them.
+    expect(
+      model.measures[0].events.map(({ type, duration }) => [type, duration]),
+    ).toEqual([
+      ["note", 6],
+      ["rest", 9],
+      ["rest", 6],
+      ["note", 3],
+      ["note", 6],
+      ["rest", 9],
+      ["rest", 9],
+    ]);
+  });
+
+  it.each([
+    // TODO: Preserve beat structure as [3, 6].
+    { start: 0.25, duration: 0.75, actual: [9] },
+    { start: 1.75, duration: 1.25, actual: [3, 12] },
+    // TODO: Preserve the aligned dotted value as [3, 18].
+    { start: 1.75, duration: 1.75, actual: [3, 12, 6] },
+    { start: 0, duration: 1.75, actual: [18, 3] },
+    // TODO: Preserve beat structure as [3, 9, 3].
+    { start: 1.25, duration: 1.25, actual: [9, 6] },
+  ])(
+    "characterizes a syncopated $duration-beat note at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events.filter(
+        (event) => event.type === "note",
+      );
+
+      expect(noteEvents.map((event) => event.duration)).toEqual(actual);
+      expect(
+        noteEvents.map(({ tieStart, tieStop }) => ({ tieStart, tieStop })),
+      ).toEqual(
+        actual.map((_, index) => ({
+          tieStart: index < actual.length - 1,
+          tieStop: index > 0,
+        })),
+      );
+    },
+  );
+
   // TODO: discuss what's the expectation
   it.each([
     // TODO: Preserve the quarter note as [12]?
