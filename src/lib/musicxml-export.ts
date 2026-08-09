@@ -131,7 +131,7 @@ export function buildMusicXmlModel({
     "time signature",
   );
   const preparedNotes = prepareNotes({ notes, openStringPitches });
-  // todo: comment
+  // Trim empty leading measures and rebase notes to the exported score.
   const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
@@ -142,7 +142,7 @@ export function buildMusicXmlModel({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
-  // todo comment
+  // Resolve the active key signature for every exported measure.
   const { preparedLocators, keySignatureEvents } = prepareLocators({
     locators,
     measureDuration,
@@ -154,7 +154,8 @@ export function buildMusicXmlModel({
     measureCount,
     measureDuration,
   });
-  // todo comment
+  // Spell each note in the key where it begins, then assign it to every
+  // measure it spans so tied segments retain the original spelling.
   const notesByMeasure = Array.from(
     { length: measureCount },
     () => [] as QuantizedNote[],
