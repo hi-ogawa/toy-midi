@@ -248,10 +248,8 @@ function buildKeySignaturesByMeasure({
   measureCount: number;
   measureDuration: number;
 }): MeasureKeySignature[] {
-  const eventsByMeasure = Array.from(
-    { length: measureCount },
-    (_, measureIndex) =>
-      events.find((event) => event.position / measureDuration === measureIndex),
+  const eventsByMeasure = range(measureCount).map((measureIndex) =>
+    events.find((event) => event.position / measureDuration === measureIndex),
   );
   const result: MeasureKeySignature[] = [];
   for (let index = 0; index < measureCount; index++) {
@@ -277,9 +275,8 @@ function buildLocatorsByMeasure({
   measureCount: number;
   measureDuration: number;
 }): MusicXmlMeasure["locators"][] {
-  const result = Array.from(
-    { length: measureCount },
-    () => [] as MusicXmlMeasure["locators"],
+  const result: MusicXmlMeasure["locators"][] = range(measureCount).map(
+    () => [],
   );
   for (const locator of locators) {
     if (locator.label === "") {
@@ -308,10 +305,7 @@ function buildNotesByMeasure({
   measureCount: number;
   measureDuration: number;
 }): QuantizedNote[][] {
-  const result = Array.from(
-    { length: measureCount },
-    () => [] as QuantizedNote[],
-  );
+  const result: QuantizedNote[][] = range(measureCount).map(() => []);
   // Spell each note in the key where it begins, then assign it to every
   // measure it spans so tied segments retain the original spelling.
   for (const note of notes) {
@@ -492,6 +486,10 @@ function toGridUnits(value: number, label: string): number {
     throw new Error(`${label} is not aligned to a supported grid`);
   }
   return units;
+}
+
+function range(length: number): number[] {
+  return [...Array(length).keys()];
 }
 
 /** Validates a non-empty tuning of MIDI note numbers. */
