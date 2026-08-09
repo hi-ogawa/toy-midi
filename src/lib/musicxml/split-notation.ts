@@ -82,7 +82,6 @@ export function buildMeasureEvents({
       for (const piece of splitDuration({
         start: cursor,
         duration: noteStart - cursor,
-        durationType: "rest",
         metric,
       })) {
         events.push({
@@ -98,7 +97,6 @@ export function buildMeasureEvents({
     for (const piece of splitDuration({
       start: noteStart,
       duration: noteEnd - noteStart,
-      durationType: "note",
       metric,
     })) {
       const pieceEnd = pieceStart + piece.duration;
@@ -123,7 +121,6 @@ export function buildMeasureEvents({
     for (const piece of splitDuration({
       start: cursor,
       duration: measureDuration - cursor,
-      durationType: "rest",
       metric,
     })) {
       events.push({
@@ -154,12 +151,10 @@ export function buildMeasureEvents({
 function splitDuration({
   start,
   duration,
-  durationType,
   metric,
 }: {
   start: number;
   duration: number;
-  durationType: "note" | "rest";
   metric: MetricContext;
 }): { duration: number; notation: DurationNotation }[] {
   const end = start + duration;
@@ -185,9 +180,7 @@ function splitDuration({
         const suffix = visit(cursor + candidate.duration);
         return {
           candidates: [candidate, ...suffix.candidates],
-          score:
-            scoreCandidate({ candidate, cursor, durationType, metric }) +
-            suffix.score,
+          score: scoreCandidate({ candidate, cursor, metric }) + suffix.score,
         };
       })
       .toSorted(comparePaths)[0];
@@ -216,12 +209,10 @@ function splitDuration({
 function scoreCandidate({
   candidate,
   cursor,
-  durationType,
   metric,
 }: {
   candidate: DurationCandidate;
   cursor: number;
-  durationType: "note" | "rest";
   metric: MetricContext;
 }): number {
   const end = cursor + candidate.duration;
@@ -240,8 +231,7 @@ function scoreCandidate({
       score += 1;
       const crossedStrength = metricStrength(boundary, metric);
       if (crossedStrength > startStrength) {
-        const weight = durationType === "rest" ? 40 : 20;
-        score += (crossedStrength - startStrength) * weight;
+        score += (crossedStrength - startStrength) * 20;
       }
     }
   }
