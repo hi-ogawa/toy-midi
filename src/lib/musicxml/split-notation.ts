@@ -228,11 +228,8 @@ function scoreCandidate({
     boundary += metric.beatDuration
   ) {
     if (cursor < boundary && end > boundary) {
-      score += 1;
       const crossedStrength = metricStrength(boundary, metric);
-      if (crossedStrength > startStrength) {
-        score += crossedStrength - startStrength;
-      }
+      score += 1 + Math.max(crossedStrength - startStrength, 0);
     }
   }
 
