@@ -1,5 +1,6 @@
 import type { Locator, Note, TimeSignature } from "../types";
 import { range } from "../utils/array";
+import { parseLocatorLabel } from "./locators";
 import {
   type KeySignature,
   type SpelledPitch,
@@ -36,13 +37,32 @@ export type MusicXmlExportOptions = MusicXmlModelOptions & {
 export type MusicXmlMeasure = {
   events: MusicXmlMeasureEvent[];
   locators: { label: string; offset: number }[];
+  keySignature?: KeySignature;
 };
 
-type QuantizedNote = {
+type PreparedNote = {
   note: Note;
   start: number;
   end: number;
   tabPosition: TabPosition;
+};
+
+type QuantizedNote = PreparedNote & {
+  pitch: SpelledPitch;
+};
+
+type PreparedLocator = Locator & {
+  keySignature?: KeySignature;
+};
+
+type KeySignatureEvent = {
+  position: number;
+  keySignature: KeySignature;
+};
+
+type MeasureKeySignature = {
+  active: KeySignature;
+  emit: boolean;
 };
 
 export type MusicXmlMeasureEvent =
@@ -109,67 +129,69 @@ export function buildMusicXmlModel({
     "time signature",
   );
   const preparedNotes = prepareNotes({ notes, openStringPitches });
+  const { preparedLocators, keySignatureEvents } = prepareLocators({
+    locators,
+    measureDuration,
+  });
+  // Trim empty leading measures and rebase score items to the exported score.
+  const firstPosition = Math.min(
+    preparedNotes[0].start,
+    preparedLocators[0]?.position ?? Infinity,
+  );
   const firstMeasureStart =
-    Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
+    Math.floor(firstPosition / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
     start: note.start - firstMeasureStart,
     end: note.end - firstMeasureStart,
   }));
+  const quantizedLocators = preparedLocators.map((locator) => ({
+    ...locator,
+    position: locator.position - firstMeasureStart,
+  }));
+  const quantizedKeySignatureEvents = keySignatureEvents.map((event) => ({
+    ...event,
+    position: event.position - firstMeasureStart,
+  }));
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
-  const notesByMeasure: QuantizedNote[][] = range(measureCount).map(() => []);
-  for (const note of quantizedNotes) {
-    const firstMeasure = Math.floor(note.start / measureDuration);
-    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
-    for (let index = firstMeasure; index <= lastMeasure; index++) {
-      notesByMeasure[index].push(note);
-    }
-  }
+  // Resolve the active key signature for every exported measure.
+  const locatorsByMeasure = buildLocatorsByMeasure({
+    locators: quantizedLocators,
+    measureCount,
+    measureDuration,
+  });
+  const keySignaturesByMeasure = buildKeySignaturesByMeasure({
+    initialKeySignature: keySignature,
+    events: quantizedKeySignatureEvents,
+    measureCount,
+    measureDuration,
+  });
+  const notesByMeasure = buildNotesByMeasure({
+    notes: quantizedNotes,
+    keySignaturesByMeasure,
+    measureCount,
+    measureDuration,
+  });
   return {
     measureDuration,
     measures: notesByMeasure.map((notes, index) => {
       const measureStart = index * measureDuration;
+      const measureKeySignature = keySignaturesByMeasure[index];
       return {
         events: buildMeasureEvents({
           notes,
           measureStart,
           measureDuration,
-          keySignature,
         }),
-        locators: buildMeasureLocators({
-          locators,
-          firstMeasureStart,
-          measureStart,
-          measureDuration,
-        }),
+        locators: locatorsByMeasure[index],
+        keySignature: measureKeySignature.emit
+          ? measureKeySignature.active
+          : undefined,
       };
     }),
   };
-}
-
-function buildMeasureLocators({
-  locators,
-  firstMeasureStart,
-  measureStart,
-  measureDuration,
-}: {
-  locators: Locator[];
-  firstMeasureStart: number;
-  measureStart: number;
-  measureDuration: number;
-}): MusicXmlMeasure["locators"] {
-  return locators
-    .map((locator) => ({
-      label: locator.label,
-      offset:
-        toGridUnits(locator.position, `position of locator ${locator.id}`) -
-        firstMeasureStart -
-        measureStart,
-    }))
-    .filter(({ offset }) => offset >= 0 && offset < measureDuration)
-    .sort((a, b) => a.offset - b.offset);
 }
 
 /** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
@@ -179,7 +201,7 @@ function prepareNotes({
 }: {
   notes: Note[];
   openStringPitches: readonly number[];
-}): QuantizedNote[] {
+}): PreparedNote[] {
   const result = notes
     .map((note) => {
       const start = toGridUnits(note.start, `start of note ${note.id}`);
@@ -221,17 +243,144 @@ function prepareNotes({
   return result;
 }
 
+function buildNotesByMeasure({
+  notes,
+  keySignaturesByMeasure,
+  measureCount,
+  measureDuration,
+}: {
+  notes: PreparedNote[];
+  keySignaturesByMeasure: MeasureKeySignature[];
+  measureCount: number;
+  measureDuration: number;
+}): QuantizedNote[][] {
+  const result: QuantizedNote[][] = range(measureCount).map(() => []);
+  // Spell each note in the key where it begins, then assign it to every
+  // measure it spans so tied segments retain the original spelling.
+  for (const note of notes) {
+    const firstMeasure = Math.floor(note.start / measureDuration);
+    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
+    const quantizedNote: QuantizedNote = {
+      ...note,
+      pitch: toWrittenBassPitch(
+        spellMidiPitch({
+          pitch: note.note.pitch,
+          keySignature: keySignaturesByMeasure[firstMeasure].active,
+        }),
+      ),
+    };
+    for (let index = firstMeasure; index <= lastMeasure; index++) {
+      result[index].push(quantizedNote);
+    }
+  }
+  return result;
+}
+
+function prepareLocators({
+  locators,
+  measureDuration,
+}: {
+  locators: Locator[];
+  measureDuration: number;
+}): {
+  preparedLocators: PreparedLocator[];
+  keySignatureEvents: KeySignatureEvent[];
+} {
+  const preparedLocators: PreparedLocator[] = [];
+  const keySignatureEvents: KeySignatureEvent[] = [];
+  for (const locator of locators.toSorted((a, b) => a.position - b.position)) {
+    const position = toGridUnits(
+      locator.position,
+      `position of locator ${locator.id}`,
+    );
+    const parsed = parseLocatorLabel(locator);
+    if (parsed.keySignature && position <= 0) {
+      throw new Error(
+        `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
+      );
+    }
+    if (parsed.keySignature && position % measureDuration !== 0) {
+      throw new Error(
+        `Key signature locator ${locator.id} must be at the start of a measure`,
+      );
+    }
+    if (parsed.keySignature) {
+      if (keySignatureEvents.at(-1)?.position === position) {
+        throw new Error(
+          "Multiple key signature locators are at the same measure",
+        );
+      }
+      keySignatureEvents.push({
+        position,
+        keySignature: parsed.keySignature,
+      });
+    }
+    preparedLocators.push({ id: locator.id, position, ...parsed });
+  }
+  return { preparedLocators, keySignatureEvents };
+}
+
+function buildKeySignaturesByMeasure({
+  initialKeySignature,
+  events,
+  measureCount,
+  measureDuration,
+}: {
+  initialKeySignature: KeySignature;
+  events: KeySignatureEvent[];
+  measureCount: number;
+  measureDuration: number;
+}): MeasureKeySignature[] {
+  const eventsByMeasure = range(measureCount).map((measureIndex) =>
+    events.find((event) => event.position / measureDuration === measureIndex),
+  );
+  const result: MeasureKeySignature[] = [];
+  for (let index = 0; index < measureCount; index++) {
+    const previous = index > 0 ? result[index - 1].active : initialKeySignature;
+    const active = eventsByMeasure[index]?.keySignature ?? previous;
+    result[index] = {
+      active,
+      emit:
+        index === 0 ||
+        active.fifths !== previous!.fifths ||
+        active.mode !== previous!.mode,
+    };
+  }
+  return result;
+}
+
+function buildLocatorsByMeasure({
+  locators,
+  measureCount,
+  measureDuration,
+}: {
+  locators: PreparedLocator[];
+  measureCount: number;
+  measureDuration: number;
+}): MusicXmlMeasure["locators"][] {
+  return range(measureCount).map((measureIndex) =>
+    locators
+      .filter(
+        (locator) =>
+          locator.label !== "" &&
+          Math.floor(locator.position / measureDuration) === measureIndex,
+      )
+      .map((locator) => ({
+        label: locator.label,
+        offset: locator.position - measureIndex * measureDuration,
+      })),
+  );
+}
+
 /** Clips notes to one measure and fills its timeline with notated notes and rests. */
 function buildMeasureEvents({
   notes,
   measureStart,
   measureDuration,
-  keySignature,
 }: {
   notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
-  keySignature: KeySignature;
 }): MusicXmlMeasureEvent[] {
   const events: MusicXmlMeasureEvent[] = [];
   let cursor = 0;
@@ -266,9 +415,7 @@ function buildMeasureEvents({
       const pieceEnd = pieceStart + piece.duration;
       events.push({
         type: "note",
-        pitch: toWrittenBassPitch(
-          spellMidiPitch({ pitch: note.note.pitch, keySignature }),
-        ),
+        pitch: note.pitch,
         duration: piece.duration,
         notation: piece.notation,
         tabPosition: note.tabPosition,
@@ -374,11 +521,6 @@ export function exportMusicXml({
       "attributes",
       hx("divisions", DIVISIONS),
       hx(
-        "key",
-        hx("fifths", keySignature.fifths),
-        hx("mode", keySignature.mode),
-      ),
-      hx(
         "time",
         hx("beats", timeSignature.numerator),
         hx("beat-type", timeSignature.denominator),
@@ -475,10 +617,20 @@ function renderMeasure({
     "measure",
     { number: index + 1 },
     ...initialChildren,
+    measure.keySignature &&
+      hx("attributes", renderKeySignature(measure.keySignature)),
     ...measure.locators.map(renderRehearsalDirection),
     ...measure.events.map((event) => renderEvent(event, 1)),
     hx("backup", hx("duration", measureDuration)),
     ...measure.events.map((event) => renderEvent(event, 2)),
+  );
+}
+
+function renderKeySignature(keySignature: KeySignature): XmlElement {
+  return hx(
+    "key",
+    hx("fifths", keySignature.fifths),
+    hx("mode", keySignature.mode),
   );
 }
 

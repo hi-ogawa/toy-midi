@@ -110,6 +110,29 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       createLocator({ position: 12, label: "C" }),
     ],
   }),
+  createSample({
+    name: "Key changes",
+    description:
+      "Tied accidentals and diatonic notes across flat and sharp keys",
+    tempo: 120,
+    notes: [
+      // A# crosses into G-flat major, where the following pitch is spelled Bb.
+      createNote({ pitch: 34, start: 3.5, duration: 1 }),
+      createNote({ pitch: 34, start: 5, duration: 1 }),
+      // Gb, Bb, and Db are diatonic in G-flat major.
+      createNote({ pitch: 42, start: 6, duration: 0.5 }),
+      createNote({ pitch: 46, start: 6.5, duration: 0.5 }),
+      createNote({ pitch: 49, start: 7, duration: 1 }),
+      // F#, A#, and C# are diatonic in F-sharp major.
+      createNote({ pitch: 42, start: 8, duration: 1 }),
+      createNote({ pitch: 46, start: 9, duration: 1 }),
+      createNote({ pitch: 49, start: 10, duration: 1 }),
+    ],
+    locators: [
+      createLocator({ position: 4, label: "G-flat major [!key: Gb major]" }),
+      createLocator({ position: 8, label: "F-sharp major [!key: F# major]" }),
+    ],
+  }),
 ];
 
 function createSequentialNotes({
