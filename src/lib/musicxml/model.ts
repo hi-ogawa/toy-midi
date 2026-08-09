@@ -11,7 +11,7 @@ import {
   buildMeasureEvents,
   MUSICXML_DIVISIONS,
   type MusicXmlMeasureEvent,
-} from "./measure-events";
+} from "./split-notation";
 
 export type MusicXmlModelOptions = {
   notes: Note[];

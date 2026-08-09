@@ -4,13 +4,13 @@ import {
   type SpelledPitch,
   spellChromaticPitch,
 } from "../pitch-spelling";
-import type { DurationNotation, MusicXmlMeasureEvent } from "./measure-events";
-import { MUSICXML_DIVISIONS } from "./measure-events";
 import {
   buildMusicXmlModel,
   type MusicXmlMeasure,
   type MusicXmlModelOptions,
 } from "./model";
+import type { DurationNotation, MusicXmlMeasureEvent } from "./split-notation";
+import { MUSICXML_DIVISIONS } from "./split-notation";
 import { h, hx, renderXml, type XmlElement, type XmlNode } from "./vdom";
 
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
