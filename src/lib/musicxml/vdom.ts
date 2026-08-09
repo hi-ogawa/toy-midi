@@ -1,3 +1,5 @@
+// Provides format-agnostic XML tree construction and serialization without MusicXML semantics.
+
 export type XmlNode = string | number | false | undefined | XmlElement;
 
 export type XmlElement = {

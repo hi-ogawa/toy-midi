@@ -2,6 +2,8 @@ import type { SpelledPitch } from "../pitch-spelling";
 import type { TabPosition } from "../tab-annotation";
 import type { QuantizedNote } from "./model";
 
+// Splits measure note and silence spans into writable note/rest durations and ties.
+
 export const MUSICXML_DIVISIONS = 12;
 
 export type MusicXmlMeasureEvent =

@@ -13,6 +13,8 @@ import type { DurationNotation, MusicXmlMeasureEvent } from "./split-notation";
 import { MUSICXML_DIVISIONS } from "./split-notation";
 import { h, hx, renderXml, type XmlElement, type XmlNode } from "./vdom";
 
+// Maps the score model to the MusicXML document structure; musical decisions belong in model.ts.
+
 export type MusicXmlExportOptions = MusicXmlModelOptions & {
   tempo: number;
   title: string;

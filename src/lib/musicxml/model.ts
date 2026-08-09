@@ -13,6 +13,8 @@ import {
   type MusicXmlMeasureEvent,
 } from "./split-notation";
 
+// Builds the score model from project notes and locators; XML rendering belongs in render.ts.
+
 export type MusicXmlModelOptions = {
   notes: Note[];
   timeSignature: TimeSignature;
