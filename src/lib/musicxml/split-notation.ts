@@ -149,6 +149,8 @@ function splitDuration({
   metric: MetricContext;
 }): { duration: number; notation: DurationNotation }[] {
   const end = start + duration;
+  // Every recursive state represents the best complete notation from one grid
+  // offset to the fixed end. Memoization avoids re-evaluating shared suffixes.
   const memo = new Map<number, DurationPath>();
 
   function visit(cursor: number): DurationPath {
@@ -160,6 +162,8 @@ function splitDuration({
       return cached;
     }
 
+    // Try every written value that fits, score its local musical effect plus
+    // the best suffix, then retain the best complete path from this offset.
     const result = DURATION_CANDIDATES.filter(
       (candidate) => cursor + candidate.duration <= end,
     )
@@ -200,9 +204,13 @@ function scoreCandidate({
   metric: MetricContext;
 }): number {
   const end = cursor + candidate.duration;
+  // Every symbol has a small cost, so equally musical paths stay compact.
   let score = 1;
   const startStrength = metricStrength(cursor, metric);
 
+  // Crossing a boundary is acceptable when the value begins from an equally
+  // strong position. For example, an aligned half note may cross an ordinary
+  // beat, while a half note from a weak beat should not hide the 4/4 midpoint.
   for (
     let boundary = metric.beatDuration;
     boundary < metric.measureDuration;
@@ -217,6 +225,8 @@ function scoreCandidate({
     }
   }
 
+  // Favor one rhythmic grid within a span. Grid penalties are intentionally
+  // soft because some short fallback durations are needed for arbitrary input.
   if (candidate.triplet) {
     const startsOnTripletGrid = cursor % 4 === 0;
     const endsOnTripletGrid = end % 4 === 0;
@@ -227,6 +237,8 @@ function scoreCandidate({
   return score;
 }
 
+// Higher values represent progressively stronger positions in common meter.
+// The midpoint distinction currently applies only to four-beat measures.
 function metricStrength(position: number, metric: MetricContext): number {
   if (position % metric.measureDuration === 0) {
     return 3;
@@ -250,6 +262,8 @@ function scoreTransition(
   if (!next) {
     return 0;
   }
+  // Avoid switching between ordinary and triplet notation without evidence,
+  // and discourage a large value followed by a tiny cleanup fragment.
   let score = candidate.triplet === next.triplet ? 0 : 8;
   if (next.duration * 4 <= candidate.duration) {
     score += 10;
@@ -258,6 +272,7 @@ function scoreTransition(
 }
 
 function comparePaths(left: DurationPath, right: DurationPath): number {
+  // Musical penalties decide first; symbol count breaks otherwise equal paths.
   return (
     left.score - right.score || left.candidates.length - right.candidates.length
   );
