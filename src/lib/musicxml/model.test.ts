@@ -459,13 +459,11 @@ describe("MusicXML model", () => {
   );
 
   it.each([
-    // TODO: Preserve coherent quarter-triplet values. The first scoring pass
-    // still fragments some 8-unit values at ordinary beat edges.
-    { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
-    { start: 0, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 0, durations: [8, 16], actual: [8, 16] },
     { start: 0, durations: [16, 8], actual: [16, 8] },
-    { start: 2, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
-    { start: 2, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 2, durations: [8, 16], actual: [8, 16] },
     { start: 2, durations: [16, 8], actual: [16, 8] },
   ])(
     "decomposes quarter-note triplet $durations at beat $start",

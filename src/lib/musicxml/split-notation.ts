@@ -180,7 +180,13 @@ function splitDuration({
         const suffix = visit(cursor + candidate.duration);
         return {
           candidates: [candidate, ...suffix.candidates],
-          score: scoreCandidate({ candidate, cursor, metric }) + suffix.score,
+          score:
+            scoreCandidate({
+              candidate,
+              cursor,
+              spanDuration: duration,
+              metric,
+            }) + suffix.score,
         };
       })
       .toSorted(comparePaths)[0];
@@ -209,10 +215,12 @@ function splitDuration({
 function scoreCandidate({
   candidate,
   cursor,
+  spanDuration,
   metric,
 }: {
   candidate: DurationCandidate;
   cursor: number;
+  spanDuration: number;
   metric: MetricContext;
 }): number {
   const end = cursor + candidate.duration;
@@ -232,6 +240,12 @@ function scoreCandidate({
       score += 1 + Math.max(crossedStrength - startStrength, 0);
     }
   }
+
+  // Preserve a complete triplet value instead of splitting it at ordinary beats.
+  if (candidate.triplet && candidate.duration === spanDuration) {
+    score -= 1;
+  }
+
   return score;
 }
 
