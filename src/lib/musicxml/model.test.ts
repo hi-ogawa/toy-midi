@@ -270,10 +270,27 @@ describe("MusicXML model", () => {
     ]);
 
     expect(
-      model.measures[0].events
-        .filter((event) => event.type === "note")
-        .map(({ duration }) => duration),
-    ).toEqual([18, QUARTER_NOTE_DURATION / 3]);
+      model.measures[0].events.filter((event) => event.type === "note"),
+    ).toEqual([
+      {
+        type: "note",
+        pitch: { step: "A", alter: 0, octave: 2 },
+        duration: 1.5 * QUARTER_NOTE_DURATION,
+        notation: { type: "quarter", dots: 1 },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+      {
+        type: "note",
+        pitch: { step: "A", alter: 0, octave: 2 },
+        duration: QUARTER_NOTE_DURATION / 3,
+        notation: { type: "eighth", triplet: true },
+        tabPosition: { tabString: 3, fret: 0 },
+        tieStart: false,
+        tieStop: false,
+      },
+    ]);
   });
 
   it.each([
@@ -497,7 +514,11 @@ describe("MusicXML model", () => {
         tieStart: false,
         tieStop: false,
       },
-      { type: "rest", duration: 24, notation: { type: "half" } },
+      {
+        type: "rest",
+        duration: 2 * QUARTER_NOTE_DURATION,
+        notation: { type: "half" },
+      },
     ]);
   });
 
@@ -525,7 +546,11 @@ describe("MusicXML model", () => {
     // Complete earlier bars disappear, but beats 1 and 2 remain as a half rest.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toEqual([
-      { type: "rest", duration: 24, notation: { type: "half" } },
+      {
+        type: "rest",
+        duration: 2 * QUARTER_NOTE_DURATION,
+        notation: { type: "half" },
+      },
       {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
@@ -561,7 +586,7 @@ describe("MusicXML model", () => {
     // Two complete bars disappear while the four eighth-note rest before the note remains.
     expect(model.measures).toHaveLength(1);
     expect(model.measures[0].events).toMatchObject([
-      { type: "rest", duration: 24 },
+      { type: "rest", duration: 2 * QUARTER_NOTE_DURATION },
       { type: "note", duration: QUARTER_NOTE_DURATION },
     ]);
   });
