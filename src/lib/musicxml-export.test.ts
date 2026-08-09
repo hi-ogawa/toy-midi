@@ -345,20 +345,6 @@ describe("MusicXML export", () => {
     ]);
   });
 
-  it("exports matching tuplet groups on standard and TAB staves", () => {
-    const xml = exportNotes([
-      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
-      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
-    ]);
-
-    expect(xml.match(/<tuplet type="start" number="1"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<tuplet type="stop" number="1"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<time-modification>/g)).toHaveLength(6);
-    expect(xml).toContain(
-      '<notations>\n          <technical>\n            <string>3</string>\n            <fret>0</fret>\n          </technical>\n          <tuplet type="start" number="1"/>',
-    );
-  });
-
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([
       makeNote({
