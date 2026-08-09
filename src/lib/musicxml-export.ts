@@ -248,21 +248,22 @@ function buildKeySignaturesByMeasure({
   measureCount: number;
   measureDuration: number;
 }): MeasureKeySignature[] {
-  let active = initialKeySignature;
-  let eventIndex = 0;
+  const eventsByMeasure = Array.from(
+    { length: measureCount },
+    (_, measureIndex) =>
+      events.find((event) => event.position / measureDuration === measureIndex),
+  );
   const result: MeasureKeySignature[] = [];
-  for (let measureIndex = 0; measureIndex < measureCount; measureIndex++) {
-    const position = measureIndex * measureDuration;
-    let emit = false;
-    while (events[eventIndex]?.position <= position) {
-      const event = events[eventIndex];
-      active = event.keySignature;
-      if (event.position === position) {
-        emit = true;
-      }
-      eventIndex++;
-    }
-    result.push({ active, emit: measureIndex === 0 || emit });
+  for (let index = 0; index < measureCount; index++) {
+    const previous = index > 0 ? result[index - 1].active : initialKeySignature;
+    const active = eventsByMeasure[index]?.keySignature ?? previous;
+    result[index] = {
+      active,
+      emit:
+        index === 0 ||
+        active.fifths !== previous!.fifths ||
+        active.mode !== previous!.mode,
+    };
   }
   return result;
 }
