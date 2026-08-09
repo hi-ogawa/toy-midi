@@ -242,9 +242,7 @@ describe("MusicXML export", () => {
           { id: "second", position: 4, label: "[!key: Eb minor]" },
         ],
       }),
-    ).toThrow(
-      "Key signature locators first and second are at the same measure",
-    );
+    ).toThrow("Multiple key signature locators are at the same measure");
   });
 
   it("splits notes at bar lines and ties the pieces", () => {

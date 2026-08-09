@@ -261,19 +261,16 @@ function prepareLocators({
       return { id: locator.id, position, ...parsed };
     });
 
-  const positions = new Map<number, string>();
   const keySignatureEvents: KeySignatureEvent[] = [];
   for (const locator of prepared) {
     if (!locator.keySignature) {
       continue;
     }
-    const duplicate = positions.get(locator.position);
-    if (duplicate) {
+    if (keySignatureEvents.at(-1)?.position === locator.position) {
       throw new Error(
-        `Key signature locators ${duplicate} and ${locator.id} are at the same measure`,
+        "Multiple key signature locators are at the same measure",
       );
     }
-    positions.set(locator.position, locator.id);
     keySignatureEvents.push({
       position: locator.position,
       keySignature: locator.keySignature,
