@@ -143,20 +143,10 @@ export function buildMusicXmlModel({
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
   // todo comment
-  const preparedLocators = prepareLocators({ locators, measureDuration });
-  const keySignatureEvents = preparedLocators
-    .filter(
-      (
-        locator,
-      ): locator is PreparedLocator & {
-        keySignature: KeySignature;
-      } => locator.keySignature !== undefined,
-    )
-    .map(({ position, keySignature }) => ({
-      position,
-      keySignature,
-    }))
-    .sort((a, b) => a.position - b.position);
+  const { preparedLocators, keySignatureEvents } = prepareLocators({
+    locators,
+    measureDuration,
+  });
   const keySignaturesByMeasure = buildMeasureKeySignatures({
     initialKeySignature: keySignature,
     events: keySignatureEvents,
@@ -246,27 +236,33 @@ function prepareLocators({
 }: {
   locators: Locator[];
   measureDuration: number;
-}): PreparedLocator[] {
-  const prepared = locators.map((locator) => {
-    const position = toGridUnits(
-      locator.position,
-      `position of locator ${locator.id}`,
-    );
-    const parsed = parseLocatorLabel(locator);
-    if (parsed.keySignature && position <= 0) {
-      throw new Error(
-        `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
+}): {
+  preparedLocators: PreparedLocator[];
+  keySignatureEvents: KeySignatureEvent[];
+} {
+  const prepared = locators
+    .toSorted((a, b) => a.position - b.position)
+    .map((locator) => {
+      const position = toGridUnits(
+        locator.position,
+        `position of locator ${locator.id}`,
       );
-    }
-    if (parsed.keySignature && position % measureDuration !== 0) {
-      throw new Error(
-        `Key signature locator ${locator.id} must be at the start of a measure`,
-      );
-    }
-    return { id: locator.id, position, ...parsed };
-  });
+      const parsed = parseLocatorLabel(locator);
+      if (parsed.keySignature && position <= 0) {
+        throw new Error(
+          `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
+        );
+      }
+      if (parsed.keySignature && position % measureDuration !== 0) {
+        throw new Error(
+          `Key signature locator ${locator.id} must be at the start of a measure`,
+        );
+      }
+      return { id: locator.id, position, ...parsed };
+    });
 
   const positions = new Map<number, string>();
+  const keySignatureEvents: KeySignatureEvent[] = [];
   for (const locator of prepared) {
     if (!locator.keySignature) {
       continue;
@@ -278,8 +274,12 @@ function prepareLocators({
       );
     }
     positions.set(locator.position, locator.id);
+    keySignatureEvents.push({
+      position: locator.position,
+      keySignature: locator.keySignature,
+    });
   }
-  return prepared;
+  return { preparedLocators: prepared, keySignatureEvents };
 }
 
 function buildMeasureLocators({
