@@ -4,8 +4,6 @@ import type { TabPosition } from "./tab-annotation";
 
 export const MUSICXML_DIVISIONS = 12;
 
-// DurationNotation describes the written value. DurationPiece.duration remains
-// the performed MusicXML duration, which differs for tuplets.
 export type DurationNotation = {
   type: string;
   dots?: number;
@@ -32,8 +30,7 @@ export type MeasureNote = {
 };
 
 // Raw events preserve authored note boundaries and make every implicit silence
-// explicit before notation values are chosen. Decomposition must never merge
-// across one of these note/rest boundaries.
+// explicit. Notation decomposition may split them, but never merge across them.
 type RawMeasureEvent =
   | { type: "rest"; start: number; end: number }
   | {
@@ -51,14 +48,21 @@ type DurationPiece = {
   notation: DurationNotation;
 };
 
-type MetricContext = {
-  measureDuration: number;
-  beatDuration: number;
+type MetricBoundary = {
+  position: number;
+  strength: number;
 };
 
-// Ordered longest-first so equal-symbol paths prefer longer values. Placement
-// belongs to the metric heuristic below rather than to absolute alignments in
-// this vocabulary.
+type TripletRegion = {
+  start: number;
+  end: number;
+};
+
+type MeasureContext = {
+  boundaries: MetricBoundary[];
+  triplets: TripletRegion[];
+};
+
 const DURATION_CANDIDATES: DurationPiece[] = [
   { duration: 48, notation: { type: "whole" } },
   { duration: 36, notation: { type: "half", dots: 1 } },
@@ -73,7 +77,7 @@ const DURATION_CANDIDATES: DurationPiece[] = [
   { duration: 4, notation: { type: "eighth", triplet: true } },
   { duration: 3, notation: { type: "16th" } },
   { duration: 2, notation: { type: "16th", triplet: true } },
-  { duration: 1, notation: { type: "32nd", triplet: true } },
+  { duration: 1, notation: { type: "32nd" } },
 ];
 
 export function buildMeasureEvents({
@@ -87,12 +91,15 @@ export function buildMeasureEvents({
   measureDuration: number;
   timeSignature: TimeSignature;
 }): MusicXmlMeasureEvent[] {
-  // Build the complete measure first so future tuplet detection can inspect
-  // neighboring notes and rests before either side is decomposed.
   const timeline = buildRawTimeline({ notes, measureStart, measureDuration });
-  const metric = buildMetricContext({ timeSignature });
-
-  return timeline.flatMap((event) => decomposeEvent({ event, metric }));
+  // The complete timeline determines local tuplets before either neighboring
+  // note or rest is decomposed. Every event then shares this measure context.
+  const context = buildMeasureContext({
+    timeline,
+    measureDuration,
+    timeSignature,
+  });
+  return timeline.flatMap((event) => decomposeEvent({ event, context }));
 }
 
 function buildRawTimeline({
@@ -108,9 +115,8 @@ function buildRawTimeline({
   let cursor = 0;
 
   for (const note of notes) {
-    // Notes may be assigned to every measure they overlap. Keep both clipped
-    // and original bounds so notation is measure-local while ties remain aware
-    // of continuations across barlines.
+    // A note may be assigned to every measure it overlaps. Keep original bounds
+    // for ties while clipping the rhythmic event to this measure.
     const originalStart = note.start - measureStart;
     const originalEnd = note.end - measureStart;
     const start = Math.max(originalStart, 0);
@@ -130,33 +136,115 @@ function buildRawTimeline({
     });
     cursor = end;
   }
-
   if (cursor < measureDuration) {
     events.push({ type: "rest", start: cursor, end: measureDuration });
   }
   return events;
 }
 
+function buildMeasureContext({
+  timeline,
+  measureDuration,
+  timeSignature,
+}: {
+  timeline: RawMeasureEvent[];
+  measureDuration: number;
+  timeSignature: TimeSignature;
+}): MeasureContext {
+  const beatDuration = getBeatDuration(timeSignature);
+  const boundaries: MetricBoundary[] = [
+    { position: 0, strength: 3 },
+    { position: measureDuration, strength: 3 },
+  ];
+  for (
+    let position = beatDuration;
+    position < measureDuration;
+    position += beatDuration
+  ) {
+    boundaries.push({
+      position,
+      strength: position * 2 === measureDuration ? 2 : 1,
+    });
+  }
+  return {
+    boundaries,
+    triplets: detectTripletRegions({ timeline, beatDuration, measureDuration }),
+  };
+}
+
+function getBeatDuration(timeSignature: TimeSignature): number {
+  // Compound x/8 meters group three eighth notes into one dotted-quarter beat.
+  if (timeSignature.denominator === 8 && timeSignature.numerator % 3 === 0) {
+    return 1.5 * MUSICXML_DIVISIONS;
+  }
+  return (4 / timeSignature.denominator) * MUSICXML_DIVISIONS;
+}
+
+function detectTripletRegions({
+  timeline,
+  beatDuration,
+  measureDuration,
+}: {
+  timeline: RawMeasureEvent[];
+  beatDuration: number;
+  measureDuration: number;
+}): TripletRegion[] {
+  // Initial support is deliberately limited to 3:2 eighth-note tuplets in one
+  // quarter-note beat. A region needs an authored note boundary on the triplet
+  // grid so ordinary all-silent or binary beats are never inferred as tuplets.
+  if (beatDuration !== MUSICXML_DIVISIONS) {
+    return [];
+  }
+  const noteBoundaries = timeline
+    .filter((event) => event.type === "note")
+    .flatMap((event) => [event.start, event.end]);
+  const regions: TripletRegion[] = [];
+  for (let start = 0; start < measureDuration; start += beatDuration) {
+    const end = start + beatDuration;
+    const hasTripletBoundary = noteBoundaries.some((position) => {
+      const offset = position - start;
+      return (
+        offset === MUSICXML_DIVISIONS / 3 ||
+        offset === (2 * MUSICXML_DIVISIONS) / 3
+      );
+    });
+    if (hasTripletBoundary) {
+      regions.push({ start, end });
+    }
+  }
+  return regions;
+}
+
 function decomposeEvent({
   event,
-  metric,
+  context,
 }: {
   event: RawMeasureEvent;
-  metric: MetricContext;
+  context: MeasureContext;
 }): MusicXmlMeasureEvent[] {
-  // Raw boundaries are fixed, but notation splits inside one raw event are
-  // chosen as a complete path instead of making irreversible greedy choices.
-  const pieces = findFewestPieces({
-    start: event.start,
-    end: event.end,
-    durationType: event.type,
-    metric,
-  });
+  // Split first at tuplet boundaries because no written value can cross into or
+  // out of a tuplet. Metric boundaries remain weighted choices in the search.
+  const regionEdges = context.triplets.flatMap(({ start, end }) => [
+    start,
+    end,
+  ]);
+  const points = [
+    event.start,
+    ...regionEdges.filter((point) => point > event.start && point < event.end),
+    event.end,
+  ].toSorted((left, right) => left - right);
+  const pieces = points.slice(0, -1).flatMap((start, index) =>
+    findBestPieces({
+      start,
+      end: points[index + 1],
+      durationType: event.type,
+      context,
+    }),
+  );
 
   if (event.type === "rest") {
     return pieces.map((piece) => ({ type: "rest", ...piece }));
   }
-
   let cursor = event.start;
   return pieces.map((piece) => {
     const pieceEnd = cursor + piece.duration;
@@ -166,8 +254,6 @@ function decomposeEvent({
       duration: piece.duration,
       notation: piece.notation,
       tabPosition: event.tabPosition,
-      // Every internal split and clipped barline segment belongs to one tied
-      // chain. A single unsplit note has neither marker.
       tieStart: pieceEnd < event.originalEnd,
       tieStop: cursor > event.originalStart,
     };
@@ -176,100 +262,112 @@ function decomposeEvent({
   });
 }
 
-function buildMetricContext({
-  timeSignature,
-}: {
-  timeSignature: TimeSignature;
-}): MetricContext {
-  const measureDuration =
-    timeSignature.numerator *
-    (4 / timeSignature.denominator) *
-    MUSICXML_DIVISIONS;
-  const beatDuration =
-    // Compound x/8 meters group three eighth notes into one dotted-quarter
-    // beat. Other supported meters use the denominator as the beat unit.
-    timeSignature.denominator === 8 && timeSignature.numerator % 3 === 0
-      ? 1.5 * MUSICXML_DIVISIONS
-      : (4 / timeSignature.denominator) * MUSICXML_DIVISIONS;
-  return { measureDuration, beatDuration };
-}
-
-function findFewestPieces({
+function findBestPieces({
   start,
   end,
   durationType,
-  metric,
+  context,
 }: {
   start: number;
   end: number;
   durationType: "note" | "rest";
-  metric: MetricContext;
+  context: MeasureContext;
 }): DurationPiece[] {
-  // The search space is tiny, but memoization makes the complete-path search
-  // linear in reachable grid offsets rather than repeatedly exploring suffixes.
-  const memo = new Map<number, DurationPiece[]>();
+  const memo = new Map<number, DurationPiece[] | undefined>();
+  const triplet = context.triplets.find(
+    (region) => start >= region.start && end <= region.end,
+  );
 
-  function visit(cursor: number): DurationPiece[] {
+  function visit(cursor: number): DurationPiece[] | undefined {
     if (cursor === end) {
       return [];
     }
-    const cached = memo.get(cursor);
-    if (cached) {
-      return cached;
+    if (memo.has(cursor)) {
+      return memo.get(cursor);
     }
-
-    const result = DURATION_CANDIDATES.filter(
-      (candidate) =>
-        cursor + candidate.duration <= end &&
-        isValidPlacement({ candidate, cursor, durationType, metric }),
-    )
-      .map((candidate) => [candidate, ...visit(cursor + candidate.duration)])
-      // Candidate order breaks equal-length ties, preserving the longest-first
-      // vocabulary preference without sacrificing global symbol minimization.
-      .toSorted((left, right) => left.length - right.length)[0];
+    const paths: DurationPiece[][] = [];
+    for (const candidate of DURATION_CANDIDATES) {
+      if (
+        cursor + candidate.duration > end ||
+        Boolean(candidate.notation.triplet) !== Boolean(triplet)
+      ) {
+        continue;
+      }
+      const suffix = visit(cursor + candidate.duration);
+      if (suffix !== undefined) {
+        paths.push([candidate, ...suffix]);
+      }
+    }
+    const result = paths.toSorted((left, right) =>
+      comparePaths({
+        left,
+        right,
+        start: cursor,
+        durationType,
+        context,
+      }),
+    )[0];
     memo.set(cursor, result);
     return result;
   }
-
-  return visit(start);
+  const result = visit(start);
+  if (!result) {
+    throw new Error(
+      `Cannot decompose ${durationType} from ${start} to ${end}${triplet ? " inside triplet" : ""}`,
+    );
+  }
+  return result;
 }
 
-function isValidPlacement({
-  candidate,
-  cursor,
+function comparePaths({
+  left,
+  right,
+  start,
   durationType,
-  metric,
+  context,
 }: {
-  candidate: DurationPiece;
-  cursor: number;
+  left: DurationPiece[];
+  right: DurationPiece[];
+  start: number;
   durationType: "note" | "rest";
-  metric: MetricContext;
-}): boolean {
-  if (candidate.notation.triplet) {
-    // This retains the exporter's existing triplet placement behavior for now.
-    // Measure-wide tuplet regions will replace this absolute phase check so an
-    // equivalent triplet decomposes identically on every beat.
-    return cursor % candidate.duration === 0;
-  }
+  context: MeasureContext;
+}): number {
+  const leftCost = pathCost({ pieces: left, start, durationType, context });
+  const rightCost = pathCost({ pieces: right, start, durationType, context });
+  return leftCost - rightCost || left.length - right.length;
+}
 
-  const end = cursor + candidate.duration;
-  // Ordinary beat-sized and longer values start on their own metric raster.
-  // This prevents a dotted value from winning merely because it fits the
-  // remaining arithmetic duration while crossing stronger beat structure.
-  if (
-    candidate.duration >= metric.beatDuration &&
-    cursor % candidate.duration !== 0
-  ) {
-    return false;
-  }
-  // In 4/4, preserve the central accent for notes. This is the first concrete
-  // boundary-strength rule; a later metric hierarchy can generalize it across
-  // time signatures and apply stricter tolerances to rests.
-  if (durationType === "note" && metric.measureDuration === 48) {
-    const midpoint = metric.measureDuration / 2;
-    if (cursor < midpoint && end > midpoint) {
-      return false;
+function pathCost({
+  pieces,
+  start,
+  durationType,
+  context,
+}: {
+  pieces: DurationPiece[];
+  start: number;
+  durationType: "note" | "rest";
+  context: MeasureContext;
+}): number {
+  let cursor = start;
+  let cost = 0;
+  for (const piece of pieces) {
+    const end = cursor + piece.duration;
+    for (const boundary of context.boundaries) {
+      if (boundary.position > cursor && boundary.position < end) {
+        if (
+          durationType === "rest" &&
+          cursor % piece.duration === 0 &&
+          end % piece.duration === 0
+        ) {
+          continue;
+        }
+        // Rests preserve every beat boundary. Notes may cross weak beat
+        // boundaries, but not the stronger midpoint or measure boundaries.
+        const tolerance = durationType === "note" ? 1 : 0;
+        cost += Math.max(0, boundary.strength - tolerance) * 100;
+      }
     }
+    cursor = end;
   }
-  return true;
+  return cost;
 }

@@ -92,19 +92,10 @@ describe("MusicXML measure events", () => {
         },
         {
           type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        {
-          type: "rest",
-          duration: 9,
-          notation: { type: "eighth", dots: 1 },
-        },
-        {
-          type: "rest",
-          duration: 2,
-          notation: { type: "16th", triplet: true },
-        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
         { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
@@ -119,14 +110,10 @@ describe("MusicXML measure events", () => {
         },
         {
           type: "rest",
-          duration: 16,
-          notation: { type: "half", triplet: true },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        {
-          type: "rest",
-          duration: 16,
-          notation: { type: "half", triplet: true },
-        },
+        { type: "rest", duration: 24, notation: { type: "half" } },
       ],
     },
     {
@@ -140,14 +127,10 @@ describe("MusicXML measure events", () => {
         },
         {
           type: "rest",
-          duration: 4,
-          notation: { type: "eighth", triplet: true },
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
         },
-        {
-          type: "rest",
-          duration: 16,
-          notation: { type: "half", triplet: true },
-        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
       ],
     },
     {
