@@ -231,7 +231,7 @@ function scoreCandidate({
       score += 1;
       const crossedStrength = metricStrength(boundary, metric);
       if (crossedStrength > startStrength) {
-        score += (crossedStrength - startStrength) * 20;
+        score += crossedStrength - startStrength;
       }
     }
   }
