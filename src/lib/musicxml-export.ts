@@ -193,6 +193,88 @@ export function buildMusicXmlModel({
   };
 }
 
+/** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
+function prepareNotes({
+  notes,
+  openStringPitches,
+}: {
+  notes: Note[];
+  openStringPitches: readonly number[];
+}): PreparedNote[] {
+  const result = notes
+    .map((note) => {
+      const start = toGridUnits(note.start, `start of note ${note.id}`);
+      const duration = toGridUnits(
+        note.duration,
+        `duration of note ${note.id}`,
+      );
+      if (start < 0) {
+        throw new Error(`Note ${note.id} starts before beat 0`);
+      }
+      if (duration <= 0) {
+        throw new Error(`Note ${note.id} must have a positive duration`);
+      }
+      const tabPosition = resolveTabPosition({
+        pitch: note.pitch,
+        openStringPitches,
+        tabString: note.tabString,
+      });
+      if (!tabPosition) {
+        throw new Error(
+          `MIDI note ${note.pitch} is not playable on a ${openStringPitches.length}-string bass`,
+        );
+      }
+      return { note, start, end: start + duration, tabPosition };
+    })
+    .sort((a, b) => a.start - b.start || a.note.pitch - b.note.pitch);
+
+  // TODO: Support strict chords first. Partial overlaps can be authored as split
+  // monophonic notes, but simultaneous notes cannot be represented without
+  // MusicXML <chord/>. Group identical start/end times, assign distinct TAB
+  // strings, and leave unequal-duration overlaps for future voice scheduling.
+  for (let index = 1; index < result.length; index++) {
+    if (result[index].start < result[index - 1].end) {
+      throw new Error(
+        `Polyphonic or overlapping notes ${result[index - 1].note.id} and ${result[index].note.id} are not supported`,
+      );
+    }
+  }
+  return result;
+}
+
+function buildNotesByMeasure({
+  notes,
+  keySignaturesByMeasure,
+  measureCount,
+  measureDuration,
+}: {
+  notes: PreparedNote[];
+  keySignaturesByMeasure: MeasureKeySignature[];
+  measureCount: number;
+  measureDuration: number;
+}): QuantizedNote[][] {
+  const result: QuantizedNote[][] = range(measureCount).map(() => []);
+  // Spell each note in the key where it begins, then assign it to every
+  // measure it spans so tied segments retain the original spelling.
+  for (const note of notes) {
+    const firstMeasure = Math.floor(note.start / measureDuration);
+    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
+    const quantizedNote: QuantizedNote = {
+      ...note,
+      pitch: toWrittenBassPitch(
+        spellMidiPitch({
+          pitch: note.note.pitch,
+          keySignature: keySignaturesByMeasure[firstMeasure].active,
+        }),
+      ),
+    };
+    for (let index = firstMeasure; index <= lastMeasure; index++) {
+      result[index].push(quantizedNote);
+    }
+  }
+  return result;
+}
+
 function prepareLocators({
   locators,
   measureDuration,
@@ -290,88 +372,6 @@ function buildLocatorsByMeasure({
       label: locator.label,
       offset: locator.position - measureIndex * measureDuration,
     });
-  }
-  return result;
-}
-
-function buildNotesByMeasure({
-  notes,
-  keySignaturesByMeasure,
-  measureCount,
-  measureDuration,
-}: {
-  notes: PreparedNote[];
-  keySignaturesByMeasure: MeasureKeySignature[];
-  measureCount: number;
-  measureDuration: number;
-}): QuantizedNote[][] {
-  const result: QuantizedNote[][] = range(measureCount).map(() => []);
-  // Spell each note in the key where it begins, then assign it to every
-  // measure it spans so tied segments retain the original spelling.
-  for (const note of notes) {
-    const firstMeasure = Math.floor(note.start / measureDuration);
-    const lastMeasure = Math.ceil(note.end / measureDuration) - 1;
-    const quantizedNote: QuantizedNote = {
-      ...note,
-      pitch: toWrittenBassPitch(
-        spellMidiPitch({
-          pitch: note.note.pitch,
-          keySignature: keySignaturesByMeasure[firstMeasure].active,
-        }),
-      ),
-    };
-    for (let index = firstMeasure; index <= lastMeasure; index++) {
-      result[index].push(quantizedNote);
-    }
-  }
-  return result;
-}
-
-/** Quantizes notes, resolves TAB positions, orders them, and rejects polyphony. */
-function prepareNotes({
-  notes,
-  openStringPitches,
-}: {
-  notes: Note[];
-  openStringPitches: readonly number[];
-}): PreparedNote[] {
-  const result = notes
-    .map((note) => {
-      const start = toGridUnits(note.start, `start of note ${note.id}`);
-      const duration = toGridUnits(
-        note.duration,
-        `duration of note ${note.id}`,
-      );
-      if (start < 0) {
-        throw new Error(`Note ${note.id} starts before beat 0`);
-      }
-      if (duration <= 0) {
-        throw new Error(`Note ${note.id} must have a positive duration`);
-      }
-      const tabPosition = resolveTabPosition({
-        pitch: note.pitch,
-        openStringPitches,
-        tabString: note.tabString,
-      });
-      if (!tabPosition) {
-        throw new Error(
-          `MIDI note ${note.pitch} is not playable on a ${openStringPitches.length}-string bass`,
-        );
-      }
-      return { note, start, end: start + duration, tabPosition };
-    })
-    .sort((a, b) => a.start - b.start || a.note.pitch - b.note.pitch);
-
-  // TODO: Support strict chords first. Partial overlaps can be authored as split
-  // monophonic notes, but simultaneous notes cannot be represented without
-  // MusicXML <chord/>. Group identical start/end times, assign distinct TAB
-  // strings, and leave unequal-duration overlaps for future voice scheduling.
-  for (let index = 1; index < result.length; index++) {
-    if (result[index].start < result[index - 1].end) {
-      throw new Error(
-        `Polyphonic or overlapping notes ${result[index - 1].note.id} and ${result[index].note.id} are not supported`,
-      );
-    }
   }
   return result;
 }
