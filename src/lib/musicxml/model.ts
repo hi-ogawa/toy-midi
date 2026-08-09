@@ -9,7 +9,6 @@ import {
 import { resolveTabPosition, type TabPosition } from "../tab-annotation";
 import {
   buildMeasureEvents,
-  type MetricContext,
   MUSICXML_DIVISIONS,
   type MusicXmlMeasureEvent,
 } from "./split-notation";
