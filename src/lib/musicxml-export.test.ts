@@ -322,6 +322,42 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it.each([
+    // TODO: Preserve the quarter note as [12].
+    { start: 0.5, duration: 1, actual: [9, 3] },
+    // TODO: Preserve the eighth note as [6].
+    { start: 0.25, duration: 0.5, actual: [3, 3] },
+    { start: 1, duration: 2, actual: [12, 12] },
+  ])(
+    "decomposes a $duration-beat note after a rest at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map((event) => event.duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
+  it("decomposes trailing silence after a quarter note", () => {
+    const model = buildModel([makeNote({ start: 0, duration: 1 })]);
+
+    expect(model.measures[0].events).toMatchObject([
+      {
+        type: "note",
+        duration: 12,
+        notation: { type: "quarter" },
+      },
+      {
+        type: "rest",
+        duration: 12,
+        notation: { type: "quarter" },
+      },
+      { type: "rest", duration: 24, notation: { type: "half" } },
+    ]);
+  });
+
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([
       makeNote({
