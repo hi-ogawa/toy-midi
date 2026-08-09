@@ -240,43 +240,38 @@ function prepareLocators({
   preparedLocators: PreparedLocator[];
   keySignatureEvents: KeySignatureEvent[];
 } {
-  const prepared = locators
-    .toSorted((a, b) => a.position - b.position)
-    .map((locator) => {
-      const position = toGridUnits(
-        locator.position,
-        `position of locator ${locator.id}`,
-      );
-      const parsed = parseLocatorLabel(locator);
-      if (parsed.keySignature && position <= 0) {
-        throw new Error(
-          `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
-        );
-      }
-      if (parsed.keySignature && position % measureDuration !== 0) {
-        throw new Error(
-          `Key signature locator ${locator.id} must be at the start of a measure`,
-        );
-      }
-      return { id: locator.id, position, ...parsed };
-    });
-
+  const preparedLocators: PreparedLocator[] = [];
   const keySignatureEvents: KeySignatureEvent[] = [];
-  for (const locator of prepared) {
-    if (!locator.keySignature) {
-      continue;
-    }
-    if (keySignatureEvents.at(-1)?.position === locator.position) {
+  for (const locator of locators.toSorted((a, b) => a.position - b.position)) {
+    const position = toGridUnits(
+      locator.position,
+      `position of locator ${locator.id}`,
+    );
+    const parsed = parseLocatorLabel(locator);
+    if (parsed.keySignature && position <= 0) {
       throw new Error(
-        "Multiple key signature locators are at the same measure",
+        `Key signature locator ${locator.id} must be after beat 0; use the project key signature for the initial key`,
       );
     }
-    keySignatureEvents.push({
-      position: locator.position,
-      keySignature: locator.keySignature,
-    });
+    if (parsed.keySignature && position % measureDuration !== 0) {
+      throw new Error(
+        `Key signature locator ${locator.id} must be at the start of a measure`,
+      );
+    }
+    if (parsed.keySignature) {
+      if (keySignatureEvents.at(-1)?.position === position) {
+        throw new Error(
+          "Multiple key signature locators are at the same measure",
+        );
+      }
+      keySignatureEvents.push({
+        position,
+        keySignature: parsed.keySignature,
+      });
+    }
+    preparedLocators.push({ id: locator.id, position, ...parsed });
   }
-  return { preparedLocators: prepared, keySignatureEvents };
+  return { preparedLocators, keySignatureEvents };
 }
 
 function buildMeasureLocators({
