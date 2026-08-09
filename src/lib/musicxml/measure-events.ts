@@ -1,5 +1,6 @@
 import type { SpelledPitch } from "../pitch-spelling";
 import type { TabPosition } from "../tab-annotation";
+import type { QuantizedNote } from "./model";
 
 export const MUSICXML_DIVISIONS = 12;
 
@@ -19,14 +20,6 @@ export type DurationNotation = {
   type: string;
   dots?: number;
   triplet?: boolean;
-};
-
-// TODO: unify PreparedNote/QuantizedNote
-export type MeasureNote = {
-  start: number;
-  end: number;
-  pitch: SpelledPitch;
-  tabPosition: TabPosition;
 };
 
 type DurationCandidate = DurationNotation & {
@@ -59,7 +52,7 @@ export function buildMeasureEvents({
   measureStart,
   measureDuration,
 }: {
-  notes: MeasureNote[];
+  notes: QuantizedNote[];
   measureStart: number;
   measureDuration: number;
 }): MusicXmlMeasureEvent[] {

@@ -34,7 +34,7 @@ type PreparedNote = {
   tabPosition: TabPosition;
 };
 
-type QuantizedNote = PreparedNote & {
+export type QuantizedNote = PreparedNote & {
   pitch: SpelledPitch;
 };
 
