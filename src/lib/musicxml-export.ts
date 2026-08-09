@@ -130,6 +130,17 @@ export function buildMusicXmlModel({
     timeSignature.numerator * (4 / timeSignature.denominator),
     "time signature",
   );
+  const preparedNotes = prepareNotes({ notes, openStringPitches });
+  const firstMeasureStart =
+    Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
+  const quantizedNotes = preparedNotes.map((note) => ({
+    ...note,
+    start: note.start - firstMeasureStart,
+    end: note.end - firstMeasureStart,
+  }));
+  const measureCount = Math.ceil(
+    quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
+  );
   const preparedLocators = prepareLocators({ locators, measureDuration });
   const keySignatureEvents = preparedLocators
     .filter(
@@ -144,17 +155,6 @@ export function buildMusicXmlModel({
       keySignature,
     }))
     .sort((a, b) => a.position - b.position);
-  const preparedNotes = prepareNotes({ notes, openStringPitches });
-  const firstMeasureStart =
-    Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
-  const quantizedNotes = preparedNotes.map((note) => ({
-    ...note,
-    start: note.start - firstMeasureStart,
-    end: note.end - firstMeasureStart,
-  }));
-  const measureCount = Math.ceil(
-    quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
-  );
   const keySignaturesByMeasure = buildMeasureKeySignatures({
     initialKeySignature: keySignature,
     events: keySignatureEvents,
