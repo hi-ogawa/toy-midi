@@ -415,20 +415,21 @@ describe("MusicXML export", () => {
     },
   );
 
+  // TODO: discuss what's the expectation
   it.each([
-    // TODO: Preserve the quarter note as [12].
+    // TODO: Preserve the quarter note as [12]?
     {
       start: 0.5,
       duration: 1,
       actual: [9, 3],
     },
-    // TODO: Preserve the eighth note as [6].
+    // TODO: Preserve the eighth note as [6]?
     {
       start: 0.25,
       duration: 0.5,
       actual: [3, 3],
     },
-    // TODO: Preserve the half note as [24].
+    // TODO: Preserve the half note as [24]?
     {
       start: 1,
       duration: 2,
@@ -446,14 +447,15 @@ describe("MusicXML export", () => {
     },
   );
 
+  // TODO: discuss what's the expectation
   it.each([
     { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
-    // TODO: Preserve as [8, 16].
+    // TODO: Preserve as [8, 16]?
     { start: 0, durations: [8, 16], actual: [8, 8, 8] },
     { start: 0, durations: [16, 8], actual: [16, 8] },
     { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
     { start: 2, durations: [8, 16], actual: [8, 16] },
-    // TODO: Preserve as [16, 8].
+    // TODO: Preserve as [16, 8]?
     { start: 2, durations: [16, 8], actual: [12, 4, 8] },
   ])(
     "decomposes quarter-note triplet $durations at beat $start",
