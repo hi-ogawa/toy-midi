@@ -12,18 +12,18 @@ export function parseLocatorLabel(locator: Locator): {
   const labelWithoutDirectives = locator.label.replace(
     /\[!([a-z][a-z0-9-]*):\s*([^\]]*)\]/gi,
     (_directive, name: string, value: string) => {
-      if (name.toLowerCase() !== "key") {
-        throw new Error(
-          `Unknown score directive ${name} in locator ${locator.id}`,
-        );
+      if (name.toLowerCase() === "key") {
+        if (keySignature) {
+          throw new Error(
+            `Locator ${locator.id} has multiple key signature directives`,
+          );
+        }
+        keySignature = parseKeySignature(value, locator.id);
+        return "";
       }
-      if (keySignature) {
-        throw new Error(
-          `Locator ${locator.id} has multiple key signature directives`,
-        );
-      }
-      keySignature = parseKeySignature(value, locator.id);
-      return "";
+      throw new Error(
+        `Unknown score directive ${name} in locator ${locator.id}`,
+      );
     },
   );
   if (labelWithoutDirectives.includes("[!")) {
