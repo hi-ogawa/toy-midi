@@ -232,16 +232,6 @@ function scoreCandidate({
       score += 1 + Math.max(crossedStrength - startStrength, 0);
     }
   }
-
-  // Favor one rhythmic grid within a span. Grid penalties are intentionally
-  // soft because some short fallback durations are needed for arbitrary input.
-  if (candidate.triplet) {
-    const startsOnTripletGrid = cursor % 4 === 0;
-    const endsOnTripletGrid = end % 4 === 0;
-    score += startsOnTripletGrid && endsOnTripletGrid ? 0 : 12;
-  } else if (cursor % 3 !== 0 || end % 3 !== 0) {
-    score += 8;
-  }
   return score;
 }
 
