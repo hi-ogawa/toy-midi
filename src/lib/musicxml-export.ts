@@ -457,9 +457,11 @@ function splitDuration({
   let cursor = start;
   let remaining = duration;
   while (remaining > 0) {
-    // Prefer the longest notation value that starts on its valid beat boundary.
+    // Prefer the longest value aligned to its own grid. Triplets may also start
+    // where they complete a supported one- or two-beat tuplet span.
     const candidate = DURATION_CANDIDATES.find(
-      (item) => item.duration <= remaining && cursor % item.alignment === 0,
+      (item) =>
+        item.duration <= remaining && isCandidateAligned({ item, cursor }),
     )!;
     result.push({
       duration: candidate.duration,
@@ -473,6 +475,23 @@ function splitDuration({
     remaining -= candidate.duration;
   }
   return result;
+}
+
+function isCandidateAligned({
+  item,
+  cursor,
+}: {
+  item: DurationCandidate;
+  cursor: number;
+}): boolean {
+  if (cursor % item.alignment === 0) {
+    return true;
+  }
+  // Allow written quarter-triplet values or shorter to complete the beat.
+  if (item.triplet && item.duration <= DIVISIONS) {
+    return (cursor + item.duration) % DIVISIONS === 0;
+  }
+  return false;
 }
 
 /** Converts quarter-note beats to integer MusicXML divisions and rejects off-grid values. */
