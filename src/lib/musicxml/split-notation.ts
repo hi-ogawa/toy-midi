@@ -237,8 +237,8 @@ function scoreCandidate({
     boundary += metric.beatDuration
   ) {
     if (cursor < boundary && end > boundary) {
-      const crossedStrength = metricStrength(boundary, metric);
       score += 1;
+      const crossedStrength = metricStrength(boundary, metric);
       if (crossedStrength > startStrength) {
         const weight = durationType === "rest" ? 40 : 20;
         score += (crossedStrength - startStrength) * weight;
