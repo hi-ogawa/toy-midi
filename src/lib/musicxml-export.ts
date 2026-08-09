@@ -457,10 +457,25 @@ function splitDuration({
   let cursor = start;
   let remaining = duration;
   while (remaining > 0) {
+    const offsetInBeat = cursor % DIVISIONS;
+    const tripletCompletion =
+      offsetInBeat !== 0 && offsetInBeat % (DIVISIONS / 3) === 0
+        ? DURATION_CANDIDATES.find(
+            (item) =>
+              item.triplet && item.duration === DIVISIONS - offsetInBeat,
+          )
+        : undefined;
     // Prefer the longest notation value that starts on its valid beat boundary.
-    const candidate = DURATION_CANDIDATES.find(
-      (item) => item.duration <= remaining && cursor % item.alignment === 0,
-    )!;
+    const candidate =
+      (tripletCompletion && tripletCompletion.duration <= remaining
+        ? tripletCompletion
+        : undefined) ??
+      DURATION_CANDIDATES.find(
+        (item) =>
+          item.duration <= remaining &&
+          cursor % item.alignment === 0 &&
+          (item.duration <= DIVISIONS || cursor % item.duration === 0),
+      )!;
     result.push({
       duration: candidate.duration,
       notation: {

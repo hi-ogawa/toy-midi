@@ -322,6 +322,123 @@ describe("MusicXML export", () => {
     ]);
   });
 
+  it.each([
+    {
+      start: 0,
+      actual: [
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 1,
+      actual: [
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 24, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 2,
+      actual: [
+        { type: "rest", duration: 24, notation: { type: "half" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+      ],
+    },
+    {
+      start: 3,
+      actual: [
+        {
+          type: "rest",
+          duration: 36,
+          notation: { type: "half", dots: 1 },
+        },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+      ],
+    },
+  ])(
+    "decomposes an eighth-note triplet at beat $start",
+    ({ start, actual }) => {
+      const model = buildModel([makeNote({ start, duration: 1 / 3 })]);
+
+      expect(model.measures[0].events).toMatchObject(actual);
+    },
+  );
+
+  it.each([
+    // TODO: Preserve as [8, 8, 8].
+    { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
+    // TODO: Preserve as [8, 16].
+    { start: 0, durations: [8, 16], actual: [8, 4, 12] },
+    { start: 0, durations: [16, 8], actual: [16, 8] },
+    // TODO: Preserve as [8, 8, 8].
+    { start: 2, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
+    // TODO: Preserve as [8, 16].
+    { start: 2, durations: [8, 16], actual: [8, 4, 12] },
+    // TODO: Preserve as [16, 8].
+    { start: 2, durations: [16, 8], actual: [12, 4, 8] },
+  ])(
+    "decomposes quarter-note triplet $durations at beat $start",
+    ({ start, durations, actual }) => {
+      let position = start;
+      const model = buildModel(
+        durations.map((duration, index) => {
+          const note = makeNote({
+            id: `triplet-${index}`,
+            start: position,
+            duration: duration / QUARTER_NOTE_DURATION,
+          });
+          position += duration / QUARTER_NOTE_DURATION;
+          return note;
+        }),
+      );
+
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map(({ duration }) => duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([
       makeNote({
