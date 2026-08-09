@@ -404,6 +404,37 @@ describe("MusicXML export", () => {
   );
 
   it.each([
+    // TODO: Preserve the quarter note as [12].
+    {
+      start: 0.5,
+      duration: 1,
+      actual: [9, 3],
+    },
+    // TODO: Preserve the eighth note as [6].
+    {
+      start: 0.25,
+      duration: 0.5,
+      actual: [3, 3],
+    },
+    // TODO: Preserve the half note as [24].
+    {
+      start: 1,
+      duration: 2,
+      actual: [12, 12],
+    },
+  ])(
+    "decomposes a $duration-beat note after a rest at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map((event) => event.duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
+  it.each([
     // TODO: Preserve as [8, 8, 8].
     { start: 0, durations: [8, 8, 8], actual: [8, 4, 4, 8] },
     // TODO: Preserve as [8, 16].
