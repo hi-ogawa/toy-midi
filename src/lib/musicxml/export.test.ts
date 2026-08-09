@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { Note } from "../../types";
 import { TAB_STRING_PRESETS } from "../tab-annotation";
 import { exportMusicXml, type MusicXmlExportOptions } from "./export";
+import { MUSICXML_DIVISIONS } from "./measure-events";
 import { buildMusicXmlModel, type MusicXmlModelOptions } from "./model";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
-// Keep in sync with the exporter's divisions per quarter note.
-const QUARTER_NOTE_DURATION = 12;
+const QUARTER_NOTE_DURATION = MUSICXML_DIVISIONS;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {

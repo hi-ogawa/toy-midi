@@ -13,8 +13,6 @@ import {
   type MusicXmlMeasureEvent,
 } from "./measure-events";
 
-const EPSILON = 1e-6;
-
 export type MusicXmlModelOptions = {
   notes: Note[];
   timeSignature: TimeSignature;
@@ -317,6 +315,8 @@ function buildLocatorsByMeasure({
       })),
   );
 }
+
+const EPSILON = 1e-6;
 
 function toGridUnits(value: number, label: string): number {
   const units = Math.round(value * MUSICXML_DIVISIONS);

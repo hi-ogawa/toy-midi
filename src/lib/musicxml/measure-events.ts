@@ -3,14 +3,7 @@ import type { TabPosition } from "../tab-annotation";
 
 export const MUSICXML_DIVISIONS = 12;
 
-export type DurationNotation = {
-  type: string;
-  dots?: number;
-  triplet?: boolean;
-};
-
 export type MusicXmlMeasureEvent =
-  | { type: "rest"; duration: number; notation: DurationNotation }
   | {
       type: "note";
       pitch: SpelledPitch;
@@ -19,8 +12,16 @@ export type MusicXmlMeasureEvent =
       tabPosition: TabPosition;
       tieStart: boolean;
       tieStop: boolean;
-    };
+    }
+  | { type: "rest"; duration: number; notation: DurationNotation };
 
+export type DurationNotation = {
+  type: string;
+  dots?: number;
+  triplet?: boolean;
+};
+
+// TODO: unify PreparedNote/QuantizedNote
 export type MeasureNote = {
   start: number;
   end: number;
