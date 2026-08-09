@@ -26,9 +26,14 @@ export type MusicXmlModelResult = {
   measures: MusicXmlMeasure[];
 };
 
+export type MusicXmlLocator = {
+  label: string;
+  offset: number;
+};
+
 export type MusicXmlMeasure = {
   events: MusicXmlMeasureEvent[];
-  locators: { label: string; offset: number }[];
+  locators: MusicXmlLocator[];
   keySignature?: KeySignature;
 };
 
@@ -303,7 +308,7 @@ function buildLocatorsByMeasure({
   locators: PreparedLocator[];
   measureCount: number;
   measureDuration: number;
-}): MusicXmlMeasure["locators"][] {
+}): MusicXmlLocator[][] {
   return range(measureCount).map((measureIndex) =>
     locators
       .filter(
