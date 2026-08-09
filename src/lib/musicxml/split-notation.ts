@@ -227,7 +227,7 @@ function scoreCandidate({
     boundary < metric.measureDuration;
     boundary += metric.beatDuration
   ) {
-    if (cursor < boundary && end > boundary) {
+    if (cursor < boundary && boundary < end) {
       const crossedStrength = metricStrength(boundary, metric);
       score += 1 + Math.max(crossedStrength - startStrength, 0);
     }
@@ -248,7 +248,7 @@ function scoreCandidate({
 // Higher values represent progressively stronger positions in common meter.
 // The midpoint distinction currently applies only to four-beat measures.
 function metricStrength(position: number, metric: MetricContext): number {
-  if (position % metric.measureDuration === 0) {
+  if (position === 0) {
     return 3;
   }
   if (
