@@ -43,6 +43,12 @@ export function ScoreViewer({
   const [showRehearsalMarks, setShowRehearsalMarks] = useState(true);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
+  useEffect(() => {
+    document.title = score
+      ? `${score.name} - Toy MIDI`
+      : "Score Viewer - Toy MIDI";
+  }, [score]);
+
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
   const runtimeState = useSyncExternalStore(
