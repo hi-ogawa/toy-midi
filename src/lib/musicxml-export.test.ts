@@ -172,7 +172,7 @@ describe("MusicXML export", () => {
     ]);
   });
 
-  it("uses a directive before trimmed measures as the initial score key", () => {
+  it("preserves a leading key directive measure", () => {
     const model = buildModel(
       [
         // Bb at bar 3
@@ -186,14 +186,14 @@ describe("MusicXML export", () => {
       },
     );
 
-    expect(model.measures.length).toBe(1);
+    expect(model.measures.length).toBe(2);
     expect(model.measures[0].keySignature).toEqual({
       fifths: -3,
       mode: "major",
     });
     expect(model.measures[0].locators).toEqual([]);
     expect(
-      model.measures[0].events.find((event) => event.type === "note"),
+      model.measures[1].events.find((event) => event.type === "note"),
     ).toMatchObject({
       type: "note",
       pitch: { step: "B", alter: -1, octave: 2 },

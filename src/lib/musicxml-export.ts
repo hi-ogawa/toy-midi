@@ -128,26 +128,37 @@ export function buildMusicXmlModel({
     "time signature",
   );
   const preparedNotes = prepareNotes({ notes, openStringPitches });
-  // Trim empty leading measures and rebase notes to the exported score.
+  const { preparedLocators, keySignatureEvents } = prepareLocators({
+    locators,
+    measureDuration,
+  });
+  // Trim empty leading measures and rebase score items to the exported score.
+  const firstPosition = Math.min(
+    preparedNotes[0].start,
+    preparedLocators[0]?.position ?? Infinity,
+  );
   const firstMeasureStart =
-    Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
+    Math.floor(firstPosition / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
     start: note.start - firstMeasureStart,
     end: note.end - firstMeasureStart,
   }));
+  const quantizedLocators = preparedLocators.map((locator) => ({
+    ...locator,
+    position: locator.position - firstMeasureStart,
+  }));
+  const quantizedKeySignatureEvents = keySignatureEvents.map((event) => ({
+    ...event,
+    position: event.position - firstMeasureStart,
+  }));
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
   // Resolve the active key signature for every exported measure.
-  const { preparedLocators, keySignatureEvents } = prepareLocators({
-    locators,
-    measureDuration,
-  });
   const keySignaturesByMeasure = buildMeasureKeySignatures({
     initialKeySignature: keySignature,
-    events: keySignatureEvents,
-    firstMeasureStart,
+    events: quantizedKeySignatureEvents,
     measureCount,
     measureDuration,
   });
@@ -185,8 +196,7 @@ export function buildMusicXmlModel({
           measureDuration,
         }),
         locators: buildMeasureLocators({
-          locators: preparedLocators,
-          firstMeasureStart,
+          locators: quantizedLocators,
           measureStart,
           measureDuration,
         }),
@@ -245,13 +255,11 @@ function prepareLocators({
 function buildMeasureKeySignatures({
   initialKeySignature,
   events,
-  firstMeasureStart,
   measureCount,
   measureDuration,
 }: {
   initialKeySignature: KeySignature;
   events: KeySignatureEvent[];
-  firstMeasureStart: number;
   measureCount: number;
   measureDuration: number;
 }): MeasureKeySignature[] {
@@ -259,7 +267,7 @@ function buildMeasureKeySignatures({
   let eventIndex = 0;
   const result: MeasureKeySignature[] = [];
   for (let measureIndex = 0; measureIndex < measureCount; measureIndex++) {
-    const position = firstMeasureStart + measureIndex * measureDuration;
+    const position = measureIndex * measureDuration;
     let emit = false;
     while (events[eventIndex]?.position <= position) {
       const event = events[eventIndex];
@@ -276,12 +284,10 @@ function buildMeasureKeySignatures({
 
 function buildMeasureLocators({
   locators,
-  firstMeasureStart,
   measureStart,
   measureDuration,
 }: {
   locators: PreparedLocator[];
-  firstMeasureStart: number;
   measureStart: number;
   measureDuration: number;
 }): MusicXmlMeasure["locators"] {
@@ -289,7 +295,7 @@ function buildMeasureLocators({
     .filter((locator) => locator.label !== "")
     .map((locator) => ({
       label: locator.label,
-      offset: locator.position - firstMeasureStart - measureStart,
+      offset: locator.position - measureStart,
     }))
     .filter(({ offset }) => offset >= 0 && offset < measureDuration)
     .sort((a, b) => a.offset - b.offset);
