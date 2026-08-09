@@ -317,6 +317,3 @@ function escapeXml(value: string): string {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 }
-
-export { buildMusicXmlModel } from "./model";
-export type { MusicXmlModelOptions } from "./model";
