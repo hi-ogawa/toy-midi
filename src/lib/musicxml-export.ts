@@ -131,6 +131,7 @@ export function buildMusicXmlModel({
     "time signature",
   );
   const preparedNotes = prepareNotes({ notes, openStringPitches });
+  // todo: comment
   const firstMeasureStart =
     Math.floor(preparedNotes[0].start / measureDuration) * measureDuration;
   const quantizedNotes = preparedNotes.map((note) => ({
@@ -141,6 +142,7 @@ export function buildMusicXmlModel({
   const measureCount = Math.ceil(
     quantizedNotes[quantizedNotes.length - 1].end / measureDuration,
   );
+  // todo comment
   const preparedLocators = prepareLocators({ locators, measureDuration });
   const keySignatureEvents = preparedLocators
     .filter(
@@ -162,6 +164,7 @@ export function buildMusicXmlModel({
     measureCount,
     measureDuration,
   });
+  // todo comment
   const notesByMeasure = Array.from(
     { length: measureCount },
     () => [] as QuantizedNote[],
