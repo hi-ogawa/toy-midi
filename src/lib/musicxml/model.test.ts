@@ -380,9 +380,9 @@ describe("MusicXML model", () => {
       makeNote({ id: "one-b", start: 1 / 3, duration: 1 / 3 }),
       makeNote({ id: "one-c", start: 2 / 3, duration: 1 / 3 }),
       makeNote({ id: "one-two-a", start: 1, duration: 1 / 3 }),
-      makeNote({ id: "one-two-b", start: 4 / 3, duration: 2 / 3 }),
+      makeNote({ id: "one-two-b", start: 1 + 1 / 3, duration: 2 / 3 }),
       makeNote({ id: "two-one-a", start: 2, duration: 2 / 3 }),
-      makeNote({ id: "two-one-b", start: 8 / 3, duration: 1 / 3 }),
+      makeNote({ id: "two-one-b", start: 2 + 2 / 3, duration: 1 / 3 }),
     ]);
 
     expect(
@@ -391,13 +391,13 @@ describe("MusicXML model", () => {
         boundary: event.notation.tupletBoundary,
       })),
     ).toEqual([
-      { duration: 4, boundary: "start" },
-      { duration: 4, boundary: undefined },
-      { duration: 4, boundary: "stop" },
-      { duration: 4, boundary: "start" },
-      { duration: 8, boundary: "stop" },
-      { duration: 8, boundary: "start" },
-      { duration: 4, boundary: "stop" },
+      { duration: QUARTER_NOTE_DURATION / 3, boundary: "start" },
+      { duration: QUARTER_NOTE_DURATION / 3, boundary: undefined },
+      { duration: QUARTER_NOTE_DURATION / 3, boundary: "stop" },
+      { duration: QUARTER_NOTE_DURATION / 3, boundary: "start" },
+      { duration: (QUARTER_NOTE_DURATION * 2) / 3, boundary: "stop" },
+      { duration: (QUARTER_NOTE_DURATION * 2) / 3, boundary: "start" },
+      { duration: QUARTER_NOTE_DURATION / 3, boundary: "stop" },
     ]);
   });
 
