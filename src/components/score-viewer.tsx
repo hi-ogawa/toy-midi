@@ -185,20 +185,22 @@ export function ScoreViewer({
             />
           </label>
         </div>
-        <Button
-          data-testid="score-settings-button"
-          onClick={() => setIsSettingsOpen((open) => !open)}
-          aria-pressed={isSettingsOpen}
-          title="Score settings"
-          aria-label="Score settings"
-          className={cn(
-            "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-            isSettingsOpen &&
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-          )}
-        >
-          <SlidersHorizontalIcon className="size-5" />
-        </Button>
+        <div className="ml-2">
+          <Button
+            data-testid="score-settings-button"
+            onClick={() => setIsSettingsOpen((open) => !open)}
+            aria-pressed={isSettingsOpen}
+            title="Score settings"
+            aria-label="Score settings"
+            className={cn(
+              "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+              isSettingsOpen &&
+                "bg-primary text-primary-foreground hover:bg-primary/90",
+            )}
+          >
+            <SlidersHorizontalIcon className="size-5" />
+          </Button>
+        </div>
 
         <div className="flex-1" />
 
