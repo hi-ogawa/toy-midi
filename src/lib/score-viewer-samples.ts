@@ -159,8 +159,9 @@ function createSequentialNotes({
 }
 
 function createTripletNotes() {
-  // Enumerate every note/rest assignment for the 1+1+1, 1+2, and 2+1
-  // partitions of three triplet units.
+  // Enumerate every note/rest assignment across three triplet units. The
+  // exporter decides whether adjacent equal segments consolidate to 1+2 or
+  // 2+1 notation because separate consecutive rests cannot be authored.
   const patterns = [
     [tripletNote(1), tripletNote(1), tripletNote(1)],
     [tripletNote(1), tripletNote(1), tripletRest(1)],
@@ -170,23 +171,15 @@ function createTripletNotes() {
     [tripletRest(1), tripletNote(1), tripletRest(1)],
     [tripletRest(1), tripletRest(1), tripletNote(1)],
     [tripletRest(1), tripletRest(1), tripletRest(1)],
-    [tripletNote(1), tripletNote(2)],
-    [tripletNote(1), tripletRest(2)],
-    [tripletRest(1), tripletNote(2)],
-    [tripletRest(1), tripletRest(2)],
-    [tripletNote(2), tripletNote(1)],
-    [tripletNote(2), tripletRest(1)],
-    [tripletRest(2), tripletNote(1)],
-    [tripletRest(2), tripletRest(1)],
   ];
 
   // A segment occupies one or two triplet units and either emits a note or
   // leaves that duration for the exporter to fill with a rest.
-  function tripletNote(units: 1 | 2) {
+  function tripletNote(units: 1) {
     return { units, note: true } as const;
   }
 
-  function tripletRest(units: 1 | 2) {
+  function tripletRest(units: 1) {
     return { units, note: false } as const;
   }
 
@@ -196,8 +189,10 @@ function createTripletNotes() {
   for (const [section, beatDuration] of [1, 2].entries()) {
     for (const [patternIndex, pattern] of patterns.entries()) {
       let unit = 0;
-      // Place the quarter-triplet section after all 16 eighth-triplet beats.
-      const beat = section * patterns.length + patternIndex * beatDuration;
+      // Reserve one ordinary beat after every pattern for an anchor note.
+      const patternDuration = beatDuration + 1;
+      const sectionStart = section * patterns.length * patternDuration;
+      const beat = sectionStart + patternIndex * patternDuration;
       for (const [index, segment] of pattern.entries()) {
         if (segment.note) {
           notes.push(
@@ -212,6 +207,14 @@ function createTripletNotes() {
         }
         unit += segment.units;
       }
+      // Close trailing rest spans before the next pattern begins.
+      notes.push(
+        createNote({
+          pitch: SAMPLE_PITCHES[(patternIndex + 3) % SAMPLE_PITCHES.length],
+          start: beat + beatDuration,
+          duration: 1,
+        }),
+      );
     }
   }
   return notes;
