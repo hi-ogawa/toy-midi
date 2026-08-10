@@ -7,6 +7,7 @@ import {
   PauseIcon,
   PlayIcon,
   RotateCcwIcon,
+  SlidersHorizontalIcon,
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -16,9 +17,11 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
+import { ScoreSettings } from "./score-settings";
 import {
-  type ScoreLayout,
+  INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreSource,
+  type ScoreViewerSettings,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
 import { Button } from "./ui/button";
@@ -28,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
 
 export function ScoreViewer({
@@ -38,9 +42,8 @@ export function ScoreViewer({
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
-  const [layout, setLayout] = useState<ScoreLayout>("continuous");
-  const [showTitle, setShowTitle] = useState(true);
-  const [showRehearsalMarks, setShowRehearsalMarks] = useState(true);
+  const [settings, setSettings] = useState(INITIAL_SCORE_VIEWER_SETTINGS);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   useEffect(() => {
@@ -83,14 +86,10 @@ export function ScoreViewer({
 
   const loadMutation = useMutation({
     mutationFn: async ({
-      layout,
-      showTitle,
-      showRehearsalMarks,
+      settings,
       source,
     }: {
-      layout: ScoreLayout;
-      showTitle: boolean;
-      showRehearsalMarks: boolean;
+      settings: ScoreViewerSettings;
       source: File | ScoreSource;
     }) => {
       const nextScore =
@@ -99,9 +98,7 @@ export function ScoreViewer({
           : source;
       await runtime.load({
         score: nextScore,
-        layout,
-        showTitle,
-        showRehearsalMarks,
+        settings,
       });
       setScore(nextScore);
     },
@@ -114,55 +111,19 @@ export function ScoreViewer({
     staleTime: Infinity,
     queryFn: async () => {
       loadMutation.mutate({
-        layout,
-        showTitle,
-        showRehearsalMarks,
+        settings,
         source: initialSource!,
       });
       return true;
     },
   });
 
-  function changeLayout(nextLayout: ScoreLayout) {
-    if (nextLayout === layout) {
-      return;
-    }
-    setLayout(nextLayout);
+  function changeSettings(update: Partial<ScoreViewerSettings>) {
+    const nextSettings = { ...settings, ...update };
+    setSettings(nextSettings);
     if (score) {
       loadMutation.mutate({
-        layout: nextLayout,
-        showTitle,
-        showRehearsalMarks,
-        source: score,
-      });
-    }
-  }
-
-  function changeTitleVisible(visible: boolean) {
-    if (visible === showTitle) {
-      return;
-    }
-    setShowTitle(visible);
-    if (score) {
-      loadMutation.mutate({
-        layout,
-        showTitle: visible,
-        showRehearsalMarks,
-        source: score,
-      });
-    }
-  }
-
-  function changeRehearsalMarksVisible(visible: boolean) {
-    if (visible === showRehearsalMarks) {
-      return;
-    }
-    setShowRehearsalMarks(visible);
-    if (score) {
-      loadMutation.mutate({
-        layout,
-        showTitle,
-        showRehearsalMarks: visible,
+        settings: nextSettings,
         source: score,
       });
     }
@@ -172,7 +133,7 @@ export function ScoreViewer({
     <main
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
-        layout === "paged" && "score-viewer-root-paged",
+        settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
@@ -223,54 +184,23 @@ export function ScoreViewer({
               className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
             />
           </label>
-
-          <label className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">Layout</span>
-            <select
-              aria-label="Layout"
-              value={layout}
-              onChange={(event) =>
-                changeLayout(event.currentTarget.value as ScoreLayout)
-              }
-              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
-            >
-              <option value="continuous">Continuous</option>
-              <option value="paged">Paged</option>
-            </select>
-          </label>
-
-          <label className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">Title</span>
-            <select
-              aria-label="Title"
-              value={showTitle ? "show" : "hide"}
-              onChange={(event) =>
-                changeTitleVisible(event.currentTarget.value === "show")
-              }
-              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
-            >
-              <option value="show">Show</option>
-              <option value="hide">Hide</option>
-            </select>
-          </label>
-
-          <label className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">Section labels</span>
-            <select
-              aria-label="Section labels"
-              value={showRehearsalMarks ? "show" : "hide"}
-              onChange={(event) =>
-                changeRehearsalMarksVisible(
-                  event.currentTarget.value === "show",
-                )
-              }
-              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
-            >
-              <option value="show">Show</option>
-              <option value="hide">Hide</option>
-            </select>
-          </label>
         </div>
+        <div className="h-5 w-px bg-border" />
+
+        <Button
+          data-testid="score-settings-button"
+          onClick={() => setIsSettingsOpen((open) => !open)}
+          aria-pressed={isSettingsOpen}
+          title="Score settings"
+          aria-label="Score settings"
+          className={cn(
+            "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            isSettingsOpen &&
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          <SlidersHorizontalIcon className="size-5" />
+        </Button>
 
         <div className="flex-1" />
 
@@ -292,9 +222,7 @@ export function ScoreViewer({
               inputProps={{ "aria-label": "Open MusicXML" }}
               onFile={(file) =>
                 loadMutation.mutate({
-                  layout,
-                  showTitle,
-                  showRehearsalMarks,
+                  settings,
                   source: file,
                 })
               }
@@ -316,9 +244,7 @@ export function ScoreViewer({
                     key={sample.name}
                     onSelect={() =>
                       loadMutation.mutate({
-                        layout,
-                        showTitle,
-                        showRehearsalMarks,
+                        settings,
                         source: { name: sample.name, xml: sample.xml },
                       })
                     }
@@ -365,9 +291,7 @@ export function ScoreViewer({
               inputProps={{ "aria-label": "Upload MusicXML" }}
               onFile={(file) =>
                 loadMutation.mutate({
-                  layout,
-                  showTitle,
-                  showRehearsalMarks,
+                  settings,
                   source: file,
                 })
               }
@@ -394,6 +318,16 @@ export function ScoreViewer({
         data-testid="score-viewer-runtime-root"
         className="min-h-0 flex-1"
       />
+      {isSettingsOpen && (
+        <FloatingPanel
+          closeLabel="Close Score Settings"
+          onClose={() => setIsSettingsOpen(false)}
+          title="Score settings"
+          testId="score-settings-panel"
+        >
+          <ScoreSettings settings={settings} onChange={changeSettings} />
+        </FloatingPanel>
+      )}
     </main>
   );
 }

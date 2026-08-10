@@ -19,6 +19,20 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 
 export type ScoreLayout = "continuous" | "paged";
 
+export type ScoreViewerSettings = {
+  layout: ScoreLayout;
+  showSectionLabels: boolean;
+  showTitle: boolean;
+  titleSpacing: number;
+};
+
+export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
+  layout: "continuous",
+  showSectionLabels: true,
+  showTitle: true,
+  titleSpacing: 0,
+};
+
 export type ScoreSource = {
   name: string;
   xml: string;
@@ -144,28 +158,22 @@ export class ScoreViewerRuntime {
 
   async load({
     score,
-    layout,
-    showTitle,
-    showRehearsalMarks,
+    settings,
   }: {
     score: ScoreSource;
-    layout: ScoreLayout;
-    showTitle: boolean;
-    showRehearsalMarks: boolean;
+    settings: ScoreViewerSettings;
   }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
-    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
-    this.#osmd.setOptions({ drawTitle: showTitle });
-    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
+    applyEngravingSettings(this.#osmd, settings);
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
 
     this.#sheet.className =
-      layout === "continuous"
+      settings.layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
@@ -280,6 +288,16 @@ export class ScoreViewerRuntime {
       listener();
     }
   }
+}
+
+function applyEngravingSettings(
+  osmd: OpenSheetMusicDisplay,
+  settings: ScoreViewerSettings,
+) {
+  osmd.setPageFormat(settings.layout === "paged" ? "A4_P" : "Endless");
+  osmd.setOptions({ drawTitle: settings.showTitle });
+  osmd.EngravingRules.RenderRehearsalMarks = settings.showSectionLabels;
+  osmd.EngravingRules.TitleBottomDistance = settings.titleSpacing;
 }
 
 function secondsToScoreTime(seconds: number, tempo: number) {
