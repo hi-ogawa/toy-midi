@@ -159,6 +159,8 @@ function createSequentialNotes({
 }
 
 function createTripletNotes() {
+  // Enumerate every note/rest assignment for the 1+1+1, 1+2, and 2+1
+  // partitions of three triplet units.
   const patterns = [
     [tripletNote(1), tripletNote(1), tripletNote(1)],
     [tripletNote(1), tripletNote(1), tripletRest(1)],
@@ -178,6 +180,8 @@ function createTripletNotes() {
     [tripletRest(2), tripletRest(1)],
   ];
 
+  // A segment occupies one or two triplet units and either emits a note or
+  // leaves that duration for the exporter to fill with a rest.
   function tripletNote(units: 1 | 2) {
     return { units, note: true } as const;
   }
@@ -186,15 +190,19 @@ function createTripletNotes() {
     return { units, note: false } as const;
   }
 
+  // One-beat groups produce written eighth-note triplets, while two-beat
+  // groups produce written quarter-note triplets from the same partitions.
   return [1, 2].flatMap((beatDuration, section) =>
     patterns.flatMap((pattern, patternIndex) => {
       let unit = 0;
+      // Place the quarter-triplet section after all 16 eighth-triplet beats.
       const beat = section * patterns.length + patternIndex * beatDuration;
       return pattern.flatMap((segment, index) => {
         const note = segment.note
           ? createNote({
               pitch:
                 SAMPLE_PITCHES[(patternIndex + index) % SAMPLE_PITCHES.length],
+              // Convert the segment's triplet-unit offset and length to beats.
               start: beat + (unit * beatDuration) / 3,
               duration: (segment.units * beatDuration) / 3,
             })
