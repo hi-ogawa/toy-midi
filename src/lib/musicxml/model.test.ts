@@ -7,6 +7,7 @@ import { MUSICXML_DIVISIONS } from "./split-notation";
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 const QUARTER_NOTE_DURATION = MUSICXML_DIVISIONS;
+const TRIPLET = QUARTER_NOTE_DURATION / 3;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -391,13 +392,13 @@ describe("MusicXML model", () => {
         boundary: event.notation.tupletBoundary,
       })),
     ).toEqual([
-      { duration: QUARTER_NOTE_DURATION / 3, boundary: "start" },
-      { duration: QUARTER_NOTE_DURATION / 3, boundary: undefined },
-      { duration: QUARTER_NOTE_DURATION / 3, boundary: "stop" },
-      { duration: QUARTER_NOTE_DURATION / 3, boundary: "start" },
-      { duration: (QUARTER_NOTE_DURATION * 2) / 3, boundary: "stop" },
-      { duration: (QUARTER_NOTE_DURATION * 2) / 3, boundary: "start" },
-      { duration: QUARTER_NOTE_DURATION / 3, boundary: "stop" },
+      { duration: TRIPLET, boundary: "start" },
+      { duration: TRIPLET, boundary: undefined },
+      { duration: TRIPLET, boundary: "stop" },
+      { duration: TRIPLET, boundary: "start" },
+      { duration: TRIPLET * 2, boundary: "stop" },
+      { duration: TRIPLET * 2, boundary: "start" },
+      { duration: TRIPLET, boundary: "stop" },
     ]);
   });
 
@@ -414,9 +415,9 @@ describe("MusicXML model", () => {
         boundary: event.notation.tupletBoundary,
       })),
     ).toEqual([
-      { type: "note", duration: 4, boundary: "start" },
-      { type: "rest", duration: 4, boundary: undefined },
-      { type: "note", duration: 4, boundary: "stop" },
+      { type: "note", duration: TRIPLET, boundary: "start" },
+      { type: "rest", duration: TRIPLET, boundary: undefined },
+      { type: "note", duration: TRIPLET, boundary: "stop" },
     ]);
     expect(
       model.measures[0].events
