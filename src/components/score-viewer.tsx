@@ -185,17 +185,6 @@ export function ScoreViewer({
             />
           </label>
         </div>
-
-        <div className="flex-1" />
-
-        <span
-          data-testid="score-name"
-          title={score?.name}
-          className="max-w-[220px] truncate text-sm text-neutral-300"
-        >
-          {score?.name ?? "No score loaded"}
-        </span>
-
         <Button
           data-testid="score-settings-button"
           onClick={() => setIsSettingsOpen((open) => !open)}
@@ -210,6 +199,16 @@ export function ScoreViewer({
         >
           <SlidersHorizontalIcon className="size-5" />
         </Button>
+
+        <div className="flex-1" />
+
+        <span
+          data-testid="score-name"
+          title={score?.name}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
+        >
+          {score?.name ?? "No score loaded"}
+        </span>
 
         {!initialSource && (
           <>
