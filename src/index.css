@@ -87,16 +87,16 @@
     background: white;
   }
 
-  .score-viewer-root-paged > [data-testid="score-viewer-runtime-root"],
-  .score-viewer-root-paged [data-testid="score-viewer-scroll"],
-  .score-viewer-root-paged [data-testid="score-viewer-sheet"] {
-    height: auto;
-  }
-
   .score-viewer-root-paged > header,
   [data-testid="score-viewer-cursor"],
   [data-testid="score-viewer-measure-layers"] {
     display: none;
+  }
+
+  .score-viewer-root-paged > [data-testid="score-viewer-runtime-root"],
+  .score-viewer-root-paged [data-testid="score-viewer-scroll"],
+  .score-viewer-root-paged [data-testid="score-viewer-sheet"] {
+    height: auto;
   }
 
   [data-testid="score-viewer-scroll"] {
@@ -110,7 +110,6 @@
     gap: 0;
   }
 
-  /* OSMD assigns these IDs to its generated page wrappers and SVGs. */
   .score-viewer-root-paged
     [data-testid="score-viewer-renderer"]
     > [id^="osmdCanvasPage"]:not(:last-child) {
