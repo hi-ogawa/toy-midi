@@ -11,7 +11,6 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
   const titleSpacingInput = useDraftInput({
     value: settings.titleSpacing,
     onCommit: (titleSpacing) => onChange({ titleSpacing }),
-    min: 0,
     step: 0.5,
     parse: "float",
   });

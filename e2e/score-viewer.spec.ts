@@ -277,6 +277,14 @@ test("adjusts title spacing", async ({ page }) => {
   await expect
     .poll(async () => (await firstMeasure.boundingBox())!.y)
     .toBeGreaterThan(normalTop);
+
+  const relaxedTop = (await firstMeasure.boundingBox())!.y;
+  await page.getByLabel("Title spacing").fill("-1");
+  await page.getByLabel("Title spacing").press("Enter");
+  await expect(page.getByLabel("Title spacing")).toHaveValue("-1");
+  await expect
+    .poll(async () => (await firstMeasure.boundingBox())!.y)
+    .toBeLessThan(relaxedTop);
 });
 
 async function loadSample(page: Page, name: string) {
