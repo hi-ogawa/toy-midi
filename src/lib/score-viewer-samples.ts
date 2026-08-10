@@ -43,8 +43,9 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
-    name: "Eighth-note triplets",
-    description: "All note and rest combinations for eighth-note triplets",
+    name: "Triplets",
+    description:
+      "All note and rest combinations for eighth and quarter triplets",
     tempo: 120,
     notes: createTripletNotes(),
   }),
@@ -185,20 +186,24 @@ function createTripletNotes() {
     return { units, note: false } as const;
   }
 
-  return patterns.flatMap((pattern, beat) => {
-    let unit = 0;
-    return pattern.flatMap((segment, index) => {
-      const note = segment.note
-        ? createNote({
-            pitch: SAMPLE_PITCHES[(beat + index) % SAMPLE_PITCHES.length],
-            start: beat + unit / 3,
-            duration: segment.units / 3,
-          })
-        : [];
-      unit += segment.units;
-      return note;
-    });
-  });
+  return [1, 2].flatMap((beatDuration, section) =>
+    patterns.flatMap((pattern, patternIndex) => {
+      let unit = 0;
+      const beat = section * patterns.length + patternIndex * beatDuration;
+      return pattern.flatMap((segment, index) => {
+        const note = segment.note
+          ? createNote({
+              pitch:
+                SAMPLE_PITCHES[(patternIndex + index) % SAMPLE_PITCHES.length],
+              start: beat + (unit * beatDuration) / 3,
+              duration: (segment.units * beatDuration) / 3,
+            })
+          : [];
+        unit += segment.units;
+        return note;
+      });
+    }),
+  );
 }
 
 function createPrintNotes() {
