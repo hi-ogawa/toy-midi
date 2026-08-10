@@ -333,7 +333,9 @@ function buildCursorPositions(
   // pages to their rendered DOM pages to convert cursor y positions to the
   // shared container coordinate space.
   const containerBounds = container.getBoundingClientRect();
-  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
   const pageOffsets = new Map(
     osmd.GraphicSheet.MusicPages.map((page, index) => [
       page,
@@ -398,7 +400,9 @@ function buildMeasureTargets(
   container: HTMLDivElement,
 ) {
   const sheetBounds = layers.parentElement!.getBoundingClientRect();
-  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
   const pageLayers: HTMLDivElement[] = [];
   for (const [pageIndex, page] of osmd.GraphicSheet.MusicPages.entries()) {
     const pageElement = pageElements[pageIndex];
