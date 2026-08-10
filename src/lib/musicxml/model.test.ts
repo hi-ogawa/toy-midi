@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Note } from "../types";
-import {
-  buildMusicXmlModel,
-  exportMusicXml,
-  type MusicXmlExportOptions,
-  type MusicXmlModelOptions,
-} from "./musicxml-export";
-import { TAB_STRING_PRESETS } from "./tab-annotation";
+import type { Note } from "../../types";
+import { TAB_STRING_PRESETS } from "../tab-annotation";
+import { buildMusicXmlModel, type MusicXmlModelOptions } from "./model";
+import { MUSICXML_DIVISIONS } from "./split-notation";
 
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
-// Keep in sync with the exporter's divisions per quarter note.
-const QUARTER_NOTE_DURATION = 12;
+const QUARTER_NOTE_DURATION = MUSICXML_DIVISIONS;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -22,22 +17,6 @@ function makeNote(options: Partial<Note> = {}): Note {
     velocity: 100,
     ...options,
   };
-}
-
-function exportNotes(
-  notes: Note[],
-  options: Partial<MusicXmlExportOptions> = {},
-): string {
-  return exportMusicXml({
-    notes,
-    locators: [],
-    tempo: 120,
-    title: "Test Score",
-    keySignature: { fifths: 0, mode: "major" },
-    timeSignature: { numerator: 4, denominator: 4 },
-    openStringPitches: FIVE_STRING_PITCHES,
-    ...options,
-  });
 }
 
 function buildModel(
@@ -54,15 +33,7 @@ function buildModel(
   });
 }
 
-describe("MusicXML export", () => {
-  it("exports synchronized standard and five-string TAB staves", async () => {
-    const xml = exportNotes([makeNote()], { title: "Rock & Roll <Bass>" });
-
-    await expect(xml).toMatchFileSnapshot(
-      "__snapshots__/five-string-tab.musicxml",
-    );
-  });
-
+describe("MusicXML model", () => {
   it("preserves an explicit TAB string assignment", () => {
     const model = buildModel([makeNote({ tabString: 4 })]);
 
@@ -321,6 +292,202 @@ describe("MusicXML export", () => {
       },
     ]);
   });
+
+  it.each([
+    {
+      start: 0,
+      actual: [
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        { type: "rest", duration: 24, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 1,
+      actual: [
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 24, notation: { type: "half" } },
+      ],
+    },
+    {
+      start: 2,
+      actual: [
+        { type: "rest", duration: 24, notation: { type: "half" } },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+        { type: "rest", duration: 12, notation: { type: "quarter" } },
+      ],
+    },
+    {
+      start: 3,
+      actual: [
+        {
+          type: "rest",
+          duration: 36,
+          notation: { type: "half", dots: 1 },
+        },
+        {
+          type: "note",
+          duration: 4,
+          notation: { type: "eighth", triplet: true },
+        },
+        {
+          type: "rest",
+          duration: 8,
+          notation: { type: "quarter", triplet: true },
+        },
+      ],
+    },
+  ])(
+    "decomposes an eighth-note triplet at beat $start",
+    ({ start, actual }) => {
+      const model = buildModel([makeNote({ start, duration: 1 / 3 })]);
+
+      expect(model.measures[0].events).toMatchObject(actual);
+    },
+  );
+
+  // 16th notes examples from the bass line in Billlie's "OFF AIR".
+  // https://www.youtube.com/watch?v=knp40WxQgOI
+  it("characterizes rests around a 16th pickup into beat 3", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 0.5 }),
+      makeNote({ id: "pickup", start: 1.75, duration: 0.25 }),
+      makeNote({ id: "downbeat", start: 2, duration: 0.5 }),
+    ]);
+
+    // MuseScore splits the pre-pickup silence as [6, 6, 3], while [6, 9] is
+    // also conventional. Future heuristic tuning may prefer either engraving.
+    expect(
+      model.measures[0].events.map(({ type, duration }) => [type, duration]),
+    ).toEqual([
+      ["note", 6],
+      ["rest", 6],
+      ["rest", 9],
+      ["note", 3],
+      ["note", 6],
+      ["rest", 6],
+      ["rest", 12],
+    ]);
+  });
+
+  // Keep syncopated spans compact while exposing strong beat boundaries where
+  // the onset or continuation makes them musically significant.
+  it.each([
+    { start: 0.25, duration: 0.75, actual: [9] },
+    { start: 1.75, duration: 1.25, actual: [3, 12] },
+    { start: 1.75, duration: 1.75, actual: [3, 18] },
+    { start: 0, duration: 1.75, actual: [12, 9] },
+    { start: 1.25, duration: 1.25, actual: [9, 6] },
+  ])(
+    "characterizes a syncopated $duration-beat note at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events.filter(
+        (event) => event.type === "note",
+      );
+
+      expect(noteEvents.map((event) => event.duration)).toEqual(actual);
+      expect(
+        noteEvents.map(({ tieStart, tieStop }) => ({ tieStart, tieStop })),
+      ).toEqual(
+        actual.map((_, index) => ({
+          tieStart: index < actual.length - 1,
+          tieStop: index > 0,
+        })),
+      );
+    },
+  );
+
+  it.each([
+    // Split around the beat boundary rather than hiding it with a dotted value.
+    {
+      start: 0.5,
+      duration: 1,
+      actual: [6, 6],
+    },
+    // Preserve the complete eighth note even though it begins on a subdivision.
+    {
+      start: 0.25,
+      duration: 0.5,
+      actual: [6],
+    },
+    // Preserve the strong midpoint of 4/4 rather than writing a half note
+    // across it.
+    {
+      start: 1,
+      duration: 2,
+      actual: [12, 12],
+    },
+  ])(
+    "decomposes a $duration-beat note after a rest at beat $start",
+    ({ start, duration, actual }) => {
+      const model = buildModel([makeNote({ start, duration })]);
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map((event) => event.duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
+
+  it.each([
+    { start: 0, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 0, durations: [8, 16], actual: [8, 16] },
+    { start: 0, durations: [16, 8], actual: [16, 8] },
+    { start: 2, durations: [8, 8, 8], actual: [8, 8, 8] },
+    { start: 2, durations: [8, 16], actual: [8, 16] },
+    { start: 2, durations: [16, 8], actual: [16, 8] },
+  ])(
+    "decomposes quarter-note triplet $durations at beat $start",
+    ({ start, durations, actual }) => {
+      let position = start;
+      const model = buildModel(
+        durations.map((duration, index) => {
+          const note = makeNote({
+            id: `triplet-${index}`,
+            start: position,
+            duration: duration / QUARTER_NOTE_DURATION,
+          });
+          position += duration / QUARTER_NOTE_DURATION;
+          return note;
+        }),
+      );
+
+      const noteEvents = model.measures[0].events
+        .filter((event) => event.type === "note")
+        .map(({ duration }) => duration);
+
+      expect(noteEvents).toEqual(actual);
+    },
+  );
 
   it("fills gaps and remaining measure time with rests", () => {
     const model = buildModel([

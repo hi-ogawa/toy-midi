@@ -6,6 +6,7 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("score-viewer-link").click();
   await expect(page).toHaveURL(/\/score-viewer$/);
+  await expect(page).toHaveTitle("Score Viewer - Toy MIDI");
 
   await page.getByRole("button", { name: "More" }).click();
   await page.getByTestId("all-projects-menu-item").click();
@@ -39,6 +40,7 @@ test("opens the latest project state as a score in a new tab", async ({
 
   await expect(page.getByTestId("settings-dialog")).not.toBeVisible();
   await expect(scorePage).toHaveURL(`/project/${projectId}/score`);
+  await expect(scorePage).toHaveTitle("Untitled.musicxml - Toy MIDI");
   await expect(scorePage.getByTestId("score-name")).toHaveText(
     "Untitled.musicxml",
   );
@@ -63,10 +65,11 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page
     .getByLabel("Upload MusicXML")
     .setInputFiles(
-      path.resolve("src/lib/__snapshots__/five-string-tab.musicxml"),
+      path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
     );
 
   await expect(page.getByText("five-string-tab.musicxml")).toBeVisible();
+  await expect(page).toHaveTitle("five-string-tab.musicxml - Toy MIDI");
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
