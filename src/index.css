@@ -114,18 +114,22 @@
     gap: 0;
   }
 
-  /* Keep each OSMD page intact and avoid a trailing blank print page. */
+  /* OSMD assigns these IDs to its generated page wrappers and SVGs. */
   .score-viewer-root-paged
     [data-testid="score-viewer-renderer"]
-    > div:not(:last-child) {
+    > [id^="osmdCanvasPage"]:not(:last-child) {
     break-after: page;
   }
 
-  .score-viewer-root-paged [data-testid="score-viewer-renderer"] > div {
+  .score-viewer-root-paged
+    [data-testid="score-viewer-renderer"]
+    > [id^="osmdCanvasPage"] {
     break-inside: avoid;
   }
 
-  .score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
+  .score-viewer-root-paged
+    [data-testid="score-viewer-renderer"]
+    [id^="osmdSvgPage"] {
     box-shadow: none;
   }
 }
