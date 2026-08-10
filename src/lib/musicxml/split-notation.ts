@@ -142,19 +142,29 @@ function annotateTuplets({
   events: MusicXmlMeasureEvent[];
   metric: MetricContext;
 }): MusicXmlMeasureEvent[] {
+  // Keep the decomposition immutable; notation objects are copied only for
+  // the two events that receive visual group boundaries.
   const result = events.map((event) => ({ ...event }));
+  // Track each event's measure-local end and the first event in the current
+  // beat-sized metric region.
   let offset = 0;
   let beatStartIndex = 0;
 
   for (let index = 0; index < result.length; index++) {
     const beatEnd = offset + result[index].duration;
+    // Evaluate a candidate group only when its events exactly complete a beat.
     if (beatEnd % metric.beatDuration === 0) {
       const beatEvents = result.slice(beatStartIndex, index + 1);
+      // Every event must use triplet scaling. Requiring two notes avoids
+      // engraving an isolated triplet note plus generated trailing silence as
+      // an inferred group.
       if (
         beatEvents.length >= 2 &&
         beatEvents.every((event) => event.notation.triplet) &&
         beatEvents.filter((event) => event.type === "note").length >= 2
       ) {
+        // MusicXML time modification remains on every event, while tuplet
+        // notation marks only the first and last event for visual grouping.
         result[beatStartIndex] = {
           ...result[beatStartIndex],
           notation: {
@@ -167,8 +177,10 @@ function annotateTuplets({
           notation: { ...result[index].notation, tupletBoundary: "stop" },
         };
       }
+      // Adjacent triplet beats must become separate groups.
       beatStartIndex = index + 1;
     }
+    // Advance after evaluating the current event so `offset` remains its start.
     offset = beatEnd;
   }
 
