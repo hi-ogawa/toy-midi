@@ -402,6 +402,26 @@ describe("MusicXML model", () => {
     ]);
   });
 
+  it("groups quarter-note triplets across two beats", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 2 / 3 }),
+      makeNote({ id: "middle", start: 2 / 3, duration: 2 / 3 }),
+      makeNote({ id: "last", start: 1 + 1 / 3, duration: 2 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 3).map((event) => ({
+        type: event.notation.type,
+        duration: event.duration,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual([
+      { type: "quarter", duration: TRIPLET * 2, boundary: "start" },
+      { type: "quarter", duration: TRIPLET * 2, boundary: undefined },
+      { type: "quarter", duration: TRIPLET * 2, boundary: "stop" },
+    ]);
+  });
+
   it("groups generated triplet rests between notes without crossing the beat", () => {
     const model = buildModel([
       makeNote({ id: "first", start: 0, duration: 1 / 3 }),
