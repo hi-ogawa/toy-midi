@@ -189,8 +189,8 @@ function createTripletNotes() {
   for (const [section, beatDuration] of [1, 2].entries()) {
     for (const [patternIndex, pattern] of patterns.entries()) {
       let unit = 0;
-      // Reserve one ordinary beat after every pattern for an anchor note.
-      const patternDuration = beatDuration + 1;
+      // Reserve an equally long ordinary anchor after every pattern.
+      const patternDuration = beatDuration * 2;
       const sectionStart = section * patterns.length * patternDuration;
       const beat = sectionStart + patternIndex * patternDuration;
       for (const [index, segment] of pattern.entries()) {
@@ -207,12 +207,13 @@ function createTripletNotes() {
         }
         unit += segment.units;
       }
-      // Close trailing rest spans before the next pattern begins.
+      // Close trailing rest spans with a quarter note after eighth triplets or
+      // a half note after quarter triplets.
       notes.push(
         createNote({
           pitch: SAMPLE_PITCHES[(patternIndex + 3) % SAMPLE_PITCHES.length],
           start: beat + beatDuration,
-          duration: 1,
+          duration: beatDuration,
         }),
       );
     }
