@@ -19,6 +19,7 @@ import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
+  INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreSource,
   type ScoreViewerSettings,
   ScoreViewerRuntime,
@@ -33,13 +34,6 @@ import {
 import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
 
-const INITIAL_SETTINGS: ScoreViewerSettings = {
-  layout: "continuous",
-  showSectionLabels: true,
-  showTitle: true,
-  titleSpacing: "normal",
-};
-
 export function ScoreViewer({
   initialSource,
 }: {
@@ -48,7 +42,7 @@ export function ScoreViewer({
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
-  const [settings, setSettings] = useState(INITIAL_SETTINGS);
+  const [settings, setSettings] = useState(INITIAL_SCORE_VIEWER_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 

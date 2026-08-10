@@ -28,6 +28,13 @@ export type ScoreViewerSettings = {
   titleSpacing: ScoreTitleSpacing;
 };
 
+export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
+  layout: "continuous",
+  showSectionLabels: true,
+  showTitle: true,
+  titleSpacing: "normal",
+};
+
 export type ScoreSource = {
   name: string;
   xml: string;
