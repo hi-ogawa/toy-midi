@@ -20,7 +20,7 @@ test("capture paged score PDF", async ({ page }) => {
   await page.goto("/score-viewer");
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: /^Long score/ }).click();
-  await page.getByRole("button", { name: "Score appearance" }).click();
+  await page.getByRole("button", { name: "Score settings" }).click();
   await page.getByLabel("Layout").selectOption("paged");
 
   const pages = page.getByTestId("score-viewer-renderer").locator("svg");

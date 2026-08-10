@@ -17,7 +17,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
-import { ScoreAppearance } from "./score-appearance";
+import { ScoreSettings } from "./score-settings";
 import {
   type ScoreSource,
   type ScoreViewerSettings,
@@ -49,7 +49,7 @@ export function ScoreViewer({
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
-  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   useEffect(() => {
@@ -203,14 +203,14 @@ export function ScoreViewer({
         </span>
 
         <Button
-          data-testid="score-appearance-button"
-          onClick={() => setIsAppearanceOpen((open) => !open)}
-          aria-pressed={isAppearanceOpen}
-          title="Score appearance"
-          aria-label="Score appearance"
+          data-testid="score-settings-button"
+          onClick={() => setIsSettingsOpen((open) => !open)}
+          aria-pressed={isSettingsOpen}
+          title="Score settings"
+          aria-label="Score settings"
           className={cn(
             "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-            isAppearanceOpen &&
+            isSettingsOpen &&
               "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
         >
@@ -323,14 +323,14 @@ export function ScoreViewer({
         data-testid="score-viewer-runtime-root"
         className="min-h-0 flex-1"
       />
-      {isAppearanceOpen && (
+      {isSettingsOpen && (
         <FloatingPanel
-          closeLabel="Close Score Appearance"
-          onClose={() => setIsAppearanceOpen(false)}
-          title="Score appearance"
-          testId="score-appearance-panel"
+          closeLabel="Close Score Settings"
+          onClose={() => setIsSettingsOpen(false)}
+          title="Score settings"
+          testId="score-settings-panel"
         >
-          <ScoreAppearance settings={settings} onChange={changeSettings} />
+          <ScoreSettings settings={settings} onChange={changeSettings} />
         </FloatingPanel>
       )}
     </main>

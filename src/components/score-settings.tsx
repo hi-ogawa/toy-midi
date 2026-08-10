@@ -4,7 +4,7 @@ import type {
   ScoreViewerSettings,
 } from "./score-viewer-runtime";
 
-type ScoreAppearanceProps = {
+type ScoreSettingsProps = {
   settings: ScoreViewerSettings;
   onChange: (update: Partial<ScoreViewerSettings>) => void;
 };
@@ -12,7 +12,7 @@ type ScoreAppearanceProps = {
 const selectClassName =
   "h-8 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none";
 
-export function ScoreAppearance({ settings, onChange }: ScoreAppearanceProps) {
+export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
   return (
     <div className="grid min-w-72 grid-cols-[1fr_auto] items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
       <label htmlFor="score-layout">Layout</label>
