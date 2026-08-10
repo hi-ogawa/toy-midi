@@ -177,6 +177,14 @@ function createTripletNotes() {
     [tripletRest(2), tripletRest(1)],
   ];
 
+  function tripletNote(units: 1 | 2) {
+    return { units, note: true } as const;
+  }
+
+  function tripletRest(units: 1 | 2) {
+    return { units, note: false } as const;
+  }
+
   return patterns.flatMap((pattern, beat) => {
     let unit = 0;
     return pattern.flatMap((segment, index) => {
@@ -191,14 +199,6 @@ function createTripletNotes() {
       return note;
     });
   });
-}
-
-function tripletNote(units: 1 | 2) {
-  return { units, note: true } as const;
-}
-
-function tripletRest(units: 1 | 2) {
-  return { units, note: false } as const;
 }
 
 function createPrintNotes() {

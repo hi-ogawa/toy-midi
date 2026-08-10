@@ -16,11 +16,7 @@ export type MusicXmlMeasureEvent =
       tieStart: boolean;
       tieStop: boolean;
     }
-  | {
-      type: "rest";
-      duration: number;
-      notation: DurationNotation;
-    };
+  | { type: "rest"; duration: number; notation: DurationNotation };
 
 export type DurationNotation = {
   type: string;
@@ -252,8 +248,8 @@ function splitDuration({
     duration: candidate.duration,
     notation: {
       type: candidate.type,
-      ...(candidate.dots && { dots: candidate.dots }),
-      ...(candidate.triplet && { triplet: true }),
+      dots: candidate.dots,
+      triplet: candidate.triplet,
     },
   }));
 }

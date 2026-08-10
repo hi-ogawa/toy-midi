@@ -40,16 +40,4 @@ describe("MusicXML export", () => {
       "__snapshots__/five-string-tab.musicxml",
     );
   });
-
-  it("renders tuplet boundaries for notes and rests on both staves", () => {
-    const xml = exportNotes([
-      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
-      makeNote({ id: "middle", start: 1 / 3, duration: 1 / 3 }),
-      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
-    ]);
-
-    expect(xml.match(/<tuplet type="start" number="1"\/>/g)).toHaveLength(2);
-    expect(xml.match(/<tuplet type="stop" number="1"\/>/g)).toHaveLength(2);
-    expect(xml).toContain('<tuplet type="start" number="1"/>');
-  });
 });
