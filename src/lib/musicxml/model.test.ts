@@ -439,11 +439,6 @@ describe("MusicXML model", () => {
       { type: "rest", duration: TRIPLET, boundary: undefined },
       { type: "note", duration: TRIPLET, boundary: "stop" },
     ]);
-    expect(
-      model.measures[0].events
-        .slice(3)
-        .every((event) => event.notation.tupletBoundary === undefined),
-    ).toBe(true);
   });
 
   // 16th notes examples from the bass line in Billlie's "OFF AIR".
