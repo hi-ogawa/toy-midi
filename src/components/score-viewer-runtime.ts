@@ -19,6 +19,15 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 
 export type ScoreLayout = "continuous" | "paged";
 
+export type ScoreTitleSpacing = "compact" | "normal" | "relaxed";
+
+export type ScoreViewerSettings = {
+  layout: ScoreLayout;
+  showSectionLabels: boolean;
+  showTitle: boolean;
+  titleSpacing: ScoreTitleSpacing;
+};
+
 export type ScoreSource = {
   name: string;
   xml: string;
@@ -49,6 +58,11 @@ type CursorPosition = {
 // which is an application-specific scale rather than a physical CSS pixel size.
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
+const TITLE_BOTTOM_DISTANCE: Record<ScoreTitleSpacing, number> = {
+  compact: 1,
+  normal: 2,
+  relaxed: 3,
+};
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
@@ -144,28 +158,22 @@ export class ScoreViewerRuntime {
 
   async load({
     score,
-    layout,
-    showTitle,
-    showRehearsalMarks,
+    settings,
   }: {
     score: ScoreSource;
-    layout: ScoreLayout;
-    showTitle: boolean;
-    showRehearsalMarks: boolean;
+    settings: ScoreViewerSettings;
   }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
-    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
-    this.#osmd.setOptions({ drawTitle: showTitle });
-    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
+    applyEngravingSettings(this.#osmd, settings);
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
 
     this.#sheet.className =
-      layout === "continuous"
+      settings.layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
@@ -280,6 +288,17 @@ export class ScoreViewerRuntime {
       listener();
     }
   }
+}
+
+function applyEngravingSettings(
+  osmd: OpenSheetMusicDisplay,
+  settings: ScoreViewerSettings,
+) {
+  osmd.setPageFormat(settings.layout === "paged" ? "A4_P" : "Endless");
+  osmd.setOptions({ drawTitle: settings.showTitle });
+  osmd.EngravingRules.RenderRehearsalMarks = settings.showSectionLabels;
+  osmd.EngravingRules.TitleBottomDistance =
+    TITLE_BOTTOM_DISTANCE[settings.titleSpacing];
 }
 
 function secondsToScoreTime(seconds: number, tempo: number) {

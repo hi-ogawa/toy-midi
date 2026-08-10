@@ -50,9 +50,11 @@ test("opens the latest project state as a score in a new tab", async ({
   await expect(scorePage.getByLabel("BPM")).toHaveValue("137");
   const renderer = scorePage.getByTestId("score-viewer-renderer");
   await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
-  await scorePage.getByLabel("Title").selectOption("hide");
+  await openAppearance(scorePage);
+  await scorePage.getByLabel("Title", { exact: true }).uncheck();
   await expect(renderer.getByText("Untitled", { exact: true })).toHaveCount(0);
-  await scorePage.getByLabel("Title").selectOption("show");
+  await expect(scorePage.getByLabel("Title spacing")).toBeDisabled();
+  await scorePage.getByLabel("Title", { exact: true }).check();
   await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
   await expect(scorePage.getByRole("button", { name: "Samples" })).toHaveCount(
     0,
@@ -178,10 +180,11 @@ test("toggles rehearsal marks", async ({ page }) => {
   const renderer = page.getByTestId("score-viewer-renderer");
   await expect(renderer.getByText("A", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Section labels").selectOption("hide");
+  await openAppearance(page);
+  await page.getByLabel("Section labels").uncheck();
   await expect(renderer.getByText("A", { exact: true })).toHaveCount(0);
 
-  await page.getByLabel("Section labels").selectOption("show");
+  await page.getByLabel("Section labels").check();
   await expect(renderer.getByText("A", { exact: true })).toBeVisible();
 });
 
@@ -206,6 +209,7 @@ test("switches score layout", async ({ page }) => {
   await loadSample(page, "Long score");
 
   const renderer = page.getByTestId("score-viewer-renderer");
+  await openAppearance(page);
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
@@ -258,7 +262,28 @@ test("switches score layout", async ({ page }) => {
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
 });
 
+test("adjusts title spacing", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Long score");
+  await openAppearance(page);
+
+  const firstMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="0"]',
+  );
+  const normalTop = (await firstMeasure.boundingBox())!.y;
+  await page.getByLabel("Title spacing").selectOption("relaxed");
+  await expect(page.getByLabel("Title spacing")).toHaveValue("relaxed");
+  await expect
+    .poll(async () => (await firstMeasure.boundingBox())!.y)
+    .toBeGreaterThan(normalTop);
+});
+
 async function loadSample(page: Page, name: string) {
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+}
+
+async function openAppearance(page: Page) {
+  await page.getByRole("button", { name: "Score appearance" }).click();
+  await expect(page.getByTestId("score-appearance-panel")).toBeVisible();
 }
