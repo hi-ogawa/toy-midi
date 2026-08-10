@@ -60,7 +60,9 @@
   gap: 24px;
 }
 
-.score-viewer-root-paged [data-testid="score-viewer-renderer"] svg {
+.score-viewer-root-paged
+  [data-testid="score-viewer-renderer"]
+  [id^="osmdSvgPage"] {
   display: block;
   width: 100%;
   height: auto;
