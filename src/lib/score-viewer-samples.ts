@@ -159,9 +159,9 @@ function createSequentialNotes({
 }
 
 function createTripletNotes() {
-  // Enumerate every note/rest assignment across three triplet units. The
-  // exporter decides whether adjacent equal segments consolidate to 1+2 or
-  // 2+1 notation because separate consecutive rests cannot be authored.
+  // Enumerate every note/rest assignment across three triplet units, including
+  // explicit two-unit notes for 1+2 and 2+1 partitions. The exporter derives
+  // two-unit rests because separate consecutive rests cannot be authored.
   const patterns = [
     [tripletNote(1), tripletNote(1), tripletNote(1)],
     [tripletNote(1), tripletNote(1), tripletRest(1)],
@@ -171,11 +171,15 @@ function createTripletNotes() {
     [tripletRest(1), tripletNote(1), tripletRest(1)],
     [tripletRest(1), tripletRest(1), tripletNote(1)],
     [tripletRest(1), tripletRest(1), tripletRest(1)],
+    [tripletNote(1), tripletNote(2)],
+    [tripletRest(1), tripletNote(2)],
+    [tripletNote(2), tripletNote(1)],
+    [tripletNote(2), tripletRest(1)],
   ];
 
   // A segment occupies one or two triplet units and either emits a note or
   // leaves that duration for the exporter to fill with a rest.
-  function tripletNote(units: 1) {
+  function tripletNote(units: 1 | 2) {
     return { units, note: true } as const;
   }
 
