@@ -1,9 +1,6 @@
 import type { ComponentProps } from "react";
-import type {
-  ScoreLayout,
-  ScoreTitleSpacing,
-  ScoreViewerSettings,
-} from "./score-viewer-runtime";
+import { useDraftInput } from "../hooks/use-draft-input";
+import type { ScoreLayout, ScoreViewerSettings } from "./score-viewer-runtime";
 
 type ScoreSettingsProps = {
   settings: ScoreViewerSettings;
@@ -11,6 +8,14 @@ type ScoreSettingsProps = {
 };
 
 export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
+  const titleSpacingInput = useDraftInput({
+    value: settings.titleSpacing,
+    onCommit: (titleSpacing) => onChange({ titleSpacing }),
+    min: 0,
+    step: 0.5,
+    parse: "float",
+  });
+
   return (
     <div className="grid min-w-72 grid-cols-[1fr_auto] items-center gap-x-6 gap-y-3 text-sm text-neutral-300">
       <label htmlFor="score-layout">Layout</label>
@@ -37,20 +42,13 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
       />
 
       <label htmlFor="score-title-spacing">Title spacing</label>
-      <SettingsSelect
+      <input
         id="score-title-spacing"
+        type="number"
         disabled={!settings.showTitle}
-        value={settings.titleSpacing}
-        onChange={(event) =>
-          onChange({
-            titleSpacing: event.currentTarget.value as ScoreTitleSpacing,
-          })
-        }
-      >
-        <option value="compact">Compact</option>
-        <option value="normal">Normal</option>
-        <option value="relaxed">Relaxed</option>
-      </SettingsSelect>
+        {...titleSpacingInput.props}
+        className="h-8 w-32 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+      />
 
       <label htmlFor="score-section-labels">Section labels</label>
       <input

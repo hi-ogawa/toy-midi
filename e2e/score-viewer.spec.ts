@@ -271,8 +271,9 @@ test("adjusts title spacing", async ({ page }) => {
     '[data-testid="score-viewer-measure"][data-measure-index="0"]',
   );
   const normalTop = (await firstMeasure.boundingBox())!.y;
-  await page.getByLabel("Title spacing").selectOption("relaxed");
-  await expect(page.getByLabel("Title spacing")).toHaveValue("relaxed");
+  await page.getByLabel("Title spacing").fill("3.5");
+  await page.getByLabel("Title spacing").press("Enter");
+  await expect(page.getByLabel("Title spacing")).toHaveValue("3.5");
   await expect
     .poll(async () => (await firstMeasure.boundingBox())!.y)
     .toBeGreaterThan(normalTop);

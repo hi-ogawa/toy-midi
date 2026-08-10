@@ -19,20 +19,18 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 
 export type ScoreLayout = "continuous" | "paged";
 
-export type ScoreTitleSpacing = "compact" | "normal" | "relaxed";
-
 export type ScoreViewerSettings = {
   layout: ScoreLayout;
   showSectionLabels: boolean;
   showTitle: boolean;
-  titleSpacing: ScoreTitleSpacing;
+  titleSpacing: number;
 };
 
 export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
   layout: "continuous",
   showSectionLabels: true,
   showTitle: true,
-  titleSpacing: "normal",
+  titleSpacing: 2,
 };
 
 export type ScoreSource = {
@@ -65,11 +63,6 @@ type CursorPosition = {
 // which is an application-specific scale rather than a physical CSS pixel size.
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
-const TITLE_BOTTOM_DISTANCE: Record<ScoreTitleSpacing, number> = {
-  compact: 1,
-  normal: 2,
-  relaxed: 3,
-};
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
@@ -304,8 +297,7 @@ function applyEngravingSettings(
   osmd.setPageFormat(settings.layout === "paged" ? "A4_P" : "Endless");
   osmd.setOptions({ drawTitle: settings.showTitle });
   osmd.EngravingRules.RenderRehearsalMarks = settings.showSectionLabels;
-  osmd.EngravingRules.TitleBottomDistance =
-    TITLE_BOTTOM_DISTANCE[settings.titleSpacing];
+  osmd.EngravingRules.TitleBottomDistance = settings.titleSpacing;
 }
 
 function secondsToScoreTime(seconds: number, tempo: number) {
