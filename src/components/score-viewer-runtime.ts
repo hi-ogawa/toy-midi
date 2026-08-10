@@ -30,7 +30,7 @@ export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
   layout: "continuous",
   showSectionLabels: true,
   showTitle: true,
-  titleSpacing: 2,
+  titleSpacing: 0,
 };
 
 export type ScoreSource = {
