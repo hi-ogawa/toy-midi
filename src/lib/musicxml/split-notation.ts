@@ -16,12 +16,17 @@ export type MusicXmlMeasureEvent =
       tieStart: boolean;
       tieStop: boolean;
     }
-  | { type: "rest"; duration: number; notation: DurationNotation };
+  | {
+      type: "rest";
+      duration: number;
+      notation: DurationNotation;
+    };
 
 export type DurationNotation = {
   type: string;
   dots?: number;
   triplet?: boolean;
+  tupletBoundary?: "start" | "stop";
 };
 
 type DurationCandidate = DurationNotation & {
@@ -130,7 +135,48 @@ export function buildMeasureEvents({
       });
     }
   }
-  return events;
+  return annotateTuplets({ events, metric });
+}
+
+/** Marks complete beat-local triplet groups for engraving. */
+function annotateTuplets({
+  events,
+  metric,
+}: {
+  events: MusicXmlMeasureEvent[];
+  metric: MetricContext;
+}): MusicXmlMeasureEvent[] {
+  const result = events.map((event) => ({ ...event }));
+  let offset = 0;
+  let beatStartIndex = 0;
+
+  for (let index = 0; index < result.length; index++) {
+    const beatEnd = offset + result[index].duration;
+    if (beatEnd % metric.beatDuration === 0) {
+      const beatEvents = result.slice(beatStartIndex, index + 1);
+      if (
+        beatEvents.length >= 2 &&
+        beatEvents.every((event) => event.notation.triplet) &&
+        beatEvents.filter((event) => event.type === "note").length >= 2
+      ) {
+        result[beatStartIndex] = {
+          ...result[beatStartIndex],
+          notation: {
+            ...result[beatStartIndex].notation,
+            tupletBoundary: "start",
+          },
+        };
+        result[index] = {
+          ...result[index],
+          notation: { ...result[index].notation, tupletBoundary: "stop" },
+        };
+      }
+      beatStartIndex = index + 1;
+    }
+    offset = beatEnd;
+  }
+
+  return result;
 }
 
 /**
@@ -206,8 +252,8 @@ function splitDuration({
     duration: candidate.duration,
     notation: {
       type: candidate.type,
-      dots: candidate.dots,
-      triplet: candidate.triplet,
+      ...(candidate.dots && { dots: candidate.dots }),
+      ...(candidate.triplet && { triplet: true }),
     },
   }));
 }

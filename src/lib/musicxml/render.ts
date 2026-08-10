@@ -201,6 +201,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
   // MuseScore allocates four voice IDs per staff, so the first voices of staff 1
   // and staff 2 are 1 and 5 respectively.
   const voice = staff === 1 ? 1 : 5;
+  const tupletNotation = renderTupletNotation(event.notation);
   if (event.type === "rest") {
     return hx(
       "note",
@@ -209,6 +210,7 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
       hx("voice", voice),
       ...renderDurationNotation(event.notation),
       hx("staff", staff),
+      tupletNotation && hx("notations", tupletNotation),
     );
   }
 
@@ -240,8 +242,15 @@ function renderEvent(event: MusicXmlMeasureEvent, staff: 1 | 2): XmlElement {
     hx("voice", voice),
     ...renderDurationNotation(event.notation),
     hx("staff", staff),
-    (tiedNotations.some(Boolean) || technical) &&
-      hx("notations", ...tiedNotations, technical),
+    (tiedNotations.some(Boolean) || technical || tupletNotation) &&
+      hx("notations", ...tiedNotations, technical, tupletNotation),
+  );
+}
+
+function renderTupletNotation(notation: DurationNotation): XmlNode {
+  return (
+    notation.tupletBoundary &&
+    h("tuplet", { type: notation.tupletBoundary, number: 1 })
   );
 }
 

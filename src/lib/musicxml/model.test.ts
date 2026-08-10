@@ -374,6 +374,57 @@ describe("MusicXML model", () => {
     },
   );
 
+  it("groups complete beat-aligned triplet partitions", () => {
+    const model = buildModel([
+      makeNote({ id: "one-a", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "one-b", start: 1 / 3, duration: 1 / 3 }),
+      makeNote({ id: "one-c", start: 2 / 3, duration: 1 / 3 }),
+      makeNote({ id: "one-two-a", start: 1, duration: 1 / 3 }),
+      makeNote({ id: "one-two-b", start: 4 / 3, duration: 2 / 3 }),
+      makeNote({ id: "two-one-a", start: 2, duration: 2 / 3 }),
+      makeNote({ id: "two-one-b", start: 8 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 7).map((event) => ({
+        duration: event.duration,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual([
+      { duration: 4, boundary: "start" },
+      { duration: 4, boundary: undefined },
+      { duration: 4, boundary: "stop" },
+      { duration: 4, boundary: "start" },
+      { duration: 8, boundary: "stop" },
+      { duration: 8, boundary: "start" },
+      { duration: 4, boundary: "stop" },
+    ]);
+  });
+
+  it("groups generated triplet rests between notes without crossing the beat", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 3).map((event) => ({
+        type: event.type,
+        duration: event.duration,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual([
+      { type: "note", duration: 4, boundary: "start" },
+      { type: "rest", duration: 4, boundary: undefined },
+      { type: "note", duration: 4, boundary: "stop" },
+    ]);
+    expect(
+      model.measures[0].events
+        .slice(3)
+        .every((event) => event.notation.tupletBoundary === undefined),
+    ).toBe(true);
+  });
+
   // 16th notes examples from the bass line in Billlie's "OFF AIR".
   // https://www.youtube.com/watch?v=knp40WxQgOI
   it("characterizes rests around a 16th pickup into beat 3", () => {
