@@ -108,6 +108,7 @@ export class ScoreViewerRuntime {
     this.#scroller.className = "h-full overflow-y-auto p-6";
 
     this.#sheet = document.createElement("div");
+    this.#sheet.dataset.testid = "score-viewer-sheet";
     this.#sheet.className = "relative mx-auto";
     this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
@@ -118,6 +119,7 @@ export class ScoreViewerRuntime {
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
     this.#measureLayers = document.createElement("div");
+    this.#measureLayers.dataset.testid = "score-viewer-measure-layers";
     this.#measureLayers.className = "absolute inset-0 z-[5]";
     this.#measureLayers.addEventListener("click", this.#handleMeasureClick);
 

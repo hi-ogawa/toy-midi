@@ -89,19 +89,13 @@
 
   .score-viewer-root-paged > [data-testid="score-viewer-runtime-root"],
   .score-viewer-root-paged [data-testid="score-viewer-scroll"],
-  .score-viewer-root-paged [data-testid="score-viewer-scroll"] > div {
+  .score-viewer-root-paged [data-testid="score-viewer-sheet"] {
     height: auto;
   }
 
-  .score-viewer-root-paged
-    [data-testid="score-viewer-scroll"]
-    > div
-    > div:not([data-testid="score-viewer-renderer"]) {
-    display: none;
-  }
-
   .score-viewer-root-paged > header,
-  [data-testid="score-viewer-cursor"] {
+  [data-testid="score-viewer-cursor"],
+  [data-testid="score-viewer-measure-layers"] {
     display: none;
   }
 
