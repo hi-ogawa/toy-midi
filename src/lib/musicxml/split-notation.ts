@@ -142,45 +142,44 @@ function annotateTuplets({
   events: MusicXmlMeasureEvent[];
   metric: MetricContext;
 }): MusicXmlMeasureEvent[] {
-  // Keep the decomposition immutable; notation objects are copied only for
-  // the two events that receive visual group boundaries.
-  const result = events.map((event) => ({ ...event }));
-  // Track each event's measure-local end and the first event in the current
-  // beat-sized metric region.
+  // Partition events wherever their cumulative duration reaches a beat boundary.
+  const groups: MusicXmlMeasureEvent[][] = [];
+  let group: MusicXmlMeasureEvent[] = [];
   let offset = 0;
-  let beatStartIndex = 0;
-
-  for (let index = 0; index < result.length; index++) {
-    const beatEnd = offset + result[index].duration;
-    // Evaluate a candidate group only when its events exactly complete a beat.
-    if (beatEnd % metric.beatDuration === 0) {
-      const beatEvents = result.slice(beatStartIndex, index + 1);
-      // Every event must use triplet scaling.
-      if (
-        beatEvents.length >= 2 &&
-        beatEvents.every((event) => event.notation.triplet)
-      ) {
-        // MusicXML time modification remains on every event, while tuplet
-        // notation marks only the first and last event for visual grouping.
-        result[beatStartIndex] = {
-          ...result[beatStartIndex],
-          notation: {
-            ...result[beatStartIndex].notation,
-            tupletBoundary: "start",
-          },
-        };
-        result[index] = {
-          ...result[index],
-          notation: { ...result[index].notation, tupletBoundary: "stop" },
-        };
-      }
-      // Adjacent triplet beats must become separate groups.
-      beatStartIndex = index + 1;
+  for (const event of events) {
+    group.push(event);
+    offset += event.duration;
+    if (offset % metric.beatDuration === 0) {
+      groups.push(group);
+      group = [];
     }
-    // Advance after evaluating the current event so `offset` remains its start.
-    offset = beatEnd;
+  }
+  if (group.length > 0) {
+    groups.push(group);
   }
 
+  // Annotate each complete triplet group independently.
+  const result: MusicXmlMeasureEvent[] = [];
+  for (const group of groups) {
+    if (group.length < 2 || group.some((event) => !event.notation.triplet)) {
+      result.push(...group);
+      continue;
+    }
+    for (const [index, event] of group.entries()) {
+      result.push({
+        ...event,
+        notation: {
+          ...event.notation,
+          tupletBoundary:
+            index === 0
+              ? "start"
+              : index === group.length - 1
+                ? "stop"
+                : undefined,
+        },
+      });
+    }
+  }
   return result;
 }
 
