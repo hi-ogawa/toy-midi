@@ -380,93 +380,25 @@ describe("MusicXML model", () => {
   );
 
   it.each([
-    {
-      pattern: "NNN",
-      events: [
-        ["note", 1],
-        ["note", 1],
-        ["note", 1],
-      ],
-    },
-    {
-      pattern: "NNR",
-      events: [
-        ["note", 1],
-        ["note", 1],
-        ["rest", 1],
-      ],
-    },
-    {
-      pattern: "NRN",
-      events: [
-        ["note", 1],
-        ["rest", 1],
-        ["note", 1],
-      ],
-    },
-    {
-      pattern: "NRR",
-      events: [
-        ["note", 1],
-        ["rest", 2],
-      ],
-    },
-    {
-      pattern: "RNN",
-      events: [
-        ["rest", 1],
-        ["note", 1],
-        ["note", 1],
-      ],
-    },
-    {
-      pattern: "RNR",
-      events: [
-        ["rest", 1],
-        ["note", 1],
-        ["rest", 1],
-      ],
-    },
-    {
-      pattern: "RRN",
-      events: [
-        ["rest", 2],
-        ["note", 1],
-      ],
-    },
-    {
-      pattern: "NN2",
-      events: [
-        ["note", 1],
-        ["note", 2],
-      ],
-    },
-    {
-      pattern: "RN2",
-      events: [
-        ["rest", 1],
-        ["note", 2],
-      ],
-    },
-    {
-      pattern: "N2N",
-      events: [
-        ["note", 2],
-        ["note", 1],
-      ],
-    },
-    {
-      pattern: "N2R",
-      events: [
-        ["note", 2],
-        ["rest", 1],
-      ],
-    },
-  ] as const)("groups triplet partition $pattern", ({ events }) => {
+    "N1N1N1",
+    "N1N1R1",
+    "N1R1N1",
+    "N1R2",
+    "R1N1N1",
+    "R1N1R1",
+    "R2N1",
+    "N1N2",
+    "R1N2",
+    "N2N1",
+    "N2R1",
+  ])("groups triplet partition %s", (pattern) => {
+    const events = [...pattern.matchAll(/([NR])(\d)/g)].map(
+      (match) => [match[1], Number(match[2])] as const,
+    );
     let unit = 0;
     const tripletNotes: Note[] = [];
     for (const [index, [type, duration]] of events.entries()) {
-      if (type === "note") {
+      if (type === "N") {
         tripletNotes.push(
           makeNote({
             id: `triplet-${index}`,
@@ -493,7 +425,7 @@ describe("MusicXML model", () => {
       })),
     ).toEqual(
       events.map(([type, duration], index) => ({
-        type,
+        type: type === "N" ? "note" : "rest",
         duration: duration * TRIPLET,
         triplet: true,
         boundary:
