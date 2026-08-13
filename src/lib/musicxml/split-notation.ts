@@ -22,6 +22,7 @@ export type DurationNotation = {
   type: string;
   dots?: number;
   triplet?: boolean;
+  tupletBoundary?: "start" | "stop";
 };
 
 type DurationCandidate = DurationNotation & {
@@ -130,7 +131,56 @@ export function buildMeasureEvents({
       });
     }
   }
-  return events;
+  return annotateTuplets({ events, metric });
+}
+
+/** Marks complete beat-local triplet groups for engraving. */
+function annotateTuplets({
+  events,
+  metric,
+}: {
+  events: MusicXmlMeasureEvent[];
+  metric: MetricContext;
+}): MusicXmlMeasureEvent[] {
+  // Partition events wherever their cumulative duration reaches a beat boundary.
+  const groups: MusicXmlMeasureEvent[][] = [];
+  let group: MusicXmlMeasureEvent[] = [];
+  let offset = 0;
+  for (const event of events) {
+    group.push(event);
+    offset += event.duration;
+    if (offset % metric.beatDuration === 0) {
+      groups.push(group);
+      group = [];
+    }
+  }
+  if (group.length > 0) {
+    groups.push(group);
+  }
+
+  // Annotate each complete triplet group independently.
+  const result: MusicXmlMeasureEvent[] = [];
+  for (const group of groups) {
+    if (group.length < 2 || group.some((event) => !event.notation.triplet)) {
+      result.push(...group);
+      continue;
+    }
+    for (const [index, event] of group.entries()) {
+      result.push({
+        ...event,
+        notation: {
+          ...event.notation,
+          tupletBoundary:
+            index === 0
+              ? "start"
+              : index === group.length - 1
+                ? "stop"
+                : undefined,
+        },
+      });
+    }
+  }
+  return result;
 }
 
 /**

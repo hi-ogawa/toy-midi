@@ -43,6 +43,13 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
+    name: "Triplets",
+    description:
+      "All note and rest combinations for eighth and quarter triplets",
+    tempo: 120,
+    notes: createTripletNotes(),
+  }),
+  createSample({
     name: "Ties and barlines",
     description: "Durations split within and across measures",
     tempo: 120,
@@ -149,6 +156,62 @@ function createSequentialNotes({
       duration,
     }),
   );
+}
+
+function createTripletNotes() {
+  const patterns = [
+    "N1N1N1",
+    "N1N1R1",
+    "N1R1N1",
+    "N1R2",
+    "R1N1N1",
+    "R1N1R1",
+    "R2N1",
+    "N1N2",
+    "R1N2",
+    "N2N1",
+    "N2R1",
+  ];
+
+  // One-beat groups produce written eighth-note triplets, while two-beat
+  // groups produce written quarter-note triplets from the same partitions.
+  const notes: Note[] = [];
+  let cursor = 0;
+  for (const beatDuration of [1, 2]) {
+    for (const [patternIndex, pattern] of patterns.entries()) {
+      const events = [...pattern.matchAll(/([NR])(\d)/g)];
+      for (const [index, match] of events.entries()) {
+        const [, type, unitsText] = match;
+        const units = Number(unitsText);
+        if (type === "N") {
+          notes.push(
+            createNote({
+              pitch:
+                SAMPLE_PITCHES[(patternIndex + index) % SAMPLE_PITCHES.length],
+              start: cursor,
+              duration: (units * beatDuration) / 3,
+            }),
+          );
+        }
+        cursor += (units * beatDuration) / 3;
+      }
+      // Close trailing rest spans with a quarter note after eighth triplets or
+      // a half note after quarter triplets.
+      notes.push(
+        createNote({
+          pitch: SAMPLE_PITCHES[(patternIndex + 3) % SAMPLE_PITCHES.length],
+          start: cursor,
+          duration: beatDuration,
+        }),
+      );
+      cursor += beatDuration;
+    }
+    // Separate the eighth- and quarter-note triplet sections by one measure.
+    if (beatDuration === 1) {
+      cursor += ((4 - (cursor % 4)) % 4) + 4;
+    }
+  }
+  return notes;
 }
 
 function createPrintNotes() {

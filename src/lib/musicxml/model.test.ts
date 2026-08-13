@@ -7,6 +7,7 @@ import { MUSICXML_DIVISIONS } from "./split-notation";
 const FOUR_STRING_PITCHES = TAB_STRING_PRESETS[0].openStringPitches;
 const FIVE_STRING_PITCHES = TAB_STRING_PRESETS[1].openStringPitches;
 const QUARTER_NOTE_DURATION = MUSICXML_DIVISIONS;
+const TRIPLET = QUARTER_NOTE_DURATION / 3;
 
 function makeNote(options: Partial<Note> = {}): Note {
   return {
@@ -285,7 +286,11 @@ describe("MusicXML model", () => {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
         duration: QUARTER_NOTE_DURATION / 3,
-        notation: { type: "eighth", triplet: true },
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tupletBoundary: "start",
+        },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
         tieStop: false,
@@ -373,6 +378,104 @@ describe("MusicXML model", () => {
       expect(model.measures[0].events).toMatchObject(actual);
     },
   );
+
+  it.each([
+    "N1N1N1",
+    "N1N1R1",
+    "N1R1N1",
+    "N1R2",
+    "R1N1N1",
+    "R1N1R1",
+    "R2N1",
+    "N1N2",
+    "R1N2",
+    "N2N1",
+    "N2R1",
+  ])("groups triplet partition %s", (pattern) => {
+    const events = [...pattern.matchAll(/([NR])(\d)/g)].map(
+      (match) => [match[1], Number(match[2])] as const,
+    );
+    let unit = 0;
+    const tripletNotes: Note[] = [];
+    for (const [index, [type, duration]] of events.entries()) {
+      if (type === "N") {
+        tripletNotes.push(
+          makeNote({
+            id: `triplet-${index}`,
+            start: unit / 3,
+            duration: duration / 3,
+          }),
+        );
+      }
+      unit += duration;
+    }
+    // Anchor the end of the candidate group so trailing rests are generated.
+    tripletNotes.push(makeNote({ id: "anchor", start: 1 }));
+
+    const actual = buildModel(tripletNotes).measures[0].events.slice(
+      0,
+      events.length,
+    );
+    expect(
+      actual.map((event) => ({
+        type: event.type,
+        duration: event.duration,
+        triplet: event.notation.triplet,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual(
+      events.map(([type, duration], index) => ({
+        type: type === "N" ? "note" : "rest",
+        duration: duration * TRIPLET,
+        triplet: true,
+        boundary:
+          index === 0
+            ? "start"
+            : index === events.length - 1
+              ? "stop"
+              : undefined,
+      })),
+    );
+  });
+
+  it("groups quarter-note triplets across two beats", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 2 / 3 }),
+      makeNote({ id: "middle", start: 2 / 3, duration: 2 / 3 }),
+      makeNote({ id: "last", start: 1 + 1 / 3, duration: 2 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 3).map((event) => ({
+        type: event.notation.type,
+        duration: event.duration,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual([
+      { type: "quarter", duration: TRIPLET * 2, boundary: "start" },
+      { type: "quarter", duration: TRIPLET * 2, boundary: undefined },
+      { type: "quarter", duration: TRIPLET * 2, boundary: "stop" },
+    ]);
+  });
+
+  it("groups generated triplet rests between notes without crossing the beat", () => {
+    const model = buildModel([
+      makeNote({ id: "first", start: 0, duration: 1 / 3 }),
+      makeNote({ id: "last", start: 2 / 3, duration: 1 / 3 }),
+    ]);
+
+    expect(
+      model.measures[0].events.slice(0, 3).map((event) => ({
+        type: event.type,
+        duration: event.duration,
+        boundary: event.notation.tupletBoundary,
+      })),
+    ).toEqual([
+      { type: "note", duration: TRIPLET, boundary: "start" },
+      { type: "rest", duration: TRIPLET, boundary: undefined },
+      { type: "note", duration: TRIPLET, boundary: "stop" },
+    ]);
+  });
 
   // 16th notes examples from the bass line in Billlie's "OFF AIR".
   // https://www.youtube.com/watch?v=knp40WxQgOI
