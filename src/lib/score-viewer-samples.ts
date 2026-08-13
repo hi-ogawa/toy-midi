@@ -178,13 +178,9 @@ function createTripletNotes() {
   // One-beat groups produce written eighth-note triplets, while two-beat
   // groups produce written quarter-note triplets from the same partitions.
   const notes: Note[] = [];
-  for (const [section, beatDuration] of [1, 2].entries()) {
+  let cursor = 0;
+  for (const beatDuration of [1, 2]) {
     for (const [patternIndex, pattern] of patterns.entries()) {
-      let unit = 0;
-      // Reserve an equally long ordinary anchor after every pattern.
-      const patternDuration = beatDuration * 2;
-      const sectionStart = section * patterns.length * patternDuration;
-      const beat = sectionStart + patternIndex * patternDuration;
       for (let index = 0; index < pattern.length; index++) {
         const type = pattern[index];
         if (type === "2") {
@@ -196,23 +192,27 @@ function createTripletNotes() {
             createNote({
               pitch:
                 SAMPLE_PITCHES[(patternIndex + index) % SAMPLE_PITCHES.length],
-              // Convert the segment's triplet-unit offset and length to beats.
-              start: beat + (unit * beatDuration) / 3,
+              start: cursor,
               duration: (units * beatDuration) / 3,
             }),
           );
         }
-        unit += units;
+        cursor += (units * beatDuration) / 3;
       }
       // Close trailing rest spans with a quarter note after eighth triplets or
       // a half note after quarter triplets.
       notes.push(
         createNote({
           pitch: SAMPLE_PITCHES[(patternIndex + 3) % SAMPLE_PITCHES.length],
-          start: beat + beatDuration,
+          start: cursor,
           duration: beatDuration,
         }),
       );
+      cursor += beatDuration;
+    }
+    // Separate the eighth- and quarter-note triplet sections by one measure.
+    if (beatDuration === 1) {
+      cursor += ((4 - (cursor % 4)) % 4) + 4;
     }
   }
   return notes;
