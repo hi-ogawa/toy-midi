@@ -375,31 +375,131 @@ describe("MusicXML model", () => {
     },
   );
 
-  it("groups complete beat-aligned triplet partitions", () => {
-    const model = buildModel([
-      makeNote({ id: "one-a", start: 0, duration: 1 / 3 }),
-      makeNote({ id: "one-b", start: 1 / 3, duration: 1 / 3 }),
-      makeNote({ id: "one-c", start: 2 / 3, duration: 1 / 3 }),
-      makeNote({ id: "one-two-a", start: 1, duration: 1 / 3 }),
-      makeNote({ id: "one-two-b", start: 1 + 1 / 3, duration: 2 / 3 }),
-      makeNote({ id: "two-one-a", start: 2, duration: 2 / 3 }),
-      makeNote({ id: "two-one-b", start: 2 + 2 / 3, duration: 1 / 3 }),
-    ]);
+  it.each([
+    {
+      pattern: "NNN",
+      events: [
+        ["note", 1],
+        ["note", 1],
+        ["note", 1],
+      ],
+    },
+    {
+      pattern: "NNR",
+      events: [
+        ["note", 1],
+        ["note", 1],
+        ["rest", 1],
+      ],
+    },
+    {
+      pattern: "NRN",
+      events: [
+        ["note", 1],
+        ["rest", 1],
+        ["note", 1],
+      ],
+    },
+    {
+      pattern: "NRR",
+      events: [
+        ["note", 1],
+        ["rest", 2],
+      ],
+    },
+    {
+      pattern: "RNN",
+      events: [
+        ["rest", 1],
+        ["note", 1],
+        ["note", 1],
+      ],
+    },
+    {
+      pattern: "RNR",
+      events: [
+        ["rest", 1],
+        ["note", 1],
+        ["rest", 1],
+      ],
+    },
+    {
+      pattern: "RRN",
+      events: [
+        ["rest", 2],
+        ["note", 1],
+      ],
+    },
+    {
+      pattern: "NN2",
+      events: [
+        ["note", 1],
+        ["note", 2],
+      ],
+    },
+    {
+      pattern: "RN2",
+      events: [
+        ["rest", 1],
+        ["note", 2],
+      ],
+    },
+    {
+      pattern: "N2N",
+      events: [
+        ["note", 2],
+        ["note", 1],
+      ],
+    },
+    {
+      pattern: "N2R",
+      events: [
+        ["note", 2],
+        ["rest", 1],
+      ],
+    },
+  ] as const)("groups triplet partition $pattern", ({ events }) => {
+    let unit = 0;
+    const tripletNotes: Note[] = [];
+    for (const [index, [type, duration]] of events.entries()) {
+      if (type === "note") {
+        tripletNotes.push(
+          makeNote({
+            id: `triplet-${index}`,
+            start: unit / 3,
+            duration: duration / 3,
+          }),
+        );
+      }
+      unit += duration;
+    }
+    // Anchor the end of the candidate group so trailing rests are generated.
+    tripletNotes.push(makeNote({ id: "anchor", start: 1 }));
 
+    const actual = buildModel(tripletNotes).measures[0].events.slice(
+      0,
+      events.length,
+    );
     expect(
-      model.measures[0].events.slice(0, 7).map((event) => ({
+      actual.map((event) => ({
+        type: event.type,
         duration: event.duration,
+        triplet: event.notation.triplet,
         boundary: event.notation.tupletBoundary,
       })),
-    ).toEqual([
-      { duration: TRIPLET, boundary: "start" },
-      { duration: TRIPLET, boundary: undefined },
-      { duration: TRIPLET, boundary: "stop" },
-      { duration: TRIPLET, boundary: "start" },
-      { duration: TRIPLET * 2, boundary: "stop" },
-      { duration: TRIPLET * 2, boundary: "start" },
-      { duration: TRIPLET, boundary: "stop" },
-    ]);
+    ).toEqual(
+      events.map(([type, duration], index) => ({
+        type,
+        duration: duration * TRIPLET,
+        triplet: true,
+        boundary:
+          index === 0
+            ? "start"
+            : index === events.length - 1
+              ? "stop"
+              : undefined,
+      })),
+    );
   });
 
   it("groups quarter-note triplets across two beats", () => {
