@@ -286,7 +286,11 @@ describe("MusicXML model", () => {
         type: "note",
         pitch: { step: "A", alter: 0, octave: 2 },
         duration: QUARTER_NOTE_DURATION / 3,
-        notation: { type: "eighth", triplet: true },
+        notation: {
+          type: "eighth",
+          triplet: true,
+          tupletBoundary: "start",
+        },
         tabPosition: { tabString: 3, fret: 0 },
         tieStart: false,
         tieStop: false,

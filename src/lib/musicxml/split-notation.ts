@@ -155,13 +155,10 @@ function annotateTuplets({
     // Evaluate a candidate group only when its events exactly complete a beat.
     if (beatEnd % metric.beatDuration === 0) {
       const beatEvents = result.slice(beatStartIndex, index + 1);
-      // Every event must use triplet scaling. Requiring two notes avoids
-      // engraving an isolated triplet note plus generated trailing silence as
-      // an inferred group.
+      // Every event must use triplet scaling.
       if (
         beatEvents.length >= 2 &&
-        beatEvents.every((event) => event.notation.triplet) &&
-        beatEvents.filter((event) => event.type === "note").length >= 2
+        beatEvents.every((event) => event.notation.triplet)
       ) {
         // MusicXML time modification remains on every event, while tuplet
         // notation marks only the first and last event for visual grouping.
