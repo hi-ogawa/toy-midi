@@ -69,15 +69,21 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           y: event.clientY,
           panelRect: panel.getBoundingClientRect(),
         }),
-        onMove: (event, start) => {
+        onMove: (event, dragData) => {
           setScorePreviewSize({
             width: Math.min(
               window.innerWidth - 32,
-              Math.max(576, start.panelRect.width + start.x - event.clientX),
+              Math.max(
+                576,
+                dragData.panelRect.width + dragData.x - event.clientX,
+              ),
             ),
             height: Math.min(
               window.innerHeight - 32,
-              Math.max(288, start.panelRect.height + start.y - event.clientY),
+              Math.max(
+                288,
+                dragData.panelRect.height + dragData.y - event.clientY,
+              ),
             ),
           });
         },
