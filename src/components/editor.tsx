@@ -8,7 +8,7 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { flushAutoSave } from "../lib/project-session";
@@ -51,6 +51,73 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
     state.audioTracks.find((track) => track.id === audioToMidiTrackId),
+  );
+  const scorePreviewResizeHandleRef = useCallback(
+    (handle: HTMLButtonElement | null) => {
+      if (!handle) {
+        return;
+      }
+
+      let drag:
+        | {
+            pointerId: number;
+            startX: number;
+            startY: number;
+            width: number;
+            height: number;
+          }
+        | undefined;
+
+      const onPointerDown = (event: PointerEvent) => {
+        const panel = handle.offsetParent;
+        if (!(panel instanceof HTMLElement)) {
+          return;
+        }
+        const rect = panel.getBoundingClientRect();
+        drag = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          width: rect.width,
+          height: rect.height,
+        };
+        handle.setPointerCapture(event.pointerId);
+      };
+      const onPointerMove = (event: PointerEvent) => {
+        if (!drag || drag.pointerId !== event.pointerId) {
+          return;
+        }
+        setScorePreviewSize({
+          width: Math.min(
+            window.innerWidth - 32,
+            Math.max(576, drag.width + drag.startX - event.clientX),
+          ),
+          height: Math.min(
+            window.innerHeight - 32,
+            Math.max(288, drag.height + drag.startY - event.clientY),
+          ),
+        });
+      };
+      const onPointerEnd = (event: PointerEvent) => {
+        if (drag?.pointerId === event.pointerId) {
+          drag = undefined;
+        }
+      };
+
+      handle.addEventListener("pointerdown", onPointerDown);
+      handle.addEventListener("pointermove", onPointerMove);
+      handle.addEventListener("pointerup", onPointerEnd);
+      handle.addEventListener("pointercancel", onPointerEnd);
+      handle.addEventListener("lostpointercapture", onPointerEnd);
+      return () => {
+        handle.removeEventListener("pointerdown", onPointerDown);
+        handle.removeEventListener("pointermove", onPointerMove);
+        handle.removeEventListener("pointerup", onPointerEnd);
+        handle.removeEventListener("pointercancel", onPointerEnd);
+        handle.removeEventListener("lostpointercapture", onPointerEnd);
+      };
+    },
+    [setScorePreviewSize],
   );
 
   // Update document title when project name changes
@@ -189,39 +256,11 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           style={scorePreviewSize}
         >
           <button
+            ref={scorePreviewResizeHandleRef}
             type="button"
             aria-label="Resize Score Preview"
             data-testid="score-preview-resize-handle"
             className="absolute top-0 left-0 z-10 size-4 cursor-nwse-resize touch-none border-t-2 border-l-2 border-neutral-400"
-            onPointerDown={(event) => {
-              const handle = event.currentTarget;
-              handle.setPointerCapture(event.pointerId);
-              const startX = event.clientX;
-              const startY = event.clientY;
-              const startSize = scorePreviewSize;
-
-              handle.onpointermove = (moveEvent) => {
-                const maxWidth = window.innerWidth - 32;
-                const maxHeight = window.innerHeight - 32;
-                setScorePreviewSize({
-                  width: Math.min(
-                    maxWidth,
-                    Math.max(576, startSize.width + startX - moveEvent.clientX),
-                  ),
-                  height: Math.min(
-                    maxHeight,
-                    Math.max(
-                      288,
-                      startSize.height + startY - moveEvent.clientY,
-                    ),
-                  ),
-                });
-              };
-              handle.onpointerup = () => {
-                handle.onpointermove = null;
-                handle.onpointerup = null;
-              };
-            }}
           />
           <ProjectScorePreview title={projectName} />
         </FloatingPanel>
