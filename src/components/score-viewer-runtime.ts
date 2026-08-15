@@ -1,5 +1,6 @@
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import type { TimeSignature } from "../types";
 
 type ScoreViewerRuntimeState = {
   bar: number;
@@ -56,11 +57,6 @@ type CursorPosition = {
   height: number;
   /** OSMD system identity, used to avoid interpolation across wrapped rows. */
   systemId: number;
-};
-
-type TimeSignature = {
-  numerator: number;
-  denominator: number;
 };
 
 // OSMD reads its layout width from the container's offsetWidth. This value was
