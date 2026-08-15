@@ -1,4 +1,4 @@
-import type { Locator, Note } from "../types";
+import type { Locator, Note, TimeSignature } from "../types";
 import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
@@ -15,6 +15,7 @@ type ScoreViewerSampleDefinition = Omit<ScoreViewerSample, "xml"> & {
   notes: Note[];
   locators?: Locator[];
   keySignature?: KeySignature;
+  timeSignature?: TimeSignature;
 };
 
 const SAMPLE_PITCHES = [40, 43, 45, 47, 48, 47, 45, 43];
@@ -41,6 +42,13 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
       createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
     ],
+  }),
+  createSample({
+    name: "Six-eight meter",
+    description: "Eighth-note beats in 6/8 time",
+    tempo: 120,
+    timeSignature: { numerator: 6, denominator: 8 },
+    notes: createSequentialNotes({ count: 18, duration: 0.5 }),
   }),
   createSample({
     name: "Triplets",
@@ -238,6 +246,7 @@ function createSample({
   tempo,
   locators = [],
   keySignature = { fifths: 0, mode: "major" },
+  timeSignature = { numerator: 4, denominator: 4 },
 }: ScoreViewerSampleDefinition): ScoreViewerSample {
   return {
     name,
@@ -250,7 +259,7 @@ function createSample({
       title: name,
       locators,
       openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
-      timeSignature: { numerator: 4, denominator: 4 },
+      timeSignature,
     }),
   };
 }
