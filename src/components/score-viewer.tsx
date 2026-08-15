@@ -55,6 +55,8 @@ export function ScoreViewer({
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
+  // TODO: Isolate the clock subscription if whole-view RAF rerenders become
+  // expensive; the current component tree is small enough.
   const runtimeState = useSyncExternalStore(
     runtime.subscribe,
     runtime.getSnapshot,
