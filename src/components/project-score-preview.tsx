@@ -51,7 +51,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
 
   useLayoutEffect(() => {
     const root = rootRef.current;
-    if (!root) {
+    if (!root || !isRuntimeAttached) {
       return;
     }
     const updateScale = () => {
