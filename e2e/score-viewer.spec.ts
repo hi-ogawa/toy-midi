@@ -122,7 +122,6 @@ test("loads and advances the cursor sample", async ({ page }) => {
   // Clicking measure 2 while paused seeks the cursor to its first beat.
   await page.getByRole("button", { name: "Pause" }).click();
   await page.locator('[data-measure-index="1"]').click();
-  await expect(page.getByText("02|01")).toBeVisible();
   await expect(page.getByTestId("score-time-display")).toHaveText(
     "02|01 - 00:02:00",
   );
