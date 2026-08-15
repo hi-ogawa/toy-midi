@@ -641,20 +641,6 @@ describe("MusicXML model", () => {
     });
   });
 
-  it("preserves leading empty measures when requested", () => {
-    const model = buildModel([makeNote({ start: 12 })], {
-      trimLeadingEmptyMeasures: false,
-    });
-
-    expect(model.measures).toHaveLength(4);
-    expect(model.measures.slice(0, 3)).toMatchObject([
-      { events: [{ type: "rest" }] },
-      { events: [{ type: "rest" }] },
-      { events: [{ type: "rest" }] },
-    ]);
-    expect(model.measures[3].events[0]).toMatchObject({ type: "note" });
-  });
-
   it("preserves silence within the first retained measure", () => {
     const model = buildModel([makeNote({ start: 14 })]); // Bar 4, beat 3
 
@@ -751,5 +737,19 @@ describe("MusicXML model", () => {
     expect(() => buildModel([makeNote({ start: 0.1 })])).toThrow(
       "start of note note-1 is not aligned to a supported grid",
     );
+  });
+
+  it("preserves leading empty measures when requested", () => {
+    const model = buildModel([makeNote({ start: 12 })], {
+      trimLeadingEmptyMeasures: false,
+    });
+
+    expect(model.measures).toHaveLength(4);
+    expect(model.measures.slice(0, 3)).toMatchObject([
+      { events: [{ type: "rest" }] },
+      { events: [{ type: "rest" }] },
+      { events: [{ type: "rest" }] },
+    ]);
+    expect(model.measures[3].events[0]).toMatchObject({ type: "note" });
   });
 });
