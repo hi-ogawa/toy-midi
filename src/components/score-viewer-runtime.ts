@@ -234,7 +234,7 @@ export class ScoreViewerRuntime {
 
     this.#sheet.className =
       settings.layout === "continuous"
-        ? "relative bg-white px-4 shadow-xl"
+        ? "relative box-content bg-white px-4 shadow-xl"
         : "relative";
     this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
