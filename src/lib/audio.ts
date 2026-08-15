@@ -341,6 +341,7 @@ const TRANSPORT_EVENT_NAMES = [
   "loopStart",
   "ticks",
 ] as const;
+type TransportEventName = (typeof TRANSPORT_EVENT_NAMES)[number];
 
 class AudioStateStore {
   private snapshot: AudioState = {
@@ -353,7 +354,7 @@ class AudioStateStore {
 
   constructor() {
     for (const event of TRANSPORT_EVENT_NAMES) {
-      Tone.getTransport().on(event, this.handleTransportEvent);
+      Tone.getTransport().on(event, () => this.handleTransportEvent(event));
     }
   }
 
@@ -380,18 +381,23 @@ class AudioStateStore {
   }
 
   seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
-    this.updateTransportSnapshot();
+    const position = Math.max(0, seconds);
+    Tone.getTransport().seconds = position;
+    // Tone quantizes seconds through transport ticks; retain the requested seek
+    // position in the application snapshot instead of reading that residue back.
+    this.update({ position });
   }
 
-  private handleTransportEvent = (): void => {
+  private handleTransportEvent = (event: TransportEventName): void => {
     this.updateTransportSnapshot();
     if (this.snapshot.isPlaying) {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
       // Tone fires some events before its public state has settled.
-      queueMicrotask(() => this.updateTransportSnapshot());
+      if (event !== "ticks") {
+        queueMicrotask(() => this.updateTransportSnapshot());
+      }
     }
   };
 
