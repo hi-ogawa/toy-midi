@@ -4,6 +4,7 @@ import { cn } from "./utils";
 
 type FloatingPanelProps = {
   title: ReactNode;
+  headerActions?: ReactNode;
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
@@ -14,6 +15,7 @@ type FloatingPanelProps = {
 
 export function FloatingPanel({
   title,
+  headerActions,
   closeLabel,
   onClose,
   children,
@@ -29,8 +31,9 @@ export function FloatingPanel({
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-neutral-700 px-4 py-3">
+      <div className="flex items-center gap-4 border-b border-neutral-700 px-4 py-3">
         <h2 className="text-sm font-semibold text-neutral-100">{title}</h2>
+        <div className="ml-auto">{headerActions}</div>
         <button
           onClick={onClose}
           className="text-neutral-400 hover:text-neutral-200"

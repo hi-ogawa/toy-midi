@@ -1,5 +1,6 @@
 import {
   CircleHelpIcon,
+  ExternalLinkIcon,
   FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
@@ -165,19 +166,18 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         <FloatingPanel
           closeLabel="Close Score Preview"
           onClose={() => setIsScorePreviewOpen(false)}
-          title={
-            <span className="flex items-center gap-3">
-              Score preview
-              <a
-                href={routes.projectScore.href({ projectId })}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => flushAutoSave()}
-                className="font-normal text-emerald-400 hover:text-emerald-300"
-              >
-                Open full score
-              </a>
-            </span>
+          title="Score preview"
+          headerActions={
+            <a
+              href={routes.projectScore.href({ projectId })}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => flushAutoSave()}
+              className="flex items-center gap-1.5 text-sm font-normal text-emerald-400 hover:text-emerald-300"
+            >
+              Open full score
+              <ExternalLinkIcon className="size-3.5" />
+            </a>
           }
           testId="score-preview-panel"
           className="overflow-hidden"
