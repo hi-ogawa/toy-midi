@@ -20,6 +20,8 @@ const audioClock: ScoreViewerClock = {
   pause: () => audioManager.pause(),
 };
 
+const PREVIEW_FIT_GUTTER = 16;
+
 export function ProjectScorePreview({ title }: { title: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const {
@@ -55,7 +57,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
       return;
     }
     const updateScale = () => {
-      runtime.setScaleToFitWidth(root.clientWidth);
+      runtime.setScaleToFitWidth(root.clientWidth - PREVIEW_FIT_GUTTER);
     };
     const observer = new ResizeObserver(updateScale);
     observer.observe(root);
