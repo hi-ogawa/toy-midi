@@ -53,6 +53,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
           keySignature,
           openStringPitches: tabOpenStringPitches,
           locators,
+          trimLeadingEmptyMeasures: false,
         }),
       },
       settings: {

@@ -21,6 +21,7 @@ export type MusicXmlModelOptions = {
   keySignature: KeySignature;
   openStringPitches: readonly number[];
   locators: Locator[];
+  trimLeadingEmptyMeasures?: boolean;
 };
 
 export type MusicXmlModelResult = {
@@ -70,6 +71,7 @@ export function buildMusicXmlModel({
   keySignature,
   openStringPitches,
   locators,
+  trimLeadingEmptyMeasures = true,
 }: MusicXmlModelOptions): MusicXmlModelResult {
   if (notes.length === 0) {
     throw new Error("Add at least one note before exporting MusicXML");
@@ -95,8 +97,9 @@ export function buildMusicXmlModel({
     preparedNotes[0].start,
     preparedLocators[0]?.position ?? Infinity,
   );
-  const firstMeasureStart =
-    Math.floor(firstPosition / measureDuration) * measureDuration;
+  const firstMeasureStart = trimLeadingEmptyMeasures
+    ? Math.floor(firstPosition / measureDuration) * measureDuration
+    : 0;
   const quantizedNotes = preparedNotes.map((note) => ({
     ...note,
     start: note.start - firstMeasureStart,
