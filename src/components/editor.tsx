@@ -225,8 +225,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             type="button"
             aria-label="Resize Score Preview"
             data-testid="score-preview-resize-handle"
-            className="absolute top-0 left-0 z-10 size-4 cursor-nwse-resize touch-none border-t-2 border-l-2 border-neutral-400"
-          />
+            className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+          >
+            <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-blue-400" />
+          </button>
           <ProjectScorePreview title={projectName} />
         </FloatingPanel>
       )}
