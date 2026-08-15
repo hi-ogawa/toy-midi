@@ -201,15 +201,17 @@ export class ScoreViewerRuntime {
   }
 
   setScaleToFitViewport() {
+    // The sheet is display:none before the first load, so offsetWidth is 0.
+    const sheetWidth = this.#sheet.offsetWidth || SCORE_LAYOUT_WIDTH;
     this.setScale(
-      (this.#scroller.clientWidth - 2 * this.#viewportPadding) /
-        SCORE_LAYOUT_WIDTH,
+      (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
     );
   }
 
   #updateScale() {
     this.#sheet.style.transform = `scale(${this.#scale})`;
-    this.#layoutBox.style.width = `${SCORE_LAYOUT_WIDTH * this.#scale}px`;
+    const sheetWidth = this.#sheet.offsetWidth || SCORE_LAYOUT_WIDTH;
+    this.#layoutBox.style.width = `${sheetWidth * this.#scale}px`;
     this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 
