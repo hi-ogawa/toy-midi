@@ -89,3 +89,10 @@ Watch for these failure modes:
 - Would a bug clearly belong to one side of the contract?
 - Does the split improve a linear file and diff review, not only semantic search?
 - Is the navigation cost smaller than the reasoning cost removed?
+
+## Repository Examples
+
+The original exploration prompts and unedited subagent responses are retained as references:
+
+- [Positive examples](references/positive-examples.md)
+- [Counterexamples](references/counterexamples.md)
