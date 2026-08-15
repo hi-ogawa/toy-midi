@@ -173,10 +173,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               target="_blank"
               rel="noreferrer"
               onClick={() => flushAutoSave()}
-              className="flex items-center gap-1.5 text-sm font-normal text-emerald-400 hover:text-emerald-300"
+              className="flex items-center gap-1 text-xs font-normal text-neutral-400 hover:text-neutral-200"
             >
               Open full score
-              <ExternalLinkIcon className="size-3.5" />
+              <ExternalLinkIcon className="size-3" />
             </a>
           }
           testId="score-preview-panel"
