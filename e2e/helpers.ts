@@ -1,19 +1,19 @@
 import { expect, type Page } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
 
+/** Log elapsed checkpoints while investigating E2E timing. */
+export function createCheckpoint(): (label: string) => void {
+  const startedAt = performance.now();
+  return (label) => {
+    console.log(`[${Math.round(performance.now() - startedAt)}ms] ${label}`);
+  };
+}
+
 /**
  * Click "New Project" on startup screen to get to main UI with empty state.
  */
 export async function clickNewProject(page: Page): Promise<void> {
   await page.getByTestId("new-project-button").click();
-  await page.getByTestId("transport").waitFor({ state: "visible" });
-}
-
-/**
- * Click "Continue" on startup screen to restore saved project.
- */
-export async function clickContinue(page: Page): Promise<void> {
-  await page.getByTestId("continue-button").click();
   await page.getByTestId("transport").waitFor({ state: "visible" });
 }
 
@@ -49,7 +49,6 @@ export async function loadAudioFile(
 ): Promise<void> {
   // Open settings dialog
   await page.getByTestId("settings-button").click();
-  await page.waitForTimeout(100);
 
   // Find audio file input within settings dialog
   const fileInput = page.getByTestId("audio-file-input");
@@ -61,11 +60,13 @@ export async function loadAudioFile(
     mimeType: "audio/wav",
     buffer: await fs.readFile(testAudioPath),
   });
-  await page.waitForTimeout(500); // Wait for audio to load
+  await expect(
+    page.getByTestId("settings-dialog").getByText(fileName, { exact: true }),
+  ).toBeVisible();
 
   // Close settings dialog
   await page.keyboard.press("Escape");
-  await page.waitForTimeout(100);
+  await expect(page.getByTestId("settings-dialog")).toBeHidden();
 }
 
 /**

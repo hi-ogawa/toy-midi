@@ -1,0 +1,15 @@
+{
+  "name": "@hiogawa/bass-pitch-wasm",
+  "version": "0.0.0",
+  "files": [
+    "pkg"
+  ],
+  "type": "module",
+  "exports": "./pkg/bass_pitch.js",
+  "scripts": {
+    "build": "wasm-pack build . --target web --no-pack --release --out-name bass_pitch && rm -f pkg/.gitignore"
+  },
+  "devDependencies": {
+    "wasm-pack": "0.15.0"
+  }
+}

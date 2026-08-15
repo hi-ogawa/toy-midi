@@ -1,9 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
-import { type ComponentProps, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { audioManager } from "../lib/audio";
 import { basicPitchClient } from "../lib/basic-pitch/client";
 import { DEFAULT_TRANSCRIBE_PARAMS } from "../lib/basic-pitch/transcription";
+import { bassPitchClient } from "../lib/bass-pitch/client";
+import {
+  DEFAULT_GRID_ACTIVITY_DB,
+  DEFAULT_GRID_SPLIT_THRESHOLD,
+  makeGridTranscribeParams,
+} from "../lib/bass-pitch/transcription";
 import { snapToGrid } from "../lib/music";
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import {
@@ -16,6 +22,184 @@ import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { cn } from "./ui/utils";
+
+type ConversionMethod = "bass-pitch" | "basic-pitch";
+
+// Each method is an independent flow component owning its own state, so
+// switching methods resets staged parameters and per-run status. That is
+// acceptable because the expensive Basic Pitch analysis is cached
+// worker-side by audio asset, not in this component.
+export function AudioToMidi({ track }: { track: AudioTrack }) {
+  const [method, setMethod] = useState<ConversionMethod>("bass-pitch");
+
+  return (
+    <div className="w-96 space-y-4">
+      <section className="space-y-2">
+        <p
+          data-testid="audio-to-midi-file-name"
+          className="truncate text-xs text-neutral-300"
+          title={track.fileName}
+        >
+          {track.fileName}
+        </p>
+
+        <label className="flex items-center gap-2 text-xs text-neutral-300">
+          Method
+          <select
+            data-testid="audio-to-midi-method"
+            value={method}
+            onChange={(event) =>
+              setMethod(event.target.value as ConversionMethod)
+            }
+            className="h-8 flex-1 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-200"
+          >
+            <option value="bass-pitch">Bass Pitch</option>
+            <option value="basic-pitch">Basic Pitch</option>
+          </select>
+        </label>
+      </section>
+
+      {method === "bass-pitch" ? (
+        <GridBassConvert track={track} />
+      ) : (
+        <BasicPitchConvert track={track} />
+      )}
+    </div>
+  );
+}
+
+// Grid-guided bass conversion has no separate analyze stage; one call runs
+// pYIN plus the grid decisions and commits via replaceAllNotes, so it is one
+// undo entry per press. Grid cell resolution follows the current grid snap,
+// and the note timing arrives already grid-aligned in project seconds.
+function GridBassConvert({ track }: { track: AudioTrack }) {
+  const [activityDb, setActivityDb] = useState(DEFAULT_GRID_ACTIVITY_DB);
+  const [splitThreshold, setSplitThreshold] = useState(
+    DEFAULT_GRID_SPLIT_THRESHOLD,
+  );
+  const [progress, setProgress] = useState<number>();
+  const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
+  const convertStartedAt = useRef<number>(undefined);
+
+  useEffect(() => {
+    bassPitchClient.warmUp();
+  }, []);
+
+  const convertMutation = useMutation({
+    mutationFn: async () => {
+      const buffer = audioManager.getAudioTrackBuffer(track.id);
+      if (!buffer) {
+        throw new Error("Audio is still loading");
+      }
+      const { tempo, gridSnap, replaceAllNotes } = useProjectStore.getState();
+      const cellsPerBeat = Math.max(
+        1,
+        Math.round(1 / GRID_SNAP_VALUES[gridSnap]),
+      );
+      const transcribed = await bassPitchClient.transcribe(
+        buffer,
+        makeGridTranscribeParams({
+          offset: track.offset,
+          bpm: tempo,
+          cellsPerBeat,
+          activityDb,
+          splitThreshold,
+        }),
+        setProgress,
+      );
+      const notes = transcribed.map((note) => ({
+        id: generateNoteId(),
+        pitch: note.pitch,
+        start: secondsToBeats(note.project_start, tempo),
+        duration: secondsToBeats(note.project_end - note.project_start, tempo),
+        velocity: 100,
+      }));
+      replaceAllNotes(notes);
+      return notes.length;
+    },
+    onMutate: () => {
+      convertStartedAt.current = performance.now();
+      setConvertElapsedMs(undefined);
+      setProgress(0);
+    },
+    onError: (error) => {
+      console.error("Failed to convert audio to MIDI:", error);
+      toast.error("Failed to convert audio to MIDI");
+    },
+    onSettled: () => {
+      setProgress(undefined);
+      if (convertStartedAt.current !== undefined) {
+        setConvertElapsedMs(performance.now() - convertStartedAt.current);
+      }
+    },
+  });
+
+  const conversionStatus = convertMutation.isPending
+    ? `Converting ${Math.round((progress ?? 0) * 100)}%`
+    : convertMutation.error
+      ? "Conversion failed"
+      : convertMutation.data === 0
+        ? "No notes detected. Check the project tempo and the track offset."
+        : convertMutation.data !== undefined && convertElapsedMs !== undefined
+          ? `Created ${convertMutation.data} notes in ${formatElapsed(convertElapsedMs)}`
+          : "Replaces all existing notes. Undo restores them.";
+
+  return (
+    <>
+      <section className="space-y-5 border-t border-neutral-700 pt-4">
+        <ParamSlider
+          label="Activity threshold"
+          hint="Higher values detect fewer notes"
+          valueText={`${activityDb} dBFS`}
+          value={[activityDb]}
+          min={-60}
+          max={-10}
+          step={1}
+          onValueChange={([value]) => setActivityDb(value)}
+        />
+        <ParamSlider
+          label="Split threshold"
+          hint="Higher values create fewer repeated-note splits"
+          valueText={splitThreshold.toFixed(2)}
+          value={[splitThreshold]}
+          min={0.05}
+          max={0.95}
+          step={0.05}
+          onValueChange={([value]) => setSplitThreshold(value)}
+        />
+        <div className="flex justify-end pt-1">
+          <button
+            onClick={() => {
+              setActivityDb(DEFAULT_GRID_ACTIVITY_DB);
+              setSplitThreshold(DEFAULT_GRID_SPLIT_THRESHOLD);
+            }}
+            className="text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
+          >
+            Reset to defaults
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-2 border-t border-neutral-700 pt-4">
+        <Button
+          data-testid="convert-button"
+          onClick={() => convertMutation.mutate()}
+          disabled={convertMutation.isPending}
+          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
+        </Button>
+        <p
+          data-testid="audio-to-midi-conversion-status"
+          aria-live="polite"
+          className="min-h-4 text-xs text-neutral-400"
+        >
+          {conversionStatus}
+        </p>
+      </section>
+    </>
+  );
+}
 
 // TODO(ui): deferred polish from the panel UX review
 // - merge analyze into convert: auto-analyze on the first convert so the
@@ -30,7 +214,7 @@ import { cn } from "./ui/utils";
 //   right = more notes/splits)
 // - cached analysis timing is misleading because it measures the client call
 //   rather than the original worker inference
-export function AudioToMidi({ track }: { track: AudioTrack }) {
+function BasicPitchConvert({ track }: { track: AudioTrack }) {
   const [params, setParams] = useState(DEFAULT_TRANSCRIBE_PARAMS);
   const [quantizeToGrid, setQuantizeToGrid] = useState(true);
   const [progress, setProgress] = useState<number>();
@@ -131,16 +315,8 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
         : "Replaces all existing notes. Undo restores them.";
 
   return (
-    <div className="w-96 space-y-4">
+    <>
       <section className="space-y-2">
-        <p
-          data-testid="audio-to-midi-file-name"
-          className="truncate text-xs text-neutral-300"
-          title={track.fileName}
-        >
-          {track.fileName}
-        </p>
-
         <Button
           data-testid="analyze-button"
           onClick={() => analyzeMutation.mutate()}
@@ -249,7 +425,7 @@ export function AudioToMidi({ track }: { track: AudioTrack }) {
           {conversionStatus}
         </p>
       </section>
-    </div>
+    </>
   );
 }
 

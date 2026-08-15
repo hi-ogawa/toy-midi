@@ -1,0 +1,4 @@
+packages:
+  - crates/bass-pitch-wasm
+onlyBuiltDependencies:
+  - wasm-pack

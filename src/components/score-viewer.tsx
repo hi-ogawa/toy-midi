@@ -1,24 +1,27 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronsUpDownIcon,
   FolderIcon,
   FolderOpenIcon,
-  LocateFixedIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
   RotateCcwIcon,
+  SlidersHorizontalIcon,
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { FileDropInput } from "./file-drop-input";
+import { ScoreSettings } from "./score-settings";
 import {
-  type ScoreLayout,
+  INITIAL_SCORE_VIEWER_SETTINGS,
   type ScoreSource,
+  type ScoreViewerSettings,
   ScoreViewerRuntime,
 } from "./score-viewer-runtime";
 import { Button } from "./ui/button";
@@ -28,13 +31,26 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { FloatingPanel } from "./ui/floating-panel";
 import { cn } from "./ui/utils";
 
-export function ScoreViewer() {
+export function ScoreViewer({
+  initialSource,
+}: {
+  initialSource?: ScoreSource;
+}) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
 
-  const [score, setScore] = useState<ScoreSource>();
-  const [layout, setLayout] = useState<ScoreLayout>("continuous");
+  const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
+  const [settings, setSettings] = useState(INITIAL_SCORE_VIEWER_SETTINGS);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
+
+  useEffect(() => {
+    document.title = score
+      ? `${score.name} - Toy MIDI`
+      : "Score Viewer - Toy MIDI";
+  }, [score]);
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
@@ -48,6 +64,7 @@ export function ScoreViewer() {
       return;
     }
     runtime.attach(root);
+    setIsRuntimeAttached(true);
     return () => runtime.dispose();
   }, [runtime]);
 
@@ -69,53 +86,54 @@ export function ScoreViewer() {
 
   const loadMutation = useMutation({
     mutationFn: async ({
-      layout,
+      settings,
       source,
     }: {
-      layout: ScoreLayout;
+      settings: ScoreViewerSettings;
       source: File | ScoreSource;
     }) => {
       const nextScore =
         source instanceof File
           ? { name: source.name, xml: await source.text() }
           : source;
-      await runtime.load({ score: nextScore, layout });
+      await runtime.load({
+        score: nextScore,
+        settings,
+      });
       setScore(nextScore);
     },
   });
 
-  function changeLayout(nextLayout: ScoreLayout) {
-    if (nextLayout === layout) {
-      return;
-    }
-    setLayout(nextLayout);
+  // Use the query cache to deduplicate initial loading under Strict Mode.
+  useQuery({
+    queryKey: ["score-viewer-initial-source", initialSource],
+    enabled: isRuntimeAttached && initialSource !== undefined,
+    staleTime: Infinity,
+    queryFn: async () => {
+      loadMutation.mutate({
+        settings,
+        source: initialSource!,
+      });
+      return true;
+    },
+  });
+
+  function changeSettings(update: Partial<ScoreViewerSettings>) {
+    const nextSettings = { ...settings, ...update };
+    setSettings(nextSettings);
     if (score) {
       loadMutation.mutate({
-        layout: nextLayout,
+        settings: nextSettings,
         source: score,
       });
     }
-  }
-
-  function promptForPosition() {
-    const value = window.prompt(
-      "Go to bar and beat",
-      formatBarBeat(runtimeState.bar, runtimeState.beat),
-    );
-    const match = value?.match(/^(\d+)[|:](\d+)$/);
-    if (!match) {
-      return;
-    }
-    const bar = Math.max(Number(match[1]), 1);
-    const beat = Math.max(Number(match[2]), 1);
-    runtime.seekToBarBeat({ bar, beat });
   }
 
   return (
     <main
       className={cn(
         "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
-        layout === "paged" && "score-viewer-root-paged",
+        settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
       <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
@@ -149,20 +167,9 @@ export function ScoreViewer() {
 
         <div className="h-5 w-px bg-border" />
 
-        <div className="flex items-center gap-1">
-          <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
-            {formatBarBeat(runtimeState.bar, runtimeState.beat)}
-          </span>
-          <Button
-            aria-label="Seek"
-            title="Seek"
-            disabled={!runtimeState.isReady}
-            onClick={promptForPosition}
-            className="size-7 px-0 text-neutral-400 hover:bg-accent hover:text-white"
-          >
-            <LocateFixedIcon className="size-3.5" />
-          </Button>
-        </div>
+        <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
+          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+        </span>
 
         <div className="h-5 w-px bg-border" />
 
@@ -177,22 +184,23 @@ export function ScoreViewer() {
               className="h-8 w-14 rounded border border-border bg-input px-1 text-center font-mono text-sm text-foreground"
             />
           </label>
-
-          <label className="flex items-center gap-1.5 text-sm">
-            <span className="text-muted-foreground">Layout</span>
-            <select
-              aria-label="Layout"
-              value={layout}
-              onChange={(event) =>
-                changeLayout(event.currentTarget.value as ScoreLayout)
-              }
-              className="h-8 rounded border border-border bg-input px-2 text-sm text-foreground"
-            >
-              <option value="continuous">Continuous</option>
-              <option value="paged">Paged</option>
-            </select>
-          </label>
         </div>
+        <div className="h-5 w-px bg-border" />
+
+        <Button
+          data-testid="score-settings-button"
+          onClick={() => setIsSettingsOpen((open) => !open)}
+          aria-pressed={isSettingsOpen}
+          title="Score settings"
+          aria-label="Score settings"
+          className={cn(
+            "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            isSettingsOpen &&
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+          )}
+        >
+          <SlidersHorizontalIcon className="size-5" />
+        </Button>
 
         <div className="flex-1" />
 
@@ -204,47 +212,56 @@ export function ScoreViewer() {
           {score?.name ?? "No score loaded"}
         </span>
 
-        <div className="h-5 w-px bg-border" />
+        {!initialSource && (
+          <>
+            <div className="h-5 w-px bg-border" />
 
-        <FileDropInput
-          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-          disabled={loadMutation.isPending}
-          inputProps={{ "aria-label": "Open MusicXML" }}
-          onFile={(file) => loadMutation.mutate({ layout, source: file })}
-          className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        >
-          <FolderOpenIcon className="size-4" />
-          Open
-        </FileDropInput>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-              Samples
-              <ChevronsUpDownIcon className="size-4 opacity-50" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            {SCORE_VIEWER_SAMPLES.map((sample) => (
-              <DropdownMenuItem
-                key={sample.id}
-                onSelect={() =>
-                  loadMutation.mutate({
-                    layout,
-                    source: { name: sample.name, xml: sample.xml },
-                  })
-                }
-                className="items-start"
-              >
-                <div>
-                  <div>{sample.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {sample.description}
-                  </div>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <FileDropInput
+              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+              disabled={loadMutation.isPending}
+              inputProps={{ "aria-label": "Open MusicXML" }}
+              onFile={(file) =>
+                loadMutation.mutate({
+                  settings,
+                  source: file,
+                })
+              }
+              className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <FolderOpenIcon className="size-4" />
+              Open
+            </FileDropInput>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+                  Samples
+                  <ChevronsUpDownIcon className="size-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72">
+                {SCORE_VIEWER_SAMPLES.map((sample) => (
+                  <DropdownMenuItem
+                    key={sample.name}
+                    onSelect={() =>
+                      loadMutation.mutate({
+                        settings,
+                        source: { name: sample.name, xml: sample.xml },
+                      })
+                    }
+                    className="items-start"
+                  >
+                    <div>
+                      <div>{sample.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {sample.description}
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -257,7 +274,7 @@ export function ScoreViewer() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <a href="/" data-testid="all-projects-menu-item">
+              <a href={routes.home.href()} data-testid="all-projects-menu-item">
                 <FolderIcon />
                 All Projects
               </a>
@@ -272,7 +289,12 @@ export function ScoreViewer() {
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
               inputProps={{ "aria-label": "Upload MusicXML" }}
-              onFile={(file) => loadMutation.mutate({ layout, source: file })}
+              onFile={(file) =>
+                loadMutation.mutate({
+                  settings,
+                  source: file,
+                })
+              }
               className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
@@ -296,6 +318,16 @@ export function ScoreViewer() {
         data-testid="score-viewer-runtime-root"
         className="min-h-0 flex-1"
       />
+      {isSettingsOpen && (
+        <FloatingPanel
+          closeLabel="Close Score Settings"
+          onClose={() => setIsSettingsOpen(false)}
+          title="Score settings"
+          testId="score-settings-panel"
+        >
+          <ScoreSettings settings={settings} onChange={changeSettings} />
+        </FloatingPanel>
+      )}
     </main>
   );
 }

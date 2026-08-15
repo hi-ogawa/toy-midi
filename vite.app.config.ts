@@ -4,4 +4,8 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    // ignore late deps discovery through web worker import
+    exclude: ["@hiogawa/bass-pitch-wasm"],
+  },
 });

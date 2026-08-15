@@ -19,6 +19,20 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 
 export type ScoreLayout = "continuous" | "paged";
 
+export type ScoreViewerSettings = {
+  layout: ScoreLayout;
+  showSectionLabels: boolean;
+  showTitle: boolean;
+  titleSpacing: number;
+};
+
+export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
+  layout: "continuous",
+  showSectionLabels: true,
+  showTitle: true,
+  titleSpacing: 0,
+};
+
 export type ScoreSource = {
   name: string;
   xml: string;
@@ -62,6 +76,7 @@ export class ScoreViewerRuntime {
   //   <scroller>
   //     <sheet>
   //       <cursor />
+  //       <measureLayers />
   //       <container />
   //     </sheet>
   //   </scroller>
@@ -69,6 +84,7 @@ export class ScoreViewerRuntime {
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
+  #measureLayers!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
 
@@ -113,6 +129,7 @@ export class ScoreViewerRuntime {
     this.#scroller.className = "h-full overflow-y-auto p-6";
 
     this.#sheet = document.createElement("div");
+    this.#sheet.dataset.testid = "score-viewer-sheet";
     this.#sheet.className = "relative mx-auto";
     this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
@@ -122,11 +139,16 @@ export class ScoreViewerRuntime {
     this.#cursor.className =
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
+    this.#measureLayers = document.createElement("div");
+    this.#measureLayers.dataset.testid = "score-viewer-measure-layers";
+    this.#measureLayers.className = "absolute inset-0 z-[5]";
+    this.#measureLayers.addEventListener("click", this.#handleMeasureClick);
+
     this.#container = document.createElement("div");
     this.#container.dataset.testid = "score-viewer-renderer";
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
-    this.#sheet.append(this.#cursor, this.#container);
+    this.#sheet.append(this.#cursor, this.#measureLayers, this.#container);
     this.#scroller.append(this.#sheet);
     this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
@@ -141,21 +163,28 @@ export class ScoreViewerRuntime {
     });
   }
 
-  async load({ score, layout }: { score: ScoreSource; layout: ScoreLayout }) {
+  async load({
+    score,
+    settings,
+  }: {
+    score: ScoreSource;
+    settings: ScoreViewerSettings;
+  }) {
     this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
-    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
+    applyEngravingSettings(this.#osmd, settings);
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
 
     this.#sheet.className =
-      layout === "continuous"
+      settings.layout === "continuous"
         ? "relative mx-auto bg-white px-4 shadow-xl"
         : "relative mx-auto";
-    this.#positions = buildCursorPositions(this.#osmd);
+    this.#positions = buildCursorPositions(this.#osmd, this.#container);
+    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#measures = parseMeasures(score.xml);
     this.#clock.stop();
     this.#setState({
@@ -191,18 +220,26 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
-  seekToBarBeat({ bar, beat }: { bar: number; beat: number }) {
-    const scoreTime = barBeatToScoreTime({ bar, beat }, this.#measures);
-    this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
-  }
-
   dispose() {
     this.#clock.stop();
+    this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
       this.#root.replaceChildren();
     }
   }
+
+  #handleMeasureClick = (event: MouseEvent) => {
+    const target = (event.target as Element).closest<HTMLElement>(
+      "[data-score-time]",
+    );
+    if (!target) {
+      return;
+    }
+    this.#clock.seek(
+      scoreTimeToSeconds(Number(target.dataset.scoreTime), this.#state.tempo),
+    );
+  };
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
@@ -259,6 +296,16 @@ export class ScoreViewerRuntime {
   }
 }
 
+function applyEngravingSettings(
+  osmd: OpenSheetMusicDisplay,
+  settings: ScoreViewerSettings,
+) {
+  osmd.setPageFormat(settings.layout === "paged" ? "A4_P" : "Endless");
+  osmd.setOptions({ drawTitle: settings.showTitle });
+  osmd.EngravingRules.RenderRehearsalMarks = settings.showSectionLabels;
+  osmd.EngravingRules.TitleBottomDistance = settings.titleSpacing;
+}
+
 function secondsToScoreTime(seconds: number, tempo: number) {
   return seconds * (tempo / 60 / 4);
 }
@@ -277,18 +324,6 @@ function scoreTimeToBarBeat(scoreTime: number, measures: ScoreMeasure[]) {
     bar: measureIndex + 1,
     beat: Math.floor((scoreTime - measure.start) * measure.denominator) + 1,
   };
-}
-
-function barBeatToScoreTime(
-  { bar, beat }: { bar: number; beat: number },
-  measures: ScoreMeasure[],
-) {
-  const measure = measures[Math.min(Math.max(bar, 1), measures.length) - 1];
-  if (!measure) {
-    return 0;
-  }
-  const clampedBeat = Math.min(Math.max(beat, 1), measure.numerator);
-  return measure.start + (clampedBeat - 1) / measure.denominator;
 }
 
 const DEFAULT_MEASURE: ScoreMeasure = {
@@ -368,7 +403,10 @@ function parseTempo(xml: string) {
   return Number.isFinite(value) && value > 0 ? value : 120;
 }
 
-function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
+function buildCursorPositions(
+  osmd: OpenSheetMusicDisplay,
+  container: HTMLDivElement,
+): CursorPosition[] {
   // TODO: Define how simultaneous entries at one timestamp map to a single
   // cursor anchor before MusicXML chord or multi-voice support is added.
   // OSMD has no high-level playback geometry API, so derive anchors from its
@@ -389,6 +427,20 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
   // OSMD exposes entry geometry, so add each system's final timestamp and
   // right border to prevent a freeze before wrapping.
   const result: CursorPosition[] = [];
+  // Each paged backend reports page-local score geometry. Match graphical
+  // pages to their rendered DOM pages to convert cursor y positions to the
+  // shared container coordinate space.
+  const containerBounds = container.getBoundingClientRect();
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
+  const pageOffsets = new Map(
+    osmd.GraphicSheet.MusicPages.map((page, index) => [
+      page,
+      (pageElements[index]?.getBoundingClientRect().top ??
+        containerBounds.top) - containerBounds.top,
+    ]),
+  );
 
   // Add real anchors at rendered staff entries and their score timestamps.
   for (const container of osmd.GraphicSheet
@@ -400,8 +452,10 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
     const topStaff = system.StaffLines[0];
     const bottomStaff = system.StaffLines.at(-1)!;
+    const pageTop = pageOffsets.get(system.Parent) ?? 0;
     // 20px padding above and below the system
-    const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
+    const top =
+      pageTop + topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
     const bottom =
       (bottomStaff.PositionAndShape.AbsolutePosition.y +
         bottomStaff.StaffHeight) *
@@ -434,6 +488,80 @@ function buildCursorPositions(osmd: OpenSheetMusicDisplay): CursorPosition[] {
     }
   }
   return result.sort((a, b) => a.time - b.time || a.systemId - b.systemId);
+}
+
+// OSMD does not render measure-level hit targets. Build transparent overlays
+// from its graphical measures so each target spans the full system height.
+function buildMeasureTargets(
+  osmd: OpenSheetMusicDisplay,
+  layers: HTMLDivElement,
+  container: HTMLDivElement,
+) {
+  const sheetBounds = layers.parentElement!.getBoundingClientRect();
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
+  const pageLayers: HTMLDivElement[] = [];
+  for (const [pageIndex, page] of osmd.GraphicSheet.MusicPages.entries()) {
+    const pageElement = pageElements[pageIndex];
+    if (!pageElement) {
+      continue;
+    }
+    const pageBounds = pageElement.getBoundingClientRect();
+    const pageLayer = document.createElement("div");
+    pageLayer.className = "absolute";
+    pageLayer.style.left = `${pageBounds.left - sheetBounds.left}px`;
+    pageLayer.style.top = `${pageBounds.top - sheetBounds.top}px`;
+    pageLayer.style.width = `${pageBounds.width}px`;
+    pageLayer.style.height = `${pageBounds.height}px`;
+
+    for (const system of page.MusicSystems) {
+      for (const measures of system.GraphicalMeasures) {
+        const measure = measures.find((candidate) => candidate?.isVisible());
+        if (!measure) {
+          continue;
+        }
+
+        const topStaff = system.StaffLines[0];
+        const bottomStaff = system.StaffLines.at(-1)!;
+        const target = document.createElement("div");
+        // Expose the target and its source-measure identity for E2E interaction.
+        target.dataset.testid = "score-viewer-measure";
+        target.dataset.measureIndex = String(
+          measure.parentSourceMeasure.measureListIndex,
+        );
+        // Store OSMD whole-note time on the target for delegated click seeking.
+        target.dataset.scoreTime = String(
+          measure.parentSourceMeasure.AbsoluteTimestamp.RealValue,
+        );
+        target.className =
+          "absolute cursor-pointer bg-transparent hover:bg-blue-500/10";
+        const measureIndex = system.GraphicalMeasures.indexOf(measures);
+        const nextMeasure = system.GraphicalMeasures[measureIndex + 1]?.find(
+          (candidate) => candidate?.isVisible(),
+        );
+        const left = measure.PositionAndShape.AbsolutePosition.x * 10;
+        const right =
+          nextMeasure?.PositionAndShape.AbsolutePosition.x !== undefined
+            ? nextMeasure.PositionAndShape.AbsolutePosition.x * 10
+            : system.GetRightBorderAbsoluteXPosition() * 10;
+        // Extend 20px above and below the staves for an easier full-system hit target.
+        const top = topStaff.PositionAndShape.AbsolutePosition.y * 10 - 20;
+        const bottom =
+          (bottomStaff.PositionAndShape.AbsolutePosition.y +
+            bottomStaff.StaffHeight) *
+            10 +
+          20;
+        target.style.left = `${left}px`;
+        target.style.top = `${top}px`;
+        target.style.width = `${right - left}px`;
+        target.style.height = `${bottom - top}px`;
+        pageLayer.append(target);
+      }
+    }
+    pageLayers.push(pageLayer);
+  }
+  layers.replaceChildren(...pageLayers);
 }
 
 // Temporary score-viewer transport matching the snapshot/subscription shape
