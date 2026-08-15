@@ -147,7 +147,7 @@ export class ScoreViewerRuntime {
     this.#updateScale();
   }
 
-  fitToWidth(width: number) {
+  setScaleToFitWidth(width: number) {
     this.setScale((width - 2 * this.#viewportPadding) / SCORE_LAYOUT_WIDTH);
   }
 

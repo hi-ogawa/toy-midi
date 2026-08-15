@@ -55,7 +55,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
       return;
     }
     const updateScale = () => {
-      runtime.fitToWidth(root.clientWidth);
+      runtime.setScaleToFitWidth(root.clientWidth);
     };
     const observer = new ResizeObserver(updateScale);
     observer.observe(root);
