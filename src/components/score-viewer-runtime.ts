@@ -77,10 +77,11 @@ export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
   // root
   //   scroller             viewport-sized scroll container with surface padding
-  //     layoutBox          scaled score footprint that determines scroll extent;
-  //                        needed since CSS transforms do not affect layout size
+  //     layoutBox          manually sized to sheet dimensions multiplied by scale;
+  //                        supplies scroll extent since transforms do not affect layout
   //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
-  //                        transformed without changing density or system breaks
+  //                        visually transformed without changing its layout size,
+  //                        engraving density, or system breaks
   //         cursor         playback overlay
   //         measureLayers  click-to-seek overlays
   //         container      OSMD render target
