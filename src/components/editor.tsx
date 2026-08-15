@@ -62,21 +62,27 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       if (!(panel instanceof HTMLElement)) {
         return;
       }
-      let startSize = { width: 0, height: 0 };
       return listenPointerDrag({
         element: handle,
-        onStart: () => {
-          startSize = panel.getBoundingClientRect();
-        },
-        onMove: ({ deltaX, deltaY }) => {
+        onStart: (event) => ({
+          pointer: { x: event.clientX, y: event.clientY },
+          panel: panel.getBoundingClientRect(),
+        }),
+        onMove: (event, start) => {
           setScorePreviewSize({
             width: Math.min(
               window.innerWidth - 32,
-              Math.max(576, startSize.width - deltaX),
+              Math.max(
+                576,
+                start.panel.width + start.pointer.x - event.clientX,
+              ),
             ),
             height: Math.min(
               window.innerHeight - 32,
-              Math.max(288, startSize.height - deltaY),
+              Math.max(
+                288,
+                start.panel.height + start.pointer.y - event.clientY,
+              ),
             ),
           });
         },

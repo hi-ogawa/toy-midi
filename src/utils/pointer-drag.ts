@@ -1,37 +1,37 @@
-type PointerDragOptions = {
+type PointerDragOptions<T> = {
   element: HTMLElement;
-  onStart: () => void;
-  onMove: (delta: { deltaX: number; deltaY: number }) => void;
+  onStart: (event: PointerEvent) => T;
+  onMove: (event: PointerEvent, data: T) => void;
+  onEnd?: (event: PointerEvent, data: T) => void;
 };
 
-export function listenPointerDrag({
+export function listenPointerDrag<T>({
   element,
   onStart,
   onMove,
-}: PointerDragOptions) {
-  let drag: { pointerId: number; x: number; y: number } | undefined;
+  onEnd,
+}: PointerDragOptions<T>) {
+  let drag: { pointerId: number; data: T } | undefined;
 
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0 || drag) {
       return;
     }
-    drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    drag = { pointerId: event.pointerId, data: onStart(event) };
     element.setPointerCapture(event.pointerId);
-    onStart();
   };
   const handlePointerMove = (event: PointerEvent) => {
     if (!drag || drag.pointerId !== event.pointerId) {
       return;
     }
-    onMove({
-      deltaX: event.clientX - drag.x,
-      deltaY: event.clientY - drag.y,
-    });
+    onMove(event, drag.data);
   };
   const handlePointerEnd = (event: PointerEvent) => {
     // Only the pointer that started the drag may end it.
     if (drag?.pointerId === event.pointerId) {
+      const { data } = drag;
       drag = undefined;
+      onEnd?.(event, data);
     }
   };
 
