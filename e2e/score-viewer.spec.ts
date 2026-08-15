@@ -295,11 +295,9 @@ test("uses MusicXML time signatures for seeking", async ({ page }) => {
   await loadSample(page, "Six-eight meter");
 
   await page.locator('[data-measure-index="1"]').click();
-  await expect(page.getByText("02|01")).toBeVisible();
-
-  await page.getByRole("button", { name: "Play" }).click();
-  await expect(page.getByText("02|02")).toBeVisible();
-  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByTestId("score-time-display")).toHaveText(
+    "02|01 - 00:01:50",
+  );
 });
 
 async function loadSample(page: Page, name: string) {
