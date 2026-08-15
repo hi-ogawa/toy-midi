@@ -42,7 +42,7 @@ export function FloatingPanel({
           <XIcon className="size-5" />
         </button>
       </div>
-      <div className={cn("overflow-x-auto px-4 py-3", contentClassName)}>
+      <div className={contentClassName ?? "overflow-x-auto px-4 py-3"}>
         {children}
       </div>
     </section>
