@@ -96,6 +96,7 @@
 
   .score-viewer-root-paged > [data-testid="score-viewer-runtime-root"],
   .score-viewer-root-paged [data-testid="score-viewer-scroll"],
+  .score-viewer-root-paged [data-testid="score-viewer-layout-box"],
   .score-viewer-root-paged [data-testid="score-viewer-sheet"] {
     height: auto;
   }

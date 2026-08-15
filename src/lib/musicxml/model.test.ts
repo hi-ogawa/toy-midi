@@ -738,4 +738,18 @@ describe("MusicXML model", () => {
       "start of note note-1 is not aligned to a supported grid",
     );
   });
+
+  it("preserves leading empty measures when requested", () => {
+    const model = buildModel([makeNote({ start: 12 })], {
+      trimLeadingEmptyMeasures: false,
+    });
+
+    expect(model.measures).toHaveLength(4);
+    expect(model.measures.slice(0, 3)).toMatchObject([
+      { events: [{ type: "rest" }] },
+      { events: [{ type: "rest" }] },
+      { events: [{ type: "rest" }] },
+    ]);
+    expect(model.measures[3].events[0]).toMatchObject({ type: "note" });
+  });
 });

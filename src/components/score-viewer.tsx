@@ -56,7 +56,13 @@ export function ScoreViewer({
 
   // initialize runtime
   const [clock] = useState(() => new PlayheadClock());
-  const [runtime] = useState(() => new ScoreViewerRuntime({ clock }));
+  const [runtime] = useState(
+    () =>
+      new ScoreViewerRuntime({
+        clock,
+        presentation: { scale: 1, viewportPadding: 24 },
+      }),
+  );
   // TODO: Isolate the clock subscription if whole-view RAF rerenders become
   // expensive; the current component tree is small enough.
   const runtimeState = useSyncExternalStore(

@@ -33,6 +33,7 @@ export function exportMusicXml({
   keySignature,
   openStringPitches,
   locators,
+  trimLeadingEmptyMeasures,
 }: MusicXmlExportOptions): string {
   const { measureDuration, measures } = buildMusicXmlModel({
     notes,
@@ -40,6 +41,7 @@ export function exportMusicXml({
     keySignature,
     openStringPitches,
     locators,
+    trimLeadingEmptyMeasures,
   });
   // MusicXML places score-level configuration inside the first measure.
   const initialMeasureChildren = [

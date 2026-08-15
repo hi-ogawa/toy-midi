@@ -41,6 +41,11 @@ export type ScoreSource = {
   xml: string;
 };
 
+type ScoreViewerPresentation = {
+  scale: number;
+  viewportPadding: number;
+};
+
 /**
  * A playback anchor in OSMD's rendered score.
  *
@@ -70,18 +75,22 @@ const MANUAL_SCROLL_IDLE_MS = 2000;
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
-  // <root>
-  //   <scroller>
-  //     <sheet>
-  //       <cursor />
-  //       <measureLayers />
-  //       <container />
-  //     </sheet>
-  //   </scroller>
-  // </root>
+  // root
+  //   scroller             viewport-sized scroll container with surface padding
+  //     layoutBox          manually sized to sheet dimensions multiplied by scale;
+  //                        supplies scroll extent since transforms do not affect layout
+  //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
+  //                        visually transformed without changing its layout size,
+  //                        engraving density, or system breaks
+  //         cursor         playback overlay
+  //         measureLayers  click-to-seek overlays
+  //         container      OSMD render target
+  //           canvasPage   one OSMD-owned wrapper per rendered page
+  //             svgPage    OSMD-owned notation SVG
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
+  #layoutBox!: HTMLDivElement;
   #measureLayers!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
@@ -95,9 +104,19 @@ export class ScoreViewerRuntime {
   #manualScrollTimer?: ReturnType<typeof setTimeout>;
 
   readonly #clock: ScoreViewerClock;
+  readonly #viewportPadding: number;
+  #scale: number;
 
-  constructor({ clock }: { clock: ScoreViewerClock }) {
+  constructor({
+    clock,
+    presentation,
+  }: {
+    clock: ScoreViewerClock;
+    presentation: ScoreViewerPresentation;
+  }) {
     this.#clock = clock;
+    this.#scale = presentation.scale;
+    this.#viewportPadding = presentation.viewportPadding;
     this.#clock.subscribe(() => {
       const { currentTime, isPlaying } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
@@ -129,15 +148,21 @@ export class ScoreViewerRuntime {
 
     this.#scroller = document.createElement("section");
     this.#scroller.dataset.testid = "score-viewer-scroll";
-    this.#scroller.className = "h-full overflow-y-auto p-6";
+    this.#scroller.className = "h-full overflow-y-auto";
+    this.#scroller.style.padding = `${this.#viewportPadding}px`;
     this.#scroller.addEventListener("wheel", this.#handleManualScroll);
     this.#scroller.addEventListener("pointerdown", this.#handleManualScroll);
 
+    this.#layoutBox = document.createElement("div");
+    this.#layoutBox.dataset.testid = "score-viewer-layout-box";
+    this.#layoutBox.className = "relative mx-auto";
+
     this.#sheet = document.createElement("div");
     this.#sheet.dataset.testid = "score-viewer-sheet";
-    this.#sheet.className = "relative mx-auto";
+    this.#sheet.className = "relative";
     this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+    this.#sheet.style.transformOrigin = "top left";
 
     this.#cursor = document.createElement("div");
     this.#cursor.dataset.testid = "score-viewer-cursor";
@@ -154,7 +179,8 @@ export class ScoreViewerRuntime {
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
     this.#sheet.append(this.#cursor, this.#measureLayers, this.#container);
-    this.#scroller.append(this.#sheet);
+    this.#layoutBox.append(this.#sheet);
+    this.#scroller.append(this.#layoutBox);
     this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
@@ -166,6 +192,28 @@ export class ScoreViewerRuntime {
       drawTitle: false,
       pageBackgroundColor: "#ffffff",
     });
+  }
+
+  setScale(scale: number) {
+    this.#scale = scale;
+    this.#updateScale();
+  }
+
+  setScaleToFitViewport() {
+    const sheetWidth = this.#sheet.offsetWidth;
+    // The sheet is display:none until the first score load, so it has no layout yet.
+    if (sheetWidth === 0) {
+      return;
+    }
+    this.setScale(
+      (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
+    );
+  }
+
+  #updateScale() {
+    this.#sheet.style.transform = `scale(${this.#scale})`;
+    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * this.#scale}px`;
+    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 
   async load({
@@ -186,8 +234,9 @@ export class ScoreViewerRuntime {
 
     this.#sheet.className =
       settings.layout === "continuous"
-        ? "relative mx-auto bg-white px-4 shadow-xl"
-        : "relative mx-auto";
+        ? "relative bg-white px-4 shadow-xl"
+        : "relative";
+    this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
@@ -308,8 +357,9 @@ export class ScoreViewerRuntime {
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
-    const cursorTop = currentAnchor.top;
-    const cursorBottom = cursorTop + currentAnchor.height;
+    const cursorTop = currentAnchor.top * this.#scale;
+    const cursorBottom =
+      (currentAnchor.top + currentAnchor.height) * this.#scale;
     const viewportTop = this.#scroller.scrollTop;
     const viewportBottom = viewportTop + this.#scroller.clientHeight;
     if (

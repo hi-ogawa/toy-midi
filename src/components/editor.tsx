@@ -1,5 +1,7 @@
 import {
   CircleHelpIcon,
+  ExternalLinkIcon,
+  FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
   SettingsIcon,
@@ -17,6 +19,7 @@ import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
 import { PianoRoll } from "./piano-roll";
+import { ProjectScorePreview } from "./project-score-preview";
 import { Settings } from "./settings";
 import { Transport } from "./transport";
 import { Button } from "./ui/button";
@@ -39,6 +42,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
   const [projectName, setProjectName] = useState(initialProjectName);
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
@@ -79,6 +83,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         projectName={projectName}
         controls={
           <>
+            <Button
+              data-testid="score-preview-button"
+              onClick={() => setIsScorePreviewOpen((open) => !open)}
+              aria-pressed={isScorePreviewOpen}
+              title="Score preview"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isScorePreviewOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              <FileMusicIcon className="size-5" />
+            </Button>
             <Button
               data-testid="settings-button"
               onClick={() => setIsSettingsOpen(true)}
@@ -143,6 +160,32 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           testId="mixer-panel"
         >
           <Mixer />
+        </FloatingPanel>
+      )}
+      {/* TODO: Add a top-left resize handle so the preview can grow while its
+          bottom-right anchor remains fixed. */}
+      {isScorePreviewOpen && (
+        <FloatingPanel
+          closeLabel="Close Score Preview"
+          onClose={() => setIsScorePreviewOpen(false)}
+          title="Score preview"
+          headerActions={
+            <a
+              href={routes.projectScore.href({ projectId })}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => flushAutoSave()}
+              className="flex items-center gap-1 text-xs font-normal text-neutral-400 hover:text-neutral-200"
+            >
+              Open full score
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          }
+          testId="score-preview-panel"
+          className="overflow-hidden"
+          contentClassName="p-0"
+        >
+          <ProjectScorePreview title={projectName} />
         </FloatingPanel>
       )}
       {/* TODO: coordinate active floating panels so Mixer and Audio to MIDI do
