@@ -88,6 +88,7 @@
   }
 
   .score-viewer-root-paged > header,
+  [data-floating-panel],
   [data-testid="score-viewer-cursor"],
   [data-testid="score-viewer-measure-layers"] {
     display: none;

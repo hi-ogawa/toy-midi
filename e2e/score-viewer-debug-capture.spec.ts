@@ -26,6 +26,7 @@ test("capture paged score PDF", async ({ page }) => {
   const pages = page.getByTestId("score-viewer-renderer").locator("svg");
   await expect.poll(() => pages.count()).toBeGreaterThan(1);
   await page.emulateMedia({ media: "print" });
+  await expect(page.getByTestId("score-settings-panel")).not.toBeVisible();
   await page.pdf({
     path: ".tmp/score-viewer-debug-paged.pdf",
     format: "A4",
