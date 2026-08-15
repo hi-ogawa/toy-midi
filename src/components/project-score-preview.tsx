@@ -64,8 +64,8 @@ export function ProjectScorePreview({ title }: { title: string }) {
   }, [isRuntimeAttached, runtime]);
 
   const loadMutation = useMutation({
-    mutationFn: () =>
-      runtime.load({
+    mutationFn: async () => {
+      await runtime.load({
         score: {
           name: title,
           xml: exportMusicXml({
@@ -84,7 +84,9 @@ export function ProjectScorePreview({ title }: { title: string }) {
           showTitle: false,
           showSectionLabels: true,
         },
-      }),
+      });
+      runtime.setScaleToFitViewport();
+    },
   });
 
   useQuery({

@@ -236,7 +236,7 @@ export class ScoreViewerRuntime {
       settings.layout === "continuous"
         ? "relative bg-white px-4 shadow-xl"
         : "relative";
-    this.setScaleToFitViewport();
+    this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
