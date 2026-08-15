@@ -15,6 +15,7 @@ import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { routes } from "../lib/routes";
+import { listenPointerDrag } from "../utils/pointer-drag";
 import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
@@ -57,69 +58,29 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       if (!handle) {
         return;
       }
-
-      // Only the pointer that started the resize may move or end it.
-      let drag:
-        | {
-            pointerId: number;
-            startX: number;
-            startY: number;
-            width: number;
-            height: number;
-          }
-        | undefined;
-
-      const onPointerDown = (event: PointerEvent) => {
-        if (drag) {
-          return;
-        }
-        const panel = handle.offsetParent;
-        if (!(panel instanceof HTMLElement)) {
-          return;
-        }
-        const rect = panel.getBoundingClientRect();
-        drag = {
-          pointerId: event.pointerId,
-          startX: event.clientX,
-          startY: event.clientY,
-          width: rect.width,
-          height: rect.height,
-        };
-        handle.setPointerCapture(event.pointerId);
-      };
-      const onPointerMove = (event: PointerEvent) => {
-        if (!drag || drag.pointerId !== event.pointerId) {
-          return;
-        }
-        setScorePreviewSize({
-          width: Math.min(
-            window.innerWidth - 32,
-            Math.max(576, drag.width + drag.startX - event.clientX),
-          ),
-          height: Math.min(
-            window.innerHeight - 32,
-            Math.max(288, drag.height + drag.startY - event.clientY),
-          ),
-        });
-      };
-      const onPointerEnd = (event: PointerEvent) => {
-        if (drag?.pointerId === event.pointerId) {
-          drag = undefined;
-        }
-      };
-
-      handle.addEventListener("pointerdown", onPointerDown);
-      handle.addEventListener("pointermove", onPointerMove);
-      handle.addEventListener("pointerup", onPointerEnd);
-      handle.addEventListener("pointercancel", onPointerEnd);
-      handle.addEventListener("lostpointercapture", onPointerEnd);
-      return () => {
-        handle.removeEventListener("pointerdown", onPointerDown);
-        handle.removeEventListener("pointermove", onPointerMove);
-        handle.removeEventListener("pointerup", onPointerEnd);
-        handle.removeEventListener("pointercancel", onPointerEnd);
-        handle.removeEventListener("lostpointercapture", onPointerEnd);
-      };
+      const panel = handle.offsetParent;
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+      let startSize = { width: 0, height: 0 };
+      return listenPointerDrag({
+        element: handle,
+        onStart: () => {
+          startSize = panel.getBoundingClientRect();
+        },
+        onMove: ({ deltaX, deltaY }) => {
+          setScorePreviewSize({
+            width: Math.min(
+              window.innerWidth - 32,
+              Math.max(576, startSize.width - deltaX),
+            ),
+            height: Math.min(
+              window.innerHeight - 32,
+              Math.max(288, startSize.height - deltaY),
+            ),
+          });
+        },
+      });
     },
     [setScorePreviewSize],
   );
