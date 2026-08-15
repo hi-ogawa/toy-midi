@@ -182,7 +182,6 @@ export class ScoreViewerRuntime {
     this.#layoutBox.append(this.#sheet);
     this.#scroller.append(this.#layoutBox);
     this.#root.append(this.#scroller);
-    this.#updateScale();
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
@@ -201,8 +200,10 @@ export class ScoreViewerRuntime {
   }
 
   setScaleToFitViewport() {
-    // The sheet is display:none before the first load, so offsetWidth is 0.
-    const sheetWidth = this.#sheet.offsetWidth || SCORE_LAYOUT_WIDTH;
+    const sheetWidth = this.#sheet.offsetWidth;
+    if (sheetWidth === 0) {
+      return;
+    }
     this.setScale(
       (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
     );
@@ -210,8 +211,7 @@ export class ScoreViewerRuntime {
 
   #updateScale() {
     this.#sheet.style.transform = `scale(${this.#scale})`;
-    const sheetWidth = this.#sheet.offsetWidth || SCORE_LAYOUT_WIDTH;
-    this.#layoutBox.style.width = `${sheetWidth * this.#scale}px`;
+    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * this.#scale}px`;
     this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 
@@ -235,7 +235,7 @@ export class ScoreViewerRuntime {
       settings.layout === "continuous"
         ? "relative bg-white px-4 shadow-xl"
         : "relative";
-    this.#updateScale();
+    this.setScaleToFitViewport();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
