@@ -76,12 +76,16 @@ const MANUAL_SCROLL_IDLE_MS = 2000;
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
   // root
-  //   scroller             scrollable viewport with surface-specific padding
-  //     layoutBox          scaled footprint used by browser layout and scrolling
-  //       sheet            transformed fixed-density OSMD coordinate space
+  //   scroller             viewport-sized scroll container with surface padding
+  //     layoutBox          scaled score footprint that determines scroll extent;
+  //                        needed since CSS transforms do not affect layout size
+  //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
+  //                        transformed without changing density or system breaks
   //         cursor         playback overlay
   //         measureLayers  click-to-seek overlays
-  //         container      OSMD-rendered score
+  //         container      OSMD render target
+  //           canvasPage   one OSMD-owned wrapper per rendered page
+  //             svgPage    OSMD-owned notation SVG
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
