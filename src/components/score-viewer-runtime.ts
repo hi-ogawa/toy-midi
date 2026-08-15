@@ -171,7 +171,6 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
-    this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -187,15 +186,19 @@ export class ScoreViewerRuntime {
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
-    this.#clock.stop();
+    const tempo = parseTempo(score.xml);
+    const { currentTime, isPlaying } = this.#clock.getSnapshot();
+    const scoreTime = secondsToScoreTime(currentTime, tempo);
+    const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
     this.#setState({
-      bar: 1,
-      beat: 1,
-      currentTime: 0,
+      bar,
+      beat,
+      currentTime,
+      isPlaying,
       isReady: true,
-      tempo: parseTempo(score.xml),
+      tempo,
     });
-    this.#updateCursor(0);
+    this.#updateCursor(scoreTime);
   }
 
   togglePlayback() {
