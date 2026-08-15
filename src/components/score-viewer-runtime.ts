@@ -171,7 +171,7 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
-    this.#clock.stop?.();
+    this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -187,7 +187,7 @@ export class ScoreViewerRuntime {
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
-    this.#clock.stop?.();
+    this.#clock.stop();
     this.#setState({
       bar: 1,
       beat: 1,
@@ -200,21 +200,17 @@ export class ScoreViewerRuntime {
 
   togglePlayback() {
     if (this.#clock.getSnapshot().isPlaying) {
-      this.#clock.pause?.();
+      this.#clock.pause();
       return;
     }
     if (!this.#state.isReady) {
       return;
     }
-    this.#clock.play?.();
+    this.#clock.play();
   }
 
   restart() {
-    if (this.#clock.stop) {
-      this.#clock.stop();
-    } else {
-      this.#clock.seek(0);
-    }
+    this.#clock.stop();
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -231,7 +227,7 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
-    this.#clock.stop?.();
+    this.#clock.stop();
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
@@ -529,9 +525,9 @@ export type ScoreViewerClock = {
   getSnapshot: () => PlayheadSnapshot;
   subscribe: (listener: () => void) => () => void;
   seek: (currentTime: number) => void;
-  play?: () => void;
-  pause?: () => void;
-  stop?: () => void;
+  play: () => void;
+  pause: () => void;
+  stop: () => void;
 };
 
 type PlayheadSnapshot = {
