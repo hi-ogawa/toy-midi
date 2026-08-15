@@ -94,11 +94,12 @@ export class ScoreViewerRuntime {
   readonly #listeners = new Set<() => void>();
   #manualScrollTimer?: ReturnType<typeof setTimeout>;
 
-  readonly #clock = new PlayheadClock();
+  readonly #clock: ScoreViewerClock;
 
-  constructor() {
+  constructor({ clock }: { clock: ScoreViewerClock }) {
+    this.#clock = clock;
     this.#clock.subscribe(() => {
-      const { currentTime, paused } = this.#clock.getSnapshot();
+      const { currentTime, isPlaying } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
       const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
       if (
@@ -109,7 +110,6 @@ export class ScoreViewerRuntime {
         this.#setState({ bar, beat, currentTime });
       }
       this.#updateCursor(scoreTime);
-      const isPlaying = !paused;
       if (isPlaying !== this.#state.isPlaying) {
         this.#setState({ isPlaying });
       }
@@ -176,7 +176,6 @@ export class ScoreViewerRuntime {
     settings: ScoreViewerSettings;
   }) {
     this.#resumeAutoScroll();
-    this.#clock.stop();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -192,19 +191,23 @@ export class ScoreViewerRuntime {
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
-    this.#clock.stop();
+    const tempo = parseTempo(score.xml);
+    const { currentTime, isPlaying } = this.#clock.getSnapshot();
+    const scoreTime = secondsToScoreTime(currentTime, tempo);
+    const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
     this.#setState({
-      bar: 1,
-      beat: 1,
-      currentTime: 0,
+      bar,
+      beat,
+      currentTime,
+      isPlaying,
       isReady: true,
-      tempo: parseTempo(score.xml),
+      tempo,
     });
-    this.#updateCursor(0);
+    this.#updateCursor(scoreTime);
   }
 
   togglePlayback() {
-    if (!this.#clock.getSnapshot().paused) {
+    if (this.#clock.getSnapshot().isPlaying) {
       this.#clock.pause();
       return;
     }
@@ -216,7 +219,8 @@ export class ScoreViewerRuntime {
 
   restart() {
     this.#resumeAutoScroll();
-    this.#clock.stop();
+    this.#clock.pause();
+    this.#clock.seek(0);
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -234,7 +238,6 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
-    this.#clock.stop();
     this.#resumeAutoScroll();
     this.#scroller.removeEventListener("wheel", this.#handleManualScroll);
     this.#scroller.removeEventListener("pointerdown", this.#handleManualScroll);
@@ -543,16 +546,24 @@ function buildMeasureTargets(
   layers.replaceChildren(...pageLayers);
 }
 
-// Temporary score-viewer transport matching the snapshot/subscription shape
-// used by the existing Tone.js transport hook infrastructure.
+// Shared transport boundary for the standalone playhead and editor audio clock.
+// The snapshot/subscription shape keeps cursor updates independent of React.
+
+export type ScoreViewerClock = {
+  getSnapshot: () => PlayheadSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  play: () => void;
+  pause: () => void;
+  seek: (currentTime: number) => void;
+};
 
 type PlayheadSnapshot = {
   currentTime: number;
-  paused: boolean;
+  isPlaying: boolean;
 };
 
-class PlayheadClock {
-  #snapshot: PlayheadSnapshot = { currentTime: 0, paused: true };
+export class PlayheadClock implements ScoreViewerClock {
+  #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
   #startedAt?: number;
   #frame?: number;
   readonly #listeners = new Set<() => void>();
@@ -565,16 +576,16 @@ class PlayheadClock {
   };
 
   play() {
-    if (!this.#snapshot.paused) {
+    if (this.#snapshot.isPlaying) {
       return;
     }
     this.#startedAt = performance.now();
-    this.#setSnapshot({ paused: false });
+    this.#setSnapshot({ isPlaying: true });
     this.#frame = requestAnimationFrame(this.#tick);
   }
 
   pause() {
-    if (this.#snapshot.paused) {
+    if (!this.#snapshot.isPlaying) {
       return;
     }
     const currentTime =
@@ -583,23 +594,16 @@ class PlayheadClock {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime, paused: true });
-  }
-
-  stop() {
-    cancelAnimationFrame(this.#frame ?? 0);
-    this.#frame = undefined;
-    this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime: 0, paused: true });
+    this.#setSnapshot({ currentTime, isPlaying: false });
   }
 
   seek(currentTime: number) {
-    this.#startedAt = this.#snapshot.paused ? undefined : performance.now();
+    this.#startedAt = this.#snapshot.isPlaying ? performance.now() : undefined;
     this.#setSnapshot({ currentTime });
   }
 
   #tick = () => {
-    if (this.#snapshot.paused || this.#startedAt === undefined) {
+    if (!this.#snapshot.isPlaying || this.#startedAt === undefined) {
       return;
     }
     const currentTime =
