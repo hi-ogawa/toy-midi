@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { audioManager } from "../lib/audio";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { useProjectStore } from "../lib/project-store";
@@ -31,7 +31,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
     locators,
   } = useProjectStore();
   const [runtime] = useState(
-    () => new ScoreViewerRuntime({ clock: audioClock, scale: 0.68 }),
+    () => new ScoreViewerRuntime({ clock: audioClock, scale: 1 }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
@@ -44,6 +44,31 @@ export function ProjectScorePreview({ title }: { title: string }) {
     setIsRuntimeAttached(true);
     return () => runtime.dispose();
   }, [runtime]);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    const updateScale = () => {
+      const scroller = root.querySelector<HTMLElement>(
+        '[data-testid="score-viewer-scroll"]',
+      );
+      if (!scroller) {
+        return;
+      }
+      const style = getComputedStyle(scroller);
+      const availableWidth =
+        scroller.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight);
+      runtime.fitToWidth(availableWidth);
+    };
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(root);
+    updateScale();
+    return () => observer.disconnect();
+  }, [isRuntimeAttached, runtime]);
 
   const loadMutation = useMutation({
     mutationFn: () =>

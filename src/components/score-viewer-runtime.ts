@@ -96,7 +96,7 @@ export class ScoreViewerRuntime {
   readonly #listeners = new Set<() => void>();
 
   readonly #clock: ScoreViewerClock;
-  readonly #scale: number;
+  #scale: number;
 
   constructor({ clock, scale }: { clock: ScoreViewerClock; scale: number }) {
     this.#clock = clock;
@@ -126,6 +126,18 @@ export class ScoreViewerRuntime {
     return () => this.#listeners.delete(listener);
   };
 
+  setScale(scale: number) {
+    if (!Number.isFinite(scale) || scale <= 0 || scale === this.#scale) {
+      return;
+    }
+    this.#scale = scale;
+    this.#updateScale();
+  }
+
+  fitToWidth(width: number) {
+    this.setScale(width / SCORE_LAYOUT_WIDTH);
+  }
+
   attach(root: HTMLDivElement) {
     this.#root = root;
     this.#root.replaceChildren();
@@ -137,14 +149,12 @@ export class ScoreViewerRuntime {
     this.#layoutBox = document.createElement("div");
     this.#layoutBox.dataset.testid = "score-viewer-layout-box";
     this.#layoutBox.className = "relative mx-auto";
-    this.#layoutBox.style.width = `${SCORE_LAYOUT_WIDTH * this.#scale}px`;
 
     this.#sheet = document.createElement("div");
     this.#sheet.dataset.testid = "score-viewer-sheet";
     this.#sheet.className = "relative";
     this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
-    this.#sheet.style.transform = `scale(${this.#scale})`;
     this.#sheet.style.transformOrigin = "top left";
 
     this.#cursor = document.createElement("div");
@@ -165,6 +175,7 @@ export class ScoreViewerRuntime {
     this.#layoutBox.append(this.#sheet);
     this.#scroller.append(this.#layoutBox);
     this.#root.append(this.#scroller);
+    this.#updateScale();
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
@@ -196,7 +207,7 @@ export class ScoreViewerRuntime {
       settings.layout === "continuous"
         ? "relative bg-white px-4 shadow-xl"
         : "relative";
-    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
+    this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
@@ -315,6 +326,12 @@ export class ScoreViewerRuntime {
     for (const listener of this.#listeners) {
       listener();
     }
+  }
+
+  #updateScale() {
+    this.#sheet.style.transform = `scale(${this.#scale})`;
+    this.#layoutBox.style.width = `${SCORE_LAYOUT_WIDTH * this.#scale}px`;
+    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 }
 
