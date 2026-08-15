@@ -69,6 +69,9 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         | undefined;
 
       const onPointerDown = (event: PointerEvent) => {
+        if (drag) {
+          return;
+        }
         const panel = handle.offsetParent;
         if (!(panel instanceof HTMLElement)) {
           return;
