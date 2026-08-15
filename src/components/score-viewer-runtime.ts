@@ -86,8 +86,8 @@ export class ScoreViewerRuntime {
   #osmd!: OpenSheetMusicDisplay;
 
   #positions: CursorPosition[] = [];
-  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   #state = INITIAL_RUNTIME_STATE;
+  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   readonly #listeners = new Set<() => void>();
 
   readonly #clock = new PlayheadClock();
