@@ -21,6 +21,7 @@ export type MusicXmlModelOptions = {
   keySignature: KeySignature;
   openStringPitches: readonly number[];
   locators: Locator[];
+  /** Rebase the score to its first occupied measure. Defaults to true. */
   trimLeadingEmptyMeasures?: boolean;
 };
 
