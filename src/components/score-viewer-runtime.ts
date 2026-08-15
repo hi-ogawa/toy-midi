@@ -140,9 +140,6 @@ export class ScoreViewerRuntime {
   };
 
   setScale(scale: number) {
-    if (!Number.isFinite(scale) || scale <= 0 || scale === this.#scale) {
-      return;
-    }
     this.#scale = scale;
     this.#updateScale();
   }
