@@ -16,6 +16,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { formatTimeCompact } from "../lib/time-format";
 import { FileDropInput } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
@@ -54,6 +55,8 @@ export function ScoreViewer({
 
   // initialize runtime
   const [runtime] = useState(() => new ScoreViewerRuntime());
+  // TODO: Isolate the clock subscription if whole-view RAF rerenders become
+  // expensive; the current component tree is small enough.
   const runtimeState = useSyncExternalStore(
     runtime.subscribe,
     runtime.getSnapshot,
@@ -167,8 +170,12 @@ export function ScoreViewer({
 
         <div className="h-5 w-px bg-border" />
 
-        <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
-          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+        <span
+          data-testid="score-time-display"
+          className="whitespace-nowrap font-mono text-sm text-neutral-300 tabular-nums"
+        >
+          {formatBarBeat(runtimeState.bar, runtimeState.beat)} -{" "}
+          {formatTimeCompact(runtimeState.currentTime)}
         </span>
 
         <div className="h-5 w-px bg-border" />
