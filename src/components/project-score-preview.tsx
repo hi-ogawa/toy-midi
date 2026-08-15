@@ -18,10 +18,6 @@ const audioClock: ScoreViewerClock = {
   seek: (currentTime) => audioManager.seek(currentTime),
   play: () => audioManager.play(),
   pause: () => audioManager.pause(),
-  stop: () => {
-    audioManager.pause();
-    audioManager.seek(0);
-  },
 };
 
 export function ProjectScorePreview({ title }: { title: string }) {

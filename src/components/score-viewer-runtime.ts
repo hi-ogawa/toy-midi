@@ -213,7 +213,8 @@ export class ScoreViewerRuntime {
   }
 
   restart() {
-    this.#clock.stop();
+    this.#clock.pause();
+    this.#clock.seek(0);
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -230,7 +231,6 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
-    this.#clock.stop();
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
@@ -530,7 +530,6 @@ export type ScoreViewerClock = {
   seek: (currentTime: number) => void;
   play: () => void;
   pause: () => void;
-  stop: () => void;
 };
 
 type PlayheadSnapshot = {
@@ -571,13 +570,6 @@ export class PlayheadClock implements ScoreViewerClock {
     this.#frame = undefined;
     this.#startedAt = undefined;
     this.#setSnapshot({ currentTime, isPlaying: false });
-  }
-
-  stop() {
-    cancelAnimationFrame(this.#frame ?? 0);
-    this.#frame = undefined;
-    this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime: 0, isPlaying: false });
   }
 
   seek(currentTime: number) {
