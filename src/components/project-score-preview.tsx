@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { audioManager } from "../lib/audio";
 import { exportMusicXml } from "../lib/musicxml/render";
@@ -28,6 +29,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
     locators,
   } = useProjectStore();
   const [runtime] = useState(() => new ScoreViewerRuntime(audioClock));
+  const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -35,43 +37,51 @@ export function ProjectScorePreview({ title }: { title: string }) {
       return;
     }
     runtime.attach(root);
+    setIsRuntimeAttached(true);
     return () => runtime.dispose();
   }, [runtime]);
 
-  useEffect(() => {
-    if (notes.length === 0) {
-      return;
-    }
-    void runtime.load({
-      score: {
-        name: title,
-        xml: exportMusicXml({
-          notes,
-          tempo,
-          title,
-          timeSignature,
-          keySignature,
-          openStringPitches: tabOpenStringPitches,
-          locators,
-          trimLeadingEmptyMeasures: false,
-        }),
-      },
-      settings: {
-        ...INITIAL_SCORE_VIEWER_SETTINGS,
-        showTitle: false,
-        showSectionLabels: true,
-      },
-    });
-  }, [
-    keySignature,
-    locators,
-    notes,
-    runtime,
-    tabOpenStringPitches,
-    tempo,
-    timeSignature,
-    title,
-  ]);
+  const loadMutation = useMutation({
+    mutationFn: () =>
+      runtime.load({
+        score: {
+          name: title,
+          xml: exportMusicXml({
+            notes,
+            tempo,
+            title,
+            timeSignature,
+            keySignature,
+            openStringPitches: tabOpenStringPitches,
+            locators,
+            trimLeadingEmptyMeasures: false,
+          }),
+        },
+        settings: {
+          ...INITIAL_SCORE_VIEWER_SETTINGS,
+          showTitle: false,
+          showSectionLabels: true,
+        },
+      }),
+  });
+
+  useQuery({
+    queryKey: [
+      "project-score-preview",
+      notes,
+      tempo,
+      title,
+      timeSignature,
+      keySignature,
+      tabOpenStringPitches,
+      locators,
+    ],
+    enabled: isRuntimeAttached && notes.length > 0,
+    queryFn: async () => {
+      await loadMutation.mutateAsync();
+      return true;
+    },
+  });
 
   if (notes.length === 0) {
     return (
