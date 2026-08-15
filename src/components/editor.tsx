@@ -194,12 +194,13 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             data-testid="score-preview-resize-handle"
             className="absolute top-0 left-0 z-10 size-4 cursor-nwse-resize touch-none border-t-2 border-l-2 border-neutral-400"
             onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
+              const handle = event.currentTarget;
+              handle.setPointerCapture(event.pointerId);
               const startX = event.clientX;
               const startY = event.clientY;
               const startSize = scorePreviewSize;
 
-              event.currentTarget.onpointermove = (moveEvent) => {
+              handle.onpointermove = (moveEvent) => {
                 const maxWidth = window.innerWidth - 32;
                 const maxHeight = window.innerHeight - 32;
                 setScorePreviewSize({
@@ -216,9 +217,9 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
                   ),
                 });
               };
-              event.currentTarget.onpointerup = () => {
-                event.currentTarget.onpointermove = null;
-                event.currentTarget.onpointerup = null;
+              handle.onpointerup = () => {
+                handle.onpointermove = null;
+                handle.onpointerup = null;
               };
             }}
           />
