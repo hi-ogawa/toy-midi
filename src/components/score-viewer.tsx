@@ -100,8 +100,6 @@ export function ScoreViewer({
       settings: ScoreViewerSettings;
       source: File | ScoreSource;
     }) => {
-      clock.pause();
-      clock.seek(0);
       const nextScore =
         source instanceof File
           ? { name: source.name, xml: await source.text() }
