@@ -31,7 +31,11 @@ export function ProjectScorePreview({ title }: { title: string }) {
     locators,
   } = useProjectStore();
   const [runtime] = useState(
-    () => new ScoreViewerRuntime({ clock: audioClock, scale: 1 }),
+    () =>
+      new ScoreViewerRuntime({
+        clock: audioClock,
+        presentation: { scale: 1, viewportPadding: 12 },
+      }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
@@ -51,18 +55,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
       return;
     }
     const updateScale = () => {
-      const scroller = root.querySelector<HTMLElement>(
-        '[data-testid="score-viewer-scroll"]',
-      );
-      if (!scroller) {
-        return;
-      }
-      const style = getComputedStyle(scroller);
-      const availableWidth =
-        scroller.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight);
-      runtime.fitToWidth(availableWidth);
+      runtime.fitToWidth(root.clientWidth);
     };
     const observer = new ResizeObserver(updateScale);
     observer.observe(root);

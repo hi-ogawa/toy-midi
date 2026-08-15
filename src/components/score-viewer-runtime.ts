@@ -41,6 +41,11 @@ export type ScoreSource = {
   xml: string;
 };
 
+type ScoreViewerPresentation = {
+  scale: number;
+  viewportPadding: number;
+};
+
 /**
  * A playback anchor in OSMD's rendered score.
  *
@@ -96,11 +101,19 @@ export class ScoreViewerRuntime {
   readonly #listeners = new Set<() => void>();
 
   readonly #clock: ScoreViewerClock;
+  readonly #viewportPadding: number;
   #scale: number;
 
-  constructor({ clock, scale }: { clock: ScoreViewerClock; scale: number }) {
+  constructor({
+    clock,
+    presentation,
+  }: {
+    clock: ScoreViewerClock;
+    presentation: ScoreViewerPresentation;
+  }) {
     this.#clock = clock;
-    this.#scale = scale;
+    this.#scale = presentation.scale;
+    this.#viewportPadding = presentation.viewportPadding;
     this.#clock.subscribe(() => {
       const { currentTime, isPlaying } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
@@ -135,7 +148,7 @@ export class ScoreViewerRuntime {
   }
 
   fitToWidth(width: number) {
-    this.setScale(width / SCORE_LAYOUT_WIDTH);
+    this.setScale((width - 2 * this.#viewportPadding) / SCORE_LAYOUT_WIDTH);
   }
 
   attach(root: HTMLDivElement) {
@@ -144,7 +157,8 @@ export class ScoreViewerRuntime {
 
     this.#scroller = document.createElement("section");
     this.#scroller.dataset.testid = "score-viewer-scroll";
-    this.#scroller.className = "h-full overflow-y-auto p-6";
+    this.#scroller.className = "h-full overflow-y-auto";
+    this.#scroller.style.padding = `${this.#viewportPadding}px`;
 
     this.#layoutBox = document.createElement("div");
     this.#layoutBox.dataset.testid = "score-viewer-layout-box";

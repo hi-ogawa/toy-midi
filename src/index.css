@@ -70,12 +70,6 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }
 
-/* Prototype scale for fitting the fixed-width score runtime into the editor panel. */
-.score-preview-runtime [data-testid="score-viewer-scroll"] {
-  /* TODO: Replace this p-6 override with configurable runtime viewport padding. */
-  padding: 12px;
-}
-
 @media print {
   @page {
     size: A4 portrait;
