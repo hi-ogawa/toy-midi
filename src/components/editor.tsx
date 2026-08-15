@@ -58,6 +58,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         return;
       }
 
+      // Only the pointer that started the resize may move or end it.
       let drag:
         | {
             pointerId: number;
