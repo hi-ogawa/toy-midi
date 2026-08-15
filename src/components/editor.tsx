@@ -65,24 +65,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       return listenPointerDrag({
         element: handle,
         onStart: (event) => ({
-          pointer: { x: event.clientX, y: event.clientY },
-          panel: panel.getBoundingClientRect(),
+          x: event.clientX,
+          y: event.clientY,
+          panelRect: panel.getBoundingClientRect(),
         }),
         onMove: (event, start) => {
           setScorePreviewSize({
             width: Math.min(
               window.innerWidth - 32,
-              Math.max(
-                576,
-                start.panel.width + start.pointer.x - event.clientX,
-              ),
+              Math.max(576, start.panelRect.width + start.x - event.clientX),
             ),
             height: Math.min(
               window.innerHeight - 32,
-              Math.max(
-                288,
-                start.panel.height + start.pointer.y - event.clientY,
-              ),
+              Math.max(288, start.panelRect.height + start.y - event.clientY),
             ),
           });
         },

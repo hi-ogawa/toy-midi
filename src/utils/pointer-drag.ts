@@ -17,7 +17,10 @@ export function listenPointerDrag<T>({
     if (event.button !== 0 || drag) {
       return;
     }
-    drag = { pointerId: event.pointerId, data: onStart(event) };
+    drag = {
+      pointerId: event.pointerId,
+      data: onStart(event),
+    };
     element.setPointerCapture(event.pointerId);
   };
   const handlePointerMove = (event: PointerEvent) => {
