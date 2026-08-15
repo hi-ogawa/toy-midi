@@ -11,15 +11,6 @@ type ScoreViewerRuntimeState = {
   tempo: number;
 };
 
-export type ScoreViewerClock = {
-  getSnapshot: () => PlayheadSnapshot;
-  subscribe: (listener: () => void) => () => void;
-  seek: (currentTime: number) => void;
-  play?: () => void;
-  pause?: () => void;
-  stop?: () => void;
-};
-
 const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
   bar: 1,
   beat: 1,
@@ -534,12 +525,21 @@ function buildMeasureTargets(
 // Temporary score-viewer transport matching the snapshot/subscription shape
 // used by the existing Tone.js transport hook infrastructure.
 
+export type ScoreViewerClock = {
+  getSnapshot: () => PlayheadSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  seek: (currentTime: number) => void;
+  play?: () => void;
+  pause?: () => void;
+  stop?: () => void;
+};
+
 type PlayheadSnapshot = {
   currentTime: number;
   isPlaying: boolean;
 };
 
-export class PlayheadClock {
+export class PlayheadClock implements ScoreViewerClock {
   #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
   #startedAt?: number;
   #frame?: number;
