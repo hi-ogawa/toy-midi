@@ -1,6 +1,6 @@
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
-import type { TimeSignature } from "../types";
+import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../types";
 
 type ScoreViewerRuntimeState = {
   bar: number;
@@ -320,11 +320,6 @@ function scoreTimeToBarBeat(
     beat: Math.floor((scoreTime - bar * measureDuration) * denominator) + 1,
   };
 }
-
-const DEFAULT_TIME_SIGNATURE: TimeSignature = {
-  numerator: 4,
-  denominator: 4,
-};
 
 function parseTimeSignature(xml: string): TimeSignature {
   const document = new DOMParser().parseFromString(xml, "application/xml");

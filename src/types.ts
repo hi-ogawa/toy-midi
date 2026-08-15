@@ -25,6 +25,11 @@ export interface TimeSignature {
   denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)
 }
 
+export const DEFAULT_TIME_SIGNATURE: TimeSignature = {
+  numerator: 4,
+  denominator: 4,
+};
+
 export interface Locator {
   id: string;
   position: number; // Position on timeline in beats

@@ -1,4 +1,9 @@
-import type { Locator, Note, TimeSignature } from "../types";
+import {
+  DEFAULT_TIME_SIGNATURE,
+  type Locator,
+  type Note,
+  type TimeSignature,
+} from "../types";
 import { range } from "../utils/array";
 import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
@@ -246,7 +251,7 @@ function createSample({
   tempo,
   locators = [],
   keySignature = { fifths: 0, mode: "major" },
-  timeSignature = { numerator: 4, denominator: 4 },
+  timeSignature = DEFAULT_TIME_SIGNATURE,
 }: ScoreViewerSampleDefinition): ScoreViewerSample {
   return {
     name,
