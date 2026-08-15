@@ -527,9 +527,9 @@ function buildMeasureTargets(
 export type ScoreViewerClock = {
   getSnapshot: () => PlayheadSnapshot;
   subscribe: (listener: () => void) => () => void;
-  seek: (currentTime: number) => void;
   play: () => void;
   pause: () => void;
+  seek: (currentTime: number) => void;
 };
 
 type PlayheadSnapshot = {
