@@ -1,5 +1,6 @@
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../types";
 
 type ScoreViewerRuntimeState = {
   bar: number;
@@ -88,6 +89,7 @@ export class ScoreViewerRuntime {
 
   #positions: CursorPosition[] = [];
   #state = INITIAL_RUNTIME_STATE;
+  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   readonly #listeners = new Set<() => void>();
 
   readonly #clock = new PlayheadClock();
@@ -96,7 +98,7 @@ export class ScoreViewerRuntime {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
       if (
         bar !== this.#state.bar ||
         beat !== this.#state.beat ||
@@ -184,6 +186,7 @@ export class ScoreViewerRuntime {
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
+    this.#timeSignature = parseTimeSignature(score.xml);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -315,12 +318,34 @@ function scoreTimeToSeconds(scoreTime: number, tempo: number) {
   return scoreTime / (tempo / 60 / 4);
 }
 
-function scoreTimeToBarBeat(scoreTime: number) {
-  const totalBeats = Math.floor(scoreTime * 4);
+function scoreTimeToBarBeat(
+  scoreTime: number,
+  { numerator, denominator }: TimeSignature,
+) {
+  const measureDuration = numerator / denominator;
+  const bar = Math.floor(scoreTime / measureDuration);
   return {
-    bar: Math.floor(totalBeats / 4) + 1,
-    beat: (totalBeats % 4) + 1,
+    bar: bar + 1,
+    beat: Math.floor((scoreTime - bar * measureDuration) * denominator) + 1,
   };
+}
+
+function parseTimeSignature(xml: string): TimeSignature {
+  const document = new DOMParser().parseFromString(xml, "application/xml");
+  const time = document.querySelector(
+    "part:first-of-type > measure > attributes > time",
+  );
+  const numerator = Number(time?.querySelector("beats")?.textContent);
+  const denominator = Number(time?.querySelector("beat-type")?.textContent);
+  if (
+    Number.isFinite(numerator) &&
+    numerator > 0 &&
+    Number.isFinite(denominator) &&
+    denominator > 0
+  ) {
+    return { numerator, denominator };
+  }
+  return DEFAULT_TIME_SIGNATURE;
 }
 
 function parseTempo(xml: string) {
