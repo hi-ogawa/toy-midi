@@ -103,7 +103,7 @@ export class ScoreViewerRuntime {
 
   readonly #clock: ScoreViewerClock;
 
-  constructor(clock: ScoreViewerClock) {
+  constructor({ clock }: { clock: ScoreViewerClock }) {
     this.#clock = clock;
     this.#clock.subscribe(() => {
       const { currentTime, isPlaying } = this.#clock.getSnapshot();

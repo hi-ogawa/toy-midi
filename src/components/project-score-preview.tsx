@@ -28,7 +28,9 @@ export function ProjectScorePreview({ title }: { title: string }) {
     tabOpenStringPitches,
     locators,
   } = useProjectStore();
-  const [runtime] = useState(() => new ScoreViewerRuntime(audioClock));
+  const [runtime] = useState(
+    () => new ScoreViewerRuntime({ clock: audioClock }),
+  );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
   useEffect(() => {
