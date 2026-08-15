@@ -521,8 +521,8 @@ function buildMeasureTargets(
   layers.replaceChildren(...pageLayers);
 }
 
-// Temporary score-viewer transport matching the snapshot/subscription shape
-// used by the existing Tone.js transport hook infrastructure.
+// Shared transport boundary for the standalone playhead and editor audio clock.
+// The snapshot/subscription shape keeps cursor updates independent of React.
 
 export type ScoreViewerClock = {
   getSnapshot: () => PlayheadSnapshot;
