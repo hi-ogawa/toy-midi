@@ -201,6 +201,7 @@ export class ScoreViewerRuntime {
 
   setScaleToFitViewport() {
     const sheetWidth = this.#sheet.offsetWidth;
+    // The sheet is display:none until the first score load, so it has no layout yet.
     if (sheetWidth === 0) {
       return;
     }
