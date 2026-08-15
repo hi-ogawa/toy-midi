@@ -162,6 +162,8 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           <Mixer />
         </FloatingPanel>
       )}
+      {/* TODO: Add a top-left resize handle so the preview can grow while its
+          bottom-right anchor remains fixed. */}
       {isScorePreviewOpen && (
         <FloatingPanel
           closeLabel="Close Score Preview"
