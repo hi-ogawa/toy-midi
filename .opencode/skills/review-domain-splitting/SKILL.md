@@ -46,6 +46,8 @@ Use the narrowest boundary that separates the reasoning:
 - A component when rendering and interaction form one cohesive UI concept.
 - A module when the concern has an independent contract, vocabulary, or verification surface.
 
+Review-domain splitting is not inherently file splitting. A named function, local helper, type, component, or ordered section can create a sufficient reasoning boundary within one file. Extracting code does not by itself justify creating a file. Prefer an in-file boundary when it preserves a coherent linear review, and create another file only when the concern forms a substantial independent module.
+
 Do not force a component, hook, or generic capability merely to make the caller shorter. Match the boundary to the domain being hidden.
 
 ## Example: Pointer-Driven Resize
