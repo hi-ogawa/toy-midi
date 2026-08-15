@@ -44,13 +44,6 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
     ],
   }),
   createSample({
-    name: "Six-eight meter",
-    description: "Eighth-note beats in 6/8 time",
-    tempo: 120,
-    timeSignature: { numerator: 6, denominator: 8 },
-    notes: createSequentialNotes({ count: 18, duration: 0.5 }),
-  }),
-  createSample({
     name: "Triplets",
     description:
       "All note and rest combinations for eighth and quarter triplets",
@@ -147,6 +140,13 @@ export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
       createLocator({ position: 4, label: "G-flat major [!key: Gb major]" }),
       createLocator({ position: 8, label: "F-sharp major [!key: F# major]" }),
     ],
+  }),
+  createSample({
+    name: "Six-eight meter",
+    description: "Eighth-note beats in 6/8 time",
+    tempo: 120,
+    timeSignature: { numerator: 6, denominator: 8 },
+    notes: createSequentialNotes({ count: 18, duration: 0.5 }),
   }),
 ];
 

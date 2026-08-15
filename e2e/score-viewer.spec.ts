@@ -158,18 +158,6 @@ test("loads and advances the cursor sample", async ({ page }) => {
   await expect.poll(() => cursor.getAttribute("data-system-id")).toBe("1");
 });
 
-test("uses MusicXML time signatures for seeking", async ({ page }) => {
-  await page.goto("/score-viewer");
-  await loadSample(page, "Six-eight meter");
-
-  await page.locator('[data-measure-index="1"]').click();
-  await expect(page.getByText("02|01")).toBeVisible();
-
-  await page.getByRole("button", { name: "Play" }).click();
-  await expect(page.getByText("02|02")).toBeVisible();
-  await page.getByRole("button", { name: "Pause" }).click();
-});
-
 test("switches between generated score samples", async ({ page }) => {
   await page.goto("/score-viewer");
 
@@ -297,6 +285,18 @@ test("adjusts title spacing", async ({ page }) => {
   await expect
     .poll(async () => (await firstMeasure.boundingBox())!.y)
     .toBeLessThan(relaxedTop);
+});
+
+test("uses MusicXML time signatures for seeking", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Six-eight meter");
+
+  await page.locator('[data-measure-index="1"]').click();
+  await expect(page.getByText("02|01")).toBeVisible();
+
+  await page.getByRole("button", { name: "Play" }).click();
+  await expect(page.getByText("02|02")).toBeVisible();
+  await page.getByRole("button", { name: "Pause" }).click();
 });
 
 async function loadSample(page: Page, name: string) {
