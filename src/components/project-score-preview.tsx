@@ -119,7 +119,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
     <div
       ref={rootRef}
       data-testid="project-score-preview"
-      className="score-preview-runtime h-[28rem] w-[50rem] overflow-hidden bg-neutral-300 text-neutral-950"
+      className="score-preview-runtime h-full w-full overflow-hidden bg-neutral-300 text-neutral-950"
     />
   );
 }

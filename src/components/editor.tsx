@@ -43,6 +43,10 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
+  const [scorePreviewSize, setScorePreviewSize] = useState({
+    width: 800,
+    height: 448,
+  });
   const [projectName, setProjectName] = useState(initialProjectName);
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
@@ -162,8 +166,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           <Mixer />
         </FloatingPanel>
       )}
-      {/* TODO: Add a top-left resize handle so the preview can grow while its
-          bottom-right anchor remains fixed. */}
       {isScorePreviewOpen && (
         <FloatingPanel
           closeLabel="Close Score Preview"
@@ -182,9 +184,44 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             </a>
           }
           testId="score-preview-panel"
-          className="overflow-hidden"
-          contentClassName="p-0"
+          className="flex flex-col overflow-hidden"
+          contentClassName="min-h-0 flex-1 p-0"
+          style={scorePreviewSize}
         >
+          <button
+            type="button"
+            aria-label="Resize Score Preview"
+            data-testid="score-preview-resize-handle"
+            className="absolute top-0 left-0 z-10 size-4 cursor-nwse-resize touch-none border-t-2 border-l-2 border-neutral-400"
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              const startX = event.clientX;
+              const startY = event.clientY;
+              const startSize = scorePreviewSize;
+
+              event.currentTarget.onpointermove = (moveEvent) => {
+                const maxWidth = window.innerWidth - 32;
+                const maxHeight = window.innerHeight - 32;
+                setScorePreviewSize({
+                  width: Math.min(
+                    maxWidth,
+                    Math.max(576, startSize.width + startX - moveEvent.clientX),
+                  ),
+                  height: Math.min(
+                    maxHeight,
+                    Math.max(
+                      288,
+                      startSize.height + startY - moveEvent.clientY,
+                    ),
+                  ),
+                });
+              };
+              event.currentTarget.onpointerup = () => {
+                event.currentTarget.onpointermove = null;
+                event.currentTarget.onpointerup = null;
+              };
+            }}
+          />
           <ProjectScorePreview title={projectName} />
         </FloatingPanel>
       )}
