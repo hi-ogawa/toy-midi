@@ -76,11 +76,6 @@
   padding: 12px;
 }
 
-.score-preview-runtime [data-testid="score-viewer-sheet"] {
-  transform: scale(0.68);
-  transform-origin: top left;
-}
-
 @media print {
   @page {
     size: A4 portrait;

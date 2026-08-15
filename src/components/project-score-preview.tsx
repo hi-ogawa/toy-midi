@@ -31,7 +31,7 @@ export function ProjectScorePreview({ title }: { title: string }) {
     locators,
   } = useProjectStore();
   const [runtime] = useState(
-    () => new ScoreViewerRuntime({ clock: audioClock }),
+    () => new ScoreViewerRuntime({ clock: audioClock, scale: 0.68 }),
   );
   const [isRuntimeAttached, setIsRuntimeAttached] = useState(false);
 
