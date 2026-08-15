@@ -16,6 +16,7 @@ import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { formatTimeCompact } from "../lib/time-format";
 import { FileDropInput } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
@@ -167,8 +168,12 @@ export function ScoreViewer({
 
         <div className="h-5 w-px bg-border" />
 
-        <span className="whitespace-nowrap font-mono text-sm text-neutral-300">
-          {formatBarBeat(runtimeState.bar, runtimeState.beat)}
+        <span
+          data-testid="score-time-display"
+          className="whitespace-nowrap font-mono text-sm text-neutral-300 tabular-nums"
+        >
+          {formatBarBeat(runtimeState.bar, runtimeState.beat)} -{" "}
+          {formatTimeCompact(runtimeState.currentTime)}
         </span>
 
         <div className="h-5 w-px bg-border" />

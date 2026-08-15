@@ -4,6 +4,7 @@ import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 type ScoreViewerRuntimeState = {
   bar: number;
   beat: number;
+  currentTime: number;
   isPlaying: boolean;
   isReady: boolean;
   tempo: number;
@@ -12,6 +13,7 @@ type ScoreViewerRuntimeState = {
 const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
   bar: 1,
   beat: 1,
+  currentTime: 0,
   isPlaying: false,
   isReady: false,
   tempo: SCORE_VIEWER_SAMPLES[0].tempo,
@@ -95,8 +97,12 @@ export class ScoreViewerRuntime {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
       const { bar, beat } = scoreTimeToBarBeat(scoreTime);
-      if (bar !== this.#state.bar || beat !== this.#state.beat) {
-        this.#setState({ bar, beat });
+      if (
+        bar !== this.#state.bar ||
+        beat !== this.#state.beat ||
+        currentTime !== this.#state.currentTime
+      ) {
+        this.#setState({ bar, beat, currentTime });
       }
       this.#updateCursor(scoreTime);
       const isPlaying = !paused;
@@ -182,6 +188,7 @@ export class ScoreViewerRuntime {
     this.#setState({
       bar: 1,
       beat: 1,
+      currentTime: 0,
       isReady: true,
       tempo: parseTempo(score.xml),
     });
