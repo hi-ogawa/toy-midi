@@ -215,6 +215,10 @@ export class ScoreViewerRuntime {
     this.restart();
   }
 
+  seek(scoreTime: number) {
+    this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
+  }
+
   dispose() {
     this.#clock.stop();
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
@@ -231,9 +235,7 @@ export class ScoreViewerRuntime {
     if (!target) {
       return;
     }
-    this.#clock.seek(
-      scoreTimeToSeconds(Number(target.dataset.scoreTime), this.#state.tempo),
-    );
+    this.seek(Number(target.dataset.scoreTime));
   };
 
   #updateCursor(scoreTime: number) {
