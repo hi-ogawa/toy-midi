@@ -72,6 +72,7 @@
 
 /* Prototype scale for fitting the fixed-width score runtime into the editor panel. */
 .score-preview-runtime [data-testid="score-viewer-scroll"] {
+  /* TODO: Replace this p-6 override with configurable runtime viewport padding. */
   padding: 12px;
 }
 
