@@ -142,18 +142,6 @@ export class ScoreViewerRuntime {
     return () => this.#listeners.delete(listener);
   };
 
-  setScale(scale: number) {
-    this.#scale = scale;
-    this.#updateScale();
-  }
-
-  setScaleToFitViewport() {
-    this.setScale(
-      (this.#scroller.clientWidth - 2 * this.#viewportPadding) /
-        SCORE_LAYOUT_WIDTH,
-    );
-  }
-
   attach(root: HTMLDivElement) {
     this.#root = root;
     this.#root.replaceChildren();
@@ -205,6 +193,24 @@ export class ScoreViewerRuntime {
       drawTitle: false,
       pageBackgroundColor: "#ffffff",
     });
+  }
+
+  setScale(scale: number) {
+    this.#scale = scale;
+    this.#updateScale();
+  }
+
+  setScaleToFitViewport() {
+    this.setScale(
+      (this.#scroller.clientWidth - 2 * this.#viewportPadding) /
+        SCORE_LAYOUT_WIDTH,
+    );
+  }
+
+  #updateScale() {
+    this.#sheet.style.transform = `scale(${this.#scale})`;
+    this.#layoutBox.style.width = `${SCORE_LAYOUT_WIDTH * this.#scale}px`;
+    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 
   async load({
@@ -366,12 +372,6 @@ export class ScoreViewerRuntime {
     for (const listener of this.#listeners) {
       listener();
     }
-  }
-
-  #updateScale() {
-    this.#sheet.style.transform = `scale(${this.#scale})`;
-    this.#layoutBox.style.width = `${SCORE_LAYOUT_WIDTH * this.#scale}px`;
-    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
   }
 }
 
