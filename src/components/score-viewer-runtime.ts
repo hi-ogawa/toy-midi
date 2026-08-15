@@ -11,6 +11,15 @@ type ScoreViewerRuntimeState = {
   tempo: number;
 };
 
+export type ScoreViewerClock = {
+  getSnapshot: () => PlayheadSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  seek: (currentTime: number) => void;
+  play?: () => void;
+  pause?: () => void;
+  stop?: () => void;
+};
+
 const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
   bar: 1,
   beat: 1,
@@ -92,11 +101,12 @@ export class ScoreViewerRuntime {
   #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   readonly #listeners = new Set<() => void>();
 
-  readonly #clock = new PlayheadClock();
+  readonly #clock: ScoreViewerClock;
 
-  constructor() {
+  constructor(clock: ScoreViewerClock = new PlayheadClock()) {
+    this.#clock = clock;
     this.#clock.subscribe(() => {
-      const { currentTime, paused } = this.#clock.getSnapshot();
+      const { currentTime, isPlaying } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
       const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
       if (
@@ -107,7 +117,6 @@ export class ScoreViewerRuntime {
         this.#setState({ bar, beat, currentTime });
       }
       this.#updateCursor(scoreTime);
-      const isPlaying = !paused;
       if (isPlaying !== this.#state.isPlaying) {
         this.#setState({ isPlaying });
       }
@@ -171,7 +180,7 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
-    this.#clock.stop();
+    this.#clock.stop?.();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -187,7 +196,7 @@ export class ScoreViewerRuntime {
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
     this.#timeSignature = parseTimeSignature(score.xml);
-    this.#clock.stop();
+    this.#clock.stop?.();
     this.#setState({
       bar: 1,
       beat: 1,
@@ -199,18 +208,22 @@ export class ScoreViewerRuntime {
   }
 
   togglePlayback() {
-    if (!this.#clock.getSnapshot().paused) {
-      this.#clock.pause();
+    if (this.#clock.getSnapshot().isPlaying) {
+      this.#clock.pause?.();
       return;
     }
     if (!this.#state.isReady) {
       return;
     }
-    this.#clock.play();
+    this.#clock.play?.();
   }
 
   restart() {
-    this.#clock.stop();
+    if (this.#clock.stop) {
+      this.#clock.stop();
+    } else {
+      this.#clock.seek(0);
+    }
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -227,7 +240,7 @@ export class ScoreViewerRuntime {
   }
 
   dispose() {
-    this.#clock.stop();
+    this.#clock.stop?.();
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
@@ -523,11 +536,11 @@ function buildMeasureTargets(
 
 type PlayheadSnapshot = {
   currentTime: number;
-  paused: boolean;
+  isPlaying: boolean;
 };
 
 class PlayheadClock {
-  #snapshot: PlayheadSnapshot = { currentTime: 0, paused: true };
+  #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
   #startedAt?: number;
   #frame?: number;
   readonly #listeners = new Set<() => void>();
@@ -540,16 +553,16 @@ class PlayheadClock {
   };
 
   play() {
-    if (!this.#snapshot.paused) {
+    if (this.#snapshot.isPlaying) {
       return;
     }
     this.#startedAt = performance.now();
-    this.#setSnapshot({ paused: false });
+    this.#setSnapshot({ isPlaying: true });
     this.#frame = requestAnimationFrame(this.#tick);
   }
 
   pause() {
-    if (this.#snapshot.paused) {
+    if (!this.#snapshot.isPlaying) {
       return;
     }
     const currentTime =
@@ -558,23 +571,23 @@ class PlayheadClock {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime, paused: true });
+    this.#setSnapshot({ currentTime, isPlaying: false });
   }
 
   stop() {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime: 0, paused: true });
+    this.#setSnapshot({ currentTime: 0, isPlaying: false });
   }
 
   seek(currentTime: number) {
-    this.#startedAt = this.#snapshot.paused ? undefined : performance.now();
+    this.#startedAt = this.#snapshot.isPlaying ? performance.now() : undefined;
     this.#setSnapshot({ currentTime });
   }
 
   #tick = () => {
-    if (this.#snapshot.paused || this.#startedAt === undefined) {
+    if (!this.#snapshot.isPlaying || this.#startedAt === undefined) {
       return;
     }
     const currentTime =

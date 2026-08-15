@@ -70,6 +70,16 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }
 
+/* Prototype scale for fitting the fixed-width score runtime into the editor panel. */
+.score-preview-runtime [data-testid="score-viewer-scroll"] {
+  padding: 12px;
+}
+
+.score-preview-runtime [data-testid="score-viewer-sheet"] {
+  transform: scale(0.68);
+  transform-origin: top left;
+}
+
 @media print {
   @page {
     size: A4 portrait;
