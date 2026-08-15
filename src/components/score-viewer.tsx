@@ -21,6 +21,7 @@ import { FileDropInput } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
+  PlayheadClock,
   type ScoreSource,
   type ScoreViewerSettings,
   ScoreViewerRuntime,
@@ -54,7 +55,7 @@ export function ScoreViewer({
   }, [score]);
 
   // initialize runtime
-  const [runtime] = useState(() => new ScoreViewerRuntime());
+  const [runtime] = useState(() => new ScoreViewerRuntime(new PlayheadClock()));
   // TODO: Isolate the clock subscription if whole-view RAF rerenders become
   // expensive; the current component tree is small enough.
   const runtimeState = useSyncExternalStore(

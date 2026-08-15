@@ -103,7 +103,7 @@ export class ScoreViewerRuntime {
 
   readonly #clock: ScoreViewerClock;
 
-  constructor(clock: ScoreViewerClock = new PlayheadClock()) {
+  constructor(clock: ScoreViewerClock) {
     this.#clock = clock;
     this.#clock.subscribe(() => {
       const { currentTime, isPlaying } = this.#clock.getSnapshot();
@@ -539,7 +539,7 @@ type PlayheadSnapshot = {
   isPlaying: boolean;
 };
 
-class PlayheadClock {
+export class PlayheadClock {
   #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
   #startedAt?: number;
   #frame?: number;
