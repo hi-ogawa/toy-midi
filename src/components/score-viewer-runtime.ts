@@ -58,8 +58,7 @@ type CursorPosition = {
   systemId: number;
 };
 
-type ScoreMeasure = {
-  start: number;
+type TimeSignature = {
   numerator: number;
   denominator: number;
 };
@@ -91,7 +90,7 @@ export class ScoreViewerRuntime {
   #osmd!: OpenSheetMusicDisplay;
 
   #positions: CursorPosition[] = [];
-  #measures: ScoreMeasure[] = [];
+  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   #state = INITIAL_RUNTIME_STATE;
   readonly #listeners = new Set<() => void>();
 
@@ -101,7 +100,7 @@ export class ScoreViewerRuntime {
     this.#clock.subscribe(() => {
       const { currentTime, paused } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#measures);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
       if (bar !== this.#state.bar || beat !== this.#state.beat) {
         this.#setState({ bar, beat });
       }
@@ -185,7 +184,7 @@ export class ScoreViewerRuntime {
         : "relative mx-auto";
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
-    this.#measures = parseMeasures(score.xml);
+    this.#timeSignature = parseTimeSignature(score.xml);
     this.#clock.stop();
     this.#setState({
       bar: 1,
@@ -314,84 +313,39 @@ function scoreTimeToSeconds(scoreTime: number, tempo: number) {
   return scoreTime / (tempo / 60 / 4);
 }
 
-function scoreTimeToBarBeat(scoreTime: number, measures: ScoreMeasure[]) {
-  const measureIndex = Math.max(
-    measures.findLastIndex((measure) => measure.start <= scoreTime),
-    0,
-  );
-  const measure = measures[measureIndex] ?? DEFAULT_MEASURE;
+function scoreTimeToBarBeat(
+  scoreTime: number,
+  { numerator, denominator }: TimeSignature,
+) {
+  const measureDuration = numerator / denominator;
+  const bar = Math.floor(scoreTime / measureDuration);
   return {
-    bar: measureIndex + 1,
-    beat: Math.floor((scoreTime - measure.start) * measure.denominator) + 1,
+    bar: bar + 1,
+    beat: Math.floor((scoreTime - bar * measureDuration) * denominator) + 1,
   };
 }
 
-const DEFAULT_MEASURE: ScoreMeasure = {
-  start: 0,
+const DEFAULT_TIME_SIGNATURE: TimeSignature = {
   numerator: 4,
   denominator: 4,
 };
 
-function parseMeasures(xml: string): ScoreMeasure[] {
+function parseTimeSignature(xml: string): TimeSignature {
   const document = new DOMParser().parseFromString(xml, "application/xml");
-  const measureElements = document.querySelectorAll(
-    "part:first-of-type > measure",
+  const time = document.querySelector(
+    "part:first-of-type > measure > attributes > time",
   );
-  const measures: ScoreMeasure[] = [];
-  let start = 0;
-  let numerator = DEFAULT_MEASURE.numerator;
-  let denominator = DEFAULT_MEASURE.denominator;
-  let divisions = 1;
-
-  for (const measureElement of measureElements) {
-    const parsedDivisions = Number(
-      measureElement.querySelector(":scope > attributes > divisions")
-        ?.textContent,
-    );
-    if (Number.isFinite(parsedDivisions) && parsedDivisions > 0) {
-      divisions = parsedDivisions;
-    }
-
-    const time = measureElement.querySelector(":scope > attributes > time");
-    const parsedNumerator = Number(time?.querySelector("beats")?.textContent);
-    const parsedDenominator = Number(
-      time?.querySelector("beat-type")?.textContent,
-    );
-    if (Number.isFinite(parsedNumerator) && parsedNumerator > 0) {
-      numerator = parsedNumerator;
-    }
-    if (Number.isFinite(parsedDenominator) && parsedDenominator > 0) {
-      denominator = parsedDenominator;
-    }
-
-    let cursor = 0;
-    let duration = 0;
-    for (const event of measureElement.querySelectorAll(
-      ":scope > note, :scope > backup, :scope > forward",
-    )) {
-      const eventDuration = Number(
-        event.querySelector(":scope > duration")?.textContent,
-      );
-      if (!Number.isFinite(eventDuration) || eventDuration < 0) {
-        continue;
-      }
-      const wholeNoteDuration = eventDuration / divisions / 4;
-      if (event.tagName === "backup") {
-        cursor -= wholeNoteDuration;
-      } else if (event.tagName === "forward") {
-        cursor += wholeNoteDuration;
-        duration = Math.max(duration, cursor);
-      } else if (!event.querySelector(":scope > chord")) {
-        cursor += wholeNoteDuration;
-        duration = Math.max(duration, cursor);
-      }
-    }
-
-    measures.push({ start, numerator, denominator });
-    start += duration > 0 ? duration : numerator / denominator;
+  const numerator = Number(time?.querySelector("beats")?.textContent);
+  const denominator = Number(time?.querySelector("beat-type")?.textContent);
+  if (
+    Number.isFinite(numerator) &&
+    numerator > 0 &&
+    Number.isFinite(denominator) &&
+    denominator > 0
+  ) {
+    return { numerator, denominator };
   }
-
-  return measures.length > 0 ? measures : [DEFAULT_MEASURE];
+  return DEFAULT_TIME_SIGNATURE;
 }
 
 function parseTempo(xml: string) {
