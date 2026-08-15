@@ -71,19 +71,15 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         }),
         onMove: (event, dragData) => {
           setScorePreviewSize({
-            width: Math.min(
+            width: clamp(
+              dragData.panelRect.width + dragData.x - event.clientX,
+              576,
               window.innerWidth - 32,
-              Math.max(
-                576,
-                dragData.panelRect.width + dragData.x - event.clientX,
-              ),
             ),
-            height: Math.min(
+            height: clamp(
+              dragData.panelRect.height + dragData.y - event.clientY,
+              288,
               window.innerHeight - 32,
-              Math.max(
-                288,
-                dragData.panelRect.height + dragData.y - event.clientY,
-              ),
             ),
           });
         },
@@ -283,4 +279,8 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       </Dialog>
     </div>
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
