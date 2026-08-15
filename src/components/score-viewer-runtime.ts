@@ -71,6 +71,7 @@ type CursorPosition = {
 // which is an application-specific scale rather than a physical CSS pixel size.
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
+const MANUAL_SCROLL_IDLE_MS = 2000;
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
@@ -99,6 +100,7 @@ export class ScoreViewerRuntime {
   #state = INITIAL_RUNTIME_STATE;
   #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   readonly #listeners = new Set<() => void>();
+  #manualScrollTimer?: ReturnType<typeof setTimeout>;
 
   readonly #clock: ScoreViewerClock;
   readonly #viewportPadding: number;
@@ -159,6 +161,8 @@ export class ScoreViewerRuntime {
     this.#scroller.dataset.testid = "score-viewer-scroll";
     this.#scroller.className = "h-full overflow-y-auto";
     this.#scroller.style.padding = `${this.#viewportPadding}px`;
+    this.#scroller.addEventListener("wheel", this.#handleManualScroll);
+    this.#scroller.addEventListener("pointerdown", this.#handleManualScroll);
 
     this.#layoutBox = document.createElement("div");
     this.#layoutBox.dataset.testid = "score-viewer-layout-box";
@@ -209,6 +213,7 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
+    this.#resumeAutoScroll();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
@@ -252,6 +257,7 @@ export class ScoreViewerRuntime {
   }
 
   restart() {
+    this.#resumeAutoScroll();
     this.#clock.pause();
     this.#clock.seek(0);
     this.#scroller.scrollTo({ top: 0 });
@@ -266,10 +272,14 @@ export class ScoreViewerRuntime {
   }
 
   seek(scoreTime: number) {
+    this.#resumeAutoScroll();
     this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
   }
 
   dispose() {
+    this.#resumeAutoScroll();
+    this.#scroller.removeEventListener("wheel", this.#handleManualScroll);
+    this.#scroller.removeEventListener("pointerdown", this.#handleManualScroll);
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
@@ -286,6 +296,18 @@ export class ScoreViewerRuntime {
     }
     this.seek(Number(target.dataset.scoreTime));
   };
+
+  #handleManualScroll = () => {
+    clearTimeout(this.#manualScrollTimer);
+    this.#manualScrollTimer = setTimeout(() => {
+      this.#manualScrollTimer = undefined;
+    }, MANUAL_SCROLL_IDLE_MS);
+  };
+
+  #resumeAutoScroll() {
+    clearTimeout(this.#manualScrollTimer);
+    this.#manualScrollTimer = undefined;
+  }
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
@@ -330,7 +352,10 @@ export class ScoreViewerRuntime {
       (currentAnchor.top + currentAnchor.height) * this.#scale;
     const viewportTop = this.#scroller.scrollTop;
     const viewportBottom = viewportTop + this.#scroller.clientHeight;
-    if (cursorTop < viewportTop || viewportBottom < cursorBottom) {
+    if (
+      this.#manualScrollTimer === undefined &&
+      (cursorTop < viewportTop || viewportBottom < cursorBottom)
+    ) {
       this.#scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
     }
   }
