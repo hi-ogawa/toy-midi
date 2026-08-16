@@ -383,8 +383,9 @@ class AudioStateStore {
   seek(seconds: number): void {
     const position = Math.max(0, seconds);
     Tone.getTransport().seconds = position;
-    // Tone quantizes seconds through transport ticks; retain the requested seek
-    // position in the application snapshot instead of reading that residue back.
+    // Tone quantizes seconds through transport ticks, so reading them back can
+    // turn an exact measure seek into the previous beat at `:99` hundredths.
+    // Preserve the requested position in the application snapshot instead.
     this.update({ position });
   }
 
