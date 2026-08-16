@@ -382,9 +382,10 @@ class AudioStateStore {
   seek(seconds: number): void {
     const position = Math.max(0, seconds);
     Tone.getTransport().seconds = position;
-    // Tone quantizes seconds through transport ticks, so even an immediate
-    // readback can turn an exact editor or score measure seek into the previous
-    // beat at `:99` hundredths. Preserve the requested application position.
+    // Tone emits `ticks` before updating its clock, and its eventual seconds
+    // readback is tick-quantized. Reading Tone here can therefore yield either
+    // the old position or `3.999...` for an exact 4-second editor or score seek.
+    // Preserve the requested application position instead.
     this.update({ position });
   }
 
