@@ -394,7 +394,9 @@ class AudioStateStore {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
-      // Tone fires some events before its public state has settled.
+      // TODO: Remove this deferred refresh after verifying lifecycle events.
+      // Tone's `ticks` setter emits before mutating its clock, but seek() now
+      // preserves that exact position and normal lifecycle events appear settled.
       if (event !== "ticks") {
         queueMicrotask(() => this.updateTransportSnapshot());
       }

@@ -4,6 +4,7 @@ import { clickNewProject, evaluateStore } from "./helpers";
 test("syncs seeking between the score preview and editor timeline", async ({
   page,
 }) => {
+  // Create notes in measures 1 and 3 so the score spans the seek targets.
   await page.goto("/");
   await clickNewProject(page);
   await evaluateStore(page, (store) => {
@@ -26,6 +27,7 @@ test("syncs seeking between the score preview and editor timeline", async ({
   const toggle = page.getByTestId("score-preview-button");
   await toggle.click();
 
+  // Open the score preview and wait for its notation and cursor to render.
   const panel = page.getByTestId("score-preview-panel");
   await expect(panel).toBeVisible();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -38,14 +40,16 @@ test("syncs seeking between the score preview and editor timeline", async ({
   const firstMeasureCursor = await cursor.evaluate(
     (element) => element.style.transform,
   );
-  const thirdMeasure = panel.locator('[data-measure-index="2"]');
 
+  // Seek by clicking score measure 3 and verify the editor transport follows exactly.
+  const thirdMeasure = panel.locator('[data-measure-index="2"]');
   await thirdMeasure.click({ position: { x: 20, y: 20 } });
   await expect(page.getByTestId("time-display")).toHaveText("03|01 - 00:04:00");
   await expect
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .not.toBe(firstMeasureCursor);
 
+  // Seek from the editor timeline start and verify the score cursor follows.
   const timeline = page.getByTestId("timeline");
   const timelineBox = await timeline.boundingBox();
   if (!timelineBox) {
@@ -58,6 +62,7 @@ test("syncs seeking between the score preview and editor timeline", async ({
     .poll(() => cursor.evaluate((element) => element.style.transform))
     .toBe(firstMeasureCursor);
 
+  // Close the score preview and verify its toggle reflects the closed state.
   await panel.getByRole("button", { name: "Close Score Preview" }).click();
   await expect(panel).toHaveCount(0);
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
