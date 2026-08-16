@@ -8,13 +8,14 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { routes } from "../lib/routes";
+import { listenPointerDrag } from "../utils/pointer-drag";
 import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
@@ -43,10 +44,48 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
+  const [scorePreviewSize, setScorePreviewSize] = useState({
+    width: 800,
+    height: 448,
+  });
   const [projectName, setProjectName] = useState(initialProjectName);
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
     state.audioTracks.find((track) => track.id === audioToMidiTrackId),
+  );
+  const scorePreviewResizeHandleRef = useCallback(
+    (handle: HTMLButtonElement | null) => {
+      if (!handle) {
+        return;
+      }
+      const panel = handle.offsetParent;
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+      return listenPointerDrag({
+        element: handle,
+        onStart: (event) => ({
+          x: event.clientX,
+          y: event.clientY,
+          panelRect: panel.getBoundingClientRect(),
+        }),
+        onMove: (event, dragData) => {
+          setScorePreviewSize({
+            width: clamp(
+              dragData.panelRect.width + dragData.x - event.clientX,
+              576,
+              window.innerWidth - 32,
+            ),
+            height: clamp(
+              dragData.panelRect.height + dragData.y - event.clientY,
+              288,
+              window.innerHeight - 32,
+            ),
+          });
+        },
+      });
+    },
+    [setScorePreviewSize],
   );
 
   // Update document title when project name changes
@@ -162,8 +201,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           <Mixer />
         </FloatingPanel>
       )}
-      {/* TODO: Add a top-left resize handle so the preview can grow while its
-          bottom-right anchor remains fixed. */}
       {isScorePreviewOpen && (
         <FloatingPanel
           closeLabel="Close Score Preview"
@@ -182,9 +219,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             </a>
           }
           testId="score-preview-panel"
-          className="overflow-hidden"
-          contentClassName="p-0"
+          className="flex flex-col overflow-hidden"
+          contentClassName="min-h-0 flex-1 p-0"
+          style={scorePreviewSize}
         >
+          <button
+            ref={scorePreviewResizeHandleRef}
+            type="button"
+            aria-label="Resize Score Preview"
+            data-testid="score-preview-resize-handle"
+            className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+          >
+            <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-blue-400" />
+          </button>
           <ProjectScorePreview title={projectName} />
         </FloatingPanel>
       )}
@@ -232,4 +279,8 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       </Dialog>
     </div>
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }

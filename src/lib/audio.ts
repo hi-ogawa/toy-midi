@@ -380,8 +380,14 @@ class AudioStateStore {
   }
 
   seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
-    this.updateTransportSnapshot();
+    const position = Math.max(0, seconds);
+
+    // Tone emits `ticks` before this setter updates its clock, so the synchronous
+    // event handler temporarily snapshots the old position. Afterward, Tone's
+    // seconds readback is tick-quantized. Publish the exact requested position once
+    // the setter returns, replacing both the stale event snapshot and any residue.
+    Tone.getTransport().seconds = position;
+    this.update({ position });
   }
 
   private handleTransportEvent = (): void => {
@@ -390,8 +396,6 @@ class AudioStateStore {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
-      // Tone fires some events before its public state has settled.
-      queueMicrotask(() => this.updateTransportSnapshot());
     }
   };
 
