@@ -341,7 +341,6 @@ const TRANSPORT_EVENT_NAMES = [
   "loopStart",
   "ticks",
 ] as const;
-type TransportEventName = (typeof TRANSPORT_EVENT_NAMES)[number];
 
 class AudioStateStore {
   private snapshot: AudioState = {
@@ -354,7 +353,7 @@ class AudioStateStore {
 
   constructor() {
     for (const event of TRANSPORT_EVENT_NAMES) {
-      Tone.getTransport().on(event, () => this.handleTransportEvent(event));
+      Tone.getTransport().on(event, this.handleTransportEvent);
     }
   }
 
@@ -389,18 +388,12 @@ class AudioStateStore {
     this.update({ position });
   }
 
-  private handleTransportEvent = (event: TransportEventName): void => {
+  private handleTransportEvent = (): void => {
     this.updateTransportSnapshot();
     if (this.snapshot.isPlaying) {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
-      // TODO: Remove this deferred refresh after verifying lifecycle events.
-      // Tone's `ticks` setter emits before mutating its clock, but seek() now
-      // preserves that exact position and normal lifecycle events appear settled.
-      if (event !== "ticks") {
-        queueMicrotask(() => this.updateTransportSnapshot());
-      }
     }
   };
 
