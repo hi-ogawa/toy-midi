@@ -58,7 +58,9 @@ A pointer-driven panel resize contains at least three review domains:
 - Product geometry owns the anchor direction, initial dimensions, minimums, viewport bounds, and conversion from drag deltas to size.
 - Editor orchestration owns whether the panel is open and where session UI state lives.
 
-A plain pointer-drag utility can report cumulative movement while hiding the DOM protocol. The editor can retain the small calculation that turns movement into the score preview's width and height. A score-specific panel wrapper or generic resizable-panel capability would be a worse split if it only hides JSX or bakes accidental product assumptions into a shared abstraction.
+A plain pointer-drag utility can own pointer identity, capture, termination, and listener cleanup while passing each pointer event plus caller-defined start data to product code. The editor retains the calculation that interprets pointer coordinates as score-preview width and height, including anchor direction and constraints.
+
+This deliberately narrow contract matters. Reporting cumulative movement would also impose a coordinate model on the utility, even though gestures may interpret movement from the start, incrementally, along one axis, or in transformed coordinates. The best boundary is not the one that makes the caller shortest; it is the one that completely hides the pointer protocol without absorbing adjacent product geometry. A score-specific panel wrapper or generic resizable-panel capability would likewise be a worse split if it only hides JSX or bakes accidental product assumptions into a shared abstraction.
 
 The utility is justified by the separate correctness domain, not by a prediction that another drag interaction will reuse it.
 
