@@ -381,11 +381,12 @@ class AudioStateStore {
 
   seek(seconds: number): void {
     const position = Math.max(0, seconds);
+
+    // Tone emits `ticks` before this setter updates its clock, so the synchronous
+    // event handler temporarily snapshots the old position. Afterward, Tone's
+    // seconds readback is tick-quantized. Publish the exact requested position once
+    // the setter returns, replacing both the stale event snapshot and any residue.
     Tone.getTransport().seconds = position;
-    // Tone emits `ticks` before updating its clock, and its eventual seconds
-    // readback is tick-quantized. Reading Tone here can therefore yield either
-    // the old position or `3.999...` for an exact 4-second editor or score seek.
-    // Preserve the requested application position instead.
     this.update({ position });
   }
 
