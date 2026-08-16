@@ -23,6 +23,7 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 export type ScoreLayout = "continuous" | "paged";
 
 export type ScoreViewerSettings = {
+  density: number;
   layout: ScoreLayout;
   showSectionLabels: boolean;
   showTitle: boolean;
@@ -30,6 +31,7 @@ export type ScoreViewerSettings = {
 };
 
 export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
+  density: 1,
   layout: "continuous",
   showSectionLabels: true,
   showTitle: true,
@@ -66,11 +68,12 @@ type CursorPosition = {
   systemId: number;
 };
 
-// OSMD reads its layout width from the container's offsetWidth. This value was
-// calibrated to roughly match MuseScore's apparent sheet size at its 100% view,
-// which is an application-specific scale rather than a physical CSS pixel size.
-// TODO: Expose this as a layout density control without coupling it to view zoom.
+// OSMD reads its layout width from the container's offsetWidth. This apparent
+// width was calibrated to roughly match MuseScore's sheet size at its 100% view.
+// Density expands OSMD's engraving space, then inversely scales the result so
+// this surface width remains stable independently of presentation zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
+const SCORE_HORIZONTAL_PADDING = 16;
 const MANUAL_SCROLL_IDLE_MS = 2000;
 
 export class ScoreViewerRuntime {
@@ -79,9 +82,8 @@ export class ScoreViewerRuntime {
   //   scroller             viewport-sized scroll container with surface padding
   //     layoutBox          manually sized to sheet dimensions multiplied by scale;
   //                        supplies scroll extent since transforms do not affect layout
-  //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
-  //                        visually transformed without changing its layout size,
-  //                        engraving density, or system breaks
+  //       sheet            density-scaled OSMD coordinate space;
+  //                        visually transformed back to SCORE_LAYOUT_WIDTH
   //         cursor         playback overlay
   //         measureLayers  click-to-seek overlays
   //         container      OSMD render target
@@ -105,7 +107,8 @@ export class ScoreViewerRuntime {
 
   readonly #clock: ScoreViewerClock;
   readonly #viewportPadding: number;
-  #scale: number;
+  #density = 1;
+  #presentationScale: number;
 
   constructor({
     clock,
@@ -115,7 +118,7 @@ export class ScoreViewerRuntime {
     presentation: ScoreViewerPresentation;
   }) {
     this.#clock = clock;
-    this.#scale = presentation.scale;
+    this.#presentationScale = presentation.scale;
     this.#viewportPadding = presentation.viewportPadding;
     this.#clock.subscribe(() => {
       const { currentTime, isPlaying } = this.#clock.getSnapshot();
@@ -191,11 +194,12 @@ export class ScoreViewerRuntime {
       drawPartNames: false,
       drawTitle: false,
       pageBackgroundColor: "#ffffff",
+      autoResize: false,
     });
   }
 
   setScale(scale: number) {
-    this.#scale = scale;
+    this.#presentationScale = scale;
     this.#updateScale();
   }
 
@@ -206,14 +210,16 @@ export class ScoreViewerRuntime {
       return;
     }
     this.setScale(
-      (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
+      (this.#scroller.clientWidth - 2 * this.#viewportPadding) /
+        (sheetWidth / this.#density),
     );
   }
 
   #updateScale() {
-    this.#sheet.style.transform = `scale(${this.#scale})`;
-    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * this.#scale}px`;
-    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
+    const displayScale = this.#presentationScale / this.#density;
+    this.#sheet.style.transform = `scale(${displayScale})`;
+    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * displayScale}px`;
+    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * displayScale}px`;
   }
 
   async load({
@@ -226,16 +232,25 @@ export class ScoreViewerRuntime {
     this.#resumeAutoScroll();
     this.#setState({ isReady: false });
 
+    this.#density = settings.layout === "continuous" ? settings.density : 1;
+    const layoutWidth = SCORE_LAYOUT_WIDTH * this.#density;
+    this.#sheet.style.width = `${layoutWidth}px`;
+    this.#container.style.width = `${layoutWidth}px`;
+    this.#sheet.style.paddingInline =
+      settings.layout === "continuous"
+        ? `${SCORE_HORIZONTAL_PADDING * this.#density}px`
+        : "";
+    this.#sheet.className =
+      settings.layout === "continuous"
+        ? "relative box-content bg-white shadow-xl"
+        : "relative";
+
     this.#osmd.clear();
     applyEngravingSettings(this.#osmd, settings);
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
 
-    this.#sheet.className =
-      settings.layout === "continuous"
-        ? "relative box-content bg-white px-4 shadow-xl"
-        : "relative";
     this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
@@ -357,9 +372,10 @@ export class ScoreViewerRuntime {
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
-    const cursorTop = currentAnchor.top * this.#scale;
+    const displayScale = this.#presentationScale / this.#density;
+    const cursorTop = currentAnchor.top * displayScale;
     const cursorBottom =
-      (currentAnchor.top + currentAnchor.height) * this.#scale;
+      (currentAnchor.top + currentAnchor.height) * displayScale;
     const viewportTop = this.#scroller.scrollTop;
     const viewportBottom = viewportTop + this.#scroller.clientHeight;
     if (

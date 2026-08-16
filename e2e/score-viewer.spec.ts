@@ -212,8 +212,10 @@ test("switches score layout", async ({ page }) => {
 
   const renderer = page.getByTestId("score-viewer-renderer");
   await openScoreSettings(page);
+  await expect(page.getByLabel("Density")).toBeEnabled();
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
+  await expect(page.getByLabel("Density")).toBeDisabled();
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
 
   // Measure overlays use page-local OSMD geometry. Verify page 2 is placed
@@ -262,6 +264,55 @@ test("switches score layout", async ({ page }) => {
 
   await page.getByLabel("Layout").selectOption("continuous");
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
+  await expect(page.getByLabel("Density")).toBeEnabled();
+});
+
+test("adjusts engraving density without changing the score width", async ({
+  page,
+}) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Long score");
+
+  const renderer = page.getByTestId("score-viewer-renderer");
+  const sheet = page.getByTestId("score-viewer-sheet");
+  const initialRendererWidth = (await renderer.boundingBox())!.width;
+  const initialSheetWidth = (await sheet.boundingBox())!.width;
+  const measureTargets = page.getByTestId("score-viewer-measure");
+  const initialFirstSystemMeasureCount = await measureTargets.evaluateAll(
+    (elements) => {
+      const firstTop = elements[0].getBoundingClientRect().top;
+      return elements.filter(
+        (element) =>
+          Math.abs(element.getBoundingClientRect().top - firstTop) < 1,
+      ).length;
+    },
+  );
+  await expect(renderer).toHaveCSS("width", "1110px");
+
+  await openScoreSettings(page);
+  await page.getByLabel("Density").selectOption("1.2");
+  await expect(page.getByLabel("Density")).toHaveValue("1.2");
+  await expect(renderer).toHaveCSS("width", "1332px");
+  await expect
+    .poll(async () => (await renderer.boundingBox())!.width)
+    .toBeCloseTo(initialRendererWidth, 0);
+  await expect
+    .poll(async () => (await sheet.boundingBox())!.width)
+    .toBeCloseTo(initialSheetWidth, 0);
+  await expect
+    .poll(() =>
+      measureTargets.evaluateAll((elements) => {
+        const firstTop = elements[0].getBoundingClientRect().top;
+        return elements.filter(
+          (element) =>
+            Math.abs(element.getBoundingClientRect().top - firstTop) < 1,
+        ).length;
+      }),
+    )
+    .toBeGreaterThan(initialFirstSystemMeasureCount);
+
+  await page.locator('[data-measure-index="2"]').click();
+  await expect(page.getByText("03|01")).toBeVisible();
 });
 
 test("adjusts title spacing", async ({ page }) => {
