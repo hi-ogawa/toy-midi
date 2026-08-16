@@ -29,6 +29,21 @@ export function ScoreSettings({ settings, onChange }: ScoreSettingsProps) {
         <option value="paged">Pages</option>
       </SettingsSelect>
 
+      <label htmlFor="score-density">Density</label>
+      <SettingsSelect
+        id="score-density"
+        value={settings.density}
+        disabled={settings.layout === "paged"}
+        onChange={(event) =>
+          onChange({ density: Number(event.currentTarget.value) })
+        }
+      >
+        <option value="0.8">Spacious</option>
+        <option value="1">Standard</option>
+        <option value="1.2">Dense</option>
+        <option value="1.4">Extra dense</option>
+      </SettingsSelect>
+
       <label htmlFor="score-title">Title</label>
       <input
         id="score-title"
