@@ -9,7 +9,6 @@ import {
 
 // Constants matching piano-roll.tsx
 const BEAT_WIDTH = 80;
-const SEEK_TEST_PIXELS_PER_BEAT = 40;
 
 test.describe("Transport Controls", () => {
   test.beforeEach(async ({ page }) => {
@@ -331,6 +330,7 @@ test.describe("Timeline Seek", () => {
   });
 
   test("clicking timeline while paused moves playhead", async ({ page }) => {
+    const pixelsPerBeat = 40;
     await evaluateStore(page, (store) => store.getState().setPixelsPerBeat(40));
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
@@ -347,7 +347,7 @@ test.describe("Timeline Seek", () => {
     const initialX = initialPlayheadBox.x;
 
     // Click at beat 8, which is the 4-second start of measure 3 at 120 BPM.
-    const clickX = timelineBox.x + SEEK_TEST_PIXELS_PER_BEAT * 8;
+    const clickX = timelineBox.x + pixelsPerBeat * 8;
     const clickY = timelineBox.y + timelineBox.height / 2;
     await page.mouse.click(clickX, clickY);
 
@@ -360,7 +360,7 @@ test.describe("Timeline Seek", () => {
       throw new Error("Playhead not found after seek");
     }
     expect(
-      Math.abs(movedPlayheadBox.x - (initialX + SEEK_TEST_PIXELS_PER_BEAT * 8)),
+      Math.abs(movedPlayheadBox.x - (initialX + pixelsPerBeat * 8)),
     ).toBeLessThan(2);
   });
 
