@@ -1,5 +1,7 @@
 # Positive Examples Exploration
 
+This historical exploration predates the broader reasoning-boundaries framing, so it uses review-domain terminology throughout.
+
 ## Prompt
 
 ```text
