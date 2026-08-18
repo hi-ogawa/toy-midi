@@ -30,7 +30,7 @@ Projects persist one key signature for notation export. MIDI pitch remains canon
 
 Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
 
-The recorder runtime has its own native `AudioContext`, media input, worklet capture, and worker WAV encoding. It does not reuse the editor's Tone.js graph or project state, so recording experiments cannot change the editor audio boundary.
+The recorder runtime has its own native `AudioContext`, media input, worklet capture, and bounded in-memory PCM storage. It does not reuse the editor's Tone.js graph or project state, so recording experiments cannot change the editor audio boundary.
 
 One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
 

@@ -2,6 +2,7 @@ import captureWorkletUrl from "./capture-worklet.js?worker&url";
 
 const PREFERRED_INPUT_KEY = "toy-midi-recorder-preferred-input";
 const PLAYBACK_LEAD_SECONDS = 0.03;
+const MAX_RECORDING_SECONDS = 5 * 60;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
@@ -18,7 +19,7 @@ interface RecorderSnapshot {
   backingMuted: boolean;
   isPlaying: boolean;
   position: number;
-  takeUrl?: string;
+  hasTake: boolean;
   takeDuration: number;
   takeOffset: number;
   capturedFrames: number;
@@ -29,14 +30,6 @@ interface RecorderSnapshot {
 type RecordAnchor = {
   contextTime: number;
   timelineTime: number;
-};
-
-type EncoderResult = {
-  type: "result";
-  wav: ArrayBuffer;
-  sampleCount: number;
-  firstFrame?: number;
-  discontinuityFrames: number;
 };
 
 class RecorderRuntime {
@@ -50,6 +43,7 @@ class RecorderRuntime {
     backingMuted: false,
     isPlaying: false,
     position: 0,
+    hasTake: false,
     takeDuration: 0,
     takeOffset: 0,
     capturedFrames: 0,
@@ -69,8 +63,10 @@ class RecorderRuntime {
   #playbackContextTime?: number;
   #playbackTimelineTime = 0;
   #frame?: number;
-  #encoder?: Worker;
   #recordAnchor?: RecordAnchor;
+  #captureBuffer?: Float32Array;
+  #captureLength = 0;
+  #nextCaptureFrame?: number;
 
   getSnapshot = (): RecorderSnapshot => this.#snapshot;
 
@@ -241,15 +237,11 @@ class RecorderRuntime {
       await this.play();
     }
     this.#clearTake();
-    this.#encoder?.terminate();
-    this.#encoder = new Worker(new URL("./encode-worker.ts", import.meta.url), {
-      type: "module",
-    });
-    this.#encoder.onmessage = this.#handleEncoderMessage;
-    this.#encoder.postMessage({
-      type: "start",
-      sampleRate: context.sampleRate,
-    });
+    this.#captureBuffer = new Float32Array(
+      Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
+    );
+    this.#captureLength = 0;
+    this.#nextCaptureFrame = undefined;
     this.#recordAnchor = {
       contextTime: this.#playbackContextTime!,
       timelineTime: this.#playbackTimelineTime,
@@ -434,54 +426,87 @@ class RecorderRuntime {
       }
       case "pcm": {
         const samples = event.data.samples as Float32Array;
-        this.#encoder?.postMessage(
-          {
-            type: "chunk",
-            frame: event.data.frame,
-            samples,
-          },
-          [samples.buffer],
+        const frame = event.data.frame as number;
+        const captureBuffer = this.#captureBuffer;
+        if (
+          !captureBuffer ||
+          (this.#snapshot.status !== "recording" &&
+            this.#snapshot.status !== "processing")
+        ) {
+          break;
+        }
+        const count = Math.min(
+          samples.length,
+          captureBuffer.length - this.#captureLength,
         );
+        captureBuffer.set(samples.subarray(0, count), this.#captureLength);
+        const firstCapturedFrame = this.#snapshot.firstCapturedFrame ?? frame;
+        const discontinuityFrames =
+          this.#snapshot.discontinuityFrames +
+          (this.#nextCaptureFrame === undefined
+            ? 0
+            : frame - this.#nextCaptureFrame);
+        this.#captureLength += count;
+        this.#nextCaptureFrame = frame + samples.length;
+        this.#update({
+          capturedFrames: this.#captureLength,
+          firstCapturedFrame,
+          discontinuityFrames,
+        });
+        if (
+          this.#captureLength === captureBuffer.length &&
+          this.#snapshot.status === "recording"
+        ) {
+          this.stopRecording();
+        }
         break;
       }
       case "stopped": {
-        this.#encoder?.postMessage({ type: "finish" });
+        this.#finishRecording();
         break;
       }
     }
   };
 
-  #handleEncoderMessage = async (
-    event: MessageEvent<EncoderResult>,
-  ): Promise<void> => {
-    if (event.data.type !== "result") {
+  #finishRecording(): void {
+    const context = this.#context;
+    const captureBuffer = this.#captureBuffer;
+    if (!context || !captureBuffer || this.#captureLength === 0) {
+      this.#captureBuffer = undefined;
+      this.#captureLength = 0;
+      this.#nextCaptureFrame = undefined;
+      this.#recordAnchor = undefined;
+      this.#update({ status: "ready" });
+      this.#stopFrameIfIdle();
       return;
     }
-    const context = await this.#getContext();
-    const blob = new Blob([event.data.wav], { type: "audio/wav" });
-    const takeUrl = URL.createObjectURL(blob);
-    this.#takeBuffer = await context.decodeAudioData(event.data.wav.slice(0));
-    const firstFrame = event.data.firstFrame;
+    this.#takeBuffer = context.createBuffer(
+      1,
+      this.#captureLength,
+      context.sampleRate,
+    );
+    this.#takeBuffer
+      .getChannelData(0)
+      .set(captureBuffer.subarray(0, this.#captureLength));
+    const firstFrame = this.#snapshot.firstCapturedFrame;
     const takeOffset =
       firstFrame !== undefined && this.#recordAnchor
         ? this.#recordAnchor.timelineTime +
           firstFrame / context.sampleRate -
           this.#recordAnchor.contextTime
         : this.#snapshot.position;
-    this.#encoder?.terminate();
-    this.#encoder = undefined;
+    this.#captureBuffer = undefined;
+    this.#captureLength = 0;
+    this.#nextCaptureFrame = undefined;
     this.#recordAnchor = undefined;
     this.#update({
       status: "ready",
-      takeUrl,
-      takeDuration: event.data.sampleCount / context.sampleRate,
+      hasTake: true,
+      takeDuration: this.#takeBuffer.duration,
       takeOffset,
-      capturedFrames: event.data.sampleCount,
-      firstCapturedFrame: firstFrame,
-      discontinuityFrames: event.data.discontinuityFrames,
     });
     this.#stopFrameIfIdle();
-  };
+  }
 
   #closeInput(): void {
     this.#inputSource?.disconnect();
@@ -497,12 +522,9 @@ class RecorderRuntime {
   }
 
   #clearTake(): void {
-    if (this.#snapshot.takeUrl) {
-      URL.revokeObjectURL(this.#snapshot.takeUrl);
-    }
     this.#takeBuffer = undefined;
     this.#update({
-      takeUrl: undefined,
+      hasTake: false,
       takeDuration: 0,
       takeOffset: 0,
     });

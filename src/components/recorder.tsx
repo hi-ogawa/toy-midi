@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CircleStopIcon,
-  DownloadIcon,
   Mic2Icon,
   PauseIcon,
   PlayIcon,
@@ -211,26 +210,15 @@ export function Recorder() {
               <span className="font-mono text-xs text-red-300">TAKE 01</span>
               <div>
                 <div className="text-sm text-stone-200">
-                  {state.takeUrl ? "Recorded input" : "No take recorded"}
+                  {state.hasTake ? "Recorded input" : "No take recorded"}
                 </div>
                 <div className="mt-1 text-xs text-stone-600">
-                  {state.takeUrl
+                  {state.hasTake
                     ? `${formatTime(state.takeDuration)} · ${state.capturedFrames.toLocaleString()} frames`
                     : "Direct monitoring stays outside the browser"}
                 </div>
               </div>
-              {state.takeUrl ? (
-                <a
-                  href={state.takeUrl}
-                  download="recorded-take.wav"
-                  className="ml-auto flex size-9 items-center justify-center rounded-md border border-stone-700 bg-stone-800 hover:bg-stone-700"
-                  title="Download take"
-                >
-                  <DownloadIcon className="size-4" />
-                </a>
-              ) : (
-                <div />
-              )}
+              <div />
               <div />
               <label className="flex items-center gap-3 text-xs text-stone-500">
                 Alignment
@@ -244,7 +232,7 @@ export function Recorder() {
                       recorderRuntime.setTakeOffset(offset);
                     }
                   }}
-                  disabled={!state.takeUrl}
+                  disabled={!state.hasTake}
                   className="w-28 rounded border border-stone-700 bg-stone-900 px-2 py-1 font-mono text-stone-200"
                 />
                 ms
