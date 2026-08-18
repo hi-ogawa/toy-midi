@@ -40,7 +40,6 @@ export function LatencyChecker() {
   const [channel, setChannel] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
   const [routeOpen, setRouteOpen] = useState(false);
-  const [result, setResult] = useState<LatencyResult>();
   const [compensation, setCompensation] = useState(0);
   const [status, setStatus] = useState<Status>({
     message:
@@ -119,12 +118,8 @@ export function LatencyChecker() {
   });
 
   const calibrationMutation = useMutation({
-    mutationFn: () => {
-      setResult(undefined);
-      return runtime.calibrate({ channel, outputLevel });
-    },
+    mutationFn: () => runtime.calibrate({ channel, outputLevel }),
     onSuccess: (nextResult) => {
-      setResult(nextResult);
       const medianMs =
         (median(
           nextResult.measurements.map(
@@ -150,6 +145,7 @@ export function LatencyChecker() {
       );
     },
   });
+  const result = calibrationMutation.data;
 
   const previewMutation = useMutation({
     mutationFn: async (variant: PreviewVariant) => {
