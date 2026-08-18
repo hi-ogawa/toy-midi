@@ -87,14 +87,6 @@ export function LatencyChecker() {
     });
   }
 
-  function reportError(error: unknown) {
-    console.error(error);
-    setStatus({
-      message: error instanceof Error ? error.message : String(error),
-      state: "error",
-    });
-  }
-
   const grantAccessMutation = useMutation({
     mutationFn: async () => {
       setStatus({
@@ -110,7 +102,6 @@ export function LatencyChecker() {
         state: "ready",
       });
     },
-    onError: reportError,
   });
 
   const openRouteMutation = useMutation({
@@ -120,7 +111,12 @@ export function LatencyChecker() {
         state: "busy",
       });
       localStorage.setItem(STORAGE_KEY, deviceId);
-      return runtime.openRoute({ channel, deviceId });
+      try {
+        return await runtime.openRoute({ channel, deviceId });
+      } catch (error) {
+        runtime.closeRoute();
+        throw error;
+      }
     },
     onSuccess: () => {
       setRouteOpen(true);
@@ -129,10 +125,6 @@ export function LatencyChecker() {
           "Route is open. Patch the visible browser nodes, then run the click test.",
         state: "ready",
       });
-    },
-    onError: (error) => {
-      runtime.closeRoute();
-      reportError(error);
     },
   });
 
@@ -171,7 +163,6 @@ export function LatencyChecker() {
             },
       );
     },
-    onError: reportError,
   });
 
   const previewMutation = useMutation({
@@ -184,13 +175,17 @@ export function LatencyChecker() {
         });
       }
     },
-    onError: reportError,
   });
 
   const busy =
     grantAccessMutation.isPending ||
     openRouteMutation.isPending ||
     calibrationMutation.isPending;
+  const mutationError =
+    grantAccessMutation.error ??
+    openRouteMutation.error ??
+    calibrationMutation.error ??
+    previewMutation.error;
 
   function toggleRoute() {
     if (routeOpen) {
@@ -352,7 +347,13 @@ export function LatencyChecker() {
                 Run 7-click test
               </ActionButton>
             </div>
-            <StatusMessage status={status} />
+            <StatusMessage
+              status={
+                mutationError
+                  ? { message: mutationError.message, state: "error" }
+                  : status
+              }
+            />
           </Card>
 
           {result && (
