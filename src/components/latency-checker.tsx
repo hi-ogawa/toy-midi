@@ -40,7 +40,6 @@ export function LatencyChecker() {
   const [channel, setChannel] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
   const [routeOpen, setRouteOpen] = useState(false);
-  const [compensation, setCompensation] = useState(0);
   const [status, setStatus] = useState<Status>({
     message:
       "No audio device is open. The test records raw PCM with browser voice processing requested off.",
@@ -115,33 +114,9 @@ export function LatencyChecker() {
 
   const calibrationMutation = useMutation({
     mutationFn: () => runtime.calibrate({ channel, outputLevel }),
-    onSuccess: (nextResult) => {
-      const medianMs =
-        (median(
-          nextResult.measurements.map(
-            (measurement) => measurement.offsetSamples,
-          ),
-        ) *
-          1000) /
-        nextResult.sampleRate;
-      setCompensation(clamp(medianMs, -50, 400));
-      const weak = nextResult.measurements.filter(
-        (measurement) => measurement.score < 0.25,
-      ).length;
-      setStatus(
-        weak
-          ? {
-              message: `${weak} click${weak === 1 ? "" : "s"} had weak correlation. Check routing, channel, and levels before trusting the median.`,
-              state: "error",
-            }
-          : {
-              message: `Test complete. Route remains open for patch changes or another run. Captured ${nextResult.settings.sampleRate || nextResult.sampleRate} Hz with ${nextResult.channelCount || "unknown"} channel(s).`,
-              state: "ready",
-            },
-      );
-    },
   });
   const result = calibrationMutation.data;
+  const resultStatus = result ? getResultStatus(result) : undefined;
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -178,7 +153,7 @@ export function LatencyChecker() {
         : undefined;
   const displayedStatus: Status = mutationError
     ? { message: mutationError.message, state: "error" }
-    : (pendingStatus ?? status);
+    : (pendingStatus ?? (routeOpen ? resultStatus : undefined) ?? status);
 
   function toggleRoute() {
     if (routeOpen) {
@@ -341,12 +316,11 @@ export function LatencyChecker() {
 
           {result && (
             <Results
+              key={result.expectedFrames[0]}
               result={result}
-              compensation={compensation}
-              onCompensationChange={setCompensation}
-              onPlay={(variant) =>
+              onPlay={({ compensationMs, variant }) =>
                 previewMutation.mutate({
-                  compensationMs: compensation,
+                  compensationMs,
                   result,
                   variant,
                 })
@@ -367,14 +341,13 @@ export function LatencyChecker() {
 
 function Results({
   result,
-  compensation,
-  onCompensationChange,
   onPlay,
 }: {
   result: LatencyResult;
-  compensation: number;
-  onCompensationChange: (value: number) => void;
-  onPlay: (variant: PreviewVariant) => void;
+  onPlay: (options: {
+    compensationMs: number;
+    variant: PreviewVariant;
+  }) => void;
 }) {
   const offsets = result.measurements.map(
     (measurement) => measurement.offsetSamples,
@@ -385,6 +358,9 @@ function Results({
   const medianSamples = median(offsets);
   const medianMs = (medianSamples * 1000) / result.sampleRate;
   const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
+  const [compensation, setCompensation] = useState(() =>
+    clamp(medianMs, -50, 400),
+  );
 
   return (
     <Card title="3. Inspect and audition" className="col-span-2">
@@ -451,7 +427,7 @@ function Results({
             step={0.01}
             value={compensation}
             onChange={(event) =>
-              onCompensationChange(Number(event.currentTarget.value))
+              setCompensation(Number(event.currentTarget.value))
             }
             className="w-full accent-emerald-700"
           />
@@ -460,13 +436,29 @@ function Results({
             listen; playback always uses the displayed value.
           </p>
           <div className="flex gap-2">
-            <ActionButton onClick={() => onPlay("reference")}>
+            <ActionButton
+              onClick={() =>
+                onPlay({ compensationMs: compensation, variant: "reference" })
+              }
+            >
               Reference
             </ActionButton>
-            <ActionButton onClick={() => onPlay("raw")}>
+            <ActionButton
+              onClick={() =>
+                onPlay({ compensationMs: compensation, variant: "raw" })
+              }
+            >
               Raw + reference
             </ActionButton>
-            <ActionButton accent onClick={() => onPlay("compensated")}>
+            <ActionButton
+              accent
+              onClick={() =>
+                onPlay({
+                  compensationMs: compensation,
+                  variant: "compensated",
+                })
+              }
+            >
               Compensated + reference
             </ActionButton>
           </div>
@@ -698,6 +690,21 @@ function median(values: number[]) {
   return sorted.length % 2
     ? sorted[middle]
     : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function getResultStatus(result: LatencyResult): Status {
+  const weak = result.measurements.filter(
+    (measurement) => measurement.score < 0.25,
+  ).length;
+  return weak
+    ? {
+        message: `${weak} click${weak === 1 ? "" : "s"} had weak correlation. Check routing, channel, and levels before trusting the median.`,
+        state: "error",
+      }
+    : {
+        message: `Test complete. Route remains open for patch changes or another run. Captured ${result.settings.sampleRate || result.sampleRate} Hz with ${result.channelCount || "unknown"} channel(s).`,
+        state: "ready",
+      };
 }
 
 function formatSigned(value: number, digits = 2) {
