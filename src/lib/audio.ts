@@ -473,14 +473,18 @@ export const audioManager = new AudioManager();
 // gesture, but everything else in init() works on a suspended context.
 // Resume on the first interaction anywhere; capture phase so that even
 // "click play as the very first interaction" resumes within that gesture.
-export function unlockAudioOnFirstGesture(): void {
-  const unlock = () => {
-    Tone.start();
+export function unlockAudioOnFirstGesture(): () => void {
+  const cleanup = () => {
     window.removeEventListener("pointerdown", unlock, true);
     window.removeEventListener("keydown", unlock, true);
   };
+  const unlock = () => {
+    Tone.start();
+    cleanup();
+  };
   window.addEventListener("pointerdown", unlock, true);
   window.addEventListener("keydown", unlock, true);
+  return cleanup;
 }
 
 // Derive this from the max supported zoom: one point per pixel with four beats
