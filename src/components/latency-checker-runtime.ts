@@ -277,24 +277,21 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
 
 function createWorkletSource() {
   return `
-    const CaptureProcessor = (${captureProcessorFactory.toString()})(
-      AudioWorkletProcessor,
-      () => currentFrame,
-    );
+    const CaptureProcessor = (${createCaptureProcessor.toString()})();
     registerProcessor("latency-capture", CaptureProcessor);
   `;
 }
 
 type WorkletProcessorConstructor = new () => { port: MessagePort };
+declare const AudioWorkletProcessor: WorkletProcessorConstructor;
+declare const currentFrame: number;
+
 type WorkletControlMessage =
   | { type: "active"; value: boolean }
   | { type: "channel"; value: number };
 
-function captureProcessorFactory(
-  Processor: WorkletProcessorConstructor,
-  getCurrentFrame: () => number,
-) {
-  return class CaptureProcessor extends Processor {
+function createCaptureProcessor() {
+  return class CaptureProcessor extends AudioWorkletProcessor {
     declare active: boolean;
     declare channel: number;
     declare lastChannelCount: number;
@@ -330,7 +327,7 @@ function captureProcessorFactory(
         this.port.postMessage(
           {
             type: "samples",
-            frameStart: getCurrentFrame(),
+            frameStart: currentFrame,
             samples: copy,
           },
           [copy.buffer],
