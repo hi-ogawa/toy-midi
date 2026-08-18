@@ -1,5 +1,5 @@
 import { memo } from "../utils/memo";
-import { exportMusicXml } from "./musicxml-export";
+import { exportMusicXml } from "./musicxml/render";
 import { projectStorage } from "./project-storage";
 import { fromSavedProject } from "./project-store";
 
@@ -29,6 +29,7 @@ function getProjectScoreSourceImpl(projectId: string): ProjectScoreResult {
           notes: project.notes,
           locators: project.locators,
           tempo: project.tempo,
+          title: metadata.name,
           timeSignature: project.timeSignature,
           keySignature: project.keySignature,
           openStringPitches: project.tabOpenStringPitches,

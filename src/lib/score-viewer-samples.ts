@@ -1,148 +1,158 @@
-import type { Locator, Note } from "../types";
-import { exportMusicXml } from "./musicxml-export";
+import {
+  DEFAULT_TIME_SIGNATURE,
+  type Locator,
+  type Note,
+  type TimeSignature,
+} from "../types";
+import { range } from "../utils/array";
+import { exportMusicXml } from "./musicxml/render";
 import type { KeySignature } from "./pitch-spelling";
 import { TAB_STRING_PRESETS } from "./tab-annotation";
 
 export type ScoreViewerSample = {
-  id: string;
   name: string;
   description: string;
   tempo: number;
   xml: string;
 };
 
+type ScoreViewerSampleDefinition = Omit<ScoreViewerSample, "xml"> & {
+  notes: Note[];
+  locators?: Locator[];
+  keySignature?: KeySignature;
+  timeSignature?: TimeSignature;
+};
+
 const SAMPLE_PITCHES = [40, 43, 45, 47, 48, 47, 45, 43];
 
 export const SCORE_VIEWER_SAMPLES: ScoreViewerSample[] = [
-  {
-    id: "cursor-wrapping",
+  createSample({
     name: "Cursor and wrapping",
     description: "64 eighth notes at 120 BPM",
     tempo: 120,
-    xml: exportSample({
-      tempo: 120,
-      locators: [],
-      notes: createSequentialNotes({ count: 64, duration: 0.5 }),
-    }),
-  },
-  {
-    id: "rhythm-rests",
+    notes: createSequentialNotes({ count: 64, duration: 0.5 }),
+  }),
+  createSample({
     name: "Rhythm and rests",
     description: "Mixed durations, gaps, and a full-measure rest",
     tempo: 120,
-    xml: exportSample({
-      tempo: 120,
-      locators: [],
-      notes: [
-        createNote({ pitch: 40, start: 0, duration: 1 }),
-        createNote({ pitch: 43, start: 1, duration: 0.5 }),
-        createNote({ pitch: 45, start: 1.5, duration: 0.25 }),
-        createNote({ pitch: 47, start: 1.75, duration: 0.25 }),
-        createNote({ pitch: 48, start: 2.5, duration: 1.5 }),
-        createNote({ pitch: 47, start: 8, duration: 0.75 }),
-        createNote({ pitch: 45, start: 8.75, duration: 0.25 }),
-        createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
-        createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
-      ],
-    }),
-  },
-  {
-    id: "ties-barlines",
+    notes: [
+      createNote({ pitch: 40, start: 0, duration: 1 }),
+      createNote({ pitch: 43, start: 1, duration: 0.5 }),
+      createNote({ pitch: 45, start: 1.5, duration: 0.25 }),
+      createNote({ pitch: 47, start: 1.75, duration: 0.25 }),
+      createNote({ pitch: 48, start: 2.5, duration: 1.5 }),
+      createNote({ pitch: 47, start: 8, duration: 0.75 }),
+      createNote({ pitch: 45, start: 8.75, duration: 0.25 }),
+      createNote({ pitch: 43, start: 9.5, duration: 0.5 }),
+      createNote({ pitch: 40, start: 10.5, duration: 1.5 }),
+    ],
+  }),
+  createSample({
+    name: "Triplets",
+    description:
+      "All note and rest combinations for eighth and quarter triplets",
+    tempo: 120,
+    notes: createTripletNotes(),
+  }),
+  createSample({
     name: "Ties and barlines",
     description: "Durations split within and across measures",
     tempo: 120,
-    xml: exportSample({
-      tempo: 120,
-      locators: [],
-      notes: [
-        createNote({ pitch: 40, start: 0, duration: 2.5 }),
-        createNote({ pitch: 43, start: 2.5, duration: 2.5 }),
-        createNote({ pitch: 45, start: 5, duration: 2.5 }),
-        createNote({ pitch: 47, start: 7.5, duration: 2.5 }),
-        createNote({ pitch: 48, start: 10, duration: 2 }),
-      ],
-    }),
-  },
-  {
-    id: "tab-positions",
+    notes: [
+      createNote({ pitch: 40, start: 0, duration: 2.5 }),
+      createNote({ pitch: 43, start: 2.5, duration: 2.5 }),
+      createNote({ pitch: 45, start: 5, duration: 2.5 }),
+      createNote({ pitch: 47, start: 7.5, duration: 2.5 }),
+      createNote({ pitch: 48, start: 10, duration: 2 }),
+    ],
+  }),
+  createSample({
     name: "TAB positions",
     description: "Open strings and explicit alternate-string frets",
     tempo: 120,
-    xml: exportSample({
-      tempo: 120,
-      locators: [],
-      notes: [
-        createNote({ pitch: 40, start: 0, duration: 1 }),
-        createNote({ pitch: 45, start: 1, duration: 1 }),
-        createNote({
-          pitch: 45,
-          start: 2,
-          duration: 1,
-          tabString: 3,
-        }),
-        createNote({
-          pitch: 40,
-          start: 3,
-          duration: 1,
-          tabString: 4,
-        }),
-        createNote({ pitch: 28, start: 4, duration: 1 }),
-        createNote({ pitch: 33, start: 5, duration: 1 }),
-        createNote({ pitch: 38, start: 6, duration: 1 }),
-        createNote({ pitch: 43, start: 7, duration: 1 }),
-      ],
-    }),
-  },
-  {
-    id: "dense-sixteenths",
+    notes: [
+      createNote({ pitch: 40, start: 0, duration: 1 }),
+      createNote({ pitch: 45, start: 1, duration: 1 }),
+      createNote({
+        pitch: 45,
+        start: 2,
+        duration: 1,
+        tabString: 3,
+      }),
+      createNote({
+        pitch: 40,
+        start: 3,
+        duration: 1,
+        tabString: 4,
+      }),
+      createNote({ pitch: 28, start: 4, duration: 1 }),
+      createNote({ pitch: 33, start: 5, duration: 1 }),
+      createNote({ pitch: 38, start: 6, duration: 1 }),
+      createNote({ pitch: 43, start: 7, duration: 1 }),
+    ],
+  }),
+  createSample({
     name: "Dense sixteenths",
     description: "16th-note funk density at 110 BPM",
     tempo: 110,
-    xml: exportSample({
-      tempo: 110,
-      locators: [],
-      notes: createSequentialNotes({ count: 96, duration: 0.25 }),
-    }),
-  },
-  {
-    id: "fast-eighths",
+    notes: createSequentialNotes({ count: 96, duration: 0.25 }),
+  }),
+  createSample({
     name: "Fast eighths",
     description: "Fast cursor and following at 200 BPM",
     tempo: 200,
-    xml: exportSample({
-      notes: createSequentialNotes({ count: 96, duration: 0.5 }),
-      tempo: 200,
-      locators: [],
-      keySignature: { fifths: -3, mode: "minor" },
-    }),
-  },
-  {
-    id: "long-score",
+    notes: createSequentialNotes({ count: 96, duration: 0.5 }),
+    keySignature: { fifths: -3, mode: "minor" },
+  }),
+  createSample({
     name: "Long score",
     description: "64 measures of mixed eighths and sixteenths",
     tempo: 110,
-    xml: exportSample({
-      notes: createPrintNotes(),
-      tempo: 110,
-      locators: [],
-      keySignature: { fifths: -3, mode: "minor" },
-    }),
-  },
-  {
-    id: "rehearsal-marks",
+    notes: createPrintNotes(),
+    keySignature: { fifths: -3, mode: "minor" },
+  }),
+  createSample({
     name: "Rehearsal marks",
     description: "Boxed section labels at measure and mid-measure positions",
     tempo: 120,
-    xml: exportSample({
-      tempo: 120,
-      notes: createSequentialNotes({ count: 32, duration: 0.5 }),
-      locators: [
-        createLocator({ position: 0, label: "A" }),
-        createLocator({ position: 6, label: "B" }),
-        createLocator({ position: 12, label: "C" }),
-      ],
-    }),
-  },
+    notes: createSequentialNotes({ count: 32, duration: 0.5 }),
+    locators: [
+      createLocator({ position: 0, label: "A" }),
+      createLocator({ position: 6, label: "B" }),
+      createLocator({ position: 12, label: "C" }),
+    ],
+  }),
+  createSample({
+    name: "Key changes",
+    description:
+      "Tied accidentals and diatonic notes across flat and sharp keys",
+    tempo: 120,
+    notes: [
+      // A# crosses into G-flat major, where the following pitch is spelled Bb.
+      createNote({ pitch: 34, start: 3.5, duration: 1 }),
+      createNote({ pitch: 34, start: 5, duration: 1 }),
+      // Gb, Bb, and Db are diatonic in G-flat major.
+      createNote({ pitch: 42, start: 6, duration: 0.5 }),
+      createNote({ pitch: 46, start: 6.5, duration: 0.5 }),
+      createNote({ pitch: 49, start: 7, duration: 1 }),
+      // F#, A#, and C# are diatonic in F-sharp major.
+      createNote({ pitch: 42, start: 8, duration: 1 }),
+      createNote({ pitch: 46, start: 9, duration: 1 }),
+      createNote({ pitch: 49, start: 10, duration: 1 }),
+    ],
+    locators: [
+      createLocator({ position: 4, label: "G-flat major [!key: Gb major]" }),
+      createLocator({ position: 8, label: "F-sharp major [!key: F# major]" }),
+    ],
+  }),
+  createSample({
+    name: "Six-eight meter",
+    description: "Eighth-note beats in 6/8 time",
+    tempo: 120,
+    timeSignature: { numerator: 6, denominator: 8 },
+    notes: createSequentialNotes({ count: 18, duration: 0.5 }),
+  }),
 ];
 
 function createSequentialNotes({
@@ -152,7 +162,7 @@ function createSequentialNotes({
   count: number;
   duration: number;
 }) {
-  return Array.from({ length: count }, (_, index) =>
+  return range(count).map((index) =>
     createNote({
       pitch: SAMPLE_PITCHES[index % SAMPLE_PITCHES.length],
       start: index * duration,
@@ -161,8 +171,64 @@ function createSequentialNotes({
   );
 }
 
+function createTripletNotes() {
+  const patterns = [
+    "N1N1N1",
+    "N1N1R1",
+    "N1R1N1",
+    "N1R2",
+    "R1N1N1",
+    "R1N1R1",
+    "R2N1",
+    "N1N2",
+    "R1N2",
+    "N2N1",
+    "N2R1",
+  ];
+
+  // One-beat groups produce written eighth-note triplets, while two-beat
+  // groups produce written quarter-note triplets from the same partitions.
+  const notes: Note[] = [];
+  let cursor = 0;
+  for (const beatDuration of [1, 2]) {
+    for (const [patternIndex, pattern] of patterns.entries()) {
+      const events = [...pattern.matchAll(/([NR])(\d)/g)];
+      for (const [index, match] of events.entries()) {
+        const [, type, unitsText] = match;
+        const units = Number(unitsText);
+        if (type === "N") {
+          notes.push(
+            createNote({
+              pitch:
+                SAMPLE_PITCHES[(patternIndex + index) % SAMPLE_PITCHES.length],
+              start: cursor,
+              duration: (units * beatDuration) / 3,
+            }),
+          );
+        }
+        cursor += (units * beatDuration) / 3;
+      }
+      // Close trailing rest spans with a quarter note after eighth triplets or
+      // a half note after quarter triplets.
+      notes.push(
+        createNote({
+          pitch: SAMPLE_PITCHES[(patternIndex + 3) % SAMPLE_PITCHES.length],
+          start: cursor,
+          duration: beatDuration,
+        }),
+      );
+      cursor += beatDuration;
+    }
+    // Separate the eighth- and quarter-note triplet sections by one measure.
+    if (beatDuration === 1) {
+      cursor += ((4 - (cursor % 4)) % 4) + 4;
+    }
+  }
+  return notes;
+}
+
 function createPrintNotes() {
-  return Array.from({ length: 64 }, (_, measure) => {
+  return range(64).flatMap((measure) => {
     const durations =
       measure % 2 === 0 ? [0.5, 0.5, 1, 0.5, 0.5, 1] : Array(16).fill(0.25);
     let start = measure * 4;
@@ -175,28 +241,32 @@ function createPrintNotes() {
       start += duration;
       return note;
     });
-  }).flat();
+  });
 }
 
-function exportSample({
+function createSample({
+  name,
+  description,
   notes,
   tempo,
-  locators,
+  locators = [],
   keySignature = { fifths: 0, mode: "major" },
-}: {
-  notes: Note[];
-  tempo: number;
-  locators: Locator[];
-  keySignature?: KeySignature;
-}) {
-  return exportMusicXml({
-    keySignature,
-    notes,
+  timeSignature = DEFAULT_TIME_SIGNATURE,
+}: ScoreViewerSampleDefinition): ScoreViewerSample {
+  return {
+    name,
+    description,
     tempo,
-    locators,
-    openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
-    timeSignature: { numerator: 4, denominator: 4 },
-  });
+    xml: exportMusicXml({
+      keySignature,
+      notes,
+      tempo,
+      title: name,
+      locators,
+      openStringPitches: TAB_STRING_PRESETS[0].openStringPitches,
+      timeSignature,
+    }),
+  };
 }
 
 function createLocator(locator: Omit<Locator, "id">): Locator {

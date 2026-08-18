@@ -4,6 +4,7 @@ import oxisynthWasmUrl from "../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../types";
+import { range } from "../utils/array";
 import { type AudioView, createAudioView } from "./audio-view";
 import { Metronome } from "./metronome";
 import { clampGain } from "./music";
@@ -321,9 +322,7 @@ class AudioManager {
   setMetronomeSequence(beatsPerBar: number): void {
     // Create new sequence with updated beats per bar
     this.metronomeSeq.clear();
-    this.metronomeSeq.events = Array.from({ length: beatsPerBar }, (_, i) =>
-      i === 0 ? 1 : 0,
-    );
+    this.metronomeSeq.events = range(beatsPerBar).map((i) => (i === 0 ? 1 : 0));
   }
 
   setProgram(programNumber: number): void {
@@ -381,8 +380,14 @@ class AudioStateStore {
   }
 
   seek(seconds: number): void {
-    Tone.getTransport().seconds = Math.max(0, seconds);
-    this.updateTransportSnapshot();
+    const position = Math.max(0, seconds);
+
+    // Tone emits `ticks` before this setter updates its clock, so the synchronous
+    // event handler temporarily snapshots the old position. Afterward, Tone's
+    // seconds readback is tick-quantized. Publish the exact requested position once
+    // the setter returns, replacing both the stale event snapshot and any residue.
+    Tone.getTransport().seconds = position;
+    this.update({ position });
   }
 
   private handleTransportEvent = (): void => {
@@ -391,8 +396,6 @@ class AudioStateStore {
       this.startTransportRaf();
     } else {
       this.stopTransportRaf();
-      // Tone fires some events before its public state has settled.
-      queueMicrotask(() => this.updateTransportSnapshot());
     }
   };
 

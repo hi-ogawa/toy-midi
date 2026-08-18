@@ -6,6 +6,7 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("score-viewer-link").click();
   await expect(page).toHaveURL(/\/score-viewer$/);
+  await expect(page).toHaveTitle("Score Viewer - Toy MIDI");
 
   await page.getByRole("button", { name: "More" }).click();
   await page.getByTestId("all-projects-menu-item").click();
@@ -39,6 +40,7 @@ test("opens the latest project state as a score in a new tab", async ({
 
   await expect(page.getByTestId("settings-dialog")).not.toBeVisible();
   await expect(scorePage).toHaveURL(`/project/${projectId}/score`);
+  await expect(scorePage).toHaveTitle("Untitled.musicxml - Toy MIDI");
   await expect(scorePage.getByTestId("score-name")).toHaveText(
     "Untitled.musicxml",
   );
@@ -46,6 +48,14 @@ test("opens the latest project state as a score in a new tab", async ({
     scorePage.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
   await expect(scorePage.getByLabel("BPM")).toHaveValue("137");
+  const renderer = scorePage.getByTestId("score-viewer-renderer");
+  await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
+  await openScoreSettings(scorePage);
+  await scorePage.getByLabel("Title", { exact: true }).uncheck();
+  await expect(renderer.getByText("Untitled", { exact: true })).toHaveCount(0);
+  await expect(scorePage.getByLabel("Title spacing")).toBeDisabled();
+  await scorePage.getByLabel("Title", { exact: true }).check();
+  await expect(renderer.getByText("Untitled", { exact: true })).toBeVisible();
   await expect(scorePage.getByRole("button", { name: "Samples" })).toHaveCount(
     0,
   );
@@ -57,10 +67,11 @@ test("renders and plays a Toy MIDI MusicXML export", async ({ page }) => {
   await page
     .getByLabel("Upload MusicXML")
     .setInputFiles(
-      path.resolve("src/lib/__snapshots__/five-string-tab.musicxml"),
+      path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
     );
 
   await expect(page.getByText("five-string-tab.musicxml")).toBeVisible();
+  await expect(page).toHaveTitle("five-string-tab.musicxml - Toy MIDI");
   await expect(
     page.getByTestId("score-viewer-renderer").locator("svg"),
   ).toBeVisible();
@@ -111,7 +122,9 @@ test("loads and advances the cursor sample", async ({ page }) => {
   // Clicking measure 2 while paused seeks the cursor to its first beat.
   await page.getByRole("button", { name: "Pause" }).click();
   await page.locator('[data-measure-index="1"]').click();
-  await expect(page.getByText("02|01")).toBeVisible();
+  await expect(page.getByTestId("score-time-display")).toHaveText(
+    "02|01 - 00:02:00",
+  );
   const seekTransform = await cursor.evaluate(
     (element) => element.style.transform,
   );
@@ -169,10 +182,11 @@ test("toggles rehearsal marks", async ({ page }) => {
   const renderer = page.getByTestId("score-viewer-renderer");
   await expect(renderer.getByText("A", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Section labels").selectOption("hide");
+  await openScoreSettings(page);
+  await page.getByLabel("Section labels").uncheck();
   await expect(renderer.getByText("A", { exact: true })).toHaveCount(0);
 
-  await page.getByLabel("Section labels").selectOption("show");
+  await page.getByLabel("Section labels").check();
   await expect(renderer.getByText("A", { exact: true })).toBeVisible();
 });
 
@@ -197,6 +211,7 @@ test("switches score layout", async ({ page }) => {
   await loadSample(page, "Long score");
 
   const renderer = page.getByTestId("score-viewer-renderer");
+  await openScoreSettings(page);
   await page.getByLabel("Layout").selectOption("paged");
   await expect(page.getByLabel("Layout")).toHaveValue("paged");
   await expect.poll(() => renderer.locator("svg").count()).toBeGreaterThan(1);
@@ -249,7 +264,47 @@ test("switches score layout", async ({ page }) => {
   await expect(page.getByLabel("Layout")).toHaveValue("continuous");
 });
 
+test("adjusts title spacing", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Long score");
+  await openScoreSettings(page);
+
+  const firstMeasure = page.locator(
+    '[data-testid="score-viewer-measure"][data-measure-index="0"]',
+  );
+  const normalTop = (await firstMeasure.boundingBox())!.y;
+  await page.getByLabel("Title spacing").fill("3.5");
+  await page.getByLabel("Title spacing").press("Enter");
+  await expect(page.getByLabel("Title spacing")).toHaveValue("3.5");
+  await expect
+    .poll(async () => (await firstMeasure.boundingBox())!.y)
+    .toBeGreaterThan(normalTop);
+
+  const relaxedTop = (await firstMeasure.boundingBox())!.y;
+  await page.getByLabel("Title spacing").fill("-1");
+  await page.getByLabel("Title spacing").press("Enter");
+  await expect(page.getByLabel("Title spacing")).toHaveValue("-1");
+  await expect
+    .poll(async () => (await firstMeasure.boundingBox())!.y)
+    .toBeLessThan(relaxedTop);
+});
+
+test("uses MusicXML time signatures for seeking", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await loadSample(page, "Six-eight meter");
+
+  await page.locator('[data-measure-index="1"]').click();
+  await expect(page.getByTestId("score-time-display")).toHaveText(
+    "02|01 - 00:01:50",
+  );
+});
+
 async function loadSample(page: Page, name: string) {
   await page.getByRole("button", { name: "Samples" }).click();
   await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+}
+
+async function openScoreSettings(page: Page) {
+  await page.getByRole("button", { name: "Score settings" }).click();
+  await expect(page.getByTestId("score-settings-panel")).toBeVisible();
 }

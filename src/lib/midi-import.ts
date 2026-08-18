@@ -1,7 +1,11 @@
 // MIDI file import using @tonejs/midi
 
 import { Midi } from "@tonejs/midi";
-import type { Note, TimeSignature } from "../types";
+import {
+  DEFAULT_TIME_SIGNATURE,
+  type Note,
+  type TimeSignature,
+} from "../types";
 import { generateNoteId } from "./project-store";
 
 export interface ParsedMidiTrack {
@@ -49,7 +53,7 @@ export async function parseMidiFile(file: File): Promise<ParsedMidi> {
           numerator: midi.header.timeSignatures[0].timeSignature[0],
           denominator: midi.header.timeSignatures[0].timeSignature[1],
         }
-      : { numerator: 4, denominator: 4 };
+      : DEFAULT_TIME_SIGNATURE;
 
   // Parse tracks
   const tracks: ParsedMidiTrack[] = midi.tracks
@@ -93,7 +97,7 @@ export async function importMidiNotes(
           numerator: midi.header.timeSignatures[0].timeSignature[0],
           denominator: midi.header.timeSignatures[0].timeSignature[1],
         }
-      : { numerator: 4, denominator: 4 };
+      : DEFAULT_TIME_SIGNATURE;
 
   // Collect notes from selected tracks
   // Reading ticks directly (instead of the seconds @tonejs/midi derives

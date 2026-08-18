@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { range } from "../utils/array";
 import {
   type AudioView,
   type AudioViewSlice,
@@ -95,7 +96,7 @@ describe("createAudioView", () => {
 describe("queryAudioView", () => {
   // Create test view: 100 points at 10 points/sec = 10 seconds of audio
   const createTestView = (count: number): AudioView => ({
-    data: Array.from({ length: count }, (_, i) => (i + 1) / count),
+    data: range(count).map((i) => (i + 1) / count),
     samplesPerPoint: 100, // 1000 Hz / 10 points/sec
     sampleRate: 1000,
   });
@@ -242,10 +243,7 @@ describe("queryAudioView", () => {
 
     // Create view with distinct values so we can detect changes
     const view: AudioView = {
-      data: Array.from(
-        { length: duration * pointsPerSec },
-        (_, i) => (i % 100) / 100,
-      ),
+      data: range(duration * pointsPerSec).map((i) => (i % 100) / 100),
       samplesPerPoint: 60, // 48000 / 800
       sampleRate: 48000,
     };
