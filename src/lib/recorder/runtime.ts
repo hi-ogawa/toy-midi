@@ -1,4 +1,4 @@
-import captureWorkletUrl from "./recorder-capture-worklet.js?worker&url";
+import captureWorkletUrl from "./capture-worklet.js?worker&url";
 
 const PREFERRED_INPUT_KEY = "toy-midi-recorder-preferred-input";
 const PLAYBACK_LEAD_SECONDS = 0.03;
@@ -39,7 +39,7 @@ type EncoderResult = {
   discontinuityFrames: number;
 };
 
-export class RecorderRuntime {
+class RecorderRuntime {
   #snapshot: RecorderSnapshot = {
     status: "idle",
     devices: [],
@@ -242,10 +242,9 @@ export class RecorderRuntime {
     }
     this.#clearTake();
     this.#encoder?.terminate();
-    this.#encoder = new Worker(
-      new URL("./recorder-encode-worker.ts", import.meta.url),
-      { type: "module" },
-    );
+    this.#encoder = new Worker(new URL("./encode-worker.ts", import.meta.url), {
+      type: "module",
+    });
     this.#encoder.onmessage = this.#handleEncoderMessage;
     this.#encoder.postMessage({
       type: "start",
@@ -282,19 +281,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       void this.play();
     }
-  }
-
-  dispose(): void {
-    this.#stopPlaybackSources();
-    this.#closeInput();
-    this.#encoder?.terminate();
-    this.#encoder = undefined;
-    this.#clearTake();
-    if (this.#frame !== undefined) {
-      cancelAnimationFrame(this.#frame);
-    }
-    void this.#context?.close();
-    this.#context = undefined;
   }
 
   async #getContext(): Promise<AudioContext> {
@@ -529,3 +515,5 @@ export class RecorderRuntime {
     }
   }
 }
+
+export const recorderRuntime = new RecorderRuntime();

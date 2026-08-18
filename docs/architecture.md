@@ -18,7 +18,7 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.
 - `src/components/score-viewer.tsx` owns standalone and project-backed score playback.
-- `src/components/recorder.tsx` and `src/lib/recorder-runtime.ts` own the isolated native Web Audio recording spike.
+- `src/components/recorder.tsx` and `src/lib/recorder/runtime.ts` own the isolated native Web Audio recording spike.
 
 ## State And Audio Flow
 

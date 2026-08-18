@@ -1,3 +1,4 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CircleStopIcon,
   DownloadIcon,
@@ -8,20 +9,39 @@ import {
   RotateCcwIcon,
   UploadIcon,
 } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { RecorderRuntime } from "../lib/recorder-runtime";
+import { useSyncExternalStore } from "react";
+import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 
 export function Recorder() {
-  const [runtime] = useState(() => new RecorderRuntime());
-  const state = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    void run(runtime.refreshDevices());
-    return () => runtime.dispose();
-  }, [runtime]);
+  const state = useSyncExternalStore(
+    recorderRuntime.subscribe,
+    recorderRuntime.getSnapshot,
+  );
+  const devicesQuery = useQuery({
+    queryKey: ["recorder-devices"],
+    queryFn: async () => {
+      await recorderRuntime.refreshDevices();
+      return true;
+    },
+    staleTime: Infinity,
+  });
+  const inputMutation = useMutation({
+    mutationFn: (deviceId?: string) =>
+      deviceId
+        ? recorderRuntime.selectInput(deviceId)
+        : recorderRuntime.enablePreferredInput(),
+  });
+  const backingMutation = useMutation({
+    mutationFn: (file: File) => recorderRuntime.loadBacking(file),
+  });
+  const playMutation = useMutation({
+    mutationFn: () => recorderRuntime.play(),
+  });
+  const recordMutation = useMutation({
+    mutationFn: () => recorderRuntime.startRecording(),
+  });
 
   const duration = Math.max(
     1,
@@ -31,15 +51,12 @@ export function Recorder() {
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
 
-  async function run(promise: Promise<void>) {
-    try {
-      setError(undefined);
-      await promise;
-    } catch (cause) {
-      console.error(cause);
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }
+  const error =
+    devicesQuery.error ??
+    inputMutation.error ??
+    backingMutation.error ??
+    playMutation.error ??
+    recordMutation.error;
 
   return (
     <main className="min-h-screen bg-[#11100e] text-stone-100">
@@ -74,9 +91,9 @@ export function Recorder() {
               <Button
                 onClick={() => {
                   if (state.isPlaying) {
-                    runtime.pause();
+                    recorderRuntime.pause();
                   } else {
-                    void run(runtime.play());
+                    playMutation.mutate();
                   }
                 }}
                 className="size-11 border-amber-300/30 bg-amber-300 text-stone-950 hover:bg-amber-200"
@@ -88,7 +105,7 @@ export function Recorder() {
                 )}
               </Button>
               <Button
-                onClick={() => runtime.stop()}
+                onClick={() => recorderRuntime.stop()}
                 disabled={isRecording || isProcessing}
                 className="size-10 bg-stone-800 hover:bg-stone-700"
                 title="Return to start"
@@ -110,7 +127,7 @@ export function Recorder() {
                 step={0.01}
                 value={Math.min(state.position, duration)}
                 onChange={(event) =>
-                  runtime.seek(event.currentTarget.valueAsNumber)
+                  recorderRuntime.seek(event.currentTarget.valueAsNumber)
                 }
                 disabled={isRecording || isProcessing}
                 className="w-full accent-amber-300"
@@ -148,14 +165,16 @@ export function Recorder() {
                     onChange={(event) => {
                       const file = event.currentTarget.files?.[0];
                       if (file) {
-                        void run(runtime.loadBacking(file));
+                        backingMutation.mutate(file);
                       }
                       event.currentTarget.value = "";
                     }}
                   />
                 </label>
                 <Button
-                  onClick={() => runtime.setBackingMuted(!state.backingMuted)}
+                  onClick={() =>
+                    recorderRuntime.setBackingMuted(!state.backingMuted)
+                  }
                   className={
                     state.backingMuted
                       ? "size-9 border-amber-300 bg-amber-300 text-stone-950"
@@ -176,7 +195,9 @@ export function Recorder() {
                   step={0.01}
                   value={state.backingGain}
                   onChange={(event) =>
-                    runtime.setBackingGain(event.currentTarget.valueAsNumber)
+                    recorderRuntime.setBackingGain(
+                      event.currentTarget.valueAsNumber,
+                    )
                   }
                   className="w-full accent-amber-300"
                 />
@@ -220,7 +241,7 @@ export function Recorder() {
                   onChange={(event) => {
                     const offset = event.currentTarget.valueAsNumber / 1000;
                     if (Number.isFinite(offset)) {
-                      runtime.setTakeOffset(offset);
+                      recorderRuntime.setTakeOffset(offset);
                     }
                   }}
                   disabled={!state.takeUrl}
@@ -236,8 +257,8 @@ export function Recorder() {
             <Button
               onClick={() =>
                 isRecording
-                  ? runtime.stopRecording()
-                  : void run(runtime.startRecording())
+                  ? recorderRuntime.stopRecording()
+                  : recordMutation.mutate()
               }
               disabled={state.status === "idle" || isProcessing}
               className={
@@ -267,7 +288,7 @@ export function Recorder() {
                 <select
                   value={state.selectedDeviceId ?? ""}
                   onChange={(event) =>
-                    void run(runtime.selectInput(event.currentTarget.value))
+                    inputMutation.mutate(event.currentTarget.value)
                   }
                   className="mt-1.5 w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200"
                 >
@@ -282,7 +303,7 @@ export function Recorder() {
                 </select>
               </label>
               <Button
-                onClick={() => void run(runtime.enablePreferredInput())}
+                onClick={() => inputMutation.mutate(undefined)}
                 className="h-10 w-full gap-2 bg-stone-800 text-sm hover:bg-stone-700"
               >
                 <Mic2Icon className="size-4" />
@@ -294,7 +315,9 @@ export function Recorder() {
                   <select
                     value={state.selectedChannel}
                     onChange={(event) =>
-                      runtime.selectChannel(Number(event.currentTarget.value))
+                      recorderRuntime.selectChannel(
+                        Number(event.currentTarget.value),
+                      )
                     }
                     className="mt-1.5 w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200"
                   >
@@ -343,7 +366,7 @@ export function Recorder() {
 
           {error && (
             <div className="rounded-lg border border-red-400/30 bg-red-950/30 p-4 text-sm text-red-200">
-              {error}
+              {error.message}
             </div>
           )}
         </aside>
