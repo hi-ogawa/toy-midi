@@ -1,9 +1,11 @@
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
+import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../types";
 
 type ScoreViewerRuntimeState = {
   bar: number;
   beat: number;
+  currentTime: number;
   isPlaying: boolean;
   isReady: boolean;
   tempo: number;
@@ -12,6 +14,7 @@ type ScoreViewerRuntimeState = {
 const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
   bar: 1,
   beat: 1,
+  currentTime: 0,
   isPlaying: false,
   isReady: false,
   tempo: SCORE_VIEWER_SAMPLES[0].tempo,
@@ -19,9 +22,28 @@ const INITIAL_RUNTIME_STATE: ScoreViewerRuntimeState = {
 
 export type ScoreLayout = "continuous" | "paged";
 
+export type ScoreViewerSettings = {
+  layout: ScoreLayout;
+  showSectionLabels: boolean;
+  showTitle: boolean;
+  titleSpacing: number;
+};
+
+export const INITIAL_SCORE_VIEWER_SETTINGS: ScoreViewerSettings = {
+  layout: "continuous",
+  showSectionLabels: true,
+  showTitle: true,
+  titleSpacing: 0,
+};
+
 export type ScoreSource = {
   name: string;
   xml: string;
+};
+
+type ScoreViewerPresentation = {
+  scale: number;
+  viewportPadding: number;
 };
 
 /**
@@ -49,21 +71,26 @@ type CursorPosition = {
 // which is an application-specific scale rather than a physical CSS pixel size.
 // TODO: Expose this as a layout density control without coupling it to view zoom.
 const SCORE_LAYOUT_WIDTH = 1110;
+const MANUAL_SCROLL_IDLE_MS = 2000;
 
 export class ScoreViewerRuntime {
   // attach() initializes the runtime-owned DOM:
-  // <root>
-  //   <scroller>
-  //     <sheet>
-  //       <cursor />
-  //       <measureLayers />
-  //       <container />
-  //     </sheet>
-  //   </scroller>
-  // </root>
+  // root
+  //   scroller             viewport-sized scroll container with surface padding
+  //     layoutBox          manually sized to sheet dimensions multiplied by scale;
+  //                        supplies scroll extent since transforms do not affect layout
+  //       sheet            fixed SCORE_LAYOUT_WIDTH OSMD coordinate space;
+  //                        visually transformed without changing its layout size,
+  //                        engraving density, or system breaks
+  //         cursor         playback overlay
+  //         measureLayers  click-to-seek overlays
+  //         container      OSMD render target
+  //           canvasPage   one OSMD-owned wrapper per rendered page
+  //             svgPage    OSMD-owned notation SVG
   #root!: HTMLDivElement;
   #container!: HTMLDivElement;
   #cursor!: HTMLDivElement;
+  #layoutBox!: HTMLDivElement;
   #measureLayers!: HTMLDivElement;
   #scroller!: HTMLElement;
   #sheet!: HTMLDivElement;
@@ -72,20 +99,36 @@ export class ScoreViewerRuntime {
 
   #positions: CursorPosition[] = [];
   #state = INITIAL_RUNTIME_STATE;
+  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
   readonly #listeners = new Set<() => void>();
+  #manualScrollTimer?: ReturnType<typeof setTimeout>;
 
-  readonly #clock = new PlayheadClock();
+  readonly #clock: ScoreViewerClock;
+  readonly #viewportPadding: number;
+  #scale: number;
 
-  constructor() {
+  constructor({
+    clock,
+    presentation,
+  }: {
+    clock: ScoreViewerClock;
+    presentation: ScoreViewerPresentation;
+  }) {
+    this.#clock = clock;
+    this.#scale = presentation.scale;
+    this.#viewportPadding = presentation.viewportPadding;
     this.#clock.subscribe(() => {
-      const { currentTime, paused } = this.#clock.getSnapshot();
+      const { currentTime, isPlaying } = this.#clock.getSnapshot();
       const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime);
-      if (bar !== this.#state.bar || beat !== this.#state.beat) {
-        this.#setState({ bar, beat });
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
+      if (
+        bar !== this.#state.bar ||
+        beat !== this.#state.beat ||
+        currentTime !== this.#state.currentTime
+      ) {
+        this.#setState({ bar, beat, currentTime });
       }
       this.#updateCursor(scoreTime);
-      const isPlaying = !paused;
       if (isPlaying !== this.#state.isPlaying) {
         this.#setState({ isPlaying });
       }
@@ -105,12 +148,21 @@ export class ScoreViewerRuntime {
 
     this.#scroller = document.createElement("section");
     this.#scroller.dataset.testid = "score-viewer-scroll";
-    this.#scroller.className = "h-full overflow-y-auto p-6";
+    this.#scroller.className = "h-full overflow-y-auto";
+    this.#scroller.style.padding = `${this.#viewportPadding}px`;
+    this.#scroller.addEventListener("wheel", this.#handleManualScroll);
+    this.#scroller.addEventListener("pointerdown", this.#handleManualScroll);
+
+    this.#layoutBox = document.createElement("div");
+    this.#layoutBox.dataset.testid = "score-viewer-layout-box";
+    this.#layoutBox.className = "relative mx-auto";
 
     this.#sheet = document.createElement("div");
-    this.#sheet.className = "relative mx-auto";
+    this.#sheet.dataset.testid = "score-viewer-sheet";
+    this.#sheet.className = "relative";
     this.#sheet.hidden = true;
     this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+    this.#sheet.style.transformOrigin = "top left";
 
     this.#cursor = document.createElement("div");
     this.#cursor.dataset.testid = "score-viewer-cursor";
@@ -118,6 +170,7 @@ export class ScoreViewerRuntime {
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
     this.#measureLayers = document.createElement("div");
+    this.#measureLayers.dataset.testid = "score-viewer-measure-layers";
     this.#measureLayers.className = "absolute inset-0 z-[5]";
     this.#measureLayers.addEventListener("click", this.#handleMeasureClick);
 
@@ -126,7 +179,8 @@ export class ScoreViewerRuntime {
     this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
     this.#sheet.append(this.#cursor, this.#measureLayers, this.#container);
-    this.#scroller.append(this.#sheet);
+    this.#layoutBox.append(this.#sheet);
+    this.#scroller.append(this.#layoutBox);
     this.#root.append(this.#scroller);
     this.#osmd = new OpenSheetMusicDisplay(this.#container, {
       autoBeam: true,
@@ -140,43 +194,69 @@ export class ScoreViewerRuntime {
     });
   }
 
+  setScale(scale: number) {
+    this.#scale = scale;
+    this.#updateScale();
+  }
+
+  setScaleToFitViewport() {
+    const sheetWidth = this.#sheet.offsetWidth;
+    // The sheet is display:none until the first score load, so it has no layout yet.
+    if (sheetWidth === 0) {
+      return;
+    }
+    this.setScale(
+      (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
+    );
+  }
+
+  #updateScale() {
+    this.#sheet.style.transform = `scale(${this.#scale})`;
+    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * this.#scale}px`;
+    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
+  }
+
   async load({
     score,
-    layout,
-    showRehearsalMarks,
+    settings,
   }: {
     score: ScoreSource;
-    layout: ScoreLayout;
-    showRehearsalMarks: boolean;
+    settings: ScoreViewerSettings;
   }) {
-    this.#clock.stop();
+    this.#resumeAutoScroll();
     this.#setState({ isReady: false });
 
     this.#osmd.clear();
-    this.#osmd.setPageFormat(layout === "paged" ? "A4_P" : "Endless");
-    this.#osmd.EngravingRules.RenderRehearsalMarks = showRehearsalMarks;
+    applyEngravingSettings(this.#osmd, settings);
     await this.#osmd.load(score.xml);
     this.#sheet.hidden = false;
     this.#osmd.render();
 
     this.#sheet.className =
-      layout === "continuous"
-        ? "relative mx-auto bg-white px-4 shadow-xl"
-        : "relative mx-auto";
+      settings.layout === "continuous"
+        ? "relative box-content bg-white px-4 shadow-xl"
+        : "relative";
+    this.#updateScale();
     this.#positions = buildCursorPositions(this.#osmd, this.#container);
     buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
-    this.#clock.stop();
+    this.#timeSignature = parseTimeSignature(score.xml);
+    const tempo = parseTempo(score.xml);
+    const { currentTime, isPlaying } = this.#clock.getSnapshot();
+    const scoreTime = secondsToScoreTime(currentTime, tempo);
+    const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
     this.#setState({
-      bar: 1,
-      beat: 1,
+      bar,
+      beat,
+      currentTime,
+      isPlaying,
       isReady: true,
-      tempo: parseTempo(score.xml),
+      tempo,
     });
-    this.#updateCursor(0);
+    this.#updateCursor(scoreTime);
   }
 
   togglePlayback() {
-    if (!this.#clock.getSnapshot().paused) {
+    if (this.#clock.getSnapshot().isPlaying) {
       this.#clock.pause();
       return;
     }
@@ -187,7 +267,9 @@ export class ScoreViewerRuntime {
   }
 
   restart() {
-    this.#clock.stop();
+    this.#resumeAutoScroll();
+    this.#clock.pause();
+    this.#clock.seek(0);
     this.#scroller.scrollTo({ top: 0 });
   }
 
@@ -200,11 +282,14 @@ export class ScoreViewerRuntime {
   }
 
   seek(scoreTime: number) {
+    this.#resumeAutoScroll();
     this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
   }
 
   dispose() {
-    this.#clock.stop();
+    this.#resumeAutoScroll();
+    this.#scroller.removeEventListener("wheel", this.#handleManualScroll);
+    this.#scroller.removeEventListener("pointerdown", this.#handleManualScroll);
     this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
     if (this.#root.hasChildNodes()) {
       this.#osmd.clear();
@@ -221,6 +306,18 @@ export class ScoreViewerRuntime {
     }
     this.seek(Number(target.dataset.scoreTime));
   };
+
+  #handleManualScroll = () => {
+    clearTimeout(this.#manualScrollTimer);
+    this.#manualScrollTimer = setTimeout(() => {
+      this.#manualScrollTimer = undefined;
+    }, MANUAL_SCROLL_IDLE_MS);
+  };
+
+  #resumeAutoScroll() {
+    clearTimeout(this.#manualScrollTimer);
+    this.#manualScrollTimer = undefined;
+  }
 
   #updateCursor(scoreTime: number) {
     if (this.#positions.length < 2) {
@@ -260,11 +357,15 @@ export class ScoreViewerRuntime {
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
-    const cursorTop = currentAnchor.top;
-    const cursorBottom = cursorTop + currentAnchor.height;
+    const cursorTop = currentAnchor.top * this.#scale;
+    const cursorBottom =
+      (currentAnchor.top + currentAnchor.height) * this.#scale;
     const viewportTop = this.#scroller.scrollTop;
     const viewportBottom = viewportTop + this.#scroller.clientHeight;
-    if (cursorTop < viewportTop || viewportBottom < cursorBottom) {
+    if (
+      this.#manualScrollTimer === undefined &&
+      (cursorTop < viewportTop || viewportBottom < cursorBottom)
+    ) {
       this.#scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
     }
   }
@@ -277,6 +378,16 @@ export class ScoreViewerRuntime {
   }
 }
 
+function applyEngravingSettings(
+  osmd: OpenSheetMusicDisplay,
+  settings: ScoreViewerSettings,
+) {
+  osmd.setPageFormat(settings.layout === "paged" ? "A4_P" : "Endless");
+  osmd.setOptions({ drawTitle: settings.showTitle });
+  osmd.EngravingRules.RenderRehearsalMarks = settings.showSectionLabels;
+  osmd.EngravingRules.TitleBottomDistance = settings.titleSpacing;
+}
+
 function secondsToScoreTime(seconds: number, tempo: number) {
   return seconds * (tempo / 60 / 4);
 }
@@ -285,12 +396,34 @@ function scoreTimeToSeconds(scoreTime: number, tempo: number) {
   return scoreTime / (tempo / 60 / 4);
 }
 
-function scoreTimeToBarBeat(scoreTime: number) {
-  const totalBeats = Math.floor(scoreTime * 4);
+function scoreTimeToBarBeat(
+  scoreTime: number,
+  { numerator, denominator }: TimeSignature,
+) {
+  const measureDuration = numerator / denominator;
+  const bar = Math.floor(scoreTime / measureDuration);
   return {
-    bar: Math.floor(totalBeats / 4) + 1,
-    beat: (totalBeats % 4) + 1,
+    bar: bar + 1,
+    beat: Math.floor((scoreTime - bar * measureDuration) * denominator) + 1,
   };
+}
+
+function parseTimeSignature(xml: string): TimeSignature {
+  const document = new DOMParser().parseFromString(xml, "application/xml");
+  const time = document.querySelector(
+    "part:first-of-type > measure > attributes > time",
+  );
+  const numerator = Number(time?.querySelector("beats")?.textContent);
+  const denominator = Number(time?.querySelector("beat-type")?.textContent);
+  if (
+    Number.isFinite(numerator) &&
+    numerator > 0 &&
+    Number.isFinite(denominator) &&
+    denominator > 0
+  ) {
+    return { numerator, denominator };
+  }
+  return DEFAULT_TIME_SIGNATURE;
 }
 
 function parseTempo(xml: string) {
@@ -330,7 +463,9 @@ function buildCursorPositions(
   // pages to their rendered DOM pages to convert cursor y positions to the
   // shared container coordinate space.
   const containerBounds = container.getBoundingClientRect();
-  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
   const pageOffsets = new Map(
     osmd.GraphicSheet.MusicPages.map((page, index) => [
       page,
@@ -395,7 +530,9 @@ function buildMeasureTargets(
   container: HTMLDivElement,
 ) {
   const sheetBounds = layers.parentElement!.getBoundingClientRect();
-  const pageElements = container.querySelectorAll<HTMLElement>(":scope > div");
+  const pageElements = container.querySelectorAll<HTMLElement>(
+    ':scope > [id^="osmdCanvasPage"]',
+  );
   const pageLayers: HTMLDivElement[] = [];
   for (const [pageIndex, page] of osmd.GraphicSheet.MusicPages.entries()) {
     const pageElement = pageElements[pageIndex];
@@ -459,16 +596,24 @@ function buildMeasureTargets(
   layers.replaceChildren(...pageLayers);
 }
 
-// Temporary score-viewer transport matching the snapshot/subscription shape
-// used by the existing Tone.js transport hook infrastructure.
+// Shared transport boundary for the standalone playhead and editor audio clock.
+// The snapshot/subscription shape keeps cursor updates independent of React.
+
+export type ScoreViewerClock = {
+  getSnapshot: () => PlayheadSnapshot;
+  subscribe: (listener: () => void) => () => void;
+  play: () => void;
+  pause: () => void;
+  seek: (currentTime: number) => void;
+};
 
 type PlayheadSnapshot = {
   currentTime: number;
-  paused: boolean;
+  isPlaying: boolean;
 };
 
-class PlayheadClock {
-  #snapshot: PlayheadSnapshot = { currentTime: 0, paused: true };
+export class PlayheadClock implements ScoreViewerClock {
+  #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
   #startedAt?: number;
   #frame?: number;
   readonly #listeners = new Set<() => void>();
@@ -481,16 +626,16 @@ class PlayheadClock {
   };
 
   play() {
-    if (!this.#snapshot.paused) {
+    if (this.#snapshot.isPlaying) {
       return;
     }
     this.#startedAt = performance.now();
-    this.#setSnapshot({ paused: false });
+    this.#setSnapshot({ isPlaying: true });
     this.#frame = requestAnimationFrame(this.#tick);
   }
 
   pause() {
-    if (this.#snapshot.paused) {
+    if (!this.#snapshot.isPlaying) {
       return;
     }
     const currentTime =
@@ -499,23 +644,16 @@ class PlayheadClock {
     cancelAnimationFrame(this.#frame ?? 0);
     this.#frame = undefined;
     this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime, paused: true });
-  }
-
-  stop() {
-    cancelAnimationFrame(this.#frame ?? 0);
-    this.#frame = undefined;
-    this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime: 0, paused: true });
+    this.#setSnapshot({ currentTime, isPlaying: false });
   }
 
   seek(currentTime: number) {
-    this.#startedAt = this.#snapshot.paused ? undefined : performance.now();
+    this.#startedAt = this.#snapshot.isPlaying ? performance.now() : undefined;
     this.#setSnapshot({ currentTime });
   }
 
   #tick = () => {
-    if (this.#snapshot.paused || this.#startedAt === undefined) {
+    if (!this.#snapshot.isPlaying || this.#startedAt === undefined) {
       return;
     }
     const currentTime =

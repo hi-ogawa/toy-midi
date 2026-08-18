@@ -7,6 +7,7 @@ import { matchKeyboardEvent } from "../lib/keyboard";
 import { parseProjectFile } from "../lib/project-file";
 import { type ProjectMetadata, projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
+import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
 type ProjectListViewProps = {
@@ -20,7 +21,6 @@ export function ProjectListView({
 }: ProjectListViewProps) {
   const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasProjects = projects.length > 0;
   const lastProjectId = projectStorage.getLastProjectId();
@@ -66,32 +66,11 @@ export function ProjectListView({
     }
   };
 
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      importProjectMutation.mutate(file);
-    }
-    // Reset input so same file can be selected again
-    e.target.value = "";
-  };
-
   return (
     <div
       data-testid="startup-screen"
       className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
     >
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".toymidi"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
       {/* Gradient glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
 
@@ -193,14 +172,15 @@ export function ProjectListView({
               >
                 {hasProjects ? "New Project" : "Create Your First Project"}
               </Button>
-              <Button
+              <FileDropInput
+                accept=".toymidi"
+                onFile={(file) => importProjectMutation.mutate(file)}
                 data-testid="import-project-button"
                 disabled={isLoading}
-                onClick={handleImportClick}
-                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
               >
                 {isLoading ? "Importing..." : "Import Project"}
-              </Button>
+              </FileDropInput>
             </div>
           </section>
         </main>

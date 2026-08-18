@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import {
+  DEFAULT_TIME_SIGNATURE,
   GRID_SNAP_VALUES,
   type GridSnap,
   type Locator,
@@ -184,7 +185,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
   totalBeats: 640, // 160 bars (~5 min at 120 BPM)
   tempo: 120,
-  timeSignature: { numerator: 4, denominator: 4 }, // 4/4 time
+  timeSignature: DEFAULT_TIME_SIGNATURE,
   keySignature: { fifths: 0, mode: "major" },
 
   // Locator state
@@ -726,7 +727,7 @@ export type AnySavedProject = SavedProjectV1 | SavedProject;
 const DEFAULTS = {
   notes: [],
   tempo: 120,
-  timeSignature: { numerator: 4, denominator: 4 }, // Default 4/4 time
+  timeSignature: DEFAULT_TIME_SIGNATURE,
   keySignature: { fifths: 0, mode: "major" },
   gridSnap: "1/8",
   tabAnnotationEnabled: false,

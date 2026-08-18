@@ -13,6 +13,7 @@ import { GM_PROGRAMS } from "../lib/general-midi";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
+import { formatTimeCompact } from "../lib/time-format";
 import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
 import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
@@ -325,13 +326,6 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
   return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
-}
-
-function formatTimeCompact(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  const hundredths = Math.floor((seconds % 1) * 100);
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
 }
 
 // GM instrument groups for organized display

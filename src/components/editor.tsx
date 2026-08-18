@@ -1,22 +1,26 @@
 import {
   CircleHelpIcon,
+  ExternalLinkIcon,
+  FileMusicIcon,
   FolderIcon,
   MoreVerticalIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { flushAutoSave } from "../lib/project-session";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { routes } from "../lib/routes";
+import { listenPointerDrag } from "../utils/pointer-drag";
 import { AudioToMidi } from "./audio-to-midi";
 import { HelpOverlay } from "./help-overlay";
 import { Mixer } from "./mixer";
 import { PianoRoll } from "./piano-roll";
+import { ProjectScorePreview } from "./project-score-preview";
 import { Settings } from "./settings";
 import { Transport } from "./transport";
 import { Button } from "./ui/button";
@@ -39,10 +43,49 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isScorePreviewOpen, setIsScorePreviewOpen] = useState(false);
+  const [scorePreviewSize, setScorePreviewSize] = useState({
+    width: 800,
+    height: 448,
+  });
   const [projectName, setProjectName] = useState(initialProjectName);
   const [audioToMidiTrackId, setAudioToMidiTrackId] = useState<string>();
   const audioToMidiTrack = useProjectStore((state) =>
     state.audioTracks.find((track) => track.id === audioToMidiTrackId),
+  );
+  const scorePreviewResizeHandleRef = useCallback(
+    (handle: HTMLButtonElement | null) => {
+      if (!handle) {
+        return;
+      }
+      const panel = handle.offsetParent;
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+      return listenPointerDrag({
+        element: handle,
+        onStart: (event) => ({
+          x: event.clientX,
+          y: event.clientY,
+          panelRect: panel.getBoundingClientRect(),
+        }),
+        onMove: (event, dragData) => {
+          setScorePreviewSize({
+            width: clamp(
+              dragData.panelRect.width + dragData.x - event.clientX,
+              576,
+              window.innerWidth - 32,
+            ),
+            height: clamp(
+              dragData.panelRect.height + dragData.y - event.clientY,
+              288,
+              window.innerHeight - 32,
+            ),
+          });
+        },
+      });
+    },
+    [setScorePreviewSize],
   );
 
   // Update document title when project name changes
@@ -79,6 +122,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         projectName={projectName}
         controls={
           <>
+            <Button
+              data-testid="score-preview-button"
+              onClick={() => setIsScorePreviewOpen((open) => !open)}
+              aria-pressed={isScorePreviewOpen}
+              title="Score preview"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isScorePreviewOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              <FileMusicIcon className="size-5" />
+            </Button>
             <Button
               data-testid="settings-button"
               onClick={() => setIsSettingsOpen(true)}
@@ -145,6 +201,40 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
           <Mixer />
         </FloatingPanel>
       )}
+      {isScorePreviewOpen && (
+        <FloatingPanel
+          closeLabel="Close Score Preview"
+          onClose={() => setIsScorePreviewOpen(false)}
+          title="Score preview"
+          headerActions={
+            <a
+              href={routes.projectScore.href({ projectId })}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => flushAutoSave()}
+              className="flex items-center gap-1 text-xs font-normal text-neutral-400 hover:text-neutral-200"
+            >
+              Open full score
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          }
+          testId="score-preview-panel"
+          className="flex flex-col overflow-hidden"
+          contentClassName="min-h-0 flex-1 p-0"
+          style={scorePreviewSize}
+        >
+          <button
+            ref={scorePreviewResizeHandleRef}
+            type="button"
+            aria-label="Resize Score Preview"
+            data-testid="score-preview-resize-handle"
+            className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+          >
+            <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-blue-400" />
+          </button>
+          <ProjectScorePreview title={projectName} />
+        </FloatingPanel>
+      )}
       {/* TODO: coordinate active floating panels so Mixer and Audio to MIDI do
           not overlap when both are open. */}
       {audioToMidiTrack && (
@@ -189,4 +279,8 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
       </Dialog>
     </div>
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }

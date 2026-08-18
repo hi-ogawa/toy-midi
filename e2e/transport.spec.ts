@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   clickNewProject,
+  evaluateStore,
   loadAudioFile,
   waitForAudioReady,
   waitForEditor,
@@ -329,6 +330,8 @@ test.describe("Timeline Seek", () => {
   });
 
   test("clicking timeline while paused moves playhead", async ({ page }) => {
+    const pixelsPerBeat = 40;
+    await evaluateStore(page, (store) => store.getState().setPixelsPerBeat(40));
     const timeline = page.getByTestId("timeline");
     const timelineBox = await timeline.boundingBox();
     if (!timelineBox) {
@@ -343,24 +346,22 @@ test.describe("Timeline Seek", () => {
     }
     const initialX = initialPlayheadBox.x;
 
-    // Click at beat 4 (4 * BEAT_WIDTH from left)
-    const clickX = timelineBox.x + BEAT_WIDTH * 4;
+    // Click at beat 8, which is the 4-second start of measure 3 at 120 BPM.
+    const clickX = timelineBox.x + pixelsPerBeat * 8;
     const clickY = timelineBox.y + timelineBox.height / 2;
     await page.mouse.click(clickX, clickY);
 
-    // Wait for React state update
-    await page.waitForTimeout(100);
-
-    // Playhead should have moved right
+    // The editor should preserve the exact measure-boundary seek position.
+    await expect(page.getByTestId("time-display")).toHaveText(
+      "03|01 - 00:04:00",
+    );
     const movedPlayheadBox = await playhead.boundingBox();
     if (!movedPlayheadBox) {
       throw new Error("Playhead not found after seek");
     }
-    expect(movedPlayheadBox.x).toBeGreaterThan(initialX + BEAT_WIDTH * 3);
-
-    // Time display should reflect new position (not at bar 1, beat 1)
-    const timeDisplay = page.getByTestId("time-display");
-    await expect(timeDisplay).not.toContainText("1|1.00");
+    expect(
+      Math.abs(movedPlayheadBox.x - (initialX + pixelsPerBeat * 8)),
+    ).toBeLessThan(2);
   });
 
   test("clicking timeline snaps to grid", async ({ page }) => {

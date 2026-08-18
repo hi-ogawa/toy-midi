@@ -39,3 +39,5 @@ export const COMMON_TIME_SIGNATURES: TimeSignature[] = [
   { numerator: 6, denominator: 8 }, // 6/8
   { numerator: 7, denominator: 4 }, // 7/4
 ];
+
+export const DEFAULT_TIME_SIGNATURE = COMMON_TIME_SIGNATURES[1];
