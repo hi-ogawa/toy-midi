@@ -51,7 +51,7 @@ export function Recorder() {
             </div>
             <div>
               <h1 className="font-serif text-xl font-semibold tracking-wide">
-                Bass Recorder
+                Recorder
               </h1>
               <p className="text-xs text-stone-500">
                 Native Web Audio timing spike
@@ -190,7 +190,7 @@ export function Recorder() {
               <span className="font-mono text-xs text-red-300">TAKE 01</span>
               <div>
                 <div className="text-sm text-stone-200">
-                  {state.takeUrl ? "Recorded bass input" : "No take recorded"}
+                  {state.takeUrl ? "Recorded input" : "No take recorded"}
                 </div>
                 <div className="mt-1 text-xs text-stone-600">
                   {state.takeUrl
@@ -201,7 +201,7 @@ export function Recorder() {
               {state.takeUrl ? (
                 <a
                   href={state.takeUrl}
-                  download="bass-take.wav"
+                  download="recorded-take.wav"
                   className="ml-auto flex size-9 items-center justify-center rounded-md border border-stone-700 bg-stone-800 hover:bg-stone-700"
                   title="Download take"
                 >
@@ -251,7 +251,7 @@ export function Recorder() {
               ) : (
                 <RadioIcon className="size-5" />
               )}
-              {isRecording ? "Stop recording" : "Record bass"}
+              {isRecording ? "Stop recording" : "Record"}
             </Button>
           </section>
         </div>
