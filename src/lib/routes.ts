@@ -6,6 +6,7 @@ import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 
 export const routes = route({
   home: "/",
+  recorder: "/recorder",
   scoreViewer: "/score-viewer",
   project: "/project/:projectId",
   projectScore: "/project/:projectId/score",
