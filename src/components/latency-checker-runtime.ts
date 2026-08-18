@@ -467,7 +467,7 @@ function toAudioBuffer(
   sampleRate: number,
 ) {
   const buffer = context.createBuffer(1, samples.length, sampleRate);
-  buffer.copyToChannel(samples, 0);
+  buffer.getChannelData(0).set(samples);
   return buffer;
 }
 
