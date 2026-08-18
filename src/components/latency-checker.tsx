@@ -88,13 +88,7 @@ export function LatencyChecker() {
   }
 
   const grantAccessMutation = useMutation({
-    mutationFn: async () => {
-      setStatus({
-        message: "Requesting browser microphone permission...",
-        state: "busy",
-      });
-      return runtime.requestAccess();
-    },
+    mutationFn: () => runtime.requestAccess(),
     onSuccess: (nextDevices) => {
       updateDevices(nextDevices);
       setStatus({
@@ -106,10 +100,6 @@ export function LatencyChecker() {
 
   const openRouteMutation = useMutation({
     mutationFn: async () => {
-      setStatus({
-        message: "Opening browser playback and capture streams...",
-        state: "busy",
-      });
       localStorage.setItem(STORAGE_KEY, deviceId);
       try {
         return await runtime.openRoute({ channel, deviceId });
@@ -129,12 +119,8 @@ export function LatencyChecker() {
   });
 
   const calibrationMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       setResult(undefined);
-      setStatus({
-        message: "Recording 7 clicks. Keep the route unchanged...",
-        state: "busy",
-      });
       return runtime.calibrate({ channel, outputLevel });
     },
     onSuccess: (nextResult) => {
@@ -186,6 +172,25 @@ export function LatencyChecker() {
     openRouteMutation.error ??
     calibrationMutation.error ??
     previewMutation.error;
+  const pendingStatus: Status | undefined = grantAccessMutation.isPending
+    ? {
+        message: "Requesting browser microphone permission...",
+        state: "busy",
+      }
+    : openRouteMutation.isPending
+      ? {
+          message: "Opening browser playback and capture streams...",
+          state: "busy",
+        }
+      : calibrationMutation.isPending
+        ? {
+            message: "Recording 7 clicks. Keep the route unchanged...",
+            state: "busy",
+          }
+        : undefined;
+  const displayedStatus: Status = mutationError
+    ? { message: mutationError.message, state: "error" }
+    : (pendingStatus ?? status);
 
   function toggleRoute() {
     if (routeOpen) {
@@ -347,13 +352,7 @@ export function LatencyChecker() {
                 Run 7-click test
               </ActionButton>
             </div>
-            <StatusMessage
-              status={
-                mutationError
-                  ? { message: mutationError.message, state: "error" }
-                  : status
-              }
-            />
+            <StatusMessage status={displayedStatus} />
           </Card>
 
           {result && (
