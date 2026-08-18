@@ -277,38 +277,68 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
 
 function createWorkletSource() {
   return `
-    class CaptureProcessor extends AudioWorkletProcessor {
-      constructor() {
-        super();
-        this.active = false;
-        this.channel = 0;
-        this.lastChannelCount = -1;
-        this.port.onmessage = (event) => {
-          if (event.data.type === "active") this.active = event.data.value;
-          if (event.data.type === "channel") this.channel = event.data.value;
-        };
-      }
-      process(inputs, outputs) {
-        const channels = inputs[0] || [];
-        const output = outputs[0] || [];
-        for (const samples of output) samples.fill(0);
-        if (channels.length !== this.lastChannelCount) {
-          this.lastChannelCount = channels.length;
-          this.port.postMessage({ type: "channels", value: channels.length });
-        }
-        if (this.active && channels.length > 0) {
-          const selected = channels[Math.min(this.channel, channels.length - 1)];
-          const copy = new Float32Array(selected);
-          this.port.postMessage(
-            { type: "samples", frameStart: currentFrame, samples: copy },
-            [copy.buffer],
-          );
-        }
-        return true;
-      }
-    }
+    const CaptureProcessor = (${captureProcessorFactory.toString()})(
+      AudioWorkletProcessor,
+      () => currentFrame,
+    );
     registerProcessor("latency-capture", CaptureProcessor);
   `;
+}
+
+type WorkletProcessorConstructor = new () => { port: MessagePort };
+type WorkletControlMessage =
+  | { type: "active"; value: boolean }
+  | { type: "channel"; value: number };
+
+function captureProcessorFactory(
+  Processor: WorkletProcessorConstructor,
+  getCurrentFrame: () => number,
+) {
+  return class CaptureProcessor extends Processor {
+    declare active: boolean;
+    declare channel: number;
+    declare lastChannelCount: number;
+
+    constructor() {
+      super();
+      this.active = false;
+      this.channel = 0;
+      this.lastChannelCount = -1;
+      this.port.onmessage = (event: MessageEvent<WorkletControlMessage>) => {
+        if (event.data.type === "active") {
+          this.active = event.data.value;
+        }
+        if (event.data.type === "channel") {
+          this.channel = event.data.value;
+        }
+      };
+    }
+
+    process(inputs: Float32Array[][], outputs: Float32Array[][]) {
+      const channels = inputs[0] || [];
+      const output = outputs[0] || [];
+      for (const samples of output) {
+        samples.fill(0);
+      }
+      if (channels.length !== this.lastChannelCount) {
+        this.lastChannelCount = channels.length;
+        this.port.postMessage({ type: "channels", value: channels.length });
+      }
+      if (this.active && channels.length > 0) {
+        const selected = channels[Math.min(this.channel, channels.length - 1)];
+        const copy = new Float32Array(selected);
+        this.port.postMessage(
+          {
+            type: "samples",
+            frameStart: getCurrentFrame(),
+            samples: copy,
+          },
+          [copy.buffer],
+        );
+      }
+      return true;
+    }
+  };
 }
 
 function createClickTemplate(sampleRate: number) {
