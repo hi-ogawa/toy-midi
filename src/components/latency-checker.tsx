@@ -144,15 +144,11 @@ export function LatencyChecker() {
   const result = calibrationMutation.data;
 
   const previewMutation = useMutation({
-    mutationFn: async (variant: PreviewVariant) => {
-      if (result) {
-        await runtime.play({
-          compensationMs: compensation,
-          result,
-          variant,
-        });
-      }
-    },
+    mutationFn: (options: {
+      compensationMs: number;
+      result: LatencyResult;
+      variant: PreviewVariant;
+    }) => runtime.play(options),
   });
 
   const busy =
@@ -192,10 +188,6 @@ export function LatencyChecker() {
     } else {
       openRouteMutation.mutate();
     }
-  }
-
-  function play(variant: PreviewVariant) {
-    previewMutation.mutate(variant);
   }
 
   return (
@@ -352,7 +344,13 @@ export function LatencyChecker() {
               result={result}
               compensation={compensation}
               onCompensationChange={setCompensation}
-              onPlay={play}
+              onPlay={(variant) =>
+                previewMutation.mutate({
+                  compensationMs: compensation,
+                  result,
+                  variant,
+                })
+              }
             />
           )}
         </div>
