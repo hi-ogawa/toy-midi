@@ -98,14 +98,9 @@ export function LatencyChecker() {
   });
 
   const openRouteMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       localStorage.setItem(STORAGE_KEY, deviceId);
-      try {
-        return await runtime.openRoute({ channel, deviceId });
-      } catch (error) {
-        runtime.closeRoute();
-        throw error;
-      }
+      return runtime.openRoute({ channel, deviceId });
     },
     onSuccess: () => {
       setRouteOpen(true);
@@ -115,6 +110,7 @@ export function LatencyChecker() {
         state: "ready",
       });
     },
+    onError: () => runtime.closeRoute(),
   });
 
   const calibrationMutation = useMutation({
