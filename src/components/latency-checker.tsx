@@ -1,3 +1,4 @@
+import { useMutation } from "@tanstack/react-query";
 import {
   ArrowRightIcon,
   AudioLinesIcon,
@@ -39,7 +40,6 @@ export function LatencyChecker() {
   const [channel, setChannel] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
   const [routeOpen, setRouteOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<LatencyResult>();
   const [compensation, setCompensation] = useState(0);
   const [status, setStatus] = useState<Status>({
@@ -95,64 +95,57 @@ export function LatencyChecker() {
     });
   }
 
-  async function grantAccess() {
-    setBusy(true);
-    setStatus({
-      message: "Requesting browser microphone permission...",
-      state: "busy",
-    });
-    try {
-      const nextDevices = await runtime.requestAccess();
+  const grantAccessMutation = useMutation({
+    mutationFn: async () => {
+      setStatus({
+        message: "Requesting browser microphone permission...",
+        state: "busy",
+      });
+      return runtime.requestAccess();
+    },
+    onSuccess: (nextDevices) => {
       updateDevices(nextDevices);
       setStatus({
         message: `${nextDevices.length} audio input${nextDevices.length === 1 ? "" : "s"} available. Output uses the current system default.`,
         state: "ready",
       });
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+    onError: reportError,
+  });
 
-  async function toggleRoute() {
-    if (routeOpen) {
-      runtime.closeRoute();
-      setRouteOpen(false);
-      setStatus({ message: "Audio route closed.", state: "idle" });
-      return;
-    }
-    setBusy(true);
-    setStatus({
-      message: "Opening browser playback and capture streams...",
-      state: "busy",
-    });
-    try {
+  const openRouteMutation = useMutation({
+    mutationFn: async () => {
+      setStatus({
+        message: "Opening browser playback and capture streams...",
+        state: "busy",
+      });
       localStorage.setItem(STORAGE_KEY, deviceId);
-      await runtime.openRoute({ channel, deviceId });
+      return runtime.openRoute({ channel, deviceId });
+    },
+    onSuccess: () => {
       setRouteOpen(true);
       setStatus({
         message:
           "Route is open. Patch the visible browser nodes, then run the click test.",
         state: "ready",
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       runtime.closeRoute();
       reportError(error);
-    } finally {
-      setBusy(false);
-    }
-  }
+    },
+  });
 
-  async function runCalibration() {
-    setBusy(true);
-    setResult(undefined);
-    setStatus({
-      message: "Recording 7 clicks. Keep the route unchanged...",
-      state: "busy",
-    });
-    try {
-      const nextResult = await runtime.calibrate({ channel, outputLevel });
+  const calibrationMutation = useMutation({
+    mutationFn: async () => {
+      setResult(undefined);
+      setStatus({
+        message: "Recording 7 clicks. Keep the route unchanged...",
+        state: "busy",
+      });
+      return runtime.calibrate({ channel, outputLevel });
+    },
+    onSuccess: (nextResult) => {
       setResult(nextResult);
       const medianMs =
         (median(
@@ -177,20 +170,40 @@ export function LatencyChecker() {
               state: "ready",
             },
       );
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setBusy(false);
+    },
+    onError: reportError,
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: async (variant: PreviewVariant) => {
+      if (result) {
+        await runtime.play({
+          compensationMs: compensation,
+          result,
+          variant,
+        });
+      }
+    },
+    onError: reportError,
+  });
+
+  const busy =
+    grantAccessMutation.isPending ||
+    openRouteMutation.isPending ||
+    calibrationMutation.isPending;
+
+  function toggleRoute() {
+    if (routeOpen) {
+      runtime.closeRoute();
+      setRouteOpen(false);
+      setStatus({ message: "Audio route closed.", state: "idle" });
+    } else {
+      openRouteMutation.mutate();
     }
   }
 
   function play(variant: PreviewVariant) {
-    if (!result) {
-      return;
-    }
-    runtime
-      .play({ compensationMs: compensation, result, variant })
-      .catch(reportError);
+    previewMutation.mutate(variant);
   }
 
   return (
@@ -319,7 +332,10 @@ export function LatencyChecker() {
             </Field>
 
             <div className="flex gap-2">
-              <ActionButton disabled={busy} onClick={grantAccess}>
+              <ActionButton
+                disabled={busy}
+                onClick={() => grantAccessMutation.mutate()}
+              >
                 Grant access
               </ActionButton>
               <ActionButton
@@ -331,7 +347,7 @@ export function LatencyChecker() {
               <ActionButton
                 accent
                 disabled={busy || !routeOpen}
-                onClick={runCalibration}
+                onClick={() => calibrationMutation.mutate()}
               >
                 Run 7-click test
               </ActionButton>
