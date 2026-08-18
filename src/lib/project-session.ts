@@ -1,7 +1,11 @@
 import { toast } from "sonner";
 import { memo } from "../utils/memo";
 import { debounce } from "../utils/timing";
-import { audioManager, loadAudioFile } from "./audio";
+import {
+  audioManager,
+  loadAudioFile,
+  unlockAudioOnFirstGesture,
+} from "./audio";
 import { historyStore } from "./history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "./keyboard";
 import { projectStorage } from "./project-storage";
@@ -51,6 +55,7 @@ function openProjectSession(projectId: string): ProjectSession {
   projectStorage.setLastProjectId(projectId);
   const data = projectStorage.load(projectId);
   useProjectStore.setState(fromSavedProject(data));
+  const cleanupAudioUnlock = unlockAudioOnFirstGesture();
 
   // applyState no-ops until audioManager is ready; attachAudio runs a full
   // sync at the ready transition, so changes made while loading are not lost.
@@ -121,6 +126,7 @@ function openProjectSession(projectId: string): ProjectSession {
     projectName: metadata.name,
     dispose: () => {
       abortController.abort();
+      cleanupAudioUnlock();
       unsubscribeAudioSync();
       unsubscribeAutoSave();
       saveDebouncer.flush();
