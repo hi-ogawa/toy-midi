@@ -26,8 +26,6 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-const STORAGE_KEY = "toy-midi.latency-checker.input-device";
-
 type Status = {
   message: string;
   state: "idle" | "busy" | "error" | "ready";
@@ -70,16 +68,9 @@ export function LatencyChecker() {
 
   function updateDevices(nextDevices: MediaDeviceInfo[]) {
     setDevices(nextDevices);
-    const remembered = localStorage.getItem(STORAGE_KEY);
     setDeviceId((current) => {
       if (nextDevices.some((device) => device.deviceId === current)) {
         return current;
-      }
-      if (
-        remembered &&
-        nextDevices.some((device) => device.deviceId === remembered)
-      ) {
-        return remembered;
       }
       return nextDevices[0]?.deviceId ?? "";
     });
@@ -97,10 +88,7 @@ export function LatencyChecker() {
   });
 
   const openRouteMutation = useMutation({
-    mutationFn: () => {
-      localStorage.setItem(STORAGE_KEY, deviceId);
-      return runtime.openRoute({ channel, deviceId });
-    },
+    mutationFn: () => runtime.openRoute({ channel, deviceId }),
     onSuccess: () => {
       setRouteOpen(true);
       setStatus({
@@ -231,11 +219,7 @@ export function LatencyChecker() {
               <select
                 value={deviceId}
                 disabled={devices.length === 0 || busy}
-                onChange={(event) => {
-                  const value = event.currentTarget.value;
-                  setDeviceId(value);
-                  localStorage.setItem(STORAGE_KEY, value);
-                }}
+                onChange={(event) => setDeviceId(event.currentTarget.value)}
                 className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:opacity-50"
               >
                 {devices.length === 0 ? (
