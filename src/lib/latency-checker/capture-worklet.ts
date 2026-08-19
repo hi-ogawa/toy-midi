@@ -6,17 +6,9 @@ type CaptureMessage =
   | { type: "level"; peak: number }
   | { type: "samples"; frameStart: number; samples: Float32Array };
 
-type WorkletProcessorConstructor = new () => { port: MessagePort };
-// These globals exist only inside AudioWorkletGlobalScope. Declarations let the
-// processor stay type-checked before its source is stringified for that scope.
-declare const AudioWorkletProcessor: WorkletProcessorConstructor;
-declare const currentFrame: number;
-
 type WorkletControlMessage =
   | { type: "active"; requestId: number; value: boolean }
   | { type: "channel"; value: number };
-
-type CaptureNotification = Exclude<CaptureMessage, { type: "activeChanged" }>;
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
@@ -37,7 +29,7 @@ export class CaptureWorkletClient {
     onNotification,
   }: {
     context: AudioContext;
-    onNotification: (message: CaptureNotification) => void;
+    onNotification: (message: CaptureMessage) => void;
   }) {
     this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
       numberOfInputs: 1,
@@ -101,6 +93,11 @@ export function createCaptureWorkletSource() {
     registerProcessor("${CAPTURE_PROCESSOR_NAME}", CaptureProcessor);
   `;
 }
+
+// These globals exist only inside AudioWorkletGlobalScope. Declarations let the
+// processor stay type-checked before its source is stringified for that scope.
+declare const AudioWorkletProcessor: new () => { port: MessagePort };
+declare const currentFrame: number;
 
 function createCaptureProcessor() {
   return class CaptureProcessor extends AudioWorkletProcessor {
