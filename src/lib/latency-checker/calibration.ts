@@ -44,9 +44,15 @@ export type CalibrationResult = {
   capture: CalibrationCapture;
 };
 
+/**
+ * Builds the deterministic signal emitted for each calibration click.
+ *
+ * The pseudo-random signs produce a narrow correlation peak, while the sine
+ * envelope brings both ends to zero to avoid introducing edge discontinuities.
+ * The same samples are retained in the capture result and used as the detector
+ * template, so repeatability matters more than perceptual tone quality.
+ */
 export function createClickTemplate(sampleRate: number) {
-  // Deterministic noise has a distinctive correlation peak, while the sine
-  // envelope avoids hard discontinuities at the click boundaries.
   const length = Math.max(64, Math.round(sampleRate * 0.002));
   const samples = new Float32Array(length);
   let state = 0x51f15e;
@@ -59,6 +65,14 @@ export function createClickTemplate(sampleRate: number) {
   return samples;
 }
 
+/**
+ * Converts an AudioContext start time and click timing policy into absolute
+ * audio-frame onsets.
+ *
+ * Each onset is rounded independently so fractional click intervals cannot
+ * accumulate drift. `playbackDurationSeconds` starts at `startTime`, excludes
+ * scheduling lead time, and includes trailing silence after the final onset.
+ */
 export function createCalibrationSchedule({
   sampleRate,
   startTime,
@@ -68,8 +82,7 @@ export function createCalibrationSchedule({
   startTime: number;
   timing: CalibrationTiming;
 }): CalibrationSchedule {
-  // Web Audio schedules in seconds, but capture messages identify positions in
-  // integer frames. Round every onset independently to avoid cumulative drift.
+  // Round each onset independently to avoid accumulating interval error.
   const startFrame = Math.round(startTime * sampleRate);
   return {
     expectedFrames: Array.from(
@@ -82,6 +95,14 @@ export function createCalibrationSchedule({
   };
 }
 
+/**
+ * Reconstructs captured PCM and locates the template near every scheduled click.
+ *
+ * Chunk and expected-frame coordinates are absolute AudioContext frame numbers.
+ * The returned recording is rebased to index zero, with `minFrame` preserving
+ * that index's absolute coordinate. Measurements remain in absolute frames and
+ * report signed offsets relative to their corresponding expected frame.
+ */
 export function analyzeCalibration({
   chunks,
   expectedFrames,
@@ -93,8 +114,7 @@ export function analyzeCalibration({
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
-  // Preserve the AudioWorklet frame coordinates while converting its streamed
-  // chunks into one array for correlation analysis.
+  // Keep minFrame so indices in the contiguous array retain absolute meaning.
   const assembled = assembleChunks(chunks);
   const measurements = expectedFrames.map((expectedFrame) =>
     findTemplate({
@@ -112,6 +132,13 @@ export function analyzeCalibration({
   };
 }
 
+/**
+ * Assembles AudioWorklet render chunks into one contiguous sample array.
+ *
+ * Missing frame ranges remain zero-filled. If chunks overlap, later entries in
+ * the input replace earlier samples. `minFrame` maps output index zero back to
+ * the absolute AudioContext frame coordinate.
+ */
 function assembleChunks(chunks: CaptureChunk[]) {
   if (chunks.length === 0) {
     throw new Error("No PCM arrived from the selected input.");
@@ -121,13 +148,22 @@ function assembleChunks(chunks: CaptureChunk[]) {
     ...chunks.map((chunk) => chunk.frameStart + chunk.samples.length),
   );
   const samples = new Float32Array(maxFrame - minFrame);
-  // Gaps remain zero-filled; overlapping chunks use the latest received data.
+  // Gaps stay zero-filled; later chunks replace overlapping samples.
   for (const chunk of chunks) {
     samples.set(chunk.samples, chunk.frameStart - minFrame);
   }
   return { minFrame, samples };
 }
 
+/**
+ * Finds the strongest normalized correlation with `template` near one expected
+ * absolute frame.
+ *
+ * Normalization makes the score independent of capture gain. The absolute dot
+ * product permits polarity-inverted routes. Only candidate positions containing
+ * a complete template are considered, and the asymmetric search window allows
+ * small clock rounding before the onset and normal hardware latency after it.
+ */
 function findTemplate({
   recorded,
   minFrame,
@@ -141,8 +177,7 @@ function findTemplate({
   template: Float32Array;
   sampleRate: number;
 }): LatencyMeasurement {
-  // Convert the absolute expected frame into an index within the assembled
-  // recording, then limit candidates to complete template windows.
+  // Translate absolute frames into recording indices and require full windows.
   const searchStart = Math.max(
     0,
     Math.round(expectedFrame - SEARCH_BEFORE * sampleRate - minFrame),
@@ -157,8 +192,7 @@ function findTemplate({
   }
   let bestScore = -Infinity;
   let bestIndex = searchStart;
-  // Normalized cross-correlation makes detection independent of capture gain.
-  // Absolute correlation also tolerates a polarity-inverted physical route.
+  // Normalize gain and accept polarity inversion through the absolute dot.
   for (let start = searchStart; start <= searchEnd; start++) {
     let dot = 0;
     let inputEnergy = 0;
@@ -184,6 +218,14 @@ function findTemplate({
   };
 }
 
+/**
+ * Builds aligned mono buffers for audible comparison of calibration results.
+ *
+ * `reference` reconstructs the emitted clicks, `raw` copies the matching capture
+ * window, and `compensated` advances raw audio by `compensationSamples`.
+ * Positive compensation therefore moves a late captured onset toward its
+ * scheduled reference onset. Samples outside available capture data remain zero.
+ */
 export function createPlaybackBuffers({
   result,
   compensationSamples,
@@ -200,7 +242,7 @@ export function createPlaybackBuffers({
   const length = windowEnd - windowStart;
   const reference = new Float32Array(length);
   const raw = new Float32Array(length);
-  // Rebuild the emitted clicks in the same frame window as the captured audio.
+  // Rebuild emitted clicks in the same frame window as captured audio.
   for (const expectedFrame of expectedFrames) {
     const start = expectedFrame - windowStart;
     for (let index = 0; index < template.length; index++) {
@@ -214,8 +256,7 @@ export function createPlaybackBuffers({
     }
   }
   const compensated = new Float32Array(length);
-  // Positive compensation advances the capture so its detected onset aligns
-  // with the scheduled reference onset.
+  // Positive compensation advances captured samples toward the reference.
   for (let index = 0; index < length; index++) {
     const sourceIndex = index + compensationSamples;
     if (sourceIndex >= 0 && sourceIndex < raw.length) {
