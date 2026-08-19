@@ -124,23 +124,6 @@ export function LatencyChecker() {
   const inputsInitialized =
     refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
 
-  const accessStatus: Status | undefined = grantAccessMutation.error
-    ? { message: grantAccessMutation.error.message, state: "error" }
-    : grantAccessMutation.isPending
-      ? {
-          message: "Requesting browser microphone permission...",
-          state: "busy",
-        }
-      : undefined;
-  const monitoringStatus: Status | undefined = startMonitoringMutation.error
-    ? { message: startMonitoringMutation.error.message, state: "error" }
-    : startMonitoringMutation.isPending
-      ? { message: "Starting input monitoring...", state: "busy" }
-      : undefined;
-  const calibrationError: Status | undefined = calibrationMutation.error
-    ? { message: calibrationMutation.error.message, state: "error" }
-    : undefined;
-
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
       <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
@@ -220,7 +203,7 @@ export function LatencyChecker() {
               </Field>
               <ActionButton
                 accent={inputsInitialized && !hasAccess}
-                className="min-w-28"
+                className="min-w-40"
                 disabled={
                   !inputsInitialized ||
                   refreshInputsMutation.isPending ||
@@ -235,13 +218,20 @@ export function LatencyChecker() {
               >
                 {!inputsInitialized
                   ? "Loading..."
-                  : hasAccess
-                    ? "Refresh inputs"
-                    : "Grant access"}
+                  : grantAccessMutation.isPending
+                    ? "Requesting access..."
+                    : hasAccess
+                      ? "Refresh inputs"
+                      : "Grant access"}
               </ActionButton>
             </div>
-            {!hasAccess && accessStatus && (
-              <StatusMessage status={accessStatus} />
+            {!hasAccess && grantAccessMutation.error && (
+              <StatusMessage
+                status={{
+                  message: grantAccessMutation.error.message,
+                  state: "error",
+                }}
+              />
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
               <Field label="Channel carrying the loop">
@@ -274,6 +264,7 @@ export function LatencyChecker() {
                 </select>
               </Field>
               <ActionButton
+                className="min-w-44"
                 disabled={
                   !hasAccess ||
                   startMonitoringMutation.isPending ||
@@ -281,7 +272,11 @@ export function LatencyChecker() {
                 }
                 onClick={toggleMonitoring}
               >
-                {isMonitoring ? "Stop monitoring" : "Start monitoring"}
+                {startMonitoringMutation.isPending
+                  ? "Starting..."
+                  : isMonitoring
+                    ? "Stop monitoring"
+                    : "Start monitoring"}
               </ActionButton>
             </div>
             <div className="mt-4">
@@ -289,7 +284,14 @@ export function LatencyChecker() {
                 <InputMeter active={isMonitoring} peak={inputPeak} />
               </Field>
             </div>
-            {monitoringStatus && <StatusMessage status={monitoringStatus} />}
+            {startMonitoringMutation.error && (
+              <StatusMessage
+                status={{
+                  message: startMonitoringMutation.error.message,
+                  state: "error",
+                }}
+              />
+            )}
           </WorkflowSection>
 
           <WorkflowSection
@@ -331,8 +333,13 @@ export function LatencyChecker() {
                     : "Run 7-click test"}
               </ActionButton>
             </div>
-            {isMonitoring && calibrationError && (
-              <StatusMessage status={calibrationError} />
+            {isMonitoring && calibrationMutation.error && (
+              <StatusMessage
+                status={{
+                  message: calibrationMutation.error.message,
+                  state: "error",
+                }}
+              />
             )}
           </WorkflowSection>
 
