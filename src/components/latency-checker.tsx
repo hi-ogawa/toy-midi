@@ -66,12 +66,8 @@ export function LatencyChecker() {
   }, [refreshInputsMutation.mutate]);
 
   const startMonitoringMutation = useMutation({
-    mutationFn: () => {
-      if (!deviceId) {
-        throw new Error("Choose an audio input.");
-      }
-      return runtime.startMonitoring({ deviceId, onLevel: setInputPeak });
-    },
+    mutationFn: (deviceId: string) =>
+      runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
     onSuccess: () => {
       setChannel(0);
       setIsMonitoring(true);
@@ -99,9 +95,9 @@ export function LatencyChecker() {
   function toggleMonitoring() {
     if (isMonitoring) {
       stopMonitoring();
-    } else {
+    } else if (selectedDevice) {
       setInputPeak(0);
-      startMonitoringMutation.mutate();
+      startMonitoringMutation.mutate(selectedDevice.deviceId);
     }
   }
 
