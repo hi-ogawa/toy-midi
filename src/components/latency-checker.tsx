@@ -81,14 +81,6 @@ export function LatencyChecker() {
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
 
-  const previewMutation = useMutation({
-    mutationFn: (options: {
-      compensationMs: number;
-      result: LatencyResult;
-      variant: PreviewVariant;
-    }) => runtime.play(options),
-  });
-
   function stopMonitoring() {
     runtime.stopMonitoring();
     setChannel(0);
@@ -96,7 +88,6 @@ export function LatencyChecker() {
     setIsMonitoring(false);
     startMonitoringMutation.reset();
     calibrationMutation.reset();
-    previewMutation.reset();
   }
 
   function toggleMonitoring() {
@@ -332,22 +323,11 @@ export function LatencyChecker() {
             state={result ? "active" : "disabled"}
           >
             {result ? (
-              <>
-                <Results
-                  key={result.expectedFrames[0]}
-                  result={result}
-                  onPlay={({ compensationMs, variant }) =>
-                    previewMutation.mutate({
-                      compensationMs,
-                      result,
-                      variant,
-                    })
-                  }
-                />
-                {previewMutation.error && (
-                  <ErrorMessage>{previewMutation.error.message}</ErrorMessage>
-                )}
-              </>
+              <Results
+                key={result.expectedFrames[0]}
+                result={result}
+                runtime={runtime}
+              />
             ) : (
               <ResultPlaceholder />
             )}
@@ -360,13 +340,10 @@ export function LatencyChecker() {
 
 function Results({
   result,
-  onPlay,
+  runtime,
 }: {
   result: LatencyResult;
-  onPlay: (options: {
-    compensationMs: number;
-    variant: PreviewVariant;
-  }) => void;
+  runtime: LatencyCheckerRuntime;
 }) {
   const offsets = result.measurements.map(
     (measurement) => measurement.offsetSamples,
@@ -380,6 +357,13 @@ function Results({
   const weakCount = result.measurements.filter(
     (measurement) => measurement.score < 0.25,
   ).length;
+  const previewMutation = useMutation({
+    mutationFn: (variant: PreviewVariant) =>
+      runtime.play({ compensationMs: medianMs, result, variant }),
+  });
+  const playingVariant = previewMutation.isPending
+    ? previewMutation.variables
+    : undefined;
 
   return (
     <>
@@ -440,24 +424,23 @@ function Results({
           </p>
           <div className="grid gap-2">
             <ActionButton
-              onClick={() =>
-                onPlay({ compensationMs: medianMs, variant: "raw" })
-              }
+              accent={playingVariant === "raw"}
+              onClick={() => previewMutation.mutate("raw")}
             >
-              Raw + reference
+              {playingVariant === "raw" ? "Playing raw..." : "Raw + reference"}
             </ActionButton>
             <ActionButton
-              accent
-              onClick={() =>
-                onPlay({
-                  compensationMs: medianMs,
-                  variant: "compensated",
-                })
-              }
+              accent={playingVariant === "compensated"}
+              onClick={() => previewMutation.mutate("compensated")}
             >
-              Compensated + reference
+              {playingVariant === "compensated"
+                ? "Playing compensated..."
+                : "Compensated + reference"}
             </ActionButton>
           </div>
+          {previewMutation.error && (
+            <ErrorMessage>{previewMutation.error.message}</ErrorMessage>
+          )}
         </div>
       </div>
     </>

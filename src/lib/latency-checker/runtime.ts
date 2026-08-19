@@ -35,6 +35,7 @@ export class LatencyCheckerRuntime {
   #activeSilentGain?: GainNode;
   #activeSettings?: MediaTrackSettings;
   #activePreviewSources: AudioBufferSourceNode[] = [];
+  #finishPreview?: () => void;
   #captureChunks?: CaptureChunk[];
   #detectedChannelCount = 0;
 
@@ -227,6 +228,20 @@ export class LatencyCheckerRuntime {
       start(buffers.reference, 0.58);
       start(buffers.compensated, 0.58);
     }
+    await new Promise<void>((resolve) => {
+      let remaining = this.#activePreviewSources.length;
+      this.#finishPreview = resolve;
+      for (const source of this.#activePreviewSources) {
+        source.addEventListener("ended", () => {
+          remaining--;
+          if (remaining === 0 && this.#finishPreview === resolve) {
+            this.#activePreviewSources = [];
+            this.#finishPreview = undefined;
+            resolve();
+          }
+        });
+      }
+    });
   }
 
   dispose() {
@@ -244,6 +259,8 @@ export class LatencyCheckerRuntime {
       } catch {}
     }
     this.#activePreviewSources = [];
+    this.#finishPreview?.();
+    this.#finishPreview = undefined;
   }
 
   async #ensureAudioContext() {
