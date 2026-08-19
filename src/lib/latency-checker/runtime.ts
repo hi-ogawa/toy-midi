@@ -11,6 +11,7 @@ import {
   type CaptureMessage,
   CAPTURE_PROCESSOR_NAME,
   createCaptureWorkletSource,
+  type WorkletControlMessage,
 } from "./worklet-factory.ts";
 
 const CLICK_COUNT = 7;
@@ -109,7 +110,7 @@ export class LatencyCheckerRuntime {
   }
 
   stopMonitoring() {
-    this.#activeRecorder?.port.postMessage({ type: "active", value: false });
+    this.#postControl({ type: "active", value: false });
     this.#activeSource?.disconnect();
     this.#activeRecorder?.disconnect();
     this.#activeSilentGain?.disconnect();
@@ -124,7 +125,7 @@ export class LatencyCheckerRuntime {
   }
 
   setChannel(channel: number) {
-    this.#activeRecorder?.port.postMessage({ type: "channel", value: channel });
+    this.#postControl({ type: "channel", value: channel });
   }
 
   async calibrate({
@@ -141,7 +142,7 @@ export class LatencyCheckerRuntime {
     this.setChannel(channel);
     const chunks: CaptureChunk[] = [];
     this.#captureChunks = chunks;
-    this.#activeRecorder.port.postMessage({ type: "active", value: true });
+    this.#postControl({ type: "active", value: true });
 
     try {
       const template = createClickTemplate(context.sampleRate);
@@ -161,7 +162,7 @@ export class LatencyCheckerRuntime {
       const totalSeconds =
         LEAD_TIME + (CLICK_COUNT - 1) * CLICK_INTERVAL + TAIL_TIME;
       await wait(totalSeconds * 1000);
-      this.#activeRecorder.port.postMessage({ type: "active", value: false });
+      this.#postControl({ type: "active", value: false });
       await wait(80);
 
       const assembled = assembleChunks(chunks);
@@ -187,7 +188,7 @@ export class LatencyCheckerRuntime {
         template,
       } satisfies LatencyResult;
     } finally {
-      this.#activeRecorder?.port.postMessage({ type: "active", value: false });
+      this.#postControl({ type: "active", value: false });
       this.#captureChunks = undefined;
     }
   }
@@ -261,6 +262,10 @@ export class LatencyCheckerRuntime {
     this.#activePreviewSources = [];
     this.#finishPreview?.();
     this.#finishPreview = undefined;
+  }
+
+  #postControl(message: WorkletControlMessage) {
+    this.#activeRecorder?.port.postMessage(message);
   }
 
   async #ensureAudioContext() {

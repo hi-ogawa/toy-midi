@@ -9,7 +9,7 @@ type WorkletProcessorConstructor = new () => { port: MessagePort };
 declare const AudioWorkletProcessor: WorkletProcessorConstructor;
 declare const currentFrame: number;
 
-type WorkletControlMessage =
+export type WorkletControlMessage =
   | { type: "active"; value: boolean }
   | { type: "channel"; value: number };
 
