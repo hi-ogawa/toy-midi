@@ -400,14 +400,21 @@ function Results({
   const medianSamples = median(offsets);
   const medianMs = (medianSamples * 1000) / result.sampleRate;
   const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
-  const warning = getResultWarning(result);
+  const weakCount = result.measurements.filter(
+    (measurement) => measurement.score < 0.25,
+  ).length;
   const [compensation, setCompensation] = useState(() =>
     clamp(medianMs, -50, 400),
   );
 
   return (
     <>
-      {warning && <StatusMessage status={warning} />}
+      {weakCount > 0 && (
+        <p className="mb-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
+          {weakCount} click{weakCount === 1 ? "" : "s"} had weak correlation.
+          Check routing, channel, and levels before trusting the median.
+        </p>
+      )}
       <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
         <Metric
           label="Median offset"
@@ -825,18 +832,6 @@ function median(values: number[]) {
   return sorted.length % 2
     ? sorted[middle]
     : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-function getResultWarning(result: LatencyResult): Status | undefined {
-  const weak = result.measurements.filter(
-    (measurement) => measurement.score < 0.25,
-  ).length;
-  return weak
-    ? {
-        message: `${weak} click${weak === 1 ? "" : "s"} had weak correlation. Check routing, channel, and levels before trusting the median.`,
-        state: "error",
-      }
-    : undefined;
 }
 
 function formatSigned(value: number, digits = 2) {
