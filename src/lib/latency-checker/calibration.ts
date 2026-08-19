@@ -194,7 +194,8 @@ function findTemplate({
   }
   let bestScore = -Infinity;
   let bestIndex = searchStart;
-  // Normalize gain and accept polarity inversion through the absolute dot.
+  // |⟨A/‖A‖, B/‖B‖⟩| projects each unit-sphere recording window A onto the
+  // template axis B, discarding gain and polarity.
   for (let start = searchStart; start <= searchEnd; start++) {
     let dot = 0;
     let inputEnergy = 0;
