@@ -1,6 +1,7 @@
 export const CAPTURE_PROCESSOR_NAME = "latency-capture";
 
 export type CaptureMessage =
+  | { type: "activeChanged"; value: boolean }
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
   | { type: "samples"; frameStart: number; samples: Float32Array };
@@ -31,6 +32,7 @@ function createCaptureProcessor() {
     declare lastChannelCount: number;
     declare meterBlockCount: number;
     declare meterPeak: number;
+    declare applyPendingActiveChange?: () => void;
 
     constructor() {
       super();
@@ -41,7 +43,13 @@ function createCaptureProcessor() {
       this.meterPeak = 0;
       this.port.onmessage = (event: MessageEvent<WorkletControlMessage>) => {
         if (event.data.type === "active") {
-          this.active = event.data.value;
+          const value = event.data.value;
+          // Construct the protocol action here so process() only owns when the
+          // state transition becomes visible to the audio thread.
+          this.applyPendingActiveChange = () => {
+            this.active = value;
+            this.postMessage({ type: "activeChanged", value });
+          };
         }
         if (event.data.type === "channel") {
           this.channel = event.data.value;
@@ -53,6 +61,8 @@ function createCaptureProcessor() {
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][]) {
+      this.applyPendingActiveChange?.();
+      this.applyPendingActiveChange = undefined;
       const channels = inputs[0] || [];
       const output = outputs[0] || [];
       // A connected output keeps the processor in the render graph, but capture

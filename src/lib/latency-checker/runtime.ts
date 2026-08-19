@@ -41,7 +41,14 @@ export class LatencyCheckerRuntime {
   #activePreviewSources: AudioBufferSourceNode[] = [];
   #finishPreview?: () => void;
   #captureChunks?: CaptureChunk[];
+  #captureActive = false;
   #detectedChannelCount = 0;
+  #pendingActiveChange?: {
+    reject: (error: Error) => void;
+    resolve: () => void;
+    timeout: number;
+    value: boolean;
+  };
 
   async requestAccess() {
     const stream =
@@ -100,6 +107,15 @@ export class LatencyCheckerRuntime {
         if (event.data.type === "level") {
           onLevel(event.data.peak);
         }
+        if (
+          event.data.type === "activeChanged" &&
+          event.data.value === this.#pendingActiveChange?.value
+        ) {
+          window.clearTimeout(this.#pendingActiveChange.timeout);
+          this.#captureActive = event.data.value;
+          this.#pendingActiveChange.resolve();
+          this.#pendingActiveChange = undefined;
+        }
       };
     });
     this.#activeSilentGain = context.createGain();
@@ -116,6 +132,11 @@ export class LatencyCheckerRuntime {
 
   stopMonitoring() {
     this.#postControl({ type: "active", value: false });
+    this.#pendingActiveChange?.reject(
+      new Error("Input monitoring stopped during a capture state change."),
+    );
+    window.clearTimeout(this.#pendingActiveChange?.timeout);
+    this.#pendingActiveChange = undefined;
     this.#activeSource?.disconnect();
     this.#activeRecorder?.disconnect();
     this.#activeSilentGain?.disconnect();
@@ -126,6 +147,7 @@ export class LatencyCheckerRuntime {
     this.#activeSilentGain = undefined;
     this.#activeSettings = undefined;
     this.#captureChunks = undefined;
+    this.#captureActive = false;
     this.#detectedChannelCount = 0;
   }
 
@@ -147,11 +169,8 @@ export class LatencyCheckerRuntime {
     this.setChannel(channel);
     const chunks: CaptureChunk[] = [];
     this.#captureChunks = chunks;
-    // Capture control crosses to the audio thread asynchronously. Lead time in
-    // the schedule ensures capture is active before the first click is emitted.
-    this.#postControl({ type: "active", value: true });
-
     try {
+      await this.#setCaptureActive(true);
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
       const clickBuffer = buildClickBuffer({ context, template, amplitude });
@@ -166,9 +185,7 @@ export class LatencyCheckerRuntime {
       });
       clickSource.start(startTime);
       await wait(schedule.durationSeconds * 1000);
-      this.#postControl({ type: "active", value: false });
-      // Allow the final worklet message already in transit to reach this thread.
-      await wait(80);
+      await this.#setCaptureActive(false);
 
       const analysis = analyzeCalibration({
         chunks,
@@ -191,7 +208,9 @@ export class LatencyCheckerRuntime {
         settings: this.#activeSettings,
       } satisfies LatencyResult;
     } finally {
-      this.#postControl({ type: "active", value: false });
+      if (this.#activeRecorder && this.#captureActive) {
+        void this.#setCaptureActive(false).catch(() => {});
+      }
       this.#captureChunks = undefined;
     }
   }
@@ -267,6 +286,25 @@ export class LatencyCheckerRuntime {
   #postControl(message: WorkletControlMessage) {
     // Keep the runtime-to-worklet protocol checked at every send site.
     this.#activeRecorder?.port.postMessage(message);
+  }
+
+  #setCaptureActive(value: boolean) {
+    if (!this.#activeRecorder) {
+      return Promise.reject(new Error("Input monitoring is not active."));
+    }
+    if (this.#pendingActiveChange) {
+      return Promise.reject(
+        new Error("A capture state change is already pending."),
+      );
+    }
+    return new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        this.#pendingActiveChange = undefined;
+        reject(new Error("The audio capture state change timed out."));
+      }, 3_000);
+      this.#pendingActiveChange = { reject, resolve, timeout, value };
+      this.#postControl({ type: "active", value });
+    });
   }
 
   async #ensureAudioContext() {
