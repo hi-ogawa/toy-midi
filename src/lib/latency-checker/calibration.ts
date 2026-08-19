@@ -1,8 +1,5 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-// Search forward far enough to cover expected hardware and driver latency.
-const SEARCH_AFTER = 0.32;
-
 export type LatencyMeasurement = {
   offsetSamples: number;
   score: number;
@@ -160,6 +157,9 @@ function assembleChunks({
   }
   return samples;
 }
+
+// Search forward far enough to cover expected hardware and driver latency.
+const SEARCH_AFTER = 0.32;
 
 /**
  * Finds the strongest normalized correlation with `template` near one expected
