@@ -233,16 +233,16 @@ export function createPlaybackBuffers({
 }) {
   const {
     analysis: { recording },
-    playback: { samples: emitted, startFrame: playbackStartFrame },
+    playback,
     sampleRate,
   } = result;
   const preRoll = Math.round(sampleRate * 0.1);
   const postRoll = Math.round(sampleRate * 0.35);
-  const length = preRoll + emitted.length + postRoll;
+  const length = preRoll + playback.samples.length + postRoll;
   const reference = new Float32Array(length);
-  reference.set(emitted, preRoll);
+  reference.set(playback.samples, preRoll);
   const raw = new Float32Array(length);
-  const playbackStartIndex = playbackStartFrame - recording.startFrame;
+  const playbackStartIndex = playback.startFrame - recording.startFrame;
   for (let index = 0; index < length; index++) {
     // Both indices are local: playback sample zero is placed after pre-roll.
     const sourceIndex = playbackStartIndex + index - preRoll;
