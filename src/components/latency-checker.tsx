@@ -62,6 +62,7 @@ export function LatencyChecker() {
   useEffect(() => {
     const mediaDevices = navigator.mediaDevices;
     const refresh = () => refreshInputsMutation.mutate();
+    refresh();
     mediaDevices.addEventListener("devicechange", refresh);
     return () => mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
@@ -96,7 +97,7 @@ export function LatencyChecker() {
   });
   const result = calibrationMutation.data;
   const resultStatus = result ? getResultStatus(result) : undefined;
-  const hasAccess = devices.length > 0;
+  const hasAccess = devices.some((device) => device.label);
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -107,6 +108,7 @@ export function LatencyChecker() {
   });
 
   const busy =
+    refreshInputsMutation.isPending ||
     grantAccessMutation.isPending ||
     openRouteMutation.isPending ||
     calibrationMutation.isPending;
@@ -216,7 +218,11 @@ export function LatencyChecker() {
               <ActionButton
                 accent={!hasAccess}
                 disabled={busy || routeOpen}
-                onClick={() => grantAccessMutation.mutate()}
+                onClick={() =>
+                  hasAccess
+                    ? refreshInputsMutation.mutate()
+                    : grantAccessMutation.mutate()
+                }
               >
                 {hasAccess ? "Refresh inputs" : "Grant access"}
               </ActionButton>
