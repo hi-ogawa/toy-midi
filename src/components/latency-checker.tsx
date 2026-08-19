@@ -710,8 +710,14 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function InputMeter({ active, peak }: { active: boolean; peak: number }) {
+  const meterMin = -60;
+  const meterMax = 6;
   const decibels = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
-  const meterValue = clamp(decibels, -60, 0);
+  const meterValue = clamp(decibels, meterMin, meterMax);
+  const position = (value: number) =>
+    ((value - meterMin) / (meterMax - meterMin)) * 100;
+  const zeroPosition = position(0);
+  const levelPosition = active ? position(meterValue) : 0;
   const label =
     active && Number.isFinite(decibels)
       ? `${decibels.toFixed(1)} dBFS`
@@ -722,17 +728,31 @@ function InputMeter({ active, peak }: { active: boolean; peak: number }) {
       <div
         role="meter"
         aria-label="Input peak level"
-        aria-valuemin={-60}
-        aria-valuemax={0}
-        aria-valuenow={active ? meterValue : -60}
+        aria-valuemin={meterMin}
+        aria-valuemax={meterMax}
+        aria-valuenow={active ? meterValue : meterMin}
         aria-valuetext={label}
-        className="h-3 overflow-hidden rounded-full bg-neutral-200"
+        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
       >
         <div
-          className="h-full bg-emerald-600 transition-[width] duration-75"
+          className="absolute inset-y-0 right-0 bg-red-100"
+          style={{ width: `${100 - zeroPosition}%` }}
+        />
+        <div
+          className="absolute inset-y-0 left-0 bg-emerald-600 transition-[width] duration-75"
+          style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
+        />
+        <div
+          className="absolute inset-y-0 bg-red-600 transition-[width] duration-75"
           style={{
-            width: active ? `${((meterValue + 60) / 60) * 100}%` : 0,
+            left: `${zeroPosition}%`,
+            width: `${Math.max(0, levelPosition - zeroPosition)}%`,
           }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 w-px bg-red-700"
+          style={{ left: `${zeroPosition}%` }}
         />
       </div>
       <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
