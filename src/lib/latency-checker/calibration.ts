@@ -188,26 +188,28 @@ function findTemplate({
     recording.length - template.length,
     Math.round(expectedOffset + maxLatency * sampleRate),
   );
+  // |⟨A/‖A‖, B/‖B‖⟩| projects each unit-sphere recording window A onto the
+  // template axis B, discarding gain and polarity.
   let templateEnergy = 0;
   for (const value of template) {
     templateEnergy += value * value;
   }
-  let bestScore = -Infinity;
-  let bestIndex = searchStart;
-  // |⟨A/‖A‖, B/‖B‖⟩| projects each unit-sphere recording window A onto the
-  // template axis B, discarding gain and polarity.
-  for (let start = searchStart; start <= searchEnd; start++) {
+  const scoreAt = (start: number) => {
     let dot = 0;
-    let inputEnergy = 0;
+    let recordingEnergy = 0;
     for (let index = 0; index < template.length; index++) {
       const value = recording[start + index];
       dot += value * template[index];
-      inputEnergy += value * value;
+      recordingEnergy += value * value;
     }
-    const score =
-      inputEnergy > 1e-12
-        ? Math.abs(dot) / Math.sqrt(inputEnergy * templateEnergy)
-        : 0;
+    return recordingEnergy > 1e-12
+      ? Math.abs(dot) / Math.sqrt(recordingEnergy * templateEnergy)
+      : 0;
+  };
+  let bestScore = -Infinity;
+  let bestIndex = searchStart;
+  for (let start = searchStart; start <= searchEnd; start++) {
+    const score = scoreAt(start);
     if (score > bestScore) {
       bestScore = score;
       bestIndex = start;
