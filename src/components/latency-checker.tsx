@@ -85,6 +85,8 @@ export function LatencyChecker() {
   const resultStatus = result ? getResultStatus(result) : undefined;
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
+  const inputsInitialized =
+    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -203,13 +205,15 @@ export function LatencyChecker() {
               <Field label="Browser audio input">
                 <select
                   value={deviceId}
-                  disabled={!hasAccess || busy}
+                  disabled={!inputsInitialized || !hasAccess || busy}
                   onChange={(event) =>
                     handleDeviceChange(event.currentTarget.value)
                   }
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
-                  {!hasAccess ? (
+                  {!inputsInitialized ? (
+                    <option>Loading audio inputs...</option>
+                  ) : !hasAccess ? (
                     <option>Grant access to list audio inputs</option>
                   ) : (
                     devices.map((device, index) => (
@@ -221,15 +225,20 @@ export function LatencyChecker() {
                 </select>
               </Field>
               <ActionButton
-                accent={!hasAccess}
-                disabled={busy || isMonitoring}
+                accent={inputsInitialized && !hasAccess}
+                className="min-w-28"
+                disabled={!inputsInitialized || busy || isMonitoring}
                 onClick={() =>
                   hasAccess
                     ? refreshInputsMutation.mutate()
                     : grantAccessMutation.mutate()
                 }
               >
-                {hasAccess ? "Refresh inputs" : "Grant access"}
+                {!inputsInitialized
+                  ? "Loading..."
+                  : hasAccess
+                    ? "Refresh inputs"
+                    : "Grant access"}
               </ActionButton>
             </div>
             {!hasAccess && displayedStatus && (
