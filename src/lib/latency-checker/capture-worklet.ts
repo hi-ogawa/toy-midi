@@ -4,17 +4,17 @@ type ToWorkletMessage =
   | { type: "active"; requestId: number; value: boolean }
   | { type: "channel"; value: number };
 
-export type CaptureChunk = {
-  /** Absolute AudioContext frame corresponding to `samples[0]`. */
-  frameStart: number;
-  samples: Float32Array;
-};
-
 type FromWorkletMessage =
   | { type: "activeChanged"; requestId: number; value: boolean }
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk);
+
+export type CaptureChunk = {
+  /** Absolute AudioContext frame corresponding to `samples[0]`. */
+  frameStart: number;
+  samples: Float32Array;
+};
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;

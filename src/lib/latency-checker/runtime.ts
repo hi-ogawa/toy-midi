@@ -131,7 +131,7 @@ export class LatencyCheckerRuntime {
   }: {
     channel: number;
     outputLevel: number;
-  }) {
+  }): Promise<LatencyResult> {
     if (
       !this.#captureWorklet ||
       !this.#activeStream ||
@@ -180,7 +180,7 @@ export class LatencyCheckerRuntime {
         sampleRate: context.sampleRate,
         template,
       });
-      return {
+      const result: LatencyResult = {
         calibration: {
           analysis,
           playback,
@@ -188,7 +188,8 @@ export class LatencyCheckerRuntime {
         },
         channelCount: this.#detectedChannelCount,
         settings: this.#activeSettings,
-      } satisfies LatencyResult;
+      };
+      return result;
     } finally {
       if (this.#captureWorklet?.active) {
         void this.#captureWorklet.setActive(false).catch(() => {});
