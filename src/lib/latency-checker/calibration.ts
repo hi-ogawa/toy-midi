@@ -35,7 +35,6 @@ export type CalibrationPlayback = {
 export type CalibrationTiming = {
   clickCount: number;
   clickInterval: number;
-  leadTime: number;
   tailTime: number;
 };
 

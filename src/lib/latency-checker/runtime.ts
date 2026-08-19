@@ -16,9 +16,9 @@ import {
 const CALIBRATION_TIMING: CalibrationTiming = {
   clickCount: 7,
   clickInterval: 0.46,
-  leadTime: 0.55,
   tailTime: 0.45,
 };
+const CALIBRATION_LEAD_TIME = 0.55;
 
 export type LatencyResult = {
   calibration: CalibrationResult;
@@ -147,7 +147,7 @@ export class LatencyCheckerRuntime {
       await this.#captureWorklet.setActive(true);
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
-      const startTime = context.currentTime + CALIBRATION_TIMING.leadTime;
+      const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
       const playback = createCalibrationPlayback({
         amplitude,
         sampleRate: context.sampleRate,
