@@ -233,8 +233,8 @@ export function LatencyChecker() {
                 }}
               />
             )}
-            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
-              <Field label="Channel carrying the loop">
+            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <Field label="Channel">
                 <select
                   value={channel}
                   disabled={
