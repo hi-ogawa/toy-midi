@@ -560,13 +560,10 @@ function InputMeter({ active, peak }: { active: boolean; peak: number }) {
     ((value - meterMin) / (meterMax - meterMin)) * 100;
   const zeroPosition = getMeterPosition(0);
 
-  const decibels = peak > 0 ? gainToDb(peak) : -Infinity;
+  const decibels = gainToDb(peak);
   const meterValue = clamp(decibels, meterMin, meterMax);
   const levelPosition = active ? getMeterPosition(meterValue) : 0;
-  const label =
-    active && Number.isFinite(decibels)
-      ? `${decibels.toFixed(1)} dBFS`
-      : "-∞ dBFS";
+  const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
 
   return (
     <div className="grid grid-cols-[1fr_76px] items-center gap-3">
