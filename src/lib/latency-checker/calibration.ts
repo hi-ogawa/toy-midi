@@ -9,12 +9,14 @@ export type LatencyMeasurement = {
   score: number;
 };
 
+export type CalibrationRecording = {
+  samples: Float32Array;
+  startFrame: number;
+};
+
 export type CalibrationAnalysis = {
   measurements: LatencyMeasurement[];
-  recording: {
-    samples: Float32Array;
-    startFrame: number;
-  };
+  recording: CalibrationRecording;
 };
 
 export type CalibrationPlayback = {
@@ -115,20 +117,19 @@ export function analyzeCalibration({
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
-  // Keep minFrame so indices in the contiguous array retain absolute meaning.
-  const assembled = assembleChunks(chunks);
+  // Keep startFrame so contiguous array indices retain absolute meaning.
+  const recording = assembleChunks(chunks);
   const measurements = expectedFrames.map((expectedFrame) =>
     findTemplate({
-      recorded: assembled.samples,
-      recordingStartFrame: assembled.startFrame,
       expectedFrame,
+      recording,
       template,
       sampleRate,
     }),
   );
   return {
     measurements,
-    recording: assembled,
+    recording,
   };
 }
 
@@ -139,7 +140,7 @@ export function analyzeCalibration({
  * the input replace earlier samples. `startFrame` is the absolute AudioContext
  * frame represented by output index zero.
  */
-function assembleChunks(chunks: CaptureChunk[]) {
+function assembleChunks(chunks: CaptureChunk[]): CalibrationRecording {
   if (chunks.length === 0) {
     throw new Error("No PCM arrived from the selected input.");
   }
@@ -161,27 +162,27 @@ function assembleChunks(chunks: CaptureChunk[]) {
  *
  * Normalization makes the score independent of capture gain. The absolute dot
  * product permits polarity-inverted routes. Only candidate positions containing
- * a complete template are considered, and the asymmetric search window allows
- * small clock rounding before the onset and normal hardware latency after it.
+ * a complete template are considered, and the search window covers normal
+ * hardware latency after the scheduled onset.
  */
 function findTemplate({
-  recorded,
-  recordingStartFrame,
   expectedFrame,
+  recording,
   template,
   sampleRate,
 }: {
-  recorded: Float32Array;
-  recordingStartFrame: number;
   expectedFrame: number;
+  recording: CalibrationRecording;
   template: Float32Array;
   sampleRate: number;
 }): LatencyMeasurement {
   // Translate absolute frames into recording indices and require full windows.
-  const searchStart = Math.max(0, expectedFrame - recordingStartFrame);
+  const searchStart = Math.max(0, expectedFrame - recording.startFrame);
   const searchEnd = Math.min(
-    recorded.length - template.length,
-    Math.round(expectedFrame + SEARCH_AFTER * sampleRate - recordingStartFrame),
+    recording.samples.length - template.length,
+    Math.round(
+      expectedFrame + SEARCH_AFTER * sampleRate - recording.startFrame,
+    ),
   );
   let templateEnergy = 0;
   for (const value of template) {
@@ -194,7 +195,7 @@ function findTemplate({
     let dot = 0;
     let inputEnergy = 0;
     for (let index = 0; index < template.length; index++) {
-      const value = recorded[start + index];
+      const value = recording.samples[start + index];
       dot += value * template[index];
       inputEnergy += value * value;
     }
@@ -207,7 +208,7 @@ function findTemplate({
       bestIndex = start;
     }
   }
-  const detectedFrame = recordingStartFrame + bestIndex;
+  const detectedFrame = recording.startFrame + bestIndex;
   return {
     detectedFrame,
     offsetSamples: detectedFrame - expectedFrame,
