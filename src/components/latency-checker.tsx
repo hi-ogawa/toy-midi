@@ -140,16 +140,31 @@ export function LatencyChecker() {
     ? { message: mutationError.message, state: "error" }
     : (pendingStatus ?? (routeOpen ? resultStatus : undefined) ?? status);
 
+  function stopMonitoring() {
+    runtime.closeRoute();
+    setChannel(0);
+    setInputPeak(0);
+    setRouteOpen(false);
+    openRouteMutation.reset();
+    calibrationMutation.reset();
+    previewMutation.reset();
+  }
+
   function toggleRoute() {
     if (routeOpen) {
-      runtime.closeRoute();
-      setInputPeak(0);
-      setRouteOpen(false);
+      stopMonitoring();
       setStatus({ message: "Input monitoring stopped.", state: "idle" });
     } else {
       setInputPeak(0);
       openRouteMutation.mutate();
     }
+  }
+
+  function handleDeviceChange(nextDeviceId: string) {
+    if (routeOpen) {
+      stopMonitoring();
+    }
+    setDeviceId(nextDeviceId);
   }
 
   return (
@@ -204,8 +219,10 @@ export function LatencyChecker() {
               <Field label="Browser audio input">
                 <select
                   value={deviceId}
-                  disabled={!hasAccess || busy || routeOpen}
-                  onChange={(event) => setDeviceId(event.currentTarget.value)}
+                  disabled={!hasAccess || busy}
+                  onChange={(event) =>
+                    handleDeviceChange(event.currentTarget.value)
+                  }
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
                   {!hasAccess ? (
@@ -231,11 +248,6 @@ export function LatencyChecker() {
                 {hasAccess ? "Refresh inputs" : "Grant access"}
               </ActionButton>
             </div>
-            {routeOpen && (
-              <p className="mt-3 text-xs font-medium text-emerald-800">
-                Input selection is locked while monitoring is active.
-              </p>
-            )}
             {!hasAccess && <StatusMessage status={displayedStatus} />}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
               <Field label="Channel carrying the loop">
