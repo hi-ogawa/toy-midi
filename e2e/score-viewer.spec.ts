@@ -9,7 +9,7 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await expect(page).toHaveTitle("Score Viewer - Toy MIDI");
 
   await page.getByRole("button", { name: "More" }).click();
-  await page.getByTestId("all-projects-menu-item").click();
+  await page.getByTestId("home-menu-item").click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByTestId("startup-screen")).toBeVisible();
 });
