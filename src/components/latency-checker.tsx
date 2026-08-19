@@ -34,11 +34,6 @@ export function LatencyChecker() {
   const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
   const [routeOpen, setRouteOpen] = useState(false);
-  const [status, setStatus] = useState<Status>({
-    message:
-      "No audio device is open. The test records raw PCM with browser voice processing requested off.",
-    state: "idle",
-  });
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
@@ -70,13 +65,7 @@ export function LatencyChecker() {
 
   const grantAccessMutation = useMutation({
     mutationFn: () => runtime.requestAccess(),
-    onSuccess: (nextDevices) => {
-      updateDevices(nextDevices);
-      setStatus({
-        message: `${nextDevices.length} audio input${nextDevices.length === 1 ? "" : "s"} available. Output uses the current system default.`,
-        state: "ready",
-      });
-    },
+    onSuccess: updateDevices,
   });
 
   const openRouteMutation = useMutation({
@@ -84,11 +73,6 @@ export function LatencyChecker() {
     onSuccess: () => {
       setChannel(0);
       setRouteOpen(true);
-      setStatus({
-        message:
-          "Input monitoring is active. Connect browser output to the selected input, then run the click test.",
-        state: "ready",
-      });
     },
     onError: () => runtime.closeRoute(),
   });
@@ -136,9 +120,9 @@ export function LatencyChecker() {
             state: "busy",
           }
         : undefined;
-  const displayedStatus: Status = mutationError
+  const displayedStatus: Status | undefined = mutationError
     ? { message: mutationError.message, state: "error" }
-    : (pendingStatus ?? (routeOpen ? resultStatus : undefined) ?? status);
+    : (pendingStatus ?? (routeOpen ? resultStatus : undefined));
 
   function stopMonitoring() {
     runtime.closeRoute();
@@ -247,7 +231,9 @@ export function LatencyChecker() {
                 {hasAccess ? "Refresh inputs" : "Grant access"}
               </ActionButton>
             </div>
-            {!hasAccess && <StatusMessage status={displayedStatus} />}
+            {!hasAccess && displayedStatus && (
+              <StatusMessage status={displayedStatus} />
+            )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
               <Field label="Channel carrying the loop">
                 <select
@@ -285,9 +271,8 @@ export function LatencyChecker() {
             </div>
             {hasAccess &&
               !routeOpen &&
-              (openRouteMutation.isPending || openRouteMutation.error) && (
-                <StatusMessage status={displayedStatus} />
-              )}
+              (openRouteMutation.isPending || openRouteMutation.error) &&
+              displayedStatus && <StatusMessage status={displayedStatus} />}
           </WorkflowSection>
 
           <WorkflowSection
@@ -328,7 +313,8 @@ export function LatencyChecker() {
             {routeOpen &&
               (calibrationMutation.isPending ||
                 calibrationMutation.error ||
-                result) && <StatusMessage status={displayedStatus} />}
+                result) &&
+              displayedStatus && <StatusMessage status={displayedStatus} />}
           </WorkflowSection>
 
           <WorkflowSection
