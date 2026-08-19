@@ -82,7 +82,6 @@ export function LatencyChecker() {
     mutationFn: () => runtime.calibrate({ channel, outputLevel }),
   });
   const result = calibrationMutation.data;
-  const resultWarning = result ? getResultWarning(result) : undefined;
 
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
@@ -352,7 +351,6 @@ export function LatencyChecker() {
           >
             {result ? (
               <>
-                {resultWarning && <StatusMessage status={resultWarning} />}
                 <Results
                   key={result.expectedFrames[0]}
                   result={result}
@@ -402,12 +400,14 @@ function Results({
   const medianSamples = median(offsets);
   const medianMs = (medianSamples * 1000) / result.sampleRate;
   const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
+  const warning = getResultWarning(result);
   const [compensation, setCompensation] = useState(() =>
     clamp(medianMs, -50, 400),
   );
 
   return (
     <>
+      {warning && <StatusMessage status={warning} />}
       <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
         <Metric
           label="Median offset"
