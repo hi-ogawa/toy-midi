@@ -147,18 +147,27 @@ export class LatencyCheckerRuntime {
       await this.#captureWorklet.setActive(true);
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
-      const clickBuffer = buildClickBuffer({ context, template, amplitude });
-      const clickSource = context.createBufferSource();
-      clickSource.buffer = clickBuffer;
-      clickSource.connect(context.destination);
       const startTime = context.currentTime + CALIBRATION_TIMING.leadTime;
       const schedule = createCalibrationSchedule({
         sampleRate: context.sampleRate,
         startTime,
         timing: CALIBRATION_TIMING,
       });
+      const clickBuffer = buildClickBuffer({
+        amplitude,
+        context,
+        durationSeconds: schedule.playbackDurationSeconds,
+        template,
+      });
+      const clickSource = context.createBufferSource();
+      clickSource.buffer = clickBuffer;
+      clickSource.connect(context.destination);
+      const playbackEnded = Promise.withResolvers<void>();
+      clickSource.addEventListener("ended", () => playbackEnded.resolve(), {
+        once: true,
+      });
       clickSource.start(startTime);
-      await wait(schedule.durationSeconds * 1000);
+      await playbackEnded.promise;
       await this.#captureWorklet.setActive(false);
 
       const analysis = analyzeCalibration({
@@ -298,17 +307,16 @@ function buildClickBuffer({
   context,
   template,
   amplitude,
+  durationSeconds,
 }: {
   context: AudioContext;
   template: Float32Array;
   amplitude: number;
+  durationSeconds: number;
 }) {
-  const duration =
-    (CALIBRATION_TIMING.clickCount - 1) * CALIBRATION_TIMING.clickInterval +
-    template.length / context.sampleRate;
   const buffer = context.createBuffer(
     1,
-    Math.ceil(duration * context.sampleRate) + 1,
+    Math.ceil(durationSeconds * context.sampleRate) + template.length,
     context.sampleRate,
   );
   const data = buffer.getChannelData(0);
@@ -331,10 +339,6 @@ function toAudioBuffer(
   const buffer = context.createBuffer(1, samples.length, sampleRate);
   buffer.getChannelData(0).set(samples);
   return buffer;
-}
-
-function wait(milliseconds: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function withTimeout<T>({

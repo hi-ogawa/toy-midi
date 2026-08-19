@@ -28,8 +28,8 @@ export type CalibrationAnalysis = {
 };
 
 export type CalibrationSchedule = {
-  durationSeconds: number;
   expectedFrames: number[];
+  playbackDurationSeconds: number;
 };
 
 export type CalibrationTiming = {
@@ -77,10 +77,8 @@ export function createCalibrationSchedule({
       (_, index) =>
         startFrame + Math.round(index * timing.clickInterval * sampleRate),
     ),
-    durationSeconds:
-      timing.leadTime +
-      (timing.clickCount - 1) * timing.clickInterval +
-      timing.tailTime,
+    playbackDurationSeconds:
+      (timing.clickCount - 1) * timing.clickInterval + timing.tailTime,
   };
 }
 
