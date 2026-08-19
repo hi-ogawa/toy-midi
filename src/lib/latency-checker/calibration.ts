@@ -46,6 +46,8 @@ export type CalibrationResult = {
  * template, so repeatability matters more than perceptual tone quality.
  */
 export function createClickTemplate(sampleRate: number) {
+  // A 2 ms click is brief but carries enough samples for a distinct correlation
+  // peak. Keep at least 64 samples so low sample rates still have enough pattern.
   const length = Math.max(64, Math.round(sampleRate * 0.002));
   const samples = new Float32Array(length);
   let state = 0x51f15e;
