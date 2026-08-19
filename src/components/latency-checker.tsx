@@ -86,7 +86,7 @@ export function LatencyChecker() {
       setRouteOpen(true);
       setStatus({
         message:
-          "Route is open. Patch the visible browser nodes, then run the click test.",
+          "Input monitoring is active. Connect browser output to the selected input, then run the click test.",
         state: "ready",
       });
     },
@@ -126,12 +126,13 @@ export function LatencyChecker() {
       }
     : openRouteMutation.isPending
       ? {
-          message: "Opening browser playback and capture streams...",
+          message: "Starting input monitoring...",
           state: "busy",
         }
       : calibrationMutation.isPending
         ? {
-            message: "Recording 7 clicks. Keep the route unchanged...",
+            message:
+              "Recording 7 clicks. Keep the loopback connection unchanged...",
             state: "busy",
           }
         : undefined;
@@ -144,7 +145,7 @@ export function LatencyChecker() {
       runtime.closeRoute();
       setInputPeak(0);
       setRouteOpen(false);
-      setStatus({ message: "Audio route closed.", state: "idle" });
+      setStatus({ message: "Input monitoring stopped.", state: "idle" });
     } else {
       setInputPeak(0);
       openRouteMutation.mutate();
@@ -185,8 +186,8 @@ export function LatencyChecker() {
               Measure audio latency
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
-              Choose an input, keep its browser route open while you patch the
-              loop, then measure and audition the recording offset.
+              Choose an input, start monitoring, connect browser output back to
+              that input, then measure and audition the recording offset.
             </p>
           </div>
           <SignalMark />
@@ -233,7 +234,7 @@ export function LatencyChecker() {
             </div>
             {routeOpen && (
               <p className="mt-3 text-xs font-medium text-emerald-800">
-                Input selection is locked while the route is open.
+                Input selection is locked while monitoring is active.
               </p>
             )}
             {!hasAccess && <StatusMessage status={displayedStatus} />}
@@ -241,8 +242,8 @@ export function LatencyChecker() {
 
           <WorkflowSection
             number={2}
-            title="Route and patching"
-            description="Open the browser nodes, select the detected input channel, then make the external loop."
+            title="Input monitoring and loopback"
+            description="Select the input channel and connect the loopback."
             state={!hasAccess ? "disabled" : result ? "complete" : "active"}
             status={
               !hasAccess
@@ -251,7 +252,7 @@ export function LatencyChecker() {
                   ? "Complete"
                   : routeOpen
                     ? "In progress"
-                    : "Open route"
+                    : "Start monitoring"
             }
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
@@ -276,24 +277,19 @@ export function LatencyChecker() {
                       ),
                     )
                   ) : (
-                    <option>Available after opening route</option>
+                    <option>Available after starting monitoring</option>
                   )}
                 </select>
               </Field>
               <ActionButton disabled={busy || !hasAccess} onClick={toggleRoute}>
-                {routeOpen ? "Close route" : "Open route"}
+                {routeOpen ? "Stop monitoring" : "Start monitoring"}
               </ActionButton>
             </div>
             <div className="mt-4">
-              <Field label="Input peak">
+              <Field label="Input meter">
                 <InputMeter active={routeOpen} peak={inputPeak} />
               </Field>
             </div>
-            <p className="mt-3 border-l-[3px] border-orange-600 pl-3 text-xs leading-5 text-neutral-600">
-              {routeOpen
-                ? "Route open. Patch browser output to the selected input, mute speakers, and keep the route unchanged through measurement."
-                : "After opening the route, patch browser output to the selected input. For a physical loop, mute speakers first."}
-            </p>
             {hasAccess &&
               !routeOpen &&
               (openRouteMutation.isPending || openRouteMutation.error) && (
@@ -304,10 +300,10 @@ export function LatencyChecker() {
           <WorkflowSection
             number={3}
             title="Measurement"
-            description="Set a safe click level and record seven samples through the open route."
+            description="Set a safe click level and record seven samples through the monitored input."
             state={!routeOpen ? "disabled" : result ? "complete" : "active"}
             status={
-              !routeOpen ? "Requires open route" : result ? "Complete" : "Ready"
+              !routeOpen ? "Requires monitoring" : result ? "Complete" : "Ready"
             }
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
@@ -850,7 +846,7 @@ function getResultStatus(result: LatencyResult): Status {
         state: "error",
       }
     : {
-        message: `Test complete. Route remains open for patch changes or another run. Captured ${result.settings.sampleRate || result.sampleRate} Hz with ${result.channelCount || "unknown"} channel(s).`,
+        message: `Test complete. Input monitoring remains active for connection changes or another run. Captured ${result.settings.sampleRate || result.sampleRate} Hz with ${result.channelCount || "unknown"} channel(s).`,
         state: "ready",
       };
 }
