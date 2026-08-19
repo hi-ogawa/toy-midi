@@ -323,7 +323,7 @@ export function LatencyChecker() {
             state={result ? "active" : "disabled"}
           >
             {result ? (
-              <Results
+              <ResultsView
                 key={result.expectedFrames[0]}
                 result={result}
                 runtime={runtime}
@@ -338,7 +338,7 @@ export function LatencyChecker() {
   );
 }
 
-function Results({
+function ResultsView({
   result,
   runtime,
 }: {
@@ -383,19 +383,19 @@ function Results({
         </p>
       )}
       <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
-        <Metric
+        <ResultMetric
           label="Median offset"
           value={`${formatSigned(medianMs, 3)} ms`}
         />
-        <Metric
+        <ResultMetric
           label="Median samples"
           value={`${formatSigned(medianSamples, 1)} smp`}
         />
-        <Metric
+        <ResultMetric
           label="Measurement spread"
           value={`${spreadMs.toFixed(3)} ms`}
         />
-        <Metric
+        <ResultMetric
           label="Audio format"
           value={`${(result.sampleRate / 1000).toFixed(1)} kHz / ${result.channelCount || "?"} ch`}
         />
@@ -403,7 +403,9 @@ function Results({
 
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
         <div>
-          <SectionTitle>Detected clicks</SectionTitle>
+          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
+            Detected clicks
+          </h3>
           <ol className="grid grid-cols-2 gap-2">
             {result.measurements.map((measurement, index) => (
               <li
@@ -424,7 +426,9 @@ function Results({
         </div>
 
         <div className="border-l border-neutral-200 pl-7">
-          <SectionTitle>Audition</SectionTitle>
+          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
+            Audition
+          </h3>
           <p className="mb-4 text-sm leading-6 text-neutral-600">
             Compare the raw capture with the same recording shifted by the
             measured median of {formatSigned(medianMs, 2)} ms.
@@ -460,15 +464,26 @@ function ResultPlaceholder() {
   return (
     <>
       <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
-        <Metric label="Median offset" value="—" />
-        <Metric label="Median samples" value="—" />
-        <Metric label="Measurement spread" value="—" />
-        <Metric label="Audio format" value="—" />
+        <ResultMetric label="Median offset" value="—" />
+        <ResultMetric label="Median samples" value="—" />
+        <ResultMetric label="Measurement spread" value="—" />
+        <ResultMetric label="Audio format" value="—" />
       </div>
       <p className="mt-3 text-xs text-neutral-500">
         Run the 7-click test to fill these fields.
       </p>
     </>
+  );
+}
+
+function ResultMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-white p-4">
+      <small className="mb-2 block text-xs text-neutral-500">{label}</small>
+      <strong className="block whitespace-nowrap font-mono text-lg font-semibold tabular-nums">
+        {value}
+      </strong>
+    </div>
   );
 }
 
@@ -521,14 +536,6 @@ function WorkflowSection({
         {children}
       </div>
     </section>
-  );
-}
-
-function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
-      {children}
-    </h2>
   );
 }
 
@@ -618,17 +625,6 @@ function ErrorMessage({ children }: { children: ReactNode }) {
     <p className="mt-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
       {children}
     </p>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white p-4">
-      <small className="mb-2 block text-xs text-neutral-500">{label}</small>
-      <strong className="block whitespace-nowrap font-mono text-lg font-semibold tabular-nums">
-        {value}
-      </strong>
-    </div>
   );
 }
 
