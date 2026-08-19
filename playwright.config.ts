@@ -23,11 +23,28 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: "latency-checker.spec.ts",
       use: {
         ...devices["Desktop Chrome"],
         channel: "chromium",
         launchOptions: {
           args: ["--autoplay-policy=no-user-gesture-required"],
+        },
+      },
+    },
+    {
+      name: "chromium-fake-audio",
+      testMatch: "latency-checker.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chromium",
+        permissions: ["microphone"],
+        launchOptions: {
+          args: [
+            "--autoplay-policy=no-user-gesture-required",
+            "--use-fake-device-for-media-stream",
+            "--use-fake-ui-for-media-stream",
+          ],
         },
       },
     },
