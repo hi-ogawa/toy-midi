@@ -378,12 +378,6 @@ export function LatencyChecker() {
             )}
           </WorkflowSection>
         </div>
-
-        <footer className="mt-6 text-center text-xs leading-5 text-neutral-500">
-          Experimental browser diagnostic. Input labels and selection use the
-          MediaDevices API; sample capture runs in an inline AudioWorklet. No
-          audio leaves this page.
-        </footer>
       </div>
     </main>
   );
