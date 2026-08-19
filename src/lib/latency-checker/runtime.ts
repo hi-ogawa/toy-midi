@@ -2,7 +2,6 @@ import { dbToGain } from "../music.ts";
 import {
   analyzeCalibration,
   type CalibrationResult,
-  type CalibrationTiming,
   type CaptureChunk,
   createCalibrationPlayback,
   createClickTemplate,
@@ -13,14 +12,12 @@ import {
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
 
-const CALIBRATION_TIMING: CalibrationTiming = {
-  clickCount: 7,
-  clickInterval: 0.46,
-  // Keep capture running after the final click to include delayed input.
-  tailTime: 0.45,
-};
+const CALIBRATION_CLICK_COUNT = 7;
+const CALIBRATION_CLICK_INTERVAL = 0.46;
 // Begin capture before playback so the worklet is active at the first onset.
 const CALIBRATION_LEAD_TIME = 0.55;
+// Keep capture running after the final click to include delayed input.
+const CALIBRATION_TAIL_TIME = 0.45;
 
 export type LatencyResult = {
   calibration: CalibrationResult;
@@ -152,10 +149,12 @@ export class LatencyCheckerRuntime {
       const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
       const playback = createCalibrationPlayback({
         amplitude,
+        clickCount: CALIBRATION_CLICK_COUNT,
+        clickInterval: CALIBRATION_CLICK_INTERVAL,
         sampleRate: context.sampleRate,
         startTime,
+        tailTime: CALIBRATION_TAIL_TIME,
         template,
-        timing: CALIBRATION_TIMING,
       });
       const clickSource = context.createBufferSource();
       clickSource.buffer = toAudioBuffer(

@@ -32,12 +32,6 @@ export type CalibrationPlayback = {
   samples: Float32Array;
 };
 
-export type CalibrationTiming = {
-  clickCount: number;
-  clickInterval: number;
-  tailTime: number;
-};
-
 export type CalibrationResult = {
   analysis: CalibrationAnalysis;
   capture: CalibrationCapture;
@@ -73,25 +67,28 @@ export function createClickTemplate(sampleRate: number) {
  */
 export function createCalibrationPlayback({
   amplitude,
+  clickCount,
+  clickInterval,
   sampleRate,
   startTime,
+  tailTime,
   template,
-  timing,
 }: {
   amplitude: number;
+  clickCount: number;
+  clickInterval: number;
   sampleRate: number;
   startTime: number;
+  tailTime: number;
   template: Float32Array;
-  timing: CalibrationTiming;
 }): CalibrationPlayback {
   // Round each onset independently to avoid accumulating interval error.
   const startFrame = Math.round(startTime * sampleRate);
-  const clickOffsets = Array.from({ length: timing.clickCount }, (_, index) =>
-    Math.round(index * timing.clickInterval * sampleRate),
+  const clickOffsets = Array.from({ length: clickCount }, (_, index) =>
+    Math.round(index * clickInterval * sampleRate),
   );
   const finalClickEnd = clickOffsets.at(-1)! + template.length;
-  const tailEnd =
-    clickOffsets.at(-1)! + Math.ceil(timing.tailTime * sampleRate);
+  const tailEnd = clickOffsets.at(-1)! + Math.ceil(tailTime * sampleRate);
   const samples = new Float32Array(Math.max(tailEnd, finalClickEnd));
   for (const start of clickOffsets) {
     for (let index = 0; index < template.length; index++) {
