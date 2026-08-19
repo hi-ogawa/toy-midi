@@ -357,6 +357,7 @@ function Results({
   const weakCount = result.measurements.filter(
     (measurement) => measurement.score < 0.25,
   ).length;
+
   const previewMutation = useMutation({
     mutationFn: (variant: PreviewVariant) =>
       runtime.play({ compensationMs: medianMs, result, variant }),
