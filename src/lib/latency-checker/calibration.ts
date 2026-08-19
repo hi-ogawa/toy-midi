@@ -102,19 +102,20 @@ export function createCalibrationPlayback({
  */
 export function analyzeCalibration({
   chunks,
-  clickOffsets,
-  playbackStartFrame,
+  playback,
   sampleRate,
   template,
 }: {
   chunks: CaptureChunk[];
-  clickOffsets: number[];
-  playbackStartFrame: number;
+  playback: CalibrationPlayback;
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
-  const recording = assembleChunks({ chunks, playbackStartFrame });
-  const measurements = clickOffsets.map((expectedOffset) =>
+  const recording = assembleChunks({
+    chunks,
+    playbackStartFrame: playback.startFrame,
+  });
+  const measurements = playback.clickOffsets.map((expectedOffset) =>
     findTemplate({
       expectedOffset,
       recording,
