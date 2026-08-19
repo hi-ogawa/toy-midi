@@ -328,7 +328,7 @@ export function LatencyChecker() {
           <WorkflowSection
             number={3}
             title="Review results"
-            description="Inspect the measured offset, adjust compensation, and compare playback."
+            description="Inspect the measured offset and compare raw and compensated playback."
             state={result ? "active" : "disabled"}
           >
             {result ? (
@@ -380,9 +380,6 @@ function Results({
   const weakCount = result.measurements.filter(
     (measurement) => measurement.score < 0.25,
   ).length;
-  const [compensation, setCompensation] = useState(() =>
-    clamp(medianMs, -50, 400),
-  );
 
   return (
     <>
@@ -411,7 +408,7 @@ function Results({
         />
       </div>
 
-      <Timeline offsetsMs={offsetsMs} compensation={compensation} />
+      <Timeline offsetsMs={offsetsMs} compensation={medianMs} />
 
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
         <div>
@@ -436,44 +433,15 @@ function Results({
         </div>
 
         <div className="border-l border-neutral-200 pl-7">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <label
-              htmlFor="latency-compensation"
-              className="text-xs font-semibold text-neutral-600"
-            >
-              Applied compensation
-            </label>
-            <strong className="font-mono text-xl font-semibold tabular-nums">
-              {formatSigned(compensation, 2)} ms
-            </strong>
-          </div>
-          <input
-            id="latency-compensation"
-            type="range"
-            min={-50}
-            max={400}
-            step={0.01}
-            value={compensation}
-            onChange={(event) =>
-              setCompensation(Number(event.currentTarget.value))
-            }
-            className="w-full accent-emerald-700"
-          />
-          <p className="my-4 text-sm leading-6 text-neutral-600">
-            The calculated median is only the initial setting. Move it and
-            listen; playback always uses the displayed value.
+          <SectionTitle>Audition</SectionTitle>
+          <p className="mb-4 text-sm leading-6 text-neutral-600">
+            Compare the raw capture with the same recording shifted by the
+            measured median of {formatSigned(medianMs, 2)} ms.
           </p>
-          <div className="flex gap-2">
+          <div className="grid gap-2">
             <ActionButton
               onClick={() =>
-                onPlay({ compensationMs: compensation, variant: "reference" })
-              }
-            >
-              Reference
-            </ActionButton>
-            <ActionButton
-              onClick={() =>
-                onPlay({ compensationMs: compensation, variant: "raw" })
+                onPlay({ compensationMs: medianMs, variant: "raw" })
               }
             >
               Raw + reference
@@ -482,7 +450,7 @@ function Results({
               accent
               onClick={() =>
                 onPlay({
-                  compensationMs: compensation,
+                  compensationMs: medianMs,
                   variant: "compensated",
                 })
               }
