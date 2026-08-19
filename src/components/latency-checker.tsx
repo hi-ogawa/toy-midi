@@ -199,7 +199,6 @@ export function LatencyChecker() {
             title="Input"
             description="Grant browser access and choose the capture device."
             state={hasAccess ? "complete" : "active"}
-            status={hasAccess ? "Complete" : "Start here"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <Field label="Browser audio input">
@@ -245,15 +244,6 @@ export function LatencyChecker() {
             title="Input monitoring and loopback"
             description="Select the input channel and connect the loopback."
             state={!hasAccess ? "disabled" : result ? "complete" : "active"}
-            status={
-              !hasAccess
-                ? "Requires input"
-                : result
-                  ? "Complete"
-                  : routeOpen
-                    ? "In progress"
-                    : "Start monitoring"
-            }
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <Field label="Channel carrying the loop">
@@ -302,9 +292,6 @@ export function LatencyChecker() {
             title="Measurement"
             description="Set a safe click level and record seven samples through the monitored input."
             state={!routeOpen ? "disabled" : result ? "complete" : "active"}
-            status={
-              !routeOpen ? "Requires monitoring" : result ? "Complete" : "Ready"
-            }
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
               <Field label="Calibration click level">
@@ -346,7 +333,6 @@ export function LatencyChecker() {
             title="Results and audition"
             description="Inspect the measured offset, adjust compensation, and compare playback."
             state={result ? "active" : "disabled"}
-            status={result ? "Result ready" : "After measurement"}
           >
             {result ? (
               <>
@@ -642,53 +628,47 @@ function WorkflowSection({
   title,
   description,
   state,
-  status,
   children,
 }: {
   number: number;
   title: string;
   description: string;
   state: "active" | "complete" | "disabled";
-  status: string;
   children: ReactNode;
 }) {
   return (
     <section
       className={cn(
-        "grid min-h-40 grid-cols-[210px_minmax(0,1fr)] border-t border-neutral-200 first:border-t-0",
+        "border-t border-neutral-200 p-7 first:border-t-0",
         state === "disabled" && "bg-neutral-50 text-neutral-400",
       )}
     >
-      <div className="border-r border-neutral-200 p-6">
-        <div
+      <div className="flex items-center gap-3">
+        <span
           className={cn(
-            "flex items-center gap-2 text-xs font-semibold",
-            state === "disabled" ? "text-neutral-400" : "text-neutral-600",
+            "grid size-7 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
+            state === "disabled"
+              ? "bg-neutral-200 text-neutral-500"
+              : state === "complete"
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-emerald-700 text-white",
           )}
         >
-          <span
-            className={cn(
-              "grid size-6 place-items-center rounded-full font-mono text-[11px]",
-              state === "disabled"
-                ? "bg-neutral-200 text-neutral-500"
-                : "bg-emerald-700 text-white",
-            )}
-          >
-            {number}
-          </span>
-          {status}
-        </div>
+          {number}
+        </span>
         <h2
           className={cn(
-            "mt-3 text-xl font-semibold tracking-[-0.025em]",
+            "text-xl font-semibold tracking-[-0.025em]",
             state === "disabled" ? "text-neutral-500" : "text-neutral-950",
           )}
         >
           {title}
         </h2>
-        <p className="mt-2 text-xs leading-5 text-neutral-500">{description}</p>
       </div>
-      <div className={cn("p-7", state === "disabled" && "opacity-60")}>
+      <p className="mt-2 ml-10 text-sm leading-6 text-neutral-500">
+        {description}
+      </p>
+      <div className={cn("mt-5 ml-10", state === "disabled" && "opacity-60")}>
         {children}
       </div>
     </section>
