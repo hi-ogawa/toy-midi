@@ -71,7 +71,7 @@ export class LatencyCheckerRuntime {
     // quantum. Bound the wait because a silent or disconnected route may never
     // produce one, even when getUserMedia succeeds.
     const channelCount = Promise.withResolvers<number>();
-    const captureWorklet = new CaptureWorkletClient({
+    this.#captureWorklet = new CaptureWorkletClient({
       context,
       onNotification: (message) => {
         // Sample messages arrive continuously only while calibration capture is
@@ -90,13 +90,12 @@ export class LatencyCheckerRuntime {
         }
       },
     });
-    this.#captureWorklet = captureWorklet;
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
     // through zero gain to keep processing without audible input passthrough.
     this.#activeSource
-      .connect(captureWorklet.node)
+      .connect(this.#captureWorklet.node)
       .connect(this.#activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
