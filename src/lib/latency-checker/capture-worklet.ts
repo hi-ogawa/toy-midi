@@ -1,14 +1,14 @@
 const CAPTURE_PROCESSOR_NAME = "latency-capture";
 
-type CaptureMessage =
+type ToWorkletMessage =
+  | { type: "active"; requestId: number; value: boolean }
+  | { type: "channel"; value: number };
+
+type FromWorkletMessage =
   | { type: "activeChanged"; requestId: number; value: boolean }
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
   | { type: "samples"; frameStart: number; samples: Float32Array };
-
-type WorkletControlMessage =
-  | { type: "active"; requestId: number; value: boolean }
-  | { type: "channel"; value: number };
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
@@ -29,14 +29,14 @@ export class CaptureWorkletClient {
     onNotification,
   }: {
     context: AudioContext;
-    onNotification: (message: CaptureMessage) => void;
+    onNotification: (message: FromWorkletMessage) => void;
   }) {
     this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
-    this.node.port.onmessage = (event: MessageEvent<CaptureMessage>) => {
+    this.node.port.onmessage = (event: MessageEvent<FromWorkletMessage>) => {
       if (event.data.type !== "activeChanged") {
         onNotification(event.data);
         return;
@@ -80,7 +80,7 @@ export class CaptureWorkletClient {
     this.node.disconnect();
   }
 
-  #postMessage(message: WorkletControlMessage) {
+  #postMessage(message: ToWorkletMessage) {
     this.node.port.postMessage(message);
   }
 }
@@ -116,7 +116,7 @@ function createCaptureProcessor() {
       this.meterBlockCount = 0;
       this.meterPeak = 0;
       this.pendingRenderActions = [];
-      this.port.onmessage = (event: MessageEvent<WorkletControlMessage>) => {
+      this.port.onmessage = (event: MessageEvent<ToWorkletMessage>) => {
         if (event.data.type === "active") {
           const { requestId, value } = event.data;
           // Construct the protocol action here so process() only owns when the
@@ -187,7 +187,7 @@ function createCaptureProcessor() {
       return true;
     }
 
-    postMessage(message: CaptureMessage, transfer?: Transferable[]) {
+    postMessage(message: FromWorkletMessage, transfer?: Transferable[]) {
       // Keep the worklet-to-runtime protocol checked at every send site.
       this.port.postMessage(message, transfer ?? []);
     }
