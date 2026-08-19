@@ -35,28 +35,25 @@ export function LatencyChecker() {
     return () => runtime.dispose();
   }, [runtime]);
 
-  // TODO: abstraction feels off
-  function updateDevices(nextDevices: MediaDeviceInfo[]) {
+  async function refreshInputs() {
+    const nextDevices = await runtime.getInputs();
     setDevices(nextDevices);
-    setDeviceId((current) => {
-      if (nextDevices.some((device) => device.deviceId === current)) {
-        return current;
-      }
-      return nextDevices[0]?.deviceId;
-    });
+    selectDevice(
+      nextDevices.some((device) => device.deviceId === deviceId)
+        ? deviceId
+        : nextDevices[0]?.deviceId,
+    );
   }
 
   const grantAccessMutation = useMutation({
     mutationFn: async () => {
       await runtime.requestAccess();
-      return runtime.getInputs();
+      await refreshInputs();
     },
-    onSuccess: updateDevices,
   });
 
   const refreshInputsMutation = useMutation({
-    mutationFn: () => runtime.getInputs(),
-    onSuccess: updateDevices,
+    mutationFn: refreshInputs,
   });
 
   useEffect(() => {
@@ -87,6 +84,7 @@ export function LatencyChecker() {
 
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
+  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
 
   function stopMonitoring() {
     runtime.stopMonitoring();
@@ -106,8 +104,8 @@ export function LatencyChecker() {
     }
   }
 
-  function handleDeviceChange(nextDeviceId: string) {
-    if (isMonitoring) {
+  function selectDevice(nextDeviceId?: string) {
+    if (nextDeviceId !== deviceId && isMonitoring) {
       stopMonitoring();
     }
     setDeviceId(nextDeviceId);
@@ -167,7 +165,7 @@ export function LatencyChecker() {
               <label className="grid gap-2 text-xs font-semibold text-neutral-600">
                 Browser audio input
                 <select
-                  value={deviceId ?? ""}
+                  value={selectedDevice?.deviceId ?? ""}
                   disabled={
                     !inputsInitialized ||
                     !hasAccess ||
@@ -176,7 +174,7 @@ export function LatencyChecker() {
                     calibrationMutation.isPending
                   }
                   onChange={(event) =>
-                    handleDeviceChange(event.currentTarget.value)
+                    selectDevice(event.currentTarget.value || undefined)
                   }
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
@@ -186,7 +184,7 @@ export function LatencyChecker() {
                     <option>Grant access to list audio inputs</option>
                   ) : (
                     <>
-                      {!deviceId && (
+                      {!selectedDevice && (
                         <option value="">Choose an audio input</option>
                       )}
                       {devices.map((device, index) => (
@@ -259,7 +257,7 @@ export function LatencyChecker() {
               <ActionButton
                 className="min-w-35"
                 disabled={
-                  !deviceId ||
+                  !selectedDevice ||
                   startMonitoringMutation.isPending ||
                   calibrationMutation.isPending
                 }
