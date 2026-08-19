@@ -11,8 +11,10 @@ export type LatencyMeasurement = {
 
 export type CalibrationAnalysis = {
   measurements: LatencyMeasurement[];
-  playbackStartIndex: number;
-  recorded: Float32Array;
+  recording: {
+    samples: Float32Array;
+    startFrame: number;
+  };
 };
 
 export type CalibrationPlayback = {
@@ -98,20 +100,18 @@ export function createCalibrationPlayback({
  * Reconstructs captured PCM and locates the template near every scheduled click.
  *
  * Chunk and expected-frame coordinates are absolute AudioContext frame numbers.
- * `playbackStartIndex` converts playback's absolute start frame into an index in
- * the returned recording. Measurements remain in absolute frames and report
- * signed offsets relative to their corresponding expected frame.
+ * The assembled recording retains its absolute start frame. Measurements remain
+ * in absolute frames and report signed offsets relative to their corresponding
+ * expected frame.
  */
 export function analyzeCalibration({
   chunks,
   expectedFrames,
-  playbackStartFrame,
   sampleRate,
   template,
 }: {
   chunks: CaptureChunk[];
   expectedFrames: number[];
-  playbackStartFrame: number;
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
@@ -128,8 +128,7 @@ export function analyzeCalibration({
   );
   return {
     measurements,
-    playbackStartIndex: playbackStartFrame - assembled.startFrame,
-    recorded: assembled.samples,
+    recording: assembled,
   };
 }
 
@@ -219,9 +218,8 @@ function findTemplate({
 /**
  * Builds aligned mono buffers for audible comparison of calibration results.
  *
- * `reference` contains the emitted probe, `raw` copies capture relative to its
- * analyzed playback-start index, and `compensated` advances raw audio by
- * `compensationSamples`.
+ * `reference` contains the emitted probe, `raw` aligns the captured recording to
+ * playback, and `compensated` advances raw audio by `compensationSamples`.
  * Positive compensation therefore moves a late captured onset toward its
  * scheduled reference onset. Samples outside available capture data remain zero.
  */
@@ -233,8 +231,8 @@ export function createPlaybackBuffers({
   compensationSamples: number;
 }) {
   const {
-    analysis: { playbackStartIndex, recorded },
-    playback: { samples: emitted },
+    analysis: { recording },
+    playback: { samples: emitted, startFrame: playbackStartFrame },
     sampleRate,
   } = result;
   const preRoll = Math.round(sampleRate * 0.1);
@@ -243,11 +241,12 @@ export function createPlaybackBuffers({
   const reference = new Float32Array(length);
   reference.set(emitted, preRoll);
   const raw = new Float32Array(length);
+  const playbackStartIndex = playbackStartFrame - recording.startFrame;
   for (let index = 0; index < length; index++) {
     // Both indices are local: playback sample zero is placed after pre-roll.
     const sourceIndex = playbackStartIndex + index - preRoll;
-    if (sourceIndex >= 0 && sourceIndex < recorded.length) {
-      raw[index] = recorded[sourceIndex];
+    if (sourceIndex >= 0 && sourceIndex < recording.samples.length) {
+      raw[index] = recording.samples[sourceIndex];
     }
   }
   const compensated = new Float32Array(length);
