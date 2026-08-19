@@ -2,13 +2,11 @@ import { dbToGain } from "../music.ts";
 import {
   analyzeCalibration,
   type CalibrationResult,
+  type CalibrationTiming,
   type CaptureChunk,
-  CLICK_COUNT,
-  CLICK_INTERVAL,
   createCalibrationSchedule,
   createClickTemplate,
   createPlaybackBuffers,
-  LEAD_TIME,
 } from "./calibration.ts";
 import {
   type CaptureMessage,
@@ -16,6 +14,13 @@ import {
   createCaptureWorkletSource,
   type WorkletControlMessage,
 } from "./worklet-factory.ts";
+
+const CALIBRATION_TIMING: CalibrationTiming = {
+  clickCount: 7,
+  clickInterval: 0.46,
+  leadTime: 0.55,
+  tailTime: 0.45,
+};
 
 export type LatencyResult = {
   calibration: CalibrationResult;
@@ -144,10 +149,11 @@ export class LatencyCheckerRuntime {
       const clickSource = context.createBufferSource();
       clickSource.buffer = clickBuffer;
       clickSource.connect(context.destination);
-      const startTime = context.currentTime + LEAD_TIME;
+      const startTime = context.currentTime + CALIBRATION_TIMING.leadTime;
       const schedule = createCalibrationSchedule({
         sampleRate: context.sampleRate,
         startTime,
+        timing: CALIBRATION_TIMING,
       });
       clickSource.start(startTime);
       await wait(schedule.durationSeconds * 1000);
@@ -298,15 +304,18 @@ function buildClickBuffer({
   amplitude: number;
 }) {
   const duration =
-    (CLICK_COUNT - 1) * CLICK_INTERVAL + template.length / context.sampleRate;
+    (CALIBRATION_TIMING.clickCount - 1) * CALIBRATION_TIMING.clickInterval +
+    template.length / context.sampleRate;
   const buffer = context.createBuffer(
     1,
     Math.ceil(duration * context.sampleRate) + 1,
     context.sampleRate,
   );
   const data = buffer.getChannelData(0);
-  for (let click = 0; click < CLICK_COUNT; click++) {
-    const start = Math.round(click * CLICK_INTERVAL * context.sampleRate);
+  for (let click = 0; click < CALIBRATION_TIMING.clickCount; click++) {
+    const start = Math.round(
+      click * CALIBRATION_TIMING.clickInterval * context.sampleRate,
+    );
     for (let index = 0; index < template.length; index++) {
       data[start + index] += template[index] * amplitude;
     }

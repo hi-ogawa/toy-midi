@@ -1,9 +1,5 @@
 const SEARCH_BEFORE = 0.05;
 const SEARCH_AFTER = 0.32;
-export const CLICK_COUNT = 7;
-export const CLICK_INTERVAL = 0.46;
-export const LEAD_TIME = 0.55;
-const TAIL_TIME = 0.45;
 
 export type CaptureChunk = {
   frameStart: number;
@@ -34,6 +30,13 @@ export type CalibrationSchedule = {
   expectedFrames: number[];
 };
 
+export type CalibrationTiming = {
+  clickCount: number;
+  clickInterval: number;
+  leadTime: number;
+  tailTime: number;
+};
+
 export type CalibrationResult = {
   analysis: CalibrationAnalysis;
   capture: CalibrationCapture;
@@ -55,18 +58,23 @@ export function createClickTemplate(sampleRate: number) {
 export function createCalibrationSchedule({
   sampleRate,
   startTime,
+  timing,
 }: {
   sampleRate: number;
   startTime: number;
+  timing: CalibrationTiming;
 }): CalibrationSchedule {
   const startFrame = Math.round(startTime * sampleRate);
   return {
     expectedFrames: Array.from(
-      { length: CLICK_COUNT },
+      { length: timing.clickCount },
       (_, index) =>
-        startFrame + Math.round(index * CLICK_INTERVAL * sampleRate),
+        startFrame + Math.round(index * timing.clickInterval * sampleRate),
     ),
-    durationSeconds: LEAD_TIME + (CLICK_COUNT - 1) * CLICK_INTERVAL + TAIL_TIME,
+    durationSeconds:
+      timing.leadTime +
+      (timing.clickCount - 1) * timing.clickInterval +
+      timing.tailTime,
   };
 }
 
