@@ -241,6 +241,7 @@ export function createPlaybackBuffers({
   const length = preRoll + playback.samples.length + postRoll;
   const reference = new Float32Array(length);
   reference.set(playback.samples, preRoll);
+
   const raw = new Float32Array(length);
   const playbackStartIndex = playback.startFrame - recording.startFrame;
   for (let index = 0; index < length; index++) {
@@ -250,6 +251,7 @@ export function createPlaybackBuffers({
       raw[index] = recording.samples[sourceIndex];
     }
   }
+
   const compensated = new Float32Array(length);
   // Positive compensation advances captured samples toward the reference.
   for (let index = 0; index < length; index++) {
