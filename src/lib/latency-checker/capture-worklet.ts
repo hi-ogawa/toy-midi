@@ -1,10 +1,10 @@
 const CAPTURE_PROCESSOR_NAME = "latency-capture";
 
-type ToWorkletMessage =
+type ClientMessage =
   | { type: "active"; requestId: number; value: boolean }
   | { type: "channel"; value: number };
 
-type FromWorkletMessage =
+type WorkletMessage =
   | { type: "activeChanged"; requestId: number; value: boolean }
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
@@ -35,14 +35,14 @@ export class CaptureWorkletClient {
     onNotification,
   }: {
     context: AudioContext;
-    onNotification: (message: FromWorkletMessage) => void;
+    onNotification: (message: WorkletMessage) => void;
   }) {
     this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
-    this.node.port.onmessage = (event: MessageEvent<FromWorkletMessage>) => {
+    this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
       if (event.data.type !== "activeChanged") {
         onNotification(event.data);
         return;
@@ -86,7 +86,7 @@ export class CaptureWorkletClient {
     this.node.disconnect();
   }
 
-  #postMessage(message: ToWorkletMessage) {
+  #postMessage(message: ClientMessage) {
     this.node.port.postMessage(message);
   }
 }
@@ -122,7 +122,7 @@ function createCaptureProcessor() {
       this.meterBlockCount = 0;
       this.meterPeak = 0;
       this.pendingRenderActions = [];
-      this.port.onmessage = (event: MessageEvent<ToWorkletMessage>) => {
+      this.port.onmessage = (event: MessageEvent<ClientMessage>) => {
         if (event.data.type === "active") {
           const { requestId, value } = event.data;
           // Construct the protocol action here so process() only owns when the
@@ -193,8 +193,7 @@ function createCaptureProcessor() {
       return true;
     }
 
-    postMessage(message: FromWorkletMessage, transfer?: Transferable[]) {
-      // Keep the worklet-to-runtime protocol checked at every send site.
+    postMessage(message: WorkletMessage, transfer?: Transferable[]) {
       this.port.postMessage(message, transfer ?? []);
     }
   };
