@@ -172,7 +172,7 @@ export function LatencyChecker() {
             <DropdownMenuItem asChild>
               <a href={routes.home.href()}>
                 <FolderIcon />
-                All Projects
+                Home
               </a>
             </DropdownMenuItem>
           </DropdownMenuContent>
