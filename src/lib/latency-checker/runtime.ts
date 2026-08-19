@@ -1,7 +1,7 @@
 import { dbToGain } from "../music.ts";
 import {
   analyzeCalibration,
-  type CalibrationRecording,
+  type CalibrationResult,
   type CaptureChunk,
   CLICK_COUNT,
   CLICK_INTERVAL,
@@ -9,7 +9,6 @@ import {
   createClickTemplate,
   createPlaybackBuffers,
   LEAD_TIME,
-  type LatencyMeasurement,
 } from "./calibration.ts";
 import {
   type CaptureMessage,
@@ -18,9 +17,9 @@ import {
   type WorkletControlMessage,
 } from "./worklet-factory.ts";
 
-export type LatencyResult = CalibrationRecording & {
+export type LatencyResult = {
+  calibration: CalibrationResult;
   channelCount: number;
-  measurements: LatencyMeasurement[];
   settings: MediaTrackSettings;
 };
 
@@ -162,14 +161,18 @@ export class LatencyCheckerRuntime {
         template,
       });
       return {
-        amplitude,
+        calibration: {
+          analysis,
+          capture: {
+            amplitude,
+            expectedFrames: schedule.expectedFrames,
+            sampleRate: context.sampleRate,
+            template,
+          },
+        },
         channelCount:
           this.#detectedChannelCount || this.#activeSettings.channelCount || 0,
-        expectedFrames: schedule.expectedFrames,
-        ...analysis,
-        sampleRate: context.sampleRate,
         settings: this.#activeSettings,
-        template,
       } satisfies LatencyResult;
     } finally {
       this.#postControl({ type: "active", value: false });
@@ -188,16 +191,20 @@ export class LatencyCheckerRuntime {
   }) {
     const context = await this.#ensureAudioContext();
     this.stopPreview();
+    const sampleRate = result.calibration.capture.sampleRate;
     const compensationSamples = Math.round(
-      (compensationMs * result.sampleRate) / 1000,
+      (compensationMs * sampleRate) / 1000,
     );
-    const buffers = createPlaybackBuffers({ result, compensationSamples });
+    const buffers = createPlaybackBuffers({
+      result: result.calibration,
+      compensationSamples,
+    });
     const when = context.currentTime + 0.08;
 
     const start = (samples: Float32Array, gainValue: number) => {
       const source = context.createBufferSource();
       const gain = context.createGain();
-      source.buffer = toAudioBuffer(context, samples, result.sampleRate);
+      source.buffer = toAudioBuffer(context, samples, sampleRate);
       gain.gain.value = gainValue;
       source.connect(gain).connect(context.destination);
       source.start(when);

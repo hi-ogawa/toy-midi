@@ -338,7 +338,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <ResultsView
-                key={result.expectedFrames[0]}
+                key={result.calibration.capture.expectedFrames[0]}
                 result={result}
                 runtime={runtime}
               />
@@ -359,16 +359,14 @@ function ResultsView({
   result: LatencyResult;
   runtime: LatencyCheckerRuntime;
 }) {
-  const offsets = result.measurements.map(
-    (measurement) => measurement.offsetSamples,
-  );
-  const offsetsMs = offsets.map(
-    (offset) => (offset * 1000) / result.sampleRate,
-  );
+  const { measurements } = result.calibration.analysis;
+  const { sampleRate } = result.calibration.capture;
+  const offsets = measurements.map((measurement) => measurement.offsetSamples);
+  const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
   const medianSamples = calculateMedian(offsets);
-  const medianMs = (medianSamples * 1000) / result.sampleRate;
+  const medianMs = (medianSamples * 1000) / sampleRate;
   const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
-  const weakCount = result.measurements.filter(
+  const weakCount = measurements.filter(
     (measurement) => measurement.score < 0.25,
   ).length;
 
@@ -411,7 +409,7 @@ function ResultsView({
         />
         <ResultMetric
           label="Audio format"
-          value={`${(result.sampleRate / 1000).toFixed(1)} kHz / ${result.channelCount || "?"} ch`}
+          value={`${(sampleRate / 1000).toFixed(1)} kHz / ${result.channelCount || "?"} ch`}
         />
       </div>
 
@@ -421,7 +419,7 @@ function ResultsView({
             Detected clicks
           </h3>
           <ol className="grid grid-cols-2 gap-2">
-            {result.measurements.map((measurement, index) => (
+            {measurements.map((measurement, index) => (
               <li
                 key={index}
                 className="flex justify-between gap-2 rounded-md bg-neutral-100 px-3 py-2 text-xs text-neutral-600"
@@ -429,7 +427,7 @@ function ResultsView({
                 <span>Click {index + 1}</span>
                 <strong className="font-mono font-semibold tabular-nums text-neutral-950">
                   {formatSigned(
-                    (measurement.offsetSamples * 1000) / result.sampleRate,
+                    (measurement.offsetSamples * 1000) / sampleRate,
                     3,
                   )}{" "}
                   ms / {(measurement.score * 100).toFixed(0)}%

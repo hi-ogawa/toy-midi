@@ -16,13 +16,22 @@ export type LatencyMeasurement = {
   score: number;
 };
 
-export type CalibrationRecording = {
+export type CalibrationCapture = {
   amplitude: number;
   expectedFrames: number[];
-  minFrame: number;
-  recorded: Float32Array;
   sampleRate: number;
   template: Float32Array;
+};
+
+export type CalibrationAnalysis = {
+  measurements: LatencyMeasurement[];
+  minFrame: number;
+  recorded: Float32Array;
+};
+
+export type CalibrationResult = {
+  analysis: CalibrationAnalysis;
+  capture: CalibrationCapture;
 };
 
 export function createClickTemplate(sampleRate: number) {
@@ -155,17 +164,11 @@ export function createPlaybackBuffers({
   result,
   compensationSamples,
 }: {
-  result: CalibrationRecording;
+  result: CalibrationResult;
   compensationSamples: number;
 }) {
-  const {
-    sampleRate,
-    expectedFrames,
-    minFrame,
-    recorded,
-    template,
-    amplitude,
-  } = result;
+  const { amplitude, expectedFrames, sampleRate, template } = result.capture;
+  const { minFrame, recorded } = result.analysis;
   const preRoll = Math.round(sampleRate * 0.1);
   const postRoll = Math.round(sampleRate * 0.35);
   const windowStart = expectedFrames[0] - preRoll;
