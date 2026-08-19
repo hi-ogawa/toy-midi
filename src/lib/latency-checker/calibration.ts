@@ -1,5 +1,9 @@
 const SEARCH_BEFORE = 0.05;
 const SEARCH_AFTER = 0.32;
+export const CLICK_COUNT = 7;
+export const CLICK_INTERVAL = 0.46;
+export const LEAD_TIME = 0.55;
+const TAIL_TIME = 0.45;
 
 export type CaptureChunk = {
   frameStart: number;
@@ -34,7 +38,53 @@ export function createClickTemplate(sampleRate: number) {
   return samples;
 }
 
-export function assembleChunks(chunks: CaptureChunk[]) {
+export function createCalibrationSchedule({
+  sampleRate,
+  startTime,
+}: {
+  sampleRate: number;
+  startTime: number;
+}) {
+  const startFrame = Math.round(startTime * sampleRate);
+  return {
+    expectedFrames: Array.from(
+      { length: CLICK_COUNT },
+      (_, index) =>
+        startFrame + Math.round(index * CLICK_INTERVAL * sampleRate),
+    ),
+    durationSeconds: LEAD_TIME + (CLICK_COUNT - 1) * CLICK_INTERVAL + TAIL_TIME,
+  };
+}
+
+export function analyzeCalibration({
+  chunks,
+  expectedFrames,
+  sampleRate,
+  template,
+}: {
+  chunks: CaptureChunk[];
+  expectedFrames: number[];
+  sampleRate: number;
+  template: Float32Array;
+}) {
+  const assembled = assembleChunks(chunks);
+  const measurements = expectedFrames.map((expectedFrame) =>
+    findTemplate({
+      recorded: assembled.samples,
+      minFrame: assembled.minFrame,
+      expectedFrame,
+      template,
+      sampleRate,
+    }),
+  );
+  return {
+    measurements,
+    minFrame: assembled.minFrame,
+    recorded: assembled.samples,
+  };
+}
+
+function assembleChunks(chunks: CaptureChunk[]) {
   if (chunks.length === 0) {
     throw new Error("No PCM arrived from the selected input.");
   }
@@ -49,7 +99,7 @@ export function assembleChunks(chunks: CaptureChunk[]) {
   return { minFrame, samples };
 }
 
-export function findTemplate({
+function findTemplate({
   recorded,
   minFrame,
   expectedFrame,

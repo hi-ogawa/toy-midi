@@ -1,11 +1,14 @@
 import { dbToGain } from "../music.ts";
 import {
-  assembleChunks,
+  analyzeCalibration,
   type CalibrationRecording,
   type CaptureChunk,
+  CLICK_COUNT,
+  CLICK_INTERVAL,
+  createCalibrationSchedule,
   createClickTemplate,
   createPlaybackBuffers,
-  findTemplate,
+  LEAD_TIME,
   type LatencyMeasurement,
 } from "./calibration.ts";
 import {
@@ -14,11 +17,6 @@ import {
   createCaptureWorkletSource,
   type WorkletControlMessage,
 } from "./worklet-factory.ts";
-
-const CLICK_COUNT = 7;
-const CLICK_INTERVAL = 0.46;
-const LEAD_TIME = 0.55;
-const TAIL_TIME = 0.45;
 
 export type LatencyResult = CalibrationRecording & {
   channelCount: number;
@@ -148,37 +146,27 @@ export class LatencyCheckerRuntime {
       clickSource.buffer = clickBuffer;
       clickSource.connect(context.destination);
       const startTime = context.currentTime + LEAD_TIME;
-      const startFrame = Math.round(startTime * context.sampleRate);
-      const expectedFrames = Array.from(
-        { length: CLICK_COUNT },
-        (_, index) =>
-          startFrame + Math.round(index * CLICK_INTERVAL * context.sampleRate),
-      );
+      const schedule = createCalibrationSchedule({
+        sampleRate: context.sampleRate,
+        startTime,
+      });
       clickSource.start(startTime);
-      const totalSeconds =
-        LEAD_TIME + (CLICK_COUNT - 1) * CLICK_INTERVAL + TAIL_TIME;
-      await wait(totalSeconds * 1000);
+      await wait(schedule.durationSeconds * 1000);
       this.#postControl({ type: "active", value: false });
       await wait(80);
 
-      const assembled = assembleChunks(chunks);
-      const measurements = expectedFrames.map((expectedFrame) =>
-        findTemplate({
-          recorded: assembled.samples,
-          minFrame: assembled.minFrame,
-          expectedFrame,
-          template,
-          sampleRate: context.sampleRate,
-        }),
-      );
+      const analysis = analyzeCalibration({
+        chunks,
+        expectedFrames: schedule.expectedFrames,
+        sampleRate: context.sampleRate,
+        template,
+      });
       return {
         amplitude,
         channelCount:
           this.#detectedChannelCount || this.#activeSettings.channelCount || 0,
-        expectedFrames,
-        measurements,
-        minFrame: assembled.minFrame,
-        recorded: assembled.samples,
+        expectedFrames: schedule.expectedFrames,
+        ...analysis,
         sampleRate: context.sampleRate,
         settings: this.#activeSettings,
         template,
