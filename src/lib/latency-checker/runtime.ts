@@ -70,12 +70,7 @@ export class LatencyCheckerRuntime {
     // Monitoring is ready only after the processor observes a real input
     // quantum. Bound the wait because a silent or disconnected route may never
     // produce one, even when getUserMedia succeeds.
-    let resolveChannelCount: (value: number) => void;
-    let rejectChannelCount: (error: Error) => void;
-    const channelCount = new Promise<number>((resolve, reject) => {
-      resolveChannelCount = resolve;
-      rejectChannelCount = reject;
-    });
+    const channelCount = Promise.withResolvers<number>();
     const captureWorklet = new CaptureWorkletClient({
       context,
       onNotification: (message) => {
@@ -87,8 +82,7 @@ export class LatencyCheckerRuntime {
         if (message.type === "channels") {
           this.#detectedChannelCount = message.value;
           if (message.value > 0) {
-            window.clearTimeout(channelTimeout);
-            resolveChannelCount(message.value);
+            channelCount.resolve(message.value);
           }
         }
         if (message.type === "level") {
@@ -97,13 +91,6 @@ export class LatencyCheckerRuntime {
       },
     });
     this.#captureWorklet = captureWorklet;
-    const channelTimeout = window.setTimeout(
-      () =>
-        rejectChannelCount(
-          new Error("No audio channels were detected from this input."),
-        ),
-      3_000,
-    );
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
@@ -113,7 +100,11 @@ export class LatencyCheckerRuntime {
       .connect(this.#activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
-    return channelCount;
+    return withTimeout({
+      promise: channelCount.promise,
+      milliseconds: 3_000,
+      message: "No audio channels were detected from this input.",
+    });
   }
 
   stopMonitoring() {
@@ -345,4 +336,25 @@ function toAudioBuffer(
 
 function wait(milliseconds: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function withTimeout<T>({
+  promise,
+  milliseconds,
+  message,
+}: {
+  promise: Promise<T>;
+  milliseconds: number;
+  message: string;
+}) {
+  const timeout = Promise.withResolvers<never>();
+  const timer = window.setTimeout(
+    () => timeout.reject(new Error(message)),
+    milliseconds,
+  );
+  try {
+    return await Promise.race([promise, timeout.promise]);
+  } finally {
+    window.clearTimeout(timer);
+  }
 }
