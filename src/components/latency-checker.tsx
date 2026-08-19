@@ -96,11 +96,6 @@ export function LatencyChecker() {
     }) => runtime.play(options),
   });
 
-  const busy =
-    refreshInputsMutation.isPending ||
-    grantAccessMutation.isPending ||
-    startMonitoringMutation.isPending ||
-    calibrationMutation.isPending;
   const accessStatus: Status | undefined = grantAccessMutation.error
     ? { message: grantAccessMutation.error.message, state: "error" }
     : grantAccessMutation.isPending
@@ -202,7 +197,13 @@ export function LatencyChecker() {
               <Field label="Browser audio input">
                 <select
                   value={deviceId}
-                  disabled={!inputsInitialized || !hasAccess || busy}
+                  disabled={
+                    !inputsInitialized ||
+                    !hasAccess ||
+                    refreshInputsMutation.isPending ||
+                    grantAccessMutation.isPending ||
+                    calibrationMutation.isPending
+                  }
                   onChange={(event) =>
                     handleDeviceChange(event.currentTarget.value)
                   }
@@ -224,7 +225,12 @@ export function LatencyChecker() {
               <ActionButton
                 accent={inputsInitialized && !hasAccess}
                 className="min-w-28"
-                disabled={!inputsInitialized || busy || isMonitoring}
+                disabled={
+                  !inputsInitialized ||
+                  refreshInputsMutation.isPending ||
+                  grantAccessMutation.isPending ||
+                  isMonitoring
+                }
                 onClick={() =>
                   hasAccess
                     ? refreshInputsMutation.mutate()
@@ -245,7 +251,11 @@ export function LatencyChecker() {
               <Field label="Channel carrying the loop">
                 <select
                   value={channel}
-                  disabled={busy || !isMonitoring}
+                  disabled={
+                    !isMonitoring ||
+                    startMonitoringMutation.isPending ||
+                    calibrationMutation.isPending
+                  }
                   onChange={(event) => {
                     const value = Number(event.currentTarget.value);
                     setChannel(value);
@@ -268,7 +278,11 @@ export function LatencyChecker() {
                 </select>
               </Field>
               <ActionButton
-                disabled={busy || !hasAccess}
+                disabled={
+                  !hasAccess ||
+                  startMonitoringMutation.isPending ||
+                  calibrationMutation.isPending
+                }
                 onClick={toggleMonitoring}
               >
                 {isMonitoring ? "Stop monitoring" : "Start monitoring"}
@@ -298,7 +312,7 @@ export function LatencyChecker() {
                     max={-6}
                     step={1}
                     value={outputLevel}
-                    disabled={busy || !isMonitoring}
+                    disabled={!isMonitoring || calibrationMutation.isPending}
                     onChange={(event) =>
                       setOutputLevel(Number(event.currentTarget.value))
                     }
@@ -311,7 +325,7 @@ export function LatencyChecker() {
               </Field>
               <ActionButton
                 accent
-                disabled={busy || !isMonitoring}
+                disabled={!isMonitoring || calibrationMutation.isPending}
                 onClick={() => calibrationMutation.mutate()}
               >
                 {result ? "Run again" : "Run 7-click test"}
