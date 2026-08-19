@@ -545,13 +545,13 @@ function WorkflowSection({
 function InputMeter({ active, peak }: { active: boolean; peak: number }) {
   const meterMin = -60;
   const meterMax = 6;
-  const calculatePosition = (value: number) =>
+  const getMeterPosition = (value: number) =>
     ((value - meterMin) / (meterMax - meterMin)) * 100;
-  const zeroPosition = calculatePosition(0);
+  const zeroPosition = getMeterPosition(0);
 
   const decibels = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
   const meterValue = clamp(decibels, meterMin, meterMax);
-  const levelPosition = active ? calculatePosition(meterValue) : 0;
+  const levelPosition = active ? getMeterPosition(meterValue) : 0;
   const label =
     active && Number.isFinite(decibels)
       ? `${decibels.toFixed(1)} dBFS`
