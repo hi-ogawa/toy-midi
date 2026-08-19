@@ -243,41 +243,26 @@ export function createPlaybackBuffers({
   reference.set(playback.samples, preRoll);
 
   const recordingStart = preRoll + recording.startFrame - playback.startFrame;
-  const raw = placeSamples({
-    input: recording.samples,
-    length,
-    outputStart: recordingStart,
-  });
-  const compensated = placeSamples({
-    input: raw,
-    length,
-    outputStart: -compensationSamples,
-  });
+  const raw = new Float32Array(length);
+  setArrayClipped(raw, recording.samples, recordingStart);
+  const compensated = new Float32Array(length);
+  setArrayClipped(compensated, raw, -compensationSamples);
   return { reference, raw, compensated };
 }
 
-/** Places input sample zero at `outputStart`, clipping outside the output. */
-function placeSamples({
-  input,
-  length,
-  outputStart,
-}: {
-  input: Float32Array;
-  length: number;
-  outputStart: number;
-}) {
-  const output = new Float32Array(length);
-  const inputStart = Math.max(0, -outputStart);
-  const targetStart = Math.max(0, outputStart);
-  const copyLength = Math.min(
-    input.length - inputStart,
-    output.length - targetStart,
+/** Performs `target.set(source, offset)` while clipping either array boundary. */
+function setArrayClipped(
+  target: Float32Array,
+  source: Float32Array,
+  offset: number,
+) {
+  const sourceStart = Math.max(0, -offset);
+  const targetStart = Math.max(0, offset);
+  const length = Math.min(
+    source.length - sourceStart,
+    target.length - targetStart,
   );
-  if (copyLength > 0) {
-    output.set(
-      input.subarray(inputStart, inputStart + copyLength),
-      targetStart,
-    );
+  if (length > 0) {
+    target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
   }
-  return output;
 }
