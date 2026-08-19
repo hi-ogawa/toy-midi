@@ -514,6 +514,8 @@ function WorkflowSection({
 }) {
   return (
     <section
+      aria-labelledby={`workflow-step-${number}`}
+      data-state={state}
       className={cn(
         "border-t border-neutral-200 p-7 first:border-t-0",
         state === "disabled" && "bg-neutral-50 text-neutral-400",
@@ -533,6 +535,7 @@ function WorkflowSection({
           {number}
         </span>
         <h2
+          id={`workflow-step-${number}`}
           className={cn(
             "text-xl font-semibold tracking-[-0.025em]",
             state === "disabled" ? "text-neutral-500" : "text-neutral-950",
