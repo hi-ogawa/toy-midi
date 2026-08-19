@@ -55,7 +55,7 @@ function createCaptureProcessor() {
       }
       if (channels.length !== this.lastChannelCount) {
         this.lastChannelCount = channels.length;
-        this.port.postMessage({ type: "channels", value: channels.length });
+        this.postMessage({ type: "channels", value: channels.length });
       }
       const selected = channels[this.channel];
       if (selected) {
@@ -64,7 +64,7 @@ function createCaptureProcessor() {
         }
         this.meterBlockCount++;
         if (this.meterBlockCount >= 16) {
-          this.port.postMessage({ type: "level", peak: this.meterPeak });
+          this.postMessage({ type: "level", peak: this.meterPeak });
           this.meterBlockCount = 0;
           this.meterPeak = 0;
         }
@@ -73,7 +73,7 @@ function createCaptureProcessor() {
           return true;
         }
         const copy = new Float32Array(selected);
-        this.port.postMessage(
+        this.postMessage(
           {
             type: "samples",
             frameStart: currentFrame,
@@ -83,6 +83,10 @@ function createCaptureProcessor() {
         );
       }
       return true;
+    }
+
+    postMessage(message: CaptureMessage, transfer?: Transferable[]) {
+      this.port.postMessage(message, transfer ?? []);
     }
   };
 }
