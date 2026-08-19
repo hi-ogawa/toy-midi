@@ -242,23 +242,42 @@ export function createPlaybackBuffers({
   const reference = new Float32Array(length);
   reference.set(playback.samples, preRoll);
 
-  const raw = new Float32Array(length);
   const playbackStartIndex = playback.startFrame - recording.startFrame;
-  for (let index = 0; index < length; index++) {
-    // Both indices are local: playback sample zero is placed after pre-roll.
-    const sourceIndex = playbackStartIndex + index - preRoll;
-    if (sourceIndex >= 0 && sourceIndex < recording.samples.length) {
-      raw[index] = recording.samples[sourceIndex];
-    }
-  }
-
-  const compensated = new Float32Array(length);
-  // Positive compensation advances captured samples toward the reference.
-  for (let index = 0; index < length; index++) {
-    const sourceIndex = index + compensationSamples;
-    if (sourceIndex >= 0 && sourceIndex < raw.length) {
-      compensated[index] = raw[sourceIndex];
-    }
-  }
+  const raw = shiftSamples({
+    input: recording.samples,
+    length,
+    offset: playbackStartIndex - preRoll,
+  });
+  const compensated = shiftSamples({
+    input: raw,
+    length,
+    offset: compensationSamples,
+  });
   return { reference, raw, compensated };
+}
+
+/** Copies samples with an integer offset, leaving unavailable output as zero. */
+function shiftSamples({
+  input,
+  length,
+  offset,
+}: {
+  input: Float32Array;
+  length: number;
+  offset: number;
+}) {
+  const output = new Float32Array(length);
+  const sourceStart = Math.max(0, offset);
+  const outputStart = Math.max(0, -offset);
+  const copyLength = Math.min(
+    input.length - sourceStart,
+    output.length - outputStart,
+  );
+  if (copyLength > 0) {
+    output.set(
+      input.subarray(sourceStart, sourceStart + copyLength),
+      outputStart,
+    );
+  }
+  return output;
 }
