@@ -351,7 +351,7 @@ function Results({
   const offsetsMs = offsets.map(
     (offset) => (offset * 1000) / result.sampleRate,
   );
-  const medianSamples = median(offsets);
+  const medianSamples = calculateMedian(offsets);
   const medianMs = (medianSamples * 1000) / result.sampleRate;
   const spreadMs = Math.max(...offsetsMs) - Math.min(...offsetsMs);
   const weakCount = result.measurements.filter(
@@ -757,7 +757,7 @@ function SignalMark() {
   );
 }
 
-function median(values: number[]) {
+function calculateMedian(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2
