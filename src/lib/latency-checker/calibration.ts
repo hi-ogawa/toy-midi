@@ -1,12 +1,9 @@
+import type { CaptureChunk } from "./capture-worklet.ts";
+
 // Search slightly before the scheduled frame for clock rounding and far enough
 // after it to cover the expected hardware and driver latency.
 const SEARCH_BEFORE = 0.05;
 const SEARCH_AFTER = 0.32;
-
-export type CaptureChunk = {
-  frameStart: number;
-  samples: Float32Array;
-};
 
 export type LatencyMeasurement = {
   detectedFrame: number;

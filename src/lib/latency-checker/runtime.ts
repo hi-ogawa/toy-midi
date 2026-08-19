@@ -2,12 +2,12 @@ import { dbToGain } from "../music.ts";
 import {
   analyzeCalibration,
   type CalibrationResult,
-  type CaptureChunk,
   createCalibrationPlayback,
   createClickTemplate,
   createPlaybackBuffers,
 } from "./calibration.ts";
 import {
+  type CaptureChunk,
   CaptureWorkletClient,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
