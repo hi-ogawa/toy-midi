@@ -137,15 +137,9 @@ export function LatencyChecker() {
     : startMonitoringMutation.isPending
       ? { message: "Starting input monitoring...", state: "busy" }
       : undefined;
-  const calibrationStatus: Status | undefined = calibrationMutation.error
+  const calibrationError: Status | undefined = calibrationMutation.error
     ? { message: calibrationMutation.error.message, state: "error" }
-    : calibrationMutation.isPending
-      ? {
-          message:
-            "Recording 7 clicks. Keep the loopback connection unchanged...",
-          state: "busy",
-        }
-      : undefined;
+    : undefined;
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
@@ -330,11 +324,15 @@ export function LatencyChecker() {
                 disabled={!isMonitoring || calibrationMutation.isPending}
                 onClick={() => calibrationMutation.mutate()}
               >
-                {result ? "Run again" : "Run 7-click test"}
+                {calibrationMutation.isPending
+                  ? "Recording 7 clicks..."
+                  : result
+                    ? "Run again"
+                    : "Run 7-click test"}
               </ActionButton>
             </div>
-            {isMonitoring && calibrationStatus && (
-              <StatusMessage status={calibrationStatus} />
+            {isMonitoring && calibrationError && (
+              <StatusMessage status={calibrationError} />
             )}
           </WorkflowSection>
 
