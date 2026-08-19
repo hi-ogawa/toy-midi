@@ -1,8 +1,9 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-export type LatencyMeasurement = {
-  offsetSamples: number;
-  score: number;
+export type CalibrationPlayback = {
+  clickOffsets: number[];
+  samples: Float32Array;
+  startFrame: number;
 };
 
 export type CalibrationAnalysis = {
@@ -10,10 +11,9 @@ export type CalibrationAnalysis = {
   recording: Float32Array;
 };
 
-export type CalibrationPlayback = {
-  clickOffsets: number[];
-  samples: Float32Array;
-  startFrame: number;
+export type LatencyMeasurement = {
+  offsetSamples: number;
+  score: number;
 };
 
 export type CalibrationResult = {
