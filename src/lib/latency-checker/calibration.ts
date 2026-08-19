@@ -1,8 +1,6 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-// Search slightly before the scheduled frame for clock rounding and far enough
-// after it to cover the expected hardware and driver latency.
-const SEARCH_BEFORE = 0.05;
+// Search forward far enough to cover expected hardware and driver latency.
 const SEARCH_AFTER = 0.32;
 
 export type LatencyMeasurement = {
@@ -122,7 +120,7 @@ export function analyzeCalibration({
   const measurements = expectedFrames.map((expectedFrame) =>
     findTemplate({
       recorded: assembled.samples,
-      minFrame: assembled.minFrame,
+      recordingStartFrame: assembled.startFrame,
       expectedFrame,
       template,
       sampleRate,
@@ -130,7 +128,7 @@ export function analyzeCalibration({
   );
   return {
     measurements,
-    playbackStartIndex: playbackStartFrame - assembled.minFrame,
+    playbackStartIndex: playbackStartFrame - assembled.startFrame,
     recorded: assembled.samples,
   };
 }
@@ -139,23 +137,23 @@ export function analyzeCalibration({
  * Assembles AudioWorklet render chunks into one contiguous sample array.
  *
  * Missing frame ranges remain zero-filled. If chunks overlap, later entries in
- * the input replace earlier samples. `minFrame` maps output index zero back to
- * the absolute AudioContext frame coordinate.
+ * the input replace earlier samples. `startFrame` is the absolute AudioContext
+ * frame represented by output index zero.
  */
 function assembleChunks(chunks: CaptureChunk[]) {
   if (chunks.length === 0) {
     throw new Error("No PCM arrived from the selected input.");
   }
-  const minFrame = Math.min(...chunks.map((chunk) => chunk.frameStart));
+  const startFrame = Math.min(...chunks.map((chunk) => chunk.frameStart));
   const maxFrame = Math.max(
     ...chunks.map((chunk) => chunk.frameStart + chunk.samples.length),
   );
-  const samples = new Float32Array(maxFrame - minFrame);
+  const samples = new Float32Array(maxFrame - startFrame);
   // Gaps stay zero-filled; later chunks replace overlapping samples.
   for (const chunk of chunks) {
-    samples.set(chunk.samples, chunk.frameStart - minFrame);
+    samples.set(chunk.samples, chunk.frameStart - startFrame);
   }
-  return { minFrame, samples };
+  return { samples, startFrame };
 }
 
 /**
@@ -169,25 +167,22 @@ function assembleChunks(chunks: CaptureChunk[]) {
  */
 function findTemplate({
   recorded,
-  minFrame,
+  recordingStartFrame,
   expectedFrame,
   template,
   sampleRate,
 }: {
   recorded: Float32Array;
-  minFrame: number;
+  recordingStartFrame: number;
   expectedFrame: number;
   template: Float32Array;
   sampleRate: number;
 }): LatencyMeasurement {
   // Translate absolute frames into recording indices and require full windows.
-  const searchStart = Math.max(
-    0,
-    Math.round(expectedFrame - SEARCH_BEFORE * sampleRate - minFrame),
-  );
+  const searchStart = Math.max(0, expectedFrame - recordingStartFrame);
   const searchEnd = Math.min(
     recorded.length - template.length,
-    Math.round(expectedFrame + SEARCH_AFTER * sampleRate - minFrame),
+    Math.round(expectedFrame + SEARCH_AFTER * sampleRate - recordingStartFrame),
   );
   let templateEnergy = 0;
   for (const value of template) {
@@ -213,7 +208,7 @@ function findTemplate({
       bestIndex = start;
     }
   }
-  const detectedFrame = minFrame + bestIndex;
+  const detectedFrame = recordingStartFrame + bestIndex;
   return {
     detectedFrame,
     offsetSamples: detectedFrame - expectedFrame,
