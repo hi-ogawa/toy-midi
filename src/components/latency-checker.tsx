@@ -60,7 +60,10 @@ export function LatencyChecker() {
   }, [refreshInputsMutation.mutate]);
 
   const grantAccessMutation = useMutation({
-    mutationFn: () => runtime.requestAccess(),
+    mutationFn: async () => {
+      await runtime.requestAccess();
+      return runtime.getInputs();
+    },
     onSuccess: updateDevices,
   });
 

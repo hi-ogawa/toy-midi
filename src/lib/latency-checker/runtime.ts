@@ -41,15 +41,9 @@ export class LatencyCheckerRuntime {
   #detectedChannelCount = 0;
 
   async requestAccess() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error(
-        "This browser does not expose getUserMedia in the current context. Use HTTPS or localhost.",
-      );
-    }
     const stream =
       await navigator.mediaDevices.getUserMedia(captureConstraints());
     stream.getTracks().forEach((track) => track.stop());
-    return this.getInputs();
   }
 
   async getInputs() {
