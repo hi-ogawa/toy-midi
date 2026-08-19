@@ -66,14 +66,6 @@ export function LatencyChecker() {
 
   useEffect(() => {
     const mediaDevices = navigator.mediaDevices;
-    if (!mediaDevices) {
-      setStatus({
-        message:
-          "MediaDevices is unavailable. Open this page over HTTPS or localhost in a modern browser.",
-        state: "error",
-      });
-      return;
-    }
     const refresh = () => refreshInputsMutation.mutate();
     mediaDevices.addEventListener("devicechange", refresh);
     return () => mediaDevices.removeEventListener("devicechange", refresh);
