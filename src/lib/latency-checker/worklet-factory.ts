@@ -69,18 +69,17 @@ function createCaptureProcessor() {
           this.meterPeak = 0;
         }
 
-        if (!this.active) {
-          return true;
+        if (this.active) {
+          const copy = new Float32Array(selected);
+          this.postMessage(
+            {
+              type: "samples",
+              frameStart: currentFrame,
+              samples: copy,
+            },
+            [copy.buffer],
+          );
         }
-        const copy = new Float32Array(selected);
-        this.postMessage(
-          {
-            type: "samples",
-            frameStart: currentFrame,
-            samples: copy,
-          },
-          [copy.buffer],
-        );
       }
       return true;
     }
