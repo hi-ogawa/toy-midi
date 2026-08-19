@@ -153,7 +153,6 @@ export function LatencyChecker() {
   function toggleRoute() {
     if (routeOpen) {
       stopMonitoring();
-      setStatus({ message: "Input monitoring stopped.", state: "idle" });
     } else {
       setInputPeak(0);
       openRouteMutation.mutate();
