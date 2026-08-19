@@ -23,7 +23,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: "latency-checker.spec.ts",
+      testIgnore: "fake-audio/**/*.test.ts",
       use: {
         ...devices["Desktop Chrome"],
         channel: "chromium",
@@ -34,7 +34,7 @@ export default defineConfig({
     },
     {
       name: "chromium-fake-audio",
-      testMatch: "latency-checker.spec.ts",
+      testMatch: "fake-audio/**/*.test.ts",
       use: {
         ...devices["Desktop Chrome"],
         channel: "chromium",
