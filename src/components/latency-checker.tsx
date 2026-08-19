@@ -297,7 +297,7 @@ export function LatencyChecker() {
           <WorkflowSection
             number={2}
             title="Measure latency"
-            description="Set a safe click level and record seven samples through the monitored input."
+            description="Set a safe click level and record seven click samples through the monitored input."
             state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
@@ -322,15 +322,16 @@ export function LatencyChecker() {
                 </div>
               </Field>
               <ActionButton
+                className="min-w-30"
                 accent
                 disabled={!isMonitoring || calibrationMutation.isPending}
                 onClick={() => calibrationMutation.mutate()}
               >
                 {calibrationMutation.isPending
-                  ? "Recording 7 clicks..."
+                  ? "Recording..."
                   : result
                     ? "Run again"
-                    : "Run 7-click test"}
+                    : "Start test"}
               </ActionButton>
             </div>
             {isMonitoring && calibrationMutation.error && (
