@@ -51,11 +51,11 @@ export function LatencyChecker() {
   });
 
   useEffect(() => {
-    const mediaDevices = navigator.mediaDevices;
     const refresh = () => refreshInputsMutation.mutate();
     refresh();
-    mediaDevices.addEventListener("devicechange", refresh);
-    return () => mediaDevices.removeEventListener("devicechange", refresh);
+    navigator.mediaDevices.addEventListener("devicechange", refresh);
+    return () =>
+      navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
 
   const grantAccessMutation = useMutation({
