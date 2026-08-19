@@ -29,7 +29,6 @@ export function LatencyChecker() {
   const [channel, setChannel] = useState(0);
   const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
-  const [isMonitoring, setIsMonitoring] = useState(false);
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
@@ -72,11 +71,8 @@ export function LatencyChecker() {
   const startMonitoringMutation = useMutation({
     mutationFn: (deviceId: string) =>
       runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
-    onSuccess: () => {
-      setChannel(0);
-      setIsMonitoring(true);
-    },
   });
+  const isMonitoring = startMonitoringMutation.isSuccess;
 
   const calibrationMutation = useMutation({
     mutationFn: () => runtime.calibrate({ channel, outputLevel }),
@@ -87,7 +83,6 @@ export function LatencyChecker() {
     runtime.stopMonitoring();
     setChannel(0);
     setInputPeak(0);
-    setIsMonitoring(false);
     startMonitoringMutation.reset();
     calibrationMutation.reset();
   }
