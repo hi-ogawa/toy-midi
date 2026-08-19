@@ -202,7 +202,7 @@ export class LatencyCheckerRuntime {
     variant: PreviewVariant;
   }) {
     const context = await this.#ensureAudioContext();
-    this.#stopPreview();
+    this.stopPreview();
     const compensationSamples = Math.round(
       (compensationMs * result.sampleRate) / 1000,
     );
@@ -245,14 +245,14 @@ export class LatencyCheckerRuntime {
   }
 
   dispose() {
-    this.#stopPreview();
+    this.stopPreview();
     this.stopMonitoring();
     this.#audioContext?.close();
     this.#audioContext = undefined;
     this.#workletReady = false;
   }
 
-  #stopPreview() {
+  stopPreview() {
     for (const source of this.#activePreviewSources) {
       try {
         source.stop();

@@ -366,6 +366,14 @@ function Results({
     ? previewMutation.variables
     : undefined;
 
+  function togglePreview(variant: PreviewVariant) {
+    if (playingVariant === variant) {
+      runtime.stopPreview();
+    } else {
+      previewMutation.mutate(variant);
+    }
+  }
+
   return (
     <>
       {weakCount > 0 && (
@@ -426,17 +434,19 @@ function Results({
           <div className="grid gap-2">
             <ActionButton
               accent={playingVariant === "raw"}
-              onClick={() => previewMutation.mutate("raw")}
+              onClick={() => togglePreview("raw")}
             >
-              {playingVariant === "raw" ? "Playing raw..." : "Raw + reference"}
+              {playingVariant === "raw"
+                ? "Stop raw playback"
+                : "Play raw comparison"}
             </ActionButton>
             <ActionButton
               accent={playingVariant === "compensated"}
-              onClick={() => previewMutation.mutate("compensated")}
+              onClick={() => togglePreview("compensated")}
             >
               {playingVariant === "compensated"
-                ? "Playing compensated..."
-                : "Compensated + reference"}
+                ? "Stop compensated playback"
+                : "Play compensated comparison"}
             </ActionButton>
           </div>
           {previewMutation.error && (
