@@ -137,7 +137,7 @@ export function LatencyChecker() {
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-8 py-10">
-        <div className="mb-8 flex items-end justify-between gap-8">
+        <div className="mb-8">
           <div>
             <h1 className="text-4xl font-semibold tracking-[-0.045em]">
               Measure audio latency
@@ -147,7 +147,6 @@ export function LatencyChecker() {
               that input, then measure and audition the recording offset.
             </p>
           </div>
-          <SignalMark />
         </div>
 
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
@@ -625,23 +624,6 @@ function ErrorMessage({ children }: { children: ReactNode }) {
     <p className="mt-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
       {children}
     </p>
-  );
-}
-
-function SignalMark() {
-  return (
-    <div
-      aria-hidden="true"
-      className="flex h-14 w-28 items-center justify-center gap-1 border-b border-neutral-900"
-    >
-      {[8, 18, 34, 52, 34, 18, 8].map((height, index) => (
-        <i
-          key={index}
-          className="block w-[3px] rounded-sm bg-orange-700"
-          style={{ height }}
-        />
-      ))}
-    </div>
   );
 }
 
