@@ -2,7 +2,7 @@ import {
   CircleHelpIcon,
   ExternalLinkIcon,
   FileMusicIcon,
-  FolderIcon,
+  HouseIcon,
   MoreVerticalIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
@@ -169,12 +169,9 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a
-                    href={routes.home.href()}
-                    data-testid="all-projects-menu-item"
-                  >
-                    <FolderIcon />
-                    All Projects
+                  <a href={routes.home.href()} data-testid="home-menu-item">
+                    <HouseIcon />
+                    Home
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem

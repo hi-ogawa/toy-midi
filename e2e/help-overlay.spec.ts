@@ -61,11 +61,9 @@ test.describe("Help Overlay", () => {
     await expect(page.getByTestId("help-overlay")).not.toBeVisible();
   });
 
-  test("returns to all projects from the application menu", async ({
-    page,
-  }) => {
+  test("navigates home from the application menu", async ({ page }) => {
     await page.getByTestId("app-menu-button").click();
-    await page.getByTestId("all-projects-menu-item").click();
+    await page.getByTestId("home-menu-item").click();
 
     await expect(page).toHaveURL("/");
     await expect(page.getByTestId("startup-screen")).toBeVisible();

@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronsUpDownIcon,
-  FolderIcon,
   FolderOpenIcon,
+  HouseIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -292,9 +292,9 @@ export function ScoreViewer({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
-              <a href={routes.home.href()} data-testid="all-projects-menu-item">
-                <FolderIcon />
-                All Projects
+              <a href={routes.home.href()} data-testid="home-menu-item">
+                <HouseIcon />
+                Home
               </a>
             </DropdownMenuItem>
           </DropdownMenuContent>
