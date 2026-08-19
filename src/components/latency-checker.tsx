@@ -203,7 +203,7 @@ export function LatencyChecker() {
               </Field>
               <ActionButton
                 accent={inputsInitialized && !hasAccess}
-                className="min-w-40"
+                className="min-w-35"
                 disabled={
                   !inputsInitialized ||
                   refreshInputsMutation.isPending ||
@@ -264,7 +264,7 @@ export function LatencyChecker() {
                 </select>
               </Field>
               <ActionButton
-                className="min-w-44"
+                className="min-w-35"
                 disabled={
                   !hasAccess ||
                   startMonitoringMutation.isPending ||
