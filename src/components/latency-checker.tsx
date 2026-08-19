@@ -1,10 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-  ArrowRightIcon,
-  AudioLinesIcon,
-  FolderIcon,
-  MoreVerticalIcon,
-} from "lucide-react";
+import { AudioLinesIcon, FolderIcon, MoreVerticalIcon } from "lucide-react";
 import {
   type ComponentProps,
   type ReactNode,
@@ -101,6 +96,7 @@ export function LatencyChecker() {
   });
   const result = calibrationMutation.data;
   const resultStatus = result ? getResultStatus(result) : undefined;
+  const hasAccess = devices.length > 0;
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -179,138 +175,194 @@ export function LatencyChecker() {
       <div className="mx-auto w-full max-w-5xl px-8 py-10">
         <div className="mb-8 flex items-end justify-between gap-8">
           <div>
-            <h1 className="text-5xl font-semibold tracking-[-0.045em]">
-              Audio latency lab
+            <h1 className="text-4xl font-semibold tracking-[-0.045em]">
+              Measure audio latency
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
-              Measure browser recording offset through a physical or PipeWire
-              loop, inspect every detected onset, then hear the same capture
-              before and after compensation.
+              Choose an input, keep its browser route open while you patch the
+              loop, then measure and audition the recording offset.
             </p>
           </div>
           <SignalMark />
         </div>
 
-        <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)] items-start gap-5">
-          <Card title="1. Make the loop">
-            <div
-              aria-label="Signal route"
-              className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 font-mono text-xs"
-            >
-              <RouteNode>Default output</RouteNode>
-              <ArrowRightIcon className="size-4 text-orange-700" />
-              <RouteNode>Cable or PipeWire</RouteNode>
-              <ArrowRightIcon className="size-4 text-orange-700" />
-              <RouteNode>Selected input</RouteNode>
-            </div>
-            <p className="mt-5 text-sm leading-6 text-neutral-600">
-              For a physical test, prefer line output to line input and begin at
-              low levels. Mute speakers. A PipeWire virtual connection measures
-              the software route without DAC/ADC conversion.
-            </p>
-          </Card>
-
-          <Card title="2. Configure capture" className="space-y-5">
-            <Field label="Browser audio input">
-              <select
-                value={deviceId}
-                disabled={devices.length === 0 || busy}
-                onChange={(event) => setDeviceId(event.currentTarget.value)}
-                className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:opacity-50"
-              >
-                {devices.length === 0 ? (
-                  <option>Grant microphone access first</option>
-                ) : (
-                  devices.map((device, index) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {device.label || `Audio input ${index + 1}`}
-                    </option>
-                  ))
-                )}
-              </select>
-            </Field>
-
-            <Field label="Channel carried by the loop">
-              <select
-                value={channel}
-                disabled={busy || !routeOpen}
-                onChange={(event) => {
-                  const value = Number(event.currentTarget.value);
-                  setChannel(value);
-                  runtime.setChannel(value);
-                }}
-                className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:opacity-50"
-              >
-                {openRouteMutation.data ? (
-                  Array.from({ length: openRouteMutation.data }, (_, index) => (
-                    <option key={index} value={index}>
-                      Channel {index + 1}
-                    </option>
-                  ))
-                ) : (
-                  <option>Open route first</option>
-                )}
-              </select>
-            </Field>
-
-            <Field label="Calibration click level">
-              <div className="grid grid-cols-[1fr_68px] items-center gap-3">
-                <input
-                  aria-label="Calibration click level"
-                  type="range"
-                  min={-42}
-                  max={-6}
-                  step={1}
-                  value={outputLevel}
-                  disabled={busy}
-                  onChange={(event) =>
-                    setOutputLevel(Number(event.currentTarget.value))
-                  }
-                  className="accent-emerald-700"
-                />
-                <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
-                  {outputLevel} dB
-                </output>
-              </div>
-            </Field>
-
-            <div className="flex gap-2">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
+          <WorkflowSection
+            number={1}
+            title="Input"
+            description="Grant browser access and choose the capture device."
+            state={hasAccess ? "complete" : "active"}
+            status={hasAccess ? "Complete" : "Start here"}
+          >
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <Field label="Browser audio input">
+                <select
+                  value={deviceId}
+                  disabled={!hasAccess || busy || routeOpen}
+                  onChange={(event) => setDeviceId(event.currentTarget.value)}
+                  className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
+                >
+                  {!hasAccess ? (
+                    <option>Grant access to list audio inputs</option>
+                  ) : (
+                    devices.map((device, index) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Audio input ${index + 1}`}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </Field>
               <ActionButton
-                disabled={busy}
+                accent={!hasAccess}
+                disabled={busy || routeOpen}
                 onClick={() => grantAccessMutation.mutate()}
               >
-                Grant access
+                {hasAccess ? "Refresh inputs" : "Grant access"}
               </ActionButton>
-              <ActionButton
-                disabled={busy || devices.length === 0}
-                onClick={toggleRoute}
-              >
+            </div>
+            {routeOpen && (
+              <p className="mt-3 text-xs font-medium text-emerald-800">
+                Input selection is locked while the route is open.
+              </p>
+            )}
+            {!hasAccess && <StatusMessage status={displayedStatus} />}
+          </WorkflowSection>
+
+          <WorkflowSection
+            number={2}
+            title="Route and patching"
+            description="Open the browser nodes, select the detected input channel, then make the external loop."
+            state={!hasAccess ? "disabled" : result ? "complete" : "active"}
+            status={
+              !hasAccess
+                ? "Requires input"
+                : result
+                  ? "Complete"
+                  : routeOpen
+                    ? "In progress"
+                    : "Open route"
+            }
+          >
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+              <Field label="Channel carrying the loop">
+                <select
+                  value={channel}
+                  disabled={busy || !routeOpen}
+                  onChange={(event) => {
+                    const value = Number(event.currentTarget.value);
+                    setChannel(value);
+                    runtime.setChannel(value);
+                  }}
+                  className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
+                >
+                  {openRouteMutation.data ? (
+                    Array.from(
+                      { length: openRouteMutation.data },
+                      (_, index) => (
+                        <option key={index} value={index}>
+                          Channel {index + 1} of {openRouteMutation.data}
+                        </option>
+                      ),
+                    )
+                  ) : (
+                    <option>Available after opening route</option>
+                  )}
+                </select>
+              </Field>
+              <ActionButton disabled={busy || !hasAccess} onClick={toggleRoute}>
                 {routeOpen ? "Close route" : "Open route"}
               </ActionButton>
+            </div>
+            <p className="mt-3 border-l-[3px] border-orange-600 pl-3 text-xs leading-5 text-neutral-600">
+              {routeOpen
+                ? "Route open. Patch browser output to the selected input, mute speakers, and keep the route unchanged through measurement."
+                : "After opening the route, patch browser output to the selected input. For a physical loop, mute speakers first."}
+            </p>
+            {hasAccess &&
+              !routeOpen &&
+              (openRouteMutation.isPending || openRouteMutation.error) && (
+                <StatusMessage status={displayedStatus} />
+              )}
+          </WorkflowSection>
+
+          <WorkflowSection
+            number={3}
+            title="Measurement"
+            description="Set a safe click level and record seven samples through the open route."
+            state={!routeOpen ? "disabled" : result ? "complete" : "active"}
+            status={
+              !routeOpen ? "Requires open route" : result ? "Complete" : "Ready"
+            }
+          >
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
+              <Field label="Calibration click level">
+                <div className="grid grid-cols-[1fr_68px] items-center gap-3">
+                  <input
+                    aria-label="Calibration click level"
+                    type="range"
+                    min={-42}
+                    max={-6}
+                    step={1}
+                    value={outputLevel}
+                    disabled={busy || !routeOpen}
+                    onChange={(event) =>
+                      setOutputLevel(Number(event.currentTarget.value))
+                    }
+                    className="accent-emerald-700 disabled:opacity-50"
+                  />
+                  <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+                    {outputLevel} dB
+                  </output>
+                </div>
+              </Field>
               <ActionButton
                 accent
                 disabled={busy || !routeOpen}
                 onClick={() => calibrationMutation.mutate()}
               >
-                Run 7-click test
+                {result ? "Run again" : "Run 7-click test"}
               </ActionButton>
             </div>
-            <StatusMessage status={displayedStatus} />
-          </Card>
+            {routeOpen &&
+              (calibrationMutation.isPending ||
+                calibrationMutation.error ||
+                result) && <StatusMessage status={displayedStatus} />}
+          </WorkflowSection>
 
-          {result && (
-            <Results
-              key={result.expectedFrames[0]}
-              result={result}
-              onPlay={({ compensationMs, variant }) =>
-                previewMutation.mutate({
-                  compensationMs,
-                  result,
-                  variant,
-                })
-              }
-            />
-          )}
+          <WorkflowSection
+            number={4}
+            title="Results and audition"
+            description="Inspect the measured offset, adjust compensation, and compare playback."
+            state={result ? "active" : "disabled"}
+            status={result ? "Result ready" : "After measurement"}
+          >
+            {result ? (
+              <>
+                <Results
+                  key={result.expectedFrames[0]}
+                  result={result}
+                  onPlay={({ compensationMs, variant }) =>
+                    previewMutation.mutate({
+                      compensationMs,
+                      result,
+                      variant,
+                    })
+                  }
+                />
+                {previewMutation.error && (
+                  <StatusMessage
+                    status={{
+                      message: previewMutation.error.message,
+                      state: "error",
+                    }}
+                  />
+                )}
+              </>
+            ) : (
+              <ResultPlaceholder />
+            )}
+          </WorkflowSection>
         </div>
 
         <footer className="mt-6 text-center text-xs leading-5 text-neutral-500">
@@ -347,7 +399,7 @@ function Results({
   );
 
   return (
-    <Card title="3. Inspect and audition" className="col-span-2">
+    <>
       <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
         <Metric
           label="Median offset"
@@ -448,7 +500,23 @@ function Results({
           </div>
         </div>
       </div>
-    </Card>
+    </>
+  );
+}
+
+function ResultPlaceholder() {
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
+        <Metric label="Median offset" value="—" />
+        <Metric label="Median samples" value="—" />
+        <Metric label="Measurement spread" value="—" />
+        <Metric label="Audio format" value="—" />
+      </div>
+      <p className="mt-3 text-xs text-neutral-500">
+        Run the 7-click test to fill these fields.
+      </p>
+    </>
   );
 }
 
@@ -558,24 +626,60 @@ function TimelineMarker({
   );
 }
 
-function Card({
+function WorkflowSection({
+  number,
   title,
-  className,
+  description,
+  state,
+  status,
   children,
 }: {
+  number: number;
   title: string;
-  className?: string;
+  description: string;
+  state: "active" | "complete" | "disabled";
+  status: string;
   children: ReactNode;
 }) {
   return (
     <section
       className={cn(
-        "rounded-xl border border-neutral-200 bg-white p-6 shadow-[0_16px_45px_rgb(34_48_41/0.08)]",
-        className,
+        "grid min-h-40 grid-cols-[210px_minmax(0,1fr)] border-t border-neutral-200 first:border-t-0",
+        state === "disabled" && "bg-neutral-50 text-neutral-400",
       )}
     >
-      <SectionTitle>{title}</SectionTitle>
-      {children}
+      <div className="border-r border-neutral-200 p-6">
+        <div
+          className={cn(
+            "flex items-center gap-2 text-xs font-semibold",
+            state === "disabled" ? "text-neutral-400" : "text-neutral-600",
+          )}
+        >
+          <span
+            className={cn(
+              "grid size-6 place-items-center rounded-full font-mono text-[11px]",
+              state === "disabled"
+                ? "bg-neutral-200 text-neutral-500"
+                : "bg-emerald-700 text-white",
+            )}
+          >
+            {number}
+          </span>
+          {status}
+        </div>
+        <h2
+          className={cn(
+            "mt-3 text-xl font-semibold tracking-[-0.025em]",
+            state === "disabled" ? "text-neutral-500" : "text-neutral-950",
+          )}
+        >
+          {title}
+        </h2>
+        <p className="mt-2 text-xs leading-5 text-neutral-500">{description}</p>
+      </div>
+      <div className={cn("p-7", state === "disabled" && "opacity-60")}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -585,14 +689,6 @@ function SectionTitle({ children }: { children: ReactNode }) {
     <h2 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
       {children}
     </h2>
-  );
-}
-
-function RouteNode({ children }: { children: ReactNode }) {
-  return (
-    <span className="grid min-h-16 place-items-center rounded-lg border border-neutral-200 bg-neutral-50 p-2 text-center leading-4">
-      {children}
-    </span>
   );
 }
 
