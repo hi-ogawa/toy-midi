@@ -46,6 +46,14 @@ export function LatencyChecker() {
     });
   }
 
+  const grantAccessMutation = useMutation({
+    mutationFn: async () => {
+      await runtime.requestAccess();
+      return runtime.getInputs();
+    },
+    onSuccess: updateDevices,
+  });
+
   const refreshInputsMutation = useMutation({
     mutationFn: () => runtime.getInputs(),
     onSuccess: updateDevices,
@@ -58,14 +66,6 @@ export function LatencyChecker() {
     return () =>
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
-
-  const grantAccessMutation = useMutation({
-    mutationFn: async () => {
-      await runtime.requestAccess();
-      return runtime.getInputs();
-    },
-    onSuccess: updateDevices,
-  });
 
   const startMonitoringMutation = useMutation({
     mutationFn: () =>
