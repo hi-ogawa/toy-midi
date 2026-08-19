@@ -9,11 +9,9 @@ import {
   createPlaybackBuffers,
 } from "./calibration.ts";
 import {
-  type CaptureMessage,
-  CAPTURE_PROCESSOR_NAME,
+  CaptureWorkletClient,
   createCaptureWorkletSource,
-  type WorkletControlMessage,
-} from "./worklet-factory.ts";
+} from "./capture-worklet.ts";
 
 const CALIBRATION_TIMING: CalibrationTiming = {
   clickCount: 7,
@@ -35,20 +33,13 @@ export class LatencyCheckerRuntime {
   #workletReady = false;
   #activeStream?: MediaStream;
   #activeSource?: MediaStreamAudioSourceNode;
-  #activeRecorder?: AudioWorkletNode;
+  #captureWorklet?: CaptureWorkletClient;
   #activeSilentGain?: GainNode;
   #activeSettings?: MediaTrackSettings;
   #activePreviewSources: AudioBufferSourceNode[] = [];
   #finishPreview?: () => void;
   #captureChunks?: CaptureChunk[];
-  #captureActive = false;
   #detectedChannelCount = 0;
-  #pendingActiveChange?: {
-    reject: (error: Error) => void;
-    resolve: () => void;
-    timeout: number;
-    value: boolean;
-  };
 
   async requestAccess() {
     const stream =
@@ -75,55 +66,50 @@ export class LatencyCheckerRuntime {
     );
     this.#activeSettings = this.#activeStream.getAudioTracks()[0].getSettings();
     this.#activeSource = context.createMediaStreamSource(this.#activeStream);
-    const recorder = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      outputChannelCount: [1],
-    });
-    this.#activeRecorder = recorder;
     this.#detectedChannelCount = 0;
     // Monitoring is ready only after the processor observes a real input
     // quantum. Bound the wait because a silent or disconnected route may never
     // produce one, even when getUserMedia succeeds.
+    let resolveChannelCount: (value: number) => void;
+    let rejectChannelCount: (error: Error) => void;
     const channelCount = new Promise<number>((resolve, reject) => {
-      const timeout = window.setTimeout(
-        () =>
-          reject(new Error("No audio channels were detected from this input.")),
-        3_000,
-      );
-      recorder.port.onmessage = (event: MessageEvent<CaptureMessage>) => {
+      resolveChannelCount = resolve;
+      rejectChannelCount = reject;
+    });
+    const captureWorklet = new CaptureWorkletClient({
+      context,
+      onNotification: (message) => {
         // Sample messages arrive continuously only while calibration capture is
         // active; meter and channel discovery remain active while monitoring.
-        if (event.data.type === "samples" && this.#captureChunks) {
-          this.#captureChunks.push(event.data);
+        if (message.type === "samples" && this.#captureChunks) {
+          this.#captureChunks.push(message);
         }
-        if (event.data.type === "channels") {
-          this.#detectedChannelCount = event.data.value;
-          if (event.data.value > 0) {
-            window.clearTimeout(timeout);
-            resolve(event.data.value);
+        if (message.type === "channels") {
+          this.#detectedChannelCount = message.value;
+          if (message.value > 0) {
+            window.clearTimeout(channelTimeout);
+            resolveChannelCount(message.value);
           }
         }
-        if (event.data.type === "level") {
-          onLevel(event.data.peak);
+        if (message.type === "level") {
+          onLevel(message.peak);
         }
-        if (
-          event.data.type === "activeChanged" &&
-          event.data.value === this.#pendingActiveChange?.value
-        ) {
-          window.clearTimeout(this.#pendingActiveChange.timeout);
-          this.#captureActive = event.data.value;
-          this.#pendingActiveChange.resolve();
-          this.#pendingActiveChange = undefined;
-        }
-      };
+      },
     });
+    this.#captureWorklet = captureWorklet;
+    const channelTimeout = window.setTimeout(
+      () =>
+        rejectChannelCount(
+          new Error("No audio channels were detected from this input."),
+        ),
+      3_000,
+    );
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
     // through zero gain to keep processing without audible input passthrough.
     this.#activeSource
-      .connect(this.#activeRecorder)
+      .connect(captureWorklet.node)
       .connect(this.#activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
@@ -131,28 +117,21 @@ export class LatencyCheckerRuntime {
   }
 
   stopMonitoring() {
-    this.#postControl({ type: "active", value: false });
-    this.#pendingActiveChange?.reject(
-      new Error("Input monitoring stopped during a capture state change."),
-    );
-    window.clearTimeout(this.#pendingActiveChange?.timeout);
-    this.#pendingActiveChange = undefined;
     this.#activeSource?.disconnect();
-    this.#activeRecorder?.disconnect();
+    this.#captureWorklet?.dispose();
     this.#activeSilentGain?.disconnect();
     this.#activeStream?.getTracks().forEach((track) => track.stop());
     this.#activeStream = undefined;
     this.#activeSource = undefined;
-    this.#activeRecorder = undefined;
+    this.#captureWorklet = undefined;
     this.#activeSilentGain = undefined;
     this.#activeSettings = undefined;
     this.#captureChunks = undefined;
-    this.#captureActive = false;
     this.#detectedChannelCount = 0;
   }
 
   setChannel(channel: number) {
-    this.#postControl({ type: "channel", value: channel });
+    this.#captureWorklet?.setChannel(channel);
   }
 
   async calibrate({
@@ -163,7 +142,7 @@ export class LatencyCheckerRuntime {
     outputLevel: number;
   }) {
     if (
-      !this.#activeRecorder ||
+      !this.#captureWorklet ||
       !this.#activeStream ||
       !this.#activeSettings ||
       this.#detectedChannelCount <= 0
@@ -175,7 +154,7 @@ export class LatencyCheckerRuntime {
     const chunks: CaptureChunk[] = [];
     this.#captureChunks = chunks;
     try {
-      await this.#setCaptureActive(true);
+      await this.#captureWorklet.setActive(true);
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
       const clickBuffer = buildClickBuffer({ context, template, amplitude });
@@ -190,7 +169,7 @@ export class LatencyCheckerRuntime {
       });
       clickSource.start(startTime);
       await wait(schedule.durationSeconds * 1000);
-      await this.#setCaptureActive(false);
+      await this.#captureWorklet.setActive(false);
 
       const analysis = analyzeCalibration({
         chunks,
@@ -212,8 +191,8 @@ export class LatencyCheckerRuntime {
         settings: this.#activeSettings,
       } satisfies LatencyResult;
     } finally {
-      if (this.#activeRecorder && this.#captureActive) {
-        void this.#setCaptureActive(false).catch(() => {});
+      if (this.#captureWorklet?.active) {
+        void this.#captureWorklet.setActive(false).catch(() => {});
       }
       this.#captureChunks = undefined;
     }
@@ -285,30 +264,6 @@ export class LatencyCheckerRuntime {
     this.#activePreviewSources = [];
     this.#finishPreview?.();
     this.#finishPreview = undefined;
-  }
-
-  #postControl(message: WorkletControlMessage) {
-    // Keep the runtime-to-worklet protocol checked at every send site.
-    this.#activeRecorder?.port.postMessage(message);
-  }
-
-  #setCaptureActive(value: boolean) {
-    if (!this.#activeRecorder) {
-      return Promise.reject(new Error("Input monitoring is not active."));
-    }
-    if (this.#pendingActiveChange) {
-      return Promise.reject(
-        new Error("A capture state change is already pending."),
-      );
-    }
-    return new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => {
-        this.#pendingActiveChange = undefined;
-        reject(new Error("The audio capture state change timed out."));
-      }, 3_000);
-      this.#pendingActiveChange = { reject, resolve, timeout, value };
-      this.#postControl({ type: "active", value });
-    });
   }
 
   async #ensureAudioContext() {

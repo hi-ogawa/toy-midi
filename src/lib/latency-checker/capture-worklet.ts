@@ -1,7 +1,7 @@
-export const CAPTURE_PROCESSOR_NAME = "latency-capture";
+const CAPTURE_PROCESSOR_NAME = "latency-capture";
 
-export type CaptureMessage =
-  | { type: "activeChanged"; value: boolean }
+type CaptureMessage =
+  | { type: "activeChanged"; requestId: number; value: boolean }
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
   | { type: "samples"; frameStart: number; samples: Float32Array };
@@ -12,9 +12,86 @@ type WorkletProcessorConstructor = new () => { port: MessagePort };
 declare const AudioWorkletProcessor: WorkletProcessorConstructor;
 declare const currentFrame: number;
 
-export type WorkletControlMessage =
-  | { type: "active"; value: boolean }
+type WorkletControlMessage =
+  | { type: "active"; requestId: number; value: boolean }
   | { type: "channel"; value: number };
+
+type CaptureNotification = Exclude<CaptureMessage, { type: "activeChanged" }>;
+
+export class CaptureWorkletClient {
+  readonly node: AudioWorkletNode;
+  active = false;
+
+  #nextRequestId = 0;
+  #pendingActiveChanges = new Map<
+    number,
+    {
+      reject: (error: Error) => void;
+      resolve: () => void;
+      timeout: number;
+    }
+  >();
+
+  constructor({
+    context,
+    onNotification,
+  }: {
+    context: AudioContext;
+    onNotification: (message: CaptureNotification) => void;
+  }) {
+    this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+    });
+    this.node.port.onmessage = (event: MessageEvent<CaptureMessage>) => {
+      if (event.data.type !== "activeChanged") {
+        onNotification(event.data);
+        return;
+      }
+      const pending = this.#pendingActiveChanges.get(event.data.requestId);
+      if (!pending) {
+        return;
+      }
+      window.clearTimeout(pending.timeout);
+      this.active = event.data.value;
+      pending.resolve();
+      this.#pendingActiveChanges.delete(event.data.requestId);
+    };
+  }
+
+  setActive(value: boolean) {
+    const requestId = this.#nextRequestId++;
+    return new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        this.#pendingActiveChanges.delete(requestId);
+        reject(new Error("The audio capture state change timed out."));
+      }, 3_000);
+      this.#pendingActiveChanges.set(requestId, { reject, resolve, timeout });
+      this.#postMessage({ type: "active", requestId, value });
+    });
+  }
+
+  setChannel(value: number) {
+    this.#postMessage({ type: "channel", value });
+  }
+
+  dispose() {
+    const error = new Error(
+      "Input monitoring stopped during a capture state change.",
+    );
+    for (const pending of this.#pendingActiveChanges.values()) {
+      window.clearTimeout(pending.timeout);
+      pending.reject(error);
+    }
+    this.#pendingActiveChanges.clear();
+    this.node.disconnect();
+  }
+
+  #postMessage(message: WorkletControlMessage) {
+    this.node.port.postMessage(message);
+  }
+}
 
 export function createCaptureWorkletSource() {
   // The processor has no module imports once stringified, so the generated blob
@@ -32,7 +109,7 @@ function createCaptureProcessor() {
     declare lastChannelCount: number;
     declare meterBlockCount: number;
     declare meterPeak: number;
-    declare applyPendingActiveChange?: () => void;
+    declare pendingRenderActions: Array<() => void>;
 
     constructor() {
       super();
@@ -41,15 +118,16 @@ function createCaptureProcessor() {
       this.lastChannelCount = -1;
       this.meterBlockCount = 0;
       this.meterPeak = 0;
+      this.pendingRenderActions = [];
       this.port.onmessage = (event: MessageEvent<WorkletControlMessage>) => {
         if (event.data.type === "active") {
-          const value = event.data.value;
+          const { requestId, value } = event.data;
           // Construct the protocol action here so process() only owns when the
           // state transition becomes visible to the audio thread.
-          this.applyPendingActiveChange = () => {
+          this.pendingRenderActions.push(() => {
             this.active = value;
-            this.postMessage({ type: "activeChanged", value });
-          };
+            this.postMessage({ type: "activeChanged", requestId, value });
+          });
         }
         if (event.data.type === "channel") {
           this.channel = event.data.value;
@@ -61,8 +139,10 @@ function createCaptureProcessor() {
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][]) {
-      this.applyPendingActiveChange?.();
-      this.applyPendingActiveChange = undefined;
+      for (const action of this.pendingRenderActions) {
+        action();
+      }
+      this.pendingRenderActions = [];
       const channels = inputs[0] || [];
       const output = outputs[0] || [];
       // A connected output keeps the processor in the render graph, but capture
