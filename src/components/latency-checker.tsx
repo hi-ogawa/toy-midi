@@ -82,7 +82,7 @@ export function LatencyChecker() {
     mutationFn: () => runtime.calibrate({ channel, outputLevel }),
   });
   const result = calibrationMutation.data;
-  const resultStatus = result ? getResultStatus(result) : undefined;
+  const resultWarning = result ? getResultWarning(result) : undefined;
 
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
@@ -145,7 +145,7 @@ export function LatencyChecker() {
             "Recording 7 clicks. Keep the loopback connection unchanged...",
           state: "busy",
         }
-      : resultStatus;
+      : undefined;
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
@@ -346,6 +346,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <>
+                {resultWarning && <StatusMessage status={resultWarning} />}
                 <Results
                   key={result.expectedFrames[0]}
                   result={result}
@@ -826,7 +827,7 @@ function median(values: number[]) {
     : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function getResultStatus(result: LatencyResult): Status {
+function getResultWarning(result: LatencyResult): Status | undefined {
   const weak = result.measurements.filter(
     (measurement) => measurement.score < 0.25,
   ).length;
@@ -835,10 +836,7 @@ function getResultStatus(result: LatencyResult): Status {
         message: `${weak} click${weak === 1 ? "" : "s"} had weak correlation. Check routing, channel, and levels before trusting the median.`,
         state: "error",
       }
-    : {
-        message: `Test complete. Input monitoring remains active for connection changes or another run. Captured ${result.settings.sampleRate || result.sampleRate} Hz with ${result.channelCount || "unknown"} channel(s).`,
-        state: "ready",
-      };
+    : undefined;
 }
 
 function formatSigned(value: number, digits = 2) {
