@@ -21,11 +21,6 @@ import {
 } from "./ui/dropdown-menu";
 import { cn } from "./ui/utils";
 
-type Status = {
-  message: string;
-  state: "idle" | "busy" | "error" | "ready";
-};
-
 export function LatencyChecker() {
   const [runtime] = useState(() => new LatencyCheckerRuntime());
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -225,12 +220,7 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             {!hasAccess && grantAccessMutation.error && (
-              <StatusMessage
-                status={{
-                  message: grantAccessMutation.error.message,
-                  state: "error",
-                }}
-              />
+              <ErrorMessage>{grantAccessMutation.error.message}</ErrorMessage>
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <Field label="Channel">
@@ -284,12 +274,9 @@ export function LatencyChecker() {
               </Field>
             </div>
             {startMonitoringMutation.error && (
-              <StatusMessage
-                status={{
-                  message: startMonitoringMutation.error.message,
-                  state: "error",
-                }}
-              />
+              <ErrorMessage>
+                {startMonitoringMutation.error.message}
+              </ErrorMessage>
             )}
           </WorkflowSection>
 
@@ -334,12 +321,7 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             {isMonitoring && calibrationMutation.error && (
-              <StatusMessage
-                status={{
-                  message: calibrationMutation.error.message,
-                  state: "error",
-                }}
-              />
+              <ErrorMessage>{calibrationMutation.error.message}</ErrorMessage>
             )}
           </WorkflowSection>
 
@@ -363,12 +345,7 @@ export function LatencyChecker() {
                   }
                 />
                 {previewMutation.error && (
-                  <StatusMessage
-                    status={{
-                      message: previewMutation.error.message,
-                      state: "error",
-                    }}
-                  />
+                  <ErrorMessage>{previewMutation.error.message}</ErrorMessage>
                 )}
               </>
             ) : (
@@ -782,18 +759,10 @@ function ActionButton({
   );
 }
 
-function StatusMessage({ status }: { status: Status }) {
+function ErrorMessage({ children }: { children: ReactNode }) {
   return (
-    <p
-      className={cn(
-        "min-h-12 border-l-[3px] py-1 pl-3 text-sm leading-5",
-        status.state === "idle" && "border-neutral-300 text-neutral-600",
-        status.state === "busy" && "border-blue-700 text-blue-700",
-        status.state === "error" && "border-orange-700 text-orange-800",
-        status.state === "ready" && "border-emerald-700 text-emerald-800",
-      )}
-    >
-      {status.message}
+    <p className="mt-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
+      {children}
     </p>
   );
 }
