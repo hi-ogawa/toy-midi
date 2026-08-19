@@ -35,6 +35,7 @@ export function LatencyChecker() {
     return () => runtime.dispose();
   }, [runtime]);
 
+  // TODO: abstraction feels off
   function updateDevices(nextDevices: MediaDeviceInfo[]) {
     setDevices(nextDevices);
     setDeviceId((current) => {
@@ -70,7 +71,6 @@ export function LatencyChecker() {
       setChannel(0);
       setIsMonitoring(true);
     },
-    onError: () => runtime.stopMonitoring(),
   });
 
   const calibrationMutation = useMutation({
