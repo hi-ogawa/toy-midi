@@ -65,6 +65,10 @@ export function LatencyChecker() {
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
 
+  // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
+  const hasAccess = devices.some((device) => device.label);
+  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
+
   const startMonitoringMutation = useMutation({
     mutationFn: (deviceId: string) =>
       runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
@@ -78,10 +82,6 @@ export function LatencyChecker() {
     mutationFn: () => runtime.calibrate({ channel, outputLevel }),
   });
   const result = calibrationMutation.data;
-
-  // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
-  const hasAccess = devices.some((device) => device.label);
-  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
 
   function stopMonitoring() {
     runtime.stopMonitoring();
