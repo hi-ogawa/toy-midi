@@ -27,9 +27,9 @@ export type CalibrationAnalysis = {
   recorded: Float32Array;
 };
 
-export type CalibrationSchedule = {
+export type CalibrationPlayback = {
   expectedFrames: number[];
-  playbackDurationSeconds: number;
+  samples: Float32Array;
 };
 
 export type CalibrationTiming = {
@@ -66,32 +66,42 @@ export function createClickTemplate(sampleRate: number) {
 }
 
 /**
- * Converts an AudioContext start time and click timing policy into absolute
- * audio-frame onsets.
+ * Builds the emitted click signal and its expected AudioContext frame onsets.
  *
- * Each onset is rounded independently so fractional click intervals cannot
- * accumulate drift. `playbackDurationSeconds` starts at `startTime`, excludes
- * scheduling lead time, and includes trailing silence after the final onset.
+ * Relative click offsets drive both signal placement and expected frames, so
+ * playback and analysis cannot disagree about rounding. The output continues
+ * through the configured silence after the final click onset.
  */
-export function createCalibrationSchedule({
+export function createCalibrationPlayback({
+  amplitude,
   sampleRate,
   startTime,
+  template,
   timing,
 }: {
+  amplitude: number;
   sampleRate: number;
   startTime: number;
+  template: Float32Array;
   timing: CalibrationTiming;
-}): CalibrationSchedule {
+}): CalibrationPlayback {
   // Round each onset independently to avoid accumulating interval error.
   const startFrame = Math.round(startTime * sampleRate);
+  const clickOffsets = Array.from({ length: timing.clickCount }, (_, index) =>
+    Math.round(index * timing.clickInterval * sampleRate),
+  );
+  const finalClickEnd = clickOffsets.at(-1)! + template.length;
+  const tailEnd =
+    clickOffsets.at(-1)! + Math.ceil(timing.tailTime * sampleRate);
+  const samples = new Float32Array(Math.max(tailEnd, finalClickEnd));
+  for (const start of clickOffsets) {
+    for (let index = 0; index < template.length; index++) {
+      samples[start + index] += template[index] * amplitude;
+    }
+  }
   return {
-    expectedFrames: Array.from(
-      { length: timing.clickCount },
-      (_, index) =>
-        startFrame + Math.round(index * timing.clickInterval * sampleRate),
-    ),
-    playbackDurationSeconds:
-      (timing.clickCount - 1) * timing.clickInterval + timing.tailTime,
+    expectedFrames: clickOffsets.map((offset) => startFrame + offset),
+    samples,
   };
 }
 

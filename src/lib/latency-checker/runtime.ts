@@ -4,7 +4,7 @@ import {
   type CalibrationResult,
   type CalibrationTiming,
   type CaptureChunk,
-  createCalibrationSchedule,
+  createCalibrationPlayback,
   createClickTemplate,
   createPlaybackBuffers,
 } from "./calibration.ts";
@@ -148,19 +148,19 @@ export class LatencyCheckerRuntime {
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
       const startTime = context.currentTime + CALIBRATION_TIMING.leadTime;
-      const schedule = createCalibrationSchedule({
+      const playback = createCalibrationPlayback({
+        amplitude,
         sampleRate: context.sampleRate,
         startTime,
+        template,
         timing: CALIBRATION_TIMING,
       });
-      const clickBuffer = buildClickBuffer({
-        amplitude,
-        context,
-        durationSeconds: schedule.playbackDurationSeconds,
-        template,
-      });
       const clickSource = context.createBufferSource();
-      clickSource.buffer = clickBuffer;
+      clickSource.buffer = toAudioBuffer(
+        context,
+        playback.samples,
+        context.sampleRate,
+      );
       clickSource.connect(context.destination);
       const playbackEnded = Promise.withResolvers<void>();
       clickSource.addEventListener("ended", () => playbackEnded.resolve(), {
@@ -172,7 +172,7 @@ export class LatencyCheckerRuntime {
 
       const analysis = analyzeCalibration({
         chunks,
-        expectedFrames: schedule.expectedFrames,
+        expectedFrames: playback.expectedFrames,
         sampleRate: context.sampleRate,
         template,
       });
@@ -181,7 +181,7 @@ export class LatencyCheckerRuntime {
           analysis,
           capture: {
             amplitude,
-            expectedFrames: schedule.expectedFrames,
+            expectedFrames: playback.expectedFrames,
             sampleRate: context.sampleRate,
             template,
           },
@@ -301,34 +301,6 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
     },
     video: false,
   };
-}
-
-function buildClickBuffer({
-  context,
-  template,
-  amplitude,
-  durationSeconds,
-}: {
-  context: AudioContext;
-  template: Float32Array;
-  amplitude: number;
-  durationSeconds: number;
-}) {
-  const buffer = context.createBuffer(
-    1,
-    Math.ceil(durationSeconds * context.sampleRate) + template.length,
-    context.sampleRate,
-  );
-  const data = buffer.getChannelData(0);
-  for (let click = 0; click < CALIBRATION_TIMING.clickCount; click++) {
-    const start = Math.round(
-      click * CALIBRATION_TIMING.clickInterval * context.sampleRate,
-    );
-    for (let index = 0; index < template.length; index++) {
-      data[start + index] += template[index] * amplitude;
-    }
-  }
-  return buffer;
 }
 
 function toAudioBuffer(
