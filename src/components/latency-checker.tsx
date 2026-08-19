@@ -401,9 +401,7 @@ function Results({
         />
       </div>
 
-      <Timeline offsetsMs={offsetsMs} compensation={medianMs} />
-
-      <div className="mt-6 grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
         <div>
           <SectionTitle>Detected clicks</SectionTitle>
           <ol className="grid grid-cols-2 gap-2">
@@ -471,112 +469,6 @@ function ResultPlaceholder() {
         Run the 7-click test to fill these fields.
       </p>
     </>
-  );
-}
-
-function Timeline({
-  offsetsMs,
-  compensation,
-}: {
-  offsetsMs: number[];
-  compensation: number;
-}) {
-  const compensatedMs = offsetsMs.map((offset) => offset - compensation);
-  const domainStart = -50;
-  const domainEnd = Math.max(
-    150,
-    Math.ceil((Math.max(...offsetsMs, ...compensatedMs) + 60) / 50) * 50,
-  );
-  const position = (value: number) =>
-    `${clamp(((value - domainStart) / (domainEnd - domainStart)) * 100, 0, 100)}%`;
-  const rows = [32, 78, 124];
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 px-5 pt-5 pb-4">
-      <div className="relative mx-3 h-40" aria-label="Detected onset timeline">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px)] bg-[length:20%_100%]" />
-        <div
-          className="absolute top-0 bottom-6 w-0.5 bg-neutral-900/30"
-          style={{ left: position(0) }}
-        />
-        {[
-          ["reference", rows[0]],
-          ["captured", rows[1]],
-          ["after shift", rows[2]],
-        ].map(([label, top]) => (
-          <div key={label}>
-            <div
-              className="absolute right-0 left-0 h-px bg-neutral-200"
-              style={{ top }}
-            />
-            <span
-              className="absolute left-1 -translate-y-5 bg-white/90 pr-1 text-xs text-neutral-500"
-              style={{ top }}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
-        <TimelineMarker
-          left={position(0)}
-          top={rows[0]}
-          color="bg-neutral-900"
-          label="0 ms"
-        />
-        {offsetsMs.map((value, index) => (
-          <TimelineMarker
-            key={`raw-${index}`}
-            left={position(value)}
-            top={rows[1]}
-            color="bg-orange-700"
-            label={index === 0 ? `${formatSigned(value)} ms` : undefined}
-          />
-        ))}
-        {compensatedMs.map((value, index) => (
-          <TimelineMarker
-            key={`compensated-${index}`}
-            left={position(value)}
-            top={rows[2]}
-            color="bg-emerald-700"
-            label={index === 0 ? `${formatSigned(value)} ms` : undefined}
-          />
-        ))}
-        <div className="absolute right-0 bottom-0 left-0 flex justify-between font-mono text-[11px] text-neutral-500">
-          {Array.from({ length: 6 }, (_, index) => {
-            const value = domainStart + ((domainEnd - domainStart) * index) / 5;
-            return <span key={index}>{Math.round(value)} ms</span>;
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TimelineMarker({
-  left,
-  top,
-  color,
-  label,
-}: {
-  left: string;
-  top: number;
-  color: string;
-  label?: string;
-}) {
-  return (
-    <i
-      className={cn(
-        "absolute h-6 w-[3px] -translate-x-px -translate-y-3 rounded-sm not-italic",
-        color,
-      )}
-      style={{ left, top }}
-    >
-      {label && (
-        <span className="absolute top-0 left-2 whitespace-nowrap font-mono text-[11px] text-neutral-700">
-          {label}
-        </span>
-      )}
-    </i>
   );
 }
 
