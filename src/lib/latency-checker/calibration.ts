@@ -38,12 +38,11 @@ export type CalibrationResult = {
 };
 
 /**
- * Builds the deterministic signal emitted for each calibration click.
+ * Builds a synthetic measurement probe, not a musical metronome click.
  *
- * The pseudo-random signs produce a narrow correlation peak, while the sine
- * envelope brings both ends to zero to avoid introducing edge discontinuities.
- * The same samples are retained in the capture result and used as the detector
- * template, so repeatability matters more than perceptual tone quality.
+ * Deterministic pseudo-random signs produce a narrow correlation peak, while the
+ * sine envelope limits boundary discontinuities. The exact emitted samples are
+ * retained in the capture result and reused as the detector template.
  */
 export function createClickTemplate(sampleRate: number) {
   // A 2 ms click is brief but carries enough samples for a distinct correlation
