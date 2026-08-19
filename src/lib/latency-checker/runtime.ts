@@ -56,7 +56,7 @@ export class LatencyCheckerRuntime {
     );
   }
 
-  async openRoute({
+  async startMonitoring({
     deviceId,
     onLevel,
   }: {
@@ -107,7 +107,7 @@ export class LatencyCheckerRuntime {
     return channelCount;
   }
 
-  closeRoute() {
+  stopMonitoring() {
     this.#activeRecorder?.port.postMessage({ type: "active", value: false });
     this.#activeSource?.disconnect();
     this.#activeRecorder?.disconnect();
@@ -134,7 +134,7 @@ export class LatencyCheckerRuntime {
     outputLevel: number;
   }) {
     if (!this.#activeRecorder || !this.#activeStream || !this.#activeSettings) {
-      throw new Error("Open the audio route before running the click test.");
+      throw new Error("Start input monitoring before running the click test.");
     }
     const context = await this.#ensureAudioContext();
     this.setChannel(channel);
@@ -231,7 +231,7 @@ export class LatencyCheckerRuntime {
 
   dispose() {
     this.#stopPreview();
-    this.closeRoute();
+    this.stopMonitoring();
     this.#audioContext?.close();
     this.#audioContext = undefined;
     this.#workletReady = false;

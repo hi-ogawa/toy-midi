@@ -33,7 +33,7 @@ export function LatencyChecker() {
   const [channel, setChannel] = useState(0);
   const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
-  const [routeOpen, setRouteOpen] = useState(false);
+  const [isMonitoring, setIsMonitoring] = useState(false);
 
   useEffect(() => {
     document.title = "Latency Checker - Toy MIDI";
@@ -68,13 +68,14 @@ export function LatencyChecker() {
     onSuccess: updateDevices,
   });
 
-  const openRouteMutation = useMutation({
-    mutationFn: () => runtime.openRoute({ deviceId, onLevel: setInputPeak }),
+  const startMonitoringMutation = useMutation({
+    mutationFn: () =>
+      runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
     onSuccess: () => {
       setChannel(0);
-      setRouteOpen(true);
+      setIsMonitoring(true);
     },
-    onError: () => runtime.closeRoute(),
+    onError: () => runtime.stopMonitoring(),
   });
 
   const calibrationMutation = useMutation({
@@ -96,11 +97,11 @@ export function LatencyChecker() {
   const busy =
     refreshInputsMutation.isPending ||
     grantAccessMutation.isPending ||
-    openRouteMutation.isPending ||
+    startMonitoringMutation.isPending ||
     calibrationMutation.isPending;
   const mutationError =
     grantAccessMutation.error ??
-    openRouteMutation.error ??
+    startMonitoringMutation.error ??
     calibrationMutation.error ??
     previewMutation.error;
   const pendingStatus: Status | undefined = grantAccessMutation.isPending
@@ -108,7 +109,7 @@ export function LatencyChecker() {
         message: "Requesting browser microphone permission...",
         state: "busy",
       }
-    : openRouteMutation.isPending
+    : startMonitoringMutation.isPending
       ? {
           message: "Starting input monitoring...",
           state: "busy",
@@ -122,29 +123,29 @@ export function LatencyChecker() {
         : undefined;
   const displayedStatus: Status | undefined = mutationError
     ? { message: mutationError.message, state: "error" }
-    : (pendingStatus ?? (routeOpen ? resultStatus : undefined));
+    : (pendingStatus ?? (isMonitoring ? resultStatus : undefined));
 
   function stopMonitoring() {
-    runtime.closeRoute();
+    runtime.stopMonitoring();
     setChannel(0);
     setInputPeak(0);
-    setRouteOpen(false);
-    openRouteMutation.reset();
+    setIsMonitoring(false);
+    startMonitoringMutation.reset();
     calibrationMutation.reset();
     previewMutation.reset();
   }
 
-  function toggleRoute() {
-    if (routeOpen) {
+  function toggleMonitoring() {
+    if (isMonitoring) {
       stopMonitoring();
     } else {
       setInputPeak(0);
-      openRouteMutation.mutate();
+      startMonitoringMutation.mutate();
     }
   }
 
   function handleDeviceChange(nextDeviceId: string) {
-    if (routeOpen) {
+    if (isMonitoring) {
       stopMonitoring();
     }
     setDeviceId(nextDeviceId);
@@ -221,7 +222,7 @@ export function LatencyChecker() {
               </Field>
               <ActionButton
                 accent={!hasAccess}
-                disabled={busy || routeOpen}
+                disabled={busy || isMonitoring}
                 onClick={() =>
                   hasAccess
                     ? refreshInputsMutation.mutate()
@@ -238,7 +239,7 @@ export function LatencyChecker() {
               <Field label="Channel carrying the loop">
                 <select
                   value={channel}
-                  disabled={busy || !routeOpen}
+                  disabled={busy || !isMonitoring}
                   onChange={(event) => {
                     const value = Number(event.currentTarget.value);
                     setChannel(value);
@@ -246,12 +247,12 @@ export function LatencyChecker() {
                   }}
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
-                  {openRouteMutation.data ? (
+                  {startMonitoringMutation.data ? (
                     Array.from(
-                      { length: openRouteMutation.data },
+                      { length: startMonitoringMutation.data },
                       (_, index) => (
                         <option key={index} value={index}>
-                          Channel {index + 1} of {openRouteMutation.data}
+                          Channel {index + 1} of {startMonitoringMutation.data}
                         </option>
                       ),
                     )
@@ -260,18 +261,22 @@ export function LatencyChecker() {
                   )}
                 </select>
               </Field>
-              <ActionButton disabled={busy || !hasAccess} onClick={toggleRoute}>
-                {routeOpen ? "Stop monitoring" : "Start monitoring"}
+              <ActionButton
+                disabled={busy || !hasAccess}
+                onClick={toggleMonitoring}
+              >
+                {isMonitoring ? "Stop monitoring" : "Start monitoring"}
               </ActionButton>
             </div>
             <div className="mt-4">
               <Field label="Input meter">
-                <InputMeter active={routeOpen} peak={inputPeak} />
+                <InputMeter active={isMonitoring} peak={inputPeak} />
               </Field>
             </div>
             {hasAccess &&
-              !routeOpen &&
-              (openRouteMutation.isPending || openRouteMutation.error) &&
+              !isMonitoring &&
+              (startMonitoringMutation.isPending ||
+                startMonitoringMutation.error) &&
               displayedStatus && <StatusMessage status={displayedStatus} />}
           </WorkflowSection>
 
@@ -279,7 +284,7 @@ export function LatencyChecker() {
             number={2}
             title="Measure latency"
             description="Set a safe click level and record seven samples through the monitored input."
-            state={!routeOpen ? "disabled" : result ? "complete" : "active"}
+            state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
               <Field label="Calibration click level">
@@ -291,7 +296,7 @@ export function LatencyChecker() {
                     max={-6}
                     step={1}
                     value={outputLevel}
-                    disabled={busy || !routeOpen}
+                    disabled={busy || !isMonitoring}
                     onChange={(event) =>
                       setOutputLevel(Number(event.currentTarget.value))
                     }
@@ -304,13 +309,13 @@ export function LatencyChecker() {
               </Field>
               <ActionButton
                 accent
-                disabled={busy || !routeOpen}
+                disabled={busy || !isMonitoring}
                 onClick={() => calibrationMutation.mutate()}
               >
                 {result ? "Run again" : "Run 7-click test"}
               </ActionButton>
             </div>
-            {routeOpen &&
+            {isMonitoring &&
               (calibrationMutation.isPending ||
                 calibrationMutation.error ||
                 result) &&
