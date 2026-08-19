@@ -56,7 +56,13 @@ export class LatencyCheckerRuntime {
     );
   }
 
-  async openRoute({ deviceId }: { deviceId: string }) {
+  async openRoute({
+    deviceId,
+    onLevel,
+  }: {
+    deviceId: string;
+    onLevel: (peak: number) => void;
+  }) {
     const context = await this.#ensureAudioContext();
     this.#activeStream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
@@ -85,6 +91,9 @@ export class LatencyCheckerRuntime {
           if (event.data.value > 0) {
             resolve(event.data.value);
           }
+        }
+        if (event.data.type === "level") {
+          onLevel(event.data.peak);
         }
       };
     });

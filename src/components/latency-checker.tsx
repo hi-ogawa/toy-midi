@@ -36,6 +36,7 @@ export function LatencyChecker() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState("");
   const [channel, setChannel] = useState(0);
+  const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
   const [routeOpen, setRouteOpen] = useState(false);
   const [status, setStatus] = useState<Status>({
@@ -83,7 +84,7 @@ export function LatencyChecker() {
   });
 
   const openRouteMutation = useMutation({
-    mutationFn: () => runtime.openRoute({ deviceId }),
+    mutationFn: () => runtime.openRoute({ deviceId, onLevel: setInputPeak }),
     onSuccess: () => {
       setChannel(0);
       setRouteOpen(true);
@@ -142,9 +143,11 @@ export function LatencyChecker() {
   function toggleRoute() {
     if (routeOpen) {
       runtime.closeRoute();
+      setInputPeak(0);
       setRouteOpen(false);
       setStatus({ message: "Audio route closed.", state: "idle" });
     } else {
+      setInputPeak(0);
       openRouteMutation.mutate();
     }
   }
@@ -251,6 +254,10 @@ export function LatencyChecker() {
                   <option>Open route first</option>
                 )}
               </select>
+            </Field>
+
+            <Field label="Input peak">
+              <InputMeter active={routeOpen} peak={inputPeak} />
             </Field>
 
             <Field label="Calibration click level">
@@ -602,6 +609,39 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       {label}
       {children}
     </label>
+  );
+}
+
+function InputMeter({ active, peak }: { active: boolean; peak: number }) {
+  const decibels = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+  const meterValue = clamp(decibels, -60, 0);
+  const label =
+    active && Number.isFinite(decibels)
+      ? `${decibels.toFixed(1)} dBFS`
+      : "-∞ dBFS";
+
+  return (
+    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
+      <div
+        role="meter"
+        aria-label="Input peak level"
+        aria-valuemin={-60}
+        aria-valuemax={0}
+        aria-valuenow={active ? meterValue : -60}
+        aria-valuetext={label}
+        className="h-3 overflow-hidden rounded-full bg-neutral-200"
+      >
+        <div
+          className="h-full bg-emerald-600 transition-[width] duration-75"
+          style={{
+            width: active ? `${((meterValue + 60) / 60) * 100}%` : 0,
+          }}
+        />
+      </div>
+      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+        {label}
+      </output>
+    </div>
   );
 }
 
