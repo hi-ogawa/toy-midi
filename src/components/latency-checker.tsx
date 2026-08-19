@@ -24,7 +24,7 @@ import { cn } from "./ui/utils";
 export function LatencyChecker() {
   const [runtime] = useState(() => new LatencyCheckerRuntime());
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState("");
+  const [deviceId, setDeviceId] = useState<string>();
   const [channel, setChannel] = useState(0);
   const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
@@ -42,7 +42,7 @@ export function LatencyChecker() {
       if (nextDevices.some((device) => device.deviceId === current)) {
         return current;
       }
-      return nextDevices[0]?.deviceId ?? "";
+      return nextDevices[0]?.deviceId;
     });
   }
 
@@ -68,8 +68,12 @@ export function LatencyChecker() {
   }, [refreshInputsMutation.mutate]);
 
   const startMonitoringMutation = useMutation({
-    mutationFn: () =>
-      runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
+    mutationFn: () => {
+      if (!deviceId) {
+        throw new Error("Choose an audio input.");
+      }
+      return runtime.startMonitoring({ deviceId, onLevel: setInputPeak });
+    },
     onSuccess: () => {
       setChannel(0);
       setIsMonitoring(true);
@@ -163,7 +167,7 @@ export function LatencyChecker() {
               <label className="grid gap-2 text-xs font-semibold text-neutral-600">
                 Browser audio input
                 <select
-                  value={deviceId}
+                  value={deviceId ?? ""}
                   disabled={
                     !inputsInitialized ||
                     !hasAccess ||
@@ -181,11 +185,16 @@ export function LatencyChecker() {
                   ) : !hasAccess ? (
                     <option>Grant access to list audio inputs</option>
                   ) : (
-                    devices.map((device, index) => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Audio input ${index + 1}`}
-                      </option>
-                    ))
+                    <>
+                      {!deviceId && (
+                        <option value="">Choose an audio input</option>
+                      )}
+                      {devices.map((device, index) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Audio input ${index + 1}`}
+                        </option>
+                      ))}
+                    </>
                   )}
                 </select>
               </label>
@@ -250,7 +259,7 @@ export function LatencyChecker() {
               <ActionButton
                 className="min-w-35"
                 disabled={
-                  !hasAccess ||
+                  !deviceId ||
                   startMonitoringMutation.isPending ||
                   calibrationMutation.isPending
                 }
