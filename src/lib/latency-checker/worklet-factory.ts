@@ -70,6 +70,9 @@ function createCaptureProcessor() {
         }
 
         if (this.active) {
+          // TODO: Batch multiple render quanta before transferring. The input
+          // buffer is browser-owned, and transferred buffers detach, so direct
+          // transfer or simple preallocation cannot safely avoid this copy.
           const copy = new Float32Array(selected);
           this.postMessage(
             {
