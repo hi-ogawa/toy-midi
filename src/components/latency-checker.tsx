@@ -514,6 +514,8 @@ function WorkflowSection({
 }) {
   return (
     <section
+      data-testid={`step-${title.toLowerCase().replaceAll(" ", "-")}`}
+      data-state={state}
       className={cn(
         "border-t border-neutral-200 p-7 first:border-t-0",
         state === "disabled" && "bg-neutral-50 text-neutral-400",
