@@ -49,6 +49,21 @@ export function LatencyChecker() {
     return () => runtime.dispose();
   }, [runtime]);
 
+  function updateDevices(nextDevices: MediaDeviceInfo[]) {
+    setDevices(nextDevices);
+    setDeviceId((current) => {
+      if (nextDevices.some((device) => device.deviceId === current)) {
+        return current;
+      }
+      return nextDevices[0]?.deviceId ?? "";
+    });
+  }
+
+  const refreshInputsMutation = useMutation({
+    mutationFn: () => runtime.getInputs(),
+    onSuccess: updateDevices,
+  });
+
   useEffect(() => {
     const mediaDevices = navigator.mediaDevices;
     if (!mediaDevices) {
@@ -59,22 +74,10 @@ export function LatencyChecker() {
       });
       return;
     }
-    const refresh = () => {
-      runtime.getInputs().then(setDevices).catch(console.error);
-    };
+    const refresh = () => refreshInputsMutation.mutate();
     mediaDevices.addEventListener("devicechange", refresh);
     return () => mediaDevices.removeEventListener("devicechange", refresh);
-  }, [runtime]);
-
-  function updateDevices(nextDevices: MediaDeviceInfo[]) {
-    setDevices(nextDevices);
-    setDeviceId((current) => {
-      if (nextDevices.some((device) => device.deviceId === current)) {
-        return current;
-      }
-      return nextDevices[0]?.deviceId ?? "";
-    });
-  }
+  }, [refreshInputsMutation.mutate]);
 
   const grantAccessMutation = useMutation({
     mutationFn: () => runtime.requestAccess(),
