@@ -49,6 +49,7 @@ export function createClickTemplate(sampleRate: number) {
   // peak. Keep at least 64 samples so low sample rates still have enough pattern.
   const length = Math.max(64, Math.round(sampleRate * 0.002));
   const samples = new Float32Array(length);
+  // Numerical Recipes 32-bit LCG; a fixed seed makes the probe reproducible.
   let state = 0x51f15e;
   for (let index = 0; index < length; index++) {
     state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
