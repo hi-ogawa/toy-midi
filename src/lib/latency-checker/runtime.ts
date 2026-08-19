@@ -181,10 +181,9 @@ export class LatencyCheckerRuntime {
         calibration: {
           analysis,
           capture: {
-            amplitude,
+            emitted: playback.samples,
             expectedFrames: playback.expectedFrames,
             sampleRate: context.sampleRate,
-            template,
           },
         },
         channelCount: this.#detectedChannelCount,

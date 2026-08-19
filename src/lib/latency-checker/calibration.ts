@@ -15,10 +15,9 @@ export type LatencyMeasurement = {
 };
 
 export type CalibrationCapture = {
-  amplitude: number;
+  emitted: Float32Array;
   expectedFrames: number[];
   sampleRate: number;
-  template: Float32Array;
 };
 
 export type CalibrationAnalysis = {
@@ -229,7 +228,7 @@ function findTemplate({
 /**
  * Builds aligned mono buffers for audible comparison of calibration results.
  *
- * `reference` reconstructs the emitted clicks, `raw` copies the matching capture
+ * `reference` contains the emitted probe, `raw` copies the matching capture
  * window, and `compensated` advances raw audio by `compensationSamples`.
  * Positive compensation therefore moves a late captured onset toward its
  * scheduled reference onset. Samples outside available capture data remain zero.
@@ -241,24 +240,19 @@ export function createPlaybackBuffers({
   result: CalibrationResult;
   compensationSamples: number;
 }) {
-  const { amplitude, expectedFrames, sampleRate, template } = result.capture;
+  const { emitted, expectedFrames, sampleRate } = result.capture;
   const { minFrame, recorded } = result.analysis;
   const preRoll = Math.round(sampleRate * 0.1);
   const postRoll = Math.round(sampleRate * 0.35);
-  const windowStart = expectedFrames[0] - preRoll;
-  const windowEnd = expectedFrames.at(-1)! + template.length + postRoll;
-  const length = windowEnd - windowStart;
+  // Emitted sample zero is the first expected frame. Pre-roll rebases both the
+  // emitted and captured signals into one local audition window.
+  const auditionStartFrame = expectedFrames[0] - preRoll;
+  const length = preRoll + emitted.length + postRoll;
   const reference = new Float32Array(length);
+  reference.set(emitted, preRoll);
   const raw = new Float32Array(length);
-  // Rebuild emitted clicks in the same frame window as captured audio.
-  for (const expectedFrame of expectedFrames) {
-    const start = expectedFrame - windowStart;
-    for (let index = 0; index < template.length; index++) {
-      reference[start + index] += template[index] * amplitude;
-    }
-  }
   for (let index = 0; index < length; index++) {
-    const sourceIndex = windowStart + index - minFrame;
+    const sourceIndex = auditionStartFrame + index - minFrame;
     if (sourceIndex >= 0 && sourceIndex < recorded.length) {
       raw[index] = recorded[sourceIndex];
     }
