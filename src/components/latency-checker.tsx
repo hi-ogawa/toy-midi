@@ -196,9 +196,9 @@ export function LatencyChecker() {
         <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
           <WorkflowSection
             number={1}
-            title="Input"
-            description="Grant browser access and choose the capture device."
-            state={hasAccess ? "complete" : "active"}
+            title="Connect audio"
+            description="Choose the capture device and channel, then connect the loopback."
+            state={result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <Field label="Browser audio input">
@@ -237,15 +237,7 @@ export function LatencyChecker() {
               </p>
             )}
             {!hasAccess && <StatusMessage status={displayedStatus} />}
-          </WorkflowSection>
-
-          <WorkflowSection
-            number={2}
-            title="Input monitoring and loopback"
-            description="Select the input channel and connect the loopback."
-            state={!hasAccess ? "disabled" : result ? "complete" : "active"}
-          >
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+            <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
               <Field label="Channel carrying the loop">
                 <select
                   value={channel}
@@ -288,8 +280,8 @@ export function LatencyChecker() {
           </WorkflowSection>
 
           <WorkflowSection
-            number={3}
-            title="Measurement"
+            number={2}
+            title="Measure latency"
             description="Set a safe click level and record seven samples through the monitored input."
             state={!routeOpen ? "disabled" : result ? "complete" : "active"}
           >
@@ -329,8 +321,8 @@ export function LatencyChecker() {
           </WorkflowSection>
 
           <WorkflowSection
-            number={4}
-            title="Results and audition"
+            number={3}
+            title="Review results"
             description="Inspect the measured offset, adjust compensation, and compare playback."
             state={result ? "active" : "disabled"}
           >
