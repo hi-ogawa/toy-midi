@@ -180,11 +180,8 @@ export class LatencyCheckerRuntime {
       return {
         calibration: {
           analysis,
-          capture: {
-            emitted: playback.samples,
-            expectedFrames: playback.expectedFrames,
-            sampleRate: context.sampleRate,
-          },
+          playback,
+          sampleRate: context.sampleRate,
         },
         channelCount: this.#detectedChannelCount,
         settings: this.#activeSettings,
@@ -208,7 +205,7 @@ export class LatencyCheckerRuntime {
   }) {
     const context = await this.#ensureAudioContext();
     this.stopPreview();
-    const sampleRate = result.calibration.capture.sampleRate;
+    const sampleRate = result.calibration.sampleRate;
     const compensationSamples = Math.round(
       (compensationMs * sampleRate) / 1000,
     );

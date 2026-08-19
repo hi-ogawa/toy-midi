@@ -14,12 +14,6 @@ export type LatencyMeasurement = {
   score: number;
 };
 
-export type CalibrationCapture = {
-  emitted: Float32Array;
-  expectedFrames: number[];
-  sampleRate: number;
-};
-
 export type CalibrationAnalysis = {
   measurements: LatencyMeasurement[];
   minFrame: number;
@@ -33,7 +27,8 @@ export type CalibrationPlayback = {
 
 export type CalibrationResult = {
   analysis: CalibrationAnalysis;
-  capture: CalibrationCapture;
+  playback: CalibrationPlayback;
+  sampleRate: number;
 };
 
 /**
@@ -240,8 +235,11 @@ export function createPlaybackBuffers({
   result: CalibrationResult;
   compensationSamples: number;
 }) {
-  const { emitted, expectedFrames, sampleRate } = result.capture;
-  const { minFrame, recorded } = result.analysis;
+  const {
+    analysis: { minFrame, recorded },
+    playback: { expectedFrames, samples: emitted },
+    sampleRate,
+  } = result;
   const preRoll = Math.round(sampleRate * 0.1);
   const postRoll = Math.round(sampleRate * 0.35);
   // Emitted sample zero is the first expected frame. Pre-roll rebases both the

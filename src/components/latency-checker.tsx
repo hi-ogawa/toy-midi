@@ -338,7 +338,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <ResultsView
-                key={result.calibration.capture.expectedFrames[0]}
+                key={result.calibration.playback.expectedFrames[0]}
                 result={result}
                 runtime={runtime}
               />
@@ -360,7 +360,7 @@ function ResultsView({
   runtime: LatencyCheckerRuntime;
 }) {
   const { measurements } = result.calibration.analysis;
-  const { sampleRate } = result.calibration.capture;
+  const { sampleRate } = result.calibration;
   const offsets = measurements.map((measurement) => measurement.offsetSamples);
   const offsetsMs = offsets.map((offset) => (offset * 1000) / sampleRate);
   const medianSamples = calculateMedian(offsets);
