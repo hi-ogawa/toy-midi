@@ -71,26 +71,27 @@ export class LatencyCheckerRuntime {
     );
     this.#activeSettings = this.#activeStream.getAudioTracks()[0].getSettings();
     this.#activeSource = context.createMediaStreamSource(this.#activeStream);
-    this.#activeRecorder = new AudioWorkletNode(
-      context,
-      CAPTURE_PROCESSOR_NAME,
-      {
-        numberOfInputs: 1,
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-      },
-    );
+    const recorder = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+    });
+    this.#activeRecorder = recorder;
     this.#detectedChannelCount = 0;
-    const channelCount = new Promise<number>((resolve) => {
-      this.#activeRecorder!.port.onmessage = (
-        event: MessageEvent<CaptureMessage>,
-      ) => {
+    const channelCount = new Promise<number>((resolve, reject) => {
+      const timeout = window.setTimeout(
+        () =>
+          reject(new Error("No audio channels were detected from this input.")),
+        3_000,
+      );
+      recorder.port.onmessage = (event: MessageEvent<CaptureMessage>) => {
         if (event.data.type === "samples" && this.#captureChunks) {
           this.#captureChunks.push(event.data);
         }
         if (event.data.type === "channels") {
           this.#detectedChannelCount = event.data.value;
           if (event.data.value > 0) {
+            window.clearTimeout(timeout);
             resolve(event.data.value);
           }
         }
