@@ -29,6 +29,11 @@ export type CalibrationAnalysis = {
   recorded: Float32Array;
 };
 
+export type CalibrationSchedule = {
+  durationSeconds: number;
+  expectedFrames: number[];
+};
+
 export type CalibrationResult = {
   analysis: CalibrationAnalysis;
   capture: CalibrationCapture;
@@ -53,7 +58,7 @@ export function createCalibrationSchedule({
 }: {
   sampleRate: number;
   startTime: number;
-}) {
+}): CalibrationSchedule {
   const startFrame = Math.round(startTime * sampleRate);
   return {
     expectedFrames: Array.from(
@@ -75,7 +80,7 @@ export function analyzeCalibration({
   expectedFrames: number[];
   sampleRate: number;
   template: Float32Array;
-}) {
+}): CalibrationAnalysis {
   const assembled = assembleChunks(chunks);
   const measurements = expectedFrames.map((expectedFrame) =>
     findTemplate({
