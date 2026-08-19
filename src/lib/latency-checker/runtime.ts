@@ -13,11 +13,13 @@ import {
 } from "./capture-worklet.ts";
 
 const CALIBRATION_CLICK_COUNT = 7;
-const CALIBRATION_CLICK_INTERVAL = 0.46;
+const CALIBRATION_CLICK_INTERVAL = 0.7;
 // Begin capture before playback so the worklet is active at the first onset.
 const CALIBRATION_LEAD_TIME = 0.55;
+// Leave 200 ms before the next probe so each latency search remains isolated.
+const CALIBRATION_MAX_LATENCY = 0.5;
 // Keep capture running after the final click to include delayed input.
-const CALIBRATION_TAIL_TIME = 0.45;
+const CALIBRATION_TAIL_TIME = CALIBRATION_MAX_LATENCY;
 
 export type LatencyResult = {
   calibration: CalibrationResult;
@@ -173,6 +175,7 @@ export class LatencyCheckerRuntime {
 
       const analysis = analyzeCalibration({
         chunks,
+        maxLatency: CALIBRATION_MAX_LATENCY,
         playback,
         sampleRate: context.sampleRate,
         template,

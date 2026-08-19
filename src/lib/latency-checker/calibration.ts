@@ -99,11 +99,13 @@ export function createCalibrationPlayback({
  */
 export function analyzeCalibration({
   chunks,
+  maxLatency,
   playback,
   sampleRate,
   template,
 }: {
   chunks: CaptureChunk[];
+  maxLatency: number;
   playback: CalibrationPlayback;
   sampleRate: number;
   template: Float32Array;
@@ -115,6 +117,7 @@ export function analyzeCalibration({
   const measurements = playback.clickOffsets.map((expectedOffset) =>
     findTemplate({
       expectedOffset,
+      maxLatency,
       recording,
       template,
       sampleRate,
@@ -158,9 +161,6 @@ function assembleChunks({
   return samples;
 }
 
-// Search forward far enough to cover expected hardware and driver latency.
-const SEARCH_AFTER = 0.32;
-
 /**
  * Finds the strongest normalized correlation with `template` near one expected
  * playback-relative offset.
@@ -172,11 +172,13 @@ const SEARCH_AFTER = 0.32;
  */
 function findTemplate({
   expectedOffset,
+  maxLatency,
   recording,
   template,
   sampleRate,
 }: {
   expectedOffset: number;
+  maxLatency: number;
   recording: Float32Array;
   template: Float32Array;
   sampleRate: number;
@@ -184,7 +186,7 @@ function findTemplate({
   const searchStart = expectedOffset;
   const searchEnd = Math.min(
     recording.length - template.length,
-    Math.round(expectedOffset + SEARCH_AFTER * sampleRate),
+    Math.round(expectedOffset + maxLatency * sampleRate),
   );
   let templateEnergy = 0;
   for (const value of template) {
