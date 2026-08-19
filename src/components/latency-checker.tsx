@@ -157,7 +157,8 @@ export function LatencyChecker() {
             state={result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-              <Field label="Browser audio input">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Browser audio input
                 <select
                   value={deviceId}
                   disabled={
@@ -184,7 +185,7 @@ export function LatencyChecker() {
                     ))
                   )}
                 </select>
-              </Field>
+              </label>
               <ActionButton
                 accent={inputsInitialized && !hasAccess}
                 className="min-w-35"
@@ -213,7 +214,8 @@ export function LatencyChecker() {
               <ErrorMessage>{grantAccessMutation.error.message}</ErrorMessage>
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-              <Field label="Channel">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Channel
                 <select
                   value={channel}
                   disabled={
@@ -241,7 +243,7 @@ export function LatencyChecker() {
                     <option>Available after starting monitoring</option>
                   )}
                 </select>
-              </Field>
+              </label>
               <ActionButton
                 className="min-w-35"
                 disabled={
@@ -259,9 +261,10 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             <div className="mt-4">
-              <Field label="Input meter">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Input meter
                 <InputMeter active={isMonitoring} peak={inputPeak} />
-              </Field>
+              </label>
             </div>
             {startMonitoringMutation.error && (
               <ErrorMessage>
@@ -277,7 +280,8 @@ export function LatencyChecker() {
             state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
-              <Field label="Calibration click level">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Calibration click level
                 <div className="grid grid-cols-[1fr_68px] items-center gap-3">
                   <input
                     aria-label="Calibration click level"
@@ -296,7 +300,7 @@ export function LatencyChecker() {
                     {outputLevel} dB
                   </output>
                 </div>
-              </Field>
+              </label>
               <ActionButton
                 className="min-w-30"
                 accent
@@ -535,15 +539,6 @@ function WorkflowSection({
         {children}
       </div>
     </section>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="grid gap-2 text-xs font-semibold text-neutral-600">
-      {label}
-      {children}
-    </label>
   );
 }
 
