@@ -11,12 +11,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { routes } from "../lib/routes";
 import {
   type LatencyResult,
   LatencyCheckerRuntime,
   type PreviewVariant,
-} from "./latency-checker-runtime";
+} from "../lib/latency-checker/runtime";
+import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,

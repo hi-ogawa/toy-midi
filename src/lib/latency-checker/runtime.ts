@@ -1,35 +1,27 @@
+import {
+  assembleChunks,
+  type CalibrationRecording,
+  type CaptureChunk,
+  createClickTemplate,
+  createPlaybackBuffers,
+  findTemplate,
+  type LatencyMeasurement,
+} from "./calibration.ts";
+import {
+  type CaptureMessage,
+  CAPTURE_PROCESSOR_NAME,
+  createCaptureWorkletSource,
+} from "./worklet-factory.ts";
+
 const CLICK_COUNT = 7;
 const CLICK_INTERVAL = 0.46;
 const LEAD_TIME = 0.55;
 const TAIL_TIME = 0.45;
-const SEARCH_BEFORE = 0.05;
-const SEARCH_AFTER = 0.32;
 
-type CaptureChunk = {
-  frameStart: number;
-  samples: Float32Array;
-};
-
-type CaptureMessage =
-  | { type: "channels"; value: number }
-  | ({ type: "samples" } & CaptureChunk);
-
-export type LatencyMeasurement = {
-  detectedFrame: number;
-  offsetSamples: number;
-  score: number;
-};
-
-export type LatencyResult = {
-  amplitude: number;
+export type LatencyResult = CalibrationRecording & {
   channelCount: number;
-  expectedFrames: number[];
   measurements: LatencyMeasurement[];
-  minFrame: number;
-  recorded: Float32Array;
-  sampleRate: number;
   settings: MediaTrackSettings;
-  template: Float32Array;
 };
 
 export type PreviewVariant = "reference" | "raw" | "compensated";
@@ -77,11 +69,15 @@ export class LatencyCheckerRuntime {
     );
     this.#activeSettings = this.#activeStream.getAudioTracks()[0].getSettings();
     this.#activeSource = context.createMediaStreamSource(this.#activeStream);
-    this.#activeRecorder = new AudioWorkletNode(context, "latency-capture", {
-      numberOfInputs: 1,
-      numberOfOutputs: 1,
-      outputChannelCount: [1],
-    });
+    this.#activeRecorder = new AudioWorkletNode(
+      context,
+      CAPTURE_PROCESSOR_NAME,
+      {
+        numberOfInputs: 1,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+      },
+    );
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
     this.#activeSource
@@ -246,7 +242,7 @@ export class LatencyCheckerRuntime {
     }
     await this.#audioContext.resume();
     if (!this.#workletReady) {
-      const blob = new Blob([createWorkletSource()], {
+      const blob = new Blob([createCaptureWorkletSource()], {
         type: "text/javascript",
       });
       const url = URL.createObjectURL(blob);
@@ -275,82 +271,6 @@ function captureConstraints(deviceId?: string): MediaStreamConstraints {
   };
 }
 
-function createWorkletSource() {
-  return `
-    const CaptureProcessor = (${createCaptureProcessor.toString()})();
-    registerProcessor("latency-capture", CaptureProcessor);
-  `;
-}
-
-type WorkletProcessorConstructor = new () => { port: MessagePort };
-declare const AudioWorkletProcessor: WorkletProcessorConstructor;
-declare const currentFrame: number;
-
-type WorkletControlMessage =
-  | { type: "active"; value: boolean }
-  | { type: "channel"; value: number };
-
-function createCaptureProcessor() {
-  return class CaptureProcessor extends AudioWorkletProcessor {
-    declare active: boolean;
-    declare channel: number;
-    declare lastChannelCount: number;
-
-    constructor() {
-      super();
-      this.active = false;
-      this.channel = 0;
-      this.lastChannelCount = -1;
-      this.port.onmessage = (event: MessageEvent<WorkletControlMessage>) => {
-        if (event.data.type === "active") {
-          this.active = event.data.value;
-        }
-        if (event.data.type === "channel") {
-          this.channel = event.data.value;
-        }
-      };
-    }
-
-    process(inputs: Float32Array[][], outputs: Float32Array[][]) {
-      const channels = inputs[0] || [];
-      const output = outputs[0] || [];
-      for (const samples of output) {
-        samples.fill(0);
-      }
-      if (channels.length !== this.lastChannelCount) {
-        this.lastChannelCount = channels.length;
-        this.port.postMessage({ type: "channels", value: channels.length });
-      }
-      if (this.active && channels.length > 0) {
-        const selected = channels[Math.min(this.channel, channels.length - 1)];
-        const copy = new Float32Array(selected);
-        this.port.postMessage(
-          {
-            type: "samples",
-            frameStart: currentFrame,
-            samples: copy,
-          },
-          [copy.buffer],
-        );
-      }
-      return true;
-    }
-  };
-}
-
-function createClickTemplate(sampleRate: number) {
-  const length = Math.max(64, Math.round(sampleRate * 0.002));
-  const samples = new Float32Array(length);
-  let state = 0x51f15e;
-  for (let index = 0; index < length; index++) {
-    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
-    const sign = state & 0x80000000 ? 1 : -1;
-    const envelope = Math.sin((Math.PI * (index + 0.5)) / length);
-    samples[index] = sign * envelope;
-  }
-  return samples;
-}
-
 function buildClickBuffer({
   context,
   template,
@@ -375,117 +295,6 @@ function buildClickBuffer({
     }
   }
   return buffer;
-}
-
-function assembleChunks(chunks: CaptureChunk[]) {
-  if (chunks.length === 0) {
-    throw new Error("No PCM arrived from the selected input.");
-  }
-  const minFrame = Math.min(...chunks.map((chunk) => chunk.frameStart));
-  const maxFrame = Math.max(
-    ...chunks.map((chunk) => chunk.frameStart + chunk.samples.length),
-  );
-  const samples = new Float32Array(maxFrame - minFrame);
-  for (const chunk of chunks) {
-    samples.set(chunk.samples, chunk.frameStart - minFrame);
-  }
-  return { minFrame, samples };
-}
-
-function findTemplate({
-  recorded,
-  minFrame,
-  expectedFrame,
-  template,
-  sampleRate,
-}: {
-  recorded: Float32Array;
-  minFrame: number;
-  expectedFrame: number;
-  template: Float32Array;
-  sampleRate: number;
-}): LatencyMeasurement {
-  const searchStart = Math.max(
-    0,
-    Math.round(expectedFrame - SEARCH_BEFORE * sampleRate - minFrame),
-  );
-  const searchEnd = Math.min(
-    recorded.length - template.length,
-    Math.round(expectedFrame + SEARCH_AFTER * sampleRate - minFrame),
-  );
-  let templateEnergy = 0;
-  for (const value of template) {
-    templateEnergy += value * value;
-  }
-  let bestScore = -Infinity;
-  let bestIndex = searchStart;
-  for (let start = searchStart; start <= searchEnd; start++) {
-    let dot = 0;
-    let inputEnergy = 0;
-    for (let index = 0; index < template.length; index++) {
-      const value = recorded[start + index];
-      dot += value * template[index];
-      inputEnergy += value * value;
-    }
-    const score =
-      inputEnergy > 1e-12
-        ? Math.abs(dot) / Math.sqrt(inputEnergy * templateEnergy)
-        : 0;
-    if (score > bestScore) {
-      bestScore = score;
-      bestIndex = start;
-    }
-  }
-  const detectedFrame = minFrame + bestIndex;
-  return {
-    detectedFrame,
-    offsetSamples: detectedFrame - expectedFrame,
-    score: bestScore,
-  };
-}
-
-function createPlaybackBuffers({
-  result,
-  compensationSamples,
-}: {
-  result: LatencyResult;
-  compensationSamples: number;
-}) {
-  const {
-    sampleRate,
-    expectedFrames,
-    minFrame,
-    recorded,
-    template,
-    amplitude,
-  } = result;
-  const preRoll = Math.round(sampleRate * 0.1);
-  const postRoll = Math.round(sampleRate * 0.35);
-  const windowStart = expectedFrames[0] - preRoll;
-  const windowEnd = expectedFrames.at(-1)! + template.length + postRoll;
-  const length = windowEnd - windowStart;
-  const reference = new Float32Array(length);
-  const raw = new Float32Array(length);
-  for (const expectedFrame of expectedFrames) {
-    const start = expectedFrame - windowStart;
-    for (let index = 0; index < template.length; index++) {
-      reference[start + index] += template[index] * amplitude;
-    }
-  }
-  for (let index = 0; index < length; index++) {
-    const sourceIndex = windowStart + index - minFrame;
-    if (sourceIndex >= 0 && sourceIndex < recorded.length) {
-      raw[index] = recorded[sourceIndex];
-    }
-  }
-  const compensated = new Float32Array(length);
-  for (let index = 0; index < length; index++) {
-    const sourceIndex = index + compensationSamples;
-    if (sourceIndex >= 0 && sourceIndex < raw.length) {
-      compensated[index] = raw[sourceIndex];
-    }
-  }
-  return { reference, raw, compensated };
 }
 
 function toAudioBuffer(
