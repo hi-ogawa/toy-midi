@@ -9,14 +9,9 @@ export type LatencyMeasurement = {
   score: number;
 };
 
-export type CalibrationRecording = {
-  samples: Float32Array;
-  startFrame: number;
-};
-
 export type CalibrationAnalysis = {
   measurements: LatencyMeasurement[];
-  recording: CalibrationRecording;
+  recording: Float32Array;
 };
 
 export type CalibrationPlayback = {
@@ -101,27 +96,29 @@ export function createCalibrationPlayback({
 /**
  * Reconstructs captured PCM and locates the template near every scheduled click.
  *
- * Chunk and expected-frame coordinates are absolute AudioContext frame numbers.
- * The assembled recording retains its absolute start frame. Measurements remain
- * in absolute frames and report signed offsets relative to their corresponding
- * expected frame.
+ * Captured chunks and expected frames use absolute AudioContext coordinates.
+ * Assembly discards samples before `playbackStartFrame`, so recording index zero
+ * corresponds to playback sample zero. Measurements report absolute detected
+ * frames and signed offsets from their corresponding expected frames.
  */
 export function analyzeCalibration({
   chunks,
   expectedFrames,
+  playbackStartFrame,
   sampleRate,
   template,
 }: {
   chunks: CaptureChunk[];
   expectedFrames: number[];
+  playbackStartFrame: number;
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
-  // Keep startFrame so contiguous array indices retain absolute meaning.
-  const recording = assembleChunks(chunks);
+  const recording = assembleChunks({ chunks, playbackStartFrame });
   const measurements = expectedFrames.map((expectedFrame) =>
     findTemplate({
-      expectedFrame,
+      expectedOffset: expectedFrame - playbackStartFrame,
+      playbackStartFrame,
       recording,
       template,
       sampleRate,
@@ -134,31 +131,40 @@ export function analyzeCalibration({
 }
 
 /**
- * Assembles AudioWorklet render chunks into one contiguous sample array.
+ * Assembles capture from playback start into one contiguous sample array.
  *
- * Missing frame ranges remain zero-filled. If chunks overlap, later entries in
- * the input replace earlier samples. `startFrame` is the absolute AudioContext
- * frame represented by output index zero.
+ * Samples before playback are discarded. Missing ranges remain zero-filled, and
+ * later chunks replace overlapping samples. Output index zero corresponds to
+ * `playbackStartFrame`.
  */
-function assembleChunks(chunks: CaptureChunk[]): CalibrationRecording {
+function assembleChunks({
+  chunks,
+  playbackStartFrame,
+}: {
+  chunks: CaptureChunk[];
+  playbackStartFrame: number;
+}): Float32Array {
   if (chunks.length === 0) {
     throw new Error("No PCM arrived from the selected input.");
   }
-  const startFrame = Math.min(...chunks.map((chunk) => chunk.frameStart));
   const maxFrame = Math.max(
     ...chunks.map((chunk) => chunk.frameStart + chunk.samples.length),
   );
-  const samples = new Float32Array(maxFrame - startFrame);
+  const samples = new Float32Array(Math.max(0, maxFrame - playbackStartFrame));
   // Gaps stay zero-filled; later chunks replace overlapping samples.
   for (const chunk of chunks) {
-    samples.set(chunk.samples, chunk.frameStart - startFrame);
+    setArrayClipped(
+      samples,
+      chunk.samples,
+      chunk.frameStart - playbackStartFrame,
+    );
   }
-  return { samples, startFrame };
+  return samples;
 }
 
 /**
  * Finds the strongest normalized correlation with `template` near one expected
- * absolute frame.
+ * playback-relative offset.
  *
  * Normalization makes the score independent of capture gain. The absolute dot
  * product permits polarity-inverted routes. Only candidate positions containing
@@ -166,23 +172,22 @@ function assembleChunks(chunks: CaptureChunk[]): CalibrationRecording {
  * hardware latency after the scheduled onset.
  */
 function findTemplate({
-  expectedFrame,
+  expectedOffset,
+  playbackStartFrame,
   recording,
   template,
   sampleRate,
 }: {
-  expectedFrame: number;
-  recording: CalibrationRecording;
+  expectedOffset: number;
+  playbackStartFrame: number;
+  recording: Float32Array;
   template: Float32Array;
   sampleRate: number;
 }): LatencyMeasurement {
-  // Translate absolute frames into recording indices and require full windows.
-  const searchStart = Math.max(0, expectedFrame - recording.startFrame);
+  const searchStart = expectedOffset;
   const searchEnd = Math.min(
-    recording.samples.length - template.length,
-    Math.round(
-      expectedFrame + SEARCH_AFTER * sampleRate - recording.startFrame,
-    ),
+    recording.length - template.length,
+    Math.round(expectedOffset + SEARCH_AFTER * sampleRate),
   );
   let templateEnergy = 0;
   for (const value of template) {
@@ -195,7 +200,7 @@ function findTemplate({
     let dot = 0;
     let inputEnergy = 0;
     for (let index = 0; index < template.length; index++) {
-      const value = recording.samples[start + index];
+      const value = recording[start + index];
       dot += value * template[index];
       inputEnergy += value * value;
     }
@@ -208,7 +213,8 @@ function findTemplate({
       bestIndex = start;
     }
   }
-  const detectedFrame = recording.startFrame + bestIndex;
+  const expectedFrame = playbackStartFrame + expectedOffset;
+  const detectedFrame = playbackStartFrame + bestIndex;
   return {
     detectedFrame,
     offsetSamples: detectedFrame - expectedFrame,
@@ -242,9 +248,8 @@ export function createPlaybackBuffers({
   const reference = new Float32Array(length);
   reference.set(playback.samples, preRoll);
 
-  const recordingStart = preRoll + recording.startFrame - playback.startFrame;
   const raw = new Float32Array(length);
-  setArrayClipped(raw, recording.samples, recordingStart);
+  setArrayClipped(raw, recording, preRoll);
   const compensated = new Float32Array(length);
   setArrayClipped(compensated, raw, -compensationSamples);
   return { reference, raw, compensated };
