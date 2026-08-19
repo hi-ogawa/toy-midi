@@ -4,7 +4,6 @@ import type { CaptureChunk } from "./capture-worklet.ts";
 const SEARCH_AFTER = 0.32;
 
 export type LatencyMeasurement = {
-  detectedFrame: number;
   offsetSamples: number;
   score: number;
 };
@@ -15,7 +14,7 @@ export type CalibrationAnalysis = {
 };
 
 export type CalibrationPlayback = {
-  expectedFrames: number[];
+  clickOffsets: number[];
   samples: Float32Array;
   startFrame: number;
 };
@@ -87,7 +86,7 @@ export function createCalibrationPlayback({
     }
   }
   return {
-    expectedFrames: clickOffsets.map((offset) => startFrame + offset),
+    clickOffsets,
     samples,
     startFrame,
   };
@@ -98,27 +97,26 @@ export function createCalibrationPlayback({
  *
  * Captured chunks and expected frames use absolute AudioContext coordinates.
  * Assembly discards samples before `playbackStartFrame`, so recording index zero
- * corresponds to playback sample zero. Measurements report absolute detected
- * frames and signed offsets from their corresponding expected frames.
+ * corresponds to playback sample zero. Measurements report each detected
+ * position as a signed sample offset from its scheduled click.
  */
 export function analyzeCalibration({
   chunks,
-  expectedFrames,
+  clickOffsets,
   playbackStartFrame,
   sampleRate,
   template,
 }: {
   chunks: CaptureChunk[];
-  expectedFrames: number[];
+  clickOffsets: number[];
   playbackStartFrame: number;
   sampleRate: number;
   template: Float32Array;
 }): CalibrationAnalysis {
   const recording = assembleChunks({ chunks, playbackStartFrame });
-  const measurements = expectedFrames.map((expectedFrame) =>
+  const measurements = clickOffsets.map((expectedOffset) =>
     findTemplate({
-      expectedOffset: expectedFrame - playbackStartFrame,
-      playbackStartFrame,
+      expectedOffset,
       recording,
       template,
       sampleRate,
@@ -173,13 +171,11 @@ function assembleChunks({
  */
 function findTemplate({
   expectedOffset,
-  playbackStartFrame,
   recording,
   template,
   sampleRate,
 }: {
   expectedOffset: number;
-  playbackStartFrame: number;
   recording: Float32Array;
   template: Float32Array;
   sampleRate: number;
@@ -213,11 +209,8 @@ function findTemplate({
       bestIndex = start;
     }
   }
-  const expectedFrame = playbackStartFrame + expectedOffset;
-  const detectedFrame = playbackStartFrame + bestIndex;
   return {
-    detectedFrame,
-    offsetSamples: detectedFrame - expectedFrame,
+    offsetSamples: bestIndex - expectedOffset,
     score: bestScore,
   };
 }

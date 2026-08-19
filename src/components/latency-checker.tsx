@@ -338,7 +338,7 @@ export function LatencyChecker() {
           >
             {result ? (
               <ResultsView
-                key={result.calibration.playback.expectedFrames[0]}
+                key={result.calibration.playback.startFrame}
                 result={result}
                 runtime={runtime}
               />

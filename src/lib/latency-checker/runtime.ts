@@ -173,7 +173,7 @@ export class LatencyCheckerRuntime {
 
       const analysis = analyzeCalibration({
         chunks,
-        expectedFrames: playback.expectedFrames,
+        clickOffsets: playback.clickOffsets,
         playbackStartFrame: playback.startFrame,
         sampleRate: context.sampleRate,
         template,
