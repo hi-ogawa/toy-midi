@@ -210,7 +210,7 @@ export function LatencyChecker() {
                       : "Grant access"}
               </ActionButton>
             </div>
-            {!hasAccess && grantAccessMutation.error && (
+            {grantAccessMutation.error && (
               <ErrorMessage>{grantAccessMutation.error.message}</ErrorMessage>
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
