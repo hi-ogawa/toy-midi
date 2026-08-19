@@ -242,41 +242,41 @@ export function createPlaybackBuffers({
   const reference = new Float32Array(length);
   reference.set(playback.samples, preRoll);
 
-  const playbackStartIndex = playback.startFrame - recording.startFrame;
-  const raw = shiftSamples({
+  const recordingStart = preRoll + recording.startFrame - playback.startFrame;
+  const raw = placeSamples({
     input: recording.samples,
     length,
-    offset: playbackStartIndex - preRoll,
+    outputStart: recordingStart,
   });
-  const compensated = shiftSamples({
+  const compensated = placeSamples({
     input: raw,
     length,
-    offset: compensationSamples,
+    outputStart: -compensationSamples,
   });
   return { reference, raw, compensated };
 }
 
-/** Copies samples with an integer offset, leaving unavailable output as zero. */
-function shiftSamples({
+/** Places input sample zero at `outputStart`, clipping outside the output. */
+function placeSamples({
   input,
   length,
-  offset,
+  outputStart,
 }: {
   input: Float32Array;
   length: number;
-  offset: number;
+  outputStart: number;
 }) {
   const output = new Float32Array(length);
-  const sourceStart = Math.max(0, offset);
-  const outputStart = Math.max(0, -offset);
+  const inputStart = Math.max(0, -outputStart);
+  const targetStart = Math.max(0, outputStart);
   const copyLength = Math.min(
-    input.length - sourceStart,
-    output.length - outputStart,
+    input.length - inputStart,
+    output.length - targetStart,
   );
   if (copyLength > 0) {
     output.set(
-      input.subarray(sourceStart, sourceStart + copyLength),
-      outputStart,
+      input.subarray(inputStart, inputStart + copyLength),
+      targetStart,
     );
   }
   return output;
