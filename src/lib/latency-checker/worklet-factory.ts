@@ -51,7 +51,10 @@ function createCaptureProcessor() {
         this.port.postMessage({ type: "channels", value: channels.length });
       }
       if (this.active && channels.length > 0) {
-        const selected = channels[Math.min(this.channel, channels.length - 1)];
+        const selected = channels[this.channel];
+        if (!selected) {
+          return true;
+        }
         const copy = new Float32Array(selected);
         this.port.postMessage(
           {

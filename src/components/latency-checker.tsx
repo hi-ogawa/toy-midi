@@ -83,8 +83,9 @@ export function LatencyChecker() {
   });
 
   const openRouteMutation = useMutation({
-    mutationFn: () => runtime.openRoute({ channel, deviceId }),
+    mutationFn: () => runtime.openRoute({ deviceId }),
     onSuccess: () => {
+      setChannel(0);
       setRouteOpen(true);
       setStatus({
         message:
@@ -232,7 +233,7 @@ export function LatencyChecker() {
             <Field label="Channel carried by the loop">
               <select
                 value={channel}
-                disabled={busy}
+                disabled={busy || !routeOpen}
                 onChange={(event) => {
                   const value = Number(event.currentTarget.value);
                   setChannel(value);
@@ -240,11 +241,15 @@ export function LatencyChecker() {
                 }}
                 className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:opacity-50"
               >
-                {Array.from({ length: 8 }, (_, index) => (
-                  <option key={index} value={index}>
-                    Channel {index + 1}
-                  </option>
-                ))}
+                {openRouteMutation.data ? (
+                  Array.from({ length: openRouteMutation.data }, (_, index) => (
+                    <option key={index} value={index}>
+                      Channel {index + 1}
+                    </option>
+                  ))
+                ) : (
+                  <option>Open route first</option>
+                )}
               </select>
             </Field>
 

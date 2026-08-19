@@ -56,13 +56,7 @@ export class LatencyCheckerRuntime {
     );
   }
 
-  async openRoute({
-    channel,
-    deviceId,
-  }: {
-    channel: number;
-    deviceId: string;
-  }) {
+  async openRoute({ deviceId }: { deviceId: string }) {
     const context = await this.#ensureAudioContext();
     this.#activeStream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
@@ -78,23 +72,30 @@ export class LatencyCheckerRuntime {
         outputChannelCount: [1],
       },
     );
+    this.#detectedChannelCount = 0;
+    const channelCount = new Promise<number>((resolve) => {
+      this.#activeRecorder!.port.onmessage = (
+        event: MessageEvent<CaptureMessage>,
+      ) => {
+        if (event.data.type === "samples" && this.#captureChunks) {
+          this.#captureChunks.push(event.data);
+        }
+        if (event.data.type === "channels") {
+          this.#detectedChannelCount = event.data.value;
+          if (event.data.value > 0) {
+            resolve(event.data.value);
+          }
+        }
+      };
+    });
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
     this.#activeSource
       .connect(this.#activeRecorder)
       .connect(this.#activeSilentGain)
       .connect(context.destination);
-    this.#activeRecorder.port.onmessage = (
-      event: MessageEvent<CaptureMessage>,
-    ) => {
-      if (event.data.type === "samples" && this.#captureChunks) {
-        this.#captureChunks.push(event.data);
-      }
-      if (event.data.type === "channels") {
-        this.#detectedChannelCount = event.data.value;
-      }
-    };
-    this.setChannel(channel);
+    this.setChannel(0);
+    return channelCount;
   }
 
   closeRoute() {
@@ -109,6 +110,7 @@ export class LatencyCheckerRuntime {
     this.#activeSilentGain = undefined;
     this.#activeSettings = undefined;
     this.#captureChunks = undefined;
+    this.#detectedChannelCount = 0;
   }
 
   setChannel(channel: number) {
