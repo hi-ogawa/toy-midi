@@ -98,7 +98,7 @@ export function LatencyChecker() {
   const result = calibrationMutation.data;
   const resultStatus = result ? getResultStatus(result) : undefined;
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
-  const hasLabeledInput = devices.some((device) => device.label);
+  const hasAccess = devices.some((device) => device.label);
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -194,18 +194,18 @@ export function LatencyChecker() {
             number={1}
             title="Input"
             description="Grant browser access and choose the capture device."
-            state={hasLabeledInput ? "complete" : "active"}
-            status={hasLabeledInput ? "Complete" : "Start here"}
+            state={hasAccess ? "complete" : "active"}
+            status={hasAccess ? "Complete" : "Start here"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
               <Field label="Browser audio input">
                 <select
                   value={deviceId}
-                  disabled={!hasLabeledInput || busy || routeOpen}
+                  disabled={!hasAccess || busy || routeOpen}
                   onChange={(event) => setDeviceId(event.currentTarget.value)}
                   className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
-                  {!hasLabeledInput ? (
+                  {!hasAccess ? (
                     <option>Grant access to list audio inputs</option>
                   ) : (
                     devices.map((device, index) => (
@@ -217,15 +217,15 @@ export function LatencyChecker() {
                 </select>
               </Field>
               <ActionButton
-                accent={!hasLabeledInput}
+                accent={!hasAccess}
                 disabled={busy || routeOpen}
                 onClick={() =>
-                  hasLabeledInput
+                  hasAccess
                     ? refreshInputsMutation.mutate()
                     : grantAccessMutation.mutate()
                 }
               >
-                {hasLabeledInput ? "Refresh inputs" : "Grant access"}
+                {hasAccess ? "Refresh inputs" : "Grant access"}
               </ActionButton>
             </div>
             {routeOpen && (
@@ -233,18 +233,16 @@ export function LatencyChecker() {
                 Input selection is locked while the route is open.
               </p>
             )}
-            {!hasLabeledInput && <StatusMessage status={displayedStatus} />}
+            {!hasAccess && <StatusMessage status={displayedStatus} />}
           </WorkflowSection>
 
           <WorkflowSection
             number={2}
             title="Route and patching"
             description="Open the browser nodes, select the detected input channel, then make the external loop."
-            state={
-              !hasLabeledInput ? "disabled" : result ? "complete" : "active"
-            }
+            state={!hasAccess ? "disabled" : result ? "complete" : "active"}
             status={
-              !hasLabeledInput
+              !hasAccess
                 ? "Requires input"
                 : result
                   ? "Complete"
@@ -279,10 +277,7 @@ export function LatencyChecker() {
                   )}
                 </select>
               </Field>
-              <ActionButton
-                disabled={busy || !hasLabeledInput}
-                onClick={toggleRoute}
-              >
+              <ActionButton disabled={busy || !hasAccess} onClick={toggleRoute}>
                 {routeOpen ? "Close route" : "Open route"}
               </ActionButton>
             </div>
@@ -291,7 +286,7 @@ export function LatencyChecker() {
                 ? "Route open. Patch browser output to the selected input, mute speakers, and keep the route unchanged through measurement."
                 : "After opening the route, patch browser output to the selected input. For a physical loop, mute speakers first."}
             </p>
-            {hasLabeledInput &&
+            {hasAccess &&
               !routeOpen &&
               (openRouteMutation.isPending || openRouteMutation.error) && (
                 <StatusMessage status={displayedStatus} />
