@@ -162,7 +162,12 @@ export class LatencyCheckerRuntime {
     channel: number;
     outputLevel: number;
   }) {
-    if (!this.#activeRecorder || !this.#activeStream || !this.#activeSettings) {
+    if (
+      !this.#activeRecorder ||
+      !this.#activeStream ||
+      !this.#activeSettings ||
+      this.#detectedChannelCount <= 0
+    ) {
       throw new Error("Start input monitoring before running the click test.");
     }
     const context = await this.#ensureAudioContext();
@@ -203,8 +208,7 @@ export class LatencyCheckerRuntime {
             template,
           },
         },
-        channelCount:
-          this.#detectedChannelCount || this.#activeSettings.channelCount || 0,
+        channelCount: this.#detectedChannelCount,
         settings: this.#activeSettings,
       } satisfies LatencyResult;
     } finally {
