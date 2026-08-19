@@ -1,3 +1,4 @@
+import { dbToGain } from "../music.ts";
 import {
   assembleChunks,
   type CalibrationRecording,
@@ -141,7 +142,7 @@ export class LatencyCheckerRuntime {
 
     try {
       const template = createClickTemplate(context.sampleRate);
-      const amplitude = 10 ** (outputLevel / 20);
+      const amplitude = dbToGain(outputLevel);
       const clickBuffer = buildClickBuffer({ context, template, amplitude });
       const clickSource = context.createBufferSource();
       clickSource.buffer = clickBuffer;

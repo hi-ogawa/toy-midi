@@ -11,6 +11,7 @@ import {
   LatencyCheckerRuntime,
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
+import { gainToDb } from "../lib/music";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 import {
@@ -559,7 +560,7 @@ function InputMeter({ active, peak }: { active: boolean; peak: number }) {
     ((value - meterMin) / (meterMax - meterMin)) * 100;
   const zeroPosition = getMeterPosition(0);
 
-  const decibels = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+  const decibels = peak > 0 ? gainToDb(peak) : -Infinity;
   const meterValue = clamp(decibels, meterMin, meterMax);
   const levelPosition = active ? getMeterPosition(meterValue) : 0;
   const label =
