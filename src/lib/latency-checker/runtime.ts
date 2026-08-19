@@ -75,6 +75,9 @@ export class LatencyCheckerRuntime {
     });
     this.#activeRecorder = recorder;
     this.#detectedChannelCount = 0;
+    // Monitoring is ready only after the processor observes a real input
+    // quantum. Bound the wait because a silent or disconnected route may never
+    // produce one, even when getUserMedia succeeds.
     const channelCount = new Promise<number>((resolve, reject) => {
       const timeout = window.setTimeout(
         () =>
@@ -82,6 +85,8 @@ export class LatencyCheckerRuntime {
         3_000,
       );
       recorder.port.onmessage = (event: MessageEvent<CaptureMessage>) => {
+        // Sample messages arrive continuously only while calibration capture is
+        // active; meter and channel discovery remain active while monitoring.
         if (event.data.type === "samples" && this.#captureChunks) {
           this.#captureChunks.push(event.data);
         }
@@ -99,6 +104,8 @@ export class LatencyCheckerRuntime {
     });
     this.#activeSilentGain = context.createGain();
     this.#activeSilentGain.gain.value = 0;
+    // Web Audio may suspend a disconnected worklet. Route it to destination
+    // through zero gain to keep processing without audible input passthrough.
     this.#activeSource
       .connect(this.#activeRecorder)
       .connect(this.#activeSilentGain)
@@ -140,6 +147,8 @@ export class LatencyCheckerRuntime {
     this.setChannel(channel);
     const chunks: CaptureChunk[] = [];
     this.#captureChunks = chunks;
+    // Capture control crosses to the audio thread asynchronously. Lead time in
+    // the schedule ensures capture is active before the first click is emitted.
     this.#postControl({ type: "active", value: true });
 
     try {
@@ -158,6 +167,7 @@ export class LatencyCheckerRuntime {
       clickSource.start(startTime);
       await wait(schedule.durationSeconds * 1000);
       this.#postControl({ type: "active", value: false });
+      // Allow the final worklet message already in transit to reach this thread.
       await wait(80);
 
       const analysis = analyzeCalibration({
@@ -255,6 +265,7 @@ export class LatencyCheckerRuntime {
   }
 
   #postControl(message: WorkletControlMessage) {
+    // Keep the runtime-to-worklet protocol checked at every send site.
     this.#activeRecorder?.port.postMessage(message);
   }
 
@@ -265,6 +276,8 @@ export class LatencyCheckerRuntime {
     }
     await this.#audioContext.resume();
     if (!this.#workletReady) {
+      // The generated module belongs to this AudioContext; a replacement
+      // context must register the processor again.
       const blob = new Blob([createCaptureWorkletSource()], {
         type: "text/javascript",
       });
