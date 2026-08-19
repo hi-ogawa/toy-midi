@@ -83,10 +83,9 @@ export function LatencyChecker() {
   });
   const result = calibrationMutation.data;
   const resultStatus = result ? getResultStatus(result) : undefined;
+
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
-  const inputsInitialized =
-    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
 
   const previewMutation = useMutation({
     mutationFn: (options: {
@@ -95,29 +94,6 @@ export function LatencyChecker() {
       variant: PreviewVariant;
     }) => runtime.play(options),
   });
-
-  const accessStatus: Status | undefined = grantAccessMutation.error
-    ? { message: grantAccessMutation.error.message, state: "error" }
-    : grantAccessMutation.isPending
-      ? {
-          message: "Requesting browser microphone permission...",
-          state: "busy",
-        }
-      : undefined;
-  const monitoringStatus: Status | undefined = startMonitoringMutation.error
-    ? { message: startMonitoringMutation.error.message, state: "error" }
-    : startMonitoringMutation.isPending
-      ? { message: "Starting input monitoring...", state: "busy" }
-      : undefined;
-  const calibrationStatus: Status | undefined = calibrationMutation.error
-    ? { message: calibrationMutation.error.message, state: "error" }
-    : calibrationMutation.isPending
-      ? {
-          message:
-            "Recording 7 clicks. Keep the loopback connection unchanged...",
-          state: "busy",
-        }
-      : resultStatus;
 
   function stopMonitoring() {
     runtime.stopMonitoring();
@@ -144,6 +120,32 @@ export function LatencyChecker() {
     }
     setDeviceId(nextDeviceId);
   }
+
+  const inputsInitialized =
+    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
+
+  const accessStatus: Status | undefined = grantAccessMutation.error
+    ? { message: grantAccessMutation.error.message, state: "error" }
+    : grantAccessMutation.isPending
+      ? {
+          message: "Requesting browser microphone permission...",
+          state: "busy",
+        }
+      : undefined;
+  const monitoringStatus: Status | undefined = startMonitoringMutation.error
+    ? { message: startMonitoringMutation.error.message, state: "error" }
+    : startMonitoringMutation.isPending
+      ? { message: "Starting input monitoring...", state: "busy" }
+      : undefined;
+  const calibrationStatus: Status | undefined = calibrationMutation.error
+    ? { message: calibrationMutation.error.message, state: "error" }
+    : calibrationMutation.isPending
+      ? {
+          message:
+            "Recording 7 clicks. Keep the loopback connection unchanged...",
+          state: "busy",
+        }
+      : resultStatus;
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
