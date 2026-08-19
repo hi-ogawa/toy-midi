@@ -25,7 +25,7 @@ export type LatencyResult = CalibrationRecording & {
   settings: MediaTrackSettings;
 };
 
-export type PreviewVariant = "reference" | "raw" | "compensated";
+export type PreviewVariant = "raw" | "compensated";
 
 export class LatencyCheckerRuntime {
   #audioContext?: AudioContext;
@@ -215,15 +215,8 @@ export class LatencyCheckerRuntime {
       this.#activePreviewSources.push(source);
     };
 
-    if (variant === "reference") {
-      start(buffers.reference, 0.8);
-    } else if (variant === "raw") {
-      start(buffers.reference, 0.58);
-      start(buffers.raw, 0.58);
-    } else {
-      start(buffers.reference, 0.58);
-      start(buffers.compensated, 0.58);
-    }
+    start(buffers.reference, 0.58);
+    start(variant === "raw" ? buffers.raw : buffers.compensated, 0.58);
     await new Promise<void>((resolve) => {
       let remaining = this.#activePreviewSources.length;
       this.#finishPreview = resolve;
