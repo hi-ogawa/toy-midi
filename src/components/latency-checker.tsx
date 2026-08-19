@@ -101,31 +101,28 @@ export function LatencyChecker() {
     grantAccessMutation.isPending ||
     startMonitoringMutation.isPending ||
     calibrationMutation.isPending;
-  const mutationError =
-    grantAccessMutation.error ??
-    startMonitoringMutation.error ??
-    calibrationMutation.error ??
-    previewMutation.error;
-  const pendingStatus: Status | undefined = grantAccessMutation.isPending
-    ? {
-        message: "Requesting browser microphone permission...",
-        state: "busy",
-      }
-    : startMonitoringMutation.isPending
+  const accessStatus: Status | undefined = grantAccessMutation.error
+    ? { message: grantAccessMutation.error.message, state: "error" }
+    : grantAccessMutation.isPending
       ? {
-          message: "Starting input monitoring...",
+          message: "Requesting browser microphone permission...",
           state: "busy",
         }
-      : calibrationMutation.isPending
-        ? {
-            message:
-              "Recording 7 clicks. Keep the loopback connection unchanged...",
-            state: "busy",
-          }
-        : undefined;
-  const displayedStatus: Status | undefined = mutationError
-    ? { message: mutationError.message, state: "error" }
-    : (pendingStatus ?? (isMonitoring ? resultStatus : undefined));
+      : undefined;
+  const monitoringStatus: Status | undefined = startMonitoringMutation.error
+    ? { message: startMonitoringMutation.error.message, state: "error" }
+    : startMonitoringMutation.isPending
+      ? { message: "Starting input monitoring...", state: "busy" }
+      : undefined;
+  const calibrationStatus: Status | undefined = calibrationMutation.error
+    ? { message: calibrationMutation.error.message, state: "error" }
+    : calibrationMutation.isPending
+      ? {
+          message:
+            "Recording 7 clicks. Keep the loopback connection unchanged...",
+          state: "busy",
+        }
+      : resultStatus;
 
   function stopMonitoring() {
     runtime.stopMonitoring();
@@ -241,8 +238,8 @@ export function LatencyChecker() {
                     : "Grant access"}
               </ActionButton>
             </div>
-            {!hasAccess && displayedStatus && (
-              <StatusMessage status={displayedStatus} />
+            {!hasAccess && accessStatus && (
+              <StatusMessage status={accessStatus} />
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-t border-neutral-200 pt-6">
               <Field label="Channel carrying the loop">
@@ -282,11 +279,7 @@ export function LatencyChecker() {
                 <InputMeter active={isMonitoring} peak={inputPeak} />
               </Field>
             </div>
-            {hasAccess &&
-              !isMonitoring &&
-              (startMonitoringMutation.isPending ||
-                startMonitoringMutation.error) &&
-              displayedStatus && <StatusMessage status={displayedStatus} />}
+            {monitoringStatus && <StatusMessage status={monitoringStatus} />}
           </WorkflowSection>
 
           <WorkflowSection
@@ -324,11 +317,9 @@ export function LatencyChecker() {
                 {result ? "Run again" : "Run 7-click test"}
               </ActionButton>
             </div>
-            {isMonitoring &&
-              (calibrationMutation.isPending ||
-                calibrationMutation.error ||
-                result) &&
-              displayedStatus && <StatusMessage status={displayedStatus} />}
+            {isMonitoring && calibrationStatus && (
+              <StatusMessage status={calibrationStatus} />
+            )}
           </WorkflowSection>
 
           <WorkflowSection
