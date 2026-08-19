@@ -16,8 +16,10 @@ import {
 const CALIBRATION_TIMING: CalibrationTiming = {
   clickCount: 7,
   clickInterval: 0.46,
+  // Keep capture running after the final click to include delayed input.
   tailTime: 0.45,
 };
+// Begin capture before playback so the worklet is active at the first onset.
 const CALIBRATION_LEAD_TIME = 0.55;
 
 export type LatencyResult = {
