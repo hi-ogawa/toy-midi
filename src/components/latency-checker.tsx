@@ -64,6 +64,9 @@ export function LatencyChecker() {
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
 
+  const inputsInitialized =
+    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
+
   // Before microphone permission, enumerateDevices may expose only unlabeled placeholders.
   const hasAccess = devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
@@ -102,9 +105,6 @@ export function LatencyChecker() {
     }
     setDeviceId(nextDeviceId);
   }
-
-  const inputsInitialized =
-    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
