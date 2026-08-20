@@ -34,7 +34,7 @@ export function gainToDb(gain: number): number {
   if (gain <= 0) {
     return MIN_DB;
   }
-  return 20 * Math.log10(gain);
+  return Math.max(MIN_DB, 20 * Math.log10(gain));
 }
 
 export function clampGain(gain: number): number {
