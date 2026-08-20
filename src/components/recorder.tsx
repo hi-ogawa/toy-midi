@@ -184,8 +184,7 @@ export function Recorder() {
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
-      <RecorderHeader />
-      <RecorderTransport
+      <RecorderHeader
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -376,36 +375,7 @@ export function Recorder() {
   );
 }
 
-function RecorderHeader() {
-  return (
-    <header className="flex h-[42px] shrink-0 items-center border-b border-neutral-700 bg-neutral-800 px-4">
-      <Mic2Icon className="mr-2 size-4 text-emerald-400" />
-      <span className="text-sm font-medium">Recorder</span>
-      <div className="flex-1" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            title="More"
-            aria-label="More"
-            className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-          >
-            <MoreVerticalIcon className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem asChild>
-            <a href={routes.home.href()}>
-              <HouseIcon />
-              Home
-            </a>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </header>
-  );
-}
-
-function RecorderTransport({
+function RecorderHeader({
   isPlaying,
   isProcessing,
   isRecording,
@@ -433,7 +403,10 @@ function RecorderTransport({
   onZoomOut: () => void;
 }) {
   return (
-    <div className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
+    <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
+      <Mic2Icon className="size-4 text-emerald-400" />
+      <span className="mr-2 text-sm font-medium">Recorder</span>
+      <div className="h-5 w-px bg-neutral-600" />
       <Button
         onClick={onReset}
         disabled={isRecording || isProcessing}
@@ -497,7 +470,26 @@ function RecorderTransport({
       >
         <ZoomInIcon className="size-4" />
       </Button>
-    </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            title="More"
+            aria-label="More"
+            className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            <MoreVerticalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <a href={routes.home.href()}>
+              <HouseIcon />
+              Home
+            </a>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
   );
 }
 
