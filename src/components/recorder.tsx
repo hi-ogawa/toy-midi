@@ -75,7 +75,7 @@ export function Recorder() {
       recorderRuntime.startInput({ deviceId, onLevel: setInputPeak }),
   });
   const backingMutation = useMutation({
-    mutationFn: (file: File) => recorderRuntime.setPlaybackTrack(0, file),
+    mutationFn: (file: File) => recorderRuntime.setAudioTrack(0, file),
   });
   const playMutation = useMutation({
     mutationFn: () => recorderRuntime.play(),
@@ -87,12 +87,10 @@ export function Recorder() {
         : recorderRuntime.stopRecording(),
   });
 
-  const backingTrack = state.playbackTracks[0];
+  const backingTrack = state.audioTracks[0];
   const duration = Math.max(
     1,
-    ...state.playbackTracks.map(
-      (track) => track.timelineOffset + track.duration,
-    ),
+    ...state.audioTracks.map((track) => track.timelineOffset + track.duration),
     state.takeCaptureOffset - state.latencyCompensation + state.takeDuration,
   );
   const isRecording = state.status === "recording";
@@ -190,7 +188,7 @@ export function Recorder() {
                 </label>
                 <Button
                   onClick={() =>
-                    recorderRuntime.setPlaybackTrackMix(0, {
+                    recorderRuntime.setAudioTrackMix(0, {
                       muted: !backingTrack?.muted,
                     })
                   }
@@ -214,7 +212,7 @@ export function Recorder() {
                   step={0.01}
                   value={backingTrack?.gain ?? 1}
                   onChange={(event) =>
-                    recorderRuntime.setPlaybackTrackMix(0, {
+                    recorderRuntime.setAudioTrackMix(0, {
                       gain: event.currentTarget.valueAsNumber,
                     })
                   }
