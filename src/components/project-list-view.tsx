@@ -93,18 +93,18 @@ export function ProjectListView({
           </div>
           <nav className="flex items-center gap-4 text-sm text-neutral-500">
             <a
-              href={routes.latencyChecker.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-            >
-              <AudioLinesIcon className="size-4" />
-              Latency Checker
-            </a>
-            <a
               href={routes.recorder.href()}
               className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >
               <Mic2Icon className="size-4" />
               Recorder
+            </a>
+            <a
+              href={routes.latencyChecker.href()}
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <AudioLinesIcon className="size-4" />
+              Latency Checker
             </a>
             <a
               href={routes.scoreViewer.href()}
