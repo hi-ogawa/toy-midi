@@ -473,11 +473,12 @@ function RecorderHeader({
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
         title="Toggle metronome"
-        className={
+        className={cn(
+          "size-9",
           metronomeEnabled
-            ? "size-9 bg-emerald-700 text-white hover:bg-emerald-600"
-            : "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        }
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
       >
         <MetronomeIcon className="size-5" />
       </Button>
