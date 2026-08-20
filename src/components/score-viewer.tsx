@@ -146,11 +146,11 @@ export function ScoreViewer({
   return (
     <main
       className={cn(
-        "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
+        "flex h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-950",
         settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
-      <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
+      <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <Button
           data-testid="score-play-pause-button"
           disabled={!runtimeState.isReady}
@@ -313,13 +313,13 @@ export function ScoreViewer({
                   source: file,
                 })
               }
-              className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
+              className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-xl border border-dashed border-neutral-500 bg-white/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-white hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-50 data-[drag-over=true]:text-emerald-900"
             >
-              <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
+              <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
                 <UploadIcon className="size-5" />
               </span>
               <span className="font-medium">Drop a MusicXML score here</span>
-              <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-blue-700">
+              <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-emerald-700">
                 or click to choose an .xml or .musicxml file
               </span>
             </FileDropInput>
