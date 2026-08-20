@@ -4,7 +4,6 @@ import {
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
 
-const PREFERRED_INPUT_KEY = "toy-midi-recorder-preferred-input";
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
 
@@ -87,10 +86,8 @@ class RecorderRuntime {
     });
   }
 
-  async enablePreferredInput(): Promise<void> {
-    await this.selectInput(
-      localStorage.getItem(PREFERRED_INPUT_KEY) ?? undefined,
-    );
+  async enableInput(): Promise<void> {
+    await this.selectInput();
   }
 
   async selectInput(deviceId?: string): Promise<void> {
@@ -129,10 +126,6 @@ class RecorderRuntime {
       throw new Error("The selected device did not provide an audio track.");
     }
     const settings = track.getSettings();
-    if (settings.deviceId) {
-      localStorage.setItem(PREFERRED_INPUT_KEY, settings.deviceId);
-    }
-
     this.#inputSource = context.createMediaStreamSource(stream);
     this.#captureWorklet = new CaptureWorkletClient({
       context,

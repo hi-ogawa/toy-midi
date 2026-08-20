@@ -38,7 +38,7 @@ export function Recorder() {
     mutationFn: (deviceId?: string) =>
       deviceId
         ? recorderRuntime.selectInput(deviceId)
-        : recorderRuntime.enablePreferredInput(),
+        : recorderRuntime.enableInput(),
   });
   const backingMutation = useMutation({
     mutationFn: (file: File) => recorderRuntime.loadBacking(file),
