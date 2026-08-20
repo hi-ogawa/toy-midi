@@ -21,7 +21,7 @@ interface RecorderState {
   position: number;
   hasTake: boolean;
   takeDuration: number;
-  takeOffset: number;
+  takeCaptureOffset: number;
   latencyCompensation: number;
 }
 
@@ -37,7 +37,7 @@ class RecorderRuntime {
     position: 0,
     hasTake: false,
     takeDuration: 0,
-    takeOffset: 0,
+    takeCaptureOffset: 0,
     latencyCompensation: 0,
   };
   private readonly listeners = new Set<() => void>();
@@ -47,7 +47,6 @@ class RecorderRuntime {
   private backingPlayback?: AudioBufferPlayback;
   private takePlayback?: AudioBufferPlayback;
   private recordingTimelineStart?: number;
-  private takeCaptureOffset = 0;
   private activeRecording?: ActiveRecording;
 
   async startInput({
@@ -154,7 +153,8 @@ class RecorderRuntime {
     this.takePlayback!.start({
       scheduledContextTime: startTime,
       playheadTime: this.state.position,
-      bufferTimelineOffset: this.state.takeOffset,
+      bufferTimelineOffset:
+        this.state.takeCaptureOffset - this.state.latencyCompensation,
     });
     this.clock!.start({
       contextTime: startTime,
@@ -245,11 +245,7 @@ class RecorderRuntime {
   }
 
   setLatencyCompensation(compensation: number): void {
-    this.update({
-      latencyCompensation: compensation,
-      // Positive compensation advances a late take without modifying its PCM.
-      takeOffset: this.takeCaptureOffset - compensation,
-    });
+    this.update({ latencyCompensation: compensation });
   }
 
   private getContext(): AudioContext {
@@ -299,14 +295,15 @@ class RecorderRuntime {
     this.takePlayback!.setBuffer(takeBuffer);
     // Preserve the uncompensated timeline location of captured sample zero so
     // compensation can be adjusted repeatedly without accumulating drift.
-    this.takeCaptureOffset = this.recordingTimelineStart ?? this.state.position;
+    const takeCaptureOffset =
+      this.recordingTimelineStart ?? this.state.position;
     this.activeRecording = undefined;
     this.recordingTimelineStart = undefined;
     this.update({
       status: "ready",
       hasTake: true,
       takeDuration: takeBuffer.duration,
-      takeOffset: this.takeCaptureOffset - this.state.latencyCompensation,
+      takeCaptureOffset,
     });
   }
 
@@ -317,11 +314,10 @@ class RecorderRuntime {
 
   private clearTake(): void {
     this.takePlayback?.setBuffer(undefined);
-    this.takeCaptureOffset = 0;
     this.update({
       hasTake: false,
       takeDuration: 0,
-      takeOffset: 0,
+      takeCaptureOffset: 0,
     });
   }
 

@@ -90,7 +90,7 @@ export function Recorder() {
   const duration = Math.max(
     1,
     state.backingDuration,
-    state.takeOffset + state.takeDuration,
+    state.takeCaptureOffset - state.latencyCompensation + state.takeDuration,
   );
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
