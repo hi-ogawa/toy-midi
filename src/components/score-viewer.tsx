@@ -212,7 +212,7 @@ export function ScoreViewer({
           title="Score settings"
           aria-label="Score settings"
           className={cn(
-            "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
             isSettingsOpen &&
               "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
@@ -285,7 +285,7 @@ export function ScoreViewer({
             <Button
               title="More"
               aria-label="More"
-              className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <MoreVerticalIcon className="size-5" />
             </Button>

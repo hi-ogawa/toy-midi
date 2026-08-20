@@ -117,7 +117,7 @@ export function LatencyChecker() {
             <Button
               title="More"
               aria-label="More"
-              className="size-8 hover:bg-accent hover:text-accent-foreground"
+              className="size-9 hover:bg-accent hover:text-accent-foreground"
             >
               <MoreVerticalIcon className="size-5" />
             </Button>
