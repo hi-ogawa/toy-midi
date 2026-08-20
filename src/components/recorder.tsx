@@ -20,6 +20,8 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useDraftInput } from "../hooks/use-draft-input";
+import { useWindowEvent } from "../hooks/use-window-event";
+import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { gainToDb } from "../lib/music";
 import {
   getCaptureInputs,
@@ -170,6 +172,25 @@ export function Recorder() {
     backingMutation.error ??
     playMutation.error ??
     recordMutation.error;
+
+  useWindowEvent("keydown", (event) => {
+    if (
+      isShortcutTextInputTarget(event.target) ||
+      event.repeat ||
+      !matchKeyboardEvent(event, "Space")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (isRecording || isProcessing) {
+      return;
+    }
+    if (state.isPlaying) {
+      runtime.pause();
+    } else {
+      playMutation.mutate();
+    }
+  });
 
   function selectDevice(nextDeviceId?: string) {
     if (nextDeviceId !== deviceId && inputActive) {
