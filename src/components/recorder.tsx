@@ -37,7 +37,6 @@ import {
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
-const RECORDER_TEMPO = 120;
 const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const MIN_PIXELS_PER_BEAT = 20;
@@ -52,6 +51,7 @@ export function Recorder() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
+  const [tempo, setTempo] = useState(120);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [scrollX, setScrollX] = useState(0);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
@@ -189,6 +189,7 @@ export function Recorder() {
         isProcessing={isProcessing}
         isRecording={isRecording}
         position={state.position}
+        tempo={tempo}
         pixelsPerBeat={pixelsPerBeat}
         recordDisabled={state.status === "idle"}
         onPlay={() => playMutation.mutate()}
@@ -198,6 +199,7 @@ export function Recorder() {
           runtime.pause();
           runtime.seek(0);
         }}
+        onTempoChange={setTempo}
         onZoomIn={() =>
           zoomTimeline(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25))
         }
@@ -217,7 +219,7 @@ export function Recorder() {
                 className="absolute inset-y-0 w-px bg-red-500"
                 style={{
                   left:
-                    (recorderSecondsToBeats(state.position) - scrollX) *
+                    (recorderSecondsToBeats(state.position, tempo) - scrollX) *
                     pixelsPerBeat,
                 }}
               />
@@ -272,6 +274,7 @@ export function Recorder() {
                 }
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
+                tempo={tempo}
                 emptyLabel="Load an audio file"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -316,6 +319,7 @@ export function Recorder() {
                 }
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
+                tempo={tempo}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -380,12 +384,14 @@ function RecorderHeader({
   isProcessing,
   isRecording,
   position,
+  tempo,
   pixelsPerBeat,
   recordDisabled,
   onPlay,
   onPause,
   onRecord,
   onReset,
+  onTempoChange,
   onZoomIn,
   onZoomOut,
 }: {
@@ -393,15 +399,23 @@ function RecorderHeader({
   isProcessing: boolean;
   isRecording: boolean;
   position: number;
+  tempo: number;
   pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlay: () => void;
   onPause: () => void;
   onRecord: () => void;
   onReset: () => void;
+  onTempoChange: (tempo: number) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
 }) {
+  const tempoInput = useDraftInput({
+    value: tempo,
+    onCommit: onTempoChange,
+    min: 30,
+    max: 300,
+  });
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Mic2Icon className="size-4 text-emerald-400" />
@@ -447,9 +461,19 @@ function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
-      <output className="font-mono text-sm tabular-nums text-neutral-100">
-        {formatTime(position)}
+      <output className="font-mono text-sm tabular-nums text-neutral-300">
+        {formatBarBeat(position, tempo)} - {formatTime(position)}
       </output>
+      <div className="h-5 w-px bg-neutral-600" />
+      <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+        <span>BPM</span>
+        <input
+          type="text"
+          inputMode="numeric"
+          {...tempoInput.props}
+          className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
+        />
+      </div>
       <div className="flex-1" />
       <span className="font-mono text-[10px] text-neutral-500">
         {Math.round(pixelsPerBeat)} px/beat
@@ -639,6 +663,7 @@ function TimelineLane({
   emptyLabel,
   pixelsPerBeat,
   scrollX,
+  tempo,
   onSeek,
 }: {
   clip?: {
@@ -650,6 +675,7 @@ function TimelineLane({
   emptyLabel: string;
   pixelsPerBeat: number;
   scrollX: number;
+  tempo: number;
   onSeek: (position: number) => void;
 }) {
   const clipClass = {
@@ -672,7 +698,7 @@ function TimelineLane({
           0,
           (event.clientX - rect.left) / pixelsPerBeat + scrollX,
         );
-        onSeek(recorderBeatsToSeconds(beat));
+        onSeek(recorderBeatsToSeconds(beat, tempo));
       }}
     >
       {clip ? (
@@ -680,10 +706,11 @@ function TimelineLane({
           className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
           style={{
             left:
-              (recorderSecondsToBeats(clip.offset) - scrollX) * pixelsPerBeat,
+              (recorderSecondsToBeats(clip.offset, tempo) - scrollX) *
+              pixelsPerBeat,
             width: Math.max(
               2,
-              recorderSecondsToBeats(clip.duration) * pixelsPerBeat,
+              recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat,
             ),
           }}
         >
@@ -899,12 +926,19 @@ function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
   return bars;
 }
 
-function recorderSecondsToBeats(seconds: number): number {
-  return (seconds / 60) * RECORDER_TEMPO;
+function recorderSecondsToBeats(seconds: number, tempo: number): number {
+  return (seconds / 60) * tempo;
 }
 
-function recorderBeatsToSeconds(beats: number): number {
-  return (beats / RECORDER_TEMPO) * 60;
+function recorderBeatsToSeconds(beats: number, tempo: number): number {
+  return (beats / tempo) * 60;
+}
+
+function formatBarBeat(seconds: number, tempo: number): string {
+  const totalBeats = recorderSecondsToBeats(seconds, tempo);
+  const bar = Math.floor(totalBeats / BEATS_PER_BAR) + 1;
+  const beat = Math.floor(totalBeats % BEATS_PER_BAR) + 1;
+  return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
 }
 
 function formatLatencyMilliseconds(value: number): string {
