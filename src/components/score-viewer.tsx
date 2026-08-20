@@ -146,13 +146,6 @@ export function ScoreViewer({
     }
   }
 
-  function loadFile(file: File) {
-    loadMutation.mutate({
-      settings,
-      source: file,
-    });
-  }
-
   return (
     <main
       className={cn(
@@ -252,7 +245,10 @@ export function ScoreViewer({
               onChange={(event) => {
                 const file = event.currentTarget.files?.[0];
                 if (file) {
-                  loadFile(file);
+                  loadMutation.mutate({
+                    settings,
+                    source: file,
+                  });
                 }
                 event.currentTarget.value = "";
               }}
@@ -330,7 +326,12 @@ export function ScoreViewer({
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
               inputProps={{ "aria-label": "Upload MusicXML" }}
-              onFile={loadFile}
+              onFile={(file) =>
+                loadMutation.mutate({
+                  settings,
+                  source: file,
+                })
+              }
               className="group h-48 w-full max-w-4xl flex-col gap-3 border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
