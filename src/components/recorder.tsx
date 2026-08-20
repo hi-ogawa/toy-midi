@@ -158,6 +158,9 @@ export function Recorder() {
   const backingTrack = state.audioTracks[0];
   const take = state.recordingTrack.takes[0];
   const timelineWidth = Math.max(0, timelineViewportWidth - 216);
+  const playheadX =
+    (recorderSecondsToBeats(state.position, tempo) - scrollX) * pixelsPerBeat;
+  const showPlayhead = playheadX >= 0 && playheadX <= timelineWidth;
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
@@ -209,16 +212,14 @@ export function Recorder() {
           className="min-w-0 overflow-hidden border-r border-neutral-700"
         >
           <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0 z-30 overflow-hidden">
-              <div
-                className="absolute inset-y-0 w-px bg-red-500"
-                style={{
-                  left:
-                    (recorderSecondsToBeats(state.position, tempo) - scrollX) *
-                    pixelsPerBeat,
-                }}
-              />
-            </div>
+            {showPlayhead && (
+              <div className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0 z-30 overflow-hidden">
+                <div
+                  className="absolute inset-y-0 w-px bg-sky-400"
+                  style={{ left: playheadX }}
+                />
+              </div>
+            )}
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
               scrollX={scrollX}
