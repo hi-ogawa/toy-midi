@@ -95,10 +95,14 @@ export function Recorder() {
 
   function selectDevice(nextDeviceId?: string) {
     if (nextDeviceId !== deviceId && inputActive) {
-      recorderRuntime.stopInput();
-      startInputMutation.reset();
+      stopInput();
     }
     setDeviceId(nextDeviceId);
+  }
+
+  function stopInput() {
+    recorderRuntime.stopInput();
+    startInputMutation.reset();
   }
 
   return (
@@ -367,10 +371,12 @@ export function Recorder() {
                   (hasAccess && !selectedDevice)
                 }
                 onClick={() =>
-                  hasAccess
-                    ? selectedDevice &&
-                      startInputMutation.mutate(selectedDevice.deviceId)
-                    : grantAccessMutation.mutate()
+                  !hasAccess
+                    ? grantAccessMutation.mutate()
+                    : inputActive
+                      ? stopInput()
+                      : selectedDevice &&
+                        startInputMutation.mutate(selectedDevice.deviceId)
                 }
                 className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
               >
@@ -380,12 +386,12 @@ export function Recorder() {
                   : grantAccessMutation.isPending
                     ? "Requesting access..."
                     : startInputMutation.isPending
-                      ? "Connecting..."
+                      ? "Enabling..."
                       : !hasAccess
                         ? "Grant access"
                         : inputActive
-                          ? "Reconnect input"
-                          : "Connect input"}
+                          ? "Disable input"
+                          : "Enable input"}
               </Button>
               {state.inputChannelCount > 1 && (
                 <label className="block text-xs font-semibold text-neutral-600">
