@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AudioLinesIcon, FolderIcon, MoreVerticalIcon } from "lucide-react";
+import { AudioLinesIcon, HouseIcon, MoreVerticalIcon } from "lucide-react";
 import {
   type ComponentProps,
   type ReactNode,
@@ -117,7 +117,7 @@ export function LatencyChecker() {
             <Button
               title="More"
               aria-label="More"
-              className="size-8 hover:bg-accent hover:text-accent-foreground"
+              className="size-9 hover:bg-accent hover:text-accent-foreground"
             >
               <MoreVerticalIcon className="size-5" />
             </Button>
@@ -125,7 +125,7 @@ export function LatencyChecker() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <a href={routes.home.href()}>
-                <FolderIcon />
+                <HouseIcon />
                 Home
               </a>
             </DropdownMenuItem>
@@ -605,7 +605,7 @@ function ActionButton({
       className={cn(
         "min-h-10 flex-1 px-3 text-sm font-semibold",
         accent
-          ? "border-orange-700 bg-orange-700 text-white hover:bg-orange-800"
+          ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
           : "border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100",
         className,
       )}
