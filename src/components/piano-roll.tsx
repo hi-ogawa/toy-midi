@@ -9,7 +9,6 @@ import {
 import { useAudio } from "../hooks/use-audio";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
-import { type AudioView, queryAudioView } from "../lib/audio-view";
 import { historyStore } from "../lib/history-store";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import {
@@ -38,6 +37,7 @@ import {
   resolveTabPosition,
 } from "../lib/tab-annotation";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
+import { AudioWaveformView } from "./audio-waveform";
 import { Slider } from "./ui/slider";
 import { Toggle } from "./ui/toggle";
 import { cn } from "./ui/utils";
@@ -1901,7 +1901,7 @@ function WaveformArea({
           {/* Waveform SVG */}
           {audioWaveform.status === "ready" &&
             audioWaveform.view.data.length > 0 && (
-              <Waveform
+              <AudioWaveformView
                 audioView={audioWaveform.view}
                 audioDuration={audioDuration}
                 visibleStart={audioVisibleStart}
@@ -1938,85 +1938,5 @@ function WaveformArea({
         onMouseDown={handleResizeMouseDown}
       />
     </div>
-  );
-}
-
-// Waveform SVG component - renders peaks as a filled polygon
-// Uses viewport culling and downsamples to pixel width for optimal performance
-function Waveform({
-  audioView,
-  audioDuration,
-  visibleStart,
-  visibleEnd,
-  pixelWidth,
-}: {
-  audioView: AudioView;
-  audioDuration: number; // total audio duration in seconds
-  visibleStart: number; // seconds
-  visibleEnd: number; // seconds
-  pixelWidth: number;
-}) {
-  if (audioView.data.length === 0) {
-    return null;
-  }
-
-  // Estimate visible portion's pixel width for downsampling target
-  const visibleDuration = visibleEnd - visibleStart;
-  const visiblePixelWidth = Math.max(
-    1,
-    Math.round((visibleDuration / audioDuration) * pixelWidth),
-  );
-
-  // Use viewport-aware processing: slice to visible range, downsample to pixel width
-  const slice = queryAudioView(
-    audioView,
-    visibleStart,
-    visibleEnd,
-    visiblePixelWidth,
-  );
-
-  if (slice.data.length === 0) {
-    return null;
-  }
-
-  // Calculate SVG position within the audio container based on actual bounds
-  const leftPercent = (slice.actualStart / audioDuration) * 100;
-  const widthPercent =
-    ((slice.actualEnd - slice.actualStart) / audioDuration) * 100;
-
-  // Build path using normalized data (0-1), let viewBox handle scaling
-  // viewBox: x=[0, numPoints], y=[-1, 1] (center at 0, amplitude up/down)
-  const n = slice.data.length;
-  const upperPoints: string[] = [];
-  const lowerPoints: string[] = [];
-
-  for (let i = 0; i < n; i++) {
-    const amp = slice.data[i]; // Already 0-1 normalized
-    upperPoints.push(`${i},${-amp}`);
-    lowerPoints.unshift(`${i},${amp}`);
-  }
-
-  const pathData = `M ${upperPoints.join(" L ")} L ${lowerPoints.join(" L ")} Z`;
-
-  return (
-    <svg
-      className="absolute"
-      style={{
-        left: `${leftPercent}%`,
-        width: `${widthPercent}%`,
-        top: "5%",
-        height: "90%",
-      }}
-      viewBox={`0 -1 ${n - 1 || 1} 2`}
-      preserveAspectRatio="none"
-    >
-      <path
-        d={pathData}
-        fill="rgba(255, 255, 255, 0.3)"
-        stroke="rgba(255, 255, 255, 0.5)"
-        strokeWidth="1"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
   );
 }

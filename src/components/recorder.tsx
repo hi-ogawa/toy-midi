@@ -34,6 +34,7 @@ import {
 } from "../lib/recorder/capture-input";
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
+import { AudioWaveformView } from "./audio-waveform";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -294,6 +295,7 @@ export function Recorder() {
                         label: backingTrack.name,
                         offset: backingTrack.timelineOffset,
                         variant: "audio",
+                        audioView: backingTrack.audioView,
                       }
                     : undefined
                 }
@@ -339,6 +341,7 @@ export function Recorder() {
                             : "Take 1",
                         offset: state.getTakeOffset(),
                         variant: isRecording ? "recording" : "take",
+                        audioView: take.audioView,
                       }
                     : undefined
                 }
@@ -713,6 +716,7 @@ function TimelineLane({
     label: string;
     offset: number;
     variant: "audio" | "take" | "recording";
+    audioView?: import("../lib/audio-view").AudioView;
   };
   emptyLabel: string;
   pixelsPerBeat: number;
@@ -725,8 +729,38 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
+  const laneRef = useRef<HTMLDivElement>(null);
+  const [laneWidth, setLaneWidth] = useState(0);
+  useLayoutEffect(() => {
+    const lane = laneRef.current;
+    if (!lane) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setLaneWidth(entry.contentRect.width);
+    });
+    observer.observe(lane);
+    return () => observer.disconnect();
+  }, []);
+  const clipStartBeat = clip ? recorderSecondsToBeats(clip.offset, tempo) : 0;
+  const clipWidth = clip
+    ? Math.max(2, recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat)
+    : 0;
+  const visibleStart = clip
+    ? Math.max(0, recorderBeatsToSeconds(scrollX - clipStartBeat, tempo))
+    : 0;
+  const visibleEnd = clip
+    ? Math.min(
+        clip.duration,
+        recorderBeatsToSeconds(
+          scrollX + laneWidth / pixelsPerBeat - clipStartBeat,
+          tempo,
+        ),
+      )
+    : 0;
   return (
     <div
+      ref={laneRef}
       className="relative min-h-24 overflow-hidden bg-neutral-900"
       style={{
         backgroundImage:
@@ -747,16 +781,20 @@ function TimelineLane({
         <div
           className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
           style={{
-            left:
-              (recorderSecondsToBeats(clip.offset, tempo) - scrollX) *
-              pixelsPerBeat,
-            width: Math.max(
-              2,
-              recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat,
-            ),
+            left: (clipStartBeat - scrollX) * pixelsPerBeat,
+            width: clipWidth,
           }}
         >
-          <span className="truncate">{clip.label}</span>
+          {clip.audioView && visibleEnd > visibleStart && (
+            <AudioWaveformView
+              audioView={clip.audioView}
+              audioDuration={clip.duration}
+              visibleStart={visibleStart}
+              visibleEnd={visibleEnd}
+              pixelWidth={clipWidth}
+            />
+          )}
+          <span className="relative z-10 truncate">{clip.label}</span>
         </div>
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">

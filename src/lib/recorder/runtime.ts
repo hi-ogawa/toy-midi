@@ -1,4 +1,5 @@
 import { createStore } from "../../utils/store.ts";
+import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
@@ -6,6 +7,7 @@ import { ActiveRecording } from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
+const WAVEFORM_POINTS_PER_SECOND = 800;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
@@ -16,6 +18,7 @@ interface AudioTrackState {
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
+  audioView?: AudioView;
 }
 
 interface RecordingTrackState {
@@ -28,6 +31,7 @@ interface RecordingTrackState {
 interface TakeState {
   duration: number;
   captureOffset: number;
+  audioView?: AudioView;
 }
 
 interface RecorderState {
@@ -166,6 +170,11 @@ export class RecorderRuntime {
       ...track,
       name: file.name,
       duration: buffer.duration,
+      audioView: createAudioView(
+        buffer.getChannelData(0),
+        buffer.sampleRate,
+        WAVEFORM_POINTS_PER_SECOND,
+      ),
     }));
   }
 
@@ -414,7 +423,17 @@ export class RecorderRuntime {
       status: "ready",
       recordingTrack: {
         ...this.store.get().recordingTrack,
-        takes: [{ ...take, duration: takeBuffer.duration }],
+        takes: [
+          {
+            ...take,
+            duration: takeBuffer.duration,
+            audioView: createAudioView(
+              samples,
+              context.sampleRate,
+              WAVEFORM_POINTS_PER_SECOND,
+            ),
+          },
+        ],
       },
     });
   }
