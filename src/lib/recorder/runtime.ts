@@ -1,9 +1,9 @@
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import {
-  CaptureWorkletClient,
-  type CaptureWorkletNotification,
-  createCaptureWorkletSource,
-} from "./capture-worklet.ts";
+  CaptureInput,
+  getCaptureInputs,
+  requestCaptureAccess,
+} from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
 import { ActiveRecording } from "./recording.ts";
 
@@ -47,12 +47,7 @@ class RecorderRuntime {
   readonly #listeners = new Set<() => void>();
   #context?: AudioContext;
   #clock?: AudioContextTimelineClock;
-  #workletReady = false;
-  #stream?: MediaStream;
-  #inputSource?: MediaStreamAudioSourceNode;
-  #captureWorklet?: CaptureWorkletClient;
-  #onInputLevel?: (peak: number) => void;
-  #silentGain?: GainNode;
+  #captureInput?: CaptureInput;
   #backingPlayback?: AudioBufferPlayback;
   #takePlayback?: AudioBufferPlayback;
   #recordingTimelineStart?: number;
@@ -67,15 +62,11 @@ class RecorderRuntime {
   };
 
   async requestAccess(): Promise<void> {
-    const stream =
-      await navigator.mediaDevices.getUserMedia(captureConstraints());
-    stream.getTracks().forEach((track) => track.stop());
+    await requestCaptureAccess();
   }
 
   async getInputs(): Promise<MediaDeviceInfo[]> {
-    return (await navigator.mediaDevices.enumerateDevices()).filter(
-      (device) => device.kind === "audioinput",
-    );
+    return getCaptureInputs();
   }
 
   async startInput({
@@ -86,29 +77,35 @@ class RecorderRuntime {
     onLevel: (peak: number) => void;
   }): Promise<void> {
     const context = await this.#getContext();
-    const stream = await navigator.mediaDevices.getUserMedia(
-      captureConstraints(deviceId),
-    );
-    const track = stream.getAudioTracks()[0];
-    if (!track) {
-      stream.getTracks().forEach((track) => track.stop());
-      throw new Error("The selected device did not provide an audio track.");
-    }
-    this.#closeInput();
-    this.#onInputLevel = onLevel;
-    this.#stream = stream;
-    const settings = track.getSettings();
-    this.#inputSource = context.createMediaStreamSource(stream);
-    this.#captureWorklet = new CaptureWorkletClient({
+    const { input, settings } = await CaptureInput.open({
       context,
-      onNotification: this.#handleCaptureMessage,
+      deviceId,
+      onChannelCount: (inputChannelCount) => {
+        const selectedChannel = Math.min(
+          this.#snapshot.selectedChannel,
+          Math.max(0, inputChannelCount - 1),
+        );
+        this.#update({ inputChannelCount, selectedChannel });
+        this.selectChannel(selectedChannel);
+      },
+      onLevel,
+      onChunk: (chunk) => {
+        const activeRecording = this.#activeRecording;
+        if (
+          !activeRecording ||
+          (this.#snapshot.status !== "recording" &&
+            this.#snapshot.status !== "processing")
+        ) {
+          return;
+        }
+        activeRecording.append(chunk);
+        if (activeRecording.isFull() && this.#snapshot.status === "recording") {
+          void this.stopRecording();
+        }
+      },
     });
-    this.#silentGain = context.createGain();
-    this.#silentGain.gain.value = 0;
-    this.#inputSource
-      .connect(this.#captureWorklet.node)
-      .connect(this.#silentGain)
-      .connect(context.destination);
+    this.#closeInput();
+    this.#captureInput = input;
 
     this.#update({
       status: "ready",
@@ -129,7 +126,7 @@ class RecorderRuntime {
   }
 
   selectChannel(channel: number): void {
-    this.#captureWorklet?.setChannel(channel);
+    this.#captureInput?.setChannel(channel);
     this.#update({ selectedChannel: channel });
   }
 
@@ -211,7 +208,7 @@ class RecorderRuntime {
   }
 
   async startRecording(): Promise<void> {
-    if (!this.#captureWorklet) {
+    if (!this.#captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
     const context = await this.#getContext();
@@ -221,7 +218,7 @@ class RecorderRuntime {
     }
     this.#clearTake();
     try {
-      const startFrame = await this.#captureWorklet.start();
+      const startFrame = await this.#captureInput.startCapture();
       this.#activeRecording = new ActiveRecording(
         startFrame,
         Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
@@ -239,13 +236,13 @@ class RecorderRuntime {
   }
 
   async stopRecording(): Promise<void> {
-    const captureWorklet = this.#captureWorklet;
-    if (this.#snapshot.status !== "recording" || !captureWorklet) {
+    const captureInput = this.#captureInput;
+    if (this.#snapshot.status !== "recording" || !captureInput) {
       return;
     }
     this.#update({ status: "processing" });
     try {
-      const stopFrame = await captureWorklet.stop();
+      const stopFrame = await captureInput.stopCapture();
       this.#finishRecording(stopFrame);
     } catch (error) {
       this.stopInput();
@@ -289,18 +286,6 @@ class RecorderRuntime {
         this.#update({ isPlaying: running, position });
       });
     }
-    if (!this.#workletReady) {
-      const blob = new Blob([createCaptureWorkletSource()], {
-        type: "text/javascript",
-      });
-      const url = URL.createObjectURL(blob);
-      try {
-        await this.#context.audioWorklet.addModule(url);
-        this.#workletReady = true;
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    }
     return this.#context;
   }
 
@@ -308,40 +293,6 @@ class RecorderRuntime {
     this.#backingPlayback?.stop();
     this.#takePlayback?.stop();
   }
-
-  #handleCaptureMessage = (message: CaptureWorkletNotification): void => {
-    switch (message.type) {
-      case "channels": {
-        const inputChannelCount = message.value;
-        const selectedChannel = Math.min(
-          this.#snapshot.selectedChannel,
-          Math.max(0, inputChannelCount - 1),
-        );
-        this.#update({ inputChannelCount, selectedChannel });
-        this.selectChannel(selectedChannel);
-        break;
-      }
-      case "level": {
-        this.#onInputLevel?.(message.peak);
-        break;
-      }
-      case "samples": {
-        const activeRecording = this.#activeRecording;
-        if (
-          !activeRecording ||
-          (this.#snapshot.status !== "recording" &&
-            this.#snapshot.status !== "processing")
-        ) {
-          break;
-        }
-        activeRecording.append(message);
-        if (activeRecording.isFull() && this.#snapshot.status === "recording") {
-          void this.stopRecording();
-        }
-        break;
-      }
-    }
-  };
 
   #finishRecording(stopFrame: number): void {
     const context = this.#context;
@@ -373,17 +324,8 @@ class RecorderRuntime {
   }
 
   #closeInput(): void {
-    this.#inputSource?.disconnect();
-    this.#inputSource = undefined;
-    this.#captureWorklet?.dispose();
-    this.#captureWorklet = undefined;
-    this.#onInputLevel = undefined;
-    this.#silentGain?.disconnect();
-    this.#silentGain = undefined;
-    for (const track of this.#stream?.getTracks() ?? []) {
-      track.stop();
-    }
-    this.#stream = undefined;
+    this.#captureInput?.dispose();
+    this.#captureInput = undefined;
   }
 
   #clearTake(): void {
@@ -405,17 +347,3 @@ class RecorderRuntime {
 }
 
 export const recorderRuntime = new RecorderRuntime();
-
-function captureConstraints(deviceId?: string): MediaStreamConstraints {
-  return {
-    audio: {
-      autoGainControl: false,
-      channelCount: { ideal: 2 },
-      deviceId: deviceId ? { exact: deviceId } : undefined,
-      echoCancellation: false,
-      noiseSuppression: false,
-      sampleRate: { ideal: 48_000 },
-    },
-    video: false,
-  };
-}
