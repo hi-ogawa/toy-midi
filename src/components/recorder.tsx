@@ -238,6 +238,9 @@ export function Recorder() {
           selectedChannel={state.selectedChannel}
           inputChannelCount={state.inputChannelCount}
           latencyCompensation={state.latencyCompensation}
+          inputTogglePending={
+            grantAccessMutation.isPending || startInputMutation.isPending
+          }
           mutationPending={
             refreshInputsMutation.isPending ||
             grantAccessMutation.isPending ||
@@ -541,6 +544,7 @@ function InputInspector({
   selectedChannel,
   inputChannelCount,
   latencyCompensation,
+  inputTogglePending,
   mutationPending,
   onDeviceChange,
   onInputToggle,
@@ -559,6 +563,7 @@ function InputInspector({
   selectedChannel: number;
   inputChannelCount: number;
   latencyCompensation: number;
+  inputTogglePending: boolean;
   mutationPending: boolean;
   onDeviceChange: (deviceId?: string) => void;
   onInputToggle: () => void;
@@ -631,13 +636,15 @@ function InputInspector({
           className="h-8 w-full justify-start gap-2 border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
         >
           <Mic2Icon className="size-3.5" />
-          {!inputsInitialized
-            ? "Enable input"
-            : hasAccess
-              ? inputActive
-                ? "Disable input"
-                : "Enable input"
-              : "Grant access"}
+          {inputTogglePending
+            ? "Loading..."
+            : !inputsInitialized
+              ? "Enable input"
+              : hasAccess
+                ? inputActive
+                  ? "Disable input"
+                  : "Enable input"
+                : "Grant access"}
         </Button>
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
