@@ -22,7 +22,12 @@ import {
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
-import { gainToDb } from "../lib/music";
+import {
+  dbToPercent,
+  gainToDb,
+  gainToPercent,
+  percentToGain,
+} from "../lib/music";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -670,20 +675,24 @@ function TrackRow({
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 text-[10px] text-neutral-400">
           Gain
-          <input
-            type="range"
-            min={0}
-            max={1.5}
-            step={0.01}
-            value={gain}
-            onChange={(event) =>
-              onGainChange(event.currentTarget.valueAsNumber)
-            }
-            className="w-full accent-emerald-600"
-          />
-          <span className="text-right font-mono">
-            {Math.round(gain * 100)}%
-          </span>
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+              style={{ left: `${dbToPercent(0)}%` }}
+            />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={gainToPercent(gain)}
+              onChange={(event) =>
+                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
+              }
+              className="w-full accent-emerald-600"
+            />
+          </div>
+          <span className="text-right font-mono">{formatDb(gain)}</span>
         </label>
       </div>
       {children}
@@ -972,6 +981,14 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const bar = Math.floor(totalBeats / BEATS_PER_BAR) + 1;
   const beat = Math.floor(totalBeats % BEATS_PER_BAR) + 1;
   return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
+}
+
+function formatDb(gain: number): string {
+  if (gain === 0) {
+    return "-∞ dB";
+  }
+  const db = gainToDb(gain);
+  return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
 }
 
 function formatLatencyMilliseconds(value: number): string {
