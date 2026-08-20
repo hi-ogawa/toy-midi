@@ -84,6 +84,12 @@ export function Recorder() {
   );
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
+  const statusLabel = {
+    idle: "INPUT OFF",
+    ready: "READY",
+    recording: "REC",
+    processing: "FINALIZING",
+  }[state.status];
 
   const error =
     grantAccessMutation.error ??
@@ -134,76 +140,23 @@ export function Recorder() {
 
       <div className="mx-auto grid w-full max-w-5xl gap-6 px-8 py-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
-            <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
-              <Button
-                onClick={() => {
-                  if (state.isPlaying) {
-                    recorderRuntime.pause();
-                  } else {
-                    playMutation.mutate();
-                  }
-                }}
-                className="size-11 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-              >
-                {state.isPlaying ? (
-                  <PauseIcon className="size-5" />
-                ) : (
-                  <PlayIcon className="size-5" />
-                )}
-              </Button>
-              <Button
-                onClick={() => recorderRuntime.stop()}
-                disabled={isRecording || isProcessing}
-                className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                title="Return to start"
-              >
-                <RotateCcwIcon className="size-4" />
-              </Button>
-              <div className="ml-2 font-mono text-lg tabular-nums text-neutral-950">
-                {formatTime(state.position)}
-              </div>
-              <div className="ml-auto text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">
-                {state.status}
-              </div>
-            </div>
-            <div className="px-5 py-5">
-              <input
-                type="range"
-                min={0}
-                max={duration}
-                step={0.01}
-                value={Math.min(state.position, duration)}
-                onChange={(event) =>
-                  recorderRuntime.seek(event.currentTarget.valueAsNumber)
-                }
-                disabled={isRecording || isProcessing}
-                className="w-full accent-emerald-700"
-              />
-              <div className="mt-2 flex justify-between font-mono text-[11px] text-neutral-500">
-                <span>00:00.000</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-          </section>
-
           <section className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
               Tracks
             </h2>
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)_10rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
               <span className="font-mono text-xs font-semibold text-emerald-700">
                 BACKING
               </span>
               <div className="min-w-0">
                 <div className="truncate text-sm text-neutral-950">
-                  {state.backingName ?? "No backing track loaded"}
+                  {state.backingName ?? "Empty"}
                 </div>
-                <div className="mt-1 text-xs text-neutral-500">
-                  {state.backingName
-                    ? `${formatTime(state.backingDuration)} · click at 0:00`
-                    : "WAV, MP3, or another browser-decodable audio file"}
-                </div>
+                {state.backingName && (
+                  <div className="mt-1 font-mono text-xs text-neutral-500">
+                    {formatTime(state.backingDuration)}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <label className="cursor-pointer rounded-md border border-neutral-300 bg-white p-2 text-neutral-900 hover:bg-neutral-100">
@@ -257,64 +210,138 @@ export function Recorder() {
               </span>
             </div>
 
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)_10rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
               <span className="font-mono text-xs font-semibold text-neutral-700">
-                TAKE 01
+                TAKE 1
               </span>
               <div>
                 <div className="text-sm text-neutral-950">
-                  {state.hasTake ? "Recorded input" : "No take recorded"}
+                  {state.hasTake ? "Recorded input" : "Empty"}
                 </div>
-                <div className="mt-1 text-xs text-neutral-500">
-                  {state.hasTake
-                    ? `${formatTime(state.takeDuration)} · ${state.capturedFrames.toLocaleString()} frames`
-                    : "Direct monitoring stays outside the browser"}
-                </div>
+                {state.hasTake && (
+                  <div className="mt-1 font-mono text-xs text-neutral-500">
+                    {formatTime(state.takeDuration)}
+                  </div>
+                )}
               </div>
               <div />
               <div />
-              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
-                Alignment
-                <input
-                  type="number"
-                  step={0.1}
-                  value={(state.takeOffset * 1000).toFixed(1)}
-                  onChange={(event) => {
-                    const offset = event.currentTarget.valueAsNumber / 1000;
-                    if (Number.isFinite(offset)) {
-                      recorderRuntime.setTakeOffset(offset);
-                    }
-                  }}
-                  disabled={!state.hasTake}
-                  className="w-28 rounded-md border border-neutral-300 bg-white px-2 py-1 font-mono text-neutral-950 disabled:bg-neutral-100 disabled:text-neutral-500"
-                />
-                ms
-              </label>
+              <div className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
+                <label htmlFor="latency-compensation">
+                  Latency compensation
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="latency-compensation"
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={(state.latencyCompensation * 1000).toFixed(1)}
+                    onChange={(event) => {
+                      const compensation =
+                        event.currentTarget.valueAsNumber / 1000;
+                      if (Number.isFinite(compensation)) {
+                        recorderRuntime.setLatencyCompensation(
+                          Math.max(0, compensation),
+                        );
+                      }
+                    }}
+                    className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 font-mono text-neutral-950"
+                  />
+                  <span>ms</span>
+                  <a
+                    href={routes.latencyChecker.href()}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    Measure
+                  </a>
+                </div>
+              </div>
               <div />
             </div>
           </section>
 
-          <section className="flex items-center justify-center rounded-xl border border-neutral-200 bg-white py-7 shadow-sm">
-            <Button
-              onClick={() =>
-                isRecording
-                  ? recorderRuntime.stopRecording()
-                  : recordMutation.mutate()
-              }
-              disabled={state.status === "idle" || isProcessing}
-              className={
-                isRecording
-                  ? "h-14 gap-3 border-neutral-300 bg-white px-7 font-semibold text-neutral-900 hover:bg-neutral-100"
-                  : "h-14 gap-3 border-emerald-700 bg-emerald-700 px-7 font-semibold text-white hover:bg-emerald-800"
-              }
-            >
-              {isRecording ? (
-                <CircleStopIcon className="size-5" />
-              ) : (
-                <RadioIcon className="size-5" />
-              )}
-              {isRecording ? "Stop recording" : "Record"}
-            </Button>
+          <section className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
+              Transport
+            </h2>
+            <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
+              <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
+                <Button
+                  onClick={() => {
+                    if (state.isPlaying) {
+                      recorderRuntime.pause();
+                    } else {
+                      playMutation.mutate();
+                    }
+                  }}
+                  disabled={isRecording || isProcessing}
+                  className="size-11 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                >
+                  {state.isPlaying ? (
+                    <PauseIcon className="size-5" />
+                  ) : (
+                    <PlayIcon className="size-5" />
+                  )}
+                </Button>
+                <Button
+                  onClick={() => recorderRuntime.stop()}
+                  disabled={isRecording || isProcessing}
+                  className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                  title="Return to start"
+                >
+                  <RotateCcwIcon className="size-4" />
+                </Button>
+                <div className="ml-2 font-mono text-lg tabular-nums text-neutral-950">
+                  {formatTime(state.position)}
+                </div>
+                <div className="ml-auto flex items-center gap-4">
+                  <span className="text-xs font-semibold tracking-[0.12em] text-neutral-500">
+                    {statusLabel}
+                  </span>
+                  <Button
+                    onClick={() =>
+                      isRecording
+                        ? recorderRuntime.stopRecording()
+                        : recordMutation.mutate()
+                    }
+                    disabled={state.status === "idle" || isProcessing}
+                    className={
+                      isRecording
+                        ? "h-10 gap-2 border-red-300 bg-red-50 px-4 font-semibold text-red-800 hover:bg-red-100"
+                        : "h-10 gap-2 border-red-700 bg-red-700 px-4 font-semibold text-white hover:bg-red-800"
+                    }
+                  >
+                    {isRecording ? (
+                      <CircleStopIcon className="size-4" />
+                    ) : (
+                      <RadioIcon className="size-4" />
+                    )}
+                    {isRecording ? "Stop" : "Record"}
+                  </Button>
+                </div>
+              </div>
+              <div className="px-5 py-5">
+                <input
+                  type="range"
+                  min={0}
+                  max={duration}
+                  step={0.01}
+                  value={Math.min(state.position, duration)}
+                  onChange={(event) =>
+                    recorderRuntime.seek(event.currentTarget.valueAsNumber)
+                  }
+                  disabled={isRecording || isProcessing}
+                  className="w-full accent-emerald-700"
+                />
+                <div className="mt-2 flex justify-between font-mono text-[11px] text-neutral-500">
+                  <span>00:00.000</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -325,7 +352,7 @@ export function Recorder() {
             </h2>
             <div className="mt-4 space-y-4">
               <label className="block text-xs font-semibold text-neutral-600">
-                Device
+                Input device
                 <select
                   value={selectedDevice?.deviceId ?? ""}
                   disabled={
@@ -345,7 +372,7 @@ export function Recorder() {
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
                   ) : !hasAccess ? (
-                    <option>Grant access to list audio inputs</option>
+                    <option>Grant microphone access</option>
                   ) : (
                     <>
                       {!selectedDevice && (
@@ -395,7 +422,7 @@ export function Recorder() {
               </Button>
               {state.inputChannelCount > 1 && (
                 <label className="block text-xs font-semibold text-neutral-600">
-                  Captured channel
+                  Channel
                   <select
                     value={state.selectedChannel}
                     onChange={(event) =>
@@ -419,10 +446,10 @@ export function Recorder() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
-              Capture diagnostics
-            </h2>
+          <details className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
+              Diagnostics
+            </summary>
             <dl className="mt-4 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-xs">
               <dt className="text-neutral-500">Observed channels</dt>
               <dd className="font-mono text-neutral-950">
@@ -446,7 +473,7 @@ export function Recorder() {
                 ? JSON.stringify(state.inputSettings, undefined, 2)
                 : "getSettings() appears after input permission."}
             </pre>
-          </section>
+          </details>
 
           {error && (
             <div className="rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
