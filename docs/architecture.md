@@ -4,7 +4,7 @@ This document records durable system boundaries and design decisions. Keep imple
 
 ## System Shape
 
-Toy MIDI is a browser-only editor built with React and TypeScript. Zustand owns project and editor state, Tone.js and OxiSynth provide audio playback, and browser storage provides persistence. The application also hosts standalone score-viewer and recorder routes that do not establish an editor project session. It has no server component.
+Toy MIDI is a browser-only editor built with React and TypeScript. Zustand owns project and editor state, Tone.js and OxiSynth provide audio playback, and browser storage provides persistence. The application has no server component.
 
 The editor supports one MIDI track and multiple audio tracks on a shared beat-based timeline. Components render and edit state, while library modules own audio, persistence, import, and export behavior.
 
@@ -18,7 +18,6 @@ The editor supports one MIDI track and multiple audio tracks on a shared beat-ba
 - `src/lib/project-session.ts` owns the active-project lifecycle.
 - `src/lib/project-storage.ts` owns browser persistence access.
 - `src/components/score-viewer.tsx` owns standalone and project-backed score playback.
-- `src/components/recorder.tsx` and `src/lib/recorder/runtime.ts` own the isolated native Web Audio recording spike.
 
 ## State And Audio Flow
 
@@ -29,8 +28,6 @@ MIDI pitch remains canonical for tab annotations. Projects persist open-string p
 Projects persist one key signature for notation export. MIDI pitch remains canonical, while MusicXML derives key-aware enharmonic spelling from that signature.
 
 Playback state is not project state. The audio manager owns a cached external-store snapshot and transport updates, while UI reads selected values through the audio hook. This keeps high-frequency playback updates out of the editor store.
-
-The recorder runtime has its own native `AudioContext`, media input, worklet capture, and bounded in-memory PCM storage. It does not reuse the editor's Tone.js graph or project state, so recording experiments cannot change the editor audio boundary.
 
 One audio manager owns the runtime graph for MIDI synthesis, audio-track playback, and the metronome. Project state reaches the audio graph through one synchronization boundary, which applies cheap settings directly and guards expensive rebuilds with state comparisons.
 
