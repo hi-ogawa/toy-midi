@@ -673,14 +673,14 @@ function TrackRow({
             S
           </Button>
         </div>
-        <label className="col-span-2 mt-auto grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          Gain
+        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
               style={{ left: `${dbToPercent(0)}%` }}
             />
             <input
+              aria-label={`${title} gain`}
               type="range"
               min={0}
               max={100}
