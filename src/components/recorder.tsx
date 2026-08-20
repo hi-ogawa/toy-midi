@@ -201,6 +201,25 @@ export function Recorder() {
                 >
                   M
                 </Button>
+                <Button
+                  onClick={() =>
+                    runtime.setAudioTrackMix(0, {
+                      soloed: !backingTrack?.soloed,
+                    })
+                  }
+                  className={
+                    backingTrack?.soloed
+                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                  }
+                  title={
+                    backingTrack?.soloed
+                      ? "Disable backing solo"
+                      : "Solo backing"
+                  }
+                >
+                  S
+                </Button>
               </div>
               <div />
               <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
@@ -238,21 +257,42 @@ export function Recorder() {
                   </div>
                 )}
               </div>
-              <Button
-                onClick={() =>
-                  runtime.setRecordingTrackMix({
-                    muted: !state.recordingTrack.muted,
-                  })
-                }
-                className={
-                  state.recordingTrack.muted
-                    ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                    : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                }
-                title="Mute take"
-              >
-                M
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() =>
+                    runtime.setRecordingTrackMix({
+                      muted: !state.recordingTrack.muted,
+                    })
+                  }
+                  className={
+                    state.recordingTrack.muted
+                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                  }
+                  title="Mute take"
+                >
+                  M
+                </Button>
+                <Button
+                  onClick={() =>
+                    runtime.setRecordingTrackMix({
+                      soloed: !state.recordingTrack.soloed,
+                    })
+                  }
+                  className={
+                    state.recordingTrack.soloed
+                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                  }
+                  title={
+                    state.recordingTrack.soloed
+                      ? "Disable take solo"
+                      : "Solo take"
+                  }
+                >
+                  S
+                </Button>
+              </div>
               <div />
               <div className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
                 <label htmlFor="latency-compensation">

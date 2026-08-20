@@ -14,12 +14,14 @@ interface AudioTrackState {
   duration: number;
   gain: number;
   muted: boolean;
+  soloed: boolean;
   timelineOffset: number;
 }
 
 interface RecordingTrackState {
   gain: number;
   muted: boolean;
+  soloed: boolean;
   takes: TakeState[];
 }
 
@@ -152,14 +154,13 @@ export class RecorderRuntime {
 
   setAudioTrackMix(
     index: number,
-    update: Partial<Pick<AudioTrackState, "gain" | "muted">>,
+    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    const playback = this.getAudioTrackPlayback(index);
+    this.getAudioTrackPlayback(index);
     this.updateAudioTrack(index, (track) => {
-      const next = { ...track, ...update };
-      playback.setGain(next.muted ? 0 : next.gain);
-      return next;
+      return { ...track, ...update };
     });
+    this.syncTrackMix();
   }
 
   setAudioTrackOffset(index: number, timelineOffset: number): void {
@@ -176,6 +177,7 @@ export class RecorderRuntime {
     const tracks = this.store.get().audioTracks.slice();
     tracks.splice(index, 1);
     this.store.update({ audioTracks: tracks });
+    this.syncTrackMix();
   }
 
   private updateAudioTrack(
@@ -200,24 +202,22 @@ export class RecorderRuntime {
         output: context.destination,
       });
       const track = createAudioTrackState();
-      playback.setGain(track.muted ? 0 : track.gain);
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks[index] = playback;
       const audioTracks = this.store.get().audioTracks.slice();
       audioTracks[index] = track;
       this.store.update({ audioTracks });
+      this.syncTrackMix();
     }
     return playback;
   }
 
   setRecordingTrackMix(
-    update: Partial<Pick<RecordingTrackState, "gain" | "muted">>,
+    update: Partial<Pick<RecordingTrackState, "gain" | "muted" | "soloed">>,
   ): void {
     const recordingTrack = { ...this.store.get().recordingTrack, ...update };
-    this.recordingTrackPlayback?.setGain(
-      recordingTrack.muted ? 0 : recordingTrack.gain,
-    );
     this.store.update({ recordingTrack });
+    this.syncTrackMix();
   }
 
   async play(): Promise<void> {
@@ -333,10 +333,7 @@ export class RecorderRuntime {
         context: this.context,
         output: this.context.destination,
       });
-      const recordingTrack = this.store.get().recordingTrack;
-      this.recordingTrackPlayback.setGain(
-        recordingTrack.muted ? 0 : recordingTrack.gain,
-      );
+      this.syncTrackMix();
       this.clock = new AudioContextTimelineClock(this.context);
       this.clock.subscribe(() => {
         const { position, running } = this.clock!.getSnapshot();
@@ -351,6 +348,22 @@ export class RecorderRuntime {
       playback.stop();
     }
     this.recordingTrackPlayback?.stop();
+  }
+
+  private syncTrackMix(): void {
+    const { audioTracks, recordingTrack } = this.store.get();
+    const anyTrackSoloed =
+      recordingTrack.soloed || audioTracks.some((track) => track.soloed);
+    for (const [index, track] of audioTracks.entries()) {
+      this.audioTrackPlaybacks[index]?.setGain(
+        track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+      );
+    }
+    this.recordingTrackPlayback?.setGain(
+      recordingTrack.muted || (anyTrackSoloed && !recordingTrack.soloed)
+        ? 0
+        : recordingTrack.gain,
+    );
   }
 
   private finishRecording(stopFrame: number): void {
@@ -411,6 +424,7 @@ function createAudioTrackState(): AudioTrackState {
     duration: 0,
     gain: 1,
     muted: false,
+    soloed: false,
     timelineOffset: 0,
   };
 }
@@ -419,6 +433,7 @@ function createRecordingTrackState(): RecordingTrackState {
   return {
     gain: 1,
     muted: false,
+    soloed: false,
     takes: [],
   };
 }
