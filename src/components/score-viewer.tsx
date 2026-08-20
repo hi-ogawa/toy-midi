@@ -313,7 +313,7 @@ export function ScoreViewer({
                   source: file,
                 })
               }
-              className="group h-48 w-full max-w-4xl flex-col gap-3 border border-dashed border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
+              className="group h-48 w-full max-w-4xl flex-col gap-3 border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
                 <UploadIcon className="size-5" />
