@@ -1,7 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CircleStopIcon,
+  HouseIcon,
   Mic2Icon,
+  MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
   RadioIcon,
@@ -12,6 +14,12 @@ import { useSyncExternalStore } from "react";
 import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export function Recorder() {
   const state = useSyncExternalStore(
@@ -58,35 +66,36 @@ export function Recorder() {
     recordMutation.error;
 
   return (
-    <main className="min-h-screen bg-[#11100e] text-stone-100">
-      <header className="border-b border-amber-100/10 bg-[#171512] px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-amber-300 text-stone-950">
-              <Mic2Icon className="size-5" />
-            </div>
-            <div>
-              <h1 className="font-serif text-xl font-semibold tracking-wide">
-                Recorder
-              </h1>
-              <p className="text-xs text-stone-500">
-                Native Web Audio timing spike
-              </p>
-            </div>
-          </div>
-          <a
-            href={routes.home.href()}
-            className="text-sm text-stone-500 transition-colors hover:text-amber-300"
-          >
-            Back to Toy MIDI
-          </a>
-        </div>
+    <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
+      <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
+        <Mic2Icon className="mr-2 size-5 text-emerald-400" />
+        <span className="font-medium">Recorder</span>
+        <div className="flex-1" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              title="More"
+              aria-label="More"
+              className="size-9 hover:bg-accent hover:text-accent-foreground"
+            >
+              <MoreVerticalIcon className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <a href={routes.home.href()}>
+                <HouseIcon />
+                Home
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="mx-auto grid w-full max-w-5xl gap-6 px-8 py-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
-          <section className="overflow-hidden rounded-lg border border-amber-100/10 bg-[#191714]">
-            <div className="flex items-center gap-3 border-b border-amber-100/10 px-5 py-4">
+          <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
+            <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
               <Button
                 onClick={() => {
                   if (state.isPlaying) {
@@ -95,7 +104,7 @@ export function Recorder() {
                     playMutation.mutate();
                   }
                 }}
-                className="size-11 border-amber-300/30 bg-amber-300 text-stone-950 hover:bg-amber-200"
+                className="size-11 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
               >
                 {state.isPlaying ? (
                   <PauseIcon className="size-5" />
@@ -106,15 +115,15 @@ export function Recorder() {
               <Button
                 onClick={() => recorderRuntime.stop()}
                 disabled={isRecording || isProcessing}
-                className="size-10 bg-stone-800 hover:bg-stone-700"
+                className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
                 title="Return to start"
               >
                 <RotateCcwIcon className="size-4" />
               </Button>
-              <div className="ml-2 font-mono text-lg tabular-nums text-amber-100">
+              <div className="ml-2 font-mono text-lg tabular-nums text-neutral-950">
                 {formatTime(state.position)}
               </div>
-              <div className="ml-auto text-xs uppercase tracking-[0.18em] text-stone-500">
+              <div className="ml-auto text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">
                 {state.status}
               </div>
             </div>
@@ -129,9 +138,9 @@ export function Recorder() {
                   recorderRuntime.seek(event.currentTarget.valueAsNumber)
                 }
                 disabled={isRecording || isProcessing}
-                className="w-full accent-amber-300"
+                className="w-full accent-emerald-700"
               />
-              <div className="mt-2 flex justify-between font-mono text-[11px] text-stone-600">
+              <div className="mt-2 flex justify-between font-mono text-[11px] text-neutral-500">
                 <span>00:00.000</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -139,23 +148,25 @@ export function Recorder() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
               Tracks
             </h2>
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-amber-100/10 bg-[#191714] px-5 py-4">
-              <span className="font-mono text-xs text-amber-300">BACKING</span>
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+              <span className="font-mono text-xs font-semibold text-emerald-700">
+                BACKING
+              </span>
               <div className="min-w-0">
-                <div className="truncate text-sm text-stone-200">
+                <div className="truncate text-sm text-neutral-950">
                   {state.backingName ?? "No backing track loaded"}
                 </div>
-                <div className="mt-1 text-xs text-stone-600">
+                <div className="mt-1 text-xs text-neutral-500">
                   {state.backingName
                     ? `${formatTime(state.backingDuration)} · click at 0:00`
                     : "WAV, MP3, or another browser-decodable audio file"}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <label className="cursor-pointer rounded-md border border-stone-700 bg-stone-800 p-2 hover:bg-stone-700">
+                <label className="cursor-pointer rounded-md border border-neutral-300 bg-white p-2 text-neutral-900 hover:bg-neutral-100">
                   <UploadIcon className="size-4" />
                   <input
                     type="file"
@@ -176,8 +187,8 @@ export function Recorder() {
                   }
                   className={
                     state.backingMuted
-                      ? "size-9 border-amber-300 bg-amber-300 text-stone-950"
-                      : "size-9 bg-stone-800 hover:bg-stone-700"
+                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
                   }
                   title="Mute backing"
                 >
@@ -185,7 +196,7 @@ export function Recorder() {
                 </Button>
               </div>
               <div />
-              <label className="flex items-center gap-3 text-xs text-stone-500">
+              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
                 Gain
                 <input
                   type="range"
@@ -198,21 +209,23 @@ export function Recorder() {
                       event.currentTarget.valueAsNumber,
                     )
                   }
-                  className="w-full accent-amber-300"
+                  className="w-full accent-emerald-700"
                 />
               </label>
-              <span className="text-right font-mono text-xs text-stone-500">
+              <span className="text-right font-mono text-xs text-neutral-600">
                 {Math.round(state.backingGain * 100)}%
               </span>
             </div>
 
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-red-300/15 bg-[#1d1614] px-5 py-4">
-              <span className="font-mono text-xs text-red-300">TAKE 01</span>
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
+              <span className="font-mono text-xs font-semibold text-neutral-700">
+                TAKE 01
+              </span>
               <div>
-                <div className="text-sm text-stone-200">
+                <div className="text-sm text-neutral-950">
                   {state.hasTake ? "Recorded input" : "No take recorded"}
                 </div>
-                <div className="mt-1 text-xs text-stone-600">
+                <div className="mt-1 text-xs text-neutral-500">
                   {state.hasTake
                     ? `${formatTime(state.takeDuration)} · ${state.capturedFrames.toLocaleString()} frames`
                     : "Direct monitoring stays outside the browser"}
@@ -220,7 +233,7 @@ export function Recorder() {
               </div>
               <div />
               <div />
-              <label className="flex items-center gap-3 text-xs text-stone-500">
+              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
                 Alignment
                 <input
                   type="number"
@@ -233,7 +246,7 @@ export function Recorder() {
                     }
                   }}
                   disabled={!state.hasTake}
-                  className="w-28 rounded border border-stone-700 bg-stone-900 px-2 py-1 font-mono text-stone-200"
+                  className="w-28 rounded-md border border-neutral-300 bg-white px-2 py-1 font-mono text-neutral-950 disabled:bg-neutral-100 disabled:text-neutral-500"
                 />
                 ms
               </label>
@@ -241,7 +254,7 @@ export function Recorder() {
             </div>
           </section>
 
-          <section className="flex items-center justify-center rounded-lg border border-red-300/15 bg-red-950/10 py-7">
+          <section className="flex items-center justify-center rounded-xl border border-neutral-200 bg-white py-7 shadow-sm">
             <Button
               onClick={() =>
                 isRecording
@@ -251,8 +264,8 @@ export function Recorder() {
               disabled={state.status === "idle" || isProcessing}
               className={
                 isRecording
-                  ? "h-14 gap-3 border-red-300 bg-red-400 px-7 font-semibold text-red-950 hover:bg-red-300"
-                  : "h-14 gap-3 border-red-400/50 bg-red-950/50 px-7 font-semibold text-red-200 hover:bg-red-900/60"
+                  ? "h-14 gap-3 border-neutral-300 bg-white px-7 font-semibold text-neutral-900 hover:bg-neutral-100"
+                  : "h-14 gap-3 border-emerald-700 bg-emerald-700 px-7 font-semibold text-white hover:bg-emerald-800"
               }
             >
               {isRecording ? (
@@ -266,19 +279,19 @@ export function Recorder() {
         </div>
 
         <aside className="space-y-6">
-          <section className="rounded-lg border border-amber-100/10 bg-[#191714] p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+          <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
               Input
             </h2>
             <div className="mt-4 space-y-4">
-              <label className="block text-xs text-stone-500">
+              <label className="block text-xs font-semibold text-neutral-600">
                 Device
                 <select
                   value={state.selectedDeviceId ?? ""}
                   onChange={(event) =>
                     inputMutation.mutate(event.currentTarget.value)
                   }
-                  className="mt-1.5 w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200"
+                  className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
                   <option value="" disabled>
                     Select after enabling input
@@ -292,13 +305,13 @@ export function Recorder() {
               </label>
               <Button
                 onClick={() => inputMutation.mutate(undefined)}
-                className="h-10 w-full gap-2 bg-stone-800 text-sm hover:bg-stone-700"
+                className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
               >
                 <Mic2Icon className="size-4" />
                 {state.status === "idle" ? "Enable input" : "Reopen input"}
               </Button>
               {state.inputChannelCount > 1 && (
-                <label className="block text-xs text-stone-500">
+                <label className="block text-xs font-semibold text-neutral-600">
                   Captured channel
                   <select
                     value={state.selectedChannel}
@@ -307,7 +320,7 @@ export function Recorder() {
                         Number(event.currentTarget.value),
                       )
                     }
-                    className="mt-1.5 w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200"
+                    className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm"
                   >
                     {Array.from(
                       { length: state.inputChannelCount },
@@ -323,29 +336,29 @@ export function Recorder() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-amber-100/10 bg-[#191714] p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
+          <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
               Capture diagnostics
             </h2>
             <dl className="mt-4 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-xs">
-              <dt className="text-stone-500">Observed channels</dt>
-              <dd className="font-mono text-stone-300">
+              <dt className="text-neutral-500">Observed channels</dt>
+              <dd className="font-mono text-neutral-950">
                 {state.inputChannelCount || "-"}
               </dd>
-              <dt className="text-stone-500">First context frame</dt>
-              <dd className="font-mono text-stone-300">
+              <dt className="text-neutral-500">First context frame</dt>
+              <dd className="font-mono text-neutral-950">
                 {state.firstCapturedFrame ?? "-"}
               </dd>
-              <dt className="text-stone-500">Captured frames</dt>
-              <dd className="font-mono text-stone-300">
+              <dt className="text-neutral-500">Captured frames</dt>
+              <dd className="font-mono text-neutral-950">
                 {state.capturedFrames || "-"}
               </dd>
-              <dt className="text-stone-500">Discontinuity</dt>
-              <dd className="font-mono text-stone-300">
+              <dt className="text-neutral-500">Discontinuity</dt>
+              <dd className="font-mono text-neutral-950">
                 {state.discontinuityFrames} frames
               </dd>
             </dl>
-            <pre className="mt-4 max-h-64 overflow-auto rounded bg-stone-950 p-3 text-[10px] leading-relaxed text-stone-500">
+            <pre className="mt-4 max-h-64 overflow-auto rounded-md bg-neutral-100 p-3 text-[10px] leading-relaxed text-neutral-600">
               {state.inputSettings
                 ? JSON.stringify(state.inputSettings, undefined, 2)
                 : "getSettings() appears after input permission."}
@@ -353,7 +366,7 @@ export function Recorder() {
           </section>
 
           {error && (
-            <div className="rounded-lg border border-red-400/30 bg-red-950/30 p-4 text-sm text-red-200">
+            <div className="rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
               {error.message}
             </div>
           )}
