@@ -64,7 +64,7 @@ class RecorderRuntime {
     deviceId: string;
     onLevel: (peak: number) => void;
   }): Promise<void> {
-    const context = await this.#getContext();
+    const context = this.#getContext();
     const { input, settings } = await CaptureInput.open({
       context,
       deviceId,
@@ -119,7 +119,7 @@ class RecorderRuntime {
   }
 
   async loadBacking(file: File): Promise<void> {
-    const context = await this.#getContext();
+    const context = this.#getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
     this.stop();
     this.#backingPlayback!.setBuffer(buffer);
@@ -144,7 +144,7 @@ class RecorderRuntime {
     if (this.#snapshot.isPlaying) {
       return;
     }
-    const context = await this.#getContext();
+    const context = this.#getContext();
     await context.resume();
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
     this.#backingPlayback!.start({
@@ -199,7 +199,7 @@ class RecorderRuntime {
     if (!this.#captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = await this.#getContext();
+    const context = this.#getContext();
     await context.resume();
     if (!this.#snapshot.isPlaying) {
       await this.play();
@@ -254,7 +254,7 @@ class RecorderRuntime {
     }
   }
 
-  async #getContext(): Promise<AudioContext> {
+  #getContext(): AudioContext {
     if (!this.#context) {
       this.#context = new AudioContext();
       this.#backingPlayback = new AudioBufferPlayback({
