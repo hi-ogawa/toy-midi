@@ -4,20 +4,12 @@ type TimelineClockSnapshot = {
 };
 
 export class AudioContextTimelineClock {
-  private snapshot: TimelineClockSnapshot = { position: 0, running: false };
+  private state: TimelineClockSnapshot = { position: 0, running: false };
   private contextTime?: number;
   private timelineTime = 0;
   private disposeTicking?: () => void;
-  private readonly listeners = new Set<() => void>();
 
   constructor(readonly context: AudioContext) {}
-
-  getSnapshot = (): TimelineClockSnapshot => this.snapshot;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
 
   start({
     contextTime,
@@ -35,7 +27,7 @@ export class AudioContextTimelineClock {
   }
 
   pause(): void {
-    if (!this.snapshot.running) {
+    if (!this.state.running) {
       return;
     }
     const position = this.getPosition(this.context.currentTime);
@@ -52,7 +44,7 @@ export class AudioContextTimelineClock {
 
   getTimelinePosition(contextTime: number): number {
     if (this.contextTime === undefined) {
-      return this.snapshot.position;
+      return this.state.position;
     }
     return this.timelineTime + contextTime - this.contextTime;
   }
@@ -76,8 +68,18 @@ export class AudioContextTimelineClock {
     this.disposeTicking = undefined;
   }
 
+  // reactive state contract
+  private readonly listeners = new Set<() => void>();
+
+  getSnapshot = (): TimelineClockSnapshot => this.state;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
   private update(update: Partial<TimelineClockSnapshot>): void {
-    this.snapshot = { ...this.snapshot, ...update };
+    this.state = { ...this.state, ...update };
     for (const listener of this.listeners) {
       listener();
     }

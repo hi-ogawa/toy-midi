@@ -40,7 +40,6 @@ class RecorderRuntime {
     takeCaptureOffset: 0,
     latencyCompensation: 0,
   };
-  private readonly listeners = new Set<() => void>();
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
@@ -302,6 +301,8 @@ class RecorderRuntime {
   }
 
   // reactive state contract
+  private readonly listeners = new Set<() => void>();
+
   getSnapshot = (): RecorderState => this.state;
 
   subscribe = (listener: () => void): (() => void) => {
