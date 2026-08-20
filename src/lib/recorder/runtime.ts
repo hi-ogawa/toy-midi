@@ -1,3 +1,4 @@
+import { createStore } from "../../utils/store.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
@@ -31,7 +32,7 @@ interface RecorderState {
 }
 
 export class RecorderRuntime {
-  private state: RecorderState = {
+  readonly store = createStore<RecorderState>({
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -42,7 +43,7 @@ export class RecorderRuntime {
     takeDuration: 0,
     takeCaptureOffset: 0,
     latencyCompensation: 0,
-  };
+  });
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
@@ -68,10 +69,10 @@ export class RecorderRuntime {
           case "channels": {
             const inputChannelCount = message.value;
             const selectedChannel = Math.min(
-              this.state.selectedChannel,
+              this.store.get().selectedChannel,
               Math.max(0, inputChannelCount - 1),
             );
-            this.update({ inputChannelCount, selectedChannel });
+            this.store.update({ inputChannelCount, selectedChannel });
             this.selectChannel(selectedChannel);
             break;
           }
@@ -87,7 +88,10 @@ export class RecorderRuntime {
               break;
             }
             activeRecording.append(message);
-            if (activeRecording.isFull() && this.state.status === "recording") {
+            if (
+              activeRecording.isFull() &&
+              this.store.get().status === "recording"
+            ) {
               void this.stopRecording();
             }
             break;
@@ -98,7 +102,7 @@ export class RecorderRuntime {
     this.closeInput();
     this.captureInput = input;
 
-    this.update({
+    this.store.update({
       status: "ready",
       inputSettings: settings,
       inputChannelCount: 0,
@@ -108,7 +112,7 @@ export class RecorderRuntime {
 
   stopInput(): void {
     this.closeInput();
-    this.update({
+    this.store.update({
       status: "idle",
       inputSettings: undefined,
       inputChannelCount: 0,
@@ -118,7 +122,7 @@ export class RecorderRuntime {
 
   selectChannel(channel: number): void {
     this.captureInput?.setChannel(channel);
-    this.update({ selectedChannel: channel });
+    this.store.update({ selectedChannel: channel });
   }
 
   async setAudioTrack(index: number, file: File): Promise<void> {
@@ -157,22 +161,22 @@ export class RecorderRuntime {
   removeAudioTrack(index: number): void {
     this.audioTrackPlaybacks[index]?.stop();
     this.audioTrackPlaybacks.splice(index, 1);
-    const tracks = this.state.audioTracks.slice();
+    const tracks = this.store.get().audioTracks.slice();
     tracks.splice(index, 1);
-    this.update({ audioTracks: tracks });
+    this.store.update({ audioTracks: tracks });
   }
 
   private updateAudioTrack(
     index: number,
     update: (track: AudioTrackState) => AudioTrackState,
   ): void {
-    const audioTracks = this.state.audioTracks.slice();
+    const audioTracks = this.store.get().audioTracks.slice();
     const track = audioTracks[index];
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
     audioTracks[index] = update(track);
-    this.update({ audioTracks });
+    this.store.update({ audioTracks });
   }
 
   private getAudioTrackPlayback(index: number): AudioBufferPlayback {
@@ -187,15 +191,15 @@ export class RecorderRuntime {
       playback.setGain(track.muted ? 0 : track.gain);
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks[index] = playback;
-      const audioTracks = this.state.audioTracks.slice();
+      const audioTracks = this.store.get().audioTracks.slice();
       audioTracks[index] = track;
-      this.update({ audioTracks });
+      this.store.update({ audioTracks });
     }
     return playback;
   }
 
   async play(): Promise<void> {
-    if (this.state.isPlaying) {
+    if (this.store.get().isPlaying) {
       return;
     }
     const context = this.getContext();
@@ -206,24 +210,24 @@ export class RecorderRuntime {
     for (const playback of this.audioTrackPlaybacks) {
       playback.start({
         scheduledContextTime: startTime,
-        playheadTime: this.state.position,
+        playheadTime: this.store.get().position,
       });
     }
     this.takePlayback!.setTimelineOffset(
-      this.state.takeCaptureOffset - this.state.latencyCompensation,
+      this.store.get().takeCaptureOffset - this.store.get().latencyCompensation,
     );
     this.takePlayback!.start({
       scheduledContextTime: startTime,
-      playheadTime: this.state.position,
+      playheadTime: this.store.get().position,
     });
     this.clock!.start({
       contextTime: startTime,
-      position: this.state.position,
+      position: this.store.get().position,
     });
   }
 
   pause(): void {
-    if (!this.state.isPlaying) {
+    if (!this.store.get().isPlaying) {
       return;
     }
     this.clock!.pause();
@@ -234,14 +238,14 @@ export class RecorderRuntime {
     // Seeking preserves whether the transport was running. Active buffer sources
     // cannot be repositioned, so running playback must be recreated at the new
     // playhead position.
-    const wasPlaying = this.state.isPlaying;
+    const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
     this.clock?.setPosition(nextPosition);
     if (!this.clock) {
-      this.update({ position: nextPosition });
+      this.store.update({ position: nextPosition });
     }
     if (wasPlaying) {
       void this.play();
@@ -256,7 +260,7 @@ export class RecorderRuntime {
     await context.resume();
     // Recording rolls the transport so the worklet's capture frame can be
     // converted through an active clock into a stable timeline placement.
-    if (!this.state.isPlaying) {
+    if (!this.store.get().isPlaying) {
       await this.play();
     }
     this.clearTake();
@@ -268,7 +272,7 @@ export class RecorderRuntime {
       startFrame,
       Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
     );
-    this.update({
+    this.store.update({
       status: "recording",
       takeCaptureOffset: this.clock!.getTimelinePosition(
         startFrame / context.sampleRate,
@@ -278,10 +282,10 @@ export class RecorderRuntime {
 
   async stopRecording(): Promise<void> {
     const captureInput = this.captureInput;
-    if (this.state.status !== "recording" || !captureInput) {
+    if (this.store.get().status !== "recording" || !captureInput) {
       return;
     }
-    this.update({ status: "processing" });
+    this.store.update({ status: "processing" });
     // Stopping is two-phase: the worklet first flushes its final partial batch,
     // then acknowledges the exclusive frame at which capture ended.
     const stopFrame = await captureInput.stopCapture();
@@ -289,7 +293,7 @@ export class RecorderRuntime {
   }
 
   setLatencyCompensation(compensation: number): void {
-    this.update({ latencyCompensation: compensation });
+    this.store.update({ latencyCompensation: compensation });
   }
 
   private getContext(): AudioContext {
@@ -302,7 +306,7 @@ export class RecorderRuntime {
       this.clock = new AudioContextTimelineClock(this.context);
       this.clock.subscribe(() => {
         const { position, running } = this.clock!.getSnapshot();
-        this.update({ isPlaying: running, position });
+        this.store.update({ isPlaying: running, position });
       });
     }
     return this.context;
@@ -325,7 +329,7 @@ export class RecorderRuntime {
     if (!samples) {
       this.activeRecording = undefined;
       this.clearTake();
-      this.update({ status: "ready" });
+      this.store.update({ status: "ready" });
       return;
     }
     const takeBuffer = context.createBuffer(
@@ -338,7 +342,7 @@ export class RecorderRuntime {
     // Preserve the uncompensated timeline location of captured sample zero so
     // compensation can be adjusted repeatedly without accumulating drift.
     this.activeRecording = undefined;
-    this.update({
+    this.store.update({
       status: "ready",
       hasTake: true,
       takeDuration: takeBuffer.duration,
@@ -353,28 +357,11 @@ export class RecorderRuntime {
   private clearTake(): void {
     this.takePlayback?.stop();
     this.takePlayback?.setBuffer(undefined);
-    this.update({
+    this.store.update({
       hasTake: false,
       takeDuration: 0,
       takeCaptureOffset: 0,
     });
-  }
-
-  // reactive state contract
-  private readonly listeners = new Set<() => void>();
-
-  getSnapshot = (): RecorderState => this.state;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  private update(update: Partial<RecorderState>): void {
-    this.state = { ...this.state, ...update };
-    for (const listener of this.listeners) {
-      listener();
-    }
   }
 }
 

@@ -28,7 +28,10 @@ import {
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
-  const state = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
+  const state = useSyncExternalStore(
+    runtime.store.subscribe,
+    runtime.store.getSnapshot,
+  );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
