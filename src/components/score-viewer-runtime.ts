@@ -87,25 +87,25 @@ export class ScoreViewerRuntime {
   //         container      OSMD render target
   //           canvasPage   one OSMD-owned wrapper per rendered page
   //             svgPage    OSMD-owned notation SVG
-  #root!: HTMLDivElement;
-  #container!: HTMLDivElement;
-  #cursor!: HTMLDivElement;
-  #layoutBox!: HTMLDivElement;
-  #measureLayers!: HTMLDivElement;
-  #scroller!: HTMLElement;
-  #sheet!: HTMLDivElement;
+  private root!: HTMLDivElement;
+  private container!: HTMLDivElement;
+  private cursor!: HTMLDivElement;
+  private layoutBox!: HTMLDivElement;
+  private measureLayers!: HTMLDivElement;
+  private scroller!: HTMLElement;
+  private sheet!: HTMLDivElement;
 
-  #osmd!: OpenSheetMusicDisplay;
+  private osmd!: OpenSheetMusicDisplay;
 
-  #positions: CursorPosition[] = [];
-  #state = INITIAL_RUNTIME_STATE;
-  #timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
-  readonly #listeners = new Set<() => void>();
-  #manualScrollTimer?: ReturnType<typeof setTimeout>;
+  private positions: CursorPosition[] = [];
+  private state = INITIAL_RUNTIME_STATE;
+  private timeSignature: TimeSignature = DEFAULT_TIME_SIGNATURE;
+  private readonly listeners = new Set<() => void>();
+  private manualScrollTimer?: ReturnType<typeof setTimeout>;
 
-  readonly #clock: ScoreViewerClock;
-  readonly #viewportPadding: number;
-  #scale: number;
+  private readonly clock: ScoreViewerClock;
+  private readonly viewportPadding: number;
+  private scale: number;
 
   constructor({
     clock,
@@ -114,75 +114,75 @@ export class ScoreViewerRuntime {
     clock: ScoreViewerClock;
     presentation: ScoreViewerPresentation;
   }) {
-    this.#clock = clock;
-    this.#scale = presentation.scale;
-    this.#viewportPadding = presentation.viewportPadding;
-    this.#clock.subscribe(() => {
-      const { currentTime, isPlaying } = this.#clock.getSnapshot();
-      const scoreTime = secondsToScoreTime(currentTime, this.#state.tempo);
-      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
+    this.clock = clock;
+    this.scale = presentation.scale;
+    this.viewportPadding = presentation.viewportPadding;
+    this.clock.subscribe(() => {
+      const { currentTime, isPlaying } = this.clock.getSnapshot();
+      const scoreTime = secondsToScoreTime(currentTime, this.state.tempo);
+      const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.timeSignature);
       if (
-        bar !== this.#state.bar ||
-        beat !== this.#state.beat ||
-        currentTime !== this.#state.currentTime
+        bar !== this.state.bar ||
+        beat !== this.state.beat ||
+        currentTime !== this.state.currentTime
       ) {
-        this.#setState({ bar, beat, currentTime });
+        this.setState({ bar, beat, currentTime });
       }
-      this.#updateCursor(scoreTime);
-      if (isPlaying !== this.#state.isPlaying) {
-        this.#setState({ isPlaying });
+      this.updateCursor(scoreTime);
+      if (isPlaying !== this.state.isPlaying) {
+        this.setState({ isPlaying });
       }
     });
   }
 
-  getSnapshot = () => this.#state;
+  getSnapshot = () => this.state;
 
   subscribe = (listener: () => void) => {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   };
 
   attach(root: HTMLDivElement) {
-    this.#root = root;
-    this.#root.replaceChildren();
+    this.root = root;
+    this.root.replaceChildren();
 
-    this.#scroller = document.createElement("section");
-    this.#scroller.dataset.testid = "score-viewer-scroll";
-    this.#scroller.className = "h-full overflow-y-auto";
-    this.#scroller.style.padding = `${this.#viewportPadding}px`;
-    this.#scroller.addEventListener("wheel", this.#handleManualScroll);
-    this.#scroller.addEventListener("pointerdown", this.#handleManualScroll);
+    this.scroller = document.createElement("section");
+    this.scroller.dataset.testid = "score-viewer-scroll";
+    this.scroller.className = "h-full overflow-y-auto";
+    this.scroller.style.padding = `${this.viewportPadding}px`;
+    this.scroller.addEventListener("wheel", this.handleManualScroll);
+    this.scroller.addEventListener("pointerdown", this.handleManualScroll);
 
-    this.#layoutBox = document.createElement("div");
-    this.#layoutBox.dataset.testid = "score-viewer-layout-box";
-    this.#layoutBox.className = "relative mx-auto";
+    this.layoutBox = document.createElement("div");
+    this.layoutBox.dataset.testid = "score-viewer-layout-box";
+    this.layoutBox.className = "relative mx-auto";
 
-    this.#sheet = document.createElement("div");
-    this.#sheet.dataset.testid = "score-viewer-sheet";
-    this.#sheet.className = "relative";
-    this.#sheet.hidden = true;
-    this.#sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
-    this.#sheet.style.transformOrigin = "top left";
+    this.sheet = document.createElement("div");
+    this.sheet.dataset.testid = "score-viewer-sheet";
+    this.sheet.className = "relative";
+    this.sheet.hidden = true;
+    this.sheet.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+    this.sheet.style.transformOrigin = "top left";
 
-    this.#cursor = document.createElement("div");
-    this.#cursor.dataset.testid = "score-viewer-cursor";
-    this.#cursor.className =
+    this.cursor = document.createElement("div");
+    this.cursor.dataset.testid = "score-viewer-cursor";
+    this.cursor.className =
       "pointer-events-none absolute top-0 left-0 z-10 w-[3px] bg-blue-500";
 
-    this.#measureLayers = document.createElement("div");
-    this.#measureLayers.dataset.testid = "score-viewer-measure-layers";
-    this.#measureLayers.className = "absolute inset-0 z-[5]";
-    this.#measureLayers.addEventListener("click", this.#handleMeasureClick);
+    this.measureLayers = document.createElement("div");
+    this.measureLayers.dataset.testid = "score-viewer-measure-layers";
+    this.measureLayers.className = "absolute inset-0 z-[5]";
+    this.measureLayers.addEventListener("click", this.handleMeasureClick);
 
-    this.#container = document.createElement("div");
-    this.#container.dataset.testid = "score-viewer-renderer";
-    this.#container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
+    this.container = document.createElement("div");
+    this.container.dataset.testid = "score-viewer-renderer";
+    this.container.style.width = `${SCORE_LAYOUT_WIDTH}px`;
 
-    this.#sheet.append(this.#cursor, this.#measureLayers, this.#container);
-    this.#layoutBox.append(this.#sheet);
-    this.#scroller.append(this.#layoutBox);
-    this.#root.append(this.#scroller);
-    this.#osmd = new OpenSheetMusicDisplay(this.#container, {
+    this.sheet.append(this.cursor, this.measureLayers, this.container);
+    this.layoutBox.append(this.sheet);
+    this.scroller.append(this.layoutBox);
+    this.root.append(this.scroller);
+    this.osmd = new OpenSheetMusicDisplay(this.container, {
       autoBeam: true,
       autoGenerateMultipleRestMeasuresFromRestMeasures: false,
       backend: "svg",
@@ -195,25 +195,25 @@ export class ScoreViewerRuntime {
   }
 
   setScale(scale: number) {
-    this.#scale = scale;
-    this.#updateScale();
+    this.scale = scale;
+    this.updateScale();
   }
 
   setScaleToFitViewport() {
-    const sheetWidth = this.#sheet.offsetWidth;
+    const sheetWidth = this.sheet.offsetWidth;
     // The sheet is display:none until the first score load, so it has no layout yet.
     if (sheetWidth === 0) {
       return;
     }
     this.setScale(
-      (this.#scroller.clientWidth - 2 * this.#viewportPadding) / sheetWidth,
+      (this.scroller.clientWidth - 2 * this.viewportPadding) / sheetWidth,
     );
   }
 
-  #updateScale() {
-    this.#sheet.style.transform = `scale(${this.#scale})`;
-    this.#layoutBox.style.width = `${this.#sheet.offsetWidth * this.#scale}px`;
-    this.#layoutBox.style.height = `${this.#sheet.offsetHeight * this.#scale}px`;
+  private updateScale() {
+    this.sheet.style.transform = `scale(${this.scale})`;
+    this.layoutBox.style.width = `${this.sheet.offsetWidth * this.scale}px`;
+    this.layoutBox.style.height = `${this.sheet.offsetHeight * this.scale}px`;
   }
 
   async load({
@@ -223,28 +223,28 @@ export class ScoreViewerRuntime {
     score: ScoreSource;
     settings: ScoreViewerSettings;
   }) {
-    this.#resumeAutoScroll();
-    this.#setState({ isReady: false });
+    this.resumeAutoScroll();
+    this.setState({ isReady: false });
 
-    this.#osmd.clear();
-    applyEngravingSettings(this.#osmd, settings);
-    await this.#osmd.load(score.xml);
-    this.#sheet.hidden = false;
-    this.#osmd.render();
+    this.osmd.clear();
+    applyEngravingSettings(this.osmd, settings);
+    await this.osmd.load(score.xml);
+    this.sheet.hidden = false;
+    this.osmd.render();
 
-    this.#sheet.className =
+    this.sheet.className =
       settings.layout === "continuous"
         ? "relative box-content bg-white px-4 shadow-xl"
         : "relative";
-    this.#updateScale();
-    this.#positions = buildCursorPositions(this.#osmd, this.#container);
-    buildMeasureTargets(this.#osmd, this.#measureLayers, this.#container);
-    this.#timeSignature = parseTimeSignature(score.xml);
+    this.updateScale();
+    this.positions = buildCursorPositions(this.osmd, this.container);
+    buildMeasureTargets(this.osmd, this.measureLayers, this.container);
+    this.timeSignature = parseTimeSignature(score.xml);
     const tempo = parseTempo(score.xml);
-    const { currentTime, isPlaying } = this.#clock.getSnapshot();
+    const { currentTime, isPlaying } = this.clock.getSnapshot();
     const scoreTime = secondsToScoreTime(currentTime, tempo);
-    const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.#timeSignature);
-    this.#setState({
+    const { bar, beat } = scoreTimeToBarBeat(scoreTime, this.timeSignature);
+    this.setState({
       bar,
       beat,
       currentTime,
@@ -252,52 +252,52 @@ export class ScoreViewerRuntime {
       isReady: true,
       tempo,
     });
-    this.#updateCursor(scoreTime);
+    this.updateCursor(scoreTime);
   }
 
   togglePlayback() {
-    if (this.#clock.getSnapshot().isPlaying) {
-      this.#clock.pause();
+    if (this.clock.getSnapshot().isPlaying) {
+      this.clock.pause();
       return;
     }
-    if (!this.#state.isReady) {
+    if (!this.state.isReady) {
       return;
     }
-    this.#clock.play();
+    this.clock.play();
   }
 
   restart() {
-    this.#resumeAutoScroll();
-    this.#clock.pause();
-    this.#clock.seek(0);
-    this.#scroller.scrollTo({ top: 0 });
+    this.resumeAutoScroll();
+    this.clock.pause();
+    this.clock.seek(0);
+    this.scroller.scrollTo({ top: 0 });
   }
 
   setTempo(tempo: number) {
     if (!Number.isFinite(tempo) || tempo <= 0) {
       return;
     }
-    this.#setState({ tempo });
+    this.setState({ tempo });
     this.restart();
   }
 
   seek(scoreTime: number) {
-    this.#resumeAutoScroll();
-    this.#clock.seek(scoreTimeToSeconds(scoreTime, this.#state.tempo));
+    this.resumeAutoScroll();
+    this.clock.seek(scoreTimeToSeconds(scoreTime, this.state.tempo));
   }
 
   dispose() {
-    this.#resumeAutoScroll();
-    this.#scroller.removeEventListener("wheel", this.#handleManualScroll);
-    this.#scroller.removeEventListener("pointerdown", this.#handleManualScroll);
-    this.#measureLayers.removeEventListener("click", this.#handleMeasureClick);
-    if (this.#root.hasChildNodes()) {
-      this.#osmd.clear();
-      this.#root.replaceChildren();
+    this.resumeAutoScroll();
+    this.scroller.removeEventListener("wheel", this.handleManualScroll);
+    this.scroller.removeEventListener("pointerdown", this.handleManualScroll);
+    this.measureLayers.removeEventListener("click", this.handleMeasureClick);
+    if (this.root.hasChildNodes()) {
+      this.osmd.clear();
+      this.root.replaceChildren();
     }
   }
 
-  #handleMeasureClick = (event: MouseEvent) => {
+  private handleMeasureClick = (event: MouseEvent) => {
     const target = (event.target as Element).closest<HTMLElement>(
       "[data-score-time]",
     );
@@ -307,40 +307,40 @@ export class ScoreViewerRuntime {
     this.seek(Number(target.dataset.scoreTime));
   };
 
-  #handleManualScroll = () => {
-    clearTimeout(this.#manualScrollTimer);
-    this.#manualScrollTimer = setTimeout(() => {
-      this.#manualScrollTimer = undefined;
+  private handleManualScroll = () => {
+    clearTimeout(this.manualScrollTimer);
+    this.manualScrollTimer = setTimeout(() => {
+      this.manualScrollTimer = undefined;
     }, MANUAL_SCROLL_IDLE_MS);
   };
 
-  #resumeAutoScroll() {
-    clearTimeout(this.#manualScrollTimer);
-    this.#manualScrollTimer = undefined;
+  private resumeAutoScroll() {
+    clearTimeout(this.manualScrollTimer);
+    this.manualScrollTimer = undefined;
   }
 
-  #updateCursor(scoreTime: number) {
-    if (this.#positions.length < 2) {
+  private updateCursor(scoreTime: number) {
+    if (this.positions.length < 2) {
       return;
     }
 
     // Keep transport time unbounded, but show the cursor only over notation.
-    const last = this.#positions.at(-1)!;
+    const last = this.positions.at(-1)!;
     if (scoreTime >= last.time) {
-      this.#cursor.hidden = true;
+      this.cursor.hidden = true;
       return;
     }
-    this.#cursor.hidden = false;
+    this.cursor.hidden = false;
 
     // Locate the pair of playback anchors surrounding the current score time.
-    let nextIndex = this.#positions.findIndex(
+    let nextIndex = this.positions.findIndex(
       (position) => position.time > scoreTime,
     );
     if (nextIndex < 1) {
       nextIndex = 1;
     }
-    const currentAnchor = this.#positions[nextIndex - 1];
-    const nextAnchor = this.#positions[nextIndex];
+    const currentAnchor = this.positions[nextIndex - 1];
+    const nextAnchor = this.positions[nextIndex];
 
     // Interpolate x by musical time while retaining the active system geometry.
     const progress =
@@ -350,29 +350,29 @@ export class ScoreViewerRuntime {
         : // Do not interpolate diagonally between wrapped systems. The synthetic
           // system endpoint completes the previous row before this direct jump.
           0;
-    this.#cursor.style.transform = `translate(${currentAnchor.x + (nextAnchor.x - currentAnchor.x) * progress}px, ${currentAnchor.top}px)`;
-    this.#cursor.style.height = `${currentAnchor.height}px`;
+    this.cursor.style.transform = `translate(${currentAnchor.x + (nextAnchor.x - currentAnchor.x) * progress}px, ${currentAnchor.top}px)`;
+    this.cursor.style.height = `${currentAnchor.height}px`;
     // Expose the active system for cursor-wrapping E2E coverage.
-    this.#cursor.dataset.systemId = String(currentAnchor.systemId);
+    this.cursor.dataset.systemId = String(currentAnchor.systemId);
 
     // Match MuseScore's containment behavior: keep the viewport fixed while
     // the complete cursor is visible, then reveal the active system.
-    const cursorTop = currentAnchor.top * this.#scale;
+    const cursorTop = currentAnchor.top * this.scale;
     const cursorBottom =
-      (currentAnchor.top + currentAnchor.height) * this.#scale;
-    const viewportTop = this.#scroller.scrollTop;
-    const viewportBottom = viewportTop + this.#scroller.clientHeight;
+      (currentAnchor.top + currentAnchor.height) * this.scale;
+    const viewportTop = this.scroller.scrollTop;
+    const viewportBottom = viewportTop + this.scroller.clientHeight;
     if (
-      this.#manualScrollTimer === undefined &&
+      this.manualScrollTimer === undefined &&
       (cursorTop < viewportTop || viewportBottom < cursorBottom)
     ) {
-      this.#scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
+      this.scroller.scrollTo({ top: Math.max(cursorTop - 24, 0) });
     }
   }
 
-  #setState(update: Partial<ScoreViewerRuntimeState>) {
-    this.#state = { ...this.#state, ...update };
-    for (const listener of this.#listeners) {
+  private setState(update: Partial<ScoreViewerRuntimeState>) {
+    this.state = { ...this.state, ...update };
+    for (const listener of this.listeners) {
       listener();
     }
   }
@@ -613,59 +613,58 @@ type PlayheadSnapshot = {
 };
 
 export class PlayheadClock implements ScoreViewerClock {
-  #snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
-  #startedAt?: number;
-  #frame?: number;
-  readonly #listeners = new Set<() => void>();
+  private snapshot: PlayheadSnapshot = { currentTime: 0, isPlaying: false };
+  private startedAt?: number;
+  private frame?: number;
+  private readonly listeners = new Set<() => void>();
 
-  getSnapshot = () => this.#snapshot;
+  getSnapshot = () => this.snapshot;
 
   subscribe = (listener: () => void) => {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   };
 
   play() {
-    if (this.#snapshot.isPlaying) {
+    if (this.snapshot.isPlaying) {
       return;
     }
-    this.#startedAt = performance.now();
-    this.#setSnapshot({ isPlaying: true });
-    this.#frame = requestAnimationFrame(this.#tick);
+    this.startedAt = performance.now();
+    this.setSnapshot({ isPlaying: true });
+    this.frame = requestAnimationFrame(this.tick);
   }
 
   pause() {
-    if (!this.#snapshot.isPlaying) {
+    if (!this.snapshot.isPlaying) {
       return;
     }
     const currentTime =
-      this.#snapshot.currentTime +
-      (performance.now() - this.#startedAt!) / 1000;
-    cancelAnimationFrame(this.#frame ?? 0);
-    this.#frame = undefined;
-    this.#startedAt = undefined;
-    this.#setSnapshot({ currentTime, isPlaying: false });
+      this.snapshot.currentTime + (performance.now() - this.startedAt!) / 1000;
+    cancelAnimationFrame(this.frame ?? 0);
+    this.frame = undefined;
+    this.startedAt = undefined;
+    this.setSnapshot({ currentTime, isPlaying: false });
   }
 
   seek(currentTime: number) {
-    this.#startedAt = this.#snapshot.isPlaying ? performance.now() : undefined;
-    this.#setSnapshot({ currentTime });
+    this.startedAt = this.snapshot.isPlaying ? performance.now() : undefined;
+    this.setSnapshot({ currentTime });
   }
 
-  #tick = () => {
-    if (!this.#snapshot.isPlaying || this.#startedAt === undefined) {
+  private tick = () => {
+    if (!this.snapshot.isPlaying || this.startedAt === undefined) {
       return;
     }
     const currentTime =
-      this.#snapshot.currentTime + (performance.now() - this.#startedAt) / 1000;
-    this.#startedAt = performance.now();
-    this.#setSnapshot({ currentTime });
-    this.#frame = requestAnimationFrame(this.#tick);
+      this.snapshot.currentTime + (performance.now() - this.startedAt) / 1000;
+    this.startedAt = performance.now();
+    this.setSnapshot({ currentTime });
+    this.frame = requestAnimationFrame(this.tick);
   };
 
-  #setSnapshot(update: Partial<PlayheadSnapshot>) {
-    this.#snapshot = { ...this.#snapshot, ...update };
-    for (const listener of this.#listeners) {
+  private setSnapshot(update: Partial<PlayheadSnapshot>) {
+    this.snapshot = { ...this.snapshot, ...update };
+    for (const listener of this.listeners) {
       listener();
     }
   }
