@@ -213,6 +213,17 @@ export function ScoreViewer({
             />
           </label>
         </div>
+
+        <div className="flex-1" />
+
+        <span
+          data-testid="score-name"
+          title={score?.name}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
+        >
+          {score?.name ?? "No score loaded"}
+        </span>
+
         <div className="h-5 w-px bg-border" />
 
         <Button
@@ -230,20 +241,8 @@ export function ScoreViewer({
           <SlidersHorizontalIcon className="size-5" />
         </Button>
 
-        <div className="flex-1" />
-
-        <span
-          data-testid="score-name"
-          title={score?.name}
-          className="max-w-[220px] truncate text-sm text-neutral-300"
-        >
-          {score?.name ?? "No score loaded"}
-        </span>
-
         {!initialSource && (
           <>
-            <div className="h-5 w-px bg-border" />
-
             <input
               ref={openInputRef}
               type="file"
