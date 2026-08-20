@@ -4,25 +4,32 @@ export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];
   private readonly startFrame: number;
   private readonly capacityFrames: number;
+  private endFrame: number;
 
   constructor(startFrame: number, capacityFrames: number) {
     this.startFrame = startFrame;
     this.capacityFrames = capacityFrames;
+    this.endFrame = startFrame;
   }
 
   append(chunk: CaptureChunk): void {
     this.chunks.push(chunk);
+    this.endFrame = Math.max(
+      this.endFrame,
+      chunk.frameStart + chunk.samples.length,
+    );
+  }
+
+  getDurationFrames(): number {
+    // This is elapsed capture span, not accumulated PCM count. Missing frames
+    // become silence during assembly and still contribute to take duration.
+    return this.endFrame - this.startFrame;
   }
 
   isFull(): boolean {
-    const last = this.chunks.at(-1);
     // Capacity is elapsed AudioContext frames, including capture gaps, rather
     // than only the number of PCM samples delivered.
-    return (
-      last !== undefined &&
-      last.frameStart + last.samples.length - this.startFrame >=
-        this.capacityFrames
-    );
+    return this.getDurationFrames() >= this.capacityFrames;
   }
 
   finish(stopFrame: number): Float32Array | undefined {

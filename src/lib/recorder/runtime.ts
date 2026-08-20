@@ -102,6 +102,23 @@ export class RecorderRuntime {
               break;
             }
             activeRecording.append(message);
+            const recordingTrack = this.store.get().recordingTrack;
+            const take = recordingTrack.takes[0];
+            if (!take) {
+              throw new Error("Recording take state is missing.");
+            }
+            this.store.update({
+              recordingTrack: {
+                ...recordingTrack,
+                takes: [
+                  {
+                    ...take,
+                    duration:
+                      activeRecording.getDurationFrames() / context.sampleRate,
+                  },
+                ],
+              },
+            });
             if (
               activeRecording.isFull() &&
               this.store.get().status === "recording"
