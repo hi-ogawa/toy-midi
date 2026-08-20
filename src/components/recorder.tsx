@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  CircleHelpIcon,
   CircleStopIcon,
   HouseIcon,
   Mic2Icon,
@@ -25,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -645,7 +647,37 @@ function InputInspector({
       <div className="space-y-3 border-b border-neutral-700 p-3">
         <h3 className="text-xs font-semibold">Alignment</h3>
         <label className="block text-[11px] font-medium text-neutral-400">
-          Latency compensation
+          <span className="flex items-center gap-1.5">
+            Latency compensation
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="About latency compensation"
+                  className="text-neutral-500 hover:text-neutral-200"
+                >
+                  <CircleHelpIcon className="size-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-64 space-y-2 p-3 text-xs"
+              >
+                <p>
+                  Advances recorded audio to compensate for input and output
+                  latency.
+                </p>
+                <a
+                  href={routes.latencyChecker.href()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-400 hover:underline"
+                >
+                  Open latency checker
+                </a>
+              </PopoverContent>
+            </Popover>
+          </span>
           <div className="mt-1 flex items-center gap-2">
             <input
               type="number"
@@ -663,14 +695,6 @@ function InputInspector({
             <span>ms</span>
           </div>
         </label>
-        <a
-          href={routes.latencyChecker.href()}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-emerald-400 hover:underline"
-        >
-          Measure latency
-        </a>
       </div>
 
       {error && (
