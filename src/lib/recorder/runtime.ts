@@ -168,6 +168,9 @@ class RecorderRuntime {
   }
 
   seek(position: number): void {
+    // Seeking preserves whether the transport was running. Active buffer sources
+    // cannot be repositioned, so running playback must be recreated at the new
+    // playhead position.
     const wasPlaying = this.state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -188,31 +191,26 @@ class RecorderRuntime {
     }
     const context = this.getContext();
     await context.resume();
+    // Recording rolls the transport so the worklet's capture frame can be
+    // converted through an active clock into a stable timeline placement.
     if (!this.state.isPlaying) {
       await this.play();
     }
     this.clearTake();
-    try {
-      // The worklet applies capture changes on the render thread and returns the
-      // first captured frame. Convert that exact boundary to musical timeline
-      // coordinates instead of using main-thread request time.
-      const startFrame = await this.captureInput.startCapture();
-      this.activeRecording = new ActiveRecording(
-        startFrame,
-        Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
-      );
-      this.update({
-        status: "recording",
-        takeCaptureOffset: this.clock!.getTimelinePosition(
-          startFrame / context.sampleRate,
-        ),
-      });
-    } catch (error) {
-      this.stopInput();
-      this.activeRecording = undefined;
-      this.clearTake();
-      throw error;
-    }
+    // The worklet applies capture changes on the render thread and returns the
+    // first captured frame. Convert that exact boundary to musical timeline
+    // coordinates instead of using main-thread request time.
+    const startFrame = await this.captureInput.startCapture();
+    this.activeRecording = new ActiveRecording(
+      startFrame,
+      Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
+    );
+    this.update({
+      status: "recording",
+      takeCaptureOffset: this.clock!.getTimelinePosition(
+        startFrame / context.sampleRate,
+      ),
+    });
   }
 
   async stopRecording(): Promise<void> {
@@ -221,17 +219,10 @@ class RecorderRuntime {
       return;
     }
     this.update({ status: "processing" });
-    try {
-      // Stopping is two-phase: the worklet first flushes its final partial batch,
-      // then acknowledges the exclusive frame at which capture ended.
-      const stopFrame = await captureInput.stopCapture();
-      this.finishRecording(stopFrame);
-    } catch (error) {
-      this.stopInput();
-      this.activeRecording = undefined;
-      this.clearTake();
-      throw error;
-    }
+    // Stopping is two-phase: the worklet first flushes its final partial batch,
+    // then acknowledges the exclusive frame at which capture ended.
+    const stopFrame = await captureInput.stopCapture();
+    this.finishRecording(stopFrame);
   }
 
   setLatencyCompensation(compensation: number): void {
