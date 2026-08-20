@@ -3,6 +3,7 @@ import {
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
+import { AudioContextTimelineClock } from "./clock.ts";
 import {
   type ActiveRecording,
   appendCaptureChunk,
@@ -60,6 +61,7 @@ class RecorderRuntime {
   };
   readonly #listeners = new Set<() => void>();
   #context?: AudioContext;
+  #clock?: AudioContextTimelineClock;
   #workletReady = false;
   #stream?: MediaStream;
   #inputSource?: MediaStreamAudioSourceNode;
@@ -71,9 +73,6 @@ class RecorderRuntime {
   #backingSource?: AudioBufferSourceNode;
   #takeSource?: AudioBufferSourceNode;
   #backingGain?: GainNode;
-  #playbackContextTime?: number;
-  #playbackTimelineTime = 0;
-  #frame?: number;
   #recordAnchor?: RecordAnchor;
   #takeCaptureOffset = 0;
   #activeRecording?: ActiveRecording;
@@ -190,29 +189,27 @@ class RecorderRuntime {
     await context.resume();
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
     this.#startPlaybackSources(startTime, this.#snapshot.position);
-    this.#playbackContextTime = startTime;
-    this.#playbackTimelineTime = this.#snapshot.position;
-    this.#update({ isPlaying: true });
-    this.#startFrame();
+    this.#clock!.start({
+      contextTime: startTime,
+      position: this.#snapshot.position,
+    });
   }
 
   pause(): void {
     if (!this.#snapshot.isPlaying) {
       return;
     }
-    this.#updatePosition();
+    this.#clock!.pause();
     this.#stopPlaybackSources();
-    this.#playbackContextTime = undefined;
-    this.#update({ isPlaying: false });
-    this.#stopFrameIfIdle();
   }
 
   stop(): void {
     this.#stopPlaybackSources();
-    this.#playbackContextTime = undefined;
-    this.#playbackTimelineTime = 0;
-    this.#update({ isPlaying: false, position: 0 });
-    this.#stopFrameIfIdle();
+    this.#clock?.pause();
+    this.#clock?.setPosition(0);
+    if (!this.#clock) {
+      this.#update({ isPlaying: false, position: 0 });
+    }
   }
 
   seek(position: number): void {
@@ -220,7 +217,11 @@ class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    this.#update({ position: Math.max(0, position) });
+    const nextPosition = Math.max(0, position);
+    this.#clock?.setPosition(nextPosition);
+    if (!this.#clock) {
+      this.#update({ position: nextPosition });
+    }
     if (wasPlaying) {
       void this.play();
     }
@@ -239,9 +240,10 @@ class RecorderRuntime {
     this.#activeRecording = createRecording(
       Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
     );
+    const contextTime = context.currentTime;
     this.#recordAnchor = {
-      contextTime: this.#playbackContextTime!,
-      timelineTime: this.#playbackTimelineTime,
+      contextTime,
+      timelineTime: this.#clock!.getTimelinePosition(contextTime),
     };
     this.#captureWorklet.start();
     this.#update({
@@ -250,7 +252,6 @@ class RecorderRuntime {
       firstCapturedFrame: undefined,
       discontinuityFrames: 0,
     });
-    this.#startFrame();
   }
 
   stopRecording(): void {
@@ -278,6 +279,11 @@ class RecorderRuntime {
   async #getContext(): Promise<AudioContext> {
     if (!this.#context) {
       this.#context = new AudioContext();
+      this.#clock = new AudioContextTimelineClock(this.#context);
+      this.#clock.subscribe(() => {
+        const { position, running } = this.#clock!.getSnapshot();
+        this.#update({ isPlaying: running, position });
+      });
     }
     if (!this.#workletReady) {
       const blob = new Blob([createCaptureWorkletSource()], {
@@ -360,54 +366,6 @@ class RecorderRuntime {
     this.#backingGain = undefined;
   }
 
-  #updatePosition(): void {
-    if (
-      this.#context === undefined ||
-      this.#playbackContextTime === undefined
-    ) {
-      return;
-    }
-    this.#update({
-      position:
-        this.#playbackTimelineTime +
-        Math.max(0, this.#context.currentTime - this.#playbackContextTime),
-    });
-  }
-
-  #startFrame(): void {
-    if (this.#frame !== undefined) {
-      return;
-    }
-    const tick = () => {
-      if (this.#snapshot.isPlaying) {
-        this.#updatePosition();
-      }
-      if (
-        this.#snapshot.isPlaying ||
-        this.#snapshot.status === "recording" ||
-        this.#snapshot.status === "processing"
-      ) {
-        this.#frame = requestAnimationFrame(tick);
-      } else {
-        this.#frame = undefined;
-      }
-    };
-    this.#frame = requestAnimationFrame(tick);
-  }
-
-  #stopFrameIfIdle(): void {
-    if (
-      this.#snapshot.isPlaying ||
-      this.#snapshot.status === "recording" ||
-      this.#snapshot.status === "processing" ||
-      this.#frame === undefined
-    ) {
-      return;
-    }
-    cancelAnimationFrame(this.#frame);
-    this.#frame = undefined;
-  }
-
   #handleCaptureMessage = (message: CaptureWorkletNotification): void => {
     switch (message.type) {
       case "channels": {
@@ -458,7 +416,6 @@ class RecorderRuntime {
       this.#activeRecording = undefined;
       this.#recordAnchor = undefined;
       this.#update({ status: "ready" });
-      this.#stopFrameIfIdle();
       return;
     }
     const samples = finishRecording(activeRecording);
@@ -482,7 +439,6 @@ class RecorderRuntime {
       takeDuration: this.#takeBuffer.duration,
       takeOffset: this.#takeCaptureOffset - this.#snapshot.latencyCompensation,
     });
-    this.#stopFrameIfIdle();
   }
 
   #closeInput(): void {
