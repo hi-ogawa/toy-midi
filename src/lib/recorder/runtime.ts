@@ -60,29 +60,35 @@ class RecorderRuntime {
     const { input, settings } = await CaptureInput.open({
       context,
       deviceId,
-      onChannelCount: (inputChannelCount) => {
-        const selectedChannel = Math.min(
-          this.state.selectedChannel,
-          Math.max(0, inputChannelCount - 1),
-        );
-        this.update({ inputChannelCount, selectedChannel });
-        this.selectChannel(selectedChannel);
-      },
-      onLevel,
-      onChunk: (chunk) => {
-        const activeRecording = this.activeRecording;
-        // Batched samples can arrive after stop is requested. Keep accepting
-        // them through processing until the render thread confirms its boundary.
-        if (
-          !activeRecording ||
-          (this.state.status !== "recording" &&
-            this.state.status !== "processing")
-        ) {
-          return;
-        }
-        activeRecording.append(chunk);
-        if (activeRecording.isFull() && this.state.status === "recording") {
-          void this.stopRecording();
+      onNotification: (message) => {
+        switch (message.type) {
+          case "channels": {
+            const inputChannelCount = message.value;
+            const selectedChannel = Math.min(
+              this.state.selectedChannel,
+              Math.max(0, inputChannelCount - 1),
+            );
+            this.update({ inputChannelCount, selectedChannel });
+            this.selectChannel(selectedChannel);
+            break;
+          }
+          case "level": {
+            onLevel(message.peak);
+            break;
+          }
+          case "samples": {
+            const activeRecording = this.activeRecording;
+            // Batched samples can arrive after stop is requested. Keep accepting
+            // them until the render thread confirms its boundary.
+            if (!activeRecording) {
+              break;
+            }
+            activeRecording.append(message);
+            if (activeRecording.isFull() && this.state.status === "recording") {
+              void this.stopRecording();
+            }
+            break;
+          }
         }
       },
     });

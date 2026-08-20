@@ -1,5 +1,4 @@
 import {
-  type CaptureChunk,
   CaptureWorkletClient,
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
@@ -24,22 +23,15 @@ export class CaptureInput {
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   private readonly silentGain: GainNode;
-  private readonly onChannelCount: (value: number) => void;
-  private readonly onLevel: (peak: number) => void;
-  private readonly onChunk: (chunk: CaptureChunk) => void;
 
   static async open({
     context,
     deviceId,
-    onChannelCount,
-    onLevel,
-    onChunk,
+    onNotification,
   }: {
     context: AudioContext;
     deviceId: string;
-    onChannelCount: (value: number) => void;
-    onLevel: (peak: number) => void;
-    onChunk: (chunk: CaptureChunk) => void;
+    onNotification: (message: CaptureWorkletNotification) => void;
   }): Promise<{ input: CaptureInput; settings: MediaTrackSettings }> {
     await ensureCaptureWorklet(context);
     const stream = await navigator.mediaDevices.getUserMedia(
@@ -55,9 +47,7 @@ export class CaptureInput {
         input: new CaptureInput({
           context,
           stream,
-          onChannelCount,
-          onLevel,
-          onChunk,
+          onNotification,
         }),
         settings: track.getSettings(),
       };
@@ -70,24 +60,17 @@ export class CaptureInput {
   private constructor({
     context,
     stream,
-    onChannelCount,
-    onLevel,
-    onChunk,
+    onNotification,
   }: {
     context: AudioContext;
     stream: MediaStream;
-    onChannelCount: (value: number) => void;
-    onLevel: (peak: number) => void;
-    onChunk: (chunk: CaptureChunk) => void;
+    onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     this.stream = stream;
-    this.onChannelCount = onChannelCount;
-    this.onLevel = onLevel;
-    this.onChunk = onChunk;
     this.source = context.createMediaStreamSource(stream);
     this.worklet = new CaptureWorkletClient({
       context,
-      onNotification: this.handleNotification,
+      onNotification,
     });
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
@@ -119,23 +102,6 @@ export class CaptureInput {
       track.stop();
     }
   }
-
-  private handleNotification = (message: CaptureWorkletNotification): void => {
-    switch (message.type) {
-      case "channels": {
-        this.onChannelCount(message.value);
-        break;
-      }
-      case "level": {
-        this.onLevel(message.peak);
-        break;
-      }
-      case "samples": {
-        this.onChunk(message);
-        break;
-      }
-    }
-  };
 }
 
 async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
