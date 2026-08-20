@@ -213,12 +213,16 @@ export function Recorder() {
           className="min-w-0 overflow-hidden border-r border-neutral-700"
         >
           <div className="relative">
-            <div
-              className="pointer-events-none absolute inset-y-0 z-30 w-px bg-red-500"
-              style={{
-                left: `calc(13.5rem + ${(recorderSecondsToBeats(state.position) - scrollX) * pixelsPerBeat}px)`,
-              }}
-            />
+            <div className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0 z-30 overflow-hidden">
+              <div
+                className="absolute inset-y-0 w-px bg-red-500"
+                style={{
+                  left:
+                    (recorderSecondsToBeats(state.position) - scrollX) *
+                    pixelsPerBeat,
+                }}
+              />
+            </div>
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
               scrollX={scrollX}
