@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   CircleStopIcon,
   HouseIcon,
@@ -10,7 +10,7 @@ import {
   RotateCcwIcon,
   UploadIcon,
 } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
@@ -26,19 +26,46 @@ export function Recorder() {
     recorderRuntime.subscribe,
     recorderRuntime.getSnapshot,
   );
-  const devicesQuery = useQuery({
-    queryKey: ["recorder-devices"],
-    queryFn: async () => {
-      await recorderRuntime.refreshDevices();
-      return true;
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string>();
+
+  async function refreshInputs() {
+    const nextDevices = await recorderRuntime.getInputs();
+    setDevices(nextDevices);
+    selectDevice(
+      nextDevices.some((device) => device.deviceId === deviceId)
+        ? deviceId
+        : nextDevices[0]?.deviceId,
+    );
+  }
+
+  const grantAccessMutation = useMutation({
+    mutationFn: async () => {
+      await recorderRuntime.requestAccess();
+      await refreshInputs();
     },
-    staleTime: Infinity,
   });
-  const inputMutation = useMutation({
-    mutationFn: (deviceId?: string) =>
-      deviceId
-        ? recorderRuntime.selectInput(deviceId)
-        : recorderRuntime.enableInput(),
+
+  const refreshInputsMutation = useMutation({
+    mutationFn: refreshInputs,
+  });
+
+  useEffect(() => {
+    const refresh = () => refreshInputsMutation.mutate();
+    refresh();
+    navigator.mediaDevices.addEventListener("devicechange", refresh);
+    return () =>
+      navigator.mediaDevices.removeEventListener("devicechange", refresh);
+  }, [refreshInputsMutation.mutate]);
+
+  const inputsInitialized =
+    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
+  const hasAccess = devices.some((device) => device.label);
+  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
+  const inputActive = state.inputSettings !== undefined;
+
+  const startInputMutation = useMutation({
+    mutationFn: (deviceId: string) => recorderRuntime.startInput(deviceId),
   });
   const backingMutation = useMutation({
     mutationFn: (file: File) => recorderRuntime.loadBacking(file),
@@ -59,11 +86,20 @@ export function Recorder() {
   const isProcessing = state.status === "processing";
 
   const error =
-    devicesQuery.error ??
-    inputMutation.error ??
+    grantAccessMutation.error ??
+    refreshInputsMutation.error ??
+    startInputMutation.error ??
     backingMutation.error ??
     playMutation.error ??
     recordMutation.error;
+
+  function selectDevice(nextDeviceId?: string) {
+    if (nextDeviceId !== deviceId && inputActive) {
+      recorderRuntime.stopInput();
+      startInputMutation.reset();
+    }
+    setDeviceId(nextDeviceId);
+  }
 
   return (
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
@@ -287,28 +323,69 @@ export function Recorder() {
               <label className="block text-xs font-semibold text-neutral-600">
                 Device
                 <select
-                  value={state.selectedDeviceId ?? ""}
+                  value={selectedDevice?.deviceId ?? ""}
+                  disabled={
+                    !inputsInitialized ||
+                    !hasAccess ||
+                    refreshInputsMutation.isPending ||
+                    grantAccessMutation.isPending ||
+                    startInputMutation.isPending ||
+                    isRecording ||
+                    isProcessing
+                  }
                   onChange={(event) =>
-                    inputMutation.mutate(event.currentTarget.value)
+                    selectDevice(event.currentTarget.value || undefined)
                   }
                   className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
-                  <option value="" disabled>
-                    Select after enabling input
-                  </option>
-                  {state.devices.map((device, index) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {device.label || `Audio input ${index + 1}`}
-                    </option>
-                  ))}
+                  {!inputsInitialized ? (
+                    <option>Loading audio inputs...</option>
+                  ) : !hasAccess ? (
+                    <option>Grant access to list audio inputs</option>
+                  ) : (
+                    <>
+                      {!selectedDevice && (
+                        <option value="">Choose an audio input</option>
+                      )}
+                      {devices.map((device, index) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Audio input ${index + 1}`}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </label>
               <Button
-                onClick={() => inputMutation.mutate(undefined)}
+                disabled={
+                  !inputsInitialized ||
+                  refreshInputsMutation.isPending ||
+                  grantAccessMutation.isPending ||
+                  startInputMutation.isPending ||
+                  isRecording ||
+                  isProcessing ||
+                  (hasAccess && !selectedDevice)
+                }
+                onClick={() =>
+                  hasAccess
+                    ? selectedDevice &&
+                      startInputMutation.mutate(selectedDevice.deviceId)
+                    : grantAccessMutation.mutate()
+                }
                 className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
               >
                 <Mic2Icon className="size-4" />
-                {state.status === "idle" ? "Enable input" : "Reopen input"}
+                {!inputsInitialized
+                  ? "Loading..."
+                  : grantAccessMutation.isPending
+                    ? "Requesting access..."
+                    : startInputMutation.isPending
+                      ? "Connecting..."
+                      : !hasAccess
+                        ? "Grant access"
+                        : inputActive
+                          ? "Reconnect input"
+                          : "Connect input"}
               </Button>
               {state.inputChannelCount > 1 && (
                 <label className="block text-xs font-semibold text-neutral-600">

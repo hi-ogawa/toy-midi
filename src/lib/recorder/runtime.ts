@@ -11,8 +11,6 @@ type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
 interface RecorderSnapshot {
   status: RecorderStatus;
-  devices: MediaDeviceInfo[];
-  selectedDeviceId?: string;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
   selectedChannel: number;
@@ -38,7 +36,6 @@ type RecordAnchor = {
 class RecorderRuntime {
   #snapshot: RecorderSnapshot = {
     status: "idle",
-    devices: [],
     inputChannelCount: 0,
     selectedChannel: 0,
     backingDuration: 0,
@@ -79,52 +76,30 @@ class RecorderRuntime {
     return () => this.#listeners.delete(listener);
   };
 
-  async refreshDevices(): Promise<void> {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    this.#update({
-      devices: devices.filter((device) => device.kind === "audioinput"),
-    });
+  async requestAccess(): Promise<void> {
+    const stream =
+      await navigator.mediaDevices.getUserMedia(captureConstraints());
+    stream.getTracks().forEach((track) => track.stop());
   }
 
-  async enableInput(): Promise<void> {
-    await this.selectInput();
+  async getInputs(): Promise<MediaDeviceInfo[]> {
+    return (await navigator.mediaDevices.enumerateDevices()).filter(
+      (device) => device.kind === "audioinput",
+    );
   }
 
-  async selectInput(deviceId?: string): Promise<void> {
+  async startInput(deviceId: string): Promise<void> {
     const context = await this.#getContext();
-    const constraints: MediaTrackConstraints = {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-      channelCount: { ideal: 2 },
-      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-    };
-
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: constraints,
-      });
-    } catch (error) {
-      if (!deviceId) {
-        throw error;
-      }
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          channelCount: { ideal: 2 },
-        },
-      });
-    }
-
-    this.#closeInput();
-    this.#stream = stream;
+    const stream = await navigator.mediaDevices.getUserMedia(
+      captureConstraints(deviceId),
+    );
     const track = stream.getAudioTracks()[0];
     if (!track) {
+      stream.getTracks().forEach((track) => track.stop());
       throw new Error("The selected device did not provide an audio track.");
     }
+    this.#closeInput();
+    this.#stream = stream;
     const settings = track.getSettings();
     this.#inputSource = context.createMediaStreamSource(stream);
     this.#captureWorklet = new CaptureWorkletClient({
@@ -140,12 +115,20 @@ class RecorderRuntime {
 
     this.#update({
       status: "ready",
-      selectedDeviceId: settings.deviceId ?? deviceId,
       inputSettings: settings,
       inputChannelCount: 0,
       selectedChannel: 0,
     });
-    await this.refreshDevices();
+  }
+
+  stopInput(): void {
+    this.#closeInput();
+    this.#update({
+      status: "idle",
+      inputSettings: undefined,
+      inputChannelCount: 0,
+      selectedChannel: 0,
+    });
   }
 
   selectChannel(channel: number): void {
@@ -549,3 +532,17 @@ class RecorderRuntime {
 }
 
 export const recorderRuntime = new RecorderRuntime();
+
+function captureConstraints(deviceId?: string): MediaStreamConstraints {
+  return {
+    audio: {
+      autoGainControl: false,
+      channelCount: { ideal: 2 },
+      deviceId: deviceId ? { exact: deviceId } : undefined,
+      echoCancellation: false,
+      noiseSuppression: false,
+      sampleRate: { ideal: 48_000 },
+    },
+    video: false,
+  };
+}
