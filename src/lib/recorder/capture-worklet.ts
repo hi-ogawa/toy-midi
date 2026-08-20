@@ -116,7 +116,7 @@ function createCaptureProcessor() {
     declare observedChannelCount: number;
     declare meterBlockCount: number;
     declare meterPeak: number;
-    declare pendingStartRequestIds: number[];
+    declare pendingRenderActions: Array<() => void>;
     declare captureBuffer: Float32Array;
     declare captureLength: number;
     declare captureStartFrame: number;
@@ -128,7 +128,7 @@ function createCaptureProcessor() {
       this.observedChannelCount = -1;
       this.meterBlockCount = 0;
       this.meterPeak = 0;
-      this.pendingStartRequestIds = [];
+      this.pendingRenderActions = [];
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
       this.captureStartFrame = 0;
@@ -141,13 +141,24 @@ function createCaptureProcessor() {
             break;
           }
           case "start": {
-            this.pendingStartRequestIds.push(event.data.requestId);
+            const { requestId } = event.data;
+            this.pendingRenderActions.push(() => {
+              this.captureLength = 0;
+              this.recording = true;
+              this.postMessage({
+                type: "started",
+                requestId,
+                frameStart: currentFrame,
+              });
+            });
             break;
           }
           case "stop": {
-            this.recording = false;
-            this.flushCapture();
-            this.postMessage({ type: "stopped" });
+            this.pendingRenderActions.push(() => {
+              this.recording = false;
+              this.flushCapture();
+              this.postMessage({ type: "stopped" });
+            });
             break;
           }
         }
@@ -155,16 +166,10 @@ function createCaptureProcessor() {
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][]) {
-      for (const requestId of this.pendingStartRequestIds) {
-        this.captureLength = 0;
-        this.recording = true;
-        this.postMessage({
-          type: "started",
-          requestId,
-          frameStart: currentFrame,
-        });
+      for (const action of this.pendingRenderActions) {
+        action();
       }
-      this.pendingStartRequestIds = [];
+      this.pendingRenderActions = [];
       const channels = inputs[0] ?? [];
       for (const samples of outputs[0] ?? []) {
         samples.fill(0);
