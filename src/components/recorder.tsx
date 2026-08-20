@@ -75,7 +75,7 @@ export function Recorder() {
       recorderRuntime.startInput({ deviceId, onLevel: setInputPeak }),
   });
   const backingMutation = useMutation({
-    mutationFn: (file: File) => recorderRuntime.loadBacking(file),
+    mutationFn: (file: File) => recorderRuntime.setPlaybackTrack(0, file),
   });
   const playMutation = useMutation({
     mutationFn: () => recorderRuntime.play(),
@@ -87,9 +87,12 @@ export function Recorder() {
         : recorderRuntime.stopRecording(),
   });
 
+  const backingTrack = state.playbackTracks[0];
   const duration = Math.max(
     1,
-    state.backingDuration,
+    ...state.playbackTracks.map(
+      (track) => track.timelineOffset + track.duration,
+    ),
     state.takeCaptureOffset - state.latencyCompensation + state.takeDuration,
   );
   const isRecording = state.status === "recording";
@@ -161,11 +164,11 @@ export function Recorder() {
               </span>
               <div className="min-w-0">
                 <div className="truncate text-sm text-neutral-950">
-                  {state.backingName ?? "Empty"}
+                  {backingTrack?.name ?? "Empty"}
                 </div>
-                {state.backingName && (
+                {backingTrack?.name && (
                   <div className="mt-1 font-mono text-xs text-neutral-500">
-                    {formatTime(state.backingDuration)}
+                    {formatTime(backingTrack.duration)}
                   </div>
                 )}
               </div>
@@ -187,10 +190,12 @@ export function Recorder() {
                 </label>
                 <Button
                   onClick={() =>
-                    recorderRuntime.setBackingMuted(!state.backingMuted)
+                    recorderRuntime.setPlaybackTrackMix(0, {
+                      muted: !backingTrack?.muted,
+                    })
                   }
                   className={
-                    state.backingMuted
+                    backingTrack?.muted
                       ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
                       : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
                   }
@@ -207,17 +212,17 @@ export function Recorder() {
                   min={0}
                   max={1.5}
                   step={0.01}
-                  value={state.backingGain}
+                  value={backingTrack?.gain ?? 1}
                   onChange={(event) =>
-                    recorderRuntime.setBackingGain(
-                      event.currentTarget.valueAsNumber,
-                    )
+                    recorderRuntime.setPlaybackTrackMix(0, {
+                      gain: event.currentTarget.valueAsNumber,
+                    })
                   }
                   className="w-full accent-emerald-700"
                 />
               </label>
               <span className="text-right font-mono text-xs text-neutral-600">
-                {Math.round(state.backingGain * 100)}%
+                {Math.round((backingTrack?.gain ?? 1) * 100)}%
               </span>
             </div>
 

@@ -8,15 +8,20 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
+interface PlaybackTrackState {
+  name?: string;
+  duration: number;
+  gain: number;
+  muted: boolean;
+  timelineOffset: number;
+}
+
 interface RecorderState {
   status: RecorderStatus;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
   selectedChannel: number;
-  backingName?: string;
-  backingDuration: number;
-  backingGain: number;
-  backingMuted: boolean;
+  playbackTracks: PlaybackTrackState[];
   isPlaying: boolean;
   position: number;
   hasTake: boolean;
@@ -30,9 +35,7 @@ class RecorderRuntime {
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
-    backingDuration: 0,
-    backingGain: 1,
-    backingMuted: false,
+    playbackTracks: [],
     isPlaying: false,
     position: 0,
     hasTake: false,
@@ -43,7 +46,7 @@ class RecorderRuntime {
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
-  private backingPlayback?: AudioBufferPlayback;
+  private playbackTracks: AudioBufferPlayback[] = [];
   private takePlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
 
@@ -118,25 +121,72 @@ class RecorderRuntime {
     this.update({ selectedChannel: channel });
   }
 
-  async loadBacking(file: File): Promise<void> {
+  async setPlaybackTrack(index: number, file: File): Promise<void> {
     const context = this.getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    this.backingPlayback!.stop();
-    this.backingPlayback!.setBuffer(buffer);
-    this.update({
-      backingName: file.name,
-      backingDuration: buffer.duration,
+    const playback = this.getPlaybackTrack(index);
+    playback.stop();
+    playback.setBuffer(buffer);
+    this.updatePlaybackTrack(index, (track) => ({
+      ...track,
+      name: file.name,
+      duration: buffer.duration,
+    }));
+  }
+
+  setPlaybackTrackMix(
+    index: number,
+    update: Partial<Pick<PlaybackTrackState, "gain" | "muted">>,
+  ): void {
+    this.updatePlaybackTrack(index, (track) => {
+      const next = { ...track, ...update };
+      this.getPlaybackTrack(index).setGain(next.muted ? 0 : next.gain);
+      return next;
     });
   }
 
-  setBackingGain(gain: number): void {
-    this.backingPlayback?.setGain(this.state.backingMuted ? 0 : gain);
-    this.update({ backingGain: gain });
+  setPlaybackTrackOffset(index: number, timelineOffset: number): void {
+    this.getPlaybackTrack(index).setTimelineOffset(timelineOffset);
+    this.updatePlaybackTrack(index, (track) => ({
+      ...track,
+      timelineOffset,
+    }));
   }
 
-  setBackingMuted(muted: boolean): void {
-    this.backingPlayback?.setGain(muted ? 0 : this.state.backingGain);
-    this.update({ backingMuted: muted });
+  removePlaybackTrack(index: number): void {
+    this.playbackTracks[index]?.stop();
+    this.playbackTracks.splice(index, 1);
+    const tracks = this.state.playbackTracks.slice();
+    tracks.splice(index, 1);
+    this.update({ playbackTracks: tracks });
+  }
+
+  private updatePlaybackTrack(
+    index: number,
+    update: (track: PlaybackTrackState) => PlaybackTrackState,
+  ): void {
+    const playbackTracks = this.state.playbackTracks.slice();
+    playbackTracks[index] = update(
+      playbackTracks[index] ?? createPlaybackTrackState(),
+    );
+    this.update({ playbackTracks });
+  }
+
+  private getPlaybackTrack(index: number): AudioBufferPlayback {
+    let playback = this.playbackTracks[index];
+    if (!playback) {
+      const context = this.getContext();
+      playback = new AudioBufferPlayback({
+        context,
+        output: context.destination,
+      });
+      const track =
+        this.state.playbackTracks[index] ?? createPlaybackTrackState();
+      playback.setGain(track.muted ? 0 : track.gain);
+      playback.setTimelineOffset(track.timelineOffset);
+      this.playbackTracks[index] = playback;
+    }
+    return playback;
   }
 
   async play(): Promise<void> {
@@ -148,10 +198,12 @@ class RecorderRuntime {
     // Give every source a shared future AudioContext anchor. Their relative
     // placement is then determined only by timeline offsets.
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    this.backingPlayback!.start({
-      scheduledContextTime: startTime,
-      playheadTime: this.state.position,
-    });
+    for (const playback of this.playbackTracks) {
+      playback.start({
+        scheduledContextTime: startTime,
+        playheadTime: this.state.position,
+      });
+    }
     this.takePlayback!.setTimelineOffset(
       this.state.takeCaptureOffset - this.state.latencyCompensation,
     );
@@ -238,13 +290,6 @@ class RecorderRuntime {
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
-      this.backingPlayback = new AudioBufferPlayback({
-        context: this.context,
-        output: this.context.destination,
-      });
-      this.backingPlayback.setGain(
-        this.state.backingMuted ? 0 : this.state.backingGain,
-      );
       this.takePlayback = new AudioBufferPlayback({
         context: this.context,
         output: this.context.destination,
@@ -259,7 +304,9 @@ class RecorderRuntime {
   }
 
   private stopPlayback(): void {
-    this.backingPlayback?.stop();
+    for (const playback of this.playbackTracks) {
+      playback.stop();
+    }
     this.takePlayback?.stop();
   }
 
@@ -324,6 +371,15 @@ class RecorderRuntime {
       listener();
     }
   }
+}
+
+function createPlaybackTrackState(): PlaybackTrackState {
+  return {
+    duration: 0,
+    gain: 1,
+    muted: false,
+    timelineOffset: 0,
+  };
 }
 
 export const recorderRuntime = new RecorderRuntime();
