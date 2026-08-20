@@ -2,7 +2,7 @@ const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
 type ClientMessage =
   | { type: "channel"; value: number }
-  | { type: "start" }
+  | { type: "start"; requestId: number }
   | { type: "stop" };
 
 export type CaptureChunk = {
@@ -17,8 +17,21 @@ export type CaptureWorkletNotification =
   | ({ type: "samples" } & CaptureChunk)
   | { type: "stopped" };
 
+type WorkletMessage =
+  | CaptureWorkletNotification
+  | { type: "started"; requestId: number; frameStart: number };
+
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
+  #nextRequestId = 0;
+  #pendingStarts = new Map<
+    number,
+    {
+      reject: (error: Error) => void;
+      resolve: (frameStart: number) => void;
+      timeout: number;
+    }
+  >();
 
   constructor({
     context,
@@ -32,9 +45,19 @@ export class CaptureWorkletClient {
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
-    this.node.port.onmessage = (
-      event: MessageEvent<CaptureWorkletNotification>,
-    ) => onNotification(event.data);
+    this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
+      if (event.data.type !== "started") {
+        onNotification(event.data);
+        return;
+      }
+      const pending = this.#pendingStarts.get(event.data.requestId);
+      if (!pending) {
+        return;
+      }
+      window.clearTimeout(pending.timeout);
+      pending.resolve(event.data.frameStart);
+      this.#pendingStarts.delete(event.data.requestId);
+    };
   }
 
   setChannel(value: number) {
@@ -42,7 +65,15 @@ export class CaptureWorkletClient {
   }
 
   start() {
-    this.#postMessage({ type: "start" });
+    const requestId = this.#nextRequestId++;
+    return new Promise<number>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        this.#pendingStarts.delete(requestId);
+        reject(new Error("Audio capture start timed out."));
+      }, 3_000);
+      this.#pendingStarts.set(requestId, { reject, resolve, timeout });
+      this.#postMessage({ type: "start", requestId });
+    });
   }
 
   stop() {
@@ -50,6 +81,12 @@ export class CaptureWorkletClient {
   }
 
   dispose() {
+    const error = new Error("Input stopped while audio capture was starting.");
+    for (const pending of this.#pendingStarts.values()) {
+      window.clearTimeout(pending.timeout);
+      pending.reject(error);
+    }
+    this.#pendingStarts.clear();
     this.node.disconnect();
   }
 
@@ -79,6 +116,7 @@ function createCaptureProcessor() {
     declare observedChannelCount: number;
     declare meterBlockCount: number;
     declare meterPeak: number;
+    declare pendingStartRequestIds: number[];
     declare captureBuffer: Float32Array;
     declare captureLength: number;
     declare captureStartFrame: number;
@@ -90,6 +128,7 @@ function createCaptureProcessor() {
       this.observedChannelCount = -1;
       this.meterBlockCount = 0;
       this.meterPeak = 0;
+      this.pendingStartRequestIds = [];
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
       this.captureStartFrame = 0;
@@ -102,8 +141,7 @@ function createCaptureProcessor() {
             break;
           }
           case "start": {
-            this.captureLength = 0;
-            this.recording = true;
+            this.pendingStartRequestIds.push(event.data.requestId);
             break;
           }
           case "stop": {
@@ -117,6 +155,16 @@ function createCaptureProcessor() {
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][]) {
+      for (const requestId of this.pendingStartRequestIds) {
+        this.captureLength = 0;
+        this.recording = true;
+        this.postMessage({
+          type: "started",
+          requestId,
+          frameStart: currentFrame,
+        });
+      }
+      this.pendingStartRequestIds = [];
       const channels = inputs[0] ?? [];
       for (const samples of outputs[0] ?? []) {
         samples.fill(0);
@@ -184,10 +232,7 @@ function createCaptureProcessor() {
       this.captureLength = 0;
     }
 
-    postMessage(
-      message: CaptureWorkletNotification,
-      transfer?: Transferable[],
-    ) {
+    postMessage(message: WorkletMessage, transfer?: Transferable[]) {
       this.port.postMessage(message, transfer ?? []);
     }
   };

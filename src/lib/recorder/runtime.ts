@@ -245,7 +245,14 @@ class RecorderRuntime {
       contextTime,
       timelineTime: this.#clock!.getTimelinePosition(contextTime),
     };
-    this.#captureWorklet.start();
+    try {
+      await this.#captureWorklet.start();
+    } catch (error) {
+      this.stopInput();
+      this.#activeRecording = undefined;
+      this.#recordAnchor = undefined;
+      throw error;
+    }
     this.#update({
       status: "recording",
       capturedFrames: 0,
