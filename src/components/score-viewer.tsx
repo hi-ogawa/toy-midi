@@ -17,7 +17,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { formatTimeCompact } from "../lib/time-format";
-import { FileDropInput } from "./file-drop-input";
+import { FileDropInput, openFilePicker } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
@@ -243,18 +243,44 @@ export function ScoreViewer({
             }
           />
         )}
-        <ScoreMoreMenu
-          disabled={loadMutation.isPending}
-          onFile={
-            initialSource
-              ? undefined
-              : (file) =>
-                  loadMutation.mutate({
-                    settings,
-                    source: file,
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              title="More"
+              aria-label="More"
+              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            >
+              <MoreVerticalIcon className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {!initialSource && (
+              <DropdownMenuItem
+                disabled={loadMutation.isPending}
+                onSelect={() =>
+                  openFilePicker({
+                    accept:
+                      ".musicxml,.xml,application/vnd.recordare.musicxml+xml",
+                    onFile: (file) =>
+                      loadMutation.mutate({
+                        settings,
+                        source: file,
+                      }),
                   })
-          }
-        />
+                }
+              >
+                <FolderOpenIcon />
+                Open
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+              <a href={routes.home.href()} data-testid="home-menu-item">
+                <HouseIcon />
+                Home
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
       {!score && !loadMutation.error && (
         <section className="min-h-0 flex-1 p-6">
@@ -341,66 +367,6 @@ function ScoreSamplesMenu({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function ScoreMoreMenu({
-  disabled,
-  onFile,
-}: {
-  disabled: boolean;
-  onFile?: (file: File) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <>
-      {onFile && (
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-          disabled={disabled}
-          aria-label="Open MusicXML"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) {
-              onFile(file);
-            }
-            event.currentTarget.value = "";
-          }}
-          className="hidden"
-        />
-      )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            title="More"
-            aria-label="More"
-            className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-          >
-            <MoreVerticalIcon className="size-5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {onFile && (
-            <DropdownMenuItem
-              disabled={disabled}
-              onSelect={() => inputRef.current?.click()}
-            >
-              <FolderOpenIcon />
-              Open
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem asChild>
-            <a href={routes.home.href()} data-testid="home-menu-item">
-              <HouseIcon />
-              Home
-            </a>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
   );
 }
 
