@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
   HouseIcon,
@@ -7,7 +8,6 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
-  RadioIcon,
   ZoomInIcon,
   ZoomOutIcon,
   UploadIcon,
@@ -22,7 +22,12 @@ import {
 import { useDraftInput } from "../hooks/use-draft-input";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
-import { gainToDb } from "../lib/music";
+import {
+  dbToPercent,
+  gainToDb,
+  gainToPercent,
+  percentToGain,
+} from "../lib/music";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -38,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "./ui/utils";
 
 const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
@@ -448,8 +454,14 @@ function RecorderHeader({
       <Button
         onClick={isPlaying ? onPause : onPlay}
         disabled={isRecording || isProcessing}
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        title={isPlaying ? "Pause" : "Play"}
+        aria-pressed={isPlaying}
+        className={cn(
+          "size-9",
+          isPlaying
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
           <PauseIcon className="size-5" />
@@ -472,20 +484,19 @@ function RecorderHeader({
       <Button
         onClick={onRecord}
         disabled={recordDisabled || isProcessing}
-        className={
+        aria-pressed={isRecording}
+        className={cn(
+          "size-9",
           isRecording
-            ? "h-9 gap-1.5 border-red-400 bg-neutral-100 px-3 text-red-700 hover:bg-white"
-            : "size-9 text-red-400 hover:bg-accent hover:text-red-300 dark:hover:bg-accent/50"
-        }
+            ? "bg-red-600 text-white hover:bg-red-500"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
         title={isRecording ? "Stop recording" : "Record"}
       >
         {isRecording ? (
-          <>
-            <CircleStopIcon className="size-4" />
-            Stop
-          </>
+          <CircleStopIcon className="size-5" />
         ) : (
-          <RadioIcon className="size-5" />
+          <CircleIcon className="size-4 fill-current" />
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
@@ -683,20 +694,24 @@ function TrackRow({
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 text-[10px] text-neutral-400">
           Gain
-          <input
-            type="range"
-            min={0}
-            max={1.5}
-            step={0.01}
-            value={gain}
-            onChange={(event) =>
-              onGainChange(event.currentTarget.valueAsNumber)
-            }
-            className="w-full accent-emerald-600"
-          />
-          <span className="text-right font-mono">
-            {Math.round(gain * 100)}%
-          </span>
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+              style={{ left: `${dbToPercent(0)}%` }}
+            />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={gainToPercent(gain)}
+              onChange={(event) =>
+                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
+              }
+              className="w-full accent-emerald-600"
+            />
+          </div>
+          <span className="text-right font-mono">{formatDb(gain)}</span>
         </label>
       </div>
       {children}
@@ -985,6 +1000,14 @@ function formatBarBeat(seconds: number, tempo: number): string {
   const bar = Math.floor(totalBeats / BEATS_PER_BAR) + 1;
   const beat = Math.floor(totalBeats % BEATS_PER_BAR) + 1;
   return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
+}
+
+function formatDb(gain: number): string {
+  if (gain === 0) {
+    return "-∞ dB";
+  }
+  const db = gainToDb(gain);
+  return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
 }
 
 function formatLatencyMilliseconds(value: number): string {
