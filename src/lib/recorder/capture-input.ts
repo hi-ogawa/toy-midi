@@ -20,13 +20,13 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  readonly #stream: MediaStream;
-  readonly #source: MediaStreamAudioSourceNode;
-  readonly #worklet: CaptureWorkletClient;
-  readonly #silentGain: GainNode;
-  readonly #onChannelCount: (value: number) => void;
-  readonly #onLevel: (peak: number) => void;
-  readonly #onChunk: (chunk: CaptureChunk) => void;
+  private readonly stream: MediaStream;
+  private readonly source: MediaStreamAudioSourceNode;
+  private readonly worklet: CaptureWorkletClient;
+  private readonly silentGain: GainNode;
+  private readonly onChannelCount: (value: number) => void;
+  private readonly onLevel: (peak: number) => void;
+  private readonly onChunk: (chunk: CaptureChunk) => void;
 
   static async open({
     context,
@@ -80,56 +80,56 @@ export class CaptureInput {
     onLevel: (peak: number) => void;
     onChunk: (chunk: CaptureChunk) => void;
   }) {
-    this.#stream = stream;
-    this.#onChannelCount = onChannelCount;
-    this.#onLevel = onLevel;
-    this.#onChunk = onChunk;
-    this.#source = context.createMediaStreamSource(stream);
-    this.#worklet = new CaptureWorkletClient({
+    this.stream = stream;
+    this.onChannelCount = onChannelCount;
+    this.onLevel = onLevel;
+    this.onChunk = onChunk;
+    this.source = context.createMediaStreamSource(stream);
+    this.worklet = new CaptureWorkletClient({
       context,
-      onNotification: this.#handleNotification,
+      onNotification: this.handleNotification,
     });
-    this.#silentGain = context.createGain();
-    this.#silentGain.gain.value = 0;
-    this.#source
-      .connect(this.#worklet.node)
-      .connect(this.#silentGain)
+    this.silentGain = context.createGain();
+    this.silentGain.gain.value = 0;
+    this.source
+      .connect(this.worklet.node)
+      .connect(this.silentGain)
       .connect(context.destination);
   }
 
   setChannel(channel: number): void {
-    this.#worklet.setChannel(channel);
+    this.worklet.setChannel(channel);
   }
 
   startCapture(): Promise<number> {
-    return this.#worklet.start();
+    return this.worklet.start();
   }
 
   stopCapture(): Promise<number> {
-    return this.#worklet.stop();
+    return this.worklet.stop();
   }
 
   dispose(): void {
-    this.#source.disconnect();
-    this.#worklet.dispose();
-    this.#silentGain.disconnect();
-    for (const track of this.#stream.getTracks()) {
+    this.source.disconnect();
+    this.worklet.dispose();
+    this.silentGain.disconnect();
+    for (const track of this.stream.getTracks()) {
       track.stop();
     }
   }
 
-  #handleNotification = (message: CaptureWorkletNotification): void => {
+  private handleNotification = (message: CaptureWorkletNotification): void => {
     switch (message.type) {
       case "channels": {
-        this.#onChannelCount(message.value);
+        this.onChannelCount(message.value);
         break;
       }
       case "level": {
-        this.#onLevel(message.peak);
+        this.onLevel(message.peak);
         break;
       }
       case "samples": {
-        this.#onChunk(message);
+        this.onChunk(message);
         break;
       }
     }

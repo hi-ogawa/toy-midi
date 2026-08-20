@@ -1,39 +1,39 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
 export class ActiveRecording {
-  readonly #chunks: CaptureChunk[] = [];
-  readonly #startFrame: number;
-  readonly #capacityFrames: number;
+  private readonly chunks: CaptureChunk[] = [];
+  private readonly startFrame: number;
+  private readonly capacityFrames: number;
 
   constructor(startFrame: number, capacityFrames: number) {
-    this.#startFrame = startFrame;
-    this.#capacityFrames = capacityFrames;
+    this.startFrame = startFrame;
+    this.capacityFrames = capacityFrames;
   }
 
   append(chunk: CaptureChunk): void {
-    this.#chunks.push(chunk);
+    this.chunks.push(chunk);
   }
 
   isFull(): boolean {
-    const last = this.#chunks.at(-1);
+    const last = this.chunks.at(-1);
     return (
       last !== undefined &&
-      last.frameStart + last.samples.length - this.#startFrame >=
-        this.#capacityFrames
+      last.frameStart + last.samples.length - this.startFrame >=
+        this.capacityFrames
     );
   }
 
   finish(stopFrame: number): Float32Array | undefined {
-    const length = Math.min(stopFrame - this.#startFrame, this.#capacityFrames);
+    const length = Math.min(stopFrame - this.startFrame, this.capacityFrames);
     if (length <= 0) {
       return undefined;
     }
     const samples = new Float32Array(length);
-    for (const chunk of this.#chunks) {
+    for (const chunk of this.chunks) {
       setArrayClipped(
         samples,
         chunk.samples,
-        chunk.frameStart - this.#startFrame,
+        chunk.frameStart - this.startFrame,
       );
     }
     return samples;

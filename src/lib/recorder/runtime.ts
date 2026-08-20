@@ -26,7 +26,7 @@ interface RecorderSnapshot {
 }
 
 class RecorderRuntime {
-  #snapshot: RecorderSnapshot = {
+  private snapshot: RecorderSnapshot = {
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -40,21 +40,21 @@ class RecorderRuntime {
     takeOffset: 0,
     latencyCompensation: 0,
   };
-  readonly #listeners = new Set<() => void>();
-  #context?: AudioContext;
-  #clock?: AudioContextTimelineClock;
-  #captureInput?: CaptureInput;
-  #backingPlayback?: AudioBufferPlayback;
-  #takePlayback?: AudioBufferPlayback;
-  #recordingTimelineStart?: number;
-  #takeCaptureOffset = 0;
-  #activeRecording?: ActiveRecording;
+  private readonly listeners = new Set<() => void>();
+  private context?: AudioContext;
+  private clock?: AudioContextTimelineClock;
+  private captureInput?: CaptureInput;
+  private backingPlayback?: AudioBufferPlayback;
+  private takePlayback?: AudioBufferPlayback;
+  private recordingTimelineStart?: number;
+  private takeCaptureOffset = 0;
+  private activeRecording?: ActiveRecording;
 
-  getSnapshot = (): RecorderSnapshot => this.#snapshot;
+  getSnapshot = (): RecorderSnapshot => this.snapshot;
 
   subscribe = (listener: () => void): (() => void) => {
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   };
 
   async startInput({
@@ -64,38 +64,38 @@ class RecorderRuntime {
     deviceId: string;
     onLevel: (peak: number) => void;
   }): Promise<void> {
-    const context = this.#getContext();
+    const context = this.getContext();
     const { input, settings } = await CaptureInput.open({
       context,
       deviceId,
       onChannelCount: (inputChannelCount) => {
         const selectedChannel = Math.min(
-          this.#snapshot.selectedChannel,
+          this.snapshot.selectedChannel,
           Math.max(0, inputChannelCount - 1),
         );
-        this.#update({ inputChannelCount, selectedChannel });
+        this.update({ inputChannelCount, selectedChannel });
         this.selectChannel(selectedChannel);
       },
       onLevel,
       onChunk: (chunk) => {
-        const activeRecording = this.#activeRecording;
+        const activeRecording = this.activeRecording;
         if (
           !activeRecording ||
-          (this.#snapshot.status !== "recording" &&
-            this.#snapshot.status !== "processing")
+          (this.snapshot.status !== "recording" &&
+            this.snapshot.status !== "processing")
         ) {
           return;
         }
         activeRecording.append(chunk);
-        if (activeRecording.isFull() && this.#snapshot.status === "recording") {
+        if (activeRecording.isFull() && this.snapshot.status === "recording") {
           void this.stopRecording();
         }
       },
     });
-    this.#closeInput();
-    this.#captureInput = input;
+    this.closeInput();
+    this.captureInput = input;
 
-    this.#update({
+    this.update({
       status: "ready",
       inputSettings: settings,
       inputChannelCount: 0,
@@ -104,8 +104,8 @@ class RecorderRuntime {
   }
 
   stopInput(): void {
-    this.#closeInput();
-    this.#update({
+    this.closeInput();
+    this.update({
       status: "idle",
       inputSettings: undefined,
       inputChannelCount: 0,
@@ -114,16 +114,16 @@ class RecorderRuntime {
   }
 
   selectChannel(channel: number): void {
-    this.#captureInput?.setChannel(channel);
-    this.#update({ selectedChannel: channel });
+    this.captureInput?.setChannel(channel);
+    this.update({ selectedChannel: channel });
   }
 
   async loadBacking(file: File): Promise<void> {
-    const context = this.#getContext();
+    const context = this.getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
     this.stop();
-    this.#backingPlayback!.setBuffer(buffer);
-    this.#update({
+    this.backingPlayback!.setBuffer(buffer);
+    this.update({
       backingName: file.name,
       backingDuration: buffer.duration,
       position: 0,
@@ -131,64 +131,64 @@ class RecorderRuntime {
   }
 
   setBackingGain(gain: number): void {
-    this.#backingPlayback?.setGain(this.#snapshot.backingMuted ? 0 : gain);
-    this.#update({ backingGain: gain });
+    this.backingPlayback?.setGain(this.snapshot.backingMuted ? 0 : gain);
+    this.update({ backingGain: gain });
   }
 
   setBackingMuted(muted: boolean): void {
-    this.#backingPlayback?.setGain(muted ? 0 : this.#snapshot.backingGain);
-    this.#update({ backingMuted: muted });
+    this.backingPlayback?.setGain(muted ? 0 : this.snapshot.backingGain);
+    this.update({ backingMuted: muted });
   }
 
   async play(): Promise<void> {
-    if (this.#snapshot.isPlaying) {
+    if (this.snapshot.isPlaying) {
       return;
     }
-    const context = this.#getContext();
+    const context = this.getContext();
     await context.resume();
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    this.#backingPlayback!.start({
+    this.backingPlayback!.start({
       contextTime: startTime,
-      timelineTime: this.#snapshot.position,
+      timelineTime: this.snapshot.position,
       timelineOffset: 0,
     });
-    this.#takePlayback!.start({
+    this.takePlayback!.start({
       contextTime: startTime,
-      timelineTime: this.#snapshot.position,
-      timelineOffset: this.#snapshot.takeOffset,
+      timelineTime: this.snapshot.position,
+      timelineOffset: this.snapshot.takeOffset,
     });
-    this.#clock!.start({
+    this.clock!.start({
       contextTime: startTime,
-      position: this.#snapshot.position,
+      position: this.snapshot.position,
     });
   }
 
   pause(): void {
-    if (!this.#snapshot.isPlaying) {
+    if (!this.snapshot.isPlaying) {
       return;
     }
-    this.#clock!.pause();
-    this.#stopPlayback();
+    this.clock!.pause();
+    this.stopPlayback();
   }
 
   stop(): void {
-    this.#stopPlayback();
-    this.#clock?.pause();
-    this.#clock?.setPosition(0);
-    if (!this.#clock) {
-      this.#update({ isPlaying: false, position: 0 });
+    this.stopPlayback();
+    this.clock?.pause();
+    this.clock?.setPosition(0);
+    if (!this.clock) {
+      this.update({ isPlaying: false, position: 0 });
     }
   }
 
   seek(position: number): void {
-    const wasPlaying = this.#snapshot.isPlaying;
+    const wasPlaying = this.snapshot.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
-    this.#clock?.setPosition(nextPosition);
-    if (!this.#clock) {
-      this.#update({ position: nextPosition });
+    this.clock?.setPosition(nextPosition);
+    if (!this.clock) {
+      this.update({ position: nextPosition });
     }
     if (wasPlaying) {
       void this.play();
@@ -196,100 +196,100 @@ class RecorderRuntime {
   }
 
   async startRecording(): Promise<void> {
-    if (!this.#captureInput) {
+    if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = this.#getContext();
+    const context = this.getContext();
     await context.resume();
-    if (!this.#snapshot.isPlaying) {
+    if (!this.snapshot.isPlaying) {
       await this.play();
     }
-    this.#clearTake();
+    this.clearTake();
     try {
-      const startFrame = await this.#captureInput.startCapture();
-      this.#activeRecording = new ActiveRecording(
+      const startFrame = await this.captureInput.startCapture();
+      this.activeRecording = new ActiveRecording(
         startFrame,
         Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
       );
-      this.#recordingTimelineStart = this.#clock!.getTimelinePosition(
+      this.recordingTimelineStart = this.clock!.getTimelinePosition(
         startFrame / context.sampleRate,
       );
     } catch (error) {
       this.stopInput();
-      this.#activeRecording = undefined;
-      this.#recordingTimelineStart = undefined;
+      this.activeRecording = undefined;
+      this.recordingTimelineStart = undefined;
       throw error;
     }
-    this.#update({ status: "recording" });
+    this.update({ status: "recording" });
   }
 
   async stopRecording(): Promise<void> {
-    const captureInput = this.#captureInput;
-    if (this.#snapshot.status !== "recording" || !captureInput) {
+    const captureInput = this.captureInput;
+    if (this.snapshot.status !== "recording" || !captureInput) {
       return;
     }
-    this.#update({ status: "processing" });
+    this.update({ status: "processing" });
     try {
       const stopFrame = await captureInput.stopCapture();
-      this.#finishRecording(stopFrame);
+      this.finishRecording(stopFrame);
     } catch (error) {
       this.stopInput();
-      this.#activeRecording = undefined;
-      this.#recordingTimelineStart = undefined;
+      this.activeRecording = undefined;
+      this.recordingTimelineStart = undefined;
       throw error;
     }
   }
 
   setLatencyCompensation(compensation: number): void {
-    const wasPlaying = this.#snapshot.isPlaying;
+    const wasPlaying = this.snapshot.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    this.#update({
+    this.update({
       latencyCompensation: compensation,
-      takeOffset: this.#takeCaptureOffset - compensation,
+      takeOffset: this.takeCaptureOffset - compensation,
     });
     if (wasPlaying) {
       void this.play();
     }
   }
 
-  #getContext(): AudioContext {
-    if (!this.#context) {
-      this.#context = new AudioContext();
-      this.#backingPlayback = new AudioBufferPlayback({
-        context: this.#context,
-        output: this.#context.destination,
+  private getContext(): AudioContext {
+    if (!this.context) {
+      this.context = new AudioContext();
+      this.backingPlayback = new AudioBufferPlayback({
+        context: this.context,
+        output: this.context.destination,
       });
-      this.#backingPlayback.setGain(
-        this.#snapshot.backingMuted ? 0 : this.#snapshot.backingGain,
+      this.backingPlayback.setGain(
+        this.snapshot.backingMuted ? 0 : this.snapshot.backingGain,
       );
-      this.#takePlayback = new AudioBufferPlayback({
-        context: this.#context,
-        output: this.#context.destination,
+      this.takePlayback = new AudioBufferPlayback({
+        context: this.context,
+        output: this.context.destination,
       });
-      this.#clock = new AudioContextTimelineClock(this.#context);
-      this.#clock.subscribe(() => {
-        const { position, running } = this.#clock!.getSnapshot();
-        this.#update({ isPlaying: running, position });
+      this.clock = new AudioContextTimelineClock(this.context);
+      this.clock.subscribe(() => {
+        const { position, running } = this.clock!.getSnapshot();
+        this.update({ isPlaying: running, position });
       });
     }
-    return this.#context;
+    return this.context;
   }
 
-  #stopPlayback(): void {
-    this.#backingPlayback?.stop();
-    this.#takePlayback?.stop();
+  private stopPlayback(): void {
+    this.backingPlayback?.stop();
+    this.takePlayback?.stop();
   }
 
-  #finishRecording(stopFrame: number): void {
-    const context = this.#context;
-    const activeRecording = this.#activeRecording;
+  private finishRecording(stopFrame: number): void {
+    const context = this.context;
+    const activeRecording = this.activeRecording;
     const samples = activeRecording?.finish(stopFrame);
     if (!context || !samples) {
-      this.#activeRecording = undefined;
-      this.#recordingTimelineStart = undefined;
-      this.#update({ status: "ready" });
+      this.activeRecording = undefined;
+      this.recordingTimelineStart = undefined;
+      this.update({ status: "ready" });
       return;
     }
     const takeBuffer = context.createBuffer(
@@ -298,37 +298,37 @@ class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.#takePlayback!.setBuffer(takeBuffer);
-    this.#takeCaptureOffset =
-      this.#recordingTimelineStart ?? this.#snapshot.position;
-    this.#activeRecording = undefined;
-    this.#recordingTimelineStart = undefined;
-    this.#update({
+    this.takePlayback!.setBuffer(takeBuffer);
+    this.takeCaptureOffset =
+      this.recordingTimelineStart ?? this.snapshot.position;
+    this.activeRecording = undefined;
+    this.recordingTimelineStart = undefined;
+    this.update({
       status: "ready",
       hasTake: true,
       takeDuration: takeBuffer.duration,
-      takeOffset: this.#takeCaptureOffset - this.#snapshot.latencyCompensation,
+      takeOffset: this.takeCaptureOffset - this.snapshot.latencyCompensation,
     });
   }
 
-  #closeInput(): void {
-    this.#captureInput?.dispose();
-    this.#captureInput = undefined;
+  private closeInput(): void {
+    this.captureInput?.dispose();
+    this.captureInput = undefined;
   }
 
-  #clearTake(): void {
-    this.#takePlayback?.setBuffer(undefined);
-    this.#takeCaptureOffset = 0;
-    this.#update({
+  private clearTake(): void {
+    this.takePlayback?.setBuffer(undefined);
+    this.takeCaptureOffset = 0;
+    this.update({
       hasTake: false,
       takeDuration: 0,
       takeOffset: 0,
     });
   }
 
-  #update(update: Partial<RecorderSnapshot>): void {
-    this.#snapshot = { ...this.#snapshot, ...update };
-    for (const listener of this.#listeners) {
+  private update(update: Partial<RecorderSnapshot>): void {
+    this.snapshot = { ...this.snapshot, ...update };
+    for (const listener of this.listeners) {
       listener();
     }
   }

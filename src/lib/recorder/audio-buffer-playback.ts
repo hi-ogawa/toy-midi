@@ -1,8 +1,8 @@
 export class AudioBufferPlayback {
-  readonly #context: AudioContext;
-  readonly #gain: GainNode;
-  #buffer?: AudioBuffer;
-  #source?: AudioBufferSourceNode;
+  private readonly context: AudioContext;
+  private readonly gain: GainNode;
+  private buffer?: AudioBuffer;
+  private source?: AudioBufferSourceNode;
 
   constructor({
     context,
@@ -11,18 +11,18 @@ export class AudioBufferPlayback {
     context: AudioContext;
     output: AudioNode;
   }) {
-    this.#context = context;
-    this.#gain = context.createGain();
-    this.#gain.connect(output);
+    this.context = context;
+    this.gain = context.createGain();
+    this.gain.connect(output);
   }
 
   setBuffer(buffer?: AudioBuffer): void {
     this.stop();
-    this.#buffer = buffer;
+    this.buffer = buffer;
   }
 
   setGain(gain: number): void {
-    this.#gain.gain.setTargetAtTime(gain, this.#context.currentTime, 0.01);
+    this.gain.gain.setTargetAtTime(gain, this.context.currentTime, 0.01);
   }
 
   start({
@@ -35,7 +35,7 @@ export class AudioBufferPlayback {
     timelineOffset: number;
   }): void {
     this.stop();
-    const buffer = this.#buffer;
+    const buffer = this.buffer;
     if (!buffer) {
       return;
     }
@@ -43,19 +43,19 @@ export class AudioBufferPlayback {
     if (bufferOffset >= buffer.duration) {
       return;
     }
-    const source = this.#context.createBufferSource();
+    const source = this.context.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.#gain);
+    source.connect(this.gain);
     source.start(
       contextTime + Math.max(0, timelineOffset - timelineTime),
       bufferOffset,
     );
-    this.#source = source;
+    this.source = source;
   }
 
   stop(): void {
-    this.#source?.stop();
-    this.#source?.disconnect();
-    this.#source = undefined;
+    this.source?.stop();
+    this.source?.disconnect();
+    this.source = undefined;
   }
 }

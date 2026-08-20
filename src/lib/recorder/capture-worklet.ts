@@ -26,8 +26,8 @@ type WorkletMessage =
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
-  #nextRequestId = 0;
-  #pendingActiveChanges = new Map<
+  private nextRequestId = 0;
+  private pendingActiveChanges = new Map<
     number,
     {
       reject: (error: Error) => void;
@@ -53,53 +53,53 @@ export class CaptureWorkletClient {
         onNotification(event.data);
         return;
       }
-      const pending = this.#pendingActiveChanges.get(event.data.requestId);
+      const pending = this.pendingActiveChanges.get(event.data.requestId);
       if (!pending) {
         return;
       }
       window.clearTimeout(pending.timeout);
       pending.resolve(event.data.frame);
-      this.#pendingActiveChanges.delete(event.data.requestId);
+      this.pendingActiveChanges.delete(event.data.requestId);
     };
   }
 
   setChannel(value: number) {
-    this.#postMessage({ type: "channel", value });
+    this.postMessage({ type: "channel", value });
   }
 
   start() {
-    return this.#setActive(true);
+    return this.setActive(true);
   }
 
   stop() {
-    return this.#setActive(false);
+    return this.setActive(false);
   }
 
   dispose() {
     const error = new Error(
       "Input stopped during an audio capture transition.",
     );
-    for (const pending of this.#pendingActiveChanges.values()) {
+    for (const pending of this.pendingActiveChanges.values()) {
       window.clearTimeout(pending.timeout);
       pending.reject(error);
     }
-    this.#pendingActiveChanges.clear();
+    this.pendingActiveChanges.clear();
     this.node.disconnect();
   }
 
-  #setActive(value: boolean) {
-    const requestId = this.#nextRequestId++;
+  private setActive(value: boolean) {
+    const requestId = this.nextRequestId++;
     return new Promise<number>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
-        this.#pendingActiveChanges.delete(requestId);
+        this.pendingActiveChanges.delete(requestId);
         reject(new Error("Audio capture state change timed out."));
       }, 3_000);
-      this.#pendingActiveChanges.set(requestId, { reject, resolve, timeout });
-      this.#postMessage({ type: "active", requestId, value });
+      this.pendingActiveChanges.set(requestId, { reject, resolve, timeout });
+      this.postMessage({ type: "active", requestId, value });
     });
   }
 
-  #postMessage(message: ClientMessage) {
+  private postMessage(message: ClientMessage) {
     this.node.port.postMessage(message);
   }
 }
