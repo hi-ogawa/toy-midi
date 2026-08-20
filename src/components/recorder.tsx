@@ -9,9 +9,17 @@ import {
   PlayIcon,
   RadioIcon,
   RotateCcwIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
   UploadIcon,
 } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { gainToDb } from "../lib/music";
 import {
   getCaptureInputs,
@@ -28,6 +36,15 @@ import {
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 
+const RECORDER_TEMPO = 120;
+const BEATS_PER_BAR = 4;
+const DEFAULT_PIXELS_PER_BEAT = 80;
+const MIN_PIXELS_PER_BEAT = 20;
+const MAX_PIXELS_PER_BEAT = 320;
+const TRACK_CONTROL_WIDTH = 216;
+const MIN_TIMELINE_BEATS = 16;
+const TIMELINE_TRAILING_BEATS = 8;
+
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
@@ -37,6 +54,27 @@ export function Recorder() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
+  const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
+  const timelineViewportRef = useRef<HTMLDivElement>(null);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
+
+  function zoomTimeline(nextPixelsPerBeat: number, anchorX?: number) {
+    const viewport = timelineViewportRef.current;
+    if (!viewport) {
+      setPixelsPerBeat(nextPixelsPerBeat);
+      return;
+    }
+    const timelineX = anchorX ?? viewport.clientWidth / 2;
+    const beatAtAnchor =
+      (viewport.scrollLeft + timelineX - TRACK_CONTROL_WIDTH) / pixelsPerBeat;
+    setPixelsPerBeat(nextPixelsPerBeat);
+    requestAnimationFrame(() => {
+      viewport.scrollLeft = Math.max(
+        0,
+        beatAtAnchor * nextPixelsPerBeat - timelineX + TRACK_CONTROL_WIDTH,
+      );
+    });
+  }
 
   async function refreshInputs() {
     const nextDevices = await getCaptureInputs();
@@ -76,6 +114,18 @@ export function Recorder() {
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
 
+  useLayoutEffect(() => {
+    const viewport = timelineViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setTimelineViewportWidth(entry.contentRect.width);
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
   const inputsInitialized =
     refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
   const hasAccess = devices.some((device) => device.label);
@@ -88,6 +138,13 @@ export function Recorder() {
     ...state.audioTracks.map((track) => track.timelineOffset + track.duration),
     state.getTakeOffset() + (take?.duration ?? 0),
   );
+  const contentBeats = recorderSecondsToBeats(duration);
+  const timelineBeats = Math.max(
+    MIN_TIMELINE_BEATS,
+    contentBeats + TIMELINE_TRAILING_BEATS,
+    timelineViewportWidth / pixelsPerBeat,
+  );
+  const timelineWidth = Math.ceil(timelineBeats * pixelsPerBeat);
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
@@ -119,6 +176,7 @@ export function Recorder() {
         isProcessing={isProcessing}
         isRecording={isRecording}
         position={state.position}
+        pixelsPerBeat={pixelsPerBeat}
         recordDisabled={state.status === "idle"}
         onPlay={() => playMutation.mutate()}
         onPause={() => runtime.pause()}
@@ -127,102 +185,133 @@ export function Recorder() {
           runtime.pause();
           runtime.seek(0);
         }}
+        onZoomIn={() =>
+          zoomTimeline(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25))
+        }
+        onZoomOut={() =>
+          zoomTimeline(Math.max(MIN_PIXELS_PER_BEAT, pixelsPerBeat / 1.25))
+        }
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="min-w-0 overflow-auto border-r border-neutral-700">
-          <TimelineHeader duration={duration} />
-          <TrackRow
-            title="Audio 1"
-            subtitle={backingTrack?.name ?? "No file loaded"}
-            gain={backingTrack?.gain ?? 1}
-            muted={backingTrack?.muted ?? false}
-            soloed={backingTrack?.soloed ?? false}
-            onGainChange={(gain) => runtime.setAudioTrackMix(0, { gain })}
-            onMutedChange={(muted) => runtime.setAudioTrackMix(0, { muted })}
-            onSoloedChange={(soloed) => runtime.setAudioTrackMix(0, { soloed })}
-            action={
-              <label
-                title="Load audio track"
-                className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-              >
-                <UploadIcon className="size-3.5" />
-                <input
-                  type="file"
-                  accept="audio/*,.wav"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    if (file) {
-                      backingMutation.mutate(file);
-                    }
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
+        <section
+          ref={timelineViewportRef}
+          className="min-w-0 overflow-auto border-r border-neutral-700"
+          onWheel={(event) => {
+            if (!event.ctrlKey || event.deltaY === 0) {
+              return;
             }
-          >
-            <TimelineLane
-              clip={
-                backingTrack?.name
-                  ? {
-                      duration: backingTrack.duration,
-                      label: backingTrack.name,
-                      offset: backingTrack.timelineOffset,
-                      variant: "audio",
-                    }
-                  : undefined
-              }
-              duration={duration}
-              emptyLabel="Load an audio file"
-              position={state.position}
-              onSeek={(position) => runtime.seek(position)}
+            event.preventDefault();
+            const rect = event.currentTarget.getBoundingClientRect();
+            const nextPixelsPerBeat = Math.max(
+              MIN_PIXELS_PER_BEAT,
+              Math.min(
+                MAX_PIXELS_PER_BEAT,
+                pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
+              ),
+            );
+            zoomTimeline(nextPixelsPerBeat, event.clientX - rect.left);
+          }}
+        >
+          <div style={{ width: TRACK_CONTROL_WIDTH + timelineWidth }}>
+            <TimelineHeader
+              pixelsPerBeat={pixelsPerBeat}
+              timelineBeats={timelineBeats}
             />
-          </TrackRow>
+            <TrackRow
+              title="Audio 1"
+              subtitle={backingTrack?.name ?? "No file loaded"}
+              gain={backingTrack?.gain ?? 1}
+              muted={backingTrack?.muted ?? false}
+              soloed={backingTrack?.soloed ?? false}
+              onGainChange={(gain) => runtime.setAudioTrackMix(0, { gain })}
+              onMutedChange={(muted) => runtime.setAudioTrackMix(0, { muted })}
+              onSoloedChange={(soloed) =>
+                runtime.setAudioTrackMix(0, { soloed })
+              }
+              action={
+                <label
+                  title="Load audio track"
+                  className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                >
+                  <UploadIcon className="size-3.5" />
+                  <input
+                    type="file"
+                    accept="audio/*,.wav"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      if (file) {
+                        backingMutation.mutate(file);
+                      }
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+              }
+            >
+              <TimelineLane
+                clip={
+                  backingTrack?.name
+                    ? {
+                        duration: backingTrack.duration,
+                        label: backingTrack.name,
+                        offset: backingTrack.timelineOffset,
+                        variant: "audio",
+                      }
+                    : undefined
+                }
+                pixelsPerBeat={pixelsPerBeat}
+                emptyLabel="Load an audio file"
+                position={state.position}
+                onSeek={(position) => runtime.seek(position)}
+              />
+            </TrackRow>
 
-          <TrackRow
-            title="Capture"
-            subtitle={
-              isRecording
-                ? `Recording · ${formatTime(
-                    Math.max(0, state.position - state.getTakeOffset()),
-                  )}`
-                : take
-                  ? `Take 1 · ${formatTime(take.duration)}`
-                  : "No take"
-            }
-            gain={state.recordingTrack.gain}
-            muted={state.recordingTrack.muted}
-            soloed={state.recordingTrack.soloed}
-            onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
-            onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
-            onSoloedChange={(soloed) =>
-              runtime.setRecordingTrackMix({ soloed })
-            }
-          >
-            <TimelineLane
-              clip={
-                take
-                  ? {
-                      duration: isRecording
-                        ? Math.max(0, state.position - state.getTakeOffset())
-                        : take.duration,
-                      label: isRecording
-                        ? "Recording..."
-                        : isProcessing
-                          ? "Finalizing..."
-                          : "Take 1",
-                      offset: state.getTakeOffset(),
-                      variant: isRecording ? "recording" : "take",
-                    }
-                  : undefined
+            <TrackRow
+              title="Capture"
+              subtitle={
+                isRecording
+                  ? `Recording · ${formatTime(
+                      Math.max(0, state.position - state.getTakeOffset()),
+                    )}`
+                  : take
+                    ? `Take 1 · ${formatTime(take.duration)}`
+                    : "No take"
               }
-              duration={duration}
-              emptyLabel="Enable input, place the playhead, then record"
-              position={state.position}
-              onSeek={(position) => runtime.seek(position)}
-            />
-          </TrackRow>
+              gain={state.recordingTrack.gain}
+              muted={state.recordingTrack.muted}
+              soloed={state.recordingTrack.soloed}
+              onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+              onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
+              onSoloedChange={(soloed) =>
+                runtime.setRecordingTrackMix({ soloed })
+              }
+            >
+              <TimelineLane
+                clip={
+                  take
+                    ? {
+                        duration: isRecording
+                          ? Math.max(0, state.position - state.getTakeOffset())
+                          : take.duration,
+                        label: isRecording
+                          ? "Recording..."
+                          : isProcessing
+                            ? "Finalizing..."
+                            : "Take 1",
+                        offset: state.getTakeOffset(),
+                        variant: isRecording ? "recording" : "take",
+                      }
+                    : undefined
+                }
+                pixelsPerBeat={pixelsPerBeat}
+                emptyLabel="Enable input, place the playhead, then record"
+                position={state.position}
+                onSeek={(position) => runtime.seek(position)}
+              />
+            </TrackRow>
+          </div>
         </section>
 
         <InputInspector
@@ -311,21 +400,27 @@ function RecorderTransport({
   isProcessing,
   isRecording,
   position,
+  pixelsPerBeat,
   recordDisabled,
   onPlay,
   onPause,
   onRecord,
   onReset,
+  onZoomIn,
+  onZoomOut,
 }: {
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
   position: number;
+  pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlay: () => void;
   onPause: () => void;
   onRecord: () => void;
   onReset: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }) {
   return (
     <div className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
@@ -372,27 +467,82 @@ function RecorderTransport({
       <output className="font-mono text-sm tabular-nums text-neutral-100">
         {formatTime(position)}
       </output>
+      <div className="flex-1" />
+      <span className="font-mono text-[10px] text-neutral-500">
+        {Math.round(pixelsPerBeat)} px/beat
+      </span>
+      <Button
+        onClick={onZoomOut}
+        disabled={pixelsPerBeat <= MIN_PIXELS_PER_BEAT}
+        className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        title="Zoom timeline out"
+      >
+        <ZoomOutIcon className="size-4" />
+      </Button>
+      <Button
+        onClick={onZoomIn}
+        disabled={pixelsPerBeat >= MAX_PIXELS_PER_BEAT}
+        className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        title="Zoom timeline in"
+      >
+        <ZoomInIcon className="size-4" />
+      </Button>
     </div>
   );
 }
 
-function TimelineHeader({ duration }: { duration: number }) {
+function TimelineHeader({
+  pixelsPerBeat,
+  timelineBeats,
+}: {
+  pixelsPerBeat: number;
+  timelineBeats: number;
+}) {
   return (
-    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_minmax(30rem,1fr)] border-b border-neutral-700 bg-neutral-800">
-      <div className="flex items-center border-r border-neutral-700 px-3 text-xs font-semibold">
+    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
+      <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         Tracks
       </div>
-      <TimelineRuler duration={duration} />
+      <TimelineRuler
+        pixelsPerBeat={pixelsPerBeat}
+        timelineBeats={timelineBeats}
+      />
     </div>
   );
 }
 
-function TimelineRuler({ duration }: { duration: number }) {
+function TimelineRuler({
+  pixelsPerBeat,
+  timelineBeats,
+}: {
+  pixelsPerBeat: number;
+  timelineBeats: number;
+}) {
+  const labelEveryBars = getRecorderRulerLabelEveryBars(pixelsPerBeat);
+  const labelEveryBeats = labelEveryBars * BEATS_PER_BAR;
   return (
-    <div className="grid grid-cols-5 items-end px-2 pb-1.5 font-mono text-[10px] text-neutral-400">
-      {Array.from({ length: 5 }, (_, index) => (
-        <span key={index}>{formatRulerTime((duration * index) / 4)}</span>
-      ))}
+    <div
+      className="relative font-mono text-[10px] text-neutral-400"
+      style={{
+        backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
+        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
+      }}
+    >
+      {Array.from(
+        { length: Math.floor(timelineBeats / labelEveryBeats) + 1 },
+        (_, index) => {
+          const beat = index * labelEveryBeats;
+          return (
+            <span
+              key={beat}
+              className="absolute bottom-1.5"
+              style={{ left: beat * pixelsPerBeat + 6 }}
+            >
+              {index * labelEveryBars + 1}
+            </span>
+          );
+        },
+      )}
     </div>
   );
 }
@@ -425,8 +575,8 @@ function TrackRow({
       ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
-    <div className="grid min-h-24 grid-cols-[13.5rem_minmax(30rem,1fr)] border-b border-neutral-700">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
+    <div className="grid min-h-24 grid-cols-[13.5rem_1fr] border-b border-neutral-700">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">{title}</div>
           <div className="mt-0.5 truncate text-[11px] text-neutral-400">
@@ -475,8 +625,8 @@ function TrackRow({
 
 function TimelineLane({
   clip,
-  duration,
   emptyLabel,
+  pixelsPerBeat,
   position,
   onSeek,
 }: {
@@ -486,8 +636,8 @@ function TimelineLane({
     offset: number;
     variant: "audio" | "take" | "recording";
   };
-  duration: number;
   emptyLabel: string;
+  pixelsPerBeat: number;
   position: number;
   onSeek: (position: number) => void;
 }) {
@@ -496,14 +646,30 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
+  const positionBeat = recorderSecondsToBeats(position);
   return (
-    <div className="relative min-h-24 overflow-hidden bg-neutral-900 [background-image:linear-gradient(to_right,transparent_calc(100%_-_1px),rgb(64_64_64)_100%)] [background-size:25%_100%]">
+    <div
+      className="relative min-h-24 overflow-hidden bg-neutral-900"
+      style={{
+        backgroundImage:
+          "linear-gradient(to right, transparent calc(100% - 1px), rgb(64 64 64) 100%)",
+        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
+      }}
+      onPointerDown={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const beat = Math.max(0, (event.clientX - rect.left) / pixelsPerBeat);
+        onSeek(recorderBeatsToSeconds(beat));
+      }}
+    >
       {clip ? (
         <div
           className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
           style={{
-            left: `${(clip.offset / duration) * 100}%`,
-            width: `${Math.max(0.5, (clip.duration / duration) * 100)}%`,
+            left: recorderSecondsToBeats(clip.offset) * pixelsPerBeat,
+            width: Math.max(
+              2,
+              recorderSecondsToBeats(clip.duration) * pixelsPerBeat,
+            ),
           }}
         >
           <span className="truncate">{clip.label}</span>
@@ -515,17 +681,7 @@ function TimelineLane({
       )}
       <div
         className="pointer-events-none absolute inset-y-0 z-10 w-px bg-red-500"
-        style={{ left: `${Math.min(100, (position / duration) * 100)}%` }}
-      />
-      <input
-        aria-label="Seek recorder timeline"
-        type="range"
-        min={0}
-        max={duration}
-        step={0.01}
-        value={Math.min(position, duration)}
-        onChange={(event) => onSeek(event.currentTarget.valueAsNumber)}
-        className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+        style={{ left: positionBeat * pixelsPerBeat }}
       />
     </div>
   );
@@ -721,9 +877,21 @@ function formatTime(seconds: number): string {
     .padStart(6, "0")}`;
 }
 
-function formatRulerTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+export function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
+  const minimumLabelSpacing = 48;
+  let bars = 1;
+  while (bars * BEATS_PER_BAR * pixelsPerBeat < minimumLabelSpacing) {
+    bars *= 2;
+  }
+  return bars;
+}
+
+function recorderSecondsToBeats(seconds: number): number {
+  return (seconds / 60) * RECORDER_TEMPO;
+}
+
+function recorderBeatsToSeconds(beats: number): number {
+  return (beats / RECORDER_TEMPO) * 60;
 }
 
 // TODO: Unify this with the Latency Checker input meter.
