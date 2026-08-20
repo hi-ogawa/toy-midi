@@ -1,49 +1,44 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-export type ActiveRecording = {
-  chunks: CaptureChunk[];
-  capacityFrames: number;
-};
+export class ActiveRecording {
+  readonly #chunks: CaptureChunk[] = [];
+  readonly #capacityFrames: number;
 
-export function createRecording(capacityFrames: number): ActiveRecording {
-  return { chunks: [], capacityFrames };
-}
-
-export function appendCaptureChunk(
-  recording: ActiveRecording,
-  chunk: CaptureChunk,
-): void {
-  recording.chunks.push(chunk);
-}
-
-export function isRecordingFull(recording: ActiveRecording): boolean {
-  const first = recording.chunks[0];
-  const last = recording.chunks.at(-1);
-  return (
-    first !== undefined &&
-    last !== undefined &&
-    last.frameStart + last.samples.length - first.frameStart >=
-      recording.capacityFrames
-  );
-}
-
-export function finishRecording(
-  recording: ActiveRecording,
-): { samples: Float32Array; firstFrame: number } | undefined {
-  const firstFrame = recording.chunks[0]?.frameStart;
-  if (firstFrame === undefined) {
-    return undefined;
+  constructor(capacityFrames: number) {
+    this.#capacityFrames = capacityFrames;
   }
-  const last = recording.chunks.at(-1)!;
-  const length = Math.min(
-    last.frameStart + last.samples.length - firstFrame,
-    recording.capacityFrames,
-  );
-  const samples = new Float32Array(length);
-  for (const chunk of recording.chunks) {
-    setArrayClipped(samples, chunk.samples, chunk.frameStart - firstFrame);
+
+  append(chunk: CaptureChunk): void {
+    this.#chunks.push(chunk);
   }
-  return { samples, firstFrame };
+
+  get full(): boolean {
+    const first = this.#chunks[0];
+    const last = this.#chunks.at(-1);
+    return (
+      first !== undefined &&
+      last !== undefined &&
+      last.frameStart + last.samples.length - first.frameStart >=
+        this.#capacityFrames
+    );
+  }
+
+  finish(): { samples: Float32Array; firstFrame: number } | undefined {
+    const firstFrame = this.#chunks[0]?.frameStart;
+    if (firstFrame === undefined) {
+      return undefined;
+    }
+    const last = this.#chunks.at(-1)!;
+    const length = Math.min(
+      last.frameStart + last.samples.length - firstFrame,
+      this.#capacityFrames,
+    );
+    const samples = new Float32Array(length);
+    for (const chunk of this.#chunks) {
+      setArrayClipped(samples, chunk.samples, chunk.frameStart - firstFrame);
+    }
+    return { samples, firstFrame };
+  }
 }
 
 /** Performs `target.set(source, offset)` while clipping either array boundary. */

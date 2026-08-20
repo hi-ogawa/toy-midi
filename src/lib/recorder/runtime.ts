@@ -4,13 +4,7 @@ import {
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
-import {
-  type ActiveRecording,
-  appendCaptureChunk,
-  createRecording,
-  finishRecording,
-  isRecordingFull,
-} from "./recording.ts";
+import { ActiveRecording } from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -232,7 +226,7 @@ class RecorderRuntime {
       await this.play();
     }
     this.#clearTake();
-    this.#activeRecording = createRecording(
+    this.#activeRecording = new ActiveRecording(
       Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
     );
     const contextTime = context.currentTime;
@@ -397,11 +391,8 @@ class RecorderRuntime {
         ) {
           break;
         }
-        appendCaptureChunk(activeRecording, message);
-        if (
-          isRecordingFull(activeRecording) &&
-          this.#snapshot.status === "recording"
-        ) {
+        activeRecording.append(message);
+        if (activeRecording.full && this.#snapshot.status === "recording") {
           void this.stopRecording();
         }
         break;
@@ -412,9 +403,7 @@ class RecorderRuntime {
   #finishRecording(): void {
     const context = this.#context;
     const activeRecording = this.#activeRecording;
-    const recording = activeRecording
-      ? finishRecording(activeRecording)
-      : undefined;
+    const recording = activeRecording?.finish();
     if (!context || !recording) {
       this.#activeRecording = undefined;
       this.#recordAnchor = undefined;
