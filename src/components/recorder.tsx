@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CircleStopIcon,
-  FolderIcon,
+  HouseIcon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -76,7 +76,7 @@ export function Recorder() {
             <Button
               title="More"
               aria-label="More"
-              className="size-8 hover:bg-accent hover:text-accent-foreground"
+              className="size-9 hover:bg-accent hover:text-accent-foreground"
             >
               <MoreVerticalIcon className="size-5" />
             </Button>
@@ -84,7 +84,7 @@ export function Recorder() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem asChild>
               <a href={routes.home.href()}>
-                <FolderIcon />
+                <HouseIcon />
                 Home
               </a>
             </DropdownMenuItem>
@@ -104,7 +104,7 @@ export function Recorder() {
                     playMutation.mutate();
                   }
                 }}
-                className="size-11 border-orange-700 bg-orange-700 text-white hover:bg-orange-800"
+                className="size-11 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
               >
                 {state.isPlaying ? (
                   <PauseIcon className="size-5" />
@@ -187,7 +187,7 @@ export function Recorder() {
                   }
                   className={
                     state.backingMuted
-                      ? "size-9 border-orange-700 bg-orange-700 text-white hover:bg-orange-800"
+                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
                       : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
                   }
                   title="Mute backing"
@@ -218,7 +218,7 @@ export function Recorder() {
             </div>
 
             <div className="grid grid-cols-[6rem_minmax(0,1fr)_8rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <span className="font-mono text-xs font-semibold text-orange-700">
+              <span className="font-mono text-xs font-semibold text-neutral-700">
                 TAKE 01
               </span>
               <div>
@@ -265,7 +265,7 @@ export function Recorder() {
               className={
                 isRecording
                   ? "h-14 gap-3 border-neutral-300 bg-white px-7 font-semibold text-neutral-900 hover:bg-neutral-100"
-                  : "h-14 gap-3 border-orange-700 bg-orange-700 px-7 font-semibold text-white hover:bg-orange-800"
+                  : "h-14 gap-3 border-emerald-700 bg-emerald-700 px-7 font-semibold text-white hover:bg-emerald-800"
               }
             >
               {isRecording ? (
