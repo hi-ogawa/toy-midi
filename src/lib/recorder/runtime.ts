@@ -138,9 +138,10 @@ class RecorderRuntime {
     index: number,
     update: Partial<Pick<PlaybackTrackState, "gain" | "muted">>,
   ): void {
+    const playback = this.getPlaybackTrack(index);
     this.updatePlaybackTrack(index, (track) => {
       const next = { ...track, ...update };
-      this.getPlaybackTrack(index).setGain(next.muted ? 0 : next.gain);
+      playback.setGain(next.muted ? 0 : next.gain);
       return next;
     });
   }
@@ -166,9 +167,11 @@ class RecorderRuntime {
     update: (track: PlaybackTrackState) => PlaybackTrackState,
   ): void {
     const playbackTracks = this.state.playbackTracks.slice();
-    playbackTracks[index] = update(
-      playbackTracks[index] ?? createPlaybackTrackState(),
-    );
+    const track = playbackTracks[index];
+    if (!track) {
+      throw new Error("Playback track state is missing.");
+    }
+    playbackTracks[index] = update(track);
     this.update({ playbackTracks });
   }
 
@@ -180,11 +183,13 @@ class RecorderRuntime {
         context,
         output: context.destination,
       });
-      const track =
-        this.state.playbackTracks[index] ?? createPlaybackTrackState();
+      const track = createPlaybackTrackState();
       playback.setGain(track.muted ? 0 : track.gain);
       playback.setTimelineOffset(track.timelineOffset);
       this.playbackTracks[index] = playback;
+      const playbackTracks = this.state.playbackTracks.slice();
+      playbackTracks[index] = track;
+      this.update({ playbackTracks });
     }
     return playback;
   }
