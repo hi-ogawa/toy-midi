@@ -602,25 +602,27 @@ function InputInspector({
             )}
           </select>
         </label>
-        {inputChannelCount > 1 && (
-          <label className="block text-[11px] font-medium text-neutral-400">
-            Channel
-            <select
-              value={selectedChannel}
-              disabled={disabled}
-              onChange={(event) =>
-                onChannelChange(Number(event.currentTarget.value))
-              }
-              className={inputClass}
-            >
-              {Array.from({ length: inputChannelCount }, (_, channel) => (
+        <label className="block text-[11px] font-medium text-neutral-400">
+          Channel
+          <select
+            value={inputChannelCount > 0 ? selectedChannel : ""}
+            disabled={disabled || inputChannelCount === 0}
+            onChange={(event) =>
+              onChannelChange(Number(event.currentTarget.value))
+            }
+            className={inputClass}
+          >
+            {inputChannelCount === 0 ? (
+              <option value="">Enable input to detect channels</option>
+            ) : (
+              Array.from({ length: inputChannelCount }, (_, channel) => (
                 <option key={channel} value={channel}>
                   Channel {channel + 1}
                 </option>
-              ))}
-            </select>
-          </label>
-        )}
+              ))
+            )}
+          </select>
+        </label>
         <Button
           disabled={
             disabled || !inputsInitialized || (hasAccess && !selectedDevice)
@@ -637,14 +639,12 @@ function InputInspector({
                 ? "Disable input"
                 : "Enable input"}
         </Button>
-      </div>
-
-      <div className="space-y-4 border-b border-neutral-700 p-3">
-        <h3 className="text-xs font-semibold">Level</h3>
-        <InputMeter active={inputActive} peak={inputPeak} />
-      </div>
-
-      <div className="border-b border-neutral-700 p-3">
+        <label className="block text-[11px] font-medium text-neutral-400">
+          Level
+          <div className="mt-2">
+            <InputMeter active={inputActive} peak={inputPeak} />
+          </div>
+        </label>
         <label className="block text-[11px] font-medium text-neutral-400">
           <span className="flex items-center gap-1.5">
             Latency compensation
