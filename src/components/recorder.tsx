@@ -118,6 +118,38 @@ export function Recorder() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const viewport = timelineViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (!event.ctrlKey) {
+        const delta = event.deltaX || event.deltaY;
+        setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
+        return;
+      }
+      if (event.deltaY === 0) {
+        return;
+      }
+      const rect = viewport.getBoundingClientRect();
+      const nextPixelsPerBeat = Math.max(
+        MIN_PIXELS_PER_BEAT,
+        Math.min(
+          MAX_PIXELS_PER_BEAT,
+          pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
+        ),
+      );
+      zoomTimeline(
+        nextPixelsPerBeat,
+        Math.max(0, event.clientX - rect.left - 216),
+      );
+    };
+    viewport.addEventListener("wheel", handleWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", handleWheel);
+  }, [pixelsPerBeat, scrollX]);
+
   const inputsInitialized =
     refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
   const hasAccess = devices.some((device) => device.label);
@@ -178,29 +210,6 @@ export function Recorder() {
         <section
           ref={timelineViewportRef}
           className="min-w-0 overflow-hidden border-r border-neutral-700"
-          onWheel={(event) => {
-            event.preventDefault();
-            if (!event.ctrlKey) {
-              const delta = event.deltaX || event.deltaY;
-              setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
-              return;
-            }
-            if (event.deltaY === 0) {
-              return;
-            }
-            const rect = event.currentTarget.getBoundingClientRect();
-            const nextPixelsPerBeat = Math.max(
-              MIN_PIXELS_PER_BEAT,
-              Math.min(
-                MAX_PIXELS_PER_BEAT,
-                pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
-              ),
-            );
-            zoomTimeline(
-              nextPixelsPerBeat,
-              Math.max(0, event.clientX - rect.left - 216),
-            );
-          }}
         >
           <div>
             <TimelineHeader
