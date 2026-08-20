@@ -16,7 +16,7 @@ import {
   getCaptureInputs,
   requestCaptureAccess,
 } from "../lib/recorder/capture-input";
-import { recorderRuntime } from "../lib/recorder/runtime";
+import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 import {
@@ -27,10 +27,8 @@ import {
 } from "./ui/dropdown-menu";
 
 export function Recorder() {
-  const state = useSyncExternalStore(
-    recorderRuntime.subscribe,
-    recorderRuntime.getSnapshot,
-  );
+  const [runtime] = useState(() => new RecorderRuntime());
+  const state = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
@@ -72,19 +70,17 @@ export function Recorder() {
 
   const startInputMutation = useMutation({
     mutationFn: (deviceId: string) =>
-      recorderRuntime.startInput({ deviceId, onLevel: setInputPeak }),
+      runtime.startInput({ deviceId, onLevel: setInputPeak }),
   });
   const backingMutation = useMutation({
-    mutationFn: (file: File) => recorderRuntime.setAudioTrack(0, file),
+    mutationFn: (file: File) => runtime.setAudioTrack(0, file),
   });
   const playMutation = useMutation({
-    mutationFn: () => recorderRuntime.play(),
+    mutationFn: () => runtime.play(),
   });
   const recordMutation = useMutation({
     mutationFn: (action: "start" | "stop") =>
-      action === "start"
-        ? recorderRuntime.startRecording()
-        : recorderRuntime.stopRecording(),
+      action === "start" ? runtime.startRecording() : runtime.stopRecording(),
   });
 
   const backingTrack = state.audioTracks[0];
@@ -118,7 +114,7 @@ export function Recorder() {
   }
 
   function stopInput() {
-    recorderRuntime.stopInput();
+    runtime.stopInput();
     setInputPeak(0);
     startInputMutation.reset();
   }
@@ -188,7 +184,7 @@ export function Recorder() {
                 </label>
                 <Button
                   onClick={() =>
-                    recorderRuntime.setAudioTrackMix(0, {
+                    runtime.setAudioTrackMix(0, {
                       muted: !backingTrack?.muted,
                     })
                   }
@@ -212,7 +208,7 @@ export function Recorder() {
                   step={0.01}
                   value={backingTrack?.gain ?? 1}
                   onChange={(event) =>
-                    recorderRuntime.setAudioTrackMix(0, {
+                    runtime.setAudioTrackMix(0, {
                       gain: event.currentTarget.valueAsNumber,
                     })
                   }
@@ -257,9 +253,9 @@ export function Recorder() {
                       if (Number.isFinite(compensation)) {
                         const wasPlaying = state.isPlaying;
                         if (wasPlaying) {
-                          recorderRuntime.pause();
+                          runtime.pause();
                         }
-                        recorderRuntime.setLatencyCompensation(
+                        runtime.setLatencyCompensation(
                           Math.max(0, compensation),
                         );
                         if (wasPlaying) {
@@ -293,7 +289,7 @@ export function Recorder() {
                 <Button
                   onClick={() => {
                     if (state.isPlaying) {
-                      recorderRuntime.pause();
+                      runtime.pause();
                     } else {
                       playMutation.mutate();
                     }
@@ -309,8 +305,8 @@ export function Recorder() {
                 </Button>
                 <Button
                   onClick={() => {
-                    recorderRuntime.pause();
-                    recorderRuntime.seek(0);
+                    runtime.pause();
+                    runtime.seek(0);
                   }}
                   disabled={isRecording || isProcessing}
                   className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
@@ -353,7 +349,7 @@ export function Recorder() {
                   step={0.01}
                   value={Math.min(state.position, duration)}
                   onChange={(event) =>
-                    recorderRuntime.seek(event.currentTarget.valueAsNumber)
+                    runtime.seek(event.currentTarget.valueAsNumber)
                   }
                   disabled={isRecording || isProcessing}
                   className="w-full accent-emerald-700"
@@ -451,9 +447,7 @@ export function Recorder() {
                     value={state.selectedChannel}
                     onChange={(event) => {
                       setInputPeak(0);
-                      recorderRuntime.selectChannel(
-                        Number(event.currentTarget.value),
-                      );
+                      runtime.selectChannel(Number(event.currentTarget.value));
                     }}
                     className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm"
                   >

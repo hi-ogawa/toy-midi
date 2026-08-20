@@ -30,7 +30,7 @@ interface RecorderState {
   latencyCompensation: number;
 }
 
-class RecorderRuntime {
+export class RecorderRuntime {
   private state: RecorderState = {
     status: "idle",
     inputChannelCount: 0,
@@ -386,5 +386,3 @@ function createAudioTrackState(): AudioTrackState {
     timelineOffset: 0,
   };
 }
-
-export const recorderRuntime = new RecorderRuntime();
