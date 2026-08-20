@@ -29,6 +29,7 @@ import {
 } from "../lib/recorder/capture-input";
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
+import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -52,7 +53,6 @@ export function Recorder() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
-  const [tempo, setTempo] = useState(120);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [scrollX, setScrollX] = useState(0);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
@@ -161,7 +161,8 @@ export function Recorder() {
   const take = state.recordingTrack.takes[0];
   const timelineWidth = Math.max(0, timelineViewportWidth - 216);
   const playheadX =
-    (recorderSecondsToBeats(state.position, tempo) - scrollX) * pixelsPerBeat;
+    (recorderSecondsToBeats(state.position, state.tempo) - scrollX) *
+    pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= timelineWidth;
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
@@ -212,13 +213,15 @@ export function Recorder() {
         isProcessing={isProcessing}
         isRecording={isRecording}
         position={state.position}
-        tempo={tempo}
+        tempo={state.tempo}
+        metronomeEnabled={state.metronomeEnabled}
         pixelsPerBeat={pixelsPerBeat}
         recordDisabled={state.status === "idle"}
         onPlay={() => playMutation.mutate()}
         onPause={() => runtime.pause()}
         onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
-        onTempoChange={setTempo}
+        onTempoChange={(tempo) => runtime.setTempo(tempo)}
+        onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onZoomIn={() =>
           zoomTimeline(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25))
         }
@@ -244,7 +247,7 @@ export function Recorder() {
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
               scrollX={scrollX}
-              tempo={tempo}
+              tempo={state.tempo}
               timelineWidth={timelineWidth}
               onSeek={(position) => runtime.seek(position)}
             />
@@ -293,7 +296,7 @@ export function Recorder() {
                 }
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
-                tempo={tempo}
+                tempo={state.tempo}
                 emptyLabel="Load an audio file"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -338,7 +341,7 @@ export function Recorder() {
                 }
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
-                tempo={tempo}
+                tempo={state.tempo}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -404,12 +407,14 @@ function RecorderHeader({
   isRecording,
   position,
   tempo,
+  metronomeEnabled,
   pixelsPerBeat,
   recordDisabled,
   onPlay,
   onPause,
   onRecord,
   onTempoChange,
+  onMetronomeChange,
   onZoomIn,
   onZoomOut,
 }: {
@@ -418,12 +423,14 @@ function RecorderHeader({
   isRecording: boolean;
   position: number;
   tempo: number;
+  metronomeEnabled: boolean;
   pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlay: () => void;
   onPause: () => void;
   onRecord: () => void;
   onTempoChange: (tempo: number) => void;
+  onMetronomeChange: (enabled: boolean) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
 }) {
@@ -449,6 +456,18 @@ function RecorderHeader({
         ) : (
           <PlayIcon className="size-5" />
         )}
+      </Button>
+      <Button
+        onClick={() => onMetronomeChange(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome"
+        className={
+          metronomeEnabled
+            ? "size-9 bg-emerald-700 text-white hover:bg-emerald-600"
+            : "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        }
+      >
+        <MetronomeIcon className="size-5" />
       </Button>
       <Button
         onClick={onRecord}
