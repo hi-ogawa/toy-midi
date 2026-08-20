@@ -138,7 +138,7 @@ export function Transport({ projectName, controls }: TransportProps) {
   return (
     <div
       data-testid="transport"
-      className="flex items-center gap-2 px-3 py-2 bg-neutral-800 border-b border-neutral-700"
+      className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm"
     >
       {/* Play/Pause button */}
       <PlayPauseButton />
