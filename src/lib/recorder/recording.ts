@@ -16,6 +16,8 @@ export class ActiveRecording {
 
   isFull(): boolean {
     const last = this.chunks.at(-1);
+    // Capacity is elapsed AudioContext frames, including capture gaps, rather
+    // than only the number of PCM samples delivered.
     return (
       last !== undefined &&
       last.frameStart + last.samples.length - this.startFrame >=
@@ -24,6 +26,8 @@ export class ActiveRecording {
   }
 
   finish(stopFrame: number): Float32Array | undefined {
+    // Reconstruct [startFrame, stopFrame) in capture-relative coordinates.
+    // Missing ranges remain zero-filled and later chunks replace overlaps.
     const length = Math.min(stopFrame - this.startFrame, this.capacityFrames);
     if (length <= 0) {
       return undefined;

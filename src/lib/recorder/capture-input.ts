@@ -91,6 +91,8 @@ export class CaptureInput {
     });
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
+    // Keep the worklet connected so browsers continue rendering it. Zero gain
+    // prevents microphone monitoring and feedback at the destination.
     this.source
       .connect(this.worklet.node)
       .connect(this.silentGain)
@@ -137,6 +139,8 @@ export class CaptureInput {
 }
 
 async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
+  // Worklet registration belongs to an AudioContext. Share concurrent attempts,
+  // but discard failures so a later input-open attempt can retry.
   let registration = workletRegistrations.get(context);
   if (!registration) {
     registration = registerCaptureWorklet(context);
@@ -165,6 +169,7 @@ async function registerCaptureWorklet(context: AudioContext): Promise<void> {
 function captureConstraints(deviceId?: string): MediaStreamConstraints {
   return {
     audio: {
+      // Voice processing changes the gain and timing of PCM used for recording.
       autoGainControl: false,
       channelCount: { ideal: 2 },
       deviceId: deviceId ? { exact: deviceId } : undefined,

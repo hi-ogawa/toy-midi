@@ -58,6 +58,8 @@ class RecorderRuntime {
     onLevel: (peak: number) => void;
   }): Promise<void> {
     const context = this.getContext();
+    // Open the replacement completely before closing the current input so a
+    // permission or device error leaves the existing route usable.
     const { input, settings } = await CaptureInput.open({
       context,
       deviceId,
@@ -72,6 +74,8 @@ class RecorderRuntime {
       onLevel,
       onChunk: (chunk) => {
         const activeRecording = this.activeRecording;
+        // Batched samples can arrive after stop is requested. Keep accepting
+        // them through processing until the render thread confirms its boundary.
         if (
           !activeRecording ||
           (this.state.status !== "recording" &&
@@ -139,16 +143,18 @@ class RecorderRuntime {
     }
     const context = this.getContext();
     await context.resume();
+    // Give every source a shared future AudioContext anchor. Their relative
+    // placement is then determined only by timeline offsets.
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
     this.backingPlayback!.start({
-      contextTime: startTime,
-      timelineTime: this.state.position,
-      timelineOffset: 0,
+      scheduledContextTime: startTime,
+      playheadTime: this.state.position,
+      bufferTimelineOffset: 0,
     });
     this.takePlayback!.start({
-      contextTime: startTime,
-      timelineTime: this.state.position,
-      timelineOffset: this.state.takeOffset,
+      scheduledContextTime: startTime,
+      playheadTime: this.state.position,
+      bufferTimelineOffset: this.state.takeOffset,
     });
     this.clock!.start({
       contextTime: startTime,
@@ -199,6 +205,9 @@ class RecorderRuntime {
     }
     this.clearTake();
     try {
+      // The worklet applies capture changes on the render thread and returns the
+      // first captured frame. Convert that exact boundary to musical timeline
+      // coordinates instead of using main-thread request time.
       const startFrame = await this.captureInput.startCapture();
       this.activeRecording = new ActiveRecording(
         startFrame,
@@ -223,6 +232,8 @@ class RecorderRuntime {
     }
     this.update({ status: "processing" });
     try {
+      // Stopping is two-phase: the worklet first flushes its final partial batch,
+      // then acknowledges the exclusive frame at which capture ended.
       const stopFrame = await captureInput.stopCapture();
       this.finishRecording(stopFrame);
     } catch (error) {
@@ -240,6 +251,7 @@ class RecorderRuntime {
     }
     this.update({
       latencyCompensation: compensation,
+      // Positive compensation advances a late take without modifying its PCM.
       takeOffset: this.takeCaptureOffset - compensation,
     });
     if (wasPlaying) {
@@ -292,6 +304,8 @@ class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(samples);
     this.takePlayback!.setBuffer(takeBuffer);
+    // Preserve the uncompensated timeline location of captured sample zero so
+    // compensation can be adjusted repeatedly without accumulating drift.
     this.takeCaptureOffset = this.recordingTimelineStart ?? this.state.position;
     this.activeRecording = undefined;
     this.recordingTimelineStart = undefined;

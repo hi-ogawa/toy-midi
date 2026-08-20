@@ -89,6 +89,8 @@ export class CaptureWorkletClient {
 
   private setActive(value: boolean) {
     const requestId = this.nextRequestId++;
+    // Resolve only after the render thread applies this transition. Request IDs
+    // prevent delayed acknowledgements from satisfying a newer transition.
     return new Promise<number>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
         this.pendingActiveChanges.delete(requestId);
@@ -151,6 +153,8 @@ function createCaptureProcessor() {
           }
           case "active": {
             const { requestId, value } = event.data;
+            // Queue transitions until process() so capture state, buffered PCM,
+            // and acknowledgement frames share render-thread ordering.
             this.pendingRenderActions.push(() => {
               if (value) {
                 this.captureLength = 0;
@@ -177,14 +181,19 @@ function createCaptureProcessor() {
       }
       this.pendingRenderActions = [];
       const channels = inputs[0] ?? [];
+      // The output keeps this processor in the render graph, but input audio
+      // must never pass through to speakers.
       for (const samples of outputs[0] ?? []) {
         samples.fill(0);
       }
       if (channels.length !== this.observedChannelCount) {
+        // Track settings may be absent or disagree with actual render quanta.
         this.observedChannelCount = channels.length;
         this.postMessage({ type: "channels", value: channels.length });
       }
       if (channels.length > 0) {
+        // Clamp against the observed graph so a transient channel-count change
+        // still produces capture from an available channel.
         const source =
           channels[Math.min(this.selectedChannel, channels.length - 1)];
         for (const sample of source) {
@@ -192,6 +201,8 @@ function createCaptureProcessor() {
         }
         this.meterBlockCount++;
         if (this.meterBlockCount >= 16) {
+          // Aggregate render quanta to avoid flooding the main thread with meter
+          // updates while retaining a responsive peak display.
           this.postMessage({ type: "level", peak: this.meterPeak });
           this.meterBlockCount = 0;
           this.meterPeak = 0;
@@ -200,6 +211,8 @@ function createCaptureProcessor() {
           this.appendCapture(source);
         }
       } else if (this.recording && this.captureLength > 0) {
+        // Flush before a gap so no chunk claims frame-contiguous PCM across
+        // missing input. Take assembly leaves the absent interval as silence.
         this.flushCapture();
       }
       return true;
@@ -209,6 +222,8 @@ function createCaptureProcessor() {
       let sourceOffset = 0;
       while (sourceOffset < source.length) {
         if (this.captureLength === 0) {
+          // currentFrame identifies this render quantum. sourceOffset preserves
+          // the absolute frame when one quantum spans two transfer batches.
           this.captureStartFrame = currentFrame + sourceOffset;
         }
         const count = Math.min(
@@ -231,6 +246,8 @@ function createCaptureProcessor() {
       if (this.captureLength === 0) {
         return;
       }
+      // Copy only the populated prefix because the staging buffer is reused,
+      // then transfer ownership of that copy to the main thread.
       const samples = this.captureBuffer.slice(0, this.captureLength);
       this.postMessage(
         {

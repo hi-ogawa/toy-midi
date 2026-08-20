@@ -25,21 +25,32 @@ export class AudioBufferPlayback {
     this.gain.gain.setTargetAtTime(gain, this.context.currentTime, 0.01);
   }
 
+  /**
+   * Starts this buffer as part of a transport scheduled for
+   * `scheduledContextTime`, when the transport playhead is at `playheadTime`.
+   *
+   * The buffer's sample zero belongs at `bufferTimelineOffset` on the transport
+   * timeline. If that point has passed, playback seeks into the buffer. If it is
+   * ahead, playback delays the buffer start.
+   *
+   * `scheduledContextTime` is the shared future start for all playback nodes,
+   * not the current AudioContext time.
+   */
   start({
-    contextTime,
-    timelineTime,
-    timelineOffset,
+    scheduledContextTime,
+    playheadTime,
+    bufferTimelineOffset,
   }: {
-    contextTime: number;
-    timelineTime: number;
-    timelineOffset: number;
+    scheduledContextTime: number;
+    playheadTime: number;
+    bufferTimelineOffset: number;
   }): void {
     this.stop();
     const buffer = this.buffer;
     if (!buffer) {
       return;
     }
-    const bufferOffset = Math.max(0, timelineTime - timelineOffset);
+    const bufferOffset = Math.max(0, playheadTime - bufferTimelineOffset);
     if (bufferOffset >= buffer.duration) {
       return;
     }
@@ -47,7 +58,7 @@ export class AudioBufferPlayback {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      contextTime + Math.max(0, timelineOffset - timelineTime),
+      scheduledContextTime + Math.max(0, bufferTimelineOffset - playheadTime),
       bufferOffset,
     );
     this.source = source;

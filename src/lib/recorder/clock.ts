@@ -26,6 +26,8 @@ export class AudioContextTimelineClock {
     contextTime: number;
     position: number;
   }): void {
+    // This anchor defines an affine mapping between AudioContext time and the
+    // recorder timeline. contextTime may intentionally be in the future.
     this.contextTime = contextTime;
     this.timelineTime = position;
     this.update({ position, running: true });
@@ -56,6 +58,7 @@ export class AudioContextTimelineClock {
   }
 
   private getPosition(contextTime: number): number {
+    // A future scheduled start must not move the visible playhead backward.
     return Math.max(this.timelineTime, this.getTimelinePosition(contextTime));
   }
 
