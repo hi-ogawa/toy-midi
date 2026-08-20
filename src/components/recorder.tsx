@@ -212,7 +212,13 @@ export function Recorder() {
           ref={timelineViewportRef}
           className="min-w-0 overflow-hidden border-r border-neutral-700"
         >
-          <div>
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute inset-y-0 z-30 w-px bg-red-500"
+              style={{
+                left: `calc(13.5rem + ${(recorderSecondsToBeats(state.position) - scrollX) * pixelsPerBeat}px)`,
+              }}
+            />
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
               scrollX={scrollX}
@@ -264,7 +270,6 @@ export function Recorder() {
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
                 emptyLabel="Load an audio file"
-                position={state.position}
                 onSeek={(position) => runtime.seek(position)}
               />
             </TrackRow>
@@ -309,7 +314,6 @@ export function Recorder() {
                 pixelsPerBeat={pixelsPerBeat}
                 scrollX={scrollX}
                 emptyLabel="Enable input, place the playhead, then record"
-                position={state.position}
                 onSeek={(position) => runtime.seek(position)}
               />
             </TrackRow>
@@ -639,7 +643,6 @@ function TimelineLane({
   emptyLabel,
   pixelsPerBeat,
   scrollX,
-  position,
   onSeek,
 }: {
   clip?: {
@@ -651,7 +654,6 @@ function TimelineLane({
   emptyLabel: string;
   pixelsPerBeat: number;
   scrollX: number;
-  position: number;
   onSeek: (position: number) => void;
 }) {
   const clipClass = {
@@ -659,7 +661,6 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
-  const positionBeat = recorderSecondsToBeats(position);
   return (
     <div
       className="relative min-h-24 overflow-hidden bg-neutral-900"
@@ -697,10 +698,6 @@ function TimelineLane({
           {emptyLabel}
         </div>
       )}
-      <div
-        className="pointer-events-none absolute inset-y-0 z-10 w-px bg-red-500"
-        style={{ left: (positionBeat - scrollX) * pixelsPerBeat }}
-      />
     </div>
   );
 }
