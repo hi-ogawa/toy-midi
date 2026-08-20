@@ -20,6 +20,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { useDraftInput } from "../hooks/use-draft-input";
 import { gainToDb } from "../lib/music";
 import {
   getCaptureInputs,
@@ -744,6 +745,15 @@ function InputInspector({
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
   const disabled = mutationPending || isRecording || isProcessing;
+  const latencyInput = useDraftInput({
+    value: latencyCompensation * 1000,
+    onCommit: (milliseconds) =>
+      onLatencyCompensationChange(milliseconds / 1000),
+    min: 0,
+    step: 0.1,
+    parse: "float",
+    format: formatLatencyMilliseconds,
+  });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
   return (
@@ -859,16 +869,9 @@ function InputInspector({
           </span>
           <div className="mt-1 flex items-center gap-2">
             <input
-              type="number"
-              min={0}
-              step={0.1}
-              value={(latencyCompensation * 1000).toFixed(1)}
-              onChange={(event) => {
-                const compensation = event.currentTarget.valueAsNumber / 1000;
-                if (Number.isFinite(compensation)) {
-                  onLatencyCompensationChange(Math.max(0, compensation));
-                }
-              }}
+              type="text"
+              inputMode="decimal"
+              {...latencyInput.props}
               className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
             <span>ms</span>
@@ -909,6 +912,10 @@ function recorderSecondsToBeats(seconds: number): number {
 
 function recorderBeatsToSeconds(beats: number): number {
   return (beats / RECORDER_TEMPO) * 60;
+}
+
+function formatLatencyMilliseconds(value: number): string {
+  return value.toFixed(1);
 }
 
 // TODO: Unify this with the Latency Checker input meter.
