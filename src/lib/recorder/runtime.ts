@@ -46,7 +46,6 @@ class RecorderRuntime {
   private captureInput?: CaptureInput;
   private backingPlayback?: AudioBufferPlayback;
   private takePlayback?: AudioBufferPlayback;
-  private recordingTimelineStart?: number;
   private activeRecording?: ActiveRecording;
 
   async startInput({
@@ -213,16 +212,18 @@ class RecorderRuntime {
         startFrame,
         Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
       );
-      this.recordingTimelineStart = this.clock!.getTimelinePosition(
-        startFrame / context.sampleRate,
-      );
+      this.update({
+        status: "recording",
+        takeCaptureOffset: this.clock!.getTimelinePosition(
+          startFrame / context.sampleRate,
+        ),
+      });
     } catch (error) {
       this.stopInput();
       this.activeRecording = undefined;
-      this.recordingTimelineStart = undefined;
+      this.clearTake();
       throw error;
     }
-    this.update({ status: "recording" });
   }
 
   async stopRecording(): Promise<void> {
@@ -239,7 +240,7 @@ class RecorderRuntime {
     } catch (error) {
       this.stopInput();
       this.activeRecording = undefined;
-      this.recordingTimelineStart = undefined;
+      this.clearTake();
       throw error;
     }
   }
@@ -279,10 +280,13 @@ class RecorderRuntime {
   private finishRecording(stopFrame: number): void {
     const context = this.context;
     const activeRecording = this.activeRecording;
-    const samples = activeRecording?.finish(stopFrame);
-    if (!context || !samples) {
+    if (!context || !activeRecording) {
+      throw new Error("Recording state is incomplete.");
+    }
+    const samples = activeRecording.finish(stopFrame);
+    if (!samples) {
       this.activeRecording = undefined;
-      this.recordingTimelineStart = undefined;
+      this.clearTake();
       this.update({ status: "ready" });
       return;
     }
@@ -295,15 +299,11 @@ class RecorderRuntime {
     this.takePlayback!.setBuffer(takeBuffer);
     // Preserve the uncompensated timeline location of captured sample zero so
     // compensation can be adjusted repeatedly without accumulating drift.
-    const takeCaptureOffset =
-      this.recordingTimelineStart ?? this.state.position;
     this.activeRecording = undefined;
-    this.recordingTimelineStart = undefined;
     this.update({
       status: "ready",
       hasTake: true,
       takeDuration: takeBuffer.duration,
-      takeCaptureOffset,
     });
   }
 
