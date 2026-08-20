@@ -181,21 +181,22 @@ export function Recorder() {
     recordMutation.error;
 
   useWindowEvent("keydown", (event) => {
-    if (
-      isShortcutTextInputTarget(event.target) ||
-      event.repeat ||
-      !matchKeyboardEvent(event, "Space")
-    ) {
+    if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    event.preventDefault();
-    if (isRecording || isProcessing) {
-      return;
-    }
-    if (state.isPlaying) {
-      runtime.pause();
-    } else {
-      playMutation.mutate();
+    if (matchKeyboardEvent(event, "Space")) {
+      event.preventDefault();
+      if (isRecording || isProcessing) {
+        return;
+      }
+      if (state.isPlaying) {
+        runtime.pause();
+      } else {
+        playMutation.mutate();
+      }
+    } else if (matchKeyboardEvent(event, "M")) {
+      event.preventDefault();
+      runtime.setMetronomeEnabled(!state.metronomeEnabled);
     }
   });
 
@@ -472,7 +473,7 @@ function RecorderHeader({
       <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
-        title="Toggle metronome"
+        title="Toggle metronome (M)"
         className={cn(
           "size-9",
           metronomeEnabled
