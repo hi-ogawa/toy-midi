@@ -21,6 +21,10 @@ export class AudioBufferPlayback {
     this.buffer = buffer;
   }
 
+  getBuffer(): AudioBuffer | undefined {
+    return this.buffer;
+  }
+
   setGain(gain: number): void {
     this.gain.gain.setTargetAtTime(gain, this.context.currentTime, 0.01);
   }

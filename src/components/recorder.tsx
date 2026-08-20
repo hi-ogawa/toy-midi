@@ -8,6 +8,7 @@ import {
   PlayIcon,
   RadioIcon,
   RotateCcwIcon,
+  SaveIcon,
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -16,6 +17,7 @@ import {
   getCaptureInputs,
   requestCaptureAccess,
 } from "../lib/recorder/capture-input";
+import { recorderProjectStorage } from "../lib/recorder/project-storage";
 import { RecorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
@@ -35,6 +37,24 @@ export function Recorder() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
+  const [title, setTitle] = useState("Untitled recording");
+  const [projectReady, setProjectReady] = useState(false);
+
+  const loadProjectMutation = useMutation({
+    mutationFn: () => recorderProjectStorage.load(),
+    onSuccess: (project) => {
+      if (project) {
+        runtime.importProject(project);
+        setTitle(project.title);
+      }
+      setProjectReady(true);
+    },
+    onError: () => setProjectReady(true),
+  });
+  const saveProjectMutation = useMutation({
+    mutationFn: () =>
+      recorderProjectStorage.save({ title, content: runtime.exportProject() }),
+  });
 
   async function refreshInputs() {
     const nextDevices = await getCaptureInputs();
@@ -56,6 +76,10 @@ export function Recorder() {
   const refreshInputsMutation = useMutation({
     mutationFn: refreshInputs,
   });
+
+  useEffect(() => {
+    loadProjectMutation.mutate();
+  }, [loadProjectMutation.mutate]);
 
   useEffect(() => {
     const refresh = () => refreshInputsMutation.mutate();
@@ -104,6 +128,8 @@ export function Recorder() {
 
   const error =
     grantAccessMutation.error ??
+    loadProjectMutation.error ??
+    saveProjectMutation.error ??
     refreshInputsMutation.error ??
     startInputMutation.error ??
     backingMutation.error ??
@@ -127,8 +153,29 @@ export function Recorder() {
     <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
       <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <Mic2Icon className="mr-2 size-5 text-emerald-400" />
-        <span className="font-medium">Recorder</span>
+        <span className="mr-3 text-xs font-medium uppercase tracking-wider text-neutral-400">
+          Recorder
+        </span>
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.currentTarget.value)}
+          aria-label="Recording title"
+          className="w-72 rounded border border-transparent bg-transparent px-2 py-1 font-medium hover:border-neutral-600 focus:border-emerald-500 focus:outline-none"
+        />
         <div className="flex-1" />
+        <Button
+          onClick={() => saveProjectMutation.mutate()}
+          disabled={
+            !projectReady ||
+            isRecording ||
+            isProcessing ||
+            saveProjectMutation.isPending
+          }
+          className="mr-2 gap-2 border-neutral-600 bg-neutral-800 text-neutral-100 hover:bg-neutral-700"
+        >
+          <SaveIcon className="size-4" />
+          {projectReady ? "Save" : "Loading"}
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

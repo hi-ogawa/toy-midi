@@ -2,6 +2,12 @@ import { createStore } from "../../utils/store.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
+import {
+  deserializeAudioBuffer,
+  RECORDER_PROJECT_VERSION,
+  type RecorderProjectContent,
+  serializeAudioBuffer,
+} from "./project.ts";
 import { ActiveRecording } from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
@@ -341,6 +347,102 @@ export class RecorderRuntime {
 
   setLatencyCompensation(compensation: number): void {
     this.store.update({ latencyCompensation: compensation });
+  }
+
+  exportProject(): RecorderProjectContent {
+    const state = this.store.get();
+    return {
+      version: RECORDER_PROJECT_VERSION,
+      audioTracks: state.audioTracks.map((track, index) => {
+        const buffer = this.audioTrackPlaybacks[index]?.getBuffer();
+        if (!buffer) {
+          throw new Error(`Audio track ${index + 1} has no loaded buffer.`);
+        }
+        return {
+          name: track.name,
+          gain: track.gain,
+          muted: track.muted,
+          soloed: track.soloed,
+          timelineOffset: track.timelineOffset,
+          pcm: serializeAudioBuffer(buffer),
+        };
+      }),
+      recordingTrack: {
+        gain: state.recordingTrack.gain,
+        muted: state.recordingTrack.muted,
+        soloed: state.recordingTrack.soloed,
+        takes: state.recordingTrack.takes.map((take, index) => {
+          if (index !== 0) {
+            throw new Error("Multiple persisted takes are not supported yet.");
+          }
+          const buffer = this.recordingTrackPlayback?.getBuffer();
+          if (!buffer) {
+            throw new Error("Recording take has no loaded buffer.");
+          }
+          return {
+            captureOffset: take.captureOffset,
+            pcm: serializeAudioBuffer(buffer),
+          };
+        }),
+      },
+      latencyCompensation: state.latencyCompensation,
+    };
+  }
+
+  importProject(project: RecorderProjectContent): void {
+    if (
+      this.store.get().status === "recording" ||
+      this.store.get().status === "processing"
+    ) {
+      throw new Error("Cannot load a project while recording.");
+    }
+    if (project.recordingTrack.takes.length > 1) {
+      throw new Error("Multiple persisted takes are not supported yet.");
+    }
+    const context = this.getContext();
+    this.pause();
+    this.audioTrackPlaybacks.forEach((playback) => playback.stop());
+    this.audioTrackPlaybacks = project.audioTracks.map((track) => {
+      const playback = new AudioBufferPlayback({
+        context,
+        output: context.destination,
+      });
+      playback.setBuffer(deserializeAudioBuffer(context, track.pcm));
+      playback.setTimelineOffset(track.timelineOffset);
+      return playback;
+    });
+    const take = project.recordingTrack.takes[0];
+    this.recordingTrackPlayback!.stop();
+    this.recordingTrackPlayback!.setBuffer(
+      take ? deserializeAudioBuffer(context, take.pcm) : undefined,
+    );
+    this.store.update({
+      audioTracks: project.audioTracks.map((track) => ({
+        name: track.name,
+        duration: track.pcm.channels[0]!.length / track.pcm.sampleRate,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
+        timelineOffset: track.timelineOffset,
+      })),
+      recordingTrack: {
+        gain: project.recordingTrack.gain,
+        muted: project.recordingTrack.muted,
+        soloed: project.recordingTrack.soloed,
+        takes: take
+          ? [
+              {
+                duration: take.pcm.channels[0]!.length / take.pcm.sampleRate,
+                captureOffset: take.captureOffset,
+              },
+            ]
+          : [],
+      },
+      latencyCompensation: project.latencyCompensation,
+      position: 0,
+    });
+    this.clock!.setPosition(0);
+    this.syncTrackMix();
   }
 
   private getContext(): AudioContext {
