@@ -12,7 +12,7 @@ export class ActiveRecording {
     this.#chunks.push(chunk);
   }
 
-  get full(): boolean {
+  isFull(): boolean {
     const first = this.#chunks[0];
     const last = this.#chunks.at(-1);
     return (

@@ -392,7 +392,7 @@ class RecorderRuntime {
           break;
         }
         activeRecording.append(message);
-        if (activeRecording.full && this.#snapshot.status === "recording") {
+        if (activeRecording.isFull() && this.#snapshot.status === "recording") {
           void this.stopRecording();
         }
         break;
