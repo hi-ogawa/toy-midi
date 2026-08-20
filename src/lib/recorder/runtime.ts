@@ -245,18 +245,11 @@ class RecorderRuntime {
   }
 
   setLatencyCompensation(compensation: number): void {
-    const wasPlaying = this.state.isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
     this.update({
       latencyCompensation: compensation,
       // Positive compensation advances a late take without modifying its PCM.
       takeOffset: this.takeCaptureOffset - compensation,
     });
-    if (wasPlaying) {
-      void this.play();
-    }
   }
 
   private getContext(): AudioContext {

@@ -252,9 +252,16 @@ export function Recorder() {
                       const compensation =
                         event.currentTarget.valueAsNumber / 1000;
                       if (Number.isFinite(compensation)) {
+                        const wasPlaying = state.isPlaying;
+                        if (wasPlaying) {
+                          recorderRuntime.pause();
+                        }
                         recorderRuntime.setLatencyCompensation(
                           Math.max(0, compensation),
                         );
+                        if (wasPlaying) {
+                          playMutation.mutate();
+                        }
                       }
                     }}
                     className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 font-mono text-neutral-950"
