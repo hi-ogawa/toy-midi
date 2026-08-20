@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  ChevronsUpDownIcon,
   FolderOpenIcon,
   HouseIcon,
+  LibraryIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -42,6 +42,7 @@ export function ScoreViewer({
   initialSource?: ScoreSource;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
+  const openInputRef = useRef<HTMLInputElement>(null);
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [settings, setSettings] = useState(INITIAL_SCORE_VIEWER_SETTINGS);
@@ -143,6 +144,13 @@ export function ScoreViewer({
     }
   }
 
+  function loadFile(file: File) {
+    loadMutation.mutate({
+      settings,
+      source: file,
+    });
+  }
+
   return (
     <main
       className={cn(
@@ -234,26 +242,29 @@ export function ScoreViewer({
           <>
             <div className="h-5 w-px bg-border" />
 
-            <FileDropInput
+            <input
+              ref={openInputRef}
+              type="file"
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
-              inputProps={{ "aria-label": "Open MusicXML" }}
-              onFile={(file) =>
-                loadMutation.mutate({
-                  settings,
-                  source: file,
-                })
-              }
-              className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-            >
-              <FolderOpenIcon className="size-4" />
-              Open
-            </FileDropInput>
+              aria-label="Open MusicXML"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                if (file) {
+                  loadFile(file);
+                }
+                event.currentTarget.value = "";
+              }}
+              className="hidden"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-                  Samples
-                  <ChevronsUpDownIcon className="size-4 opacity-50" />
+                <Button
+                  title="Samples"
+                  aria-label="Samples"
+                  className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+                >
+                  <LibraryIcon className="size-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
@@ -291,6 +302,15 @@ export function ScoreViewer({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {!initialSource && (
+              <DropdownMenuItem
+                disabled={loadMutation.isPending}
+                onSelect={() => openInputRef.current?.click()}
+              >
+                <FolderOpenIcon />
+                Open
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <a href={routes.home.href()} data-testid="home-menu-item">
                 <HouseIcon />
@@ -307,12 +327,7 @@ export function ScoreViewer({
               accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
               disabled={loadMutation.isPending}
               inputProps={{ "aria-label": "Upload MusicXML" }}
-              onFile={(file) =>
-                loadMutation.mutate({
-                  settings,
-                  source: file,
-                })
-              }
+              onFile={loadFile}
               className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
             >
               <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
