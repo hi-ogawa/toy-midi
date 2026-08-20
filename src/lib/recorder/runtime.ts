@@ -8,7 +8,7 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
-interface RecorderSnapshot {
+interface RecorderState {
   status: RecorderStatus;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
@@ -26,7 +26,7 @@ interface RecorderSnapshot {
 }
 
 class RecorderRuntime {
-  private snapshot: RecorderSnapshot = {
+  private state: RecorderState = {
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -63,7 +63,7 @@ class RecorderRuntime {
       deviceId,
       onChannelCount: (inputChannelCount) => {
         const selectedChannel = Math.min(
-          this.snapshot.selectedChannel,
+          this.state.selectedChannel,
           Math.max(0, inputChannelCount - 1),
         );
         this.update({ inputChannelCount, selectedChannel });
@@ -74,13 +74,13 @@ class RecorderRuntime {
         const activeRecording = this.activeRecording;
         if (
           !activeRecording ||
-          (this.snapshot.status !== "recording" &&
-            this.snapshot.status !== "processing")
+          (this.state.status !== "recording" &&
+            this.state.status !== "processing")
         ) {
           return;
         }
         activeRecording.append(chunk);
-        if (activeRecording.isFull() && this.snapshot.status === "recording") {
+        if (activeRecording.isFull() && this.state.status === "recording") {
           void this.stopRecording();
         }
       },
@@ -124,17 +124,17 @@ class RecorderRuntime {
   }
 
   setBackingGain(gain: number): void {
-    this.backingPlayback?.setGain(this.snapshot.backingMuted ? 0 : gain);
+    this.backingPlayback?.setGain(this.state.backingMuted ? 0 : gain);
     this.update({ backingGain: gain });
   }
 
   setBackingMuted(muted: boolean): void {
-    this.backingPlayback?.setGain(muted ? 0 : this.snapshot.backingGain);
+    this.backingPlayback?.setGain(muted ? 0 : this.state.backingGain);
     this.update({ backingMuted: muted });
   }
 
   async play(): Promise<void> {
-    if (this.snapshot.isPlaying) {
+    if (this.state.isPlaying) {
       return;
     }
     const context = this.getContext();
@@ -142,22 +142,22 @@ class RecorderRuntime {
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
     this.backingPlayback!.start({
       contextTime: startTime,
-      timelineTime: this.snapshot.position,
+      timelineTime: this.state.position,
       timelineOffset: 0,
     });
     this.takePlayback!.start({
       contextTime: startTime,
-      timelineTime: this.snapshot.position,
-      timelineOffset: this.snapshot.takeOffset,
+      timelineTime: this.state.position,
+      timelineOffset: this.state.takeOffset,
     });
     this.clock!.start({
       contextTime: startTime,
-      position: this.snapshot.position,
+      position: this.state.position,
     });
   }
 
   pause(): void {
-    if (!this.snapshot.isPlaying) {
+    if (!this.state.isPlaying) {
       return;
     }
     this.clock!.pause();
@@ -174,7 +174,7 @@ class RecorderRuntime {
   }
 
   seek(position: number): void {
-    const wasPlaying = this.snapshot.isPlaying;
+    const wasPlaying = this.state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
@@ -194,7 +194,7 @@ class RecorderRuntime {
     }
     const context = this.getContext();
     await context.resume();
-    if (!this.snapshot.isPlaying) {
+    if (!this.state.isPlaying) {
       await this.play();
     }
     this.clearTake();
@@ -218,7 +218,7 @@ class RecorderRuntime {
 
   async stopRecording(): Promise<void> {
     const captureInput = this.captureInput;
-    if (this.snapshot.status !== "recording" || !captureInput) {
+    if (this.state.status !== "recording" || !captureInput) {
       return;
     }
     this.update({ status: "processing" });
@@ -234,7 +234,7 @@ class RecorderRuntime {
   }
 
   setLatencyCompensation(compensation: number): void {
-    const wasPlaying = this.snapshot.isPlaying;
+    const wasPlaying = this.state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
@@ -255,7 +255,7 @@ class RecorderRuntime {
         output: this.context.destination,
       });
       this.backingPlayback.setGain(
-        this.snapshot.backingMuted ? 0 : this.snapshot.backingGain,
+        this.state.backingMuted ? 0 : this.state.backingGain,
       );
       this.takePlayback = new AudioBufferPlayback({
         context: this.context,
@@ -292,15 +292,14 @@ class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(samples);
     this.takePlayback!.setBuffer(takeBuffer);
-    this.takeCaptureOffset =
-      this.recordingTimelineStart ?? this.snapshot.position;
+    this.takeCaptureOffset = this.recordingTimelineStart ?? this.state.position;
     this.activeRecording = undefined;
     this.recordingTimelineStart = undefined;
     this.update({
       status: "ready",
       hasTake: true,
       takeDuration: takeBuffer.duration,
-      takeOffset: this.takeCaptureOffset - this.snapshot.latencyCompensation,
+      takeOffset: this.takeCaptureOffset - this.state.latencyCompensation,
     });
   }
 
@@ -320,15 +319,15 @@ class RecorderRuntime {
   }
 
   // reactive state contract
-  getSnapshot = (): RecorderSnapshot => this.snapshot;
+  getSnapshot = (): RecorderState => this.state;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
-  private update(update: Partial<RecorderSnapshot>): void {
-    this.snapshot = { ...this.snapshot, ...update };
+  private update(update: Partial<RecorderState>): void {
+    this.state = { ...this.state, ...update };
     for (const listener of this.listeners) {
       listener();
     }
