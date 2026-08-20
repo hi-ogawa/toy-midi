@@ -227,7 +227,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
             data-testid="score-preview-resize-handle"
             className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
           >
-            <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-blue-400" />
+            <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
           </button>
           <ProjectScorePreview title={projectName} />
         </FloatingPanel>
