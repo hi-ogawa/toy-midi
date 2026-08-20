@@ -1,9 +1,5 @@
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
-import {
-  CaptureInput,
-  getCaptureInputs,
-  requestCaptureAccess,
-} from "./capture-input.ts";
+import { CaptureInput } from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
 import { ActiveRecording } from "./recording.ts";
 
@@ -60,14 +56,6 @@ class RecorderRuntime {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   };
-
-  async requestAccess(): Promise<void> {
-    await requestCaptureAccess();
-  }
-
-  async getInputs(): Promise<MediaDeviceInfo[]> {
-    return getCaptureInputs();
-  }
 
   async startInput({
     deviceId,

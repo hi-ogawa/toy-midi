@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { gainToDb } from "../lib/music";
+import {
+  getCaptureInputs,
+  requestCaptureAccess,
+} from "../lib/recorder/capture-input";
 import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
@@ -32,7 +36,7 @@ export function Recorder() {
   const [inputPeak, setInputPeak] = useState(0);
 
   async function refreshInputs() {
-    const nextDevices = await recorderRuntime.getInputs();
+    const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
       nextDevices.some((device) => device.deviceId === deviceId)
@@ -43,7 +47,7 @@ export function Recorder() {
 
   const grantAccessMutation = useMutation({
     mutationFn: async () => {
-      await recorderRuntime.requestAccess();
+      await requestCaptureAccess();
       await refreshInputs();
     },
   });
