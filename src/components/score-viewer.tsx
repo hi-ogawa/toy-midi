@@ -31,6 +31,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { FloatingPanel } from "./ui/floating-panel";
@@ -268,6 +270,8 @@ export function ScoreViewer({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
+                <DropdownMenuLabel>Samples</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 {SCORE_VIEWER_SAMPLES.map((sample) => (
                   <DropdownMenuItem
                     key={sample.name}
