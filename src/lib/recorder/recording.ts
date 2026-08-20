@@ -2,9 +2,11 @@ import type { CaptureChunk } from "./capture-worklet.ts";
 
 export class ActiveRecording {
   readonly #chunks: CaptureChunk[] = [];
+  readonly #startFrame: number;
   readonly #capacityFrames: number;
 
-  constructor(capacityFrames: number) {
+  constructor(startFrame: number, capacityFrames: number) {
+    this.#startFrame = startFrame;
     this.#capacityFrames = capacityFrames;
   }
 
@@ -13,31 +15,28 @@ export class ActiveRecording {
   }
 
   isFull(): boolean {
-    const first = this.#chunks[0];
     const last = this.#chunks.at(-1);
     return (
-      first !== undefined &&
       last !== undefined &&
-      last.frameStart + last.samples.length - first.frameStart >=
+      last.frameStart + last.samples.length - this.#startFrame >=
         this.#capacityFrames
     );
   }
 
-  finish(): { samples: Float32Array; firstFrame: number } | undefined {
-    const firstFrame = this.#chunks[0]?.frameStart;
-    if (firstFrame === undefined) {
+  finish(stopFrame: number): Float32Array | undefined {
+    const length = Math.min(stopFrame - this.#startFrame, this.#capacityFrames);
+    if (length <= 0) {
       return undefined;
     }
-    const last = this.#chunks.at(-1)!;
-    const length = Math.min(
-      last.frameStart + last.samples.length - firstFrame,
-      this.#capacityFrames,
-    );
     const samples = new Float32Array(length);
     for (const chunk of this.#chunks) {
-      setArrayClipped(samples, chunk.samples, chunk.frameStart - firstFrame);
+      setArrayClipped(
+        samples,
+        chunk.samples,
+        chunk.frameStart - this.#startFrame,
+      );
     }
-    return { samples, firstFrame };
+    return samples;
   }
 }
 

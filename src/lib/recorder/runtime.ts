@@ -28,11 +28,6 @@ interface RecorderSnapshot {
   latencyCompensation: number;
 }
 
-type RecordAnchor = {
-  contextTime: number;
-  timelineTime: number;
-};
-
 class RecorderRuntime {
   #snapshot: RecorderSnapshot = {
     status: "idle",
@@ -62,7 +57,7 @@ class RecorderRuntime {
   #backingSource?: AudioBufferSourceNode;
   #takeSource?: AudioBufferSourceNode;
   #backingGain?: GainNode;
-  #recordAnchor?: RecordAnchor;
+  #recordingTimelineStart?: number;
   #takeCaptureOffset = 0;
   #activeRecording?: ActiveRecording;
 
@@ -226,20 +221,19 @@ class RecorderRuntime {
       await this.play();
     }
     this.#clearTake();
-    this.#activeRecording = new ActiveRecording(
-      Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
-    );
-    const contextTime = context.currentTime;
-    this.#recordAnchor = {
-      contextTime,
-      timelineTime: this.#clock!.getTimelinePosition(contextTime),
-    };
     try {
-      await this.#captureWorklet.start();
+      const startFrame = await this.#captureWorklet.start();
+      this.#activeRecording = new ActiveRecording(
+        startFrame,
+        Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
+      );
+      this.#recordingTimelineStart = this.#clock!.getTimelinePosition(
+        startFrame / context.sampleRate,
+      );
     } catch (error) {
       this.stopInput();
       this.#activeRecording = undefined;
-      this.#recordAnchor = undefined;
+      this.#recordingTimelineStart = undefined;
       throw error;
     }
     this.#update({ status: "recording" });
@@ -252,12 +246,12 @@ class RecorderRuntime {
     }
     this.#update({ status: "processing" });
     try {
-      await captureWorklet.stop();
-      this.#finishRecording();
+      const stopFrame = await captureWorklet.stop();
+      this.#finishRecording(stopFrame);
     } catch (error) {
       this.stopInput();
       this.#activeRecording = undefined;
-      this.#recordAnchor = undefined;
+      this.#recordingTimelineStart = undefined;
       throw error;
     }
   }
@@ -400,29 +394,26 @@ class RecorderRuntime {
     }
   };
 
-  #finishRecording(): void {
+  #finishRecording(stopFrame: number): void {
     const context = this.#context;
     const activeRecording = this.#activeRecording;
-    const recording = activeRecording?.finish();
-    if (!context || !recording) {
+    const samples = activeRecording?.finish(stopFrame);
+    if (!context || !samples) {
       this.#activeRecording = undefined;
-      this.#recordAnchor = undefined;
+      this.#recordingTimelineStart = undefined;
       this.#update({ status: "ready" });
       return;
     }
     this.#takeBuffer = context.createBuffer(
       1,
-      recording.samples.length,
+      samples.length,
       context.sampleRate,
     );
-    this.#takeBuffer.getChannelData(0).set(recording.samples);
-    this.#takeCaptureOffset = this.#recordAnchor
-      ? this.#recordAnchor.timelineTime +
-        recording.firstFrame / context.sampleRate -
-        this.#recordAnchor.contextTime
-      : this.#snapshot.position;
+    this.#takeBuffer.getChannelData(0).set(samples);
+    this.#takeCaptureOffset =
+      this.#recordingTimelineStart ?? this.#snapshot.position;
     this.#activeRecording = undefined;
-    this.#recordAnchor = undefined;
+    this.#recordingTimelineStart = undefined;
     this.#update({
       status: "ready",
       hasTake: true,
