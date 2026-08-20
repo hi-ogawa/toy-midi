@@ -4,6 +4,7 @@ export const MAX_PITCH = 127; // G9
 export const MIN_DB = -60;
 export const MAX_DB = 6;
 const LOG2 = Math.log(2);
+const MIN_GAIN = dbToGain(MIN_DB);
 const MAX_GAIN = dbToGain(MAX_DB);
 
 export function isBlackKey(midi: number): boolean {
@@ -31,7 +32,7 @@ export function dbToGain(db: number): number {
 }
 
 export function gainToDb(gain: number): number {
-  if (gain <= 0) {
+  if (gain <= MIN_GAIN) {
     return MIN_DB;
   }
   return 20 * Math.log10(gain);
