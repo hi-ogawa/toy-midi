@@ -29,10 +29,11 @@ interface RecorderState {
   takeDuration: number;
   takeCaptureOffset: number;
   latencyCompensation: number;
+  getTakeOffset: () => number;
 }
 
 export class RecorderRuntime {
-  readonly store = createStore<RecorderState>({
+  readonly store = createStore<RecorderState>((get) => ({
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -43,7 +44,9 @@ export class RecorderRuntime {
     takeDuration: 0,
     takeCaptureOffset: 0,
     latencyCompensation: 0,
-  });
+    getTakeOffset: () => get().takeCaptureOffset - get().latencyCompensation,
+  }));
+
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
@@ -213,9 +216,7 @@ export class RecorderRuntime {
         playheadTime: this.store.get().position,
       });
     }
-    this.takePlayback!.setTimelineOffset(
-      this.store.get().takeCaptureOffset - this.store.get().latencyCompensation,
-    );
+    this.takePlayback!.setTimelineOffset(this.store.get().getTakeOffset());
     this.takePlayback!.start({
       scheduledContextTime: startTime,
       playheadTime: this.store.get().position,

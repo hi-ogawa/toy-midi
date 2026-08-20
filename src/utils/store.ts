@@ -1,8 +1,9 @@
-export function createStore<State>(initialState: State) {
-  let state = initialState;
+export function createStore<State>(initialize: (get: () => State) => State) {
+  let state: State;
   const listeners = new Set<() => void>();
 
   const get = (): State => state;
+  state = initialize(get);
 
   const subscribe = (listener: () => void): (() => void) => {
     listeners.add(listener);

@@ -90,7 +90,7 @@ export function Recorder() {
   const duration = Math.max(
     1,
     ...state.audioTracks.map((track) => track.timelineOffset + track.duration),
-    state.takeCaptureOffset - state.latencyCompensation + state.takeDuration,
+    state.getTakeOffset() + state.takeDuration,
   );
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
