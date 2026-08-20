@@ -261,12 +261,21 @@ class RecorderRuntime {
     });
   }
 
-  stopRecording(): void {
-    if (this.#snapshot.status !== "recording") {
+  async stopRecording(): Promise<void> {
+    const captureWorklet = this.#captureWorklet;
+    if (this.#snapshot.status !== "recording" || !captureWorklet) {
       return;
     }
-    this.#captureWorklet?.stop();
     this.#update({ status: "processing" });
+    try {
+      await captureWorklet.stop();
+      this.#finishRecording();
+    } catch (error) {
+      this.stopInput();
+      this.#activeRecording = undefined;
+      this.#recordAnchor = undefined;
+      throw error;
+    }
   }
 
   setLatencyCompensation(compensation: number): void {
@@ -405,12 +414,8 @@ class RecorderRuntime {
           discontinuityFrames: progress.discontinuityFrames,
         });
         if (progress.full && this.#snapshot.status === "recording") {
-          this.stopRecording();
+          void this.stopRecording();
         }
-        break;
-      }
-      case "stopped": {
-        this.#finishRecording();
         break;
       }
     }

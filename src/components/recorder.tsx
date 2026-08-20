@@ -77,7 +77,10 @@ export function Recorder() {
     mutationFn: () => recorderRuntime.play(),
   });
   const recordMutation = useMutation({
-    mutationFn: () => recorderRuntime.startRecording(),
+    mutationFn: (action: "start" | "stop") =>
+      action === "start"
+        ? recorderRuntime.startRecording()
+        : recorderRuntime.stopRecording(),
   });
 
   const duration = Math.max(
@@ -307,9 +310,7 @@ export function Recorder() {
                   </span>
                   <Button
                     onClick={() =>
-                      isRecording
-                        ? recorderRuntime.stopRecording()
-                        : recordMutation.mutate()
+                      recordMutation.mutate(isRecording ? "stop" : "start")
                     }
                     disabled={state.status === "idle" || isProcessing}
                     className={

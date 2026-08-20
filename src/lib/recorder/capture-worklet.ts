@@ -2,8 +2,7 @@ const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
 type ClientMessage =
   | { type: "channel"; value: number }
-  | { type: "start"; requestId: number }
-  | { type: "stop" };
+  | { type: "active"; requestId: number; value: boolean };
 
 export type CaptureChunk = {
   /** Absolute AudioContext frame corresponding to `samples[0]`. */
@@ -14,17 +13,21 @@ export type CaptureChunk = {
 export type CaptureWorkletNotification =
   | { type: "channels"; value: number }
   | { type: "level"; peak: number }
-  | ({ type: "samples" } & CaptureChunk)
-  | { type: "stopped" };
+  | ({ type: "samples" } & CaptureChunk);
 
 type WorkletMessage =
   | CaptureWorkletNotification
-  | { type: "started"; requestId: number; frameStart: number };
+  | {
+      type: "activeChanged";
+      requestId: number;
+      value: boolean;
+      frame: number;
+    };
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
   #nextRequestId = 0;
-  #pendingStarts = new Map<
+  #pendingActiveChanges = new Map<
     number,
     {
       reject: (error: Error) => void;
@@ -46,17 +49,17 @@ export class CaptureWorkletClient {
       outputChannelCount: [1],
     });
     this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
-      if (event.data.type !== "started") {
+      if (event.data.type !== "activeChanged") {
         onNotification(event.data);
         return;
       }
-      const pending = this.#pendingStarts.get(event.data.requestId);
+      const pending = this.#pendingActiveChanges.get(event.data.requestId);
       if (!pending) {
         return;
       }
       window.clearTimeout(pending.timeout);
-      pending.resolve(event.data.frameStart);
-      this.#pendingStarts.delete(event.data.requestId);
+      pending.resolve(event.data.frame);
+      this.#pendingActiveChanges.delete(event.data.requestId);
     };
   }
 
@@ -65,29 +68,35 @@ export class CaptureWorkletClient {
   }
 
   start() {
-    const requestId = this.#nextRequestId++;
-    return new Promise<number>((resolve, reject) => {
-      const timeout = window.setTimeout(() => {
-        this.#pendingStarts.delete(requestId);
-        reject(new Error("Audio capture start timed out."));
-      }, 3_000);
-      this.#pendingStarts.set(requestId, { reject, resolve, timeout });
-      this.#postMessage({ type: "start", requestId });
-    });
+    return this.#setActive(true);
   }
 
   stop() {
-    this.#postMessage({ type: "stop" });
+    return this.#setActive(false);
   }
 
   dispose() {
-    const error = new Error("Input stopped while audio capture was starting.");
-    for (const pending of this.#pendingStarts.values()) {
+    const error = new Error(
+      "Input stopped during an audio capture transition.",
+    );
+    for (const pending of this.#pendingActiveChanges.values()) {
       window.clearTimeout(pending.timeout);
       pending.reject(error);
     }
-    this.#pendingStarts.clear();
+    this.#pendingActiveChanges.clear();
     this.node.disconnect();
+  }
+
+  #setActive(value: boolean) {
+    const requestId = this.#nextRequestId++;
+    return new Promise<number>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        this.#pendingActiveChanges.delete(requestId);
+        reject(new Error("Audio capture state change timed out."));
+      }, 3_000);
+      this.#pendingActiveChanges.set(requestId, { reject, resolve, timeout });
+      this.#postMessage({ type: "active", requestId, value });
+    });
   }
 
   #postMessage(message: ClientMessage) {
@@ -140,24 +149,21 @@ function createCaptureProcessor() {
             this.meterPeak = 0;
             break;
           }
-          case "start": {
-            const { requestId } = event.data;
+          case "active": {
+            const { requestId, value } = event.data;
             this.pendingRenderActions.push(() => {
-              this.captureLength = 0;
-              this.recording = true;
+              if (value) {
+                this.captureLength = 0;
+              } else {
+                this.flushCapture();
+              }
+              this.recording = value;
               this.postMessage({
-                type: "started",
+                type: "activeChanged",
                 requestId,
-                frameStart: currentFrame,
+                value,
+                frame: currentFrame,
               });
-            });
-            break;
-          }
-          case "stop": {
-            this.pendingRenderActions.push(() => {
-              this.recording = false;
-              this.flushCapture();
-              this.postMessage({ type: "stopped" });
             });
             break;
           }
