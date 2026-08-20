@@ -11,6 +11,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { gainToDb } from "../lib/music";
 import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
@@ -28,6 +29,7 @@ export function Recorder() {
   );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
+  const [inputPeak, setInputPeak] = useState(0);
 
   async function refreshInputs() {
     const nextDevices = await recorderRuntime.getInputs();
@@ -65,7 +67,8 @@ export function Recorder() {
   const inputActive = state.inputSettings !== undefined;
 
   const startInputMutation = useMutation({
-    mutationFn: (deviceId: string) => recorderRuntime.startInput(deviceId),
+    mutationFn: (deviceId: string) =>
+      recorderRuntime.startInput({ deviceId, onLevel: setInputPeak }),
   });
   const backingMutation = useMutation({
     mutationFn: (file: File) => recorderRuntime.loadBacking(file),
@@ -108,6 +111,7 @@ export function Recorder() {
 
   function stopInput() {
     recorderRuntime.stopInput();
+    setInputPeak(0);
     startInputMutation.reset();
   }
 
@@ -397,14 +401,16 @@ export function Recorder() {
                   isProcessing ||
                   (hasAccess && !selectedDevice)
                 }
-                onClick={() =>
-                  !hasAccess
-                    ? grantAccessMutation.mutate()
-                    : inputActive
-                      ? stopInput()
-                      : selectedDevice &&
-                        startInputMutation.mutate(selectedDevice.deviceId)
-                }
+                onClick={() => {
+                  if (!hasAccess) {
+                    grantAccessMutation.mutate();
+                  } else if (inputActive) {
+                    stopInput();
+                  } else if (selectedDevice) {
+                    setInputPeak(0);
+                    startInputMutation.mutate(selectedDevice.deviceId);
+                  }
+                }}
                 className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
               >
                 <Mic2Icon className="size-4" />
@@ -425,11 +431,12 @@ export function Recorder() {
                   Channel
                   <select
                     value={state.selectedChannel}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setInputPeak(0);
                       recorderRuntime.selectChannel(
                         Number(event.currentTarget.value),
-                      )
-                    }
+                      );
+                    }}
                     className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm"
                   >
                     {Array.from(
@@ -443,6 +450,10 @@ export function Recorder() {
                   </select>
                 </label>
               )}
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Input meter
+                <InputMeter active={inputActive} peak={inputPeak} />
+              </label>
             </div>
           </section>
 
@@ -493,4 +504,60 @@ function formatTime(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${remaining
     .toFixed(3)
     .padStart(6, "0")}`;
+}
+
+// TODO: Unify this with the Latency Checker input meter.
+function InputMeter({ active, peak }: { active: boolean; peak: number }) {
+  const meterMin = -60;
+  const meterMax = 6;
+  const getMeterPosition = (value: number) =>
+    ((value - meterMin) / (meterMax - meterMin)) * 100;
+  const zeroPosition = getMeterPosition(0);
+
+  const decibels = gainToDb(peak);
+  const meterValue = clamp(decibels, meterMin, meterMax);
+  const levelPosition = active ? getMeterPosition(meterValue) : 0;
+  const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
+
+  return (
+    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
+      <div
+        role="meter"
+        aria-label="Input peak level"
+        aria-valuemin={meterMin}
+        aria-valuemax={meterMax}
+        aria-valuenow={active ? meterValue : meterMin}
+        aria-valuetext={label}
+        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
+      >
+        <div
+          className="absolute inset-y-0 right-0 bg-red-100"
+          style={{ width: `${100 - zeroPosition}%` }}
+        />
+        <div
+          className="absolute inset-y-0 left-0 bg-emerald-600 transition-[width] duration-75"
+          style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
+        />
+        <div
+          className="absolute inset-y-0 bg-red-600 transition-[width] duration-75"
+          style={{
+            left: `${zeroPosition}%`,
+            width: `${Math.max(0, levelPosition - zeroPosition)}%`,
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 w-px bg-red-700"
+          style={{ left: `${zeroPosition}%` }}
+        />
+      </div>
+      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+        {label}
+      </output>
+    </div>
+  );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
