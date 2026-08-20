@@ -17,5 +17,5 @@ export function createStore<State>(initialize: (get: () => State) => State) {
     }
   };
 
-  return { get, getSnapshot: get, subscribe, update };
+  return { get, subscribe, update };
 }
