@@ -52,9 +52,18 @@ export function Recorder() {
       await refreshInputs();
     },
   });
-
-  const refreshInputsMutation = useMutation({
-    mutationFn: refreshInputs,
+  const refreshInputsMutation = useMutation({ mutationFn: refreshInputs });
+  const startInputMutation = useMutation({
+    mutationFn: (nextDeviceId: string) =>
+      runtime.startInput({ deviceId: nextDeviceId, onLevel: setInputPeak }),
+  });
+  const backingMutation = useMutation({
+    mutationFn: (file: File) => runtime.setAudioTrack(0, file),
+  });
+  const playMutation = useMutation({ mutationFn: () => runtime.play() });
+  const recordMutation = useMutation({
+    mutationFn: (action: "start" | "stop") =>
+      action === "start" ? runtime.startRecording() : runtime.stopRecording(),
   });
 
   useEffect(() => {
@@ -70,22 +79,6 @@ export function Recorder() {
   const hasAccess = devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
   const inputActive = state.inputSettings !== undefined;
-
-  const startInputMutation = useMutation({
-    mutationFn: (deviceId: string) =>
-      runtime.startInput({ deviceId, onLevel: setInputPeak }),
-  });
-  const backingMutation = useMutation({
-    mutationFn: (file: File) => runtime.setAudioTrack(0, file),
-  });
-  const playMutation = useMutation({
-    mutationFn: () => runtime.play(),
-  });
-  const recordMutation = useMutation({
-    mutationFn: (action: "start" | "stop") =>
-      action === "start" ? runtime.startRecording() : runtime.stopRecording(),
-  });
-
   const backingTrack = state.audioTracks[0];
   const take = state.recordingTrack.takes[0];
   const duration = Math.max(
@@ -95,13 +88,6 @@ export function Recorder() {
   );
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
-  const statusLabel = {
-    idle: "INPUT OFF",
-    ready: "READY",
-    recording: "REC",
-    processing: "FINALIZING",
-  }[state.status];
-
   const error =
     grantAccessMutation.error ??
     refreshInputsMutation.error ??
@@ -124,449 +110,593 @@ export function Recorder() {
   }
 
   return (
-    <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
-      <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
-        <Mic2Icon className="mr-2 size-5 text-emerald-400" />
-        <span className="font-medium">Recorder</span>
-        <div className="flex-1" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              title="More"
-              aria-label="More"
-              className="size-9 hover:bg-accent hover:text-accent-foreground"
-            >
-              <MoreVerticalIcon className="size-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <a href={routes.home.href()}>
-                <HouseIcon />
-                Home
-              </a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
+    <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
+      <RecorderHeader />
+      <RecorderTransport
+        isPlaying={state.isPlaying}
+        isProcessing={isProcessing}
+        isRecording={isRecording}
+        position={state.position}
+        recordDisabled={state.status === "idle"}
+        onPlay={() => playMutation.mutate()}
+        onPause={() => runtime.pause()}
+        onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
+        onReset={() => {
+          runtime.pause();
+          runtime.seek(0);
+        }}
+      />
 
-      <div className="mx-auto grid w-full max-w-5xl gap-6 px-8 py-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-6">
-          <section className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
-              Tracks
-            </h2>
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_10rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <span className="font-mono text-xs font-semibold text-emerald-700">
-                BACKING
-              </span>
-              <div className="min-w-0">
-                <div className="truncate text-sm text-neutral-950">
-                  {backingTrack?.name ?? "Empty"}
-                </div>
-                {backingTrack?.name && (
-                  <div className="mt-1 font-mono text-xs text-neutral-500">
-                    {formatTime(backingTrack.duration)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="cursor-pointer rounded-md border border-neutral-300 bg-white p-2 text-neutral-900 hover:bg-neutral-100">
-                  <UploadIcon className="size-4" />
-                  <input
-                    type="file"
-                    accept="audio/*,.wav"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.currentTarget.files?.[0];
-                      if (file) {
-                        backingMutation.mutate(file);
-                      }
-                      event.currentTarget.value = "";
-                    }}
-                  />
-                </label>
-                <Button
-                  onClick={() =>
-                    runtime.setAudioTrackMix(0, {
-                      muted: !backingTrack?.muted,
-                    })
-                  }
-                  className={
-                    backingTrack?.muted
-                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                  }
-                  title="Mute backing"
-                >
-                  M
-                </Button>
-                <Button
-                  onClick={() =>
-                    runtime.setAudioTrackMix(0, {
-                      soloed: !backingTrack?.soloed,
-                    })
-                  }
-                  className={
-                    backingTrack?.soloed
-                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                  }
-                  title={
-                    backingTrack?.soloed
-                      ? "Disable backing solo"
-                      : "Solo backing"
-                  }
-                >
-                  S
-                </Button>
-              </div>
-              <div />
-              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
-                Gain
-                <input
-                  type="range"
-                  min={0}
-                  max={1.5}
-                  step={0.01}
-                  value={backingTrack?.gain ?? 1}
-                  onChange={(event) =>
-                    runtime.setAudioTrackMix(0, {
-                      gain: event.currentTarget.valueAsNumber,
-                    })
-                  }
-                  className="w-full accent-emerald-700"
-                />
-              </label>
-              <span className="text-right font-mono text-xs text-neutral-600">
-                {Math.round((backingTrack?.gain ?? 1) * 100)}%
-              </span>
-            </div>
-
-            <div className="grid grid-cols-[6rem_minmax(0,1fr)_10rem] items-center gap-4 rounded-lg border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <span className="font-mono text-xs font-semibold text-neutral-700">
-                TAKE 1
-              </span>
-              <div>
-                <div className="text-sm text-neutral-950">
-                  {take ? "Recorded input" : "Empty"}
-                </div>
-                {take && (
-                  <div className="mt-1 font-mono text-xs text-neutral-500">
-                    {formatTime(take.duration)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() =>
-                    runtime.setRecordingTrackMix({
-                      muted: !state.recordingTrack.muted,
-                    })
-                  }
-                  className={
-                    state.recordingTrack.muted
-                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                  }
-                  title="Mute take"
-                >
-                  M
-                </Button>
-                <Button
-                  onClick={() =>
-                    runtime.setRecordingTrackMix({
-                      soloed: !state.recordingTrack.soloed,
-                    })
-                  }
-                  className={
-                    state.recordingTrack.soloed
-                      ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                      : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                  }
-                  title={
-                    state.recordingTrack.soloed
-                      ? "Disable take solo"
-                      : "Solo take"
-                  }
-                >
-                  S
-                </Button>
-              </div>
-              <div />
-              <div className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
-                <label htmlFor="latency-compensation">
-                  Latency compensation
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    id="latency-compensation"
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    value={(state.latencyCompensation * 1000).toFixed(1)}
-                    onChange={(event) => {
-                      const compensation =
-                        event.currentTarget.valueAsNumber / 1000;
-                      if (Number.isFinite(compensation)) {
-                        const wasPlaying = state.isPlaying;
-                        if (wasPlaying) {
-                          runtime.pause();
-                        }
-                        runtime.setLatencyCompensation(
-                          Math.max(0, compensation),
-                        );
-                        if (wasPlaying) {
-                          playMutation.mutate();
-                        }
-                      }
-                    }}
-                    className="w-24 rounded-md border border-neutral-300 bg-white px-2 py-1 font-mono text-neutral-950"
-                  />
-                  <span>ms</span>
-                  <a
-                    href={routes.latencyChecker.href()}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-emerald-700 hover:text-emerald-800 hover:underline"
-                  >
-                    Measure
-                  </a>
-                </div>
-              </div>
-              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
-                Gain
-                <input
-                  type="range"
-                  min={0}
-                  max={1.5}
-                  step={0.01}
-                  value={state.recordingTrack.gain}
-                  onChange={(event) =>
-                    runtime.setRecordingTrackMix({
-                      gain: event.currentTarget.valueAsNumber,
-                    })
-                  }
-                  className="w-full accent-emerald-700"
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
-              Transport
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
-              <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
-                <Button
-                  onClick={() => {
-                    if (state.isPlaying) {
-                      runtime.pause();
-                    } else {
-                      playMutation.mutate();
-                    }
-                  }}
-                  disabled={isRecording || isProcessing}
-                  className="size-11 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                >
-                  {state.isPlaying ? (
-                    <PauseIcon className="size-5" />
-                  ) : (
-                    <PlayIcon className="size-5" />
-                  )}
-                </Button>
-                <Button
-                  onClick={() => {
-                    runtime.pause();
-                    runtime.seek(0);
-                  }}
-                  disabled={isRecording || isProcessing}
-                  className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
-                  title="Return to start"
-                >
-                  <RotateCcwIcon className="size-4" />
-                </Button>
-                <div className="ml-2 font-mono text-lg tabular-nums text-neutral-950">
-                  {formatTime(state.position)}
-                </div>
-                <div className="ml-auto flex items-center gap-4">
-                  <span className="text-xs font-semibold tracking-[0.12em] text-neutral-500">
-                    {statusLabel}
-                  </span>
-                  <Button
-                    onClick={() =>
-                      recordMutation.mutate(isRecording ? "stop" : "start")
-                    }
-                    disabled={state.status === "idle" || isProcessing}
-                    className={
-                      isRecording
-                        ? "h-10 gap-2 border-red-300 bg-red-50 px-4 font-semibold text-red-800 hover:bg-red-100"
-                        : "h-10 gap-2 border-red-700 bg-red-700 px-4 font-semibold text-white hover:bg-red-800"
-                    }
-                  >
-                    {isRecording ? (
-                      <CircleStopIcon className="size-4" />
-                    ) : (
-                      <RadioIcon className="size-4" />
-                    )}
-                    {isRecording ? "Stop" : "Record"}
-                  </Button>
-                </div>
-              </div>
-              <div className="px-5 py-5">
-                <input
-                  type="range"
-                  min={0}
-                  max={duration}
-                  step={0.01}
-                  value={Math.min(state.position, duration)}
-                  onChange={(event) =>
-                    runtime.seek(event.currentTarget.valueAsNumber)
-                  }
-                  disabled={isRecording || isProcessing}
-                  className="w-full accent-emerald-700"
-                />
-                <div className="mt-2 flex justify-between font-mono text-[11px] text-neutral-500">
-                  <span>00:00.000</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <aside className="space-y-6">
-          <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
-              Input
-            </h2>
-            <div className="mt-4 space-y-4">
-              <label className="block text-xs font-semibold text-neutral-600">
-                Input device
-                <select
-                  value={selectedDevice?.deviceId ?? ""}
-                  disabled={
-                    !inputsInitialized ||
-                    !hasAccess ||
-                    refreshInputsMutation.isPending ||
-                    grantAccessMutation.isPending ||
-                    startInputMutation.isPending ||
-                    isRecording ||
-                    isProcessing
-                  }
-                  onChange={(event) =>
-                    selectDevice(event.currentTarget.value || undefined)
-                  }
-                  className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
-                >
-                  {!inputsInitialized ? (
-                    <option>Loading audio inputs...</option>
-                  ) : !hasAccess ? (
-                    <option>Grant microphone access</option>
-                  ) : (
-                    <>
-                      {!selectedDevice && (
-                        <option value="">Choose an audio input</option>
-                      )}
-                      {devices.map((device, index) => (
-                        <option key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Audio input ${index + 1}`}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
-              </label>
-              <Button
-                disabled={
-                  !inputsInitialized ||
-                  refreshInputsMutation.isPending ||
-                  grantAccessMutation.isPending ||
-                  startInputMutation.isPending ||
-                  isRecording ||
-                  isProcessing ||
-                  (hasAccess && !selectedDevice)
-                }
-                onClick={() => {
-                  if (!hasAccess) {
-                    grantAccessMutation.mutate();
-                  } else if (inputActive) {
-                    stopInput();
-                  } else if (selectedDevice) {
-                    setInputPeak(0);
-                    startInputMutation.mutate(selectedDevice.deviceId);
-                  }
-                }}
-                className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
+        <section className="min-w-0 overflow-auto border-r border-neutral-700">
+          <TimelineHeader duration={duration} />
+          <TrackRow
+            title="Audio 1"
+            subtitle={backingTrack?.name ?? "No file loaded"}
+            gain={backingTrack?.gain ?? 1}
+            muted={backingTrack?.muted ?? false}
+            soloed={backingTrack?.soloed ?? false}
+            onGainChange={(gain) => runtime.setAudioTrackMix(0, { gain })}
+            onMutedChange={(muted) => runtime.setAudioTrackMix(0, { muted })}
+            onSoloedChange={(soloed) => runtime.setAudioTrackMix(0, { soloed })}
+            action={
+              <label
+                title="Load audio track"
+                className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
               >
-                <Mic2Icon className="size-4" />
-                {!inputsInitialized
-                  ? "Loading..."
-                  : grantAccessMutation.isPending
-                    ? "Requesting access..."
-                    : startInputMutation.isPending
-                      ? "Enabling..."
-                      : !hasAccess
-                        ? "Grant access"
-                        : inputActive
-                          ? "Disable input"
-                          : "Enable input"}
-              </Button>
-              {state.inputChannelCount > 1 && (
-                <label className="block text-xs font-semibold text-neutral-600">
-                  Channel
-                  <select
-                    value={state.selectedChannel}
-                    onChange={(event) => {
-                      setInputPeak(0);
-                      runtime.selectChannel(Number(event.currentTarget.value));
-                    }}
-                    className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm"
-                  >
-                    {Array.from(
-                      { length: state.inputChannelCount },
-                      (_, channel) => (
-                        <option key={channel} value={channel}>
-                          Channel {channel + 1}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
-              )}
-              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
-                Input meter
-                <InputMeter active={inputActive} peak={inputPeak} />
+                <UploadIcon className="size-3.5" />
+                <input
+                  type="file"
+                  accept="audio/*,.wav"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) {
+                      backingMutation.mutate(file);
+                    }
+                    event.currentTarget.value = "";
+                  }}
+                />
               </label>
-            </div>
-          </section>
+            }
+          >
+            <TimelineLane
+              clip={
+                backingTrack?.name
+                  ? {
+                      duration: backingTrack.duration,
+                      label: backingTrack.name,
+                      offset: backingTrack.timelineOffset,
+                      variant: "audio",
+                    }
+                  : undefined
+              }
+              duration={duration}
+              emptyLabel="Load an audio file"
+              position={state.position}
+              onSeek={(position) => runtime.seek(position)}
+            />
+          </TrackRow>
 
-          <details className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <summary className="cursor-pointer text-xs font-bold uppercase tracking-[0.12em] text-neutral-700">
-              Diagnostics
-            </summary>
-            <dl className="mt-4 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-xs">
-              <dt className="text-neutral-500">Observed channels</dt>
-              <dd className="font-mono text-neutral-950">
-                {state.inputChannelCount || "-"}
-              </dd>
-            </dl>
-            <pre className="mt-4 max-h-64 overflow-auto rounded-md bg-neutral-100 p-3 text-[10px] leading-relaxed text-neutral-600">
-              {state.inputSettings
-                ? JSON.stringify(state.inputSettings, undefined, 2)
-                : "getSettings() appears after input permission."}
-            </pre>
-          </details>
+          <TrackRow
+            title="Capture"
+            subtitle={
+              isRecording
+                ? `Recording · ${formatTime(
+                    Math.max(0, state.position - state.getTakeOffset()),
+                  )}`
+                : take
+                  ? `Take 1 · ${formatTime(take.duration)}`
+                  : "No take"
+            }
+            gain={state.recordingTrack.gain}
+            muted={state.recordingTrack.muted}
+            soloed={state.recordingTrack.soloed}
+            onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+            onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
+            onSoloedChange={(soloed) =>
+              runtime.setRecordingTrackMix({ soloed })
+            }
+          >
+            <TimelineLane
+              clip={
+                take
+                  ? {
+                      duration: isRecording
+                        ? Math.max(0, state.position - state.getTakeOffset())
+                        : take.duration,
+                      label: isRecording
+                        ? "Recording..."
+                        : isProcessing
+                          ? "Finalizing..."
+                          : "Take 1",
+                      offset: state.getTakeOffset(),
+                      variant: isRecording ? "recording" : "take",
+                    }
+                  : undefined
+              }
+              duration={duration}
+              emptyLabel="Enable input, place the playhead, then record"
+              position={state.position}
+              onSeek={(position) => runtime.seek(position)}
+            />
+          </TrackRow>
+        </section>
 
-          {error && (
-            <div className="rounded-md border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
-              {error.message}
-            </div>
-          )}
-        </aside>
+        <InputInspector
+          devices={devices}
+          error={error}
+          hasAccess={hasAccess}
+          inputActive={inputActive}
+          inputPeak={inputPeak}
+          inputsInitialized={inputsInitialized}
+          isProcessing={isProcessing}
+          isRecording={isRecording}
+          selectedDevice={selectedDevice}
+          selectedChannel={state.selectedChannel}
+          inputChannelCount={state.inputChannelCount}
+          inputSettings={state.inputSettings}
+          latencyCompensation={state.latencyCompensation}
+          mutationPending={
+            refreshInputsMutation.isPending ||
+            grantAccessMutation.isPending ||
+            startInputMutation.isPending
+          }
+          onDeviceChange={selectDevice}
+          onInputToggle={() => {
+            if (!hasAccess) {
+              grantAccessMutation.mutate();
+            } else if (inputActive) {
+              stopInput();
+            } else if (selectedDevice) {
+              setInputPeak(0);
+              startInputMutation.mutate(selectedDevice.deviceId);
+            }
+          }}
+          onChannelChange={(channel) => {
+            setInputPeak(0);
+            runtime.selectChannel(channel);
+          }}
+          onLatencyCompensationChange={(compensation) => {
+            const wasPlaying = state.isPlaying;
+            if (wasPlaying) {
+              runtime.pause();
+            }
+            runtime.setLatencyCompensation(compensation);
+            if (wasPlaying) {
+              playMutation.mutate();
+            }
+          }}
+        />
       </div>
     </main>
+  );
+}
+
+function RecorderHeader() {
+  return (
+    <header className="flex h-[42px] shrink-0 items-center border-b border-neutral-700 bg-neutral-800 px-4">
+      <Mic2Icon className="mr-2 size-4 text-emerald-400" />
+      <span className="text-sm font-medium">Recorder</span>
+      <div className="flex-1" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            title="More"
+            aria-label="More"
+            className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            <MoreVerticalIcon className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <a href={routes.home.href()}>
+              <HouseIcon />
+              Home
+            </a>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  );
+}
+
+function RecorderTransport({
+  isPlaying,
+  isProcessing,
+  isRecording,
+  position,
+  recordDisabled,
+  onPlay,
+  onPause,
+  onRecord,
+  onReset,
+}: {
+  isPlaying: boolean;
+  isProcessing: boolean;
+  isRecording: boolean;
+  position: number;
+  recordDisabled: boolean;
+  onPlay: () => void;
+  onPause: () => void;
+  onRecord: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
+      <Button
+        onClick={onReset}
+        disabled={isRecording || isProcessing}
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        title="Return to start"
+      >
+        <RotateCcwIcon className="size-4" />
+      </Button>
+      <Button
+        onClick={isPlaying ? onPause : onPlay}
+        disabled={isRecording || isProcessing}
+        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        title={isPlaying ? "Pause" : "Play"}
+      >
+        {isPlaying ? (
+          <PauseIcon className="size-5" />
+        ) : (
+          <PlayIcon className="size-5" />
+        )}
+      </Button>
+      <Button
+        onClick={onRecord}
+        disabled={recordDisabled || isProcessing}
+        className={
+          isRecording
+            ? "h-9 gap-1.5 border-red-400 bg-neutral-100 px-3 text-red-700 hover:bg-white"
+            : "size-9 text-red-400 hover:bg-accent hover:text-red-300 dark:hover:bg-accent/50"
+        }
+        title={isRecording ? "Stop recording" : "Record"}
+      >
+        {isRecording ? (
+          <>
+            <CircleStopIcon className="size-4" />
+            Stop
+          </>
+        ) : (
+          <RadioIcon className="size-5" />
+        )}
+      </Button>
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <output className="font-mono text-sm tabular-nums text-neutral-100">
+        {formatTime(position)}
+      </output>
+    </div>
+  );
+}
+
+function TimelineHeader({ duration }: { duration: number }) {
+  return (
+    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_minmax(30rem,1fr)] border-b border-neutral-700 bg-neutral-800">
+      <div className="flex items-center border-r border-neutral-700 px-3 text-xs font-semibold">
+        Tracks
+      </div>
+      <TimelineRuler duration={duration} />
+    </div>
+  );
+}
+
+function TimelineRuler({ duration }: { duration: number }) {
+  return (
+    <div className="grid grid-cols-5 items-end px-2 pb-1.5 font-mono text-[10px] text-neutral-400">
+      {Array.from({ length: 5 }, (_, index) => (
+        <span key={index}>{formatRulerTime((duration * index) / 4)}</span>
+      ))}
+    </div>
+  );
+}
+
+function TrackRow({
+  title,
+  subtitle,
+  gain,
+  muted,
+  soloed,
+  action,
+  onGainChange,
+  onMutedChange,
+  onSoloedChange,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  gain: number;
+  muted: boolean;
+  soloed: boolean;
+  action?: React.ReactNode;
+  onGainChange: (gain: number) => void;
+  onMutedChange: (muted: boolean) => void;
+  onSoloedChange: (soloed: boolean) => void;
+  children: React.ReactNode;
+}) {
+  const toggleClass = (active: boolean) =>
+    active
+      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
+      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
+  return (
+    <div className="grid min-h-24 grid-cols-[13.5rem_minmax(30rem,1fr)] border-b border-neutral-700">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
+        <div className="min-w-0">
+          <div className="truncate text-xs font-semibold">{title}</div>
+          <div className="mt-0.5 truncate text-[11px] text-neutral-400">
+            {subtitle}
+          </div>
+        </div>
+        <div className="flex gap-1">
+          {action}
+          <Button
+            onClick={() => onMutedChange(!muted)}
+            className={toggleClass(muted)}
+            title={muted ? `Unmute ${title}` : `Mute ${title}`}
+          >
+            M
+          </Button>
+          <Button
+            onClick={() => onSoloedChange(!soloed)}
+            className={toggleClass(soloed)}
+            title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
+          >
+            S
+          </Button>
+        </div>
+        <label className="col-span-2 mt-auto grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 text-[10px] text-neutral-400">
+          Gain
+          <input
+            type="range"
+            min={0}
+            max={1.5}
+            step={0.01}
+            value={gain}
+            onChange={(event) =>
+              onGainChange(event.currentTarget.valueAsNumber)
+            }
+            className="w-full accent-emerald-600"
+          />
+          <span className="text-right font-mono">
+            {Math.round(gain * 100)}%
+          </span>
+        </label>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TimelineLane({
+  clip,
+  duration,
+  emptyLabel,
+  position,
+  onSeek,
+}: {
+  clip?: {
+    duration: number;
+    label: string;
+    offset: number;
+    variant: "audio" | "take" | "recording";
+  };
+  duration: number;
+  emptyLabel: string;
+  position: number;
+  onSeek: (position: number) => void;
+}) {
+  const clipClass = {
+    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
+    recording: "border-red-400/70 bg-red-400/20 text-red-100",
+  }[clip?.variant ?? "audio"];
+  return (
+    <div className="relative min-h-24 overflow-hidden bg-neutral-900 [background-image:linear-gradient(to_right,transparent_calc(100%_-_1px),rgb(64_64_64)_100%)] [background-size:25%_100%]">
+      {clip ? (
+        <div
+          className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
+          style={{
+            left: `${(clip.offset / duration) * 100}%`,
+            width: `${Math.max(0.5, (clip.duration / duration) * 100)}%`,
+          }}
+        >
+          <span className="truncate">{clip.label}</span>
+        </div>
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+      <div
+        className="pointer-events-none absolute inset-y-0 z-10 w-px bg-red-500"
+        style={{ left: `${Math.min(100, (position / duration) * 100)}%` }}
+      />
+      <input
+        aria-label="Seek recorder timeline"
+        type="range"
+        min={0}
+        max={duration}
+        step={0.01}
+        value={Math.min(position, duration)}
+        onChange={(event) => onSeek(event.currentTarget.valueAsNumber)}
+        className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+      />
+    </div>
+  );
+}
+
+function InputInspector({
+  devices,
+  error,
+  hasAccess,
+  inputActive,
+  inputPeak,
+  inputsInitialized,
+  isProcessing,
+  isRecording,
+  selectedDevice,
+  selectedChannel,
+  inputChannelCount,
+  inputSettings,
+  latencyCompensation,
+  mutationPending,
+  onDeviceChange,
+  onInputToggle,
+  onChannelChange,
+  onLatencyCompensationChange,
+}: {
+  devices: MediaDeviceInfo[];
+  error?: Error | null;
+  hasAccess: boolean;
+  inputActive: boolean;
+  inputPeak: number;
+  inputsInitialized: boolean;
+  isProcessing: boolean;
+  isRecording: boolean;
+  selectedDevice?: MediaDeviceInfo;
+  selectedChannel: number;
+  inputChannelCount: number;
+  inputSettings?: MediaTrackSettings;
+  latencyCompensation: number;
+  mutationPending: boolean;
+  onDeviceChange: (deviceId?: string) => void;
+  onInputToggle: () => void;
+  onChannelChange: (channel: number) => void;
+  onLatencyCompensationChange: (compensation: number) => void;
+}) {
+  const disabled = mutationPending || isRecording || isProcessing;
+  const inputClass =
+    "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
+  return (
+    <aside className="min-h-0 overflow-y-auto bg-neutral-800">
+      <h2 className="flex h-10 items-center border-b border-neutral-700 px-3 text-xs font-semibold">
+        Input
+      </h2>
+      <div className="space-y-4 border-b border-neutral-700 p-3">
+        <label className="block text-[11px] font-medium text-neutral-400">
+          Device
+          <select
+            value={selectedDevice?.deviceId ?? ""}
+            disabled={disabled || !inputsInitialized || !hasAccess}
+            onChange={(event) =>
+              onDeviceChange(event.currentTarget.value || undefined)
+            }
+            className={inputClass}
+          >
+            {!inputsInitialized ? (
+              <option>Loading audio inputs...</option>
+            ) : !hasAccess ? (
+              <option>Grant microphone access</option>
+            ) : (
+              <>
+                {!selectedDevice && (
+                  <option value="">Choose an audio input</option>
+                )}
+                {devices.map((device, index) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.label || `Audio input ${index + 1}`}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        </label>
+        {inputChannelCount > 1 && (
+          <label className="block text-[11px] font-medium text-neutral-400">
+            Channel
+            <select
+              value={selectedChannel}
+              disabled={disabled}
+              onChange={(event) =>
+                onChannelChange(Number(event.currentTarget.value))
+              }
+              className={inputClass}
+            >
+              {Array.from({ length: inputChannelCount }, (_, channel) => (
+                <option key={channel} value={channel}>
+                  Channel {channel + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <Button
+          disabled={
+            disabled || !inputsInitialized || (hasAccess && !selectedDevice)
+          }
+          onClick={onInputToggle}
+          className="h-8 w-full justify-start gap-2 border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
+        >
+          <Mic2Icon className="size-3.5" />
+          {!inputsInitialized
+            ? "Loading..."
+            : !hasAccess
+              ? "Grant access"
+              : inputActive
+                ? "Disable input"
+                : "Enable input"}
+        </Button>
+      </div>
+
+      <div className="space-y-4 border-b border-neutral-700 p-3">
+        <h3 className="text-xs font-semibold">Level</h3>
+        <InputMeter active={inputActive} peak={inputPeak} />
+      </div>
+
+      <div className="space-y-3 border-b border-neutral-700 p-3">
+        <h3 className="text-xs font-semibold">Alignment</h3>
+        <label className="block text-[11px] font-medium text-neutral-400">
+          Latency compensation
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              value={(latencyCompensation * 1000).toFixed(1)}
+              onChange={(event) => {
+                const compensation = event.currentTarget.valueAsNumber / 1000;
+                if (Number.isFinite(compensation)) {
+                  onLatencyCompensationChange(Math.max(0, compensation));
+                }
+              }}
+              className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
+            />
+            <span>ms</span>
+          </div>
+        </label>
+        <a
+          href={routes.latencyChecker.href()}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-emerald-400 hover:underline"
+        >
+          Measure latency
+        </a>
+      </div>
+
+      <details className="border-b border-neutral-700 p-3 text-xs">
+        <summary className="cursor-pointer font-semibold">Diagnostics</summary>
+        <dl className="mt-3 grid grid-cols-[1fr_auto] gap-2 text-neutral-400">
+          <dt>Observed channels</dt>
+          <dd className="font-mono text-neutral-200">
+            {inputChannelCount || "-"}
+          </dd>
+        </dl>
+        <pre className="mt-3 max-h-48 overflow-auto bg-neutral-900 p-2 text-[10px] leading-relaxed text-neutral-400">
+          {inputSettings
+            ? JSON.stringify(inputSettings, undefined, 2)
+            : "getSettings() appears after input permission."}
+        </pre>
+      </details>
+
+      {error && (
+        <div className="m-3 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
+          {error.message}
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -579,6 +709,11 @@ function formatTime(seconds: number): string {
     .padStart(6, "0")}`;
 }
 
+function formatRulerTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+}
+
 // TODO: Unify this with the Latency Checker input meter.
 function InputMeter({ active, peak }: { active: boolean; peak: number }) {
   const meterMin = -60;
@@ -586,14 +721,13 @@ function InputMeter({ active, peak }: { active: boolean; peak: number }) {
   const getMeterPosition = (value: number) =>
     ((value - meterMin) / (meterMax - meterMin)) * 100;
   const zeroPosition = getMeterPosition(0);
-
   const decibels = gainToDb(peak);
   const meterValue = clamp(decibels, meterMin, meterMax);
   const levelPosition = active ? getMeterPosition(meterValue) : 0;
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
 
   return (
-    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
+    <div className="grid grid-cols-[1fr_4.5rem] items-center gap-2">
       <div
         role="meter"
         aria-label="Input peak level"
@@ -601,30 +735,25 @@ function InputMeter({ active, peak }: { active: boolean; peak: number }) {
         aria-valuemax={meterMax}
         aria-valuenow={active ? meterValue : meterMin}
         aria-valuetext={label}
-        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
+        className="relative h-2 overflow-hidden bg-neutral-700"
       >
         <div
-          className="absolute inset-y-0 right-0 bg-red-100"
+          className="absolute inset-y-0 right-0 bg-red-950"
           style={{ width: `${100 - zeroPosition}%` }}
         />
         <div
-          className="absolute inset-y-0 left-0 bg-emerald-600 transition-[width] duration-75"
+          className="absolute inset-y-0 left-0 bg-emerald-500 transition-[width] duration-75"
           style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
         />
         <div
-          className="absolute inset-y-0 bg-red-600 transition-[width] duration-75"
+          className="absolute inset-y-0 bg-red-500 transition-[width] duration-75"
           style={{
             left: `${zeroPosition}%`,
             width: `${Math.max(0, levelPosition - zeroPosition)}%`,
           }}
         />
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 w-px bg-red-700"
-          style={{ left: `${zeroPosition}%` }}
-        />
       </div>
-      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+      <output className="text-right font-mono text-[10px] tabular-nums text-neutral-400">
         {label}
       </output>
     </div>
