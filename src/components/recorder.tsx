@@ -223,7 +223,9 @@ export function Recorder() {
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
               scrollX={scrollX}
+              tempo={tempo}
               timelineWidth={timelineWidth}
+              onSeek={(position) => runtime.seek(position)}
             />
             <TrackRow
               title="Audio 1"
@@ -506,11 +508,15 @@ function RecorderHeader({
 function TimelineHeader({
   pixelsPerBeat,
   scrollX,
+  tempo,
   timelineWidth,
+  onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
+  tempo: number;
   timelineWidth: number;
+  onSeek: (position: number) => void;
 }) {
   return (
     <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -520,7 +526,9 @@ function TimelineHeader({
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
         scrollX={scrollX}
+        tempo={tempo}
         timelineWidth={timelineWidth}
+        onSeek={onSeek}
       />
     </div>
   );
@@ -529,11 +537,15 @@ function TimelineHeader({
 function TimelineRuler({
   pixelsPerBeat,
   scrollX,
+  tempo,
   timelineWidth,
+  onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
+  tempo: number;
   timelineWidth: number;
+  onSeek: (position: number) => void;
 }) {
   const labelEveryBars = getRecorderRulerLabelEveryBars(pixelsPerBeat);
   const labelEveryBeats = labelEveryBars * BEATS_PER_BAR;
@@ -545,11 +557,19 @@ function TimelineRuler({
   const barWidth = BEATS_PER_BAR * pixelsPerBeat;
   return (
     <div
-      className="relative font-mono text-[10px] text-neutral-400"
+      className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
       style={{
         backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
         backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
         backgroundSize: `${barWidth}px 100%`,
+      }}
+      onPointerDown={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const beat = Math.max(
+          0,
+          (event.clientX - rect.left) / pixelsPerBeat + scrollX,
+        );
+        onSeek(recorderBeatsToSeconds(beat, tempo));
       }}
     >
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
