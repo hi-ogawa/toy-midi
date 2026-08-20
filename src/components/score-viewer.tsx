@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  ChevronsUpDownIcon,
   FolderOpenIcon,
   HouseIcon,
+  LibraryIcon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
@@ -17,7 +17,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { formatTimeCompact } from "../lib/time-format";
-import { FileDropInput } from "./file-drop-input";
+import { FileDropInput, openFilePicker } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
   INITIAL_SCORE_VIEWER_SETTINGS,
@@ -31,6 +31,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { FloatingPanel } from "./ui/floating-panel";
@@ -203,6 +205,17 @@ export function ScoreViewer({
             />
           </label>
         </div>
+
+        <div className="flex-1" />
+
+        <span
+          data-testid="score-name"
+          title={score?.name}
+          className="max-w-[220px] truncate text-sm text-neutral-300"
+        >
+          {score?.name ?? "No score loaded"}
+        </span>
+
         <div className="h-5 w-px bg-border" />
 
         <Button
@@ -220,65 +233,15 @@ export function ScoreViewer({
           <SlidersHorizontalIcon className="size-5" />
         </Button>
 
-        <div className="flex-1" />
-
-        <span
-          data-testid="score-name"
-          title={score?.name}
-          className="max-w-[220px] truncate text-sm text-neutral-300"
-        >
-          {score?.name ?? "No score loaded"}
-        </span>
-
         {!initialSource && (
-          <>
-            <div className="h-5 w-px bg-border" />
-
-            <FileDropInput
-              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-              disabled={loadMutation.isPending}
-              inputProps={{ "aria-label": "Open MusicXML" }}
-              onFile={(file) =>
-                loadMutation.mutate({
-                  settings,
-                  source: file,
-                })
-              }
-              className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-            >
-              <FolderOpenIcon className="size-4" />
-              Open
-            </FileDropInput>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="h-8 gap-1.5 px-3 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
-                  Samples
-                  <ChevronsUpDownIcon className="size-4 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                {SCORE_VIEWER_SAMPLES.map((sample) => (
-                  <DropdownMenuItem
-                    key={sample.name}
-                    onSelect={() =>
-                      loadMutation.mutate({
-                        settings,
-                        source: { name: sample.name, xml: sample.xml },
-                      })
-                    }
-                    className="items-start"
-                  >
-                    <div>
-                      <div>{sample.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {sample.description}
-                      </div>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <ScoreSamplesMenu
+            onSelect={(source) =>
+              loadMutation.mutate({
+                settings,
+                source,
+              })
+            }
+          />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -291,6 +254,25 @@ export function ScoreViewer({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {!initialSource && (
+              <DropdownMenuItem
+                disabled={loadMutation.isPending}
+                onSelect={() =>
+                  openFilePicker({
+                    accept:
+                      ".musicxml,.xml,application/vnd.recordare.musicxml+xml",
+                    onFile: (file) =>
+                      loadMutation.mutate({
+                        settings,
+                        source: file,
+                      }),
+                  })
+                }
+              >
+                <FolderOpenIcon />
+                Open
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild>
               <a href={routes.home.href()} data-testid="home-menu-item">
                 <HouseIcon />
@@ -347,6 +329,44 @@ export function ScoreViewer({
         </FloatingPanel>
       )}
     </main>
+  );
+}
+
+function ScoreSamplesMenu({
+  onSelect,
+}: {
+  onSelect: (source: ScoreSource) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          title="Samples"
+          aria-label="Samples"
+          className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          <LibraryIcon className="size-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Samples</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SCORE_VIEWER_SAMPLES.map((sample) => (
+          <DropdownMenuItem
+            key={sample.name}
+            onSelect={() => onSelect({ name: sample.name, xml: sample.xml })}
+            className="items-start"
+          >
+            <div>
+              <div>{sample.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {sample.description}
+              </div>
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

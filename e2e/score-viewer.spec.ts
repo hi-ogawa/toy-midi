@@ -14,6 +14,23 @@ test("navigates between projects and the score viewer", async ({ page }) => {
   await expect(page.getByTestId("startup-screen")).toBeVisible();
 });
 
+test("opens a MusicXML file from the More menu", async ({ page }) => {
+  await page.goto("/score-viewer");
+  await page.getByRole("button", { name: "More" }).click();
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("menuitem", { name: "Open" }).click(),
+  ]);
+  await fileChooser.setFiles(
+    path.resolve("src/lib/musicxml/__snapshots__/five-string-tab.musicxml"),
+  );
+
+  await expect(page).toHaveTitle("five-string-tab.musicxml - Toy MIDI");
+  await expect(
+    page.getByTestId("score-viewer-renderer").locator("svg"),
+  ).toBeVisible();
+});
+
 test("opens the latest project state as a score in a new tab", async ({
   page,
 }) => {

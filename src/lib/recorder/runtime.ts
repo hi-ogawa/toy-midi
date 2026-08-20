@@ -23,6 +23,7 @@ interface RecorderSnapshot {
   hasTake: boolean;
   takeDuration: number;
   takeOffset: number;
+  latencyCompensation: number;
   capturedFrames: number;
   firstCapturedFrame?: number;
   discontinuityFrames: number;
@@ -46,6 +47,7 @@ class RecorderRuntime {
     hasTake: false,
     takeDuration: 0,
     takeOffset: 0,
+    latencyCompensation: 0,
     capturedFrames: 0,
     discontinuityFrames: 0,
   };
@@ -66,6 +68,7 @@ class RecorderRuntime {
   #playbackTimelineTime = 0;
   #frame?: number;
   #recordAnchor?: RecordAnchor;
+  #takeCaptureOffset = 0;
   #captureBuffer?: Float32Array;
   #captureLength = 0;
   #nextCaptureFrame?: number;
@@ -255,12 +258,15 @@ class RecorderRuntime {
     this.#update({ status: "processing" });
   }
 
-  setTakeOffset(offset: number): void {
+  setLatencyCompensation(compensation: number): void {
     const wasPlaying = this.#snapshot.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    this.#update({ takeOffset: offset });
+    this.#update({
+      latencyCompensation: compensation,
+      takeOffset: this.#takeCaptureOffset - compensation,
+    });
     if (wasPlaying) {
       void this.play();
     }
@@ -311,9 +317,6 @@ class RecorderRuntime {
         timelineOffset: this.#snapshot.takeOffset,
       });
     }
-    if (position === 0) {
-      this.#scheduleClick(startTime);
-    }
   }
 
   #scheduleBuffer({
@@ -341,18 +344,6 @@ class RecorderRuntime {
       bufferOffset,
     );
     return source;
-  }
-
-  #scheduleClick(time: number): void {
-    const context = this.#context!;
-    const oscillator = context.createOscillator();
-    const envelope = context.createGain();
-    oscillator.frequency.value = 1000;
-    envelope.gain.setValueAtTime(0.35, time);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, time + 0.03);
-    oscillator.connect(envelope).connect(context.destination);
-    oscillator.start(time);
-    oscillator.stop(time + 0.03);
   }
 
   #stopPlaybackSources(): void {
@@ -494,7 +485,7 @@ class RecorderRuntime {
       .getChannelData(0)
       .set(captureBuffer.subarray(0, this.#captureLength));
     const firstFrame = this.#snapshot.firstCapturedFrame;
-    const takeOffset =
+    this.#takeCaptureOffset =
       firstFrame !== undefined && this.#recordAnchor
         ? this.#recordAnchor.timelineTime +
           firstFrame / context.sampleRate -
@@ -508,7 +499,7 @@ class RecorderRuntime {
       status: "ready",
       hasTake: true,
       takeDuration: this.#takeBuffer.duration,
-      takeOffset,
+      takeOffset: this.#takeCaptureOffset - this.#snapshot.latencyCompensation,
     });
     this.#stopFrameIfIdle();
   }
@@ -529,6 +520,7 @@ class RecorderRuntime {
 
   #clearTake(): void {
     this.#takeBuffer = undefined;
+    this.#takeCaptureOffset = 0;
     this.#update({
       hasTake: false,
       takeDuration: 0,
