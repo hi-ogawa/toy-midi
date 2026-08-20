@@ -23,11 +23,28 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: "fake-audio/**/*.test.ts",
       use: {
         ...devices["Desktop Chrome"],
         channel: "chromium",
         launchOptions: {
           args: ["--autoplay-policy=no-user-gesture-required"],
+        },
+      },
+    },
+    {
+      name: "chromium-fake-audio",
+      testMatch: "fake-audio/**/*.test.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chromium",
+        permissions: ["microphone"],
+        launchOptions: {
+          args: [
+            "--autoplay-policy=no-user-gesture-required",
+            "--use-fake-device-for-media-stream",
+            "--use-fake-ui-for-media-stream",
+          ],
         },
       },
     },

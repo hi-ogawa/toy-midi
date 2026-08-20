@@ -1,4 +1,5 @@
 import { Editor } from "./components/editor";
+import { LatencyChecker } from "./components/latency-checker";
 import { ProjectListView } from "./components/project-list-view";
 import { Recorder } from "./components/recorder";
 import { ScoreViewer } from "./components/score-viewer";
@@ -13,6 +14,9 @@ export function App() {
   switch (match?.data) {
     case "recorder": {
       return <Recorder />;
+    }
+    case "latencyChecker": {
+      return <LatencyChecker />;
     }
     case "scoreViewer": {
       return <ScoreViewer />;

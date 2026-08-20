@@ -1,5 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
-import { Github, Mic2Icon, Music2Icon, Pencil, Trash2 } from "lucide-react";
+import {
+  AudioLinesIcon,
+  Github,
+  Mic2Icon,
+  Music2Icon,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
@@ -85,6 +92,13 @@ export function ProjectListView({
             </p>
           </div>
           <nav className="flex items-center gap-4 text-sm text-neutral-500">
+            <a
+              href={routes.latencyChecker.href()}
+              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
+            >
+              <AudioLinesIcon className="size-4" />
+              Latency Checker
+            </a>
             <a
               href={routes.recorder.href()}
               className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
