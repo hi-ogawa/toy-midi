@@ -305,7 +305,10 @@ export function Recorder() {
                   )}
                 </Button>
                 <Button
-                  onClick={() => recorderRuntime.stop()}
+                  onClick={() => {
+                    recorderRuntime.pause();
+                    recorderRuntime.seek(0);
+                  }}
                   disabled={isRecording || isProcessing}
                   className="size-10 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
                   title="Return to start"

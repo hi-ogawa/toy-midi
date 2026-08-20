@@ -116,12 +116,10 @@ class RecorderRuntime {
   async loadBacking(file: File): Promise<void> {
     const context = this.getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    this.stop();
     this.backingPlayback!.setBuffer(buffer);
     this.update({
       backingName: file.name,
       backingDuration: buffer.duration,
-      position: 0,
     });
   }
 
@@ -167,15 +165,6 @@ class RecorderRuntime {
     }
     this.clock!.pause();
     this.stopPlayback();
-  }
-
-  stop(): void {
-    this.stopPlayback();
-    this.clock?.pause();
-    this.clock?.setPosition(0);
-    if (!this.clock) {
-      this.update({ isPlaying: false, position: 0 });
-    }
   }
 
   seek(position: number): void {
