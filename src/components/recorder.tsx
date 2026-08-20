@@ -41,9 +41,6 @@ const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
 const MIN_PIXELS_PER_BEAT = 20;
 const MAX_PIXELS_PER_BEAT = 320;
-const TRACK_CONTROL_WIDTH = 216;
-const MIN_TIMELINE_BEATS = 16;
-const TIMELINE_TRAILING_BEATS = 8;
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -55,6 +52,7 @@ export function Recorder() {
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
+  const [scrollX, setScrollX] = useState(0);
   const timelineViewportRef = useRef<HTMLDivElement>(null);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
 
@@ -65,15 +63,9 @@ export function Recorder() {
       return;
     }
     const timelineX = anchorX ?? viewport.clientWidth / 2;
-    const beatAtAnchor =
-      (viewport.scrollLeft + timelineX - TRACK_CONTROL_WIDTH) / pixelsPerBeat;
+    const beatAtAnchor = timelineX / pixelsPerBeat + scrollX;
     setPixelsPerBeat(nextPixelsPerBeat);
-    requestAnimationFrame(() => {
-      viewport.scrollLeft = Math.max(
-        0,
-        beatAtAnchor * nextPixelsPerBeat - timelineX + TRACK_CONTROL_WIDTH,
-      );
-    });
+    setScrollX(Math.max(0, beatAtAnchor - timelineX / nextPixelsPerBeat));
   }
 
   async function refreshInputs() {
@@ -133,18 +125,7 @@ export function Recorder() {
   const inputActive = state.inputSettings !== undefined;
   const backingTrack = state.audioTracks[0];
   const take = state.recordingTrack.takes[0];
-  const duration = Math.max(
-    1,
-    ...state.audioTracks.map((track) => track.timelineOffset + track.duration),
-    state.getTakeOffset() + (take?.duration ?? 0),
-  );
-  const contentBeats = recorderSecondsToBeats(duration);
-  const timelineBeats = Math.max(
-    MIN_TIMELINE_BEATS,
-    contentBeats + TIMELINE_TRAILING_BEATS,
-    timelineViewportWidth / pixelsPerBeat,
-  );
-  const timelineWidth = Math.ceil(timelineBeats * pixelsPerBeat);
+  const timelineWidth = Math.max(0, timelineViewportWidth - 216);
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
@@ -196,12 +177,17 @@ export function Recorder() {
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
         <section
           ref={timelineViewportRef}
-          className="min-w-0 overflow-auto border-r border-neutral-700"
+          className="min-w-0 overflow-hidden border-r border-neutral-700"
           onWheel={(event) => {
-            if (!event.ctrlKey || event.deltaY === 0) {
+            event.preventDefault();
+            if (!event.ctrlKey) {
+              const delta = event.deltaX || event.deltaY;
+              setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
               return;
             }
-            event.preventDefault();
+            if (event.deltaY === 0) {
+              return;
+            }
             const rect = event.currentTarget.getBoundingClientRect();
             const nextPixelsPerBeat = Math.max(
               MIN_PIXELS_PER_BEAT,
@@ -210,13 +196,17 @@ export function Recorder() {
                 pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
               ),
             );
-            zoomTimeline(nextPixelsPerBeat, event.clientX - rect.left);
+            zoomTimeline(
+              nextPixelsPerBeat,
+              Math.max(0, event.clientX - rect.left - 216),
+            );
           }}
         >
-          <div style={{ width: TRACK_CONTROL_WIDTH + timelineWidth }}>
+          <div>
             <TimelineHeader
               pixelsPerBeat={pixelsPerBeat}
-              timelineBeats={timelineBeats}
+              scrollX={scrollX}
+              timelineWidth={timelineWidth}
             />
             <TrackRow
               title="Audio 1"
@@ -262,6 +252,7 @@ export function Recorder() {
                     : undefined
                 }
                 pixelsPerBeat={pixelsPerBeat}
+                scrollX={scrollX}
                 emptyLabel="Load an audio file"
                 position={state.position}
                 onSeek={(position) => runtime.seek(position)}
@@ -306,6 +297,7 @@ export function Recorder() {
                     : undefined
                 }
                 pixelsPerBeat={pixelsPerBeat}
+                scrollX={scrollX}
                 emptyLabel="Enable input, place the playhead, then record"
                 position={state.position}
                 onSeek={(position) => runtime.seek(position)}
@@ -493,10 +485,12 @@ function RecorderTransport({
 
 function TimelineHeader({
   pixelsPerBeat,
-  timelineBeats,
+  scrollX,
+  timelineWidth,
 }: {
   pixelsPerBeat: number;
-  timelineBeats: number;
+  scrollX: number;
+  timelineWidth: number;
 }) {
   return (
     <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -505,7 +499,8 @@ function TimelineHeader({
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
-        timelineBeats={timelineBeats}
+        scrollX={scrollX}
+        timelineWidth={timelineWidth}
       />
     </div>
   );
@@ -513,36 +508,42 @@ function TimelineHeader({
 
 function TimelineRuler({
   pixelsPerBeat,
-  timelineBeats,
+  scrollX,
+  timelineWidth,
 }: {
   pixelsPerBeat: number;
-  timelineBeats: number;
+  scrollX: number;
+  timelineWidth: number;
 }) {
   const labelEveryBars = getRecorderRulerLabelEveryBars(pixelsPerBeat);
   const labelEveryBeats = labelEveryBars * BEATS_PER_BAR;
+  const firstLabelBeat =
+    Math.floor(scrollX / labelEveryBeats) * labelEveryBeats;
+  const visibleBeats = timelineWidth / pixelsPerBeat;
+  const labelCount =
+    Math.ceil((scrollX + visibleBeats - firstLabelBeat) / labelEveryBeats) + 1;
+  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
   return (
     <div
       className="relative font-mono text-[10px] text-neutral-400"
       style={{
         backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
-        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
+        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
+        backgroundSize: `${barWidth}px 100%`,
       }}
     >
-      {Array.from(
-        { length: Math.floor(timelineBeats / labelEveryBeats) + 1 },
-        (_, index) => {
-          const beat = index * labelEveryBeats;
-          return (
-            <span
-              key={beat}
-              className="absolute bottom-1.5"
-              style={{ left: beat * pixelsPerBeat + 6 }}
-            >
-              {index * labelEveryBars + 1}
-            </span>
-          );
-        },
-      )}
+      {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
+        const beat = firstLabelBeat + index * labelEveryBeats;
+        return (
+          <span
+            key={beat}
+            className="absolute bottom-1.5"
+            style={{ left: (beat - scrollX) * pixelsPerBeat + 6 }}
+          >
+            {beat / BEATS_PER_BAR + 1}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -627,6 +628,7 @@ function TimelineLane({
   clip,
   emptyLabel,
   pixelsPerBeat,
+  scrollX,
   position,
   onSeek,
 }: {
@@ -638,6 +640,7 @@ function TimelineLane({
   };
   emptyLabel: string;
   pixelsPerBeat: number;
+  scrollX: number;
   position: number;
   onSeek: (position: number) => void;
 }) {
@@ -653,11 +656,15 @@ function TimelineLane({
       style={{
         backgroundImage:
           "linear-gradient(to right, transparent calc(100% - 1px), rgb(64 64 64) 100%)",
+        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
         backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
       }}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(0, (event.clientX - rect.left) / pixelsPerBeat);
+        const beat = Math.max(
+          0,
+          (event.clientX - rect.left) / pixelsPerBeat + scrollX,
+        );
         onSeek(recorderBeatsToSeconds(beat));
       }}
     >
@@ -665,7 +672,8 @@ function TimelineLane({
         <div
           className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
           style={{
-            left: recorderSecondsToBeats(clip.offset) * pixelsPerBeat,
+            left:
+              (recorderSecondsToBeats(clip.offset) - scrollX) * pixelsPerBeat,
             width: Math.max(
               2,
               recorderSecondsToBeats(clip.duration) * pixelsPerBeat,
@@ -681,7 +689,7 @@ function TimelineLane({
       )}
       <div
         className="pointer-events-none absolute inset-y-0 z-10 w-px bg-red-500"
-        style={{ left: positionBeat * pixelsPerBeat }}
+        style={{ left: (positionBeat - scrollX) * pixelsPerBeat }}
       />
     </div>
   );
