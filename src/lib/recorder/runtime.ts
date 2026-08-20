@@ -1,3 +1,4 @@
+import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
@@ -52,11 +53,8 @@ class RecorderRuntime {
   #captureWorklet?: CaptureWorkletClient;
   #onInputLevel?: (peak: number) => void;
   #silentGain?: GainNode;
-  #backingBuffer?: AudioBuffer;
-  #takeBuffer?: AudioBuffer;
-  #backingSource?: AudioBufferSourceNode;
-  #takeSource?: AudioBufferSourceNode;
-  #backingGain?: GainNode;
+  #backingPlayback?: AudioBufferPlayback;
+  #takePlayback?: AudioBufferPlayback;
   #recordingTimelineStart?: number;
   #takeCaptureOffset = 0;
   #activeRecording?: ActiveRecording;
@@ -138,8 +136,8 @@ class RecorderRuntime {
   async loadBacking(file: File): Promise<void> {
     const context = await this.#getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    this.#backingBuffer = buffer;
     this.stop();
+    this.#backingPlayback!.setBuffer(buffer);
     this.#update({
       backingName: file.name,
       backingDuration: buffer.duration,
@@ -148,20 +146,12 @@ class RecorderRuntime {
   }
 
   setBackingGain(gain: number): void {
-    this.#backingGain?.gain.setTargetAtTime(
-      this.#snapshot.backingMuted ? 0 : gain,
-      this.#context?.currentTime ?? 0,
-      0.01,
-    );
+    this.#backingPlayback?.setGain(this.#snapshot.backingMuted ? 0 : gain);
     this.#update({ backingGain: gain });
   }
 
   setBackingMuted(muted: boolean): void {
-    this.#backingGain?.gain.setTargetAtTime(
-      muted ? 0 : this.#snapshot.backingGain,
-      this.#context?.currentTime ?? 0,
-      0.01,
-    );
+    this.#backingPlayback?.setGain(muted ? 0 : this.#snapshot.backingGain);
     this.#update({ backingMuted: muted });
   }
 
@@ -172,7 +162,16 @@ class RecorderRuntime {
     const context = await this.#getContext();
     await context.resume();
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    this.#startPlaybackSources(startTime, this.#snapshot.position);
+    this.#backingPlayback!.start({
+      contextTime: startTime,
+      timelineTime: this.#snapshot.position,
+      timelineOffset: 0,
+    });
+    this.#takePlayback!.start({
+      contextTime: startTime,
+      timelineTime: this.#snapshot.position,
+      timelineOffset: this.#snapshot.takeOffset,
+    });
     this.#clock!.start({
       contextTime: startTime,
       position: this.#snapshot.position,
@@ -184,11 +183,11 @@ class RecorderRuntime {
       return;
     }
     this.#clock!.pause();
-    this.#stopPlaybackSources();
+    this.#stopPlayback();
   }
 
   stop(): void {
-    this.#stopPlaybackSources();
+    this.#stopPlayback();
     this.#clock?.pause();
     this.#clock?.setPosition(0);
     if (!this.#clock) {
@@ -273,6 +272,17 @@ class RecorderRuntime {
   async #getContext(): Promise<AudioContext> {
     if (!this.#context) {
       this.#context = new AudioContext();
+      this.#backingPlayback = new AudioBufferPlayback({
+        context: this.#context,
+        output: this.#context.destination,
+      });
+      this.#backingPlayback.setGain(
+        this.#snapshot.backingMuted ? 0 : this.#snapshot.backingGain,
+      );
+      this.#takePlayback = new AudioBufferPlayback({
+        context: this.#context,
+        output: this.#context.destination,
+      });
       this.#clock = new AudioContextTimelineClock(this.#context);
       this.#clock.subscribe(() => {
         const { position, running } = this.#clock!.getSnapshot();
@@ -294,70 +304,9 @@ class RecorderRuntime {
     return this.#context;
   }
 
-  #startPlaybackSources(startTime: number, position: number): void {
-    const context = this.#context!;
-    this.#stopPlaybackSources();
-    if (this.#backingBuffer) {
-      this.#backingGain = context.createGain();
-      this.#backingGain.gain.value = this.#snapshot.backingMuted
-        ? 0
-        : this.#snapshot.backingGain;
-      this.#backingGain.connect(context.destination);
-      this.#backingSource = this.#scheduleBuffer({
-        buffer: this.#backingBuffer,
-        output: this.#backingGain,
-        startTime,
-        position,
-        timelineOffset: 0,
-      });
-    }
-    if (this.#takeBuffer) {
-      this.#takeSource = this.#scheduleBuffer({
-        buffer: this.#takeBuffer,
-        output: context.destination,
-        startTime,
-        position,
-        timelineOffset: this.#snapshot.takeOffset,
-      });
-    }
-  }
-
-  #scheduleBuffer({
-    buffer,
-    output,
-    startTime,
-    position,
-    timelineOffset,
-  }: {
-    buffer: AudioBuffer;
-    output: AudioNode;
-    startTime: number;
-    position: number;
-    timelineOffset: number;
-  }): AudioBufferSourceNode | undefined {
-    const bufferOffset = Math.max(0, position - timelineOffset);
-    if (bufferOffset >= buffer.duration) {
-      return undefined;
-    }
-    const source = this.#context!.createBufferSource();
-    source.buffer = buffer;
-    source.connect(output);
-    source.start(
-      startTime + Math.max(0, timelineOffset - position),
-      bufferOffset,
-    );
-    return source;
-  }
-
-  #stopPlaybackSources(): void {
-    this.#backingSource?.stop();
-    this.#backingSource?.disconnect();
-    this.#backingSource = undefined;
-    this.#takeSource?.stop();
-    this.#takeSource?.disconnect();
-    this.#takeSource = undefined;
-    this.#backingGain?.disconnect();
-    this.#backingGain = undefined;
+  #stopPlayback(): void {
+    this.#backingPlayback?.stop();
+    this.#takePlayback?.stop();
   }
 
   #handleCaptureMessage = (message: CaptureWorkletNotification): void => {
@@ -404,12 +353,13 @@ class RecorderRuntime {
       this.#update({ status: "ready" });
       return;
     }
-    this.#takeBuffer = context.createBuffer(
+    const takeBuffer = context.createBuffer(
       1,
       samples.length,
       context.sampleRate,
     );
-    this.#takeBuffer.getChannelData(0).set(samples);
+    takeBuffer.getChannelData(0).set(samples);
+    this.#takePlayback!.setBuffer(takeBuffer);
     this.#takeCaptureOffset =
       this.#recordingTimelineStart ?? this.#snapshot.position;
     this.#activeRecording = undefined;
@@ -417,7 +367,7 @@ class RecorderRuntime {
     this.#update({
       status: "ready",
       hasTake: true,
-      takeDuration: this.#takeBuffer.duration,
+      takeDuration: takeBuffer.duration,
       takeOffset: this.#takeCaptureOffset - this.#snapshot.latencyCompensation,
     });
   }
@@ -437,7 +387,7 @@ class RecorderRuntime {
   }
 
   #clearTake(): void {
-    this.#takeBuffer = undefined;
+    this.#takePlayback?.setBuffer(undefined);
     this.#takeCaptureOffset = 0;
     this.#update({
       hasTake: false,
