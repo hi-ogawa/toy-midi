@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
   HouseIcon,
@@ -7,7 +8,6 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
-  RadioIcon,
   ZoomInIcon,
   ZoomOutIcon,
   UploadIcon,
@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "./ui/utils";
 
 const BEATS_PER_BAR = 4;
 const DEFAULT_PIXELS_PER_BEAT = 80;
@@ -441,8 +442,14 @@ function RecorderHeader({
       <Button
         onClick={isPlaying ? onPause : onPlay}
         disabled={isRecording || isProcessing}
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        title={isPlaying ? "Pause" : "Play"}
+        aria-pressed={isPlaying}
+        className={cn(
+          "size-9",
+          isPlaying
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
           <PauseIcon className="size-5" />
@@ -453,20 +460,19 @@ function RecorderHeader({
       <Button
         onClick={onRecord}
         disabled={recordDisabled || isProcessing}
-        className={
+        aria-pressed={isRecording}
+        className={cn(
+          "size-9",
           isRecording
-            ? "h-9 gap-1.5 border-red-400 bg-neutral-100 px-3 text-red-700 hover:bg-white"
-            : "size-9 text-red-400 hover:bg-accent hover:text-red-300 dark:hover:bg-accent/50"
-        }
+            ? "bg-red-600 text-white hover:bg-red-500"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
         title={isRecording ? "Stop recording" : "Record"}
       >
         {isRecording ? (
-          <>
-            <CircleStopIcon className="size-4" />
-            Stop
-          </>
+          <CircleStopIcon className="size-5" />
         ) : (
-          <RadioIcon className="size-5" />
+          <CircleIcon className="size-4 fill-current" />
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
