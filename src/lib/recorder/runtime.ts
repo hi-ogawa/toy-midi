@@ -50,13 +50,6 @@ class RecorderRuntime {
   private takeCaptureOffset = 0;
   private activeRecording?: ActiveRecording;
 
-  getSnapshot = (): RecorderSnapshot => this.snapshot;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
   async startInput({
     deviceId,
     onLevel,
@@ -325,6 +318,14 @@ class RecorderRuntime {
       takeOffset: 0,
     });
   }
+
+  // reactive state contract
+  getSnapshot = (): RecorderSnapshot => this.snapshot;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
 
   private update(update: Partial<RecorderSnapshot>): void {
     this.snapshot = { ...this.snapshot, ...update };
