@@ -235,7 +235,6 @@ export function Recorder() {
           selectedDevice={selectedDevice}
           selectedChannel={state.selectedChannel}
           inputChannelCount={state.inputChannelCount}
-          inputSettings={state.inputSettings}
           latencyCompensation={state.latencyCompensation}
           mutationPending={
             refreshInputsMutation.isPending ||
@@ -539,7 +538,6 @@ function InputInspector({
   selectedDevice,
   selectedChannel,
   inputChannelCount,
-  inputSettings,
   latencyCompensation,
   mutationPending,
   onDeviceChange,
@@ -558,7 +556,6 @@ function InputInspector({
   selectedDevice?: MediaDeviceInfo;
   selectedChannel: number;
   inputChannelCount: number;
-  inputSettings?: MediaTrackSettings;
   latencyCompensation: number;
   mutationPending: boolean;
   onDeviceChange: (deviceId?: string) => void;
@@ -675,21 +672,6 @@ function InputInspector({
           Measure latency
         </a>
       </div>
-
-      <details className="border-b border-neutral-700 p-3 text-xs">
-        <summary className="cursor-pointer font-semibold">Diagnostics</summary>
-        <dl className="mt-3 grid grid-cols-[1fr_auto] gap-2 text-neutral-400">
-          <dt>Observed channels</dt>
-          <dd className="font-mono text-neutral-200">
-            {inputChannelCount || "-"}
-          </dd>
-        </dl>
-        <pre className="mt-3 max-h-48 overflow-auto bg-neutral-900 p-2 text-[10px] leading-relaxed text-neutral-400">
-          {inputSettings
-            ? JSON.stringify(inputSettings, undefined, 2)
-            : "getSettings() appears after input permission."}
-        </pre>
-      </details>
 
       {error && (
         <div className="m-3 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
