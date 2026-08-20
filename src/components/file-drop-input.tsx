@@ -7,6 +7,29 @@ interface FileDropInputProps extends React.ComponentProps<typeof Button> {
   inputProps?: React.ComponentProps<"input"> & { "data-testid"?: string };
 }
 
+export function openFilePicker({
+  accept,
+  onFile,
+}: {
+  accept: string;
+  onFile: (file: File) => void;
+}) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = accept;
+  input.addEventListener(
+    "change",
+    () => {
+      const file = input.files?.[0];
+      if (file) {
+        onFile(file);
+      }
+    },
+    { once: true },
+  );
+  input.click();
+}
+
 export function FileDropInput({
   accept,
   disabled,
