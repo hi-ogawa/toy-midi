@@ -1,72 +1,64 @@
 import type { CaptureChunk } from "./capture-worklet.ts";
 
 export type ActiveRecording = {
-  samples: Float32Array;
-  length: number;
-  firstFrame?: number;
-  nextFrame?: number;
-  discontinuityFrames: number;
-};
-
-export type RecordingProgress = {
-  capturedFrames: number;
-  firstFrame?: number;
-  discontinuityFrames: number;
-  full: boolean;
+  chunks: CaptureChunk[];
+  capacityFrames: number;
 };
 
 export function createRecording(capacityFrames: number): ActiveRecording {
-  return {
-    samples: new Float32Array(capacityFrames),
-    length: 0,
-    discontinuityFrames: 0,
-  };
+  return { chunks: [], capacityFrames };
 }
 
 export function appendCaptureChunk(
   recording: ActiveRecording,
   chunk: CaptureChunk,
-): RecordingProgress {
-  const count = Math.min(
-    chunk.samples.length,
-    recording.samples.length - recording.length,
+): void {
+  recording.chunks.push(chunk);
+}
+
+export function isRecordingFull(recording: ActiveRecording): boolean {
+  const first = recording.chunks[0];
+  const last = recording.chunks.at(-1);
+  return (
+    first !== undefined &&
+    last !== undefined &&
+    last.frameStart + last.samples.length - first.frameStart >=
+      recording.capacityFrames
   );
-  recording.samples.set(chunk.samples.subarray(0, count), recording.length);
-  recording.firstFrame ??= chunk.frameStart;
-  if (recording.nextFrame !== undefined) {
-    recording.discontinuityFrames += chunk.frameStart - recording.nextFrame;
+}
+
+export function finishRecording(
+  recording: ActiveRecording,
+): { samples: Float32Array; firstFrame: number } | undefined {
+  const firstFrame = recording.chunks[0]?.frameStart;
+  if (firstFrame === undefined) {
+    return undefined;
   }
-  recording.length += count;
-  recording.nextFrame = chunk.frameStart + chunk.samples.length;
-
-  // TODO: Write each chunk at frameStart - firstFrame so missing context frames
-  // remain silent instead of being compressed out, matching Latency Checker.
-  return {
-    capturedFrames: recording.length,
-    firstFrame: recording.firstFrame,
-    discontinuityFrames: recording.discontinuityFrames,
-    full: recording.length === recording.samples.length,
-  };
+  const last = recording.chunks.at(-1)!;
+  const length = Math.min(
+    last.frameStart + last.samples.length - firstFrame,
+    recording.capacityFrames,
+  );
+  const samples = new Float32Array(length);
+  for (const chunk of recording.chunks) {
+    setArrayClipped(samples, chunk.samples, chunk.frameStart - firstFrame);
+  }
+  return { samples, firstFrame };
 }
 
-export function finishRecording(recording: ActiveRecording): Float32Array {
-  return recording.samples.subarray(0, recording.length);
-}
-
-export function resolveCaptureOffset({
-  anchor,
-  fallback,
-  firstFrame,
-  sampleRate,
-}: {
-  anchor?: { contextTime: number; timelineTime: number };
-  fallback: number;
-  firstFrame?: number;
-  sampleRate: number;
-}): number {
-  // TODO: Carry the scheduled playback start as an absolute context frame so
-  // this uses the same frame-delta model as Latency Checker.
-  return firstFrame !== undefined && anchor
-    ? anchor.timelineTime + firstFrame / sampleRate - anchor.contextTime
-    : fallback;
+/** Performs `target.set(source, offset)` while clipping either array boundary. */
+function setArrayClipped(
+  target: Float32Array,
+  source: Float32Array,
+  offset: number,
+): void {
+  const sourceStart = Math.max(0, -offset);
+  const targetStart = Math.max(0, offset);
+  const length = Math.min(
+    source.length - sourceStart,
+    target.length - targetStart,
+  );
+  if (length > 0) {
+    target.set(source.subarray(sourceStart, sourceStart + length), targetStart);
+  }
 }

@@ -467,18 +467,6 @@ export function Recorder() {
               <dd className="font-mono text-neutral-950">
                 {state.inputChannelCount || "-"}
               </dd>
-              <dt className="text-neutral-500">First context frame</dt>
-              <dd className="font-mono text-neutral-950">
-                {state.firstCapturedFrame ?? "-"}
-              </dd>
-              <dt className="text-neutral-500">Captured frames</dt>
-              <dd className="font-mono text-neutral-950">
-                {state.capturedFrames || "-"}
-              </dd>
-              <dt className="text-neutral-500">Discontinuity</dt>
-              <dd className="font-mono text-neutral-950">
-                {state.discontinuityFrames} frames
-              </dd>
             </dl>
             <pre className="mt-4 max-h-64 overflow-auto rounded-md bg-neutral-100 p-3 text-[10px] leading-relaxed text-neutral-600">
               {state.inputSettings
