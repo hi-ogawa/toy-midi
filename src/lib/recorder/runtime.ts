@@ -3,6 +3,13 @@ import {
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
+import {
+  type ActiveRecording,
+  appendCaptureChunk,
+  createRecording,
+  finishRecording,
+  resolveCaptureOffset,
+} from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -69,9 +76,7 @@ class RecorderRuntime {
   #frame?: number;
   #recordAnchor?: RecordAnchor;
   #takeCaptureOffset = 0;
-  #captureBuffer?: Float32Array;
-  #captureLength = 0;
-  #nextCaptureFrame?: number;
+  #activeRecording?: ActiveRecording;
 
   getSnapshot = (): RecorderSnapshot => this.#snapshot;
 
@@ -231,11 +236,9 @@ class RecorderRuntime {
       await this.play();
     }
     this.#clearTake();
-    this.#captureBuffer = new Float32Array(
+    this.#activeRecording = createRecording(
       Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
     );
-    this.#captureLength = 0;
-    this.#nextCaptureFrame = undefined;
     this.#recordAnchor = {
       contextTime: this.#playbackContextTime!,
       timelineTime: this.#playbackTimelineTime,
@@ -422,37 +425,21 @@ class RecorderRuntime {
         break;
       }
       case "samples": {
-        const { frameStart: frame, samples } = message;
-        const captureBuffer = this.#captureBuffer;
+        const activeRecording = this.#activeRecording;
         if (
-          !captureBuffer ||
+          !activeRecording ||
           (this.#snapshot.status !== "recording" &&
             this.#snapshot.status !== "processing")
         ) {
           break;
         }
-        const count = Math.min(
-          samples.length,
-          captureBuffer.length - this.#captureLength,
-        );
-        captureBuffer.set(samples.subarray(0, count), this.#captureLength);
-        const firstCapturedFrame = this.#snapshot.firstCapturedFrame ?? frame;
-        const discontinuityFrames =
-          this.#snapshot.discontinuityFrames +
-          (this.#nextCaptureFrame === undefined
-            ? 0
-            : frame - this.#nextCaptureFrame);
-        this.#captureLength += count;
-        this.#nextCaptureFrame = frame + samples.length;
+        const progress = appendCaptureChunk(activeRecording, message);
         this.#update({
-          capturedFrames: this.#captureLength,
-          firstCapturedFrame,
-          discontinuityFrames,
+          capturedFrames: progress.capturedFrames,
+          firstCapturedFrame: progress.firstFrame,
+          discontinuityFrames: progress.discontinuityFrames,
         });
-        if (
-          this.#captureLength === captureBuffer.length &&
-          this.#snapshot.status === "recording"
-        ) {
+        if (progress.full && this.#snapshot.status === "recording") {
           this.stopRecording();
         }
         break;
@@ -466,34 +453,28 @@ class RecorderRuntime {
 
   #finishRecording(): void {
     const context = this.#context;
-    const captureBuffer = this.#captureBuffer;
-    if (!context || !captureBuffer || this.#captureLength === 0) {
-      this.#captureBuffer = undefined;
-      this.#captureLength = 0;
-      this.#nextCaptureFrame = undefined;
+    const activeRecording = this.#activeRecording;
+    if (!context || !activeRecording || activeRecording.length === 0) {
+      this.#activeRecording = undefined;
       this.#recordAnchor = undefined;
       this.#update({ status: "ready" });
       this.#stopFrameIfIdle();
       return;
     }
+    const samples = finishRecording(activeRecording);
     this.#takeBuffer = context.createBuffer(
       1,
-      this.#captureLength,
+      samples.length,
       context.sampleRate,
     );
-    this.#takeBuffer
-      .getChannelData(0)
-      .set(captureBuffer.subarray(0, this.#captureLength));
-    const firstFrame = this.#snapshot.firstCapturedFrame;
-    this.#takeCaptureOffset =
-      firstFrame !== undefined && this.#recordAnchor
-        ? this.#recordAnchor.timelineTime +
-          firstFrame / context.sampleRate -
-          this.#recordAnchor.contextTime
-        : this.#snapshot.position;
-    this.#captureBuffer = undefined;
-    this.#captureLength = 0;
-    this.#nextCaptureFrame = undefined;
+    this.#takeBuffer.getChannelData(0).set(samples);
+    this.#takeCaptureOffset = resolveCaptureOffset({
+      anchor: this.#recordAnchor,
+      fallback: this.#snapshot.position,
+      firstFrame: activeRecording.firstFrame,
+      sampleRate: context.sampleRate,
+    });
+    this.#activeRecording = undefined;
     this.#recordAnchor = undefined;
     this.#update({
       status: "ready",
