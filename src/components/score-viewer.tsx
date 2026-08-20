@@ -44,7 +44,6 @@ export function ScoreViewer({
   initialSource?: ScoreSource;
 }) {
   const runtimeRootRef = useRef<HTMLDivElement>(null);
-  const openInputRef = useRef<HTMLInputElement>(null);
 
   const [score, setScore] = useState<ScoreSource | undefined>(initialSource);
   const [settings, setSettings] = useState(INITIAL_SCORE_VIEWER_SETTINGS);
@@ -235,60 +234,40 @@ export function ScoreViewer({
         </Button>
 
         {!initialSource && (
-          <>
-            <input
-              ref={openInputRef}
-              type="file"
-              accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-              disabled={loadMutation.isPending}
-              aria-label="Open MusicXML"
-              onChange={(event) => {
-                const file = event.currentTarget.files?.[0];
-                if (file) {
-                  loadMutation.mutate({
-                    settings,
-                    source: file,
-                  });
-                }
-                event.currentTarget.value = "";
-              }}
-              className="hidden"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  title="Samples"
-                  aria-label="Samples"
-                  className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                title="Samples"
+                aria-label="Samples"
+                className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              >
+                <LibraryIcon className="size-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel>Samples</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {SCORE_VIEWER_SAMPLES.map((sample) => (
+                <DropdownMenuItem
+                  key={sample.name}
+                  onSelect={() =>
+                    loadMutation.mutate({
+                      settings,
+                      source: { name: sample.name, xml: sample.xml },
+                    })
+                  }
+                  className="items-start"
                 >
-                  <LibraryIcon className="size-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel>Samples</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {SCORE_VIEWER_SAMPLES.map((sample) => (
-                  <DropdownMenuItem
-                    key={sample.name}
-                    onSelect={() =>
-                      loadMutation.mutate({
-                        settings,
-                        source: { name: sample.name, xml: sample.xml },
-                      })
-                    }
-                    className="items-start"
-                  >
-                    <div>
-                      <div>{sample.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {sample.description}
-                      </div>
+                  <div>
+                    <div>{sample.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {sample.description}
                     </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -302,13 +281,15 @@ export function ScoreViewer({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {!initialSource && (
-              <DropdownMenuItem
+              <OpenScoreMenuItem
                 disabled={loadMutation.isPending}
-                onSelect={() => openInputRef.current?.click()}
-              >
-                <FolderOpenIcon />
-                Open
-              </DropdownMenuItem>
+                onFile={(file) =>
+                  loadMutation.mutate({
+                    settings,
+                    source: file,
+                  })
+                }
+              />
             )}
             <DropdownMenuItem asChild>
               <a href={routes.home.href()} data-testid="home-menu-item">
@@ -366,6 +347,43 @@ export function ScoreViewer({
         </FloatingPanel>
       )}
     </main>
+  );
+}
+
+function OpenScoreMenuItem({
+  disabled,
+  onFile,
+}: {
+  disabled: boolean;
+  onFile: (file: File) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+        disabled={disabled}
+        aria-label="Open MusicXML"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) {
+            onFile(file);
+          }
+          event.currentTarget.value = "";
+        }}
+        className="hidden"
+      />
+      <DropdownMenuItem
+        disabled={disabled}
+        onSelect={() => inputRef.current?.click()}
+      >
+        <FolderOpenIcon />
+        Open
+      </DropdownMenuItem>
+    </>
   );
 }
 
