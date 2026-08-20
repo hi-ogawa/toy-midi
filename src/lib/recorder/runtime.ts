@@ -1,4 +1,8 @@
-import captureWorkletUrl from "./capture-worklet.js?worker&url";
+import {
+  CaptureWorkletClient,
+  type CaptureWorkletNotification,
+  createCaptureWorkletSource,
+} from "./capture-worklet.ts";
 
 const PREFERRED_INPUT_KEY = "toy-midi-recorder-preferred-input";
 const PLAYBACK_LEAD_SECONDS = 0.03;
@@ -51,9 +55,10 @@ class RecorderRuntime {
   };
   readonly #listeners = new Set<() => void>();
   #context?: AudioContext;
+  #workletReady = false;
   #stream?: MediaStream;
   #inputSource?: MediaStreamAudioSourceNode;
-  #captureNode?: AudioWorkletNode;
+  #captureWorklet?: CaptureWorkletClient;
   #silentGain?: GainNode;
   #backingBuffer?: AudioBuffer;
   #takeBuffer?: AudioBuffer;
@@ -129,14 +134,16 @@ class RecorderRuntime {
     }
 
     this.#inputSource = context.createMediaStreamSource(stream);
-    this.#captureNode = new AudioWorkletNode(context, "recorder-capture", {
-      channelCountMode: "max",
+    this.#captureWorklet = new CaptureWorkletClient({
+      context,
+      onNotification: this.#handleCaptureMessage,
     });
-    this.#captureNode.port.onmessage = this.#handleCaptureMessage;
     this.#silentGain = context.createGain();
     this.#silentGain.gain.value = 0;
-    this.#inputSource.connect(this.#captureNode);
-    this.#captureNode.connect(this.#silentGain).connect(context.destination);
+    this.#inputSource
+      .connect(this.#captureWorklet.node)
+      .connect(this.#silentGain)
+      .connect(context.destination);
 
     this.#update({
       status: "ready",
@@ -149,7 +156,7 @@ class RecorderRuntime {
   }
 
   selectChannel(channel: number): void {
-    this.#captureNode?.port.postMessage({ type: "select-channel", channel });
+    this.#captureWorklet?.setChannel(channel);
     this.#update({ selectedChannel: channel });
   }
 
@@ -228,7 +235,7 @@ class RecorderRuntime {
   }
 
   async startRecording(): Promise<void> {
-    if (!this.#captureNode) {
+    if (!this.#captureWorklet) {
       throw new Error("Enable an audio input before recording.");
     }
     const context = await this.#getContext();
@@ -246,7 +253,7 @@ class RecorderRuntime {
       contextTime: this.#playbackContextTime!,
       timelineTime: this.#playbackTimelineTime,
     };
-    this.#captureNode.port.postMessage({ type: "start" });
+    this.#captureWorklet.start();
     this.#update({
       status: "recording",
       capturedFrames: 0,
@@ -260,7 +267,7 @@ class RecorderRuntime {
     if (this.#snapshot.status !== "recording") {
       return;
     }
-    this.#captureNode?.port.postMessage({ type: "stop" });
+    this.#captureWorklet?.stop();
     this.#update({ status: "processing" });
   }
 
@@ -278,7 +285,18 @@ class RecorderRuntime {
   async #getContext(): Promise<AudioContext> {
     if (!this.#context) {
       this.#context = new AudioContext();
-      await this.#context.audioWorklet.addModule(captureWorkletUrl);
+    }
+    if (!this.#workletReady) {
+      const blob = new Blob([createCaptureWorkletSource()], {
+        type: "text/javascript",
+      });
+      const url = URL.createObjectURL(blob);
+      try {
+        await this.#context.audioWorklet.addModule(url);
+        this.#workletReady = true;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     }
     return this.#context;
   }
@@ -412,10 +430,10 @@ class RecorderRuntime {
     this.#frame = undefined;
   }
 
-  #handleCaptureMessage = (event: MessageEvent): void => {
-    switch (event.data.type) {
-      case "channel-layout": {
-        const inputChannelCount = event.data.channelCount as number;
+  #handleCaptureMessage = (message: CaptureWorkletNotification): void => {
+    switch (message.type) {
+      case "channels": {
+        const inputChannelCount = message.value;
         const selectedChannel = Math.min(
           this.#snapshot.selectedChannel,
           Math.max(0, inputChannelCount - 1),
@@ -424,9 +442,8 @@ class RecorderRuntime {
         this.selectChannel(selectedChannel);
         break;
       }
-      case "pcm": {
-        const samples = event.data.samples as Float32Array;
-        const frame = event.data.frame as number;
+      case "samples": {
+        const { frameStart: frame, samples } = message;
         const captureBuffer = this.#captureBuffer;
         if (
           !captureBuffer ||
@@ -511,8 +528,8 @@ class RecorderRuntime {
   #closeInput(): void {
     this.#inputSource?.disconnect();
     this.#inputSource = undefined;
-    this.#captureNode?.disconnect();
-    this.#captureNode = undefined;
+    this.#captureWorklet?.dispose();
+    this.#captureWorklet = undefined;
     this.#silentGain?.disconnect();
     this.#silentGain = undefined;
     for (const track of this.#stream?.getTracks() ?? []) {
