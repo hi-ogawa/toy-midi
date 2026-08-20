@@ -13,6 +13,7 @@ export type CaptureChunk = {
 
 export type CaptureWorkletNotification =
   | { type: "channels"; value: number }
+  | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk)
   | { type: "stopped" };
 
@@ -76,6 +77,8 @@ function createCaptureProcessor() {
     declare recording: boolean;
     declare selectedChannel: number;
     declare observedChannelCount: number;
+    declare meterBlockCount: number;
+    declare meterPeak: number;
     declare captureBuffer: Float32Array;
     declare captureLength: number;
     declare captureStartFrame: number;
@@ -85,6 +88,8 @@ function createCaptureProcessor() {
       this.recording = false;
       this.selectedChannel = 0;
       this.observedChannelCount = -1;
+      this.meterBlockCount = 0;
+      this.meterPeak = 0;
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
       this.captureStartFrame = 0;
@@ -92,6 +97,8 @@ function createCaptureProcessor() {
         switch (event.data.type) {
           case "channel": {
             this.selectedChannel = event.data.value;
+            this.meterBlockCount = 0;
+            this.meterPeak = 0;
             break;
           }
           case "start": {
@@ -118,10 +125,21 @@ function createCaptureProcessor() {
         this.observedChannelCount = channels.length;
         this.postMessage({ type: "channels", value: channels.length });
       }
-      if (this.recording && channels.length > 0) {
+      if (channels.length > 0) {
         const source =
           channels[Math.min(this.selectedChannel, channels.length - 1)];
-        this.appendCapture(source);
+        for (const sample of source) {
+          this.meterPeak = Math.max(this.meterPeak, Math.abs(sample));
+        }
+        this.meterBlockCount++;
+        if (this.meterBlockCount >= 16) {
+          this.postMessage({ type: "level", peak: this.meterPeak });
+          this.meterBlockCount = 0;
+          this.meterPeak = 0;
+        }
+        if (this.recording) {
+          this.appendCapture(source);
+        }
       } else if (this.recording && this.captureLength > 0) {
         this.flushCapture();
       }

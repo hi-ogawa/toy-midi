@@ -13,6 +13,7 @@ import {
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { recorderRuntime } from "../lib/recorder/runtime";
 import { routes } from "../lib/routes";
+import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ export function Recorder() {
   );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
+  const [inputPeak, setInputPeak] = useState(0);
 
   async function refreshInputs() {
     const nextDevices = await recorderRuntime.getInputs();
@@ -65,7 +67,8 @@ export function Recorder() {
   const inputActive = state.inputSettings !== undefined;
 
   const startInputMutation = useMutation({
-    mutationFn: (deviceId: string) => recorderRuntime.startInput(deviceId),
+    mutationFn: (deviceId: string) =>
+      recorderRuntime.startInput({ deviceId, onLevel: setInputPeak }),
   });
   const backingMutation = useMutation({
     mutationFn: (file: File) => recorderRuntime.loadBacking(file),
@@ -96,6 +99,7 @@ export function Recorder() {
   function selectDevice(nextDeviceId?: string) {
     if (nextDeviceId !== deviceId && inputActive) {
       recorderRuntime.stopInput();
+      setInputPeak(0);
       startInputMutation.reset();
     }
     setDeviceId(nextDeviceId);
@@ -366,12 +370,14 @@ export function Recorder() {
                   isProcessing ||
                   (hasAccess && !selectedDevice)
                 }
-                onClick={() =>
-                  hasAccess
-                    ? selectedDevice &&
-                      startInputMutation.mutate(selectedDevice.deviceId)
-                    : grantAccessMutation.mutate()
-                }
+                onClick={() => {
+                  if (hasAccess && selectedDevice) {
+                    setInputPeak(0);
+                    startInputMutation.mutate(selectedDevice.deviceId);
+                  } else if (!hasAccess) {
+                    grantAccessMutation.mutate();
+                  }
+                }}
                 className="h-10 w-full gap-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-900 hover:bg-neutral-100"
               >
                 <Mic2Icon className="size-4" />
@@ -392,11 +398,12 @@ export function Recorder() {
                   Captured channel
                   <select
                     value={state.selectedChannel}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      setInputPeak(0);
                       recorderRuntime.selectChannel(
                         Number(event.currentTarget.value),
-                      )
-                    }
+                      );
+                    }}
                     className="mt-1.5 h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm"
                   >
                     {Array.from(
@@ -410,6 +417,10 @@ export function Recorder() {
                   </select>
                 </label>
               )}
+              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+                Input meter
+                <InputMeter active={inputActive} peak={inputPeak} />
+              </label>
             </div>
           </section>
 

@@ -55,6 +55,7 @@ class RecorderRuntime {
   #stream?: MediaStream;
   #inputSource?: MediaStreamAudioSourceNode;
   #captureWorklet?: CaptureWorkletClient;
+  #onInputLevel?: (peak: number) => void;
   #silentGain?: GainNode;
   #backingBuffer?: AudioBuffer;
   #takeBuffer?: AudioBuffer;
@@ -88,7 +89,13 @@ class RecorderRuntime {
     );
   }
 
-  async startInput(deviceId: string): Promise<void> {
+  async startInput({
+    deviceId,
+    onLevel,
+  }: {
+    deviceId: string;
+    onLevel: (peak: number) => void;
+  }): Promise<void> {
     const context = await this.#getContext();
     const stream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
@@ -99,6 +106,7 @@ class RecorderRuntime {
       throw new Error("The selected device did not provide an audio track.");
     }
     this.#closeInput();
+    this.#onInputLevel = onLevel;
     this.#stream = stream;
     const settings = track.getSettings();
     this.#inputSource = context.createMediaStreamSource(stream);
@@ -418,6 +426,10 @@ class RecorderRuntime {
         this.selectChannel(selectedChannel);
         break;
       }
+      case "level": {
+        this.#onInputLevel?.(message.peak);
+        break;
+      }
       case "samples": {
         const { frameStart: frame, samples } = message;
         const captureBuffer = this.#captureBuffer;
@@ -506,6 +518,7 @@ class RecorderRuntime {
     this.#inputSource = undefined;
     this.#captureWorklet?.dispose();
     this.#captureWorklet = undefined;
+    this.#onInputLevel = undefined;
     this.#silentGain?.disconnect();
     this.#silentGain = undefined;
     for (const track of this.#stream?.getTracks() ?? []) {
