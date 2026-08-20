@@ -234,40 +234,14 @@ export function ScoreViewer({
         </Button>
 
         {!initialSource && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                title="Samples"
-                aria-label="Samples"
-                className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-              >
-                <LibraryIcon className="size-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel>Samples</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {SCORE_VIEWER_SAMPLES.map((sample) => (
-                <DropdownMenuItem
-                  key={sample.name}
-                  onSelect={() =>
-                    loadMutation.mutate({
-                      settings,
-                      source: { name: sample.name, xml: sample.xml },
-                    })
-                  }
-                  className="items-start"
-                >
-                  <div>
-                    <div>{sample.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {sample.description}
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <ScoreSamplesMenu
+            onSelect={(source) =>
+              loadMutation.mutate({
+                settings,
+                source,
+              })
+            }
+          />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -347,6 +321,46 @@ export function ScoreViewer({
         </FloatingPanel>
       )}
     </main>
+  );
+}
+
+function ScoreSamplesMenu({
+  onSelect,
+}: {
+  onSelect: (source: ScoreSource) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          title="Samples"
+          aria-label="Samples"
+          className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          <LibraryIcon className="size-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuLabel>Samples</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SCORE_VIEWER_SAMPLES.map((sample) => (
+          <DropdownMenuItem
+            key={sample.name}
+            onSelect={() =>
+              onSelect({ name: sample.name, xml: sample.xml })
+            }
+            className="items-start"
+          >
+            <div>
+              <div>{sample.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {sample.description}
+              </div>
+            </div>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
