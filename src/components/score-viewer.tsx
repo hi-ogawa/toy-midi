@@ -243,36 +243,18 @@ export function ScoreViewer({
             }
           />
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              title="More"
-              aria-label="More"
-              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-            >
-              <MoreVerticalIcon className="size-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {!initialSource && (
-              <OpenScoreMenuItem
-                disabled={loadMutation.isPending}
-                onFile={(file) =>
+        <ScoreMoreMenu
+          disabled={loadMutation.isPending}
+          onFile={
+            initialSource
+              ? undefined
+              : (file) =>
                   loadMutation.mutate({
                     settings,
                     source: file,
                   })
-                }
-              />
-            )}
-            <DropdownMenuItem asChild>
-              <a href={routes.home.href()} data-testid="home-menu-item">
-                <HouseIcon />
-                Home
-              </a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          }
+        />
       </header>
       {!score && !loadMutation.error && (
         <section className="min-h-0 flex-1 p-6">
@@ -346,9 +328,7 @@ function ScoreSamplesMenu({
         {SCORE_VIEWER_SAMPLES.map((sample) => (
           <DropdownMenuItem
             key={sample.name}
-            onSelect={() =>
-              onSelect({ name: sample.name, xml: sample.xml })
-            }
+            onSelect={() => onSelect({ name: sample.name, xml: sample.xml })}
             className="items-start"
           >
             <div>
@@ -364,39 +344,62 @@ function ScoreSamplesMenu({
   );
 }
 
-function OpenScoreMenuItem({
+function ScoreMoreMenu({
   disabled,
   onFile,
 }: {
   disabled: boolean;
-  onFile: (file: File) => void;
+  onFile?: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   return (
     <>
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
-        disabled={disabled}
-        aria-label="Open MusicXML"
-        onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
-          if (file) {
-            onFile(file);
-          }
-          event.currentTarget.value = "";
-        }}
-        className="hidden"
-      />
-      <DropdownMenuItem
-        disabled={disabled}
-        onSelect={() => inputRef.current?.click()}
-      >
-        <FolderOpenIcon />
-        Open
-      </DropdownMenuItem>
+      {onFile && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".musicxml,.xml,application/vnd.recordare.musicxml+xml"
+          disabled={disabled}
+          aria-label="Open MusicXML"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) {
+              onFile(file);
+            }
+            event.currentTarget.value = "";
+          }}
+          className="hidden"
+        />
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            title="More"
+            aria-label="More"
+            className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          >
+            <MoreVerticalIcon className="size-5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {onFile && (
+            <DropdownMenuItem
+              disabled={disabled}
+              onSelect={() => inputRef.current?.click()}
+            >
+              <FolderOpenIcon />
+              Open
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem asChild>
+            <a href={routes.home.href()} data-testid="home-menu-item">
+              <HouseIcon />
+              Home
+            </a>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
 }
