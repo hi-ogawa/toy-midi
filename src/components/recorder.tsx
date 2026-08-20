@@ -632,12 +632,12 @@ function InputInspector({
         >
           <Mic2Icon className="size-3.5" />
           {!inputsInitialized
-            ? "Loading..."
-            : !hasAccess
-              ? "Grant access"
-              : inputActive
+            ? "Enable input"
+            : hasAccess
+              ? inputActive
                 ? "Disable input"
-                : "Enable input"}
+                : "Enable input"
+              : "Grant access"}
         </Button>
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
