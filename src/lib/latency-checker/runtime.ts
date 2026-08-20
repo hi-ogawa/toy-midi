@@ -30,17 +30,17 @@ export type LatencyResult = {
 export type PreviewVariant = "raw" | "compensated";
 
 export class LatencyCheckerRuntime {
-  #audioContext?: AudioContext;
-  #workletReady = false;
-  #activeStream?: MediaStream;
-  #activeSource?: MediaStreamAudioSourceNode;
-  #captureWorklet?: CaptureWorkletClient;
-  #activeSilentGain?: GainNode;
-  #activeSettings?: MediaTrackSettings;
-  #activePreviewSources: AudioBufferSourceNode[] = [];
-  #finishPreview?: () => void;
-  #captureChunks?: CaptureChunk[];
-  #detectedChannelCount = 0;
+  private audioContext?: AudioContext;
+  private workletReady = false;
+  private activeStream?: MediaStream;
+  private activeSource?: MediaStreamAudioSourceNode;
+  private captureWorklet?: CaptureWorkletClient;
+  private activeSilentGain?: GainNode;
+  private activeSettings?: MediaTrackSettings;
+  private activePreviewSources: AudioBufferSourceNode[] = [];
+  private finishPreview?: () => void;
+  private captureChunks?: CaptureChunk[];
+  private detectedChannelCount = 0;
 
   async requestAccess() {
     const stream =
@@ -61,27 +61,27 @@ export class LatencyCheckerRuntime {
     deviceId: string;
     onLevel: (peak: number) => void;
   }) {
-    const context = await this.#ensureAudioContext();
-    this.#activeStream = await navigator.mediaDevices.getUserMedia(
+    const context = await this.ensureAudioContext();
+    this.activeStream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
     );
-    this.#activeSettings = this.#activeStream.getAudioTracks()[0].getSettings();
-    this.#activeSource = context.createMediaStreamSource(this.#activeStream);
-    this.#detectedChannelCount = 0;
+    this.activeSettings = this.activeStream.getAudioTracks()[0].getSettings();
+    this.activeSource = context.createMediaStreamSource(this.activeStream);
+    this.detectedChannelCount = 0;
     // Monitoring is ready only after the processor observes a real input
     // quantum. Bound the wait because a silent or disconnected route may never
     // produce one, even when getUserMedia succeeds.
     const channelCount = Promise.withResolvers<number>();
-    this.#captureWorklet = new CaptureWorkletClient({
+    this.captureWorklet = new CaptureWorkletClient({
       context,
       onNotification: (message) => {
         // Sample messages arrive continuously only while calibration capture is
         // active; meter and channel discovery remain active while monitoring.
-        if (message.type === "samples" && this.#captureChunks) {
-          this.#captureChunks.push(message);
+        if (message.type === "samples" && this.captureChunks) {
+          this.captureChunks.push(message);
         }
         if (message.type === "channels") {
-          this.#detectedChannelCount = message.value;
+          this.detectedChannelCount = message.value;
           if (message.value > 0) {
             channelCount.resolve(message.value);
           }
@@ -91,13 +91,13 @@ export class LatencyCheckerRuntime {
         }
       },
     });
-    this.#activeSilentGain = context.createGain();
-    this.#activeSilentGain.gain.value = 0;
+    this.activeSilentGain = context.createGain();
+    this.activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
     // through zero gain to keep processing without audible input passthrough.
-    this.#activeSource
-      .connect(this.#captureWorklet.node)
-      .connect(this.#activeSilentGain)
+    this.activeSource
+      .connect(this.captureWorklet.node)
+      .connect(this.activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
     return withTimeout({
@@ -108,21 +108,21 @@ export class LatencyCheckerRuntime {
   }
 
   stopMonitoring() {
-    this.#activeSource?.disconnect();
-    this.#captureWorklet?.dispose();
-    this.#activeSilentGain?.disconnect();
-    this.#activeStream?.getTracks().forEach((track) => track.stop());
-    this.#activeStream = undefined;
-    this.#activeSource = undefined;
-    this.#captureWorklet = undefined;
-    this.#activeSilentGain = undefined;
-    this.#activeSettings = undefined;
-    this.#captureChunks = undefined;
-    this.#detectedChannelCount = 0;
+    this.activeSource?.disconnect();
+    this.captureWorklet?.dispose();
+    this.activeSilentGain?.disconnect();
+    this.activeStream?.getTracks().forEach((track) => track.stop());
+    this.activeStream = undefined;
+    this.activeSource = undefined;
+    this.captureWorklet = undefined;
+    this.activeSilentGain = undefined;
+    this.activeSettings = undefined;
+    this.captureChunks = undefined;
+    this.detectedChannelCount = 0;
   }
 
   setChannel(channel: number) {
-    this.#captureWorklet?.setChannel(channel);
+    this.captureWorklet?.setChannel(channel);
   }
 
   async calibrate({
@@ -133,19 +133,19 @@ export class LatencyCheckerRuntime {
     outputLevel: number;
   }): Promise<LatencyResult> {
     if (
-      !this.#captureWorklet ||
-      !this.#activeStream ||
-      !this.#activeSettings ||
-      this.#detectedChannelCount <= 0
+      !this.captureWorklet ||
+      !this.activeStream ||
+      !this.activeSettings ||
+      this.detectedChannelCount <= 0
     ) {
       throw new Error("Start input monitoring before running the click test.");
     }
-    const context = await this.#ensureAudioContext();
+    const context = await this.ensureAudioContext();
     this.setChannel(channel);
     const chunks: CaptureChunk[] = [];
-    this.#captureChunks = chunks;
+    this.captureChunks = chunks;
     try {
-      await this.#captureWorklet.setActive(true);
+      await this.captureWorklet.setActive(true);
       const template = createClickTemplate(context.sampleRate);
       const amplitude = dbToGain(outputLevel);
       const startTime = context.currentTime + CALIBRATION_LEAD_TIME;
@@ -171,7 +171,7 @@ export class LatencyCheckerRuntime {
       });
       clickSource.start(startTime);
       await playbackEnded.promise;
-      await this.#captureWorklet.setActive(false);
+      await this.captureWorklet.setActive(false);
 
       const analysis = analyzeCalibration({
         chunks,
@@ -186,15 +186,15 @@ export class LatencyCheckerRuntime {
           playback,
           sampleRate: context.sampleRate,
         },
-        channelCount: this.#detectedChannelCount,
-        settings: this.#activeSettings,
+        channelCount: this.detectedChannelCount,
+        settings: this.activeSettings,
       };
       return result;
     } finally {
-      if (this.#captureWorklet?.active) {
-        void this.#captureWorklet.setActive(false).catch(() => {});
+      if (this.captureWorklet?.active) {
+        void this.captureWorklet.setActive(false).catch(() => {});
       }
-      this.#captureChunks = undefined;
+      this.captureChunks = undefined;
     }
   }
 
@@ -207,7 +207,7 @@ export class LatencyCheckerRuntime {
     result: LatencyResult;
     variant: PreviewVariant;
   }) {
-    const context = await this.#ensureAudioContext();
+    const context = await this.ensureAudioContext();
     this.stopPreview();
     const sampleRate = result.calibration.sampleRate;
     const compensationSamples = Math.round(
@@ -226,20 +226,20 @@ export class LatencyCheckerRuntime {
       gain.gain.value = gainValue;
       source.connect(gain).connect(context.destination);
       source.start(when);
-      this.#activePreviewSources.push(source);
+      this.activePreviewSources.push(source);
     };
 
     start(buffers.reference, 0.58);
     start(variant === "raw" ? buffers.raw : buffers.compensated, 0.58);
     await new Promise<void>((resolve) => {
-      let remaining = this.#activePreviewSources.length;
-      this.#finishPreview = resolve;
-      for (const source of this.#activePreviewSources) {
+      let remaining = this.activePreviewSources.length;
+      this.finishPreview = resolve;
+      for (const source of this.activePreviewSources) {
         source.addEventListener("ended", () => {
           remaining--;
-          if (remaining === 0 && this.#finishPreview === resolve) {
-            this.#activePreviewSources = [];
-            this.#finishPreview = undefined;
+          if (remaining === 0 && this.finishPreview === resolve) {
+            this.activePreviewSources = [];
+            this.finishPreview = undefined;
             resolve();
           }
         });
@@ -250,29 +250,29 @@ export class LatencyCheckerRuntime {
   dispose() {
     this.stopPreview();
     this.stopMonitoring();
-    this.#audioContext?.close();
-    this.#audioContext = undefined;
-    this.#workletReady = false;
+    this.audioContext?.close();
+    this.audioContext = undefined;
+    this.workletReady = false;
   }
 
   stopPreview() {
-    for (const source of this.#activePreviewSources) {
+    for (const source of this.activePreviewSources) {
       try {
         source.stop();
       } catch {}
     }
-    this.#activePreviewSources = [];
-    this.#finishPreview?.();
-    this.#finishPreview = undefined;
+    this.activePreviewSources = [];
+    this.finishPreview?.();
+    this.finishPreview = undefined;
   }
 
-  async #ensureAudioContext() {
-    if (!this.#audioContext || this.#audioContext.state === "closed") {
-      this.#audioContext = new AudioContext({ latencyHint: "interactive" });
-      this.#workletReady = false;
+  private async ensureAudioContext() {
+    if (!this.audioContext || this.audioContext.state === "closed") {
+      this.audioContext = new AudioContext({ latencyHint: "interactive" });
+      this.workletReady = false;
     }
-    await this.#audioContext.resume();
-    if (!this.#workletReady) {
+    await this.audioContext.resume();
+    if (!this.workletReady) {
       // The generated module belongs to this AudioContext; a replacement
       // context must register the processor again.
       const blob = new Blob([createCaptureWorkletSource()], {
@@ -280,13 +280,13 @@ export class LatencyCheckerRuntime {
       });
       const url = URL.createObjectURL(blob);
       try {
-        await this.#audioContext.audioWorklet.addModule(url);
-        this.#workletReady = true;
+        await this.audioContext.audioWorklet.addModule(url);
+        this.workletReady = true;
       } finally {
         URL.revokeObjectURL(url);
       }
     }
-    return this.#audioContext;
+    return this.audioContext;
   }
 }
 
