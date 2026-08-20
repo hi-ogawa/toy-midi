@@ -8,7 +8,6 @@ import {
   PauseIcon,
   PlayIcon,
   RadioIcon,
-  RotateCcwIcon,
   ZoomInIcon,
   ZoomOutIcon,
   UploadIcon,
@@ -195,10 +194,6 @@ export function Recorder() {
         onPlay={() => playMutation.mutate()}
         onPause={() => runtime.pause()}
         onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
-        onReset={() => {
-          runtime.pause();
-          runtime.seek(0);
-        }}
         onTempoChange={setTempo}
         onZoomIn={() =>
           zoomTimeline(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25))
@@ -390,7 +385,6 @@ function RecorderHeader({
   onPlay,
   onPause,
   onRecord,
-  onReset,
   onTempoChange,
   onZoomIn,
   onZoomOut,
@@ -405,7 +399,6 @@ function RecorderHeader({
   onPlay: () => void;
   onPause: () => void;
   onRecord: () => void;
-  onReset: () => void;
   onTempoChange: (tempo: number) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -421,14 +414,6 @@ function RecorderHeader({
       <Mic2Icon className="size-4 text-emerald-400" />
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
-      <Button
-        onClick={onReset}
-        disabled={isRecording || isProcessing}
-        className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        title="Return to start"
-      >
-        <RotateCcwIcon className="size-4" />
-      </Button>
       <Button
         onClick={isPlaying ? onPause : onPlay}
         disabled={isRecording || isProcessing}
