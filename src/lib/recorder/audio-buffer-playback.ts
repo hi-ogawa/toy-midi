@@ -32,9 +32,6 @@ export class AudioBufferPlayback {
    * The buffer's sample zero belongs at `bufferTimelineOffset` on the transport
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
-   *
-   * `scheduledContextTime` is the shared future start for all playback nodes,
-   * not the current AudioContext time.
    */
   start({
     scheduledContextTime,
