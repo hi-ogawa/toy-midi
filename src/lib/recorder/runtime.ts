@@ -121,6 +121,7 @@ class RecorderRuntime {
   async loadBacking(file: File): Promise<void> {
     const context = this.getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
+    this.backingPlayback!.stop();
     this.backingPlayback!.setBuffer(buffer);
     this.update({
       backingName: file.name,
@@ -150,13 +151,13 @@ class RecorderRuntime {
     this.backingPlayback!.start({
       scheduledContextTime: startTime,
       playheadTime: this.state.position,
-      bufferTimelineOffset: 0,
     });
+    this.takePlayback!.setTimelineOffset(
+      this.state.takeCaptureOffset - this.state.latencyCompensation,
+    );
     this.takePlayback!.start({
       scheduledContextTime: startTime,
       playheadTime: this.state.position,
-      bufferTimelineOffset:
-        this.state.takeCaptureOffset - this.state.latencyCompensation,
     });
     this.clock!.start({
       contextTime: startTime,
@@ -298,6 +299,7 @@ class RecorderRuntime {
   }
 
   private clearTake(): void {
+    this.takePlayback?.stop();
     this.takePlayback?.setBuffer(undefined);
     this.update({
       hasTake: false,
