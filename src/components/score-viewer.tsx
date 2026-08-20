@@ -146,11 +146,11 @@ export function ScoreViewer({
   return (
     <main
       className={cn(
-        "flex h-screen flex-col overflow-hidden bg-neutral-300 text-neutral-950",
+        "flex h-screen flex-col overflow-hidden bg-neutral-100 text-neutral-950",
         settings.layout === "paged" && "score-viewer-root-paged",
       )}
     >
-      <header className="flex items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-100">
+      <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <Button
           data-testid="score-play-pause-button"
           disabled={!runtimeState.isReady}
@@ -212,7 +212,7 @@ export function ScoreViewer({
           title="Score settings"
           aria-label="Score settings"
           className={cn(
-            "size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+            "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
             isSettingsOpen &&
               "bg-primary text-primary-foreground hover:bg-primary/90",
           )}
@@ -285,7 +285,7 @@ export function ScoreViewer({
             <Button
               title="More"
               aria-label="More"
-              className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+              className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <MoreVerticalIcon className="size-5" />
             </Button>
@@ -313,13 +313,13 @@ export function ScoreViewer({
                   source: file,
                 })
               }
-              className="group h-48 w-full max-w-4xl flex-col gap-3 rounded-sm border border-dashed border-neutral-500 bg-neutral-200/60 text-center text-neutral-700 shadow-none hover:border-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 data-[drag-over=true]:border-blue-600 data-[drag-over=true]:bg-blue-50 data-[drag-over=true]:text-blue-900"
+              className="group h-48 w-full max-w-4xl flex-col gap-3 border border-neutral-400 bg-white text-center text-neutral-700 shadow-xs hover:border-emerald-500 hover:text-neutral-900 data-[drag-over=true]:border-emerald-600 data-[drag-over=true]:bg-emerald-100 data-[drag-over=true]:text-emerald-950"
             >
-              <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-blue-400">
+              <span className="flex size-11 items-center justify-center rounded-full border border-neutral-400 bg-white shadow-sm group-data-[drag-over=true]:border-emerald-400">
                 <UploadIcon className="size-5" />
               </span>
               <span className="font-medium">Drop a MusicXML score here</span>
-              <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-blue-700">
+              <span className="text-xs text-neutral-500 group-data-[drag-over=true]:text-emerald-800">
                 or click to choose an .xml or .musicxml file
               </span>
             </FileDropInput>
