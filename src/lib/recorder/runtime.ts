@@ -17,6 +17,17 @@ interface AudioTrackState {
   timelineOffset: number;
 }
 
+interface RecordingTrackState {
+  gain: number;
+  muted: boolean;
+  takes: TakeState[];
+}
+
+interface TakeState {
+  duration: number;
+  captureOffset: number;
+}
+
 interface RecorderState {
   status: RecorderStatus;
   inputSettings?: MediaTrackSettings;
@@ -25,9 +36,7 @@ interface RecorderState {
   audioTracks: AudioTrackState[];
   isPlaying: boolean;
   position: number;
-  hasTake: boolean;
-  takeDuration: number;
-  takeCaptureOffset: number;
+  recordingTrack: RecordingTrackState;
   latencyCompensation: number;
   getTakeOffset: () => number;
 }
@@ -40,18 +49,18 @@ export class RecorderRuntime {
     audioTracks: [],
     isPlaying: false,
     position: 0,
-    hasTake: false,
-    takeDuration: 0,
-    takeCaptureOffset: 0,
+    recordingTrack: createRecordingTrackState(),
     latencyCompensation: 0,
-    getTakeOffset: () => get().takeCaptureOffset - get().latencyCompensation,
+    getTakeOffset: () =>
+      (get().recordingTrack.takes[0]?.captureOffset ?? 0) -
+      get().latencyCompensation,
   }));
 
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
   private audioTrackPlaybacks: AudioBufferPlayback[] = [];
-  private takePlayback?: AudioBufferPlayback;
+  private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
 
   async startInput({
@@ -201,6 +210,16 @@ export class RecorderRuntime {
     return playback;
   }
 
+  setRecordingTrackMix(
+    update: Partial<Pick<RecordingTrackState, "gain" | "muted">>,
+  ): void {
+    const recordingTrack = { ...this.store.get().recordingTrack, ...update };
+    this.recordingTrackPlayback?.setGain(
+      recordingTrack.muted ? 0 : recordingTrack.gain,
+    );
+    this.store.update({ recordingTrack });
+  }
+
   async play(): Promise<void> {
     if (this.store.get().isPlaying) {
       return;
@@ -216,8 +235,10 @@ export class RecorderRuntime {
         playheadTime: this.store.get().position,
       });
     }
-    this.takePlayback!.setTimelineOffset(this.store.get().getTakeOffset());
-    this.takePlayback!.start({
+    this.recordingTrackPlayback!.setTimelineOffset(
+      this.store.get().getTakeOffset(),
+    );
+    this.recordingTrackPlayback!.start({
       scheduledContextTime: startTime,
       playheadTime: this.store.get().position,
     });
@@ -275,9 +296,17 @@ export class RecorderRuntime {
     );
     this.store.update({
       status: "recording",
-      takeCaptureOffset: this.clock!.getTimelinePosition(
-        startFrame / context.sampleRate,
-      ),
+      recordingTrack: {
+        ...this.store.get().recordingTrack,
+        takes: [
+          {
+            duration: 0,
+            captureOffset: this.clock!.getTimelinePosition(
+              startFrame / context.sampleRate,
+            ),
+          },
+        ],
+      },
     });
   }
 
@@ -300,10 +329,14 @@ export class RecorderRuntime {
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
-      this.takePlayback = new AudioBufferPlayback({
+      this.recordingTrackPlayback = new AudioBufferPlayback({
         context: this.context,
         output: this.context.destination,
       });
+      const recordingTrack = this.store.get().recordingTrack;
+      this.recordingTrackPlayback.setGain(
+        recordingTrack.muted ? 0 : recordingTrack.gain,
+      );
       this.clock = new AudioContextTimelineClock(this.context);
       this.clock.subscribe(() => {
         const { position, running } = this.clock!.getSnapshot();
@@ -317,7 +350,7 @@ export class RecorderRuntime {
     for (const playback of this.audioTrackPlaybacks) {
       playback.stop();
     }
-    this.takePlayback?.stop();
+    this.recordingTrackPlayback?.stop();
   }
 
   private finishRecording(stopFrame: number): void {
@@ -339,14 +372,20 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.takePlayback!.setBuffer(takeBuffer);
+    this.recordingTrackPlayback!.setBuffer(takeBuffer);
     // Preserve the uncompensated timeline location of captured sample zero so
     // compensation can be adjusted repeatedly without accumulating drift.
     this.activeRecording = undefined;
+    const take = this.store.get().recordingTrack.takes[0];
+    if (!take) {
+      throw new Error("Recording take state is missing.");
+    }
     this.store.update({
       status: "ready",
-      hasTake: true,
-      takeDuration: takeBuffer.duration,
+      recordingTrack: {
+        ...this.store.get().recordingTrack,
+        takes: [{ ...take, duration: takeBuffer.duration }],
+      },
     });
   }
 
@@ -356,12 +395,13 @@ export class RecorderRuntime {
   }
 
   private clearTake(): void {
-    this.takePlayback?.stop();
-    this.takePlayback?.setBuffer(undefined);
+    this.recordingTrackPlayback?.stop();
+    this.recordingTrackPlayback?.setBuffer(undefined);
     this.store.update({
-      hasTake: false,
-      takeDuration: 0,
-      takeCaptureOffset: 0,
+      recordingTrack: {
+        ...this.store.get().recordingTrack,
+        takes: [],
+      },
     });
   }
 }
@@ -372,5 +412,13 @@ function createAudioTrackState(): AudioTrackState {
     gain: 1,
     muted: false,
     timelineOffset: 0,
+  };
+}
+
+function createRecordingTrackState(): RecordingTrackState {
+  return {
+    gain: 1,
+    muted: false,
+    takes: [],
   };
 }

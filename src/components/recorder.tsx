@@ -87,10 +87,11 @@ export function Recorder() {
   });
 
   const backingTrack = state.audioTracks[0];
+  const take = state.recordingTrack.takes[0];
   const duration = Math.max(
     1,
     ...state.audioTracks.map((track) => track.timelineOffset + track.duration),
-    state.getTakeOffset() + state.takeDuration,
+    state.getTakeOffset() + (take?.duration ?? 0),
   );
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
@@ -229,15 +230,29 @@ export function Recorder() {
               </span>
               <div>
                 <div className="text-sm text-neutral-950">
-                  {state.hasTake ? "Recorded input" : "Empty"}
+                  {take ? "Recorded input" : "Empty"}
                 </div>
-                {state.hasTake && (
+                {take && (
                   <div className="mt-1 font-mono text-xs text-neutral-500">
-                    {formatTime(state.takeDuration)}
+                    {formatTime(take.duration)}
                   </div>
                 )}
               </div>
-              <div />
+              <Button
+                onClick={() =>
+                  runtime.setRecordingTrackMix({
+                    muted: !state.recordingTrack.muted,
+                  })
+                }
+                className={
+                  state.recordingTrack.muted
+                    ? "size-9 border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
+                    : "size-9 border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                }
+                title="Mute take"
+              >
+                M
+              </Button>
               <div />
               <div className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
                 <label htmlFor="latency-compensation">
@@ -279,7 +294,22 @@ export function Recorder() {
                   </a>
                 </div>
               </div>
-              <div />
+              <label className="flex items-center gap-3 text-xs font-semibold text-neutral-600">
+                Gain
+                <input
+                  type="range"
+                  min={0}
+                  max={1.5}
+                  step={0.01}
+                  value={state.recordingTrack.gain}
+                  onChange={(event) =>
+                    runtime.setRecordingTrackMix({
+                      gain: event.currentTarget.valueAsNumber,
+                    })
+                  }
+                  className="w-full accent-emerald-700"
+                />
+              </label>
             </div>
           </section>
 
