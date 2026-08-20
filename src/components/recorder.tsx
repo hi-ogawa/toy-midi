@@ -666,7 +666,7 @@ function TimelineLane({
       className="relative min-h-24 overflow-hidden bg-neutral-900"
       style={{
         backgroundImage:
-          "linear-gradient(to right, transparent calc(100% - 1px), rgb(64 64 64) 100%)",
+          "linear-gradient(to right, rgb(64 64 64) 1px, transparent 1px)",
         backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
         backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
       }}
