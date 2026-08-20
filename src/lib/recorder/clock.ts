@@ -7,7 +7,7 @@ export class AudioContextTimelineClock {
   private snapshot: TimelineClockSnapshot = { position: 0, running: false };
   private contextTime?: number;
   private timelineTime = 0;
-  private frame?: number;
+  private disposeTicking?: () => void;
   private readonly listeners = new Set<() => void>();
 
   constructor(readonly context: AudioContext) {}
@@ -31,7 +31,7 @@ export class AudioContextTimelineClock {
     this.contextTime = contextTime;
     this.timelineTime = position;
     this.update({ position, running: true });
-    this.startFrame();
+    this.startTicking();
   }
 
   pause(): void {
@@ -41,7 +41,7 @@ export class AudioContextTimelineClock {
     const position = this.getPosition(this.context.currentTime);
     this.contextTime = undefined;
     this.timelineTime = position;
-    this.stopFrame();
+    this.stopTicking();
     this.update({ position, running: false });
   }
 
@@ -62,28 +62,18 @@ export class AudioContextTimelineClock {
     return Math.max(this.timelineTime, this.getTimelinePosition(contextTime));
   }
 
-  private startFrame(): void {
-    if (this.frame !== undefined) {
+  private startTicking(): void {
+    if (this.disposeTicking) {
       return;
     }
-    this.frame = requestAnimationFrame(this.tick);
+    this.disposeTicking = startAnimationFrameLoop(() => {
+      this.update({ position: this.getPosition(this.context.currentTime) });
+    });
   }
 
-  private tick = (): void => {
-    if (!this.snapshot.running) {
-      this.frame = undefined;
-      return;
-    }
-    this.update({ position: this.getPosition(this.context.currentTime) });
-    this.frame = requestAnimationFrame(this.tick);
-  };
-
-  private stopFrame(): void {
-    if (this.frame === undefined) {
-      return;
-    }
-    cancelAnimationFrame(this.frame);
-    this.frame = undefined;
+  private stopTicking(): void {
+    this.disposeTicking?.();
+    this.disposeTicking = undefined;
   }
 
   private update(update: Partial<TimelineClockSnapshot>): void {
@@ -92,4 +82,14 @@ export class AudioContextTimelineClock {
       listener();
     }
   }
+}
+
+function startAnimationFrameLoop(callback: () => void): () => void {
+  let frame: number;
+  const tick = () => {
+    callback();
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(frame);
 }
