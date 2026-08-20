@@ -877,7 +877,7 @@ function formatTime(seconds: number): string {
     .padStart(6, "0")}`;
 }
 
-export function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
+function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
   const minimumLabelSpacing = 48;
   let bars = 1;
   while (bars * BEATS_PER_BAR * pixelsPerBeat < minimumLabelSpacing) {
