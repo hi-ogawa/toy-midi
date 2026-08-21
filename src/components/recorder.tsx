@@ -558,6 +558,7 @@ function TimelineHeader({
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
 }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
@@ -570,24 +571,26 @@ function TimelineHeader({
         >
           <PlusIcon className="size-3.5" />
         </Button>
-        <label
+        <Button
+          onClick={() => fileInputRef.current?.click()}
           title="Add audio track from file"
-          className="grid size-7 cursor-pointer place-items-center rounded text-neutral-300 hover:bg-neutral-700"
+          className="size-7 hover:bg-neutral-700"
         >
           <UploadIcon className="size-3.5" />
-          <input
-            type="file"
-            accept="audio/*,.wav"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              if (file) {
-                onAddAudioFile(file);
-              }
-              event.currentTarget.value = "";
-            }}
-          />
-        </label>
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*,.wav"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) {
+              onAddAudioFile(file);
+            }
+            event.currentTarget.value = "";
+          }}
+        />
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
