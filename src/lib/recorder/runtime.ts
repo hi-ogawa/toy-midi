@@ -1,11 +1,9 @@
 import { createStore } from "../../utils/store.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
-import { AudioContextTimelineClock } from "./clock.ts";
-import { RecorderMetronome } from "./metronome.ts";
 import { ActiveRecording } from "./recording.ts";
+import { RecorderTransport } from "./transport.ts";
 
-const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
@@ -64,12 +62,11 @@ export class RecorderRuntime {
   }));
 
   private context?: AudioContext;
-  private clock?: AudioContextTimelineClock;
+  private transport?: RecorderTransport;
   private captureInput?: CaptureInput;
   private audioTrackPlaybacks: AudioBufferPlayback[] = [];
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
-  private metronome?: RecorderMetronome;
 
   async startInput({
     deviceId,
@@ -247,44 +244,24 @@ export class RecorderRuntime {
     if (this.store.get().isPlaying) {
       return;
     }
-    const context = this.getContext();
-    await context.resume();
-    // Give every source a shared future AudioContext anchor. Their relative
-    // placement is then determined only by timeline offsets.
-    const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    for (const playback of this.audioTrackPlaybacks) {
-      playback.start({
-        scheduledContextTime: startTime,
-        playheadTime: this.store.get().position,
-      });
-    }
+    this.getContext();
     this.recordingTrackPlayback!.setTimelineOffset(
       this.store.get().getTakeOffset(),
     );
-    this.recordingTrackPlayback!.start({
-      scheduledContextTime: startTime,
-      playheadTime: this.store.get().position,
-    });
-    this.clock!.start({
-      contextTime: startTime,
+    await this.transport!.play({
+      metronomeTempo: this.store.get().metronomeEnabled
+        ? this.store.get().tempo
+        : undefined,
+      playbacks: [...this.audioTrackPlaybacks, this.recordingTrackPlayback!],
       position: this.store.get().position,
     });
-    if (this.store.get().metronomeEnabled) {
-      this.metronome!.start({
-        contextTime: startTime,
-        position: this.store.get().position,
-        tempo: this.store.get().tempo,
-      });
-    }
   }
 
   pause(): void {
     if (!this.store.get().isPlaying) {
       return;
     }
-    this.clock!.pause();
-    this.metronome?.stop();
-    this.stopPlayback();
+    this.transport!.pause();
   }
 
   seek(position: number): void {
@@ -296,8 +273,8 @@ export class RecorderRuntime {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
-    this.clock?.setPosition(nextPosition);
-    if (!this.clock) {
+    this.transport?.setPosition(nextPosition);
+    if (!this.transport) {
       this.store.update({ position: nextPosition });
     }
     if (wasPlaying) {
@@ -332,7 +309,7 @@ export class RecorderRuntime {
         takes: [
           {
             duration: 0,
-            captureOffset: this.clock!.getTimelinePosition(
+            captureOffset: this.transport!.getTimelinePosition(
               startFrame / context.sampleRate,
             ),
           },
@@ -379,21 +356,14 @@ export class RecorderRuntime {
         output: this.context.destination,
       });
       this.syncTrackMix();
-      this.clock = new AudioContextTimelineClock(this.context);
-      this.metronome = new RecorderMetronome(this.context);
-      this.clock.subscribe(() => {
-        const { position, running } = this.clock!.getSnapshot();
-        this.store.update({ isPlaying: running, position });
-      });
+      this.transport = new RecorderTransport(
+        this.context,
+        ({ position, running }) => {
+          this.store.update({ isPlaying: running, position });
+        },
+      );
     }
     return this.context;
-  }
-
-  private stopPlayback(): void {
-    for (const playback of this.audioTrackPlaybacks) {
-      playback.stop();
-    }
-    this.recordingTrackPlayback?.stop();
   }
 
   private syncTrackMix(): void {
