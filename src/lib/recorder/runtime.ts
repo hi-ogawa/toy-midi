@@ -157,11 +157,12 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  addAudioTrack(): void {
+  addAudioTrack(): string {
     const track = createAudioTrackState();
     this.store.update({
       audioTracks: [...this.store.get().audioTracks, track],
     });
+    return track.id;
   }
 
   async setAudioTrack(id: string, file: File): Promise<void> {

@@ -41,6 +41,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -255,6 +256,10 @@ export function Recorder() {
               tempo={tempo}
               timelineWidth={timelineWidth}
               onAddAudioTrack={() => runtime.addAudioTrack()}
+              onAddAudioFile={(file) => {
+                const id = runtime.addAudioTrack();
+                audioTrackMutation.mutate({ file, id });
+              }}
               onSeek={(position) => runtime.seek(position)}
             />
             {state.audioTracks.map((track, index) => (
@@ -275,33 +280,13 @@ export function Recorder() {
                   runtime.setAudioTrackMix(track.id, { soloed })
                 }
                 action={
-                  <div className="flex gap-1">
-                    <label
-                      title={`Load Audio ${index + 1}`}
-                      className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                    >
-                      <UploadIcon className="size-3.5" />
-                      <input
-                        type="file"
-                        accept="audio/*,.wav"
-                        className="hidden"
-                        onChange={(event) => {
-                          const file = event.currentTarget.files?.[0];
-                          if (file) {
-                            audioTrackMutation.mutate({ file, id: track.id });
-                          }
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                    <Button
-                      onClick={() => runtime.removeAudioTrack(track.id)}
-                      className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                      title={`Remove Audio ${index + 1}`}
-                    >
-                      <Trash2Icon className="size-3.5" />
-                    </Button>
-                  </div>
+                  <AudioTrackActions
+                    label={`Audio ${index + 1}`}
+                    onFileChange={(file) =>
+                      audioTrackMutation.mutate({ file, id: track.id })
+                    }
+                    onRemove={() => runtime.removeAudioTrack(track.id)}
+                  />
                 }
               >
                 <TimelineLane
@@ -562,6 +547,7 @@ function TimelineHeader({
   tempo,
   timelineWidth,
   onAddAudioTrack,
+  onAddAudioFile,
   onSeek,
 }: {
   pixelsPerBeat: number;
@@ -569,19 +555,39 @@ function TimelineHeader({
   tempo: number;
   timelineWidth: number;
   onAddAudioTrack: () => void;
+  onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
 }) {
   return (
     <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
-      <div className="sticky left-0 z-20 flex items-center justify-between border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
+      <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
+        <div className="flex-1" />
         <Button
           onClick={onAddAudioTrack}
-          className="h-7 gap-1 px-2 text-[11px] hover:bg-neutral-700"
+          className="size-7 hover:bg-neutral-700"
+          title="Add empty audio track"
         >
           <PlusIcon className="size-3.5" />
-          Audio track
         </Button>
+        <label
+          title="Add audio track from file"
+          className="grid size-7 cursor-pointer place-items-center rounded text-neutral-300 hover:bg-neutral-700"
+        >
+          <UploadIcon className="size-3.5" />
+          <input
+            type="file"
+            accept="audio/*,.wav"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              if (file) {
+                onAddAudioFile(file);
+              }
+              event.currentTarget.value = "";
+            }}
+          />
+        </label>
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
@@ -591,6 +597,56 @@ function TimelineHeader({
         onSeek={onSeek}
       />
     </div>
+  );
+}
+
+function AudioTrackActions({
+  label,
+  onFileChange,
+  onRemove,
+}: {
+  label: string;
+  onFileChange: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+            title={`${label} actions`}
+          >
+            <MoreVerticalIcon className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+            <UploadIcon />
+            Replace audio
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+            <Trash2Icon />
+            Remove track
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*,.wav"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (file) {
+            onFileChange(file);
+          }
+          event.currentTarget.value = "";
+        }}
+      />
+    </>
   );
 }
 
