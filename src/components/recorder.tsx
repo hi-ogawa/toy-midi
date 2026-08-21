@@ -8,6 +8,8 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
+  PlusIcon,
+  Trash2Icon,
   ZoomInIcon,
   ZoomOutIcon,
   UploadIcon,
@@ -97,8 +99,9 @@ export function Recorder() {
     mutationFn: (nextDeviceId: string) =>
       runtime.startInput({ deviceId: nextDeviceId, onLevel: setInputPeak }),
   });
-  const backingMutation = useMutation({
-    mutationFn: (file: File) => runtime.setAudioTrack(0, file),
+  const audioTrackMutation = useMutation({
+    mutationFn: ({ file, id }: { file: File; id: string }) =>
+      runtime.setAudioTrack(id, file),
   });
   const playMutation = useMutation({ mutationFn: () => runtime.play() });
   const recordMutation = useMutation({
@@ -163,7 +166,6 @@ export function Recorder() {
   const hasAccess = devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
   const inputActive = state.inputSettings !== undefined;
-  const backingTrack = state.audioTracks[0];
   const take = state.recordingTrack.takes[0];
   const timelineWidth = Math.max(0, timelineViewportWidth - 216);
   const playheadX =
@@ -175,7 +177,7 @@ export function Recorder() {
     grantAccessMutation.error ??
     refreshInputsMutation.error ??
     startInputMutation.error ??
-    backingMutation.error ??
+    audioTrackMutation.error ??
     playMutation.error ??
     recordMutation.error;
 
@@ -252,58 +254,75 @@ export function Recorder() {
               scrollX={scrollX}
               tempo={tempo}
               timelineWidth={timelineWidth}
+              onAddAudioTrack={() => runtime.addAudioTrack()}
               onSeek={(position) => runtime.seek(position)}
             />
-            <TrackRow
-              title="Audio 1"
-              subtitle={backingTrack?.name ?? "No file loaded"}
-              gain={backingTrack?.gain ?? 1}
-              muted={backingTrack?.muted ?? false}
-              soloed={backingTrack?.soloed ?? false}
-              onGainChange={(gain) => runtime.setAudioTrackMix(0, { gain })}
-              onMutedChange={(muted) => runtime.setAudioTrackMix(0, { muted })}
-              onSoloedChange={(soloed) =>
-                runtime.setAudioTrackMix(0, { soloed })
-              }
-              action={
-                <label
-                  title="Load audio track"
-                  className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                >
-                  <UploadIcon className="size-3.5" />
-                  <input
-                    type="file"
-                    accept="audio/*,.wav"
-                    className="hidden"
-                    onChange={(event) => {
-                      const file = event.currentTarget.files?.[0];
-                      if (file) {
-                        backingMutation.mutate(file);
-                      }
-                      event.currentTarget.value = "";
-                    }}
-                  />
-                </label>
-              }
-            >
-              <TimelineLane
-                clip={
-                  backingTrack?.name
-                    ? {
-                        duration: backingTrack.duration,
-                        label: backingTrack.name,
-                        offset: backingTrack.timelineOffset,
-                        variant: "audio",
-                      }
-                    : undefined
+            {state.audioTracks.map((track, index) => (
+              <TrackRow
+                key={track.id}
+                title={`Audio ${index + 1}`}
+                subtitle={track.name ?? "No file loaded"}
+                gain={track.gain}
+                muted={track.muted}
+                soloed={track.soloed}
+                onGainChange={(gain) =>
+                  runtime.setAudioTrackMix(track.id, { gain })
                 }
-                pixelsPerBeat={pixelsPerBeat}
-                scrollX={scrollX}
-                tempo={tempo}
-                emptyLabel="Load an audio file"
-                onSeek={(position) => runtime.seek(position)}
-              />
-            </TrackRow>
+                onMutedChange={(muted) =>
+                  runtime.setAudioTrackMix(track.id, { muted })
+                }
+                onSoloedChange={(soloed) =>
+                  runtime.setAudioTrackMix(track.id, { soloed })
+                }
+                action={
+                  <div className="flex gap-1">
+                    <label
+                      title={`Load Audio ${index + 1}`}
+                      className="grid size-7 cursor-pointer place-items-center rounded border border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                    >
+                      <UploadIcon className="size-3.5" />
+                      <input
+                        type="file"
+                        accept="audio/*,.wav"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          if (file) {
+                            audioTrackMutation.mutate({ file, id: track.id });
+                          }
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                    <Button
+                      onClick={() => runtime.removeAudioTrack(track.id)}
+                      className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                      title={`Remove Audio ${index + 1}`}
+                    >
+                      <Trash2Icon className="size-3.5" />
+                    </Button>
+                  </div>
+                }
+              >
+                <TimelineLane
+                  clip={
+                    track.name
+                      ? {
+                          duration: track.duration,
+                          label: track.name,
+                          offset: track.timelineOffset,
+                          variant: "audio",
+                        }
+                      : undefined
+                  }
+                  pixelsPerBeat={pixelsPerBeat}
+                  scrollX={scrollX}
+                  tempo={tempo}
+                  emptyLabel="Load an audio file"
+                  onSeek={(position) => runtime.seek(position)}
+                />
+              </TrackRow>
+            ))}
 
             <TrackRow
               title="Capture"
@@ -542,18 +561,27 @@ function TimelineHeader({
   scrollX,
   tempo,
   timelineWidth,
+  onAddAudioTrack,
   onSeek,
 }: {
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
   timelineWidth: number;
+  onAddAudioTrack: () => void;
   onSeek: (position: number) => void;
 }) {
   return (
     <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
-      <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
-        Tracks
+      <div className="sticky left-0 z-20 flex items-center justify-between border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
+        <span>Tracks</span>
+        <Button
+          onClick={onAddAudioTrack}
+          className="h-7 gap-1 px-2 text-[11px] hover:bg-neutral-700"
+        >
+          <PlusIcon className="size-3.5" />
+          Audio track
+        </Button>
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}

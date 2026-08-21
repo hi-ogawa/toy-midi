@@ -10,6 +10,7 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
+  id: string;
   name?: string;
   duration: number;
   gain: number;
@@ -61,7 +62,7 @@ export class RecorderRuntime {
   private context?: AudioContext;
   private clock?: AudioContextTimelineClock;
   private captureInput?: CaptureInput;
-  private audioTrackPlaybacks: AudioBufferPlayback[] = [];
+  private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
 
@@ -156,13 +157,23 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  async setAudioTrack(index: number, file: File): Promise<void> {
+  addAudioTrack(): void {
+    const track = createAudioTrackState();
+    this.store.update({
+      audioTracks: [...this.store.get().audioTracks, track],
+    });
+  }
+
+  async setAudioTrack(id: string, file: File): Promise<void> {
     const context = this.getContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    const playback = this.getAudioTrackPlayback(index);
+    if (!this.store.get().audioTracks.some((track) => track.id === id)) {
+      return;
+    }
+    const playback = this.getAudioTrackPlayback(id);
     playback.stop();
     playback.setBuffer(buffer);
-    this.updateAudioTrack(index, (track) => ({
+    this.updateAudioTrack(id, (track) => ({
       ...track,
       name: file.name,
       duration: buffer.duration,
@@ -170,38 +181,40 @@ export class RecorderRuntime {
   }
 
   setAudioTrackMix(
-    index: number,
+    id: string,
     update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    this.getAudioTrackPlayback(index);
-    this.updateAudioTrack(index, (track) => {
+    this.updateAudioTrack(id, (track) => {
       return { ...track, ...update };
     });
     this.syncTrackMix();
   }
 
-  setAudioTrackOffset(index: number, timelineOffset: number): void {
-    this.getAudioTrackPlayback(index).setTimelineOffset(timelineOffset);
-    this.updateAudioTrack(index, (track) => ({
+  setAudioTrackOffset(id: string, timelineOffset: number): void {
+    this.getAudioTrackPlayback(id).setTimelineOffset(timelineOffset);
+    this.updateAudioTrack(id, (track) => ({
       ...track,
       timelineOffset,
     }));
   }
 
-  removeAudioTrack(index: number): void {
-    this.audioTrackPlaybacks[index]?.stop();
-    this.audioTrackPlaybacks.splice(index, 1);
-    const tracks = this.store.get().audioTracks.slice();
-    tracks.splice(index, 1);
-    this.store.update({ audioTracks: tracks });
+  removeAudioTrack(id: string): void {
+    this.audioTrackPlaybacks.get(id)?.stop();
+    this.audioTrackPlaybacks.delete(id);
+    this.store.update({
+      audioTracks: this.store
+        .get()
+        .audioTracks.filter((track) => track.id !== id),
+    });
     this.syncTrackMix();
   }
 
   private updateAudioTrack(
-    index: number,
+    id: string,
     update: (track: AudioTrackState) => AudioTrackState,
   ): void {
     const audioTracks = this.store.get().audioTracks.slice();
+    const index = audioTracks.findIndex((track) => track.id === id);
     const track = audioTracks[index];
     if (!track) {
       throw new Error("Audio track state is missing.");
@@ -210,20 +223,22 @@ export class RecorderRuntime {
     this.store.update({ audioTracks });
   }
 
-  private getAudioTrackPlayback(index: number): AudioBufferPlayback {
-    let playback = this.audioTrackPlaybacks[index];
+  private getAudioTrackPlayback(id: string): AudioBufferPlayback {
+    let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
       const context = this.getContext();
       playback = new AudioBufferPlayback({
         context,
         output: context.destination,
       });
-      const track = createAudioTrackState();
+      const track = this.store
+        .get()
+        .audioTracks.find((entry) => entry.id === id);
+      if (!track) {
+        throw new Error("Audio track state is missing.");
+      }
       playback.setTimelineOffset(track.timelineOffset);
-      this.audioTrackPlaybacks[index] = playback;
-      const audioTracks = this.store.get().audioTracks.slice();
-      audioTracks[index] = track;
-      this.store.update({ audioTracks });
+      this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
     return playback;
@@ -246,7 +261,7 @@ export class RecorderRuntime {
     // Give every source a shared future AudioContext anchor. Their relative
     // placement is then determined only by timeline offsets.
     const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    for (const playback of this.audioTrackPlaybacks) {
+    for (const playback of this.audioTrackPlaybacks.values()) {
       playback.start({
         scheduledContextTime: startTime,
         playheadTime: this.store.get().position,
@@ -361,7 +376,7 @@ export class RecorderRuntime {
   }
 
   private stopPlayback(): void {
-    for (const playback of this.audioTrackPlaybacks) {
+    for (const playback of this.audioTrackPlaybacks.values()) {
       playback.stop();
     }
     this.recordingTrackPlayback?.stop();
@@ -371,10 +386,12 @@ export class RecorderRuntime {
     const { audioTracks, recordingTrack } = this.store.get();
     const anyTrackSoloed =
       recordingTrack.soloed || audioTracks.some((track) => track.soloed);
-    for (const [index, track] of audioTracks.entries()) {
-      this.audioTrackPlaybacks[index]?.setGain(
-        track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
-      );
+    for (const track of audioTracks) {
+      this.audioTrackPlaybacks
+        .get(track.id)
+        ?.setGain(
+          track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+        );
     }
     this.recordingTrackPlayback?.setGain(
       recordingTrack.muted || (anyTrackSoloed && !recordingTrack.soloed)
@@ -438,6 +455,7 @@ export class RecorderRuntime {
 
 function createAudioTrackState(): AudioTrackState {
   return {
+    id: crypto.randomUUID(),
     duration: 0,
     gain: 1,
     muted: false,
