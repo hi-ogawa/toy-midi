@@ -176,7 +176,7 @@ export function Recorder() {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="relative min-w-0 overflow-hidden border-r border-neutral-700">
+        <section className="relative min-w-0 overflow-auto border-r border-neutral-700">
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
@@ -207,6 +207,7 @@ export function Recorder() {
                 key={track.id}
                 title={`Audio ${index + 1}`}
                 subtitle={track.clip?.name ?? "No file loaded"}
+                height={track.height}
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
@@ -218,6 +219,9 @@ export function Recorder() {
                 }
                 onSoloedChange={(soloed) =>
                   runtime.setAudioTrackMix(track.id, { soloed })
+                }
+                onHeightChange={(height) =>
+                  runtime.setAudioTrackHeight(track.id, height)
                 }
                 action={
                   <AudioTrackActions
@@ -272,12 +276,16 @@ export function Recorder() {
                     : "No take"
               }
               gain={state.recordingTrack.gain}
+              height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
               onSoloedChange={(soloed) =>
                 runtime.setRecordingTrackMix({ soloed })
+              }
+              onHeightChange={(height) =>
+                runtime.setRecordingTrackHeight(height)
               }
             >
               <TimelineLane
@@ -853,6 +861,7 @@ function TimelineRuler({
 function TrackRow({
   title,
   subtitle,
+  height,
   gain,
   muted,
   soloed,
@@ -860,10 +869,12 @@ function TrackRow({
   onGainChange,
   onMutedChange,
   onSoloedChange,
+  onHeightChange,
   children,
 }: {
   title: string;
   subtitle: string;
+  height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -871,14 +882,27 @@ function TrackRow({
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
+  onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
+  const resizeRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      return { startClientY: event.clientY, startHeight: height };
+    },
+    onMove: (event, drag) => {
+      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    },
+  });
   const toggleClass = (active: boolean) =>
     active
       ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
-    <div className="grid min-h-24 grid-cols-[13.5rem_1fr] border-b border-neutral-700">
+    <div
+      className="relative grid grid-cols-[13.5rem_1fr] border-b border-neutral-700"
+      style={{ height }}
+    >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">{title}</div>
@@ -926,6 +950,11 @@ function TrackRow({
         </label>
       </div>
       {children}
+      <div
+        ref={resizeRef}
+        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        title={`Resize ${title}`}
+      />
     </div>
   );
 }
@@ -993,7 +1022,7 @@ function TimelineLane({
   }[clip?.variant ?? "audio"];
   return (
     <div
-      className="relative min-h-24 overflow-hidden bg-neutral-900"
+      className="relative overflow-hidden bg-neutral-900"
       style={getTimelineGridStyle({
         beatsPerBar,
         pixelsPerBeat,
@@ -1013,7 +1042,7 @@ function TimelineLane({
         <div
           ref={onClipOffsetChange ? clipDragRef : undefined}
           className={cn(
-            "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
+            "absolute inset-y-4 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
             clipClass,
             onClipOffsetChange && "cursor-ew-resize select-none",
             isDragging && "brightness-125",

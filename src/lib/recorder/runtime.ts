@@ -6,11 +6,15 @@ import { ActiveRecording } from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
+const DEFAULT_TRACK_HEIGHT = 96;
+const MIN_TRACK_HEIGHT = 56;
+const MAX_TRACK_HEIGHT = 300;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
   id: string;
+  height: number;
   clip?: {
     name: string;
     duration: number;
@@ -22,6 +26,7 @@ interface AudioTrackState {
 }
 
 interface RecordingTrackState {
+  height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -203,6 +208,13 @@ export class RecorderRuntime {
     }));
   }
 
+  setAudioTrackHeight(id: string, height: number): void {
+    this.updateAudioTrack(id, (track) => ({
+      ...track,
+      height: clampTrackHeight(height),
+    }));
+  }
+
   removeAudioTrack(id: string): void {
     this.audioTrackPlaybacks.get(id)?.stop();
     this.audioTrackPlaybacks.delete(id);
@@ -255,6 +267,15 @@ export class RecorderRuntime {
     const recordingTrack = { ...this.store.get().recordingTrack, ...update };
     this.store.update({ recordingTrack });
     this.syncTrackMix();
+  }
+
+  setRecordingTrackHeight(height: number): void {
+    this.store.update({
+      recordingTrack: {
+        ...this.store.get().recordingTrack,
+        height: clampTrackHeight(height),
+      },
+    });
   }
 
   async play(): Promise<void> {
@@ -461,6 +482,7 @@ export class RecorderRuntime {
 function createAudioTrackState(): AudioTrackState {
   return {
     id: crypto.randomUUID(),
+    height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
@@ -470,9 +492,14 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
+    height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
     takes: [],
   };
+}
+
+function clampTrackHeight(height: number): number {
+  return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
 }
