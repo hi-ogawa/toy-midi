@@ -70,19 +70,12 @@ export class AudioContextTransport {
     if (!this.store.get().running) {
       return;
     }
-    const playbackAnchor = this.playbackAnchor!;
-    const position = Math.max(
-      playbackAnchor.position,
-      playbackAnchor.position +
-        this.context.currentTime -
-        playbackAnchor.contextTime,
-    );
     for (const participant of this.participants) {
       participant.stop();
     }
     this.playbackAnchor = undefined;
     this.stopTicking();
-    this.store.update({ position, running: false });
+    this.store.update({ running: false });
   }
 
   /** Moves the playhead, restarting participants when playback is running. */
