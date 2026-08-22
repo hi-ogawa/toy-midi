@@ -55,17 +55,22 @@ export class RecorderMetronome implements TransportParticipant {
   private schedule(): void {
     const secondsPerBeat = 60 / this.tempo;
     while (true) {
+      // Convert this beat's timeline position through the transport playback
+      // anchor: contextTime = anchor context + beat position - anchor position.
       const timelineTime = this.nextBeat * secondsPerBeat;
       const contextTime =
         this.startContextTime + timelineTime - this.startPosition;
+      // Schedule only the near future, then let the interval extend the window.
       if (
         contextTime >
         this.transport.context.currentTime + SCHEDULE_AHEAD_SECONDS
       ) {
         break;
       }
+      // Tempo changes restart from the anchor, so skip beats already elapsed.
       if (contextTime >= this.transport.context.currentTime) {
         this.scheduleClick({
+          // The recorder currently accents every fourth quarter-note beat.
           accent: this.nextBeat % 4 === 0,
           contextTime,
         });
@@ -84,6 +89,7 @@ export class RecorderMetronome implements TransportParticipant {
     const oscillator = this.transport.context.createOscillator();
     const gain = this.transport.context.createGain();
     oscillator.frequency.value = accent ? 1760 : 1320;
+    // Shape each oscillator into a short click instead of a sustained tone.
     gain.gain.setValueAtTime(accent ? 0.2 : 0.12, contextTime);
     gain.gain.exponentialRampToValueAtTime(
       0.0001,
