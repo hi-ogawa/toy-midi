@@ -4,8 +4,11 @@ export const DEFAULT_PIXELS_PER_BEAT = 80;
 export const MIN_PIXELS_PER_BEAT = 1;
 export const MAX_PIXELS_PER_BEAT = 400;
 
-export type RecorderTimeSignature = "3/4" | "4/4" | "6/8";
-export type RecorderGridDivision = "1/4" | "1/8" | "1/16" | "1/32";
+export const RECORDER_TIME_SIGNATURES = ["3/4", "4/4", "6/8"] as const;
+export const RECORDER_GRID_DIVISIONS = ["1/4", "1/8", "1/16", "1/32"] as const;
+
+export type RecorderTimeSignature = (typeof RECORDER_TIME_SIGNATURES)[number];
+export type RecorderGridDivision = (typeof RECORDER_GRID_DIVISIONS)[number];
 
 export function getRecorderBeatsPerBar(
   timeSignature: RecorderTimeSignature,

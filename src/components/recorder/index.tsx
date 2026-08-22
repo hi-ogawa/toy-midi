@@ -55,6 +55,8 @@ import {
   getRecorderBeatsPerBar,
   getRecorderRulerLabelEveryBars,
   getRecorderSubdivisionsPerBeat,
+  RECORDER_GRID_DIVISIONS,
+  RECORDER_TIME_SIGNATURES,
   RecorderGridDivision,
   RecorderTimeSignature,
   recorderBeatsToSeconds,
@@ -600,9 +602,11 @@ function RecorderHeader({
           }
           className="h-8 rounded border border-neutral-600 bg-neutral-900 px-1.5 font-mono text-sm text-neutral-100"
         >
-          <option value="3/4">3/4</option>
-          <option value="4/4">4/4</option>
-          <option value="6/8">6/8</option>
+          {RECORDER_TIME_SIGNATURES.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
         </select>
       </label>
       <label className="flex items-center gap-1.5 text-xs text-neutral-400">
@@ -616,10 +620,11 @@ function RecorderHeader({
           }
           className="h-8 rounded border border-neutral-600 bg-neutral-900 px-1.5 font-mono text-sm text-neutral-100"
         >
-          <option value="1/4">1/4</option>
-          <option value="1/8">1/8</option>
-          <option value="1/16">1/16</option>
-          <option value="1/32">1/32</option>
+          {RECORDER_GRID_DIVISIONS.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
         </select>
       </label>
       <div className="flex-1" />
