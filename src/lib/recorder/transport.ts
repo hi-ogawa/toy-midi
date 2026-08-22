@@ -73,9 +73,10 @@ export class AudioContextTransport {
     for (const participant of this.participants) {
       participant.stop();
     }
+    const finalPosition = this.getCurrentPlaybackPosition();
     this.playbackAnchor = undefined;
     this.stopTicking();
-    this.store.update({ running: false });
+    this.store.update({ running: false, position: finalPosition });
   }
 
   /** Moves the playhead, restarting participants when playback is running. */
@@ -92,37 +93,24 @@ export class AudioContextTransport {
   }
 
   /**
-   * Places captured sample zero from its absolute AudioContext frame. Unlike
-   * the published playhead, this preserves exact time during playback warmup so
-   * the whole take remains aligned.
+   * Converts an absolute AudioContext time to published playback position while
+   * excluding the scheduling lead before the playback anchor.
    */
-  getCaptureOffset(startFrame: number): number {
-    return this.getPlaybackPositionByContextTime(
-      startFrame / this.context.sampleRate,
+  private getCurrentPlaybackPosition(): number {
+    const playbackAnchor = this.playbackAnchor!;
+    return Math.max(
+      playbackAnchor.position,
+      this.getAbsolutePlaybackPositionByContextTime(this.context.currentTime),
     );
   }
 
   /**
    * Converts an absolute AudioContext time to its exact position relative to the
-   * active playback anchor. This intentionally includes playback warmup time.
+   * active playback anchor. This intentionally includes playback warmup lead time.
    */
-  private getPlaybackPositionByContextTime(contextTime: number): number {
+  getAbsolutePlaybackPositionByContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor!;
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
-  }
-
-  /**
-   * Converts an absolute AudioContext time to published playback position while
-   * excluding the scheduling lead before the playback anchor.
-   */
-  private getPlaybackPositionWithoutLeadTimeByContextTime(
-    contextTime: number,
-  ): number {
-    const playbackAnchor = this.playbackAnchor!;
-    return Math.max(
-      playbackAnchor.position,
-      this.getPlaybackPositionByContextTime(contextTime),
-    );
   }
 
   /** Publishes audio-clock position on animation frames while playing. */
@@ -132,9 +120,7 @@ export class AudioContextTransport {
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
       this.store.update({
-        position: this.getPlaybackPositionWithoutLeadTimeByContextTime(
-          this.context.currentTime,
-        ),
+        position: this.getCurrentPlaybackPosition(),
       });
     });
   }
