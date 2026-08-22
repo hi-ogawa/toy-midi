@@ -133,6 +133,9 @@ function createCaptureProcessor() {
           this.meterPeak = 0;
         },
         setActive: async ({ value }: { value: boolean }) => {
+          // Resolving schedules the RPC response through a microtask on the
+          // render thread. Keep this pattern to infrequent control transitions;
+          // validate AudioWorklet scheduling before using it for per-quantum work.
           return await new Promise<number>((resolve) => {
             // Queue transitions until process() so capture state and buffered
             // PCM share render-thread ordering with the returned frame.
