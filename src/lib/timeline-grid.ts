@@ -12,14 +12,14 @@ export function getTimelineGridBackground({
   colors,
   minimumPixelSpacing,
   pixelsPerBeat,
-  scrollBeat,
+  viewportStartBeat,
   subdivisionsPerBeat,
 }: {
   beatsPerBar: number;
   colors: Record<TimelineGridKind, string>;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
-  scrollBeat: number;
+  viewportStartBeat: number;
   subdivisionsPerBeat: number;
 }): {
   backgroundImage: string;
@@ -30,7 +30,7 @@ export function getTimelineGridBackground({
     beatsPerBar,
     minimumPixelSpacing,
     pixelsPerBeat,
-    scrollBeat,
+    viewportStartBeat,
     subdivisionsPerBeat,
   });
   return {
@@ -53,13 +53,13 @@ function calculateTimelineGridLayers({
   beatsPerBar,
   minimumPixelSpacing,
   pixelsPerBeat,
-  scrollBeat,
+  viewportStartBeat,
   subdivisionsPerBeat,
 }: {
   beatsPerBar: number;
   minimumPixelSpacing: number;
   pixelsPerBeat: number;
-  scrollBeat: number;
+  viewportStartBeat: number;
   subdivisionsPerBeat: number;
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
@@ -72,7 +72,7 @@ function calculateTimelineGridLayers({
       intervalBeats: barInterval,
       kind: "bar",
       pixelsPerBeat,
-      scrollBeat,
+      viewportStartBeat,
     }),
   );
 
@@ -82,7 +82,7 @@ function calculateTimelineGridLayers({
         intervalBeats: 1,
         kind: "beat",
         pixelsPerBeat,
-        scrollBeat,
+        viewportStartBeat,
       }),
     );
   }
@@ -94,7 +94,7 @@ function calculateTimelineGridLayers({
         intervalBeats: subdivisionInterval,
         kind: "subdivision",
         pixelsPerBeat,
-        scrollBeat,
+        viewportStartBeat,
       }),
     );
   }
@@ -106,17 +106,17 @@ function createLayer({
   intervalBeats,
   kind,
   pixelsPerBeat,
-  scrollBeat,
+  viewportStartBeat,
 }: {
   intervalBeats: number;
   kind: TimelineGridKind;
   pixelsPerBeat: number;
-  scrollBeat: number;
+  viewportStartBeat: number;
 }): TimelineGridLayer {
   const spacingPixels = intervalBeats * pixelsPerBeat;
   return {
     kind,
-    offsetPixels: -(scrollBeat * pixelsPerBeat) % spacingPixels,
+    offsetPixels: -(viewportStartBeat * pixelsPerBeat) % spacingPixels,
     spacingPixels,
   };
 }
