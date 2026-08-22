@@ -110,10 +110,17 @@ export class AudioContextTransport {
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
   }
 
-  /** Converts an absolute AudioContext frame boundary to recorder position. */
-  frameToPosition(frame: number): number {
-    return this.getTimelinePositionAtContextTime(
-      frame / this.context.sampleRate,
+  /**
+   * Places captured sample zero from its absolute AudioContext frame. Unlike
+   * the published playhead, this preserves exact time during playback warmup so
+   * the whole take remains aligned.
+   */
+  getCaptureOffset(startFrame: number): number {
+    const playbackAnchor = this.playbackAnchor!;
+    return (
+      playbackAnchor.position +
+      startFrame / this.context.sampleRate -
+      playbackAnchor.contextTime
     );
   }
 
