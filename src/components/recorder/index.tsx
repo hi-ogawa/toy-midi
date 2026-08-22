@@ -1024,8 +1024,8 @@ function TimelineLane({
           scrollX={scrollX}
           tempo={tempo}
           viewportWidth={viewportWidth}
-          onOffsetChange={onClipOffsetChange}
-          onDragEnd={onClipDragEnd}
+          onClipOffsetChange={onClipOffsetChange}
+          onClipDragEnd={onClipDragEnd}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -1042,16 +1042,16 @@ function TimelineClip({
   scrollX,
   tempo,
   viewportWidth,
-  onOffsetChange,
-  onDragEnd,
+  onClipOffsetChange,
+  onClipDragEnd,
 }: {
   clip: RecorderTimelineClip;
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
   viewportWidth: number;
-  onOffsetChange?: (offset: number) => void;
-  onDragEnd?: () => void;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerDrag({
@@ -1069,13 +1069,13 @@ function TimelineClip({
     onMove: (event, drag) => {
       const deltaBeats =
         (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
-      onOffsetChange!(
+      onClipOffsetChange!(
         Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, drag.tempo)),
       );
     },
     onEnd: () => {
       setIsDragging(false);
-      onDragEnd?.();
+      onClipDragEnd?.();
     },
   });
   const clipClass = {
@@ -1101,11 +1101,11 @@ function TimelineClip({
   );
   return (
     <div
-      ref={onOffsetChange ? dragRef : undefined}
+      ref={onClipOffsetChange ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
         clipClass,
-        onOffsetChange && "cursor-ew-resize select-none",
+        onClipOffsetChange && "cursor-ew-resize select-none",
         isDragging && "brightness-125",
       )}
       style={{
@@ -1124,7 +1124,7 @@ function TimelineClip({
       )}
       <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
         <span className="mr-1.5">{clip.label}</span>
-        {onOffsetChange && clip.offset > 0 && (
+        {onClipOffsetChange && clip.offset > 0 && (
           <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
         )}
       </div>
