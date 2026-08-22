@@ -32,11 +32,7 @@ export class CaptureInput {
     context: AudioContext;
     deviceId: string;
     onNotification: (message: CaptureWorkletNotification) => void;
-  }): Promise<{
-    input: CaptureInput;
-    settings: MediaTrackSettings;
-    channelCount: number;
-  }> {
+  }) {
     await ensureCaptureWorklet(context);
     const stream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
