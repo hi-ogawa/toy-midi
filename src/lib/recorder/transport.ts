@@ -102,7 +102,7 @@ export class AudioContextTransport {
   }
 
   /** Converts an absolute AudioContext time through the active playback anchor. */
-  getTimelinePositionAtContextTime(contextTime: number): number {
+  private getTimelinePositionAtContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor;
     if (!playbackAnchor) {
       return this.store.get().position;
