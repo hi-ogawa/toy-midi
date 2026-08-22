@@ -14,14 +14,9 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import {
@@ -39,7 +34,6 @@ import {
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
-import { listenPointerDrag } from "../../utils/pointer-drag";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import {
@@ -965,41 +959,33 @@ function TimelineLane({
   onSeek: (position: number) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const setupClipDrag = useEffectEvent((element: HTMLDivElement) =>
-    listenPointerDrag({
-      element,
-      onStart: (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setIsDragging(true);
-        return {
-          startClientX: event.clientX,
-          startOffset: clip!.offset,
-          pixelsPerBeat,
-          tempo,
-        };
-      },
-      onMove: (event, drag) => {
-        const deltaBeats =
-          (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
-        onClipOffsetChange!(
-          Math.max(
-            0,
-            drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
-          ),
-        );
-      },
-      onEnd: () => {
-        setIsDragging(false);
-        onClipDragEnd?.();
-      },
-    }),
-  );
-  const clipDragRef = useCallback((element: HTMLDivElement | null) => {
-    if (element) {
-      return setupClipDrag(element);
-    }
-  }, []);
+  const clipDragHandlerProps = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(true);
+      return {
+        startClientX: event.clientX,
+        startOffset: clip!.offset,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const deltaBeats =
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+      onClipOffsetChange!(
+        Math.max(
+          0,
+          drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
+        ),
+      );
+    },
+    onEnd: () => {
+      setIsDragging(false);
+      onClipDragEnd?.();
+    },
+  });
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
@@ -1025,7 +1011,7 @@ function TimelineLane({
     >
       {clip ? (
         <div
-          ref={clipDragRef}
+          {...(onClipOffsetChange ? clipDragHandlerProps : {})}
           className={cn(
             "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
             clipClass,
