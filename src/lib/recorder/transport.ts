@@ -4,7 +4,7 @@ import { createStore } from "../../utils/store.ts";
 const PLAYBACK_LEAD_SECONDS = 0.03;
 
 export interface TransportParticipant {
-  start(transport: AudioContextTransport): void;
+  start(): void;
   stop(): void;
 }
 
@@ -41,7 +41,7 @@ export class AudioContextTransport {
     this.contextTime = this.context.currentTime + PLAYBACK_LEAD_SECONDS;
     this.timelineTime = this.store.get().position;
     for (const participant of this.participants) {
-      participant.start(this);
+      participant.start();
     }
     this.store.update({ running: true });
     this.startTicking();

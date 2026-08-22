@@ -4,7 +4,7 @@ import type {
 } from "./transport.ts";
 
 export class AudioBufferPlayback implements TransportParticipant {
-  private readonly context: AudioContext;
+  private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
@@ -18,8 +18,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     transport: AudioContextTransport;
     output: AudioNode;
   }) {
-    this.context = transport.context;
-    this.gain = this.context.createGain();
+    this.transport = transport;
+    this.gain = transport.context.createGain();
     this.gain.connect(output);
     this.unregister = transport.register(this);
   }
@@ -29,7 +29,11 @@ export class AudioBufferPlayback implements TransportParticipant {
   }
 
   setGain(gain: number): void {
-    this.gain.gain.setTargetAtTime(gain, this.context.currentTime, 0.01);
+    this.gain.gain.setTargetAtTime(
+      gain,
+      this.transport.context.currentTime,
+      0.01,
+    );
   }
 
   setTimelineOffset(offset: number): void {
@@ -43,24 +47,24 @@ export class AudioBufferPlayback implements TransportParticipant {
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  start(transport: AudioContextTransport): void {
+  start(): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
     }
     const bufferOffset = Math.max(
       0,
-      transport.timelineTime - this.timelineOffset,
+      this.transport.timelineTime - this.timelineOffset,
     );
     if (bufferOffset >= buffer.duration) {
       return;
     }
-    const source = this.context.createBufferSource();
+    const source = this.transport.context.createBufferSource();
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      transport.contextTime! +
-        Math.max(0, this.timelineOffset - transport.timelineTime),
+      this.transport.contextTime! +
+        Math.max(0, this.timelineOffset - this.transport.timelineTime),
       bufferOffset,
     );
     this.source = source;
