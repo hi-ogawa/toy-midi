@@ -245,17 +245,12 @@ export function Recorder() {
                   scrollX={timeline.scrollX}
                   tempo={timeline.tempo}
                   emptyLabel="Load an audio file"
-                  onClipDragStart={() => {
-                    if (state.isPlaying) {
-                      runtime.pause();
-                    }
-                    return state.isPlaying;
-                  }}
                   onClipOffsetChange={(offset) =>
                     runtime.setAudioTrackOffset(track.id, offset)
                   }
-                  onClipDragEnd={(resumePlayback) => {
-                    if (resumePlayback) {
+                  onClipDragEnd={() => {
+                    if (state.isPlaying) {
+                      runtime.pause();
                       playMutation.mutate();
                     }
                   }}
@@ -941,7 +936,6 @@ function TimelineLane({
   pixelsPerBeat,
   scrollX,
   tempo,
-  onClipDragStart,
   onClipOffsetChange,
   onClipDragEnd,
   subdivisionsPerBeat,
@@ -958,9 +952,8 @@ function TimelineLane({
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
-  onClipDragStart?: () => boolean;
   onClipOffsetChange?: (offset: number) => void;
-  onClipDragEnd?: (resumePlayback: boolean) => void;
+  onClipDragEnd?: () => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -970,7 +963,6 @@ function TimelineLane({
     startOffset: number;
     pixelsPerBeat: number;
     tempo: number;
-    resumePlayback: boolean;
   }>();
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
@@ -1025,7 +1017,6 @@ function TimelineLane({
               startOffset: clip.offset,
               pixelsPerBeat,
               tempo,
-              resumePlayback: onClipDragStart?.() ?? false,
             });
           }}
           onPointerMove={(event) => {
@@ -1046,21 +1037,21 @@ function TimelineLane({
             if (event.pointerId !== drag?.pointerId) {
               return;
             }
-            onClipDragEnd?.(drag.resumePlayback);
+            onClipDragEnd?.();
             setDrag(undefined);
           }}
           onPointerCancel={(event) => {
             if (event.pointerId !== drag?.pointerId) {
               return;
             }
-            onClipDragEnd?.(drag.resumePlayback);
+            onClipDragEnd?.();
             setDrag(undefined);
           }}
           onLostPointerCapture={(event) => {
             if (event.pointerId !== drag?.pointerId) {
               return;
             }
-            onClipDragEnd?.(drag.resumePlayback);
+            onClipDragEnd?.();
             setDrag(undefined);
           }}
         >
