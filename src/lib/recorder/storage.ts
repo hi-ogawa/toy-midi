@@ -1,9 +1,12 @@
+import { z } from "zod";
+
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
-interface RecorderPreferences {
-  inputDeviceId?: string;
-  inputChannel: number;
-}
+const recorderPreferencesSchema = z.object({
+  inputDeviceId: z.string().optional(),
+  inputChannel: z.number().int().nonnegative(),
+});
+type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
 const DEFAULT_PREFERENCES: RecorderPreferences = {
   inputChannel: 0,
@@ -12,24 +15,11 @@ const DEFAULT_PREFERENCES: RecorderPreferences = {
 class RecorderStorage {
   readPreferences(): RecorderPreferences {
     try {
-      const value: unknown = JSON.parse(
-        localStorage.getItem(PREFERENCES_KEY) ?? "{}",
-      );
-      if (!isRecord(value)) {
-        return DEFAULT_PREFERENCES;
-      }
-      return {
-        inputDeviceId:
-          typeof value.inputDeviceId === "string"
-            ? value.inputDeviceId
-            : undefined,
-        inputChannel:
-          typeof value.inputChannel === "number" &&
-          Number.isInteger(value.inputChannel) &&
-          value.inputChannel >= 0
-            ? value.inputChannel
-            : 0,
-      };
+      const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
+      return recorderPreferencesSchema.parse({
+        ...DEFAULT_PREFERENCES,
+        ...stored,
+      });
     } catch {
       return DEFAULT_PREFERENCES;
     }
@@ -49,7 +39,3 @@ class RecorderStorage {
 }
 
 export const recorderStorage = new RecorderStorage();
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
