@@ -6,7 +6,7 @@ export function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
-export function getCoarseInterval({
+export function getMinimumPowerOfTwoMultiple({
   baseInterval,
   minimumSpacing,
   pixelsPerUnit,
