@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import { resolveAudioFiles } from "../../lib/audio-files";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -84,12 +85,22 @@ export function Recorder() {
       return runtime.setAudioTrack(id, file);
     },
   });
+  const addAudioMutation = useMutation({
+    mutationFn: async (input: File) => {
+      const files = await resolveAudioFiles(input);
+      for (const file of files) {
+        const id = runtime.addAudioTrack();
+        await runtime.setAudioTrack(id, file);
+      }
+    },
+  });
 
   const take = state.recordingTrack.takes[0];
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
     input.error ??
+    addAudioMutation.error ??
     audioTrackMutation.error ??
     playMutation.error ??
     recordMutation.error;
@@ -150,10 +161,7 @@ export function Recorder() {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               onAddAudioTrack={() => runtime.addAudioTrack()}
-              onAddAudioFile={(file) => {
-                const id = runtime.addAudioTrack();
-                audioTrackMutation.mutate({ file, id });
-              }}
+              onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
             />
             {state.audioTracks.map((track, index) => (
@@ -588,9 +596,12 @@ function TimelineHeader({
         </Button>
         <Button
           onClick={() =>
-            openFilePicker({ accept: "audio/*,.wav", onFile: onAddAudioFile })
+            openFilePicker({
+              accept: "audio/*,.zip,application/zip",
+              onFile: onAddAudioFile,
+            })
           }
-          title="Add audio track from file"
+          title="Add audio tracks from file"
           className="size-7 hover:bg-neutral-700"
         >
           <UploadIcon className="size-3.5" />
