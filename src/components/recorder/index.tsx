@@ -31,6 +31,10 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
+import {
+  calculateTimelineGridLayers,
+  TimelineGridLayer,
+} from "../../lib/timeline-grid";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import {
@@ -705,15 +709,11 @@ function TimelineRuler({
   const visibleBeats = timelineWidth / pixelsPerBeat;
   const labelCount =
     Math.ceil((scrollX + visibleBeats - firstLabelBeat) / labelEveryBeats) + 1;
-  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
+  const gridStyle = getTimelineGridStyle({ pixelsPerBeat, scrollX });
   return (
     <div
       className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
-      style={{
-        backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${barWidth}px 100%`,
-      }}
+      style={gridStyle}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -844,15 +844,11 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
+  const gridStyle = getTimelineGridStyle({ pixelsPerBeat, scrollX });
   return (
     <div
       className="relative min-h-24 overflow-hidden bg-neutral-900"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, rgb(64 64 64) 1px, transparent 1px)",
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
-      }}
+      style={gridStyle}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -884,6 +880,41 @@ function TimelineLane({
       )}
     </div>
   );
+}
+
+function getTimelineGridStyle({
+  pixelsPerBeat,
+  scrollX,
+}: {
+  pixelsPerBeat: number;
+  scrollX: number;
+}): React.CSSProperties {
+  const colors: Record<TimelineGridLayer["kind"], string> = {
+    bar: "rgb(82 82 82)",
+    beat: "rgb(64 64 64)",
+    subdivision: "rgb(51 51 51)",
+  };
+  const layers = calculateTimelineGridLayers({
+    beatsPerBar: BEATS_PER_BAR,
+    minimumPixelSpacing: 8,
+    pixelsPerBeat,
+    scrollBeat: scrollX,
+    subdivisionsPerBeat: 4,
+  });
+  return {
+    backgroundImage: layers
+      .map(
+        ({ kind }) =>
+          `linear-gradient(to right, ${colors[kind]} 1px, transparent 1px)`,
+      )
+      .join(", "),
+    backgroundPosition: layers
+      .map(({ offsetPixels }) => `${offsetPixels}px 0`)
+      .join(", "),
+    backgroundSize: layers
+      .map(({ spacingPixels }) => `${spacingPixels}px 100%`)
+      .join(", "),
+  };
 }
 
 function InputInspector({
