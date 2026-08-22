@@ -265,11 +265,7 @@ export function LatencyChecker() {
             <div className="mt-4">
               <label className="grid gap-2 text-xs font-semibold text-neutral-600">
                 Input meter
-                <InputMeter
-                  active={isMonitoring}
-                  peak={inputPeak}
-                  zeroMarkerClassName="bg-red-700"
-                />
+                <InputMeter active={isMonitoring} peak={inputPeak} />
               </label>
             </div>
             {startMonitoringMutation.error && (
