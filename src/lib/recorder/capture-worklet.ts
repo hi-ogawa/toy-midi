@@ -84,6 +84,8 @@ export class CaptureProcessor extends AudioWorkletProcessor {
       }
     }
     if (channels.length > 0) {
+      // Clamp against the observed graph so an unavailable selected channel
+      // still produces capture from an available channel.
       const source =
         channels[Math.min(this.selectedChannel, channels.length - 1)];
       for (const sample of source) {
@@ -91,6 +93,8 @@ export class CaptureProcessor extends AudioWorkletProcessor {
       }
       this.meterBlockCount++;
       if (this.meterBlockCount >= 16) {
+        // Aggregate render quanta to avoid flooding the main thread with meter
+        // updates while retaining a responsive peak display.
         this.postMessage({ type: "level", peak: this.meterPeak });
         this.meterBlockCount = 0;
         this.meterPeak = 0;
@@ -99,6 +103,8 @@ export class CaptureProcessor extends AudioWorkletProcessor {
         this.appendCapture(source);
       }
     } else if (this.recording && this.captureLength > 0) {
+      // Flush before a gap so no chunk claims frame-contiguous PCM across
+      // missing input. Take assembly leaves the absent interval as silence.
       this.flushCapture();
     }
     return true;
@@ -108,6 +114,8 @@ export class CaptureProcessor extends AudioWorkletProcessor {
     let sourceOffset = 0;
     while (sourceOffset < source.length) {
       if (this.captureLength === 0) {
+        // currentFrame identifies this render quantum. sourceOffset preserves
+        // the absolute frame when one quantum spans two transfer batches.
         this.captureStartFrame = currentFrame + sourceOffset;
       }
       const count = Math.min(
@@ -130,6 +138,8 @@ export class CaptureProcessor extends AudioWorkletProcessor {
     if (this.captureLength === 0) {
       return;
     }
+    // Copy only the populated prefix because the staging buffer is reused,
+    // then transfer ownership of that copy to the main thread.
     const samples = this.captureBuffer.slice(0, this.captureLength);
     this.postMessage(
       { type: "samples", frameStart: this.captureStartFrame, samples },
