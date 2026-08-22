@@ -371,15 +371,17 @@ function useRecorderInput({
     recorderStorage.readPreferences(),
   );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState(preference.inputDeviceId);
+  const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
   const [peak, setPeak] = useState(0);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
-      nextDevices.some((device) => device.deviceId === preference.inputDeviceId)
-        ? preference.inputDeviceId
+      nextDevices.some(
+        (device) => device.deviceId === preference.input?.deviceId,
+      )
+        ? preference.input?.deviceId
         : nextDevices[0]?.deviceId,
       { remember: false },
     );
@@ -394,9 +396,14 @@ function useRecorderInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
-      const nextPreference = { ...preference, inputDeviceId: nextDeviceId };
+      const nextPreference = {
+        ...preference,
+        input: nextDeviceId
+          ? { deviceId: nextDeviceId, channel: 0 }
+          : undefined,
+      };
       setPreference(nextPreference);
-      recorderStorage.updatePreferences({ inputDeviceId: nextDeviceId });
+      recorderStorage.writePreferences(nextPreference);
     }
   }
 
@@ -422,7 +429,7 @@ function useRecorderInput({
         onLevel: setPeak,
       });
       runtime.selectChannel(
-        Math.min(preference.inputChannel, channelCount - 1),
+        Math.min(preference.input?.channel ?? 0, channelCount - 1),
       );
     },
   });
@@ -457,9 +464,15 @@ function useRecorderInput({
     selectDevice,
     selectChannel: (channel: number) => {
       runtime.selectChannel(channel);
-      const nextPreference = { ...preference, inputChannel: channel };
+      if (!deviceId) {
+        return;
+      }
+      const nextPreference = {
+        ...preference,
+        input: { deviceId, channel },
+      };
       setPreference(nextPreference);
-      recorderStorage.updatePreferences({ inputChannel: channel });
+      recorderStorage.writePreferences(nextPreference);
     },
     toggle: () => {
       if (!hasAccess) {

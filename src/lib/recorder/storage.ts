@@ -3,23 +3,22 @@ import { z } from "zod";
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
 const recorderPreferencesSchema = z.object({
-  inputDeviceId: z.string().optional(),
-  inputChannel: z.number().int().nonnegative(),
+  input: z
+    .object({
+      deviceId: z.string(),
+      channel: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
-const DEFAULT_PREFERENCES: RecorderPreferences = {
-  inputChannel: 0,
-};
+const DEFAULT_PREFERENCES: RecorderPreferences = {};
 
 class RecorderStorage {
   readPreferences(): RecorderPreferences {
     try {
       const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return recorderPreferencesSchema.parse({
-        ...DEFAULT_PREFERENCES,
-        ...stored,
-      });
+      return recorderPreferencesSchema.parse(stored);
     } catch {
       return DEFAULT_PREFERENCES;
     }
@@ -31,10 +30,6 @@ class RecorderStorage {
     } catch {
       // Storage can be disabled without preventing recording.
     }
-  }
-
-  updatePreferences(updates: Partial<RecorderPreferences>): void {
-    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 }
 
