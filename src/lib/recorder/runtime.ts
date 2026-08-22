@@ -1,4 +1,5 @@
 import { createStore } from "../../utils/store.ts";
+import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { AudioContextTimelineClock } from "./clock.ts";
@@ -6,14 +7,20 @@ import { ActiveRecording } from "./recording.ts";
 
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
+const WAVEFORM_POINTS_PER_SECOND = 800;
+const DEFAULT_TRACK_HEIGHT = 96;
+const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
+const MAX_TRACK_HEIGHT = 300;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
   id: string;
+  height: number;
   clip?: {
     name: string;
     duration: number;
+    audioView: AudioView;
   };
   gain: number;
   muted: boolean;
@@ -22,6 +29,7 @@ interface AudioTrackState {
 }
 
 interface RecordingTrackState {
+  height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -31,6 +39,7 @@ interface RecordingTrackState {
 interface TakeState {
   duration: number;
   captureOffset: number;
+  audioView?: AudioView;
 }
 
 export interface RecorderRuntimeState {
@@ -181,6 +190,11 @@ export class RecorderRuntime {
       clip: {
         name: file.name,
         duration: buffer.duration,
+        audioView: createAudioView(
+          buffer.getChannelData(0),
+          buffer.sampleRate,
+          WAVEFORM_POINTS_PER_SECOND,
+        ),
       },
     }));
   }
@@ -200,6 +214,13 @@ export class RecorderRuntime {
     this.updateAudioTrack(id, (track) => ({
       ...track,
       timelineOffset,
+    }));
+  }
+
+  setAudioTrackHeight(id: string, height: number): void {
+    this.updateAudioTrack(id, (track) => ({
+      ...track,
+      height: clampTrackHeight(height),
     }));
   }
 
@@ -255,6 +276,15 @@ export class RecorderRuntime {
     const recordingTrack = { ...this.store.get().recordingTrack, ...update };
     this.store.update({ recordingTrack });
     this.syncTrackMix();
+  }
+
+  setRecordingTrackHeight(height: number): void {
+    this.store.update({
+      recordingTrack: {
+        ...this.store.get().recordingTrack,
+        height: clampTrackHeight(height),
+      },
+    });
   }
 
   async play(): Promise<void> {
@@ -436,7 +466,17 @@ export class RecorderRuntime {
       status: "ready",
       recordingTrack: {
         ...this.store.get().recordingTrack,
-        takes: [{ ...take, duration: takeBuffer.duration }],
+        takes: [
+          {
+            ...take,
+            duration: takeBuffer.duration,
+            audioView: createAudioView(
+              samples,
+              context.sampleRate,
+              WAVEFORM_POINTS_PER_SECOND,
+            ),
+          },
+        ],
       },
     });
   }
@@ -461,6 +501,7 @@ export class RecorderRuntime {
 function createAudioTrackState(): AudioTrackState {
   return {
     id: crypto.randomUUID(),
+    height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
@@ -470,9 +511,14 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
+    height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
     takes: [],
   };
+}
+
+function clampTrackHeight(height: number): number {
+  return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
 }

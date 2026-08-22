@@ -1,22 +1,46 @@
 import { gainToDb } from "../../lib/music";
+import { secondsToBeats } from "../../lib/timeline";
 
-export const BEATS_PER_BAR = 4;
 export const DEFAULT_PIXELS_PER_BEAT = 80;
 export const MIN_PIXELS_PER_BEAT = 1;
 export const MAX_PIXELS_PER_BEAT = 400;
 
-export function recorderSecondsToBeats(seconds: number, tempo: number): number {
-  return (seconds / 60) * tempo;
+export const RECORDER_TIME_SIGNATURES = ["3/4", "4/4", "6/8"] as const;
+export const RECORDER_GRID_DIVISIONS = ["1/4", "1/8", "1/16", "1/32"] as const;
+
+export type RecorderTimeSignature = (typeof RECORDER_TIME_SIGNATURES)[number];
+export type RecorderGridDivision = (typeof RECORDER_GRID_DIVISIONS)[number];
+
+export const DEFAULT_RECORDER_TEMPO = 120;
+export const DEFAULT_RECORDER_TIME_SIGNATURE: RecorderTimeSignature = "4/4";
+export const DEFAULT_RECORDER_GRID_DIVISION: RecorderGridDivision = "1/16";
+
+export function getRecorderBeatsPerBar(
+  timeSignature: RecorderTimeSignature,
+): number {
+  const [numerator, denominator] = timeSignature.split("/").map(Number);
+  return numerator * (4 / denominator);
 }
 
-export function recorderBeatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
+export function getRecorderSubdivisionsPerBeat(
+  gridDivision: RecorderGridDivision,
+): number {
+  return Number(gridDivision.slice(2)) / 4;
 }
 
-export function formatBarBeat(seconds: number, tempo: number): string {
-  const totalBeats = recorderSecondsToBeats(seconds, tempo);
-  const bar = Math.floor(totalBeats / BEATS_PER_BAR) + 1;
-  const beat = Math.floor(totalBeats % BEATS_PER_BAR) + 1;
+export function formatBarBeat(
+  seconds: number,
+  tempo: number,
+  timeSignature: RecorderTimeSignature,
+): string {
+  const totalBeats = secondsToBeats(seconds, tempo);
+  const [numerator, denominator] = timeSignature.split("/").map(Number);
+  const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
+  const bar = Math.floor(totalBeats / beatsPerBar) + 1;
+  const beat = Math.min(
+    numerator,
+    Math.floor((totalBeats % beatsPerBar) / (4 / denominator)) + 1,
+  );
   return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
 }
 
@@ -39,13 +63,4 @@ export function formatTime(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${remaining
     .toFixed(3)
     .padStart(6, "0")}`;
-}
-
-export function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
-  const minimumLabelSpacing = 48;
-  let bars = 1;
-  while (bars * BEATS_PER_BAR * pixelsPerBeat < minimumLabelSpacing) {
-    bars *= 2;
-  }
-  return bars;
 }

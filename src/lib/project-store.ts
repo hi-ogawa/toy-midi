@@ -665,16 +665,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 }));
 
-// Helper: convert seconds to beats
-export function secondsToBeats(seconds: number, tempo: number): number {
-  return (seconds / 60) * tempo;
-}
-
-// Helper: convert beats to seconds
-export function beatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
-}
-
 // === Project Persistence ===
 
 const STORAGE_VERSION = 2;

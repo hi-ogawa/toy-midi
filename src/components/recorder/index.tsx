@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  ChevronDownIcon,
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
@@ -15,8 +16,10 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
+import { AudioView } from "../../lib/audio-view";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -32,30 +35,44 @@ import {
 } from "../../lib/recorder/runtime";
 import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
+import {
+  beatsToSeconds,
+  getVisibleBarInterval,
+  secondsToBeats,
+} from "../../lib/timeline";
+import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
+import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
-import { InputMeter } from "./input-meter";
 import {
-  BEATS_PER_BAR,
   DEFAULT_PIXELS_PER_BEAT,
+  DEFAULT_RECORDER_GRID_DIVISION,
+  DEFAULT_RECORDER_TEMPO,
+  DEFAULT_RECORDER_TIME_SIGNATURE,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
   formatBarBeat,
   formatDb,
   formatLatencyMilliseconds,
   formatTime,
-  getRecorderRulerLabelEveryBars,
-  recorderBeatsToSeconds,
-  recorderSecondsToBeats,
+  getRecorderBeatsPerBar,
+  getRecorderSubdivisionsPerBeat,
+  RECORDER_GRID_DIVISIONS,
+  RECORDER_TIME_SIGNATURES,
+  RecorderGridDivision,
+  RecorderTimeSignature,
 } from "./utils";
 
 export function Recorder() {
@@ -152,15 +169,19 @@ export function Recorder() {
         isRecording={isRecording}
         position={state.position}
         tempo={timeline.tempo}
+        timeSignature={timeline.timeSignature}
+        gridDivision={timeline.gridDivision}
         pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.status === "idle"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
         onTempoChange={timeline.setTempo}
+        onTimeSignatureChange={timeline.setTimeSignature}
+        onGridDivisionChange={timeline.setGridDivision}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="relative min-w-0 overflow-hidden border-r border-neutral-700">
+        <section className="relative min-w-0 overflow-auto border-r border-neutral-700">
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
@@ -176,7 +197,9 @@ export function Recorder() {
             )}
             <TimelineHeader
               pixelsPerBeat={timeline.pixelsPerBeat}
-              scrollX={timeline.scrollX}
+              beatsPerBar={timeline.beatsPerBar}
+              subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+              viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
@@ -189,6 +212,7 @@ export function Recorder() {
                 key={track.id}
                 title={`Audio ${index + 1}`}
                 subtitle={track.clip?.name ?? "No file loaded"}
+                height={track.height}
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
@@ -200,6 +224,9 @@ export function Recorder() {
                 }
                 onSoloedChange={(soloed) =>
                   runtime.setAudioTrackMix(track.id, { soloed })
+                }
+                onHeightChange={(height) =>
+                  runtime.setAudioTrackHeight(track.id, height)
                 }
                 action={
                   <AudioTrackActions
@@ -219,13 +246,26 @@ export function Recorder() {
                           label: track.clip.name,
                           offset: track.timelineOffset,
                           variant: "audio",
+                          audioView: track.clip.audioView,
                         }
                       : undefined
                   }
                   pixelsPerBeat={timeline.pixelsPerBeat}
-                  scrollX={timeline.scrollX}
+                  beatsPerBar={timeline.beatsPerBar}
+                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                  viewportStartBeat={timeline.viewportStartBeat}
                   tempo={timeline.tempo}
+                  viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
+                  onClipOffsetChange={(offset) =>
+                    runtime.setAudioTrackOffset(track.id, offset)
+                  }
+                  onClipDragEnd={() => {
+                    if (state.isPlaying) {
+                      runtime.pause();
+                      playMutation.mutate();
+                    }
+                  }}
                   onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
@@ -235,14 +275,13 @@ export function Recorder() {
               title="Capture"
               subtitle={
                 isRecording
-                  ? `Recording · ${formatTime(
-                      Math.max(0, state.position - state.getTakeOffset()),
-                    )}`
+                  ? `Recording · ${formatTime(take?.duration ?? 0)}`
                   : take
                     ? `Take 1 · ${formatTime(take.duration)}`
                     : "No take"
               }
               gain={state.recordingTrack.gain}
+              height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
@@ -250,14 +289,15 @@ export function Recorder() {
               onSoloedChange={(soloed) =>
                 runtime.setRecordingTrackMix({ soloed })
               }
+              onHeightChange={(height) =>
+                runtime.setRecordingTrackHeight(height)
+              }
             >
               <TimelineLane
                 clip={
                   take
                     ? {
-                        duration: isRecording
-                          ? Math.max(0, state.position - state.getTakeOffset())
-                          : take.duration,
+                        duration: take.duration,
                         label: isRecording
                           ? "Recording..."
                           : isProcessing
@@ -265,12 +305,16 @@ export function Recorder() {
                             : "Take 1",
                         offset: state.getTakeOffset(),
                         variant: isRecording ? "recording" : "take",
+                        audioView: take.audioView,
                       }
                     : undefined
                 }
                 pixelsPerBeat={timeline.pixelsPerBeat}
-                scrollX={timeline.scrollX}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -435,18 +479,28 @@ function useRecorderInput({
 }
 
 function useRecorderTimeline({ position }: { position: number }) {
-  const [tempo, setTempo] = useState(120);
+  const [tempo, setTempo] = useState(DEFAULT_RECORDER_TEMPO);
+  const [timeSignature, setTimeSignature] = useState<RecorderTimeSignature>(
+    DEFAULT_RECORDER_TIME_SIGNATURE,
+  );
+  const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
+    DEFAULT_RECORDER_GRID_DIVISION,
+  );
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
-  const [scrollX, setScrollX] = useState(0);
+  const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
+  const subdivisionsPerBeat = getRecorderSubdivisionsPerBeat(gridDivision);
   const playheadX =
-    (recorderSecondsToBeats(position, tempo) - scrollX) * pixelsPerBeat;
+    (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
-    const beatAtAnchor = anchorX / pixelsPerBeat + scrollX;
+    const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
     setPixelsPerBeat(nextPixelsPerBeat);
-    setScrollX(Math.max(0, beatAtAnchor - anchorX / nextPixelsPerBeat));
+    setViewportStartBeat(
+      Math.max(0, beatAtAnchor - anchorX / nextPixelsPerBeat),
+    );
   }
 
   const viewportRef = useCallback(
@@ -463,7 +517,9 @@ function useRecorderTimeline({ position }: { position: number }) {
         event.preventDefault();
         if (!event.ctrlKey) {
           const delta = event.deltaX || event.deltaY;
-          setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
+          setViewportStartBeat((value) =>
+            Math.max(0, value + delta / pixelsPerBeat),
+          );
           return;
         }
         if (event.deltaY === 0) {
@@ -485,15 +541,21 @@ function useRecorderTimeline({ position }: { position: number }) {
         wheelTarget?.removeEventListener("wheel", handleWheel);
       };
     },
-    [pixelsPerBeat, scrollX],
+    [pixelsPerBeat, viewportStartBeat],
   );
 
   return {
+    beatsPerBar,
+    gridDivision,
     pixelsPerBeat,
     playheadX,
-    scrollX,
+    viewportStartBeat,
+    setGridDivision,
     setTempo,
+    setTimeSignature,
+    subdivisionsPerBeat,
     tempo,
+    timeSignature,
     viewportRef,
     viewportWidth,
     showPlayhead,
@@ -506,22 +568,30 @@ function RecorderHeader({
   isRecording,
   position,
   tempo,
+  timeSignature,
+  gridDivision,
   pixelsPerBeat,
   recordDisabled,
   onPlayToggle,
   onRecordToggle,
   onTempoChange,
+  onTimeSignatureChange,
+  onGridDivisionChange,
 }: {
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
   position: number;
   tempo: number;
+  timeSignature: RecorderTimeSignature;
+  gridDivision: RecorderGridDivision;
   pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
+  onTimeSignatureChange: (value: RecorderTimeSignature) => void;
+  onGridDivisionChange: (value: RecorderGridDivision) => void;
 }) {
   const tempoInput = useDraftInput({
     value: tempo,
@@ -572,7 +642,7 @@ function RecorderHeader({
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
       <output className="font-mono text-sm tabular-nums text-neutral-300">
-        {formatBarBeat(position, tempo)} - {formatTime(position)}
+        {formatBarBeat(position, tempo, timeSignature)} - {formatTime(position)}
       </output>
       <div className="h-5 w-px bg-neutral-600" />
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
@@ -584,6 +654,50 @@ function RecorderHeader({
           className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
         />
       </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
+            {timeSignature}
+            <ChevronDownIcon className="size-3 text-neutral-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={timeSignature}
+            onValueChange={(value) =>
+              onTimeSignatureChange(value as RecorderTimeSignature)
+            }
+          >
+            {RECORDER_TIME_SIGNATURES.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                {value}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
+            {gridDivision}
+            <ChevronDownIcon className="size-3 text-neutral-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={gridDivision}
+            onValueChange={(value) =>
+              onGridDivisionChange(value as RecorderGridDivision)
+            }
+          >
+            {RECORDER_GRID_DIVISIONS.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                {value}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className="flex-1" />
       <span className="font-mono text-[10px] text-neutral-500">
         {Math.round(pixelsPerBeat)} px/beat
@@ -612,20 +726,24 @@ function RecorderHeader({
 }
 
 function TimelineHeader({
+  beatsPerBar,
   pixelsPerBeat,
-  scrollX,
+  viewportStartBeat,
   tempo,
   timelineWidth,
   isAddingAudio,
+  subdivisionsPerBeat,
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
 }: {
+  beatsPerBar: number;
   pixelsPerBeat: number;
-  scrollX: number;
+  viewportStartBeat: number;
   tempo: number;
   timelineWidth: number;
   isAddingAudio: boolean;
+  subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
@@ -666,9 +784,11 @@ function TimelineHeader({
         </div>
       </div>
       <TimelineRuler
+        beatsPerBar={beatsPerBar}
         pixelsPerBeat={pixelsPerBeat}
-        scrollX={scrollX}
+        viewportStartBeat={viewportStartBeat}
         tempo={tempo}
+        subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
       />
@@ -715,41 +835,50 @@ function AudioTrackActions({
 }
 
 function TimelineRuler({
+  beatsPerBar,
   pixelsPerBeat,
-  scrollX,
+  viewportStartBeat,
   tempo,
+  subdivisionsPerBeat,
   timelineWidth,
   onSeek,
 }: {
+  beatsPerBar: number;
   pixelsPerBeat: number;
-  scrollX: number;
+  viewportStartBeat: number;
   tempo: number;
+  subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
 }) {
-  const labelEveryBars = getRecorderRulerLabelEveryBars(pixelsPerBeat);
-  const labelEveryBeats = labelEveryBars * BEATS_PER_BAR;
+  const labelEveryBars = getVisibleBarInterval({
+    barWidth: beatsPerBar * pixelsPerBeat,
+    minimumPixelSpacing: 48,
+  });
+  const labelEveryBeats = labelEveryBars * beatsPerBar;
   const firstLabelBeat =
-    Math.floor(scrollX / labelEveryBeats) * labelEveryBeats;
+    Math.floor(viewportStartBeat / labelEveryBeats) * labelEveryBeats;
   const visibleBeats = timelineWidth / pixelsPerBeat;
   const labelCount =
-    Math.ceil((scrollX + visibleBeats - firstLabelBeat) / labelEveryBeats) + 1;
-  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
+    Math.ceil(
+      (viewportStartBeat + visibleBeats - firstLabelBeat) / labelEveryBeats,
+    ) + 1;
   return (
     <div
       className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
-      style={{
-        backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${barWidth}px 100%`,
-      }}
+      style={getTimelineGridStyle({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
           0,
-          (event.clientX - rect.left) / pixelsPerBeat + scrollX,
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
         );
-        onSeek(recorderBeatsToSeconds(beat, tempo));
+        onSeek(beatsToSeconds(beat, tempo));
       }}
     >
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
@@ -758,9 +887,9 @@ function TimelineRuler({
           <span
             key={beat}
             className="absolute bottom-1.5"
-            style={{ left: (beat - scrollX) * pixelsPerBeat + 6 }}
+            style={{ left: (beat - viewportStartBeat) * pixelsPerBeat + 6 }}
           >
-            {beat / BEATS_PER_BAR + 1}
+            {beat / beatsPerBar + 1}
           </span>
         );
       })}
@@ -771,6 +900,7 @@ function TimelineRuler({
 function TrackRow({
   title,
   subtitle,
+  height,
   gain,
   muted,
   soloed,
@@ -778,10 +908,12 @@ function TrackRow({
   onGainChange,
   onMutedChange,
   onSoloedChange,
+  onHeightChange,
   children,
 }: {
   title: string;
   subtitle: string;
+  height: number;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -789,14 +921,27 @@ function TrackRow({
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
+  onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
+  const resizeRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      return { startClientY: event.clientY, startHeight: height };
+    },
+    onMove: (event, drag) => {
+      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    },
+  });
   const toggleClass = (active: boolean) =>
     active
       ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
-    <div className="grid min-h-24 grid-cols-[13.5rem_1fr] border-b border-neutral-700">
+    <div
+      className="relative grid grid-cols-[13.5rem_1fr] border-b border-neutral-700"
+      style={{ height }}
+    >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">{title}</div>
@@ -844,68 +989,76 @@ function TrackRow({
         </label>
       </div>
       {children}
+      <div
+        ref={resizeRef}
+        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        title={`Resize ${title}`}
+      />
     </div>
   );
 }
 
+type RecorderTimelineClip = {
+  duration: number;
+  label: string;
+  offset: number;
+  variant: "audio" | "take" | "recording";
+  audioView?: AudioView;
+};
+
 function TimelineLane({
+  beatsPerBar,
   clip,
   emptyLabel,
   pixelsPerBeat,
-  scrollX,
+  viewportStartBeat,
   tempo,
+  viewportWidth,
+  onClipOffsetChange,
+  onClipDragEnd,
+  subdivisionsPerBeat,
   onSeek,
 }: {
-  clip?: {
-    duration: number;
-    label: string;
-    offset: number;
-    variant: "audio" | "take" | "recording";
-  };
+  beatsPerBar: number;
+  clip?: RecorderTimelineClip;
   emptyLabel: string;
   pixelsPerBeat: number;
-  scrollX: number;
+  viewportStartBeat: number;
   tempo: number;
+  viewportWidth: number;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: () => void;
+  subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
-  const clipClass = {
-    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
-    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
-    recording: "border-red-400/70 bg-red-400/20 text-red-100",
-  }[clip?.variant ?? "audio"];
   return (
     <div
-      className="relative min-h-24 overflow-hidden bg-neutral-900"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, rgb(64 64 64) 1px, transparent 1px)",
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
-      }}
+      className="relative overflow-hidden bg-neutral-900"
+      style={getTimelineGridStyle({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
           0,
-          (event.clientX - rect.left) / pixelsPerBeat + scrollX,
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
         );
-        onSeek(recorderBeatsToSeconds(beat, tempo));
+        onSeek(beatsToSeconds(beat, tempo));
       }}
     >
       {clip ? (
-        <div
-          className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
-          style={{
-            left:
-              (recorderSecondsToBeats(clip.offset, tempo) - scrollX) *
-              pixelsPerBeat,
-            width: Math.max(
-              2,
-              recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat,
-            ),
-          }}
-        >
-          <span className="truncate">{clip.label}</span>
-        </div>
+        <TimelineClip
+          clip={clip}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onClipOffsetChange={onClipOffsetChange}
+          onClipDragEnd={onClipDragEnd}
+        />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
@@ -913,6 +1066,127 @@ function TimelineLane({
       )}
     </div>
   );
+}
+
+function TimelineClip({
+  clip,
+  pixelsPerBeat,
+  viewportStartBeat,
+  tempo,
+  viewportWidth,
+  onClipOffsetChange,
+  onClipDragEnd,
+}: {
+  clip: RecorderTimelineClip;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  tempo: number;
+  viewportWidth: number;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: () => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(true);
+      return {
+        startClientX: event.clientX,
+        startOffset: clip!.offset,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const deltaBeats =
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+      onClipOffsetChange!(
+        Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, drag.tempo)),
+      );
+    },
+    onEnd: () => {
+      setIsDragging(false);
+      onClipDragEnd?.();
+    },
+  });
+  const clipClass = {
+    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
+    recording: "border-red-400/70 bg-red-400/20 text-red-100",
+  }[clip.variant];
+  const clipStartBeat = secondsToBeats(clip.offset, tempo);
+  const clipWidth = Math.max(
+    2,
+    secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
+  );
+  const visibleStart = Math.max(
+    0,
+    beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
+  );
+  const visibleEnd = Math.min(
+    clip.duration,
+    beatsToSeconds(
+      viewportStartBeat + viewportWidth / pixelsPerBeat - clipStartBeat,
+      tempo,
+    ),
+  );
+  return (
+    <div
+      ref={onClipOffsetChange ? dragRef : undefined}
+      className={cn(
+        "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
+        clipClass,
+        onClipOffsetChange && "cursor-ew-resize select-none",
+        isDragging && "brightness-125",
+      )}
+      style={{
+        left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
+        width: clipWidth,
+      }}
+    >
+      {clip.audioView && visibleEnd > visibleStart && (
+        <AudioWaveformView
+          audioView={clip.audioView}
+          audioDuration={clip.duration}
+          visibleStart={visibleStart}
+          visibleEnd={visibleEnd}
+          pixelWidth={clipWidth}
+        />
+      )}
+      <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+        <span className="mr-1.5">{clip.label}</span>
+        {onClipOffsetChange && clip.offset > 0 && (
+          <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getTimelineGridStyle({
+  beatsPerBar,
+  pixelsPerBeat,
+  viewportStartBeat,
+  subdivisionsPerBeat,
+}: {
+  beatsPerBar: number;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  subdivisionsPerBeat: number;
+}): React.CSSProperties {
+  return getTimelineGridBackground({
+    beatsPerBar,
+    colors: {
+      bar: "rgb(82 82 82)",
+      beat: "rgb(64 64 64)",
+      subdivision: "rgb(51 51 51)",
+    },
+    minimumPixelSpacing: 8,
+    pixelsPerBeat,
+    viewportStartBeat,
+    subdivisionsPerBeat,
+  });
 }
 
 function InputInspector({

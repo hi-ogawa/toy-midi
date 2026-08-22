@@ -11,9 +11,9 @@ import {
 import {
   type AudioTrack,
   generateNoteId,
-  secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
+import { secondsToBeats } from "../lib/timeline";
 import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
