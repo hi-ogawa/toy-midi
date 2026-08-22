@@ -59,9 +59,7 @@ export class AudioContextTransport {
     if (!this.store.get().running) {
       return;
     }
-    const position = this.getTransportPositionAtContextTime(
-      this.context.currentTime,
-    );
+    const position = this.getTransportPosition();
     for (const participant of this.participants) {
       participant.stop();
     }
@@ -97,11 +95,11 @@ export class AudioContextTransport {
     );
   }
 
-  private getTransportPositionAtContextTime(contextTime: number): number {
+  private getTransportPosition(): number {
     // A future scheduled start must not move the visible playhead backward.
     return Math.max(
       this.timelineTime,
-      this.getTimelinePositionAtContextTime(contextTime),
+      this.getTimelinePositionAtContextTime(this.context.currentTime),
     );
   }
 
@@ -111,9 +109,7 @@ export class AudioContextTransport {
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
       this.store.update({
-        position: this.getTransportPositionAtContextTime(
-          this.context.currentTime,
-        ),
+        position: this.getTransportPosition(),
       });
     });
   }
