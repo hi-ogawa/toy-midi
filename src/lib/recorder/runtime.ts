@@ -2,10 +2,9 @@ import { createStore } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
-import { AudioContextTimelineClock } from "./clock.ts";
 import { ActiveRecording } from "./recording.ts";
+import { AudioContextTransport } from "./transport.ts";
 
-const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
 const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
@@ -71,7 +70,7 @@ export class RecorderRuntime {
   }));
 
   private context?: AudioContext;
-  private clock?: AudioContextTimelineClock;
+  private transport?: AudioContextTransport;
   private captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
@@ -216,7 +215,7 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    this.audioTrackPlaybacks.get(id)?.stop();
+    this.audioTrackPlaybacks.get(id)?.dispose();
     this.audioTrackPlaybacks.delete(id);
     this.store.update({
       audioTracks: this.store
@@ -245,7 +244,7 @@ export class RecorderRuntime {
     if (!playback) {
       const context = this.getContext();
       playback = new AudioBufferPlayback({
-        context,
+        transport: this.transport!,
         output: context.destination,
       });
       const track = this.store
@@ -279,57 +278,20 @@ export class RecorderRuntime {
   }
 
   async play(): Promise<void> {
-    if (this.store.get().isPlaying) {
-      return;
-    }
-    const context = this.getContext();
-    await context.resume();
-    // Give every source a shared future AudioContext anchor. Their relative
-    // placement is then determined only by timeline offsets.
-    const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    for (const playback of this.audioTrackPlaybacks.values()) {
-      playback.start({
-        scheduledContextTime: startTime,
-        playheadTime: this.store.get().position,
-      });
-    }
+    this.getContext();
     this.recordingTrackPlayback!.setTimelineOffset(
       this.store.get().getTakeOffset(),
     );
-    this.recordingTrackPlayback!.start({
-      scheduledContextTime: startTime,
-      playheadTime: this.store.get().position,
-    });
-    this.clock!.start({
-      contextTime: startTime,
-      position: this.store.get().position,
-    });
+    await this.transport!.play();
   }
 
   pause(): void {
-    if (!this.store.get().isPlaying) {
-      return;
-    }
-    this.clock!.pause();
-    this.stopPlayback();
+    this.transport?.pause();
   }
 
   seek(position: number): void {
-    // Seeking preserves whether the transport was running. Active buffer sources
-    // cannot be repositioned, so running playback must be recreated at the new
-    // playhead position.
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const nextPosition = Math.max(0, position);
-    this.clock?.setPosition(nextPosition);
-    if (!this.clock) {
-      this.store.update({ position: nextPosition });
-    }
-    if (wasPlaying) {
-      void this.play();
-    }
+    this.getContext();
+    this.transport!.seek(position);
   }
 
   async startRecording(): Promise<void> {
@@ -339,7 +301,7 @@ export class RecorderRuntime {
     const context = this.getContext();
     await context.resume();
     // Recording rolls the transport so the worklet's capture frame can be
-    // converted through an active clock into a stable timeline placement.
+    // converted through its active time mapping into a stable placement.
     if (!this.store.get().isPlaying) {
       await this.play();
     }
@@ -359,9 +321,8 @@ export class RecorderRuntime {
         takes: [
           {
             duration: 0,
-            captureOffset: this.clock!.getTimelinePosition(
-              startFrame / context.sampleRate,
-            ),
+            captureOffset:
+              this.transport!.getPositionAtContextFrame(startFrame),
           },
         ],
       },
@@ -387,25 +348,18 @@ export class RecorderRuntime {
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
+      this.transport = new AudioContextTransport(this.context);
       this.recordingTrackPlayback = new AudioBufferPlayback({
-        context: this.context,
+        transport: this.transport,
         output: this.context.destination,
       });
       this.syncTrackMix();
-      this.clock = new AudioContextTimelineClock(this.context);
-      this.clock.subscribe(() => {
-        const { position, running } = this.clock!.getSnapshot();
+      this.transport.subscribe(() => {
+        const { position, running } = this.transport!.getSnapshot();
         this.store.update({ isPlaying: running, position });
       });
     }
     return this.context;
-  }
-
-  private stopPlayback(): void {
-    for (const playback of this.audioTrackPlaybacks.values()) {
-      playback.stop();
-    }
-    this.recordingTrackPlayback?.stop();
   }
 
   private syncTrackMix(): void {

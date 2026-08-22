@@ -1,20 +1,28 @@
-export class AudioBufferPlayback {
+import type {
+  AudioContextTransport,
+  TransportAnchor,
+  TransportParticipant,
+} from "./transport.ts";
+
+export class AudioBufferPlayback implements TransportParticipant {
   private readonly context: AudioContext;
   private readonly gain: GainNode;
+  private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
   private timelineOffset = 0;
 
   constructor({
-    context,
+    transport,
     output,
   }: {
-    context: AudioContext;
+    transport: AudioContextTransport;
     output: AudioNode;
   }) {
-    this.context = context;
-    this.gain = context.createGain();
+    this.context = transport.context;
+    this.gain = this.context.createGain();
     this.gain.connect(output);
+    this.unregister = transport.register(this);
   }
 
   setBuffer(buffer?: AudioBuffer): void {
@@ -30,25 +38,18 @@ export class AudioBufferPlayback {
   }
 
   /**
-   * Starts this buffer as part of a transport scheduled for
-   * `scheduledContextTime`, when the transport playhead is at `playheadTime`.
+   * Starts this buffer from the transport's shared context and timeline anchor.
    *
    * The buffer's sample zero belongs at its configured offset on the transport
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  start({
-    scheduledContextTime,
-    playheadTime,
-  }: {
-    scheduledContextTime: number;
-    playheadTime: number;
-  }): void {
+  start({ contextTime, position }: TransportAnchor): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
     }
-    const bufferOffset = Math.max(0, playheadTime - this.timelineOffset);
+    const bufferOffset = Math.max(0, position - this.timelineOffset);
     if (bufferOffset >= buffer.duration) {
       return;
     }
@@ -56,7 +57,7 @@ export class AudioBufferPlayback {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      scheduledContextTime + Math.max(0, this.timelineOffset - playheadTime),
+      contextTime + Math.max(0, this.timelineOffset - position),
       bufferOffset,
     );
     this.source = source;
@@ -66,5 +67,10 @@ export class AudioBufferPlayback {
     this.source?.stop();
     this.source?.disconnect();
     this.source = undefined;
+  }
+
+  dispose(): void {
+    this.unregister();
+    this.gain.disconnect();
   }
 }
