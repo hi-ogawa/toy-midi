@@ -302,8 +302,10 @@ export class RecorderRuntime {
     }
     const context = this.ensureContext();
     await context.resume();
-    // Recording rolls the transport so the worklet's capture frame can be
-    // converted through its active time mapping into a stable placement.
+    // TODO: When rolling a stopped transport, confirm capture is active before
+    // scheduling playback and discard captured pre-roll before that boundary.
+    // The current order assumes worklet capture starts within the playback lead
+    // and can otherwise miss the beginning of playback.
     if (!this.store.get().isPlaying) {
       await this.play();
     }
