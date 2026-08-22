@@ -28,6 +28,9 @@ export class RecorderMetronome implements TransportParticipant {
 
   setTempo(tempo: number): void {
     this.tempo = tempo;
+    if (this.transport.store.get().running) {
+      this.start();
+    }
   }
 
   start(): void {

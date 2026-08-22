@@ -367,9 +367,6 @@ export class RecorderRuntime {
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome?.setTempo(tempo);
-    if (this.store.get().isPlaying) {
-      this.seek(this.store.get().position);
-    }
   }
 
   setMetronomeEnabled(metronomeEnabled: boolean): void {
