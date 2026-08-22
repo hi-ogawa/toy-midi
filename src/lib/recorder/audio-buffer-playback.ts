@@ -1,6 +1,5 @@
 import type {
   AudioContextTransport,
-  TransportAnchor,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -44,12 +43,15 @@ export class AudioBufferPlayback implements TransportParticipant {
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  start({ contextTime, position }: TransportAnchor): void {
+  start(transport: AudioContextTransport): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
     }
-    const bufferOffset = Math.max(0, position - this.timelineOffset);
+    const bufferOffset = Math.max(
+      0,
+      transport.timelineTime - this.timelineOffset,
+    );
     if (bufferOffset >= buffer.duration) {
       return;
     }
@@ -57,7 +59,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      contextTime + Math.max(0, this.timelineOffset - position),
+      transport.contextTime! +
+        Math.max(0, this.timelineOffset - transport.timelineTime),
       bufferOffset,
     );
     this.source = source;

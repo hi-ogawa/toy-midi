@@ -3,13 +3,8 @@ import { createStore } from "../../utils/store.ts";
 // Give every participant time to schedule against the same future audio frame.
 const PLAYBACK_LEAD_SECONDS = 0.03;
 
-export type TransportAnchor = {
-  contextTime: number;
-  position: number;
-};
-
 export interface TransportParticipant {
-  start(anchor: TransportAnchor): void;
+  start(transport: AudioContextTransport): void;
   stop(): void;
 }
 
@@ -24,9 +19,8 @@ export class AudioContextTransport {
     running: false,
   }));
   // Absolute AudioContext time corresponding to timelineTime while running.
-  // Undefined means the transport is paused and has no active time mapping.
-  private contextTime?: number;
-  private timelineTime = 0;
+  contextTime?: number;
+  timelineTime = 0;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
 
@@ -44,14 +38,10 @@ export class AudioContextTransport {
     if (this.store.get().running) {
       return;
     }
-    const anchor = {
-      contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
-      position: this.store.get().position,
-    };
-    this.contextTime = anchor.contextTime;
-    this.timelineTime = anchor.position;
+    this.contextTime = this.context.currentTime + PLAYBACK_LEAD_SECONDS;
+    this.timelineTime = this.store.get().position;
     for (const participant of this.participants) {
-      participant.start(anchor);
+      participant.start(this);
     }
     this.store.update({ running: true });
     this.startTicking();
