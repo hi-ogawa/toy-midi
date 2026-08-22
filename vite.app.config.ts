@@ -1,12 +1,8 @@
-import { copyFile, mkdir, readFile } from "node:fs/promises";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
-
-const OSMD_VIRTUAL_ID = "virtual:opensheetmusicdisplay";
-const OSMD_RESOLVED_ID = `\0${OSMD_VIRTUAL_ID}`;
-const osmdDirectory = path.resolve("node_modules/opensheetmusicdisplay");
 
 export default defineConfig({
   plugins: [osmdPrebuilt(), react(), tailwindcss()],
@@ -17,18 +13,21 @@ export default defineConfig({
 });
 
 function osmdPrebuilt(): Plugin {
+  const OSMD_VIRTUAL_ID = "virtual:opensheetmusicdisplay";
+  const OSMD_RESOLVED_ID = `\0${OSMD_VIRTUAL_ID}`;
+  const osmdDirectory = path.resolve("node_modules/opensheetmusicdisplay");
   let osmdFileName: string;
 
   return {
     name: "osmd-prebuilt",
-    async buildStart() {
+    buildStart() {
       const osmdPackage = JSON.parse(
-        await readFile(path.join(osmdDirectory, "package.json"), "utf8"),
-      ) as { version: string };
+        readFileSync(path.join(osmdDirectory, "package.json"), "utf8"),
+      );
       osmdFileName = `opensheetmusicdisplay-${osmdPackage.version}.js`;
       const vendorDirectory = path.resolve("public/vendor");
-      await mkdir(vendorDirectory, { recursive: true });
-      await copyFile(
+      mkdirSync(vendorDirectory, { recursive: true });
+      copyFileSync(
         path.join(osmdDirectory, "build/opensheetmusicdisplay.min.js"),
         path.join(vendorDirectory, osmdFileName),
       );
