@@ -46,6 +46,9 @@ import { cn } from "../ui/utils";
 import { InputMeter } from "./input-meter";
 import {
   DEFAULT_PIXELS_PER_BEAT,
+  DEFAULT_RECORDER_GRID_DIVISION,
+  DEFAULT_RECORDER_TEMPO,
+  DEFAULT_RECORDER_TIME_SIGNATURE,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
   formatBarBeat,
@@ -422,11 +425,13 @@ function useRecorderInput({
 }
 
 function useRecorderTimeline({ position }: { position: number }) {
-  const [tempo, setTempo] = useState(120);
-  const [timeSignature, setTimeSignature] =
-    useState<RecorderTimeSignature>("4/4");
-  const [gridDivision, setGridDivision] =
-    useState<RecorderGridDivision>("1/16");
+  const [tempo, setTempo] = useState(DEFAULT_RECORDER_TEMPO);
+  const [timeSignature, setTimeSignature] = useState<RecorderTimeSignature>(
+    DEFAULT_RECORDER_TIME_SIGNATURE,
+  );
+  const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
+    DEFAULT_RECORDER_GRID_DIVISION,
+  );
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [scrollX, setScrollX] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
