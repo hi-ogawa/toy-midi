@@ -1,10 +1,10 @@
-const CAPTURE_PROCESSOR_NAME = "recorder-capture";
-const REQUEST_TIMEOUT = 3_000;
+import type { RpcClient } from "../rpc/core.ts";
+import {
+  createMessagePortRpc,
+  registerMessagePortRpcHandlers,
+} from "../rpc/message-port.ts";
 
-type ClientMessage =
-  | { type: "channel"; value: number }
-  | { type: "detectChannels"; requestId: number }
-  | { type: "active"; requestId: number; value: boolean };
+const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
 export type CaptureChunk = {
   /** Absolute AudioContext frame corresponding to `samples[0]`. */
@@ -16,30 +16,16 @@ export type CaptureWorkletNotification =
   | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk);
 
-type WorkletMessage =
-  | CaptureWorkletNotification
-  | { type: "channelsDetected"; requestId: number; value: number }
-  | {
-      type: "activeChanged";
-      requestId: number;
-      value: boolean;
-      frame: number;
-    };
-
-type WorkletResponse = Extract<WorkletMessage, { requestId: number }>;
+interface CaptureWorkletHandlers {
+  detectChannels(_params: Record<string, never>): Promise<number>;
+  setActive(params: { value: boolean }): Promise<number>;
+  setChannel(params: { value: number }): Promise<void>;
+}
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
-  private nextRequestId = 0;
-  private pendingRequests = new Map<
-    number,
-    {
-      reject: (error: Error) => void;
-      resolve: (message: WorkletResponse) => void;
-      responseType: WorkletResponse["type"];
-      timeout: number;
-    }
-  >();
+  private readonly rpc: RpcClient<CaptureWorkletHandlers>;
+  private readonly disposeRpc: (error: Error) => void;
 
   constructor({
     context,
@@ -53,36 +39,25 @@ export class CaptureWorkletClient {
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
-    this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
-      if (!("requestId" in event.data)) {
-        onNotification(event.data);
-        return;
-      }
-      const pending = this.pendingRequests.get(event.data.requestId);
-      if (!pending) {
-        return;
-      }
-      window.clearTimeout(pending.timeout);
-      this.pendingRequests.delete(event.data.requestId);
-      if (event.data.type !== pending.responseType) {
-        pending.reject(new Error("Unexpected worklet response."));
-        return;
-      }
-      pending.resolve(event.data);
-    };
+    this.node.port.addEventListener(
+      "message",
+      (event: MessageEvent<CaptureWorkletNotification>) => {
+        if (event.data.type === "level" || event.data.type === "samples") {
+          onNotification(event.data);
+        }
+      },
+    );
+    const rpc = createMessagePortRpc<CaptureWorkletHandlers>(this.node.port);
+    this.rpc = rpc.client;
+    this.disposeRpc = rpc.dispose;
   }
 
   async detectChannels() {
-    const response = await this.request({
-      message: (requestId) => ({ type: "detectChannels", requestId }),
-      responseType: "channelsDetected",
-      timeoutMessage: "Audio input channel detection timed out.",
-    });
-    return { channelCount: response.value };
+    return { channelCount: await this.rpc.detectChannels({}) };
   }
 
   setChannel(value: number) {
-    this.postMessage({ type: "channel", value });
+    void this.rpc.setChannel({ value });
   }
 
   start() {
@@ -94,55 +69,12 @@ export class CaptureWorkletClient {
   }
 
   dispose() {
-    const error = new Error("Input stopped during a worklet request.");
-    for (const pending of this.pendingRequests.values()) {
-      window.clearTimeout(pending.timeout);
-      pending.reject(error);
-    }
-    this.pendingRequests.clear();
+    this.disposeRpc(new Error("Input stopped during a worklet request."));
     this.node.disconnect();
   }
 
   private async setActive(value: boolean) {
-    const response = await this.request({
-      message: (requestId) => ({ type: "active", requestId, value }),
-      responseType: "activeChanged",
-      timeoutMessage: "Audio capture state change timed out.",
-    });
-    return response.frame;
-  }
-
-  private request<T extends WorkletResponse["type"]>({
-    message,
-    responseType,
-    timeoutMessage,
-  }: {
-    message: (requestId: number) => ClientMessage;
-    responseType: T;
-    timeoutMessage: string;
-  }): Promise<Extract<WorkletResponse, { type: T }>> {
-    const requestId = this.nextRequestId++;
-    return new Promise<Extract<WorkletResponse, { type: T }>>(
-      (resolve, reject) => {
-        const timeout = window.setTimeout(() => {
-          this.pendingRequests.delete(requestId);
-          reject(new Error(timeoutMessage));
-        }, REQUEST_TIMEOUT);
-        this.pendingRequests.set(requestId, {
-          reject,
-          resolve: (response) => {
-            resolve(response as Extract<WorkletResponse, { type: T }>);
-          },
-          responseType,
-          timeout,
-        });
-        this.postMessage(message(requestId));
-      },
-    );
-  }
-
-  private postMessage(message: ClientMessage) {
-    this.node.port.postMessage(message);
+    return await this.rpc.setActive({ value });
   }
 }
 
@@ -150,6 +82,8 @@ export function createCaptureWorkletSource() {
   // The processor has no module imports once stringified, so the generated blob
   // can be registered without a separate worklet build entry point.
   return `
+    const createRpcProxy = ${createRpcProxySource.toString()};
+    const registerMessagePortRpcHandlers = ${registerMessagePortRpcHandlers.toString()};
     const CaptureProcessor = (${createCaptureProcessor.toString()})();
     registerProcessor("${CAPTURE_PROCESSOR_NAME}", CaptureProcessor);
   `;
@@ -165,7 +99,7 @@ function createCaptureProcessor() {
     declare recording: boolean;
     declare selectedChannel: number;
     declare observedChannelCount: number;
-    declare pendingChannelRequests: number[];
+    declare pendingChannelRequests: Array<(value: number) => void>;
     declare meterBlockCount: number;
     declare meterPeak: number;
     declare pendingRenderActions: Array<() => void>;
@@ -185,30 +119,24 @@ function createCaptureProcessor() {
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
       this.captureStartFrame = 0;
-      this.port.onmessage = (event: MessageEvent<ClientMessage>) => {
-        switch (event.data.type) {
-          case "channel": {
-            this.selectedChannel = event.data.value;
-            this.meterBlockCount = 0;
-            this.meterPeak = 0;
-            break;
+      registerMessagePortRpcHandlers(this.port, {
+        detectChannels: async () => {
+          if (this.observedChannelCount > 0) {
+            return this.observedChannelCount;
           }
-          case "detectChannels": {
-            if (this.observedChannelCount > 0) {
-              this.postMessage({
-                type: "channelsDetected",
-                requestId: event.data.requestId,
-                value: this.observedChannelCount,
-              });
-            } else {
-              this.pendingChannelRequests.push(event.data.requestId);
-            }
-            break;
-          }
-          case "active": {
-            const { requestId, value } = event.data;
-            // Queue transitions until process() so capture state, buffered PCM,
-            // and acknowledgement frames share render-thread ordering.
+          return await new Promise<number>((resolve) => {
+            this.pendingChannelRequests.push(resolve);
+          });
+        },
+        setChannel: async ({ value }: { value: number }) => {
+          this.selectedChannel = value;
+          this.meterBlockCount = 0;
+          this.meterPeak = 0;
+        },
+        setActive: async ({ value }: { value: boolean }) => {
+          return await new Promise<number>((resolve) => {
+            // Queue transitions until process() so capture state and buffered
+            // PCM share render-thread ordering with the returned frame.
             this.pendingRenderActions.push(() => {
               if (value) {
                 this.captureLength = 0;
@@ -216,17 +144,11 @@ function createCaptureProcessor() {
                 this.flushCapture();
               }
               this.recording = value;
-              this.postMessage({
-                type: "activeChanged",
-                requestId,
-                value,
-                frame: currentFrame,
-              });
+              resolve(currentFrame);
             });
-            break;
-          }
-        }
-      };
+          });
+        },
+      });
     }
 
     process(inputs: Float32Array[][], outputs: Float32Array[][]) {
@@ -244,12 +166,8 @@ function createCaptureProcessor() {
         // Track settings may be absent or disagree with actual render quanta.
         this.observedChannelCount = channels.length;
         if (channels.length > 0) {
-          for (const requestId of this.pendingChannelRequests) {
-            this.postMessage({
-              type: "channelsDetected",
-              requestId,
-              value: channels.length,
-            });
+          for (const resolve of this.pendingChannelRequests) {
+            resolve(channels.length);
           }
           this.pendingChannelRequests = [];
         }
@@ -323,8 +241,28 @@ function createCaptureProcessor() {
       this.captureLength = 0;
     }
 
-    postMessage(message: WorkletMessage, transfer?: Transferable[]) {
+    postMessage(
+      message: CaptureWorkletNotification,
+      transfer?: Transferable[],
+    ) {
       this.port.postMessage(message, transfer ?? []);
     }
   };
+}
+
+function createRpcProxySource<Handlers>(
+  call: (method: string, params: unknown) => Promise<unknown>,
+): RpcClient<Handlers> {
+  return new Proxy({} as RpcClient<Handlers>, {
+    get(_target, property) {
+      if (
+        typeof property !== "string" ||
+        property === "then" ||
+        property === "toJSON"
+      ) {
+        return undefined;
+      }
+      return (params: unknown) => call(property, params);
+    },
+  });
 }
