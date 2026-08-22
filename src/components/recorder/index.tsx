@@ -1084,7 +1084,7 @@ function TimelineLane({
         <div
           ref={onClipOffsetChange ? clipDragRef : undefined}
           className={cn(
-            "absolute inset-y-4 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
+            "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
             clipClass,
             onClipOffsetChange && "cursor-ew-resize select-none",
             isDragging && "brightness-125",
@@ -1103,12 +1103,12 @@ function TimelineLane({
               pixelWidth={clipWidth}
             />
           )}
-          <span className="relative z-10 truncate">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
-            <span className="ml-1.5 opacity-75">
-              +{clip.offset.toFixed(3)}s
-            </span>
-          )}
+          <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+            <span className="mr-1.5">{clip.label}</span>
+            {onClipOffsetChange && clip.offset > 0 && (
+              <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+            )}
+          </div>
         </div>
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
