@@ -44,22 +44,19 @@ export class CaptureInput {
     }
     let input: CaptureInput | undefined;
     try {
-      let resolveChannelCount!: (value: number) => void;
-      const channelCountPromise = new Promise<number>((resolve) => {
-        resolveChannelCount = resolve;
-      });
+      const channelCountPromise = Promise.withResolvers<number>();
       input = new CaptureInput({
         context,
         stream,
         onNotification: (message) => {
           if (message.type === "channels" && message.value > 0) {
-            resolveChannelCount(message.value);
+            channelCountPromise.resolve(message.value);
           }
           onNotification(message);
         },
       });
       const channelCount = await Promise.race([
-        channelCountPromise,
+        channelCountPromise.promise,
         new Promise<never>((_resolve, reject) => {
           window.setTimeout(() => {
             reject(new Error("Audio input channel discovery timed out."));
