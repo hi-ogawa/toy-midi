@@ -196,11 +196,10 @@ export class RecorderRuntime {
   }
 
   setAudioTrackOffset(id: string, timelineOffset: number): void {
-    const nextOffset = Math.max(0, timelineOffset);
-    this.getAudioTrackPlayback(id).setTimelineOffset(nextOffset);
+    this.getAudioTrackPlayback(id).setTimelineOffset(timelineOffset);
     this.updateAudioTrack(id, (track) => ({
       ...track,
-      timelineOffset: nextOffset,
+      timelineOffset,
     }));
   }
 
