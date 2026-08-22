@@ -6,12 +6,13 @@ import {
   useEffect,
   useState,
 } from "react";
+import { getInputMeterState } from "../lib/input-meter";
 import {
   type LatencyResult,
   LatencyCheckerRuntime,
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
-import { gainToDb } from "../lib/music";
+import { MAX_DB, MIN_DB } from "../lib/music";
 import { routes } from "../lib/routes";
 import { Button } from "./ui/button";
 import {
@@ -545,25 +546,18 @@ function WorkflowSection({
 }
 
 function InputMeter({ active, peak }: { active: boolean; peak: number }) {
-  const meterMin = -60;
-  const meterMax = 6;
-  const getMeterPosition = (value: number) =>
-    ((value - meterMin) / (meterMax - meterMin)) * 100;
-  const zeroPosition = getMeterPosition(0);
-
-  const decibels = gainToDb(peak);
-  const meterValue = clamp(decibels, meterMin, meterMax);
-  const levelPosition = active ? getMeterPosition(meterValue) : 0;
-  const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
+  const { label, levelPosition, meterValue, zeroPosition } = getInputMeterState(
+    { active, peak },
+  );
 
   return (
     <div className="grid grid-cols-[1fr_76px] items-center gap-3">
       <div
         role="meter"
         aria-label="Input peak level"
-        aria-valuemin={meterMin}
-        aria-valuemax={meterMax}
-        aria-valuenow={active ? meterValue : meterMin}
+        aria-valuemin={MIN_DB}
+        aria-valuemax={MAX_DB}
+        aria-valuenow={active ? meterValue : MIN_DB}
         aria-valuetext={label}
         className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
       >
@@ -633,8 +627,4 @@ function calculateMedian(values: number[]) {
 function formatSigned(value: number, digits = 2) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${Math.abs(value).toFixed(digits)}`;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }
