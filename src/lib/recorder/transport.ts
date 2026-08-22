@@ -23,6 +23,8 @@ export class AudioContextTransport {
     position: 0,
     running: false,
   }));
+  // Absolute AudioContext time corresponding to timelineTime while running.
+  // Undefined means the transport is paused and has no active time mapping.
   private contextTime?: number;
   private timelineTime = 0;
   private readonly participants = new Set<TransportParticipant>();
