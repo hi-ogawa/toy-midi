@@ -6,14 +6,13 @@ import {
   useEffect,
   useState,
 } from "react";
-import { getInputMeterState } from "../lib/input-meter";
 import {
   type LatencyResult,
   LatencyCheckerRuntime,
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
-import { MAX_DB, MIN_DB } from "../lib/music";
 import { routes } from "../lib/routes";
+import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -266,7 +265,11 @@ export function LatencyChecker() {
             <div className="mt-4">
               <label className="grid gap-2 text-xs font-semibold text-neutral-600">
                 Input meter
-                <InputMeter active={isMonitoring} peak={inputPeak} />
+                <InputMeter
+                  active={isMonitoring}
+                  peak={inputPeak}
+                  zeroMarkerClassName="bg-red-700"
+                />
               </label>
             </div>
             {startMonitoringMutation.error && (
@@ -542,50 +545,6 @@ function WorkflowSection({
         {children}
       </div>
     </section>
-  );
-}
-
-function InputMeter({ active, peak }: { active: boolean; peak: number }) {
-  const { label, levelPosition, meterValue, zeroPosition } = getInputMeterState(
-    { active, peak },
-  );
-
-  return (
-    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
-      <div
-        role="meter"
-        aria-label="Input peak level"
-        aria-valuemin={MIN_DB}
-        aria-valuemax={MAX_DB}
-        aria-valuenow={active ? meterValue : MIN_DB}
-        aria-valuetext={label}
-        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
-      >
-        <div
-          className="absolute inset-y-0 right-0 bg-red-100"
-          style={{ width: `${100 - zeroPosition}%` }}
-        />
-        <div
-          className="absolute inset-y-0 left-0 bg-emerald-600 transition-[width] duration-75"
-          style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
-        />
-        <div
-          className="absolute inset-y-0 bg-red-600 transition-[width] duration-75"
-          style={{
-            left: `${zeroPosition}%`,
-            width: `${Math.max(0, levelPosition - zeroPosition)}%`,
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 w-px bg-red-700"
-          style={{ left: `${zeroPosition}%` }}
-        />
-      </div>
-      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
-        {label}
-      </output>
-    </div>
   );
 }
 
