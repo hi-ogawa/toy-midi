@@ -33,6 +33,7 @@ import {
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { listenPointerDrag } from "../../utils/pointer-drag";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import {
@@ -957,13 +958,43 @@ function TimelineLane({
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
-  const [drag, setDrag] = useState<{
-    pointerId: number;
-    startClientX: number;
-    startOffset: number;
-    pixelsPerBeat: number;
-    tempo: number;
-  }>();
+  const [isDragging, setIsDragging] = useState(false);
+  const clipDragRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element || !clip || !onClipOffsetChange) {
+        return;
+      }
+      return listenPointerDrag({
+        element,
+        onStart: (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setIsDragging(true);
+          return {
+            startClientX: event.clientX,
+            startOffset: clip.offset,
+            pixelsPerBeat,
+            tempo,
+          };
+        },
+        onMove: (event, drag) => {
+          const deltaBeats =
+            (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+          onClipOffsetChange(
+            Math.max(
+              0,
+              drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
+            ),
+          );
+        },
+        onEnd: () => {
+          setIsDragging(false);
+          onClipDragEnd?.();
+        },
+      });
+    },
+    [clip, onClipDragEnd, onClipOffsetChange, pixelsPerBeat, tempo],
+  );
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
@@ -989,11 +1020,12 @@ function TimelineLane({
     >
       {clip ? (
         <div
+          ref={clipDragRef}
           className={cn(
             "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
             clipClass,
             onClipOffsetChange && "cursor-ew-resize select-none",
-            drag && "brightness-125",
+            isDragging && "brightness-125",
           )}
           style={{
             left:
@@ -1003,56 +1035,6 @@ function TimelineLane({
               2,
               recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat,
             ),
-          }}
-          onPointerDown={(event) => {
-            if (event.button !== 0 || !onClipOffsetChange) {
-              return;
-            }
-            event.preventDefault();
-            event.stopPropagation();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            setDrag({
-              pointerId: event.pointerId,
-              startClientX: event.clientX,
-              startOffset: clip.offset,
-              pixelsPerBeat,
-              tempo,
-            });
-          }}
-          onPointerMove={(event) => {
-            if (event.pointerId !== drag?.pointerId || !onClipOffsetChange) {
-              return;
-            }
-            const deltaBeats =
-              (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
-            onClipOffsetChange(
-              Math.max(
-                0,
-                drag.startOffset +
-                  recorderBeatsToSeconds(deltaBeats, drag.tempo),
-              ),
-            );
-          }}
-          onPointerUp={(event) => {
-            if (event.pointerId !== drag?.pointerId) {
-              return;
-            }
-            onClipDragEnd?.();
-            setDrag(undefined);
-          }}
-          onPointerCancel={(event) => {
-            if (event.pointerId !== drag?.pointerId) {
-              return;
-            }
-            onClipDragEnd?.();
-            setDrag(undefined);
-          }}
-          onLostPointerCapture={(event) => {
-            if (event.pointerId !== drag?.pointerId) {
-              return;
-            }
-            onClipDragEnd?.();
-            setDrag(undefined);
           }}
         >
           <span className="truncate">{clip.label}</span>
