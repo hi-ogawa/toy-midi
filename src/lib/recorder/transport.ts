@@ -1,8 +1,9 @@
 import { createStore } from "../../utils/store.ts";
 
-// Give every participant time to schedule against the same future audio frame.
+/** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
 
+/** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
   start(): void;
   stop(): void;
@@ -18,17 +19,28 @@ type PlaybackAnchor = {
   position: number;
 };
 
+/**
+ * Owns recorder position and synchronizes registered playback objects to one
+ * AudioContext timeline.
+ */
 export class AudioContextTransport {
+  /** Published transport state consumed by recorder runtime and UI. */
   readonly store = createStore<TransportState>(() => ({
     position: 0,
     running: false,
   }));
+
+  /**
+   * Maps an absolute AudioContext time to the recorder position at which the
+   * current playback run begins. It is available to participants during start.
+   */
   playbackAnchor?: PlaybackAnchor;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
 
   constructor(readonly context: AudioContext) {}
 
+  /** Joins a participant to future transport starts and returns its disposer. */
   register(participant: TransportParticipant): () => void {
     this.participants.add(participant);
     return () => {
@@ -37,6 +49,7 @@ export class AudioContextTransport {
     };
   }
 
+  /** Schedules every participant against one shared future playback anchor. */
   play(): void {
     if (this.store.get().running) {
       return;
@@ -52,6 +65,7 @@ export class AudioContextTransport {
     this.startTicking();
   }
 
+  /** Stops participants and preserves the position reached by the audio clock. */
   pause(): void {
     if (!this.store.get().running) {
       return;
@@ -65,6 +79,7 @@ export class AudioContextTransport {
     this.store.update({ position, running: false });
   }
 
+  /** Moves the playhead, restarting participants when playback is running. */
   seek(position: number): void {
     const wasRunning = this.store.get().running;
     if (wasRunning) {
@@ -77,14 +92,16 @@ export class AudioContextTransport {
     }
   }
 
+  /** Returns the position reached at the AudioContext's current time. */
   private getTransportPosition(): number {
-    // A future scheduled start must not move the visible playhead backward.
+    // Hold at the requested position until the future playback anchor arrives.
     return Math.max(
       this.playbackAnchor!.position,
       this.getTimelinePositionAtContextTime(this.context.currentTime),
     );
   }
 
+  /** Converts an absolute AudioContext time through the active playback anchor. */
   getTimelinePositionAtContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor;
     if (!playbackAnchor) {
@@ -93,12 +110,14 @@ export class AudioContextTransport {
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
   }
 
+  /** Converts an absolute AudioContext frame boundary to recorder position. */
   frameToPosition(frame: number): number {
     return this.getTimelinePositionAtContextTime(
       frame / this.context.sampleRate,
     );
   }
 
+  /** Publishes audio-clock position on animation frames while playing. */
   private startTicking(): void {
     if (this.disposeTicking) {
       return;
@@ -110,6 +129,7 @@ export class AudioContextTransport {
     });
   }
 
+  /** Stops publishing position updates. */
   private stopTicking(): void {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
