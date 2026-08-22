@@ -28,11 +28,11 @@ interface RpcCallbackInvoke {
 
 interface RpcEndpoint {
   addEventListener(
-    type: "message",
+    type: "message" | "messageerror",
     listener: (event: MessageEvent<any>) => void,
   ): void;
   removeEventListener(
-    type: "message",
+    type: "message" | "messageerror",
     listener: (event: MessageEvent<any>) => void,
   ): void;
   postMessage(message: any, transfer?: any): void;
@@ -68,6 +68,7 @@ function createEndpointRpc<Handlers>(
       );
       const cleanup = () => {
         endpoint.removeEventListener("message", handleMessage);
+        endpoint.removeEventListener("messageerror", handleMessageError);
       };
       const handleMessage = (
         event: MessageEvent<RpcResponse | RpcCallbackInvoke>,
@@ -86,7 +87,12 @@ function createEndpointRpc<Handlers>(
           }
         }
       };
+      const handleMessageError = () => {
+        cleanup();
+        reject(new Error("RPC message could not be read"));
+      };
       endpoint.addEventListener("message", handleMessage);
+      endpoint.addEventListener("messageerror", handleMessageError);
       endpoint.postMessage(
         {
           type: RPC_REQUEST,
