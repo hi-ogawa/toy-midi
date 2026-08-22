@@ -44,6 +44,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { InputMeter } from "./input-meter";
 import {
+  loadRecorderInputPreference,
+  saveRecorderInputPreference,
+} from "./input-preference";
+import {
   BEATS_PER_BAR,
   DEFAULT_PIXELS_PER_BEAT,
   MAX_PIXELS_PER_BEAT,
@@ -296,7 +300,7 @@ export function Recorder() {
           onInputToggle={input.toggle}
           onChannelChange={(channel) => {
             input.setPeak(0);
-            runtime.selectChannel(channel);
+            input.selectChannel(channel);
           }}
           onLatencyCompensationChange={(compensation) => {
             const wasPlaying = state.isPlaying;
@@ -322,25 +326,32 @@ function useRecorderInput({
   state: RecorderRuntimeState;
 }) {
   const active = state.inputSettings !== undefined;
+  const [preference, setPreference] = useState(loadRecorderInputPreference);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState<string>();
+  const [deviceId, setDeviceId] = useState(preference.deviceId);
   const [peak, setPeak] = useState(0);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
-      nextDevices.some((device) => device.deviceId === deviceId)
-        ? deviceId
+      nextDevices.some((device) => device.deviceId === preference.deviceId)
+        ? preference.deviceId
         : nextDevices[0]?.deviceId,
+      false,
     );
   }
 
-  function selectDevice(nextDeviceId?: string) {
+  function selectDevice(nextDeviceId?: string, remember = true) {
     if (nextDeviceId !== deviceId && active) {
       stop();
     }
     setDeviceId(nextDeviceId);
+    if (remember) {
+      const nextPreference = { ...preference, deviceId: nextDeviceId };
+      setPreference(nextPreference);
+      saveRecorderInputPreference(nextPreference);
+    }
   }
 
   function stop() {
@@ -372,6 +383,16 @@ function useRecorderInput({
       navigator.mediaDevices.removeEventListener("devicechange", refreshInputs);
   }, [refreshMutation.mutate]);
 
+  useEffect(() => {
+    if (state.inputChannelCount === 0) {
+      return;
+    }
+    const channel = Math.min(preference.channel, state.inputChannelCount - 1);
+    if (channel !== state.selectedChannel) {
+      runtime.selectChannel(channel);
+    }
+  }, [preference.channel, state.inputChannelCount, state.selectedChannel]);
+
   // The initial device enumeration has settled, so the UI can leave loading state.
   const initialized = refreshMutation.isSuccess || refreshMutation.isError;
   const hasAccess = devices.some((device) => device.label);
@@ -391,6 +412,12 @@ function useRecorderInput({
     setPeak,
     selectedDevice,
     selectDevice,
+    selectChannel: (channel: number) => {
+      runtime.selectChannel(channel);
+      const nextPreference = { ...preference, channel };
+      setPreference(nextPreference);
+      saveRecorderInputPreference(nextPreference);
+    },
     toggle: () => {
       if (!hasAccess) {
         grantMutation.mutate();
