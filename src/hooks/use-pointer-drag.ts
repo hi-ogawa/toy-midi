@@ -16,18 +16,15 @@ export function usePointerDrag<T>({
   const handlePointerMove = useEffectEvent(onMove);
   const handlePointerEnd = useEffectEvent(onEnd ?? (() => {}));
 
-  return useCallback(
-    (element: HTMLElement | null) => {
-      if (!element) {
-        return;
-      }
-      return listenPointerDrag({
-        element,
-        onStart: handlePointerStart,
-        onMove: handlePointerMove,
-        onEnd: handlePointerEnd,
-      });
-    },
-    [handlePointerEnd, handlePointerMove, handlePointerStart],
-  );
+  return useCallback((element: HTMLElement | null) => {
+    if (!element) {
+      return;
+    }
+    return listenPointerDrag({
+      element,
+      onStart: handlePointerStart,
+      onMove: handlePointerMove,
+      onEnd: handlePointerEnd,
+    });
+  }, []);
 }
