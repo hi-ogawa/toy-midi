@@ -120,35 +120,31 @@ The core policy in `applyState` fits into roughly forty lines and can be checked
 
 ---
 
-### 4. Audio-to-MIDI keeps user-visible commit policy above model, worker, and RPC protocols
+### 4. Audio-to-MIDI keeps user-visible commit policy above worker and RPC protocols
 
 **Key boundaries**
 
 - Bass conversion product policy: `/home/hiroshi/code/personal/toy-midi/src/components/audio-to-midi.tsx:71-145`
-- Basic Pitch staged commit policy: `/home/hiroshi/code/personal/toy-midi/src/components/audio-to-midi.tsx:217-315`
-- Basic Pitch client and analysis-cache policy: `/home/hiroshi/code/personal/toy-midi/src/lib/basic-pitch/client.ts:7-72`
-- Worker-side model and cache semantics: `/home/hiroshi/code/personal/toy-midi/src/lib/basic-pitch/worker.ts:82-189`
 - Bass WASM wire contract: `/home/hiroshi/code/personal/toy-midi/src/lib/bass-pitch/transcription.ts:1-62`
 - Generic RPC serialization and typed proxy: `/home/hiroshi/code/personal/toy-midi/src/lib/rpc/core.ts:1-98`
 - Worker request, callback, error, cleanup, and transfer protocol: `/home/hiroshi/code/personal/toy-midi/src/lib/rpc/worker.ts:4-162`
 
 **Review domains and correctness arguments**
 
-1. The component owns product decisions: which method is selected, whether Basic Pitch analysis is explicit, how source-relative seconds become project beats, whether output is quantized, how confidence becomes MIDI velocity, and that conversion replaces notes as exactly one undoable operation.
-2. The client owns execution policy: Basic Pitch analysis is cached by asset, initialization verifies the requested backend, and decoding is separated because it is cheaper but still deliberate.
-3. The worker owns model correctness: initialization is idempotent, cached activations correspond to the requested key, mutating upstream decoder inputs are copied, and model outputs are normalized into an application-neutral result.
+1. The component owns product decisions: how tempo, grid resolution, track offset, and thresholds configure conversion, and that conversion replaces notes as exactly one undoable operation.
+2. The client owns execution policy: audio resampling, worker warm-up, and transcription request dispatch.
+3. The worker owns WASM initialization and transcription execution.
 4. The RPC modules own transport mechanics: callback stubs, request correlation, listener cleanup, error propagation, and transferable discovery.
 
 **Why this helps linear review**
 
-A product reviewer can inspect the conversion mutation and see the complete user-facing effect without reading `postMessage` handling or TensorFlow workarounds. A model reviewer can inspect caching and decoder mutation behavior without considering React state. A protocol reviewer can validate correlation and cleanup once for both Basic Pitch and Bass Pitch.
+A product reviewer can inspect the conversion mutation and see the complete user-facing effect without reading `postMessage` handling or WASM initialization. A protocol reviewer can validate correlation and cleanup independently of the transcription behavior.
 
-The split is confirmed by end-to-end tests phrased in product terms: one replacement/undo step at `/home/hiroshi/code/personal/toy-midi/e2e/audio-to-midi.spec.ts:19` and one-step grid-aligned Bass Pitch conversion at line 137.
+The split is confirmed by an end-to-end test phrased in product terms: one-step grid-aligned conversion with one undo entry in `/home/hiroshi/code/personal/toy-midi/e2e/audio-to-midi.spec.ts`.
 
 **Caveats**
 
 - Cancellation is not represented in the RPC contract.
-- The Basic Pitch worker explicitly documents the absence of an application watchdog at `/home/hiroshi/code/personal/toy-midi/src/lib/basic-pitch/worker.ts:71-74`, so a stalled backend can leave the UI pending indefinitely.
 - Conversion-to-project-note mapping remains inside the React component. It is highly visible there, but it is not independently unit-testable as a pure function.
 - Each RPC request installs temporary worker listeners. Cleanup is clear for normal response and worker errors, but not for abandonment by the caller.
 
