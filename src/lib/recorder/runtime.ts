@@ -121,7 +121,8 @@ export class RecorderRuntime {
               },
             });
             if (
-              activeRecording.isFull() &&
+              activeRecording.getDurationFrames() >=
+                context.sampleRate * MAX_RECORDING_SECONDS &&
               this.store.get().status === "recording"
             ) {
               void this.stopRecording();
@@ -311,10 +312,7 @@ export class RecorderRuntime {
     // first captured frame. Convert that exact boundary to musical timeline
     // coordinates instead of using main-thread request time.
     const startFrame = await this.captureInput.startCapture();
-    this.activeRecording = new ActiveRecording(
-      startFrame,
-      Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
-    );
+    this.activeRecording = new ActiveRecording(startFrame);
     this.store.update({
       status: "recording",
       recordingTrack: {
