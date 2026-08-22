@@ -14,7 +14,13 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -959,42 +965,41 @@ function TimelineLane({
   onSeek: (position: number) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const clipDragRef = useCallback(
-    (element: HTMLDivElement | null) => {
-      if (!element || !clip || !onClipOffsetChange) {
-        return;
-      }
-      return listenPointerDrag({
-        element,
-        onStart: (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setIsDragging(true);
-          return {
-            startClientX: event.clientX,
-            startOffset: clip.offset,
-            pixelsPerBeat,
-            tempo,
-          };
-        },
-        onMove: (event, drag) => {
-          const deltaBeats =
-            (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
-          onClipOffsetChange(
-            Math.max(
-              0,
-              drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
-            ),
-          );
-        },
-        onEnd: () => {
-          setIsDragging(false);
-          onClipDragEnd?.();
-        },
-      });
-    },
-    [clip, onClipDragEnd, onClipOffsetChange, pixelsPerBeat, tempo],
+  const setupClipDrag = useEffectEvent((element: HTMLDivElement) =>
+    listenPointerDrag({
+      element,
+      onStart: (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsDragging(true);
+        return {
+          startClientX: event.clientX,
+          startOffset: clip!.offset,
+          pixelsPerBeat,
+          tempo,
+        };
+      },
+      onMove: (event, drag) => {
+        const deltaBeats =
+          (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+        onClipOffsetChange!(
+          Math.max(
+            0,
+            drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
+          ),
+        );
+      },
+      onEnd: () => {
+        setIsDragging(false);
+        onClipDragEnd?.();
+      },
+    }),
   );
+  const clipDragRef = useCallback((element: HTMLDivElement | null) => {
+    if (element) {
+      return setupClipDrag(element);
+    }
+  }, []);
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
