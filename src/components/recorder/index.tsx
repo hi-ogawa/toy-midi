@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import {
+  ChevronDownIcon,
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
@@ -600,8 +601,9 @@ function RecorderHeader({
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
             {timeSignature}
+            <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -621,8 +623,9 @@ function RecorderHeader({
       </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+          <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
             {gridDivision}
+            <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
