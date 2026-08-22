@@ -1,8 +1,10 @@
 import type { RpcClient } from "../rpc/core.ts";
+import { deserializeParams } from "../rpc/core.ts";
 import {
-  createMessagePortRpc,
-  registerMessagePortRpcHandlers,
-} from "../rpc/message-port.ts";
+  collectTransferables,
+  registerEndpointRpcHandlers,
+} from "../rpc/endpoint.ts";
+import { createMessagePortRpc } from "../rpc/message-port.ts";
 
 const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
@@ -25,7 +27,6 @@ interface CaptureWorkletHandlers {
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
   private readonly rpc: RpcClient<CaptureWorkletHandlers>;
-  private readonly disposeRpc: (error: Error) => void;
 
   constructor({
     context,
@@ -47,9 +48,7 @@ export class CaptureWorkletClient {
         }
       },
     );
-    const rpc = createMessagePortRpc<CaptureWorkletHandlers>(this.node.port);
-    this.rpc = rpc.client;
-    this.disposeRpc = rpc.dispose;
+    this.rpc = createMessagePortRpc<CaptureWorkletHandlers>(this.node.port);
   }
 
   async detectChannels() {
@@ -69,7 +68,6 @@ export class CaptureWorkletClient {
   }
 
   dispose() {
-    this.disposeRpc(new Error("Input stopped during a worklet request."));
     this.node.disconnect();
   }
 
@@ -82,8 +80,9 @@ export function createCaptureWorkletSource() {
   // The processor has no module imports once stringified, so the generated blob
   // can be registered without a separate worklet build entry point.
   return `
-    const createRpcProxy = ${createRpcProxySource.toString()};
-    const registerMessagePortRpcHandlers = ${registerMessagePortRpcHandlers.toString()};
+    const deserializeParams = ${deserializeParams.toString()};
+    const collectTransferables = ${collectTransferables.toString()};
+    const registerEndpointRpcHandlers = ${registerEndpointRpcHandlers.toString()};
     const CaptureProcessor = (${createCaptureProcessor.toString()})();
     registerProcessor("${CAPTURE_PROCESSOR_NAME}", CaptureProcessor);
   `;
@@ -119,7 +118,7 @@ function createCaptureProcessor() {
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
       this.captureStartFrame = 0;
-      registerMessagePortRpcHandlers(this.port, {
+      registerEndpointRpcHandlers(this.port, {
         detectChannels: async () => {
           if (this.observedChannelCount > 0) {
             return this.observedChannelCount;
@@ -248,21 +247,4 @@ function createCaptureProcessor() {
       this.port.postMessage(message, transfer ?? []);
     }
   };
-}
-
-function createRpcProxySource<Handlers>(
-  call: (method: string, params: unknown) => Promise<unknown>,
-): RpcClient<Handlers> {
-  return new Proxy({} as RpcClient<Handlers>, {
-    get(_target, property) {
-      if (
-        typeof property !== "string" ||
-        property === "then" ||
-        property === "toJSON"
-      ) {
-        return undefined;
-      }
-      return (params: unknown) => call(property, params);
-    },
-  });
 }
