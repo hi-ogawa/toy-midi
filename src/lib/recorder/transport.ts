@@ -12,13 +12,13 @@ export interface TransportParticipant {
   stop(): void;
 }
 
-type TransportSnapshot = {
+type TransportState = {
   position: number;
   running: boolean;
 };
 
 export class AudioContextTransport {
-  readonly store = createStore<TransportSnapshot>(() => ({
+  readonly store = createStore<TransportState>(() => ({
     position: 0,
     running: false,
   }));
