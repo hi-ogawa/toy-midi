@@ -413,8 +413,15 @@ function useRecorderInput({
   const refreshMutation = useMutation({ mutationFn: refresh });
 
   const startMutation = useMutation({
-    mutationFn: (nextDeviceId: string) =>
-      runtime.startInput({ deviceId: nextDeviceId, onLevel: setPeak }),
+    mutationFn: async (nextDeviceId: string) => {
+      await runtime.startInput({ deviceId: nextDeviceId, onLevel: setPeak });
+      runtime.selectChannel(
+        Math.min(
+          preference.inputChannel,
+          runtime.store.get().inputChannelCount - 1,
+        ),
+      );
+    },
   });
 
   // refresh on mount and watch for device changes
@@ -425,19 +432,6 @@ function useRecorderInput({
     return () =>
       navigator.mediaDevices.removeEventListener("devicechange", refreshInputs);
   }, [refreshMutation.mutate]);
-
-  useEffect(() => {
-    if (state.inputChannelCount === 0) {
-      return;
-    }
-    const channel = Math.min(
-      preference.inputChannel,
-      state.inputChannelCount - 1,
-    );
-    if (channel !== state.selectedChannel) {
-      runtime.selectChannel(channel);
-    }
-  }, [preference.inputChannel, state.inputChannelCount, state.selectedChannel]);
 
   // The initial device enumeration has settled, so the UI can leave loading state.
   const initialized = refreshMutation.isSuccess || refreshMutation.isError;
