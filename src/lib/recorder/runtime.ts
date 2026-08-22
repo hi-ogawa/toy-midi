@@ -320,8 +320,7 @@ export class RecorderRuntime {
         takes: [
           {
             duration: 0,
-            captureOffset:
-              this.transport!.getPositionAtContextFrame(startFrame),
+            captureOffset: this.transport!.frameToPosition(startFrame),
           },
         ],
       },

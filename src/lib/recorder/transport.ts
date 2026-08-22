@@ -74,6 +74,14 @@ export class AudioContextTransport {
     }
   }
 
+  private getTransportPosition(): number {
+    // A future scheduled start must not move the visible playhead backward.
+    return Math.max(
+      this.timelineTime,
+      this.getTimelinePositionAtContextTime(this.context.currentTime),
+    );
+  }
+
   getTimelinePositionAtContextTime(contextTime: number): number {
     if (this.contextTime === undefined) {
       return this.store.get().position;
@@ -81,17 +89,9 @@ export class AudioContextTransport {
     return this.timelineTime + contextTime - this.contextTime;
   }
 
-  getPositionAtContextFrame(frame: number): number {
+  frameToPosition(frame: number): number {
     return this.getTimelinePositionAtContextTime(
       frame / this.context.sampleRate,
-    );
-  }
-
-  private getTransportPosition(): number {
-    // A future scheduled start must not move the visible playhead backward.
-    return Math.max(
-      this.timelineTime,
-      this.getTimelinePositionAtContextTime(this.context.currentTime),
     );
   }
 
