@@ -7,7 +7,7 @@ import { ActiveRecording } from "./recording.ts";
 const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
 const DEFAULT_TRACK_HEIGHT = 96;
-const MIN_TRACK_HEIGHT = 56;
+const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MAX_TRACK_HEIGHT = 300;
 
 type RecorderStatus = "idle" | "ready" | "recording" | "processing";
