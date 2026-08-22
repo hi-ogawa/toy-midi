@@ -2,8 +2,8 @@ import { gainToDb } from "../../lib/music";
 
 export const BEATS_PER_BAR = 4;
 export const DEFAULT_PIXELS_PER_BEAT = 80;
-export const MIN_PIXELS_PER_BEAT = 20;
-export const MAX_PIXELS_PER_BEAT = 320;
+export const MIN_PIXELS_PER_BEAT = 1;
+export const MAX_PIXELS_PER_BEAT = 400;
 
 export function recorderSecondsToBeats(seconds: number, tempo: number): number {
   return (seconds / 60) * tempo;
