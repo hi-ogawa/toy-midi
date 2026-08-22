@@ -27,13 +27,10 @@ import {
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
 import {
-  loadRecorderInputPreference,
-  saveRecorderInputPreference,
-} from "../../lib/recorder/input-preference";
-import {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
@@ -326,17 +323,19 @@ function useRecorderInput({
   state: RecorderRuntimeState;
 }) {
   const active = state.inputSettings !== undefined;
-  const [preference, setPreference] = useState(loadRecorderInputPreference);
+  const [preference, setPreference] = useState(() =>
+    recorderStorage.readPreferences(),
+  );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState(preference.deviceId);
+  const [deviceId, setDeviceId] = useState(preference.inputDeviceId);
   const [peak, setPeak] = useState(0);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
-      nextDevices.some((device) => device.deviceId === preference.deviceId)
-        ? preference.deviceId
+      nextDevices.some((device) => device.deviceId === preference.inputDeviceId)
+        ? preference.inputDeviceId
         : nextDevices[0]?.deviceId,
       false,
     );
@@ -348,9 +347,9 @@ function useRecorderInput({
     }
     setDeviceId(nextDeviceId);
     if (remember) {
-      const nextPreference = { ...preference, deviceId: nextDeviceId };
+      const nextPreference = { ...preference, inputDeviceId: nextDeviceId };
       setPreference(nextPreference);
-      saveRecorderInputPreference(nextPreference);
+      recorderStorage.updatePreferences({ inputDeviceId: nextDeviceId });
     }
   }
 
@@ -387,11 +386,14 @@ function useRecorderInput({
     if (state.inputChannelCount === 0) {
       return;
     }
-    const channel = Math.min(preference.channel, state.inputChannelCount - 1);
+    const channel = Math.min(
+      preference.inputChannel,
+      state.inputChannelCount - 1,
+    );
     if (channel !== state.selectedChannel) {
       runtime.selectChannel(channel);
     }
-  }, [preference.channel, state.inputChannelCount, state.selectedChannel]);
+  }, [preference.inputChannel, state.inputChannelCount, state.selectedChannel]);
 
   // The initial device enumeration has settled, so the UI can leave loading state.
   const initialized = refreshMutation.isSuccess || refreshMutation.isError;
@@ -414,9 +416,9 @@ function useRecorderInput({
     selectDevice,
     selectChannel: (channel: number) => {
       runtime.selectChannel(channel);
-      const nextPreference = { ...preference, channel };
+      const nextPreference = { ...preference, inputChannel: channel };
       setPreference(nextPreference);
-      saveRecorderInputPreference(nextPreference);
+      recorderStorage.updatePreferences({ inputChannel: channel });
     },
     toggle: () => {
       if (!hasAccess) {
