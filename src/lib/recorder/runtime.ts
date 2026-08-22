@@ -302,10 +302,15 @@ export class RecorderRuntime {
     }
     const context = this.ensureContext();
     await context.resume();
-    // TODO: When rolling a stopped transport, confirm capture is active before
-    // scheduling playback and discard captured pre-roll before that boundary.
-    // The current order assumes worklet capture starts within the playback lead
-    // and can otherwise miss the beginning of playback.
+    // TODO: Split recording start by product intent. When recording rolls a
+    // stopped transport, await the render-thread capture start before scheduling
+    // playback. Use the scheduled playback context frame as ActiveRecording's
+    // start frame so absolute-frame assembly clips capture pre-roll, and place
+    // the take at the requested playback position. When recording joins an
+    // already-running transport, keep using the acknowledged capture start frame
+    // for both ActiveRecording and frame-to-position placement. CaptureInput and
+    // ActiveRecording remain transport-agnostic; runtime owns which absolute
+    // frame becomes product sample zero.
     if (!this.store.get().isPlaying) {
       await this.play();
     }
