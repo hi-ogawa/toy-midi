@@ -51,7 +51,7 @@ export class CaptureInput {
       stream,
       onNotification,
     });
-    const channelCount = await input.worklet.detectChannels();
+    const channelCount = await input.worklet.getChannelCount();
     return {
       input,
       settings: track.getSettings(),

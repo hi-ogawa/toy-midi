@@ -28,7 +28,7 @@ export class CaptureProcessor extends AudioWorkletProcessor {
     registerEndpointRpcHandlers(this.port, this);
   }
 
-  async detectChannels(_params: Record<string, never>): Promise<number> {
+  async getChannelCount(_params: Record<string, never>): Promise<number> {
     if (this.observedChannelCount > 0) {
       return this.observedChannelCount;
     }

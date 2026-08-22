@@ -41,12 +41,12 @@ export class CaptureWorkletClient {
     this.rpc = createMessagePortRpc<CaptureProcessor>(this.node.port);
   }
 
-  async detectChannels() {
-    return await this.rpc.detectChannels({});
+  async getChannelCount() {
+    return await this.rpc.getChannelCount({});
   }
 
   setChannel(value: number) {
-    void this.rpc.setChannel({ value });
+    return this.rpc.setChannel({ value });
   }
 
   start() {
