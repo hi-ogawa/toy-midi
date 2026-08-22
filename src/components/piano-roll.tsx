@@ -24,11 +24,9 @@ import {
 import { formatChromaticPitch } from "../lib/pitch-spelling";
 import { projectStorage } from "../lib/project-storage";
 import {
-  beatsToSeconds,
   type AudioWaveform,
   generateLocatorId,
   generateNoteId,
-  secondsToBeats,
   useProjectStore,
 } from "../lib/project-store";
 import {
@@ -36,6 +34,11 @@ import {
   getTabStringColor,
   resolveTabPosition,
 } from "../lib/tab-annotation";
+import {
+  beatsToSeconds,
+  getVisibleBarInterval,
+  secondsToBeats,
+} from "../lib/timeline";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
 import { AudioWaveformView } from "./audio-waveform";
 import { Slider } from "./ui/slider";
@@ -1256,11 +1259,11 @@ function generateVerticalGridLayers(
   const layers: [string, string, string][] = [];
 
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
-  let coarseBarMultiplier = 1;
-  while (barWidth * coarseBarMultiplier < MIN_LINE_SPACING) {
-    coarseBarMultiplier *= 2;
-  }
-  const coarseBarWidth = barWidth * coarseBarMultiplier;
+  const visibleBarInterval = getVisibleBarInterval({
+    barWidth,
+    minimumPixelSpacing: MIN_LINE_SPACING,
+  });
+  const coarseBarWidth = visibleBarInterval * barWidth;
   const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
 
   layers.push([
@@ -1518,10 +1521,10 @@ function Timeline({
 
   // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
   const barWidth = beatsPerBar * beatWidth;
-  let labelBarStep = 1;
-  while (barWidth * labelBarStep < MIN_LABEL_SPACING) {
-    labelBarStep *= 2;
-  }
+  const labelBarStep = getVisibleBarInterval({
+    barWidth,
+    minimumPixelSpacing: MIN_LABEL_SPACING,
+  });
   const labelBeatStep = labelBarStep * beatsPerBar;
 
   // Calculate visible beat range, aligned to label step
