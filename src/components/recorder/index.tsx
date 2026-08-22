@@ -27,6 +27,10 @@ import {
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
 import {
+  loadRecorderInputPreference,
+  saveRecorderInputPreference,
+} from "../../lib/recorder/input-preference";
+import {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -43,10 +47,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 import { InputMeter } from "./input-meter";
-import {
-  loadRecorderInputPreference,
-  saveRecorderInputPreference,
-} from "./input-preference";
 import {
   BEATS_PER_BAR,
   DEFAULT_PIXELS_PER_BEAT,
