@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import {
@@ -245,6 +246,15 @@ export function Recorder() {
                   scrollX={timeline.scrollX}
                   tempo={timeline.tempo}
                   emptyLabel="Load an audio file"
+                  onClipOffsetChange={(offset) =>
+                    runtime.setAudioTrackOffset(track.id, offset)
+                  }
+                  onClipDragEnd={() => {
+                    if (state.isPlaying) {
+                      runtime.pause();
+                      playMutation.mutate();
+                    }
+                  }}
                   onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
@@ -927,6 +937,8 @@ function TimelineLane({
   pixelsPerBeat,
   scrollX,
   tempo,
+  onClipOffsetChange,
+  onClipDragEnd,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -941,9 +953,39 @@ function TimelineLane({
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: () => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
+  const [isDragging, setIsDragging] = useState(false);
+  const clipDragRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(true);
+      return {
+        startClientX: event.clientX,
+        startOffset: clip!.offset,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const deltaBeats =
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+      onClipOffsetChange!(
+        Math.max(
+          0,
+          drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
+        ),
+      );
+    },
+    onEnd: () => {
+      setIsDragging(false);
+      onClipDragEnd?.();
+    },
+  });
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
@@ -969,7 +1011,13 @@ function TimelineLane({
     >
       {clip ? (
         <div
-          className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
+          ref={onClipOffsetChange ? clipDragRef : undefined}
+          className={cn(
+            "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
+            clipClass,
+            onClipOffsetChange && "cursor-ew-resize select-none",
+            isDragging && "brightness-125",
+          )}
           style={{
             left:
               (recorderSecondsToBeats(clip.offset, tempo) - scrollX) *
@@ -981,6 +1029,11 @@ function TimelineLane({
           }}
         >
           <span className="truncate">{clip.label}</span>
+          {onClipOffsetChange && clip.offset > 0 && (
+            <span className="ml-1.5 opacity-75">
+              +{clip.offset.toFixed(3)}s
+            </span>
+          )}
         </div>
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">

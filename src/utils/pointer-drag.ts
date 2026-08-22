@@ -1,5 +1,4 @@
-type PointerDragOptions<T> = {
-  element: HTMLElement;
+export type PointerDragOptions<T> = {
   onStart: (event: PointerEvent) => T;
   onMove: (event: PointerEvent, data: T) => void;
   onEnd?: (event: PointerEvent, data: T) => void;
@@ -10,7 +9,7 @@ export function listenPointerDrag<T>({
   onStart,
   onMove,
   onEnd,
-}: PointerDragOptions<T>) {
+}: PointerDragOptions<T> & { element: HTMLElement }) {
   let drag: { pointerId: number; data: T } | undefined;
 
   const handlePointerDown = (event: PointerEvent) => {
