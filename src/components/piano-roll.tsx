@@ -36,7 +36,7 @@ import {
 } from "../lib/tab-annotation";
 import {
   beatsToSeconds,
-  getMinimumPowerOfTwoMultiple,
+  getVisibleTimelineInterval,
   secondsToBeats,
 } from "../lib/timeline";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
@@ -1260,9 +1260,9 @@ function generateVerticalGridLayers(
 
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
   const coarseBarWidth =
-    getMinimumPowerOfTwoMultiple({
+    getVisibleTimelineInterval({
       baseInterval: beatsPerBar,
-      minimumSpacing: MIN_LINE_SPACING,
+      minimumPixelSpacing: MIN_LINE_SPACING,
       pixelsPerUnit: beatWidth,
     }) * beatWidth;
   const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
@@ -1521,9 +1521,9 @@ function Timeline({
   const beatWidth = Math.round(pixelsPerBeat);
 
   // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
-  const labelBeatStep = getMinimumPowerOfTwoMultiple({
+  const labelBeatStep = getVisibleTimelineInterval({
     baseInterval: beatsPerBar,
-    minimumSpacing: MIN_LABEL_SPACING,
+    minimumPixelSpacing: MIN_LABEL_SPACING,
     pixelsPerUnit: beatWidth,
   });
 

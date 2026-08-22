@@ -6,17 +6,17 @@ export function beatsToSeconds(beats: number, tempo: number): number {
   return (beats / tempo) * 60;
 }
 
-export function getMinimumPowerOfTwoMultiple({
+export function getVisibleTimelineInterval({
   baseInterval,
-  minimumSpacing,
+  minimumPixelSpacing,
   pixelsPerUnit,
 }: {
   baseInterval: number;
-  minimumSpacing: number;
+  minimumPixelSpacing: number;
   pixelsPerUnit: number;
 }): number {
   let interval = baseInterval;
-  while (interval * pixelsPerUnit < minimumSpacing) {
+  while (interval * pixelsPerUnit < minimumPixelSpacing) {
     interval *= 2;
   }
   return interval;
