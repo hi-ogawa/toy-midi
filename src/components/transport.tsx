@@ -1,6 +1,5 @@
 import {
   CheckIcon,
-  ChevronDownIcon,
   ChevronsUpDownIcon,
   PauseIcon,
   PlayIcon,
@@ -26,23 +25,15 @@ import {
   CommandItem,
   CommandList,
 } from "./ui/command";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { Input } from "./ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Select } from "./ui/select";
 import { cn } from "./ui/utils";
 
 type TransportProps = {
   projectName: string;
   controls: ReactNode;
 };
-
-const choiceFieldClassName =
-  "border-neutral-600 bg-neutral-900 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900";
 
 export function Transport({ projectName, controls }: TransportProps) {
   const {
@@ -175,12 +166,12 @@ export function Transport({ projectName, controls }: TransportProps) {
       {/* Tempo: BPM input + tap button + time signature */}
       <div className="flex items-center gap-1.5">
         <span className="text-muted-foreground">BPM</span>
-        <input
+        <Input
           data-testid="tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
+          className="w-14 px-1 text-center font-mono"
         />
         <Button
           data-testid="tap-tempo-button"
@@ -196,61 +187,43 @@ export function Transport({ projectName, controls }: TransportProps) {
       <div className="w-px h-5 bg-border" />
 
       {/* Time signature selector */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            data-testid="time-signature-select"
-            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
-          >
-            {timeSignature.numerator}/{timeSignature.denominator}
-            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuRadioGroup
-            value={`${timeSignature.numerator}/${timeSignature.denominator}`}
-            onValueChange={(v) => {
-              const [numerator, denominator] = v.split("/").map(Number);
-              setTimeSignature({ numerator, denominator });
-            }}
-          >
-            {COMMON_TIME_SIGNATURES.map((ts) => (
-              <DropdownMenuRadioItem
-                key={`${ts.numerator}/${ts.denominator}`}
-                value={`${ts.numerator}/${ts.denominator}`}
-              >
-                {ts.numerator}/{ts.denominator}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Select
+        data-testid="time-signature-select"
+        aria-label="Time signature"
+        className="font-mono"
+        value={`${timeSignature.numerator}/${timeSignature.denominator}`}
+        onChange={(event) => {
+          const [numerator, denominator] = event.currentTarget.value
+            .split("/")
+            .map(Number);
+          setTimeSignature({ numerator, denominator });
+        }}
+      >
+        {COMMON_TIME_SIGNATURES.map((ts) => {
+          const value = `${ts.numerator}/${ts.denominator}`;
+          return (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          );
+        })}
+      </Select>
 
       {/* Grid snap selector */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            data-testid="grid-snap-select"
-            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
-          >
-            {gridSnap}
-            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuRadioGroup
-            value={gridSnap}
-            onValueChange={(v) => setGridSnap(v as GridSnap)}
-          >
-            <DropdownMenuRadioItem value="1/4">1/4</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="1/8">1/8</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="1/16">1/16</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="1/4T">1/4T</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="1/8T">1/8T</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="1/16T">1/16T</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <Select
+        data-testid="grid-snap-select"
+        aria-label="Grid snap"
+        className="font-mono"
+        value={gridSnap}
+        onChange={(event) => setGridSnap(event.currentTarget.value as GridSnap)}
+      >
+        <option value="1/4">1/4</option>
+        <option value="1/8">1/8</option>
+        <option value="1/16">1/16</option>
+        <option value="1/4T">1/4T</option>
+        <option value="1/8T">1/8T</option>
+        <option value="1/16T">1/16T</option>
+      </Select>
 
       {/* Divider */}
       <div className="w-px h-5 bg-border" />
@@ -370,10 +343,7 @@ function InstrumentCombobox({
           data-testid="instrument-select"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            "h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal",
-            choiceFieldClassName,
-          )}
+          className="h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}

@@ -68,6 +68,17 @@ test.describe("Transport Controls", () => {
     await expect(tempoInput).toHaveValue("300");
   });
 
+  test("timeline value selectors", async ({ page }) => {
+    const timeSignature = page.getByTestId("time-signature-select");
+    const gridSnap = page.getByTestId("grid-snap-select");
+
+    await timeSignature.selectOption("3/4");
+    await gridSnap.selectOption("1/8T");
+
+    await expect(timeSignature).toHaveValue("3/4");
+    await expect(gridSnap).toHaveValue("1/8T");
+  });
+
   test("metronome toggle", async ({ page }) => {
     const metronomeToggle = page.getByTestId("metronome-mute-toggle");
 
