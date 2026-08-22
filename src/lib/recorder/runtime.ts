@@ -374,7 +374,7 @@ export class RecorderRuntime {
 
   setMetronomeEnabled(metronomeEnabled: boolean): void {
     this.store.update({ metronomeEnabled });
-    this.metronome?.setEnabled(metronomeEnabled);
+    this.metronome?.setGain(metronomeEnabled ? 1 : 0);
   }
 
   private ensureContext(): AudioContext {
@@ -387,7 +387,7 @@ export class RecorderRuntime {
       });
       this.syncTrackMix();
       this.metronome = new RecorderMetronome(this.transport);
-      this.metronome.setEnabled(this.store.get().metronomeEnabled);
+      this.metronome.setGain(this.store.get().metronomeEnabled ? 1 : 0);
       this.metronome.setTempo(this.store.get().tempo);
       this.transport.store.subscribe(() => {
         const { position, running } = this.transport!.store.get();

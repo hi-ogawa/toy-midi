@@ -13,7 +13,6 @@ export class RecorderMetronome implements TransportParticipant {
   private nextBeat = 0;
   private startContextTime = 0;
   private startPosition = 0;
-  private enabled = false;
   private tempo = 120;
 
   constructor(private readonly transport: AudioContextTransport) {
@@ -23,12 +22,8 @@ export class RecorderMetronome implements TransportParticipant {
     transport.register(this);
   }
 
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
-    this.output.gain.setValueAtTime(
-      enabled ? 1 : 0,
-      this.transport.context.currentTime,
-    );
+  setGain(gain: number): void {
+    this.output.gain.setValueAtTime(gain, this.transport.context.currentTime);
   }
 
   setTempo(tempo: number): void {
@@ -37,9 +32,6 @@ export class RecorderMetronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    if (!this.enabled) {
-      return;
-    }
     const playbackAnchor = this.transport.playbackAnchor!;
     this.startContextTime = playbackAnchor.contextTime;
     this.startPosition = playbackAnchor.position;
