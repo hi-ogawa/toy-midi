@@ -1,3 +1,5 @@
+import { createStore } from "../../utils/store.ts";
+
 const PLAYBACK_LEAD_SECONDS = 0.03;
 
 export type TransportAnchor = {
@@ -16,7 +18,10 @@ type TransportSnapshot = {
 };
 
 export class AudioContextTransport {
-  private state: TransportSnapshot = { position: 0, running: false };
+  readonly store = createStore<TransportSnapshot>(() => ({
+    position: 0,
+    running: false,
+  }));
   private contextTime?: number;
   private timelineTime = 0;
   private readonly participants = new Set<TransportParticipant>();
@@ -33,24 +38,24 @@ export class AudioContextTransport {
   }
 
   play(): void {
-    if (this.state.running) {
+    if (this.store.get().running) {
       return;
     }
     const anchor = {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
-      position: this.state.position,
+      position: this.store.get().position,
     };
     this.contextTime = anchor.contextTime;
     this.timelineTime = anchor.position;
     for (const participant of this.participants) {
       participant.start(anchor);
     }
-    this.update({ running: true });
+    this.store.update({ running: true });
     this.startTicking();
   }
 
   pause(): void {
-    if (!this.state.running) {
+    if (!this.store.get().running) {
       return;
     }
     const position = this.getPosition(this.context.currentTime);
@@ -60,17 +65,17 @@ export class AudioContextTransport {
     this.contextTime = undefined;
     this.timelineTime = position;
     this.stopTicking();
-    this.update({ position, running: false });
+    this.store.update({ position, running: false });
   }
 
   seek(position: number): void {
-    const wasRunning = this.state.running;
+    const wasRunning = this.store.get().running;
     if (wasRunning) {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
     this.timelineTime = nextPosition;
-    this.update({ position: nextPosition });
+    this.store.update({ position: nextPosition });
     if (wasRunning) {
       this.play();
     }
@@ -78,7 +83,7 @@ export class AudioContextTransport {
 
   getPositionAtContextTime(contextTime: number): number {
     if (this.contextTime === undefined) {
-      return this.state.position;
+      return this.store.get().position;
     }
     return this.timelineTime + contextTime - this.contextTime;
   }
@@ -100,30 +105,15 @@ export class AudioContextTransport {
       return;
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
-      this.update({ position: this.getPosition(this.context.currentTime) });
+      this.store.update({
+        position: this.getPosition(this.context.currentTime),
+      });
     });
   }
 
   private stopTicking(): void {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
-  }
-
-  // reactive state contract
-  private readonly listeners = new Set<() => void>();
-
-  getSnapshot = (): TransportSnapshot => this.state;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
-
-  private update(update: Partial<TransportSnapshot>): void {
-    this.state = { ...this.state, ...update };
-    for (const listener of this.listeners) {
-      listener();
-    }
   }
 }
 

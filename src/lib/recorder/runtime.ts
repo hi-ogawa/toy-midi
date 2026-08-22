@@ -355,8 +355,8 @@ export class RecorderRuntime {
         output: this.context.destination,
       });
       this.syncTrackMix();
-      this.transport.subscribe(() => {
-        const { position, running } = this.transport!.getSnapshot();
+      this.transport.store.subscribe(() => {
+        const { position, running } = this.transport!.store.get();
         this.store.update({ isPlaying: running, position });
       });
     }
