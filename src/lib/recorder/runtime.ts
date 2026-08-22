@@ -83,7 +83,7 @@ export class RecorderRuntime {
     deviceId: string;
     onLevel: (peak: number) => void;
   }): Promise<{ channelCount: number }> {
-    const context = this.getContext();
+    const context = this.ensureContext();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, settings, channelCount } = await CaptureInput.open({
@@ -167,7 +167,7 @@ export class RecorderRuntime {
   }
 
   async setAudioTrack(id: string, file: File): Promise<void> {
-    const context = this.getContext();
+    const context = this.ensureContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
@@ -242,7 +242,7 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
-      const context = this.getContext();
+      const context = this.ensureContext();
       playback = new AudioBufferPlayback({
         transport: this.transport!,
         output: context.destination,
@@ -278,7 +278,7 @@ export class RecorderRuntime {
   }
 
   async play(): Promise<void> {
-    const context = this.getContext();
+    const context = this.ensureContext();
     await context.resume();
     this.recordingTrackPlayback!.setTimelineOffset(
       this.store.get().getTakeOffset(),
@@ -291,7 +291,7 @@ export class RecorderRuntime {
   }
 
   seek(position: number): void {
-    this.getContext();
+    this.ensureContext();
     this.transport!.seek(position);
   }
 
@@ -299,7 +299,7 @@ export class RecorderRuntime {
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = this.getContext();
+    const context = this.ensureContext();
     await context.resume();
     // Recording rolls the transport so the worklet's capture frame can be
     // converted through its active time mapping into a stable placement.
@@ -346,7 +346,7 @@ export class RecorderRuntime {
     this.store.update({ latencyCompensation: compensation });
   }
 
-  private getContext(): AudioContext {
+  private ensureContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
       this.transport = new AudioContextTransport(this.context);
