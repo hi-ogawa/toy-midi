@@ -69,23 +69,7 @@ export function Recorder() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [inputPeak, setInputPeak] = useState(0);
-  const [tempo, setTempo] = useState(120);
-  const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
-  const [scrollX, setScrollX] = useState(0);
-  const timelineViewportRef = useRef<HTMLDivElement>(null);
-  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
-
-  function zoomTimeline(nextPixelsPerBeat: number, anchorX?: number) {
-    const viewport = timelineViewportRef.current;
-    if (!viewport) {
-      setPixelsPerBeat(nextPixelsPerBeat);
-      return;
-    }
-    const timelineX = anchorX ?? viewport.clientWidth / 2;
-    const beatAtAnchor = timelineX / pixelsPerBeat + scrollX;
-    setPixelsPerBeat(nextPixelsPerBeat);
-    setScrollX(Math.max(0, beatAtAnchor - timelineX / nextPixelsPerBeat));
-  }
+  const timeline = useRecorderTimeline({ position: state.position });
 
   async function refreshInputs() {
     const nextDevices = await getCaptureInputs();
@@ -126,60 +110,12 @@ export function Recorder() {
       navigator.mediaDevices.removeEventListener("devicechange", refresh);
   }, [refreshInputsMutation.mutate]);
 
-  useLayoutEffect(() => {
-    const viewport = timelineViewportRef.current;
-    if (!viewport) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      setTimelineViewportWidth(entry.contentRect.width);
-    });
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const viewport = timelineViewportRef.current;
-    if (!viewport) {
-      return;
-    }
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      if (!event.ctrlKey) {
-        const delta = event.deltaX || event.deltaY;
-        setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
-        return;
-      }
-      if (event.deltaY === 0) {
-        return;
-      }
-      const rect = viewport.getBoundingClientRect();
-      const nextPixelsPerBeat = Math.max(
-        MIN_PIXELS_PER_BEAT,
-        Math.min(
-          MAX_PIXELS_PER_BEAT,
-          pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
-        ),
-      );
-      zoomTimeline(
-        nextPixelsPerBeat,
-        Math.max(0, event.clientX - rect.left - 216),
-      );
-    };
-    viewport.addEventListener("wheel", handleWheel, { passive: false });
-    return () => viewport.removeEventListener("wheel", handleWheel);
-  }, [pixelsPerBeat, scrollX]);
-
   const inputsInitialized =
     refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
   const hasAccess = devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
   const inputActive = state.inputSettings !== undefined;
   const take = state.recordingTrack.takes[0];
-  const timelineWidth = Math.max(0, timelineViewportWidth - 216);
-  const playheadX =
-    (recorderSecondsToBeats(state.position, tempo) - scrollX) * pixelsPerBeat;
-  const showPlayhead = playheadX >= 0 && playheadX <= timelineWidth;
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
@@ -229,40 +165,37 @@ export function Recorder() {
         isProcessing={isProcessing}
         isRecording={isRecording}
         position={state.position}
-        tempo={tempo}
-        pixelsPerBeat={pixelsPerBeat}
+        tempo={timeline.tempo}
+        pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.status === "idle"}
         onPlay={() => playMutation.mutate()}
         onPause={() => runtime.pause()}
         onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
-        onTempoChange={setTempo}
-        onZoomIn={() =>
-          zoomTimeline(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25))
-        }
-        onZoomOut={() =>
-          zoomTimeline(Math.max(MIN_PIXELS_PER_BEAT, pixelsPerBeat / 1.25))
-        }
+        onTempoChange={timeline.setTempo}
+        onZoomIn={timeline.zoomIn}
+        onZoomOut={timeline.zoomOut}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section
-          ref={timelineViewportRef}
-          className="min-w-0 overflow-hidden border-r border-neutral-700"
-        >
+        <section className="relative min-w-0 overflow-hidden border-r border-neutral-700">
+          <div
+            ref={timeline.viewportRef}
+            className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
+          />
           <div className="relative">
-            {showPlayhead && (
+            {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0 z-30 overflow-hidden">
                 <div
                   className="absolute inset-y-0 w-px bg-sky-400"
-                  style={{ left: playheadX }}
+                  style={{ left: timeline.playheadX }}
                 />
               </div>
             )}
             <TimelineHeader
-              pixelsPerBeat={pixelsPerBeat}
-              scrollX={scrollX}
-              tempo={tempo}
-              timelineWidth={timelineWidth}
+              pixelsPerBeat={timeline.pixelsPerBeat}
+              scrollX={timeline.scrollX}
+              tempo={timeline.tempo}
+              timelineWidth={timeline.width}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => {
                 const id = runtime.addAudioTrack();
@@ -308,9 +241,9 @@ export function Recorder() {
                         }
                       : undefined
                   }
-                  pixelsPerBeat={pixelsPerBeat}
-                  scrollX={scrollX}
-                  tempo={tempo}
+                  pixelsPerBeat={timeline.pixelsPerBeat}
+                  scrollX={timeline.scrollX}
+                  tempo={timeline.tempo}
                   emptyLabel="Load an audio file"
                   onSeek={(position) => runtime.seek(position)}
                 />
@@ -354,9 +287,9 @@ export function Recorder() {
                       }
                     : undefined
                 }
-                pixelsPerBeat={pixelsPerBeat}
-                scrollX={scrollX}
-                tempo={tempo}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                scrollX={timeline.scrollX}
+                tempo={timeline.tempo}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -414,6 +347,84 @@ export function Recorder() {
       </div>
     </main>
   );
+}
+
+function useRecorderTimeline({ position }: { position: number }) {
+  const [tempo, setTempo] = useState(120);
+  const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
+  const [scrollX, setScrollX] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const playheadX =
+    (recorderSecondsToBeats(position, tempo) - scrollX) * pixelsPerBeat;
+  const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  function zoom(nextPixelsPerBeat: number, anchorX?: number) {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      setPixelsPerBeat(nextPixelsPerBeat);
+      return;
+    }
+    const timelineX = anchorX ?? viewport.clientWidth / 2;
+    const beatAtAnchor = timelineX / pixelsPerBeat + scrollX;
+    setPixelsPerBeat(nextPixelsPerBeat);
+    setScrollX(Math.max(0, beatAtAnchor - timelineX / nextPixelsPerBeat));
+  }
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setViewportWidth(entry.contentRect.width);
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    const wheelTarget = viewport?.parentElement;
+    if (!viewport || !wheelTarget) {
+      return;
+    }
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (!event.ctrlKey) {
+        const delta = event.deltaX || event.deltaY;
+        setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
+        return;
+      }
+      if (event.deltaY === 0) {
+        return;
+      }
+      const rect = viewport.getBoundingClientRect();
+      const nextPixelsPerBeat = Math.max(
+        MIN_PIXELS_PER_BEAT,
+        Math.min(
+          MAX_PIXELS_PER_BEAT,
+          pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
+        ),
+      );
+      zoom(nextPixelsPerBeat, Math.max(0, event.clientX - rect.left));
+    };
+    wheelTarget.addEventListener("wheel", handleWheel, { passive: false });
+    return () => wheelTarget.removeEventListener("wheel", handleWheel);
+  }, [pixelsPerBeat, scrollX]);
+
+  return {
+    pixelsPerBeat,
+    playheadX,
+    scrollX,
+    setTempo,
+    tempo,
+    viewportRef,
+    width: viewportWidth,
+    showPlayhead,
+    zoomIn: () => zoom(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25)),
+    zoomOut: () => zoom(Math.max(MIN_PIXELS_PER_BEAT, pixelsPerBeat / 1.25)),
+  };
 }
 
 function RecorderHeader({
