@@ -246,11 +246,10 @@ export function Recorder() {
                   tempo={timeline.tempo}
                   emptyLabel="Load an audio file"
                   onClipDragStart={() => {
-                    const wasPlaying = runtime.store.get().isPlaying;
-                    if (wasPlaying) {
+                    if (state.isPlaying) {
                       runtime.pause();
                     }
-                    return wasPlaying;
+                    return state.isPlaying;
                   }}
                   onClipOffsetChange={(offset) =>
                     runtime.setAudioTrackOffset(track.id, offset)
