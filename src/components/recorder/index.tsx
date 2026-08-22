@@ -24,7 +24,10 @@ import {
   getCaptureInputs,
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
-import { RecorderRuntime } from "../../lib/recorder/runtime";
+import {
+  RecorderRuntime,
+  RecorderRuntimeState,
+} from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
@@ -58,32 +61,11 @@ export function Recorder() {
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState<string>();
-  const [inputPeak, setInputPeak] = useState(0);
+  const input = useRecorderInput({
+    runtime,
+    state,
+  });
   const timeline = useRecorderTimeline({ position: state.position });
-
-  async function refreshInputs() {
-    const nextDevices = await getCaptureInputs();
-    setDevices(nextDevices);
-    selectDevice(
-      nextDevices.some((device) => device.deviceId === deviceId)
-        ? deviceId
-        : nextDevices[0]?.deviceId,
-    );
-  }
-
-  const grantAccessMutation = useMutation({
-    mutationFn: async () => {
-      await requestCaptureAccess();
-      await refreshInputs();
-    },
-  });
-  const refreshInputsMutation = useMutation({ mutationFn: refreshInputs });
-  const startInputMutation = useMutation({
-    mutationFn: (nextDeviceId: string) =>
-      runtime.startInput({ deviceId: nextDeviceId, onLevel: setInputPeak }),
-  });
   const audioTrackMutation = useMutation({
     mutationFn: ({ file, id }: { file: File; id: string }) =>
       runtime.setAudioTrack(id, file),
@@ -94,26 +76,11 @@ export function Recorder() {
       action === "start" ? runtime.startRecording() : runtime.stopRecording(),
   });
 
-  useEffect(() => {
-    const refresh = () => refreshInputsMutation.mutate();
-    refresh();
-    navigator.mediaDevices.addEventListener("devicechange", refresh);
-    return () =>
-      navigator.mediaDevices.removeEventListener("devicechange", refresh);
-  }, [refreshInputsMutation.mutate]);
-
-  const inputsInitialized =
-    refreshInputsMutation.isSuccess || refreshInputsMutation.isError;
-  const hasAccess = devices.some((device) => device.label);
-  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
-  const inputActive = state.inputSettings !== undefined;
   const take = state.recordingTrack.takes[0];
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
-    grantAccessMutation.error ??
-    refreshInputsMutation.error ??
-    startInputMutation.error ??
+    input.error ??
     audioTrackMutation.error ??
     playMutation.error ??
     recordMutation.error;
@@ -136,19 +103,6 @@ export function Recorder() {
       playMutation.mutate();
     }
   });
-
-  function selectDevice(nextDeviceId?: string) {
-    if (nextDeviceId !== deviceId && inputActive) {
-      stopInput();
-    }
-    setDeviceId(nextDeviceId);
-  }
-
-  function stopInput() {
-    runtime.stopInput();
-    setInputPeak(0);
-    startInputMutation.reset();
-  }
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
@@ -288,39 +242,24 @@ export function Recorder() {
         </section>
 
         <InputInspector
-          devices={devices}
+          devices={input.devices}
           error={error}
-          hasAccess={hasAccess}
-          inputActive={inputActive}
-          inputPeak={inputPeak}
-          inputsInitialized={inputsInitialized}
+          hasAccess={input.hasAccess}
+          inputActive={input.active}
+          inputPeak={input.peak}
+          inputsInitialized={input.initialized}
           isProcessing={isProcessing}
           isRecording={isRecording}
-          selectedDevice={selectedDevice}
+          selectedDevice={input.selectedDevice}
           selectedChannel={state.selectedChannel}
           inputChannelCount={state.inputChannelCount}
           latencyCompensation={state.latencyCompensation}
-          inputTogglePending={
-            grantAccessMutation.isPending || startInputMutation.isPending
-          }
-          mutationPending={
-            refreshInputsMutation.isPending ||
-            grantAccessMutation.isPending ||
-            startInputMutation.isPending
-          }
-          onDeviceChange={selectDevice}
-          onInputToggle={() => {
-            if (!hasAccess) {
-              grantAccessMutation.mutate();
-            } else if (inputActive) {
-              stopInput();
-            } else if (selectedDevice) {
-              setInputPeak(0);
-              startInputMutation.mutate(selectedDevice.deviceId);
-            }
-          }}
+          inputTogglePending={input.togglePending}
+          mutationPending={input.mutationPending}
+          onDeviceChange={input.selectDevice}
+          onInputToggle={input.toggle}
           onChannelChange={(channel) => {
-            setInputPeak(0);
+            input.setPeak(0);
             runtime.selectChannel(channel);
           }}
           onLatencyCompensationChange={(compensation) => {
@@ -337,6 +276,97 @@ export function Recorder() {
       </div>
     </main>
   );
+}
+
+function useRecorderInput({
+  runtime,
+  state,
+}: {
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
+}) {
+  const active = state.inputSettings !== undefined;
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string>();
+  const [peak, setPeak] = useState(0);
+
+  async function refresh() {
+    const nextDevices = await getCaptureInputs();
+    setDevices(nextDevices);
+    selectDevice(
+      nextDevices.some((device) => device.deviceId === deviceId)
+        ? deviceId
+        : nextDevices[0]?.deviceId,
+    );
+  }
+
+  function selectDevice(nextDeviceId?: string) {
+    if (nextDeviceId !== deviceId && active) {
+      stop();
+    }
+    setDeviceId(nextDeviceId);
+  }
+
+  function stop() {
+    runtime.stopInput();
+    setPeak(0);
+    startMutation.reset();
+  }
+
+  const grantMutation = useMutation({
+    mutationFn: async () => {
+      await requestCaptureAccess();
+      await refresh();
+    },
+  });
+
+  const refreshMutation = useMutation({ mutationFn: refresh });
+
+  const startMutation = useMutation({
+    mutationFn: (nextDeviceId: string) =>
+      runtime.startInput({ deviceId: nextDeviceId, onLevel: setPeak }),
+  });
+
+  // refresh on mount and watch for device changes
+  useEffect(() => {
+    const refreshInputs = () => refreshMutation.mutate();
+    refreshInputs();
+    navigator.mediaDevices.addEventListener("devicechange", refreshInputs);
+    return () =>
+      navigator.mediaDevices.removeEventListener("devicechange", refreshInputs);
+  }, [refreshMutation.mutate]);
+
+  // The initial device enumeration has settled, so the UI can leave loading state.
+  const initialized = refreshMutation.isSuccess || refreshMutation.isError;
+  const hasAccess = devices.some((device) => device.label);
+  const selectedDevice = devices.find((device) => device.deviceId === deviceId);
+
+  return {
+    active,
+    devices,
+    error: grantMutation.error ?? refreshMutation.error ?? startMutation.error,
+    hasAccess,
+    initialized,
+    mutationPending:
+      refreshMutation.isPending ||
+      grantMutation.isPending ||
+      startMutation.isPending,
+    peak,
+    setPeak,
+    selectedDevice,
+    selectDevice,
+    toggle: () => {
+      if (!hasAccess) {
+        grantMutation.mutate();
+      } else if (active) {
+        stop();
+      } else if (selectedDevice) {
+        setPeak(0);
+        startMutation.mutate(selectedDevice.deviceId);
+      }
+    },
+    togglePending: grantMutation.isPending || startMutation.isPending,
+  };
 }
 
 function useRecorderTimeline({ position }: { position: number }) {

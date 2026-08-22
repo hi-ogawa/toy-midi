@@ -33,7 +33,7 @@ interface TakeState {
   captureOffset: number;
 }
 
-interface RecorderState {
+export interface RecorderRuntimeState {
   status: RecorderStatus;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
@@ -47,7 +47,7 @@ interface RecorderState {
 }
 
 export class RecorderRuntime {
-  readonly store = createStore<RecorderState>((get) => ({
+  readonly store = createStore<RecorderRuntimeState>((get) => ({
     status: "idle",
     inputChannelCount: 0,
     selectedChannel: 0,
