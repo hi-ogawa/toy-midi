@@ -47,7 +47,7 @@ export class CaptureWorkletClient {
   }
 
   async detectChannels() {
-    return { channelCount: await this.rpc.detectChannels({}) };
+    return await this.rpc.detectChannels({});
   }
 
   setChannel(value: number) {
