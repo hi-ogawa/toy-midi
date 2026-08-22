@@ -1,11 +1,5 @@
 import { useCallback, useEffectEvent } from "react";
-import { listenPointerDrag } from "../utils/pointer-drag";
-
-type PointerDragOptions<T> = {
-  onStart: (event: PointerEvent) => T;
-  onMove: (event: PointerEvent, data: T) => void;
-  onEnd?: (event: PointerEvent, data: T) => void;
-};
+import { listenPointerDrag, PointerDragOptions } from "../utils/pointer-drag";
 
 export function usePointerDrag<T>({
   onStart,
