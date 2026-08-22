@@ -6,6 +6,7 @@ type TimelineGridLayer = {
   spacingPixels: number;
 };
 
+// TODO: Migrate the main editor's grid rendering to this shared utility.
 export function getTimelineGridBackground({
   beatsPerBar,
   colors,
