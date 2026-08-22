@@ -14,14 +14,7 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
@@ -259,6 +252,7 @@ export function Recorder() {
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                   scrollX={timeline.scrollX}
                   tempo={timeline.tempo}
+                  viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   onClipOffsetChange={(offset) =>
                     runtime.setAudioTrackOffset(track.id, offset)
@@ -321,6 +315,7 @@ export function Recorder() {
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 scrollX={timeline.scrollX}
                 tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -977,6 +972,7 @@ function TimelineLane({
   pixelsPerBeat,
   scrollX,
   tempo,
+  viewportWidth,
   onClipOffsetChange,
   onClipDragEnd,
   subdivisionsPerBeat,
@@ -994,6 +990,7 @@ function TimelineLane({
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
+  viewportWidth: number;
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
   subdivisionsPerBeat: number;
@@ -1032,19 +1029,6 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
-  const laneRef = useRef<HTMLDivElement>(null);
-  const [laneWidth, setLaneWidth] = useState(0);
-  useLayoutEffect(() => {
-    const lane = laneRef.current;
-    if (!lane) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      setLaneWidth(entry.contentRect.width);
-    });
-    observer.observe(lane);
-    return () => observer.disconnect();
-  }, []);
   const clipStartBeat = clip ? recorderSecondsToBeats(clip.offset, tempo) : 0;
   const clipWidth = clip
     ? Math.max(2, recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat)
@@ -1056,14 +1040,13 @@ function TimelineLane({
     ? Math.min(
         clip.duration,
         recorderBeatsToSeconds(
-          scrollX + laneWidth / pixelsPerBeat - clipStartBeat,
+          scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
           tempo,
         ),
       )
     : 0;
   return (
     <div
-      ref={laneRef}
       className="relative overflow-hidden bg-neutral-900"
       style={getTimelineGridStyle({
         beatsPerBar,
