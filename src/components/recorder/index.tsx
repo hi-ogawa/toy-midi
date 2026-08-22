@@ -10,17 +10,9 @@ import {
   PlayIcon,
   PlusIcon,
   Trash2Icon,
-  ZoomInIcon,
-  ZoomOutIcon,
   UploadIcon,
 } from "lucide-react";
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import {
@@ -172,8 +164,6 @@ export function Recorder() {
         onPause={() => runtime.pause()}
         onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
         onTempoChange={timeline.setTempo}
-        onZoomIn={timeline.zoomIn}
-        onZoomOut={timeline.zoomOut}
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
@@ -195,7 +185,7 @@ export function Recorder() {
               pixelsPerBeat={timeline.pixelsPerBeat}
               scrollX={timeline.scrollX}
               tempo={timeline.tempo}
-              timelineWidth={timeline.width}
+              timelineWidth={timeline.viewportWidth}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => {
                 const id = runtime.addAudioTrack();
@@ -353,65 +343,55 @@ function useRecorderTimeline({ position }: { position: number }) {
   const [tempo, setTempo] = useState(120);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [scrollX, setScrollX] = useState(0);
-  const viewportRef = useRef<HTMLDivElement>(null);
   const [viewportWidth, setViewportWidth] = useState(0);
   const playheadX =
     (recorderSecondsToBeats(position, tempo) - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
-  function zoom(nextPixelsPerBeat: number, anchorX?: number) {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      setPixelsPerBeat(nextPixelsPerBeat);
-      return;
-    }
-    const timelineX = anchorX ?? viewport.clientWidth / 2;
-    const beatAtAnchor = timelineX / pixelsPerBeat + scrollX;
+  function zoom(nextPixelsPerBeat: number, anchorX: number) {
+    const beatAtAnchor = anchorX / pixelsPerBeat + scrollX;
     setPixelsPerBeat(nextPixelsPerBeat);
-    setScrollX(Math.max(0, beatAtAnchor - timelineX / nextPixelsPerBeat));
+    setScrollX(Math.max(0, beatAtAnchor - anchorX / nextPixelsPerBeat));
   }
 
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => {
-      setViewportWidth(entry.contentRect.width);
-    });
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    const wheelTarget = viewport?.parentElement;
-    if (!viewport || !wheelTarget) {
-      return;
-    }
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      if (!event.ctrlKey) {
-        const delta = event.deltaX || event.deltaY;
-        setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
+  const viewportRef = useCallback(
+    (viewport: HTMLDivElement | null) => {
+      if (!viewport) {
         return;
       }
-      if (event.deltaY === 0) {
-        return;
-      }
-      const rect = viewport.getBoundingClientRect();
-      const nextPixelsPerBeat = Math.max(
-        MIN_PIXELS_PER_BEAT,
-        Math.min(
-          MAX_PIXELS_PER_BEAT,
-          pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
-        ),
-      );
-      zoom(nextPixelsPerBeat, Math.max(0, event.clientX - rect.left));
-    };
-    wheelTarget.addEventListener("wheel", handleWheel, { passive: false });
-    return () => wheelTarget.removeEventListener("wheel", handleWheel);
-  }, [pixelsPerBeat, scrollX]);
+      const observer = new ResizeObserver(([entry]) => {
+        setViewportWidth(entry.contentRect.width);
+      });
+      observer.observe(viewport);
+      const wheelTarget = viewport.parentElement;
+      const handleWheel = (event: WheelEvent) => {
+        event.preventDefault();
+        if (!event.ctrlKey) {
+          const delta = event.deltaX || event.deltaY;
+          setScrollX((value) => Math.max(0, value + delta / pixelsPerBeat));
+          return;
+        }
+        if (event.deltaY === 0) {
+          return;
+        }
+        const rect = viewport.getBoundingClientRect();
+        const nextPixelsPerBeat = Math.max(
+          MIN_PIXELS_PER_BEAT,
+          Math.min(
+            MAX_PIXELS_PER_BEAT,
+            pixelsPerBeat * (event.deltaY > 0 ? 0.9 : 1.1),
+          ),
+        );
+        zoom(nextPixelsPerBeat, Math.max(0, event.clientX - rect.left));
+      };
+      wheelTarget?.addEventListener("wheel", handleWheel, { passive: false });
+      return () => {
+        observer.disconnect();
+        wheelTarget?.removeEventListener("wheel", handleWheel);
+      };
+    },
+    [pixelsPerBeat, scrollX],
+  );
 
   return {
     pixelsPerBeat,
@@ -420,10 +400,8 @@ function useRecorderTimeline({ position }: { position: number }) {
     setTempo,
     tempo,
     viewportRef,
-    width: viewportWidth,
+    viewportWidth,
     showPlayhead,
-    zoomIn: () => zoom(Math.min(MAX_PIXELS_PER_BEAT, pixelsPerBeat * 1.25)),
-    zoomOut: () => zoom(Math.max(MIN_PIXELS_PER_BEAT, pixelsPerBeat / 1.25)),
   };
 }
 
@@ -439,8 +417,6 @@ function RecorderHeader({
   onPause,
   onRecord,
   onTempoChange,
-  onZoomIn,
-  onZoomOut,
 }: {
   isPlaying: boolean;
   isProcessing: boolean;
@@ -453,8 +429,6 @@ function RecorderHeader({
   onPause: () => void;
   onRecord: () => void;
   onTempoChange: (tempo: number) => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
 }) {
   const tempoInput = useDraftInput({
     value: tempo,
@@ -521,22 +495,6 @@ function RecorderHeader({
       <span className="font-mono text-[10px] text-neutral-500">
         {Math.round(pixelsPerBeat)} px/beat
       </span>
-      <Button
-        onClick={onZoomOut}
-        disabled={pixelsPerBeat <= MIN_PIXELS_PER_BEAT}
-        className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        title="Zoom timeline out"
-      >
-        <ZoomOutIcon className="size-4" />
-      </Button>
-      <Button
-        onClick={onZoomIn}
-        disabled={pixelsPerBeat >= MAX_PIXELS_PER_BEAT}
-        className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
-        title="Zoom timeline in"
-      >
-        <ZoomInIcon className="size-4" />
-      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
