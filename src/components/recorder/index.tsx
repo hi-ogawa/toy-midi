@@ -76,10 +76,11 @@ export function Recorder() {
     mutationFn: async (action: "start" | "stop") => {
       if (action === "start") {
         await runtime.startRecording();
-        return;
       }
-      await runtime.stopRecording();
-      runtime.pause();
+      if (action === "stop") {
+        await runtime.stopRecording();
+        runtime.pause();
+      }
     },
   });
   const audioTrackMutation = useMutation({
