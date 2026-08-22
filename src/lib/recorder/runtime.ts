@@ -278,11 +278,12 @@ export class RecorderRuntime {
   }
 
   async play(): Promise<void> {
-    this.getContext();
+    const context = this.getContext();
+    await context.resume();
     this.recordingTrackPlayback!.setTimelineOffset(
       this.store.get().getTakeOffset(),
     );
-    await this.transport!.play();
+    this.transport!.play();
   }
 
   pause(): void {

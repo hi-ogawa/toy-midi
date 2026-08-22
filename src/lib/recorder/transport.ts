@@ -20,7 +20,6 @@ export class AudioContextTransport {
   private contextTime?: number;
   private timelineTime = 0;
   private readonly participants = new Set<TransportParticipant>();
-  private playPromise?: Promise<void>;
   private disposeTicking?: () => void;
 
   constructor(readonly context: AudioContext) {}
@@ -33,23 +32,10 @@ export class AudioContextTransport {
     };
   }
 
-  async play(): Promise<void> {
+  play(): void {
     if (this.state.running) {
       return;
     }
-    if (this.playPromise) {
-      return this.playPromise;
-    }
-    this.playPromise = this.start();
-    try {
-      await this.playPromise;
-    } finally {
-      this.playPromise = undefined;
-    }
-  }
-
-  private async start(): Promise<void> {
-    await this.context.resume();
     const anchor = {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position: this.state.position,
@@ -86,7 +72,7 @@ export class AudioContextTransport {
     this.timelineTime = nextPosition;
     this.update({ position: nextPosition });
     if (wasRunning) {
-      void this.play();
+      this.play();
     }
   }
 
