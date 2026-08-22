@@ -66,14 +66,23 @@ export function Recorder() {
     state,
   });
   const timeline = useRecorderTimeline({ position: state.position });
+
   const audioTrackMutation = useMutation({
-    mutationFn: ({ file, id }: { file: File; id: string }) =>
-      runtime.setAudioTrack(id, file),
+    mutationFn: ({ file, id }: { file: File; id: string }) => {
+      return runtime.setAudioTrack(id, file);
+    },
   });
-  const playMutation = useMutation({ mutationFn: () => runtime.play() });
+  const playMutation = useMutation({
+    mutationFn: () => {
+      return runtime.play();
+    },
+  });
   const recordMutation = useMutation({
-    mutationFn: (action: "start" | "stop") =>
-      action === "start" ? runtime.startRecording() : runtime.stopRecording(),
+    mutationFn: (action: "start" | "stop") => {
+      return action === "start"
+        ? runtime.startRecording()
+        : runtime.stopRecording();
+    },
   });
 
   const take = state.recordingTrack.takes[0];
