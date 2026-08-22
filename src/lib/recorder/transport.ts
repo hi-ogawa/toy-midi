@@ -70,7 +70,11 @@ export class AudioContextTransport {
     if (!this.store.get().running) {
       return;
     }
-    const position = this.getTransportPosition();
+    const playbackAnchor = this.playbackAnchor!;
+    const position = Math.max(
+      playbackAnchor.position,
+      this.getTimelinePositionAtContextTime(this.context.currentTime),
+    );
     for (const participant of this.participants) {
       participant.stop();
     }
@@ -90,15 +94,6 @@ export class AudioContextTransport {
     if (wasRunning) {
       this.play();
     }
-  }
-
-  /** Returns the position reached at the AudioContext's current time. */
-  private getTransportPosition(): number {
-    // Hold at the requested position until the future playback anchor arrives.
-    return Math.max(
-      this.playbackAnchor!.position,
-      this.getTimelinePositionAtContextTime(this.context.currentTime),
-    );
   }
 
   /** Converts an absolute AudioContext time through the active playback anchor. */
@@ -130,8 +125,13 @@ export class AudioContextTransport {
       return;
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
+      const playbackAnchor = this.playbackAnchor!;
       this.store.update({
-        position: this.getTransportPosition(),
+        // Hold at the requested position until the future playback anchor arrives.
+        position: Math.max(
+          playbackAnchor.position,
+          this.getTimelinePositionAtContextTime(this.context.currentTime),
+        ),
       });
     });
   }
