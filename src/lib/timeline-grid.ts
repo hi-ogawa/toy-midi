@@ -1,11 +1,54 @@
-export type TimelineGridLayer = {
-  intervalBeats: number;
-  kind: "bar" | "beat" | "subdivision";
+type TimelineGridKind = "bar" | "beat" | "subdivision";
+
+type TimelineGridLayer = {
+  kind: TimelineGridKind;
   offsetPixels: number;
   spacingPixels: number;
 };
 
-export function calculateTimelineGridLayers({
+export function getTimelineGridBackground({
+  beatsPerBar,
+  colors,
+  minimumPixelSpacing,
+  pixelsPerBeat,
+  scrollBeat,
+  subdivisionsPerBeat,
+}: {
+  beatsPerBar: number;
+  colors: Record<TimelineGridKind, string>;
+  minimumPixelSpacing: number;
+  pixelsPerBeat: number;
+  scrollBeat: number;
+  subdivisionsPerBeat: number;
+}): {
+  backgroundImage: string;
+  backgroundPosition: string;
+  backgroundSize: string;
+} {
+  const layers = calculateTimelineGridLayers({
+    beatsPerBar,
+    minimumPixelSpacing,
+    pixelsPerBeat,
+    scrollBeat,
+    subdivisionsPerBeat,
+  });
+  return {
+    backgroundImage: layers
+      .map(
+        ({ kind }) =>
+          `linear-gradient(to right, ${colors[kind]} 1px, transparent 1px)`,
+      )
+      .join(", "),
+    backgroundPosition: layers
+      .map(({ offsetPixels }) => `${offsetPixels}px 0`)
+      .join(", "),
+    backgroundSize: layers
+      .map(({ spacingPixels }) => `${spacingPixels}px 100%`)
+      .join(", "),
+  };
+}
+
+function calculateTimelineGridLayers({
   beatsPerBar,
   minimumPixelSpacing,
   pixelsPerBeat,
@@ -65,13 +108,12 @@ function createLayer({
   scrollBeat,
 }: {
   intervalBeats: number;
-  kind: TimelineGridLayer["kind"];
+  kind: TimelineGridKind;
   pixelsPerBeat: number;
   scrollBeat: number;
 }): TimelineGridLayer {
   const spacingPixels = intervalBeats * pixelsPerBeat;
   return {
-    intervalBeats,
     kind,
     offsetPixels: -(scrollBeat * pixelsPerBeat) % spacingPixels,
     spacingPixels,

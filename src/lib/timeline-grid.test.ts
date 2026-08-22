@@ -1,54 +1,46 @@
 import { describe, expect, test } from "vitest";
-import { calculateTimelineGridLayers } from "./timeline-grid";
+import { getTimelineGridBackground } from "./timeline-grid";
 
-describe(calculateTimelineGridLayers, () => {
+const colors = {
+  bar: "bar-color",
+  beat: "beat-color",
+  subdivision: "subdivision-color",
+};
+
+describe(getTimelineGridBackground, () => {
   test("returns bar, beat, and subdivision layers when they are visible", () => {
     expect(
-      calculateTimelineGridLayers({
+      getTimelineGridBackground({
         beatsPerBar: 4,
+        colors,
         minimumPixelSpacing: 8,
         pixelsPerBeat: 80,
         scrollBeat: 1.5,
         subdivisionsPerBeat: 4,
       }),
-    ).toEqual([
-      {
-        intervalBeats: 4,
-        kind: "bar",
-        offsetPixels: -120,
-        spacingPixels: 320,
-      },
-      {
-        intervalBeats: 1,
-        kind: "beat",
-        offsetPixels: -40,
-        spacingPixels: 80,
-      },
-      {
-        intervalBeats: 0.25,
-        kind: "subdivision",
-        offsetPixels: -0,
-        spacingPixels: 20,
-      },
-    ]);
+    ).toEqual({
+      backgroundImage:
+        "linear-gradient(to right, bar-color 1px, transparent 1px), linear-gradient(to right, beat-color 1px, transparent 1px), linear-gradient(to right, subdivision-color 1px, transparent 1px)",
+      backgroundPosition: "-120px 0, -40px 0, 0px 0",
+      backgroundSize: "320px 100%, 80px 100%, 20px 100%",
+    });
   });
 
   test("hides dense layers and coarsens bars", () => {
     expect(
-      calculateTimelineGridLayers({
+      getTimelineGridBackground({
         beatsPerBar: 4,
+        colors,
         minimumPixelSpacing: 8,
         pixelsPerBeat: 1,
         scrollBeat: 5,
         subdivisionsPerBeat: 4,
       }),
-    ).toEqual([
-      {
-        intervalBeats: 8,
-        kind: "bar",
-        offsetPixels: -5,
-        spacingPixels: 8,
-      },
-    ]);
+    ).toEqual({
+      backgroundImage:
+        "linear-gradient(to right, bar-color 1px, transparent 1px)",
+      backgroundPosition: "-5px 0",
+      backgroundSize: "8px 100%",
+    });
   });
 });

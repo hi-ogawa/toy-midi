@@ -31,10 +31,7 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
-import {
-  calculateTimelineGridLayers,
-  TimelineGridLayer,
-} from "../../lib/timeline-grid";
+import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import {
@@ -889,32 +886,18 @@ function getTimelineGridStyle({
   pixelsPerBeat: number;
   scrollX: number;
 }): React.CSSProperties {
-  const colors: Record<TimelineGridLayer["kind"], string> = {
-    bar: "rgb(82 82 82)",
-    beat: "rgb(64 64 64)",
-    subdivision: "rgb(51 51 51)",
-  };
-  const layers = calculateTimelineGridLayers({
+  return getTimelineGridBackground({
     beatsPerBar: BEATS_PER_BAR,
+    colors: {
+      bar: "rgb(82 82 82)",
+      beat: "rgb(64 64 64)",
+      subdivision: "rgb(51 51 51)",
+    },
     minimumPixelSpacing: 8,
     pixelsPerBeat,
     scrollBeat: scrollX,
     subdivisionsPerBeat: 4,
   });
-  return {
-    backgroundImage: layers
-      .map(
-        ({ kind }) =>
-          `linear-gradient(to right, ${colors[kind]} 1px, transparent 1px)`,
-      )
-      .join(", "),
-    backgroundPosition: layers
-      .map(({ offsetPixels }) => `${offsetPixels}px 0`)
-      .join(", "),
-    backgroundSize: layers
-      .map(({ spacingPixels }) => `${spacingPixels}px 100%`)
-      .join(", "),
-  };
 }
 
 function InputInspector({
