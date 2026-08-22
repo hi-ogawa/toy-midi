@@ -111,7 +111,7 @@ async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
   // but discard failures so a later input-open attempt can retry.
   let registration = workletRegistrations.get(context);
   if (!registration) {
-    registration = registerCaptureWorklet(context);
+    registration = context.audioWorklet.addModule(captureWorkletUrl);
     workletRegistrations.set(context, registration);
   }
   try {
@@ -120,10 +120,6 @@ async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
     workletRegistrations.delete(context);
     throw error;
   }
-}
-
-async function registerCaptureWorklet(context: AudioContext): Promise<void> {
-  await context.audioWorklet.addModule(captureWorkletUrl);
 }
 
 function captureConstraints(deviceId?: string): MediaStreamConstraints {
