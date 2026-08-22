@@ -110,6 +110,7 @@ export function registerEndpointRpcHandlers(
       if (event.data?.type !== RPC_REQUEST) {
         return;
       }
+
       const { id, method, params } = event.data;
       const handler = Reflect.get(handlers, method) as unknown;
       if (typeof handler !== "function") {
@@ -120,6 +121,7 @@ export function registerEndpointRpcHandlers(
         } satisfies RpcResponse);
         return;
       }
+
       const deserializedParams = deserializeParams(
         params,
         (callbackId, args) => {
@@ -153,6 +155,7 @@ export function registerEndpointRpcHandlers(
 function collectTransferables(value: unknown): Transferable[] {
   const transferables: Transferable[] = [];
   const seen = new WeakSet<object>();
+
   function visit(current: unknown): void {
     if (current instanceof ArrayBuffer) {
       if (!transferables.includes(current)) {
@@ -174,6 +177,7 @@ function collectTransferables(value: unknown): Transferable[] {
       visit(nested);
     }
   }
+
   visit(value);
   return transferables;
 }
