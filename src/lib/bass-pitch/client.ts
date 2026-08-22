@@ -1,6 +1,6 @@
-import { resampleToModelRate } from "../basic-pitch/audio.ts";
 import type { RpcClient } from "../rpc/core.ts";
 import { createWorkerRpc } from "../rpc/worker.ts";
+import { resampleToModelRate } from "./audio.ts";
 import type {
   GridTranscribedNote,
   GridTranscribeParams,
