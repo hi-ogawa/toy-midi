@@ -414,12 +414,12 @@ function useRecorderInput({
 
   const startMutation = useMutation({
     mutationFn: async (nextDeviceId: string) => {
-      await runtime.startInput({ deviceId: nextDeviceId, onLevel: setPeak });
+      const { channelCount } = await runtime.startInput({
+        deviceId: nextDeviceId,
+        onLevel: setPeak,
+      });
       runtime.selectChannel(
-        Math.min(
-          preference.inputChannel,
-          runtime.store.get().inputChannelCount - 1,
-        ),
+        Math.min(preference.inputChannel, channelCount - 1),
       );
     },
   });
