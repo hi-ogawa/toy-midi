@@ -4,6 +4,7 @@ import {
   CircleHelpIcon,
   CircleStopIcon,
   HouseIcon,
+  LoaderCircleIcon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -15,6 +16,7 @@ import {
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import { resolveAudioFiles } from "../../lib/audio-files";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -88,12 +90,22 @@ export function Recorder() {
       return runtime.setAudioTrack(id, file);
     },
   });
+  const addAudioMutation = useMutation({
+    mutationFn: async (input: File) => {
+      const files = await resolveAudioFiles(input);
+      for (const file of files) {
+        const id = runtime.addAudioTrack();
+        await runtime.setAudioTrack(id, file);
+      }
+    },
+  });
 
   const take = state.recordingTrack.takes[0];
   const isRecording = state.status === "recording";
   const isProcessing = state.status === "processing";
   const error =
     input.error ??
+    addAudioMutation.error ??
     audioTrackMutation.error ??
     playMutation.error ??
     recordMutation.error;
@@ -166,11 +178,9 @@ export function Recorder() {
               scrollX={timeline.scrollX}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
+              isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
-              onAddAudioFile={(file) => {
-                const id = runtime.addAudioTrack();
-                audioTrackMutation.mutate({ file, id });
-              }}
+              onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
             />
             {state.audioTracks.map((track, index) => (
@@ -577,6 +587,7 @@ function TimelineHeader({
   scrollX,
   tempo,
   timelineWidth,
+  isAddingAudio,
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
@@ -585,6 +596,7 @@ function TimelineHeader({
   scrollX: number;
   tempo: number;
   timelineWidth: number;
+  isAddingAudio: boolean;
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
@@ -597,19 +609,30 @@ function TimelineHeader({
         <div className="flex gap-1">
           <Button
             onClick={onAddAudioTrack}
+            disabled={isAddingAudio}
             className="size-7 hover:bg-neutral-700"
             title="Add empty audio track"
           >
             <PlusIcon className="size-3.5" />
           </Button>
           <Button
+            disabled={isAddingAudio}
             onClick={() =>
-              openFilePicker({ accept: "audio/*,.wav", onFile: onAddAudioFile })
+              openFilePicker({
+                accept: "audio/*,.zip,application/zip",
+                onFile: onAddAudioFile,
+              })
             }
-            title="Add audio track from file"
+            title={
+              isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
+            }
             className="size-7 hover:bg-neutral-700"
           >
-            <UploadIcon className="size-3.5" />
+            {isAddingAudio ? (
+              <LoaderCircleIcon className="size-3.5 animate-spin" />
+            ) : (
+              <UploadIcon className="size-3.5" />
+            )}
           </Button>
         </div>
       </div>
