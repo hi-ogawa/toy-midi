@@ -53,6 +53,8 @@ import {
   formatBarBeat,
   formatDb,
   formatLatencyMilliseconds,
+  formatTime,
+  getRecorderRulerLabelEveryBars,
   recorderBeatsToSeconds,
   recorderSecondsToBeats,
 } from "./utils";
@@ -1040,22 +1042,4 @@ function InputInspector({
       )}
     </aside>
   );
-}
-
-function formatTime(seconds: number): string {
-  const safeSeconds = Math.max(0, seconds);
-  const minutes = Math.floor(safeSeconds / 60);
-  const remaining = safeSeconds - minutes * 60;
-  return `${String(minutes).padStart(2, "0")}:${remaining
-    .toFixed(3)
-    .padStart(6, "0")}`;
-}
-
-function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
-  const minimumLabelSpacing = 48;
-  let bars = 1;
-  while (bars * BEATS_PER_BAR * pixelsPerBeat < minimumLabelSpacing) {
-    bars *= 2;
-  }
-  return bars;
 }
