@@ -1,15 +1,15 @@
 import { registerEndpointRpcHandlers } from "../rpc/worker.ts";
-import {
-  CAPTURE_PROCESSOR_NAME,
-  type CaptureWorkletNotification,
-} from "./capture-worklet-client.ts";
+import { CAPTURE_PROCESSOR_NAME } from "./capture-worklet-client.ts";
 
-declare const AudioWorkletProcessor: new () => { port: MessagePort };
-declare const currentFrame: number;
-declare function registerProcessor(
-  name: string,
-  processor: typeof AudioWorkletProcessor,
-): void;
+export type CaptureWorkletNotification =
+  | { type: "level"; peak: number }
+  | ({ type: "samples" } & CaptureChunk);
+
+export type CaptureChunk = {
+  /** Absolute AudioContext frame corresponding to `samples[0]`. */
+  frameStart: number;
+  samples: Float32Array;
+};
 
 export class CaptureProcessor extends AudioWorkletProcessor {
   private recording = false;
@@ -157,3 +157,11 @@ export class CaptureProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor(CAPTURE_PROCESSOR_NAME, CaptureProcessor);
+
+// declare worklet globals
+declare const AudioWorkletProcessor: new () => { port: MessagePort };
+declare const currentFrame: number;
+declare function registerProcessor(
+  name: string,
+  processor: typeof AudioWorkletProcessor,
+): void;

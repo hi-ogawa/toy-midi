@@ -1,18 +1,11 @@
 import type { RpcClient } from "../rpc/core.ts";
 import { createMessagePortRpc } from "../rpc/worker.ts";
-import type { CaptureProcessor } from "./capture-worklet.ts";
+import type {
+  CaptureProcessor,
+  CaptureWorkletNotification,
+} from "./capture-worklet.ts";
 
 export const CAPTURE_PROCESSOR_NAME = "recorder-capture";
-
-export type CaptureChunk = {
-  /** Absolute AudioContext frame corresponding to `samples[0]`. */
-  frameStart: number;
-  samples: Float32Array;
-};
-
-export type CaptureWorkletNotification =
-  | { type: "level"; peak: number }
-  | ({ type: "samples" } & CaptureChunk);
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;

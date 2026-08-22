@@ -1,7 +1,5 @@
-import {
-  CaptureWorkletClient,
-  type CaptureWorkletNotification,
-} from "./capture-worklet-client.ts";
+import { CaptureWorkletClient } from "./capture-worklet-client.ts";
+import { CaptureWorkletNotification } from "./capture-worklet.ts";
 import captureWorkletUrl from "./capture-worklet.ts?worker&url";
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
