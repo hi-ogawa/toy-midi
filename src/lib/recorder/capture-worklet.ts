@@ -1,5 +1,5 @@
 import { registerEndpointRpcHandlers } from "../rpc/worker.ts";
-import { CAPTURE_PROCESSOR_NAME } from "./capture-worklet-client.ts";
+import { CAPTURE_PROCESSOR_NAME } from "./capture-worklet-shared.ts";
 
 export type CaptureWorkletNotification =
   | { type: "level"; peak: number }

@@ -1,11 +1,10 @@
 import type { RpcClient } from "../rpc/core.ts";
 import { createMessagePortRpc } from "../rpc/worker.ts";
+import { CAPTURE_PROCESSOR_NAME } from "./capture-worklet-shared.ts";
 import type {
   CaptureProcessor,
   CaptureWorkletNotification,
 } from "./capture-worklet.ts";
-
-export const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
