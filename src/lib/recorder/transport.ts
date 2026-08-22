@@ -108,12 +108,9 @@ export class AudioContextTransport {
       return;
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
-      const playbackAnchor = this.playbackAnchor!;
       this.store.update({
-        // Hold at the requested position until the future playback anchor arrives.
-        position: Math.max(
-          playbackAnchor.position,
-          this.getPlaybackPositionByContextTime(this.context.currentTime),
+        position: this.getPlaybackPositionWithoutLeadTimeByContextTime(
+          this.context.currentTime,
         ),
       });
     });
@@ -132,6 +129,20 @@ export class AudioContextTransport {
   private getPlaybackPositionByContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor!;
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
+  }
+
+  /**
+   * Converts an absolute AudioContext time to published playback position while
+   * excluding the scheduling lead before the playback anchor.
+   */
+  private getPlaybackPositionWithoutLeadTimeByContextTime(
+    contextTime: number,
+  ): number {
+    const playbackAnchor = this.playbackAnchor!;
+    return Math.max(
+      playbackAnchor.position,
+      this.getPlaybackPositionByContextTime(contextTime),
+    );
   }
 }
 
