@@ -99,6 +99,9 @@ export function Recorder() {
     recordMutation.error;
 
   function togglePlay() {
+    if (isProcessing) {
+      return;
+    }
     if (isRecording) {
       recordMutation.mutate("stop");
     } else if (state.isPlaying) {
@@ -109,6 +112,9 @@ export function Recorder() {
   }
 
   function toggleRecord() {
+    if (isProcessing || state.status === "idle") {
+      return;
+    }
     recordMutation.mutate(isRecording ? "stop" : "start");
   }
 
@@ -116,17 +122,12 @@ export function Recorder() {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    const action = matchKeyboardEvent(event, "Space")
-      ? togglePlay
-      : matchKeyboardEvent(event, "R")
-        ? toggleRecord
-        : undefined;
-    if (!action) {
-      return;
-    }
-    event.preventDefault();
-    if (!isProcessing && (action !== toggleRecord || state.status !== "idle")) {
-      action();
+    if (matchKeyboardEvent(event, "Space")) {
+      event.preventDefault();
+      togglePlay();
+    } else if (matchKeyboardEvent(event, "R")) {
+      event.preventDefault();
+      toggleRecord();
     }
   });
 
