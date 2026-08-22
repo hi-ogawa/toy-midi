@@ -5,7 +5,6 @@ import {
 } from "./capture-worklet.ts";
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
-const INITIAL_CHANNEL_TIMEOUT = 3_000;
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -20,6 +19,7 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
+  readonly ready: Promise<{ channelCount: number }>;
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
@@ -48,44 +48,22 @@ export class CaptureInput {
       throw new Error("The selected device did not provide an audio track.");
     }
     try {
-      let resolveChannelCount!: (channelCount: number) => void;
-      let rejectChannelCount!: (error: Error) => void;
-      const channelCountPromise = new Promise<number>((resolve, reject) => {
-        resolveChannelCount = resolve;
-        rejectChannelCount = reject;
-      });
-      let initialized = false;
       const input = new CaptureInput({
         context,
         stream,
-        onNotification: (message) => {
-          if (message.type === "channels" && !initialized) {
-            initialized = true;
-            resolveChannelCount(message.value);
-            return;
-          }
-          onNotification(message);
-        },
+        onNotification,
       });
-      const timeout = window.setTimeout(() => {
-        rejectChannelCount(
-          new Error("Audio input channel detection timed out."),
-        );
-      }, INITIAL_CHANNEL_TIMEOUT);
-      let channelCount: number;
       try {
-        channelCount = await channelCountPromise;
+        const { channelCount } = await input.ready;
+        return {
+          input,
+          settings: track.getSettings(),
+          channelCount,
+        };
       } catch (error) {
         input.dispose();
         throw error;
-      } finally {
-        window.clearTimeout(timeout);
       }
-      return {
-        input,
-        settings: track.getSettings(),
-        channelCount,
-      };
     } catch (error) {
       stream.getTracks().forEach((track) => track.stop());
       throw error;
@@ -107,6 +85,7 @@ export class CaptureInput {
       context,
       onNotification,
     });
+    this.ready = this.worklet.ready;
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain

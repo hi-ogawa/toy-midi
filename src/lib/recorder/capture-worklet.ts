@@ -1,4 +1,5 @@
 const CAPTURE_PROCESSOR_NAME = "recorder-capture";
+const INITIAL_CHANNEL_TIMEOUT = 3_000;
 
 type ClientMessage =
   | { type: "channel"; value: number }
@@ -26,7 +27,11 @@ type WorkletMessage =
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
+  readonly ready: Promise<{ channelCount: number }>;
   private nextRequestId = 0;
+  private readyState = Promise.withResolvers<{ channelCount: number }>();
+  private readySettled = false;
+  private readyTimeout: number;
   private pendingActiveChanges = new Map<
     number,
     {
@@ -43,6 +48,13 @@ export class CaptureWorkletClient {
     context: AudioContext;
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
+    this.ready = this.readyState.promise;
+    this.readyTimeout = window.setTimeout(() => {
+      this.readySettled = true;
+      this.readyState.reject(
+        new Error("Audio input channel detection timed out."),
+      );
+    }, INITIAL_CHANNEL_TIMEOUT);
     this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
       numberOfInputs: 1,
       numberOfOutputs: 1,
@@ -50,6 +62,15 @@ export class CaptureWorkletClient {
     });
     this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
       if (event.data.type !== "activeChanged") {
+        if (
+          event.data.type === "channels" &&
+          event.data.value > 0 &&
+          !this.readySettled
+        ) {
+          this.readySettled = true;
+          window.clearTimeout(this.readyTimeout);
+          this.readyState.resolve({ channelCount: event.data.value });
+        }
         onNotification(event.data);
         return;
       }
@@ -79,6 +100,13 @@ export class CaptureWorkletClient {
     const error = new Error(
       "Input stopped during an audio capture transition.",
     );
+    if (!this.readySettled) {
+      this.readySettled = true;
+      window.clearTimeout(this.readyTimeout);
+      this.readyState.reject(
+        new Error("Input stopped before channel detection."),
+      );
+    }
     for (const pending of this.pendingActiveChanges.values()) {
       window.clearTimeout(pending.timeout);
       pending.reject(error);
