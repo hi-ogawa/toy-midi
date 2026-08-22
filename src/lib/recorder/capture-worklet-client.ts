@@ -1,5 +1,5 @@
 import type { RpcClient } from "../rpc/core.ts";
-import { createMessagePortRpc } from "../rpc/message-port.ts";
+import { createMessagePortRpc } from "../rpc/worker.ts";
 import type { CaptureProcessor } from "./capture-worklet.ts";
 
 export const CAPTURE_PROCESSOR_NAME = "recorder-capture";

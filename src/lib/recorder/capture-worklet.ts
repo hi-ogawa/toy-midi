@@ -1,4 +1,4 @@
-import { registerEndpointRpcHandlers } from "../rpc/endpoint.ts";
+import { registerEndpointRpcHandlers } from "../rpc/worker.ts";
 import {
   CAPTURE_PROCESSOR_NAME,
   type CaptureWorkletNotification,
