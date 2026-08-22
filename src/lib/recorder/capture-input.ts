@@ -46,27 +46,17 @@ export class CaptureInput {
       stream.getTracks().forEach((track) => track.stop());
       throw new Error("The selected device did not provide an audio track.");
     }
-    try {
-      const input = new CaptureInput({
-        context,
-        stream,
-        onNotification,
-      });
-      try {
-        const { channelCount } = await input.worklet.detectChannels();
-        return {
-          input,
-          settings: track.getSettings(),
-          channelCount,
-        };
-      } catch (error) {
-        input.dispose();
-        throw error;
-      }
-    } catch (error) {
-      stream.getTracks().forEach((track) => track.stop());
-      throw error;
-    }
+    const input = new CaptureInput({
+      context,
+      stream,
+      onNotification,
+    });
+    const { channelCount } = await input.worklet.detectChannels();
+    return {
+      input,
+      settings: track.getSettings(),
+      channelCount,
+    };
   }
 
   private constructor({
