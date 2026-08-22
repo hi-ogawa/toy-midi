@@ -381,11 +381,14 @@ function useRecorderInput({
       nextDevices.some((device) => device.deviceId === preference.inputDeviceId)
         ? preference.inputDeviceId
         : nextDevices[0]?.deviceId,
-      false,
+      { remember: false },
     );
   }
 
-  function selectDevice(nextDeviceId?: string, remember = true) {
+  function selectDevice(
+    nextDeviceId?: string,
+    { remember = true }: { remember?: boolean } = {},
+  ) {
     if (nextDeviceId !== deviceId && active) {
       stop();
     }
