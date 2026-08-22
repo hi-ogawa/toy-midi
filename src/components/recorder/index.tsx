@@ -31,6 +31,7 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
+import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import {
@@ -705,15 +706,10 @@ function TimelineRuler({
   const visibleBeats = timelineWidth / pixelsPerBeat;
   const labelCount =
     Math.ceil((scrollX + visibleBeats - firstLabelBeat) / labelEveryBeats) + 1;
-  const barWidth = BEATS_PER_BAR * pixelsPerBeat;
   return (
     <div
       className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
-      style={{
-        backgroundImage: `linear-gradient(to right, rgb(82 82 82) 1px, transparent 1px)`,
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${barWidth}px 100%`,
-      }}
+      style={getTimelineGridStyle({ pixelsPerBeat, scrollX })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -847,12 +843,7 @@ function TimelineLane({
   return (
     <div
       className="relative min-h-24 overflow-hidden bg-neutral-900"
-      style={{
-        backgroundImage:
-          "linear-gradient(to right, rgb(64 64 64) 1px, transparent 1px)",
-        backgroundPositionX: `${-(scrollX * pixelsPerBeat)}px`,
-        backgroundSize: `${BEATS_PER_BAR * pixelsPerBeat}px 100%`,
-      }}
+      style={getTimelineGridStyle({ pixelsPerBeat, scrollX })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -884,6 +875,27 @@ function TimelineLane({
       )}
     </div>
   );
+}
+
+function getTimelineGridStyle({
+  pixelsPerBeat,
+  scrollX,
+}: {
+  pixelsPerBeat: number;
+  scrollX: number;
+}): React.CSSProperties {
+  return getTimelineGridBackground({
+    beatsPerBar: BEATS_PER_BAR,
+    colors: {
+      bar: "rgb(82 82 82)",
+      beat: "rgb(64 64 64)",
+      subdivision: "rgb(51 51 51)",
+    },
+    minimumPixelSpacing: 8,
+    pixelsPerBeat,
+    scrollBeat: scrollX,
+    subdivisionsPerBeat: 4,
+  });
 }
 
 function InputInspector({
