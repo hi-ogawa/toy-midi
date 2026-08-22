@@ -83,16 +83,6 @@ export class RecorderRuntime {
       deviceId,
       onNotification: (message) => {
         switch (message.type) {
-          case "channels": {
-            const inputChannelCount = message.value;
-            const selectedChannel = Math.min(
-              this.store.get().selectedChannel,
-              Math.max(0, inputChannelCount - 1),
-            );
-            this.store.update({ inputChannelCount, selectedChannel });
-            this.selectChannel(selectedChannel);
-            break;
-          }
           case "level": {
             onLevel(message.peak);
             break;

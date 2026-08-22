@@ -12,12 +12,12 @@ export type CaptureChunk = {
 };
 
 export type CaptureWorkletNotification =
-  | { type: "channels"; value: number }
   | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk);
 
 type WorkletMessage =
   | CaptureWorkletNotification
+  | { type: "channels"; value: number }
   | {
       type: "activeChanged";
       requestId: number;
@@ -61,16 +61,15 @@ export class CaptureWorkletClient {
       outputChannelCount: [1],
     });
     this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
-      if (event.data.type !== "activeChanged") {
-        if (
-          event.data.type === "channels" &&
-          event.data.value > 0 &&
-          !this.readySettled
-        ) {
+      if (event.data.type === "channels") {
+        if (event.data.value > 0 && !this.readySettled) {
           this.readySettled = true;
           window.clearTimeout(this.readyTimeout);
           this.readyState.resolve({ channelCount: event.data.value });
         }
+        return;
+      }
+      if (event.data.type !== "activeChanged") {
         onNotification(event.data);
         return;
       }
