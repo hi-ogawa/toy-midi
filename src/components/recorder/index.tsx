@@ -706,11 +706,10 @@ function TimelineRuler({
   const visibleBeats = timelineWidth / pixelsPerBeat;
   const labelCount =
     Math.ceil((scrollX + visibleBeats - firstLabelBeat) / labelEveryBeats) + 1;
-  const gridStyle = getTimelineGridStyle({ pixelsPerBeat, scrollX });
   return (
     <div
       className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
-      style={gridStyle}
+      style={getTimelineGridStyle({ pixelsPerBeat, scrollX })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -841,11 +840,10 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
-  const gridStyle = getTimelineGridStyle({ pixelsPerBeat, scrollX });
   return (
     <div
       className="relative min-h-24 overflow-hidden bg-neutral-900"
-      style={gridStyle}
+      style={getTimelineGridStyle({ pixelsPerBeat, scrollX })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
