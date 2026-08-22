@@ -32,7 +32,11 @@ export class CaptureInput {
     context: AudioContext;
     deviceId: string;
     onNotification: (message: CaptureWorkletNotification) => void;
-  }): Promise<{ input: CaptureInput; settings: MediaTrackSettings }> {
+  }): Promise<{
+    input: CaptureInput;
+    settings: MediaTrackSettings;
+    channelCount: number;
+  }> {
     await ensureCaptureWorklet(context);
     const stream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
@@ -42,17 +46,41 @@ export class CaptureInput {
       stream.getTracks().forEach((track) => track.stop());
       throw new Error("The selected device did not provide an audio track.");
     }
+    let input: CaptureInput | undefined;
     try {
-      return {
-        input: new CaptureInput({
-          context,
-          stream,
-          onNotification,
+      let resolveChannelCount!: (value: number) => void;
+      const channelCountPromise = new Promise<number>((resolve) => {
+        resolveChannelCount = resolve;
+      });
+      input = new CaptureInput({
+        context,
+        stream,
+        onNotification: (message) => {
+          if (message.type === "channels" && message.value > 0) {
+            resolveChannelCount(message.value);
+          }
+          onNotification(message);
+        },
+      });
+      const channelCount = await Promise.race([
+        channelCountPromise,
+        new Promise<never>((_resolve, reject) => {
+          window.setTimeout(() => {
+            reject(new Error("Audio input channel discovery timed out."));
+          }, 3_000);
         }),
+      ]);
+      return {
+        input,
         settings: track.getSettings(),
+        channelCount,
       };
     } catch (error) {
-      stream.getTracks().forEach((track) => track.stop());
+      if (input) {
+        input.dispose();
+      } else {
+        stream.getTracks().forEach((track) => track.stop());
+      }
       throw error;
     }
   }
