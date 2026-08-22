@@ -8,6 +8,7 @@ const SCHEDULER_INTERVAL_MS = 25;
 const CLICK_DURATION_SECONDS = 0.03;
 
 export class RecorderMetronome implements TransportParticipant {
+  private readonly output: GainNode;
   private interval?: ReturnType<typeof setInterval>;
   private nextBeat = 0;
   private startContextTime = 0;
@@ -16,11 +17,18 @@ export class RecorderMetronome implements TransportParticipant {
   private tempo = 120;
 
   constructor(private readonly transport: AudioContextTransport) {
+    this.output = transport.context.createGain();
+    this.output.gain.value = 0;
+    this.output.connect(transport.context.destination);
     transport.register(this);
   }
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
+    this.output.gain.setValueAtTime(
+      enabled ? 1 : 0,
+      this.transport.context.currentTime,
+    );
   }
 
   setTempo(tempo: number): void {
@@ -86,7 +94,7 @@ export class RecorderMetronome implements TransportParticipant {
       0.0001,
       contextTime + CLICK_DURATION_SECONDS,
     );
-    oscillator.connect(gain).connect(this.transport.context.destination);
+    oscillator.connect(gain).connect(this.output);
     oscillator.start(contextTime);
     oscillator.stop(contextTime + CLICK_DURATION_SECONDS);
   }

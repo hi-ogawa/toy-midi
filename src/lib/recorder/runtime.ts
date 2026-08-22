@@ -375,9 +375,6 @@ export class RecorderRuntime {
   setMetronomeEnabled(metronomeEnabled: boolean): void {
     this.store.update({ metronomeEnabled });
     this.metronome?.setEnabled(metronomeEnabled);
-    if (this.store.get().isPlaying) {
-      this.seek(this.store.get().position);
-    }
   }
 
   private ensureContext(): AudioContext {
