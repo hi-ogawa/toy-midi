@@ -75,10 +75,14 @@ export function Recorder() {
     },
   });
   const recordMutation = useMutation({
-    mutationFn: (action: "start" | "stop") => {
-      return action === "start"
-        ? runtime.startRecording()
-        : runtime.stopRecording();
+    mutationFn: async (action: "start" | "stop") => {
+      if (action === "start") {
+        await runtime.startRecording();
+      }
+      if (action === "stop") {
+        await runtime.stopRecording();
+        runtime.pause();
+      }
     },
   });
   const audioTrackMutation = useMutation({
@@ -106,22 +110,36 @@ export function Recorder() {
     playMutation.error ??
     recordMutation.error;
 
-  useWindowEvent("keydown", (event) => {
-    if (
-      isShortcutTextInputTarget(event.target) ||
-      event.repeat ||
-      !matchKeyboardEvent(event, "Space")
-    ) {
+  function togglePlay() {
+    if (isProcessing) {
       return;
     }
-    event.preventDefault();
-    if (isRecording || isProcessing) {
-      return;
-    }
-    if (state.isPlaying) {
+    if (isRecording) {
+      recordMutation.mutate("stop");
+    } else if (state.isPlaying) {
       runtime.pause();
     } else {
       playMutation.mutate();
+    }
+  }
+
+  function toggleRecord() {
+    if (isProcessing || state.status === "idle") {
+      return;
+    }
+    recordMutation.mutate(isRecording ? "stop" : "start");
+  }
+
+  useWindowEvent("keydown", (event) => {
+    if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    if (matchKeyboardEvent(event, "Space")) {
+      event.preventDefault();
+      togglePlay();
+    } else if (matchKeyboardEvent(event, "R")) {
+      event.preventDefault();
+      toggleRecord();
     }
   });
 
@@ -135,9 +153,8 @@ export function Recorder() {
         tempo={timeline.tempo}
         pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.status === "idle"}
-        onPlay={() => playMutation.mutate()}
-        onPause={() => runtime.pause()}
-        onRecord={() => recordMutation.mutate(isRecording ? "stop" : "start")}
+        onPlayToggle={togglePlay}
+        onRecordToggle={toggleRecord}
         onTempoChange={timeline.setTempo}
       />
 
@@ -462,9 +479,8 @@ function RecorderHeader({
   tempo,
   pixelsPerBeat,
   recordDisabled,
-  onPlay,
-  onPause,
-  onRecord,
+  onPlayToggle,
+  onRecordToggle,
   onTempoChange,
 }: {
   isPlaying: boolean;
@@ -474,9 +490,8 @@ function RecorderHeader({
   tempo: number;
   pixelsPerBeat: number;
   recordDisabled: boolean;
-  onPlay: () => void;
-  onPause: () => void;
-  onRecord: () => void;
+  onPlayToggle: () => void;
+  onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
 }) {
   const tempoInput = useDraftInput({
@@ -491,8 +506,8 @@ function RecorderHeader({
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
-        onClick={isPlaying ? onPause : onPlay}
-        disabled={isRecording || isProcessing}
+        onClick={onPlayToggle}
+        disabled={isProcessing}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -500,7 +515,7 @@ function RecorderHeader({
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+        title={isRecording || isPlaying ? "Pause (Space)" : "Play (Space)"}
       >
         {isPlaying ? (
           <PauseIcon className="size-5" />
@@ -509,7 +524,7 @@ function RecorderHeader({
         )}
       </Button>
       <Button
-        onClick={onRecord}
+        onClick={onRecordToggle}
         disabled={recordDisabled || isProcessing}
         aria-pressed={isRecording}
         className={cn(
@@ -518,7 +533,7 @@ function RecorderHeader({
             ? "bg-red-600 text-white hover:bg-red-500"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isRecording ? "Stop recording" : "Record"}
+        title={isRecording ? "Stop recording (R)" : "Record (R)"}
       >
         {isRecording ? (
           <CircleStopIcon className="size-5" />
@@ -591,33 +606,35 @@ function TimelineHeader({
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
-        <Button
-          onClick={onAddAudioTrack}
-          disabled={isAddingAudio}
-          className="size-7 hover:bg-neutral-700"
-          title="Add empty audio track"
-        >
-          <PlusIcon className="size-3.5" />
-        </Button>
-        <Button
-          disabled={isAddingAudio}
-          onClick={() =>
-            openFilePicker({
-              accept: "audio/*,.zip,application/zip",
-              onFile: onAddAudioFile,
-            })
-          }
-          title={
-            isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
-          }
-          className="size-7 hover:bg-neutral-700"
-        >
-          {isAddingAudio ? (
-            <LoaderCircleIcon className="size-3.5 animate-spin" />
-          ) : (
-            <UploadIcon className="size-3.5" />
-          )}
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            onClick={onAddAudioTrack}
+            disabled={isAddingAudio}
+            className="size-7 hover:bg-neutral-700"
+            title="Add empty audio track"
+          >
+            <PlusIcon className="size-3.5" />
+          </Button>
+          <Button
+            disabled={isAddingAudio}
+            onClick={() =>
+              openFilePicker({
+                accept: "audio/*,.zip,application/zip",
+                onFile: onAddAudioFile,
+              })
+            }
+            title={
+              isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
+            }
+            className="size-7 hover:bg-neutral-700"
+          >
+            {isAddingAudio ? (
+              <LoaderCircleIcon className="size-3.5 animate-spin" />
+            ) : (
+              <UploadIcon className="size-3.5" />
+            )}
+          </Button>
+        </div>
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
