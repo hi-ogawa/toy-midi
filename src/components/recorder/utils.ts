@@ -11,7 +11,6 @@ export const RECORDER_GRID_DIVISIONS = ["1/4", "1/8", "1/16", "1/32"] as const;
 export type RecorderTimeSignature = (typeof RECORDER_TIME_SIGNATURES)[number];
 export type RecorderGridDivision = (typeof RECORDER_GRID_DIVISIONS)[number];
 
-export const DEFAULT_RECORDER_TEMPO = 120;
 export const DEFAULT_RECORDER_TIME_SIGNATURE: RecorderTimeSignature = "4/4";
 export const DEFAULT_RECORDER_GRID_DIVISION: RecorderGridDivision = "1/16";
 
