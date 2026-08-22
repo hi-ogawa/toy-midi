@@ -73,7 +73,7 @@ export class AudioContextTransport {
     for (const participant of this.participants) {
       participant.stop();
     }
-    const finalPosition = this.getCurrentPlaybackPosition();
+    const finalPosition = this.getPublishedPlaybackPosition();
     this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ running: false, position: finalPosition });
@@ -96,11 +96,11 @@ export class AudioContextTransport {
    * Converts an absolute AudioContext time to published playback position while
    * excluding the scheduling lead before the playback anchor.
    */
-  private getCurrentPlaybackPosition(): number {
+  private getPublishedPlaybackPosition(): number {
     const playbackAnchor = this.playbackAnchor!;
     return Math.max(
       playbackAnchor.position,
-      this.getAbsolutePlaybackPositionByContextTime(this.context.currentTime),
+      this.getPlaybackPositionByContextTime(this.context.currentTime),
     );
   }
 
@@ -108,7 +108,7 @@ export class AudioContextTransport {
    * Converts an absolute AudioContext time to its exact position relative to the
    * active playback anchor. This intentionally includes playback warmup lead time.
    */
-  getAbsolutePlaybackPositionByContextTime(contextTime: number): number {
+  getPlaybackPositionByContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor!;
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
   }
@@ -120,7 +120,7 @@ export class AudioContextTransport {
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
       this.store.update({
-        position: this.getCurrentPlaybackPosition(),
+        position: this.getPublishedPlaybackPosition(),
       });
     });
   }

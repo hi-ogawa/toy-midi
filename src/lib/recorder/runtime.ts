@@ -325,10 +325,9 @@ export class RecorderRuntime {
     // coordinates instead of using main-thread request time.
     const startFrame = await this.captureInput.startCapture();
     this.activeRecording = new ActiveRecording(startFrame);
-    const captureOffset =
-      this.transport!.getAbsolutePlaybackPositionByContextTime(
-        startFrame / context.sampleRate,
-      );
+    const captureOffset = this.transport!.getPlaybackPositionByContextTime(
+      startFrame / context.sampleRate,
+    );
     this.store.update({
       status: "recording",
       recordingTrack: {
