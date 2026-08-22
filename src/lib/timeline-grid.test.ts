@@ -15,7 +15,7 @@ describe(getTimelineGridBackground, () => {
         colors,
         minimumPixelSpacing: 8,
         pixelsPerBeat: 80,
-        scrollBeat: 1.5,
+        viewportStartBeat: 1.5,
         subdivisionsPerBeat: 4,
       }),
     ).toEqual({
@@ -33,7 +33,7 @@ describe(getTimelineGridBackground, () => {
         colors,
         minimumPixelSpacing: 8,
         pixelsPerBeat: 1,
-        scrollBeat: 5,
+        viewportStartBeat: 5,
         subdivisionsPerBeat: 4,
       }),
     ).toEqual({
