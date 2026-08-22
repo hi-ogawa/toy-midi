@@ -73,7 +73,9 @@ export class AudioContextTransport {
     const playbackAnchor = this.playbackAnchor!;
     const position = Math.max(
       playbackAnchor.position,
-      this.getTimelinePositionAtContextTime(this.context.currentTime),
+      playbackAnchor.position +
+        this.context.currentTime -
+        playbackAnchor.contextTime,
     );
     for (const participant of this.participants) {
       participant.stop();
@@ -94,15 +96,6 @@ export class AudioContextTransport {
     if (wasRunning) {
       this.play();
     }
-  }
-
-  /** Converts an absolute AudioContext time through the active playback anchor. */
-  private getTimelinePositionAtContextTime(contextTime: number): number {
-    const playbackAnchor = this.playbackAnchor;
-    if (!playbackAnchor) {
-      return this.store.get().position;
-    }
-    return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
   }
 
   /**
@@ -130,7 +123,9 @@ export class AudioContextTransport {
         // Hold at the requested position until the future playback anchor arrives.
         position: Math.max(
           playbackAnchor.position,
-          this.getTimelinePositionAtContextTime(this.context.currentTime),
+          playbackAnchor.position +
+            this.context.currentTime -
+            playbackAnchor.contextTime,
         ),
       });
     });
