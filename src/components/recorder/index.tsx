@@ -73,7 +73,7 @@ export function Recorder() {
     },
   });
   const recordMutation = useMutation({
-    mutationFn: async (action: "start" | "stop-and-pause") => {
+    mutationFn: async (action: "start" | "stop") => {
       if (action === "start") {
         await runtime.startRecording();
         return;
@@ -97,32 +97,35 @@ export function Recorder() {
     playMutation.error ??
     recordMutation.error;
 
-  useWindowEvent("keydown", (event) => {
-    if (
-      isShortcutTextInputTarget(event.target) ||
-      event.repeat ||
-      (!matchKeyboardEvent(event, "Space") && !matchKeyboardEvent(event, "R"))
-    ) {
-      return;
-    }
-    event.preventDefault();
-    if (isProcessing) {
-      return;
-    }
+  function togglePlay() {
     if (isRecording) {
-      recordMutation.mutate("stop-and-pause");
-      return;
-    }
-    if (matchKeyboardEvent(event, "R")) {
-      if (state.status !== "idle") {
-        recordMutation.mutate("start");
-      }
-      return;
-    }
-    if (state.isPlaying) {
+      recordMutation.mutate("stop");
+    } else if (state.isPlaying) {
       runtime.pause();
     } else {
       playMutation.mutate();
+    }
+  }
+
+  function toggleRecord() {
+    recordMutation.mutate(isRecording ? "stop" : "start");
+  }
+
+  useWindowEvent("keydown", (event) => {
+    if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    const action = matchKeyboardEvent(event, "Space")
+      ? togglePlay
+      : matchKeyboardEvent(event, "R")
+        ? toggleRecord
+        : undefined;
+    if (!action) {
+      return;
+    }
+    event.preventDefault();
+    if (!isProcessing && (action !== toggleRecord || state.status !== "idle")) {
+      action();
     }
   });
 
@@ -136,18 +139,8 @@ export function Recorder() {
         tempo={timeline.tempo}
         pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.status === "idle"}
-        onPlayPause={() => {
-          if (isRecording) {
-            recordMutation.mutate("stop-and-pause");
-          } else if (state.isPlaying) {
-            runtime.pause();
-          } else {
-            playMutation.mutate();
-          }
-        }}
-        onRecord={() =>
-          recordMutation.mutate(isRecording ? "stop-and-pause" : "start")
-        }
+        onPlayToggle={togglePlay}
+        onRecordToggle={toggleRecord}
         onTempoChange={timeline.setTempo}
       />
 
@@ -474,8 +467,8 @@ function RecorderHeader({
   tempo,
   pixelsPerBeat,
   recordDisabled,
-  onPlayPause,
-  onRecord,
+  onPlayToggle,
+  onRecordToggle,
   onTempoChange,
 }: {
   isPlaying: boolean;
@@ -485,8 +478,8 @@ function RecorderHeader({
   tempo: number;
   pixelsPerBeat: number;
   recordDisabled: boolean;
-  onPlayPause: () => void;
-  onRecord: () => void;
+  onPlayToggle: () => void;
+  onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
 }) {
   const tempoInput = useDraftInput({
@@ -501,7 +494,7 @@ function RecorderHeader({
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
-        onClick={onPlayPause}
+        onClick={onPlayToggle}
         disabled={isProcessing}
         aria-pressed={isPlaying}
         className={cn(
@@ -519,7 +512,7 @@ function RecorderHeader({
         )}
       </Button>
       <Button
-        onClick={onRecord}
+        onClick={onRecordToggle}
         disabled={recordDisabled || isProcessing}
         aria-pressed={isRecording}
         className={cn(
