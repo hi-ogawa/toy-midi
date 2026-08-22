@@ -3,12 +3,10 @@ import type { CaptureChunk } from "./capture-worklet.ts";
 export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];
   private readonly startFrame: number;
-  private readonly capacityFrames: number;
   private endFrame: number;
 
-  constructor(startFrame: number, capacityFrames: number) {
+  constructor(startFrame: number) {
     this.startFrame = startFrame;
-    this.capacityFrames = capacityFrames;
     this.endFrame = startFrame;
   }
 
@@ -26,16 +24,10 @@ export class ActiveRecording {
     return this.endFrame - this.startFrame;
   }
 
-  isFull(): boolean {
-    // Capacity is elapsed AudioContext frames, including capture gaps, rather
-    // than only the number of PCM samples delivered.
-    return this.getDurationFrames() >= this.capacityFrames;
-  }
-
   finish(stopFrame: number): Float32Array | undefined {
     // Reconstruct [startFrame, stopFrame) in capture-relative coordinates.
     // Missing ranges remain zero-filled and later chunks replace overlaps.
-    const length = Math.min(stopFrame - this.startFrame, this.capacityFrames);
+    const length = stopFrame - this.startFrame;
     if (length <= 0) {
       return undefined;
     }
