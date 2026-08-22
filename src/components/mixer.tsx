@@ -264,7 +264,7 @@ function MixerChannel({
           type="text"
           inputMode="decimal"
           aria-label={`${label === "Metro" ? "Metronome" : label} level in dB`}
-          className="w-12 h-6 px-1 text-xs font-mono bg-input border border-border rounded text-center text-foreground"
+          className="h-6 w-12 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-xs text-neutral-100 focus:border-neutral-500 focus:outline-none"
           {...dbInputProps}
         />
         <span>dB</span>
