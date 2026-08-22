@@ -4,6 +4,7 @@ import {
   CircleHelpIcon,
   CircleStopIcon,
   HouseIcon,
+  LoaderCircleIcon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -160,6 +161,7 @@ export function Recorder() {
               scrollX={timeline.scrollX}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
+              isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
@@ -570,6 +572,7 @@ function TimelineHeader({
   scrollX,
   tempo,
   timelineWidth,
+  isAddingAudio,
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
@@ -578,6 +581,7 @@ function TimelineHeader({
   scrollX: number;
   tempo: number;
   timelineWidth: number;
+  isAddingAudio: boolean;
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
@@ -589,22 +593,30 @@ function TimelineHeader({
         <div className="flex-1" />
         <Button
           onClick={onAddAudioTrack}
+          disabled={isAddingAudio}
           className="size-7 hover:bg-neutral-700"
           title="Add empty audio track"
         >
           <PlusIcon className="size-3.5" />
         </Button>
         <Button
+          disabled={isAddingAudio}
           onClick={() =>
             openFilePicker({
               accept: "audio/*,.zip,application/zip",
               onFile: onAddAudioFile,
             })
           }
-          title="Add audio tracks from file"
+          title={
+            isAddingAudio ? "Loading audio..." : "Add audio tracks from file"
+          }
           className="size-7 hover:bg-neutral-700"
         >
-          <UploadIcon className="size-3.5" />
+          {isAddingAudio ? (
+            <LoaderCircleIcon className="size-3.5 animate-spin" />
+          ) : (
+            <UploadIcon className="size-3.5" />
+          )}
         </Button>
       </div>
       <TimelineRuler
