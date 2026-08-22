@@ -11,7 +11,7 @@ declare function registerProcessor(
   processor: typeof AudioWorkletProcessor,
 ): void;
 
-class CaptureProcessor extends AudioWorkletProcessor {
+export class CaptureProcessor extends AudioWorkletProcessor {
   private recording = false;
   private selectedChannel = 0;
   private observedChannelCount = -1;
@@ -145,10 +145,5 @@ class CaptureProcessor extends AudioWorkletProcessor {
     this.port.postMessage(message, transfer ?? []);
   }
 }
-
-export type CaptureProcessorRpc = Pick<
-  CaptureProcessor,
-  "detectChannels" | "setActive" | "setChannel"
->;
 
 registerProcessor(CAPTURE_PROCESSOR_NAME, CaptureProcessor);

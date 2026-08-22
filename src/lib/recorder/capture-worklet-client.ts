@@ -1,6 +1,6 @@
 import type { RpcClient } from "../rpc/core.ts";
 import { createMessagePortRpc } from "../rpc/message-port.ts";
-import type { CaptureProcessorRpc } from "./capture-worklet.ts";
+import type { CaptureProcessor } from "./capture-worklet.ts";
 
 export const CAPTURE_PROCESSOR_NAME = "recorder-capture";
 
@@ -16,7 +16,7 @@ export type CaptureWorkletNotification =
 
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
-  private readonly rpc: RpcClient<CaptureProcessorRpc>;
+  private readonly rpc: RpcClient<CaptureProcessor>;
 
   constructor({
     context,
@@ -38,7 +38,7 @@ export class CaptureWorkletClient {
         }
       },
     );
-    this.rpc = createMessagePortRpc<CaptureProcessorRpc>(this.node.port);
+    this.rpc = createMessagePortRpc<CaptureProcessor>(this.node.port);
   }
 
   async detectChannels() {
