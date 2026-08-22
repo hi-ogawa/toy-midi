@@ -74,6 +74,14 @@ import {
   RecorderTimeSignature,
 } from "./utils";
 
+type RecorderTimelineClip = {
+  duration: number;
+  label: string;
+  offset: number;
+  variant: "audio" | "take" | "recording";
+  audioView?: AudioView;
+};
+
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
@@ -980,13 +988,7 @@ function TimelineLane({
   onSeek,
 }: {
   beatsPerBar: number;
-  clip?: {
-    duration: number;
-    label: string;
-    offset: number;
-    variant: "audio" | "take" | "recording";
-    audioView?: AudioView;
-  };
+  clip?: RecorderTimelineClip;
   emptyLabel: string;
   pixelsPerBeat: number;
   scrollX: number;
@@ -997,92 +999,6 @@ function TimelineLane({
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
-  const [isDragging, setIsDragging] = useState(false);
-  const clipDragRef = usePointerDrag({
-    onStart: (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setIsDragging(true);
-      return {
-        startClientX: event.clientX,
-        startOffset: clip!.offset,
-        pixelsPerBeat,
-        tempo,
-      };
-    },
-    onMove: (event, drag) => {
-      const deltaBeats =
-        (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
-      onClipOffsetChange!(
-        Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, drag.tempo)),
-      );
-    },
-    onEnd: () => {
-      setIsDragging(false);
-      onClipDragEnd?.();
-    },
-  });
-  function renderClip() {
-    if (!clip) {
-      return (
-        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          {emptyLabel}
-        </div>
-      );
-    }
-    const clipClass = {
-      audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
-      take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
-      recording: "border-red-400/70 bg-red-400/20 text-red-100",
-    }[clip.variant];
-    const clipStartBeat = secondsToBeats(clip.offset, tempo);
-    const clipWidth = Math.max(
-      2,
-      secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
-    );
-    const visibleStart = Math.max(
-      0,
-      beatsToSeconds(scrollX - clipStartBeat, tempo),
-    );
-    const visibleEnd = Math.min(
-      clip.duration,
-      beatsToSeconds(
-        scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
-        tempo,
-      ),
-    );
-    return (
-      <div
-        ref={onClipOffsetChange ? clipDragRef : undefined}
-        className={cn(
-          "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
-          clipClass,
-          onClipOffsetChange && "cursor-ew-resize select-none",
-          isDragging && "brightness-125",
-        )}
-        style={{
-          left: (clipStartBeat - scrollX) * pixelsPerBeat,
-          width: clipWidth,
-        }}
-      >
-        {clip.audioView && visibleEnd > visibleStart && (
-          <AudioWaveformView
-            audioView={clip.audioView}
-            audioDuration={clip.duration}
-            visibleStart={visibleStart}
-            visibleEnd={visibleEnd}
-            pixelWidth={clipWidth}
-          />
-        )}
-        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-          <span className="mr-1.5">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
-            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
-          )}
-        </div>
-      </div>
-    );
-  }
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -1101,7 +1017,117 @@ function TimelineLane({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
-      {renderClip()}
+      {clip ? (
+        <TimelineClip
+          clip={clip}
+          pixelsPerBeat={pixelsPerBeat}
+          scrollX={scrollX}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onOffsetChange={onClipOffsetChange}
+          onDragEnd={onClipDragEnd}
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimelineClip({
+  clip,
+  pixelsPerBeat,
+  scrollX,
+  tempo,
+  viewportWidth,
+  onOffsetChange,
+  onDragEnd,
+}: {
+  clip: RecorderTimelineClip;
+  pixelsPerBeat: number;
+  scrollX: number;
+  tempo: number;
+  viewportWidth: number;
+  onOffsetChange?: (offset: number) => void;
+  onDragEnd?: () => void;
+}) {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(true);
+      return {
+        startClientX: event.clientX,
+        startOffset: clip!.offset,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const deltaBeats =
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+      onOffsetChange!(
+        Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, drag.tempo)),
+      );
+    },
+    onEnd: () => {
+      setIsDragging(false);
+      onDragEnd?.();
+    },
+  });
+  const clipClass = {
+    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
+    recording: "border-red-400/70 bg-red-400/20 text-red-100",
+  }[clip.variant];
+  const clipStartBeat = secondsToBeats(clip.offset, tempo);
+  const clipWidth = Math.max(
+    2,
+    secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
+  );
+  const visibleStart = Math.max(
+    0,
+    beatsToSeconds(scrollX - clipStartBeat, tempo),
+  );
+  const visibleEnd = Math.min(
+    clip.duration,
+    beatsToSeconds(
+      scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
+      tempo,
+    ),
+  );
+  return (
+    <div
+      ref={onOffsetChange ? dragRef : undefined}
+      className={cn(
+        "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
+        clipClass,
+        onOffsetChange && "cursor-ew-resize select-none",
+        isDragging && "brightness-125",
+      )}
+      style={{
+        left: (clipStartBeat - scrollX) * pixelsPerBeat,
+        width: clipWidth,
+      }}
+    >
+      {clip.audioView && visibleEnd > visibleStart && (
+        <AudioWaveformView
+          audioView={clip.audioView}
+          audioDuration={clip.duration}
+          visibleStart={visibleStart}
+          visibleEnd={visibleEnd}
+          pixelWidth={clipWidth}
+        />
+      )}
+      <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+        <span className="mr-1.5">{clip.label}</span>
+        {onOffsetChange && clip.offset > 0 && (
+          <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+        )}
+      </div>
     </div>
   );
 }
