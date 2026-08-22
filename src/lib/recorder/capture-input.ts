@@ -1,8 +1,8 @@
-import captureProcessorUrl from "./capture-processor.ts?worker&url";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
 } from "./capture-worklet-client.ts";
+import captureWorkletUrl from "./capture-worklet.ts?worker&url";
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
@@ -123,7 +123,7 @@ async function ensureCaptureWorklet(context: AudioContext): Promise<void> {
 }
 
 async function registerCaptureWorklet(context: AudioContext): Promise<void> {
-  await context.audioWorklet.addModule(captureProcessorUrl);
+  await context.audioWorklet.addModule(captureWorkletUrl);
 }
 
 function captureConstraints(deviceId?: string): MediaStreamConstraints {
