@@ -15,12 +15,12 @@ export default defineConfig({
 function osmdPrebuilt(): Plugin {
   const OSMD_VIRTUAL_ID = "virtual:opensheetmusicdisplay";
   const OSMD_RESOLVED_ID = `\0${OSMD_VIRTUAL_ID}`;
-  const osmdDirectory = path.resolve("node_modules/opensheetmusicdisplay");
   let osmdFileName: string;
 
   return {
     name: "osmd-prebuilt",
-    buildStart() {
+    configResolved() {
+      const osmdDirectory = path.resolve("node_modules/opensheetmusicdisplay");
       const osmdPackage = JSON.parse(
         readFileSync(path.join(osmdDirectory, "package.json"), "utf8"),
       );
