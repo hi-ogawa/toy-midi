@@ -102,26 +102,6 @@ export class AudioContextTransport {
     );
   }
 
-  /** Publishes audio-clock position on animation frames while playing. */
-  private startTicking(): void {
-    if (this.disposeTicking) {
-      return;
-    }
-    this.disposeTicking = startAnimationFrameLoop(() => {
-      this.store.update({
-        position: this.getPlaybackPositionWithoutLeadTimeByContextTime(
-          this.context.currentTime,
-        ),
-      });
-    });
-  }
-
-  /** Stops publishing position updates. */
-  private stopTicking(): void {
-    this.disposeTicking?.();
-    this.disposeTicking = undefined;
-  }
-
   /**
    * Converts an absolute AudioContext time to its exact position relative to the
    * active playback anchor. This intentionally includes playback warmup time.
@@ -143,6 +123,26 @@ export class AudioContextTransport {
       playbackAnchor.position,
       this.getPlaybackPositionByContextTime(contextTime),
     );
+  }
+
+  /** Publishes audio-clock position on animation frames while playing. */
+  private startTicking(): void {
+    if (this.disposeTicking) {
+      return;
+    }
+    this.disposeTicking = startAnimationFrameLoop(() => {
+      this.store.update({
+        position: this.getPlaybackPositionWithoutLeadTimeByContextTime(
+          this.context.currentTime,
+        ),
+      });
+    });
+  }
+
+  /** Stops publishing position updates. */
+  private stopTicking(): void {
+    this.disposeTicking?.();
+    this.disposeTicking = undefined;
   }
 }
 
