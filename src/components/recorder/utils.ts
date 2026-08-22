@@ -1,4 +1,5 @@
 import { gainToDb } from "../../lib/music";
+import { secondsToBeats } from "../../lib/timeline";
 
 export const DEFAULT_PIXELS_PER_BEAT = 80;
 export const MIN_PIXELS_PER_BEAT = 1;
@@ -27,20 +28,12 @@ export function getRecorderSubdivisionsPerBeat(
   return Number(gridDivision.slice(2)) / 4;
 }
 
-export function recorderSecondsToBeats(seconds: number, tempo: number): number {
-  return (seconds / 60) * tempo;
-}
-
-export function recorderBeatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
-}
-
 export function formatBarBeat(
   seconds: number,
   tempo: number,
   timeSignature: RecorderTimeSignature,
 ): string {
-  const totalBeats = recorderSecondsToBeats(seconds, tempo);
+  const totalBeats = secondsToBeats(seconds, tempo);
   const [numerator, denominator] = timeSignature.split("/").map(Number);
   const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
   const bar = Math.floor(totalBeats / beatsPerBar) + 1;
@@ -70,19 +63,4 @@ export function formatTime(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${remaining
     .toFixed(3)
     .padStart(6, "0")}`;
-}
-
-export function getRecorderRulerLabelEveryBars({
-  beatsPerBar,
-  pixelsPerBeat,
-}: {
-  beatsPerBar: number;
-  pixelsPerBeat: number;
-}): number {
-  const minimumLabelSpacing = 48;
-  let bars = 1;
-  while (bars * beatsPerBar * pixelsPerBeat < minimumLabelSpacing) {
-    bars *= 2;
-  }
-  return bars;
 }

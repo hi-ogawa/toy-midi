@@ -34,9 +34,15 @@ import {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
+import {
+  beatsToSeconds,
+  getVisibleBarInterval,
+  secondsToBeats,
+} from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
+import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -49,7 +55,6 @@ import {
 } from "../ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
-import { InputMeter } from "./input-meter";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   DEFAULT_RECORDER_GRID_DIVISION,
@@ -62,14 +67,11 @@ import {
   formatLatencyMilliseconds,
   formatTime,
   getRecorderBeatsPerBar,
-  getRecorderRulerLabelEveryBars,
   getRecorderSubdivisionsPerBeat,
   RECORDER_GRID_DIVISIONS,
   RECORDER_TIME_SIGNATURES,
   RecorderGridDivision,
   RecorderTimeSignature,
-  recorderBeatsToSeconds,
-  recorderSecondsToBeats,
 } from "./utils";
 
 export function Recorder() {
@@ -464,8 +466,7 @@ function useRecorderTimeline({ position }: { position: number }) {
   const [viewportWidth, setViewportWidth] = useState(0);
   const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
   const subdivisionsPerBeat = getRecorderSubdivisionsPerBeat(gridDivision);
-  const playheadX =
-    (recorderSecondsToBeats(position, tempo) - scrollX) * pixelsPerBeat;
+  const playheadX = (secondsToBeats(position, tempo) - scrollX) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
@@ -820,9 +821,9 @@ function TimelineRuler({
   timelineWidth: number;
   onSeek: (position: number) => void;
 }) {
-  const labelEveryBars = getRecorderRulerLabelEveryBars({
-    beatsPerBar,
-    pixelsPerBeat,
+  const labelEveryBars = getVisibleBarInterval({
+    barWidth: beatsPerBar * pixelsPerBeat,
+    minimumPixelSpacing: 48,
   });
   const labelEveryBeats = labelEveryBars * beatsPerBar;
   const firstLabelBeat =
@@ -845,7 +846,7 @@ function TimelineRuler({
           0,
           (event.clientX - rect.left) / pixelsPerBeat + scrollX,
         );
-        onSeek(recorderBeatsToSeconds(beat, tempo));
+        onSeek(beatsToSeconds(beat, tempo));
       }}
     >
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
@@ -1013,10 +1014,7 @@ function TimelineLane({
       const deltaBeats =
         (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
       onClipOffsetChange!(
-        Math.max(
-          0,
-          drag.startOffset + recorderBeatsToSeconds(deltaBeats, drag.tempo),
-        ),
+        Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, drag.tempo)),
       );
     },
     onEnd: () => {
@@ -1029,17 +1027,17 @@ function TimelineLane({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip?.variant ?? "audio"];
-  const clipStartBeat = clip ? recorderSecondsToBeats(clip.offset, tempo) : 0;
+  const clipStartBeat = clip ? secondsToBeats(clip.offset, tempo) : 0;
   const clipWidth = clip
-    ? Math.max(2, recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat)
+    ? Math.max(2, secondsToBeats(clip.duration, tempo) * pixelsPerBeat)
     : 0;
   const visibleStart = clip
-    ? Math.max(0, recorderBeatsToSeconds(scrollX - clipStartBeat, tempo))
+    ? Math.max(0, beatsToSeconds(scrollX - clipStartBeat, tempo))
     : 0;
   const visibleEnd = clip
     ? Math.min(
         clip.duration,
-        recorderBeatsToSeconds(
+        beatsToSeconds(
           scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
           tempo,
         ),
@@ -1060,7 +1058,7 @@ function TimelineLane({
           0,
           (event.clientX - rect.left) / pixelsPerBeat + scrollX,
         );
-        onSeek(recorderBeatsToSeconds(beat, tempo));
+        onSeek(beatsToSeconds(beat, tempo));
       }}
     >
       {clip ? (
