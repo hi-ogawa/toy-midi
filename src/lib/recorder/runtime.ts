@@ -2,11 +2,10 @@ import { createStore } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
-import { AudioContextTimelineClock } from "./clock.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import { ActiveRecording } from "./recording.ts";
+import { AudioContextTransport } from "./transport.ts";
 
-const PLAYBACK_LEAD_SECONDS = 0.03;
 const MAX_RECORDING_SECONDS = 5 * 60;
 const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
@@ -76,7 +75,7 @@ export class RecorderRuntime {
   }));
 
   private context?: AudioContext;
-  private clock?: AudioContextTimelineClock;
+  private transport?: AudioContextTransport;
   private captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
@@ -90,7 +89,7 @@ export class RecorderRuntime {
     deviceId: string;
     onLevel: (peak: number) => void;
   }): Promise<{ channelCount: number }> {
-    const context = this.getContext();
+    const context = this.ensureContext();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, settings, channelCount } = await CaptureInput.open({
@@ -128,7 +127,8 @@ export class RecorderRuntime {
               },
             });
             if (
-              activeRecording.isFull() &&
+              activeRecording.getDurationFrames() >=
+                context.sampleRate * MAX_RECORDING_SECONDS &&
               this.store.get().status === "recording"
             ) {
               void this.stopRecording();
@@ -174,7 +174,7 @@ export class RecorderRuntime {
   }
 
   async setAudioTrack(id: string, file: File): Promise<void> {
-    const context = this.getContext();
+    const context = this.ensureContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
@@ -222,7 +222,7 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    this.audioTrackPlaybacks.get(id)?.stop();
+    this.audioTrackPlaybacks.get(id)?.dispose();
     this.audioTrackPlaybacks.delete(id);
     this.store.update({
       audioTracks: this.store
@@ -249,9 +249,9 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
-      const context = this.getContext();
+      const context = this.ensureContext();
       playback = new AudioBufferPlayback({
-        context,
+        transport: this.transport!,
         output: context.destination,
       });
       const track = this.store
@@ -285,75 +285,43 @@ export class RecorderRuntime {
   }
 
   async play(): Promise<void> {
-    if (this.store.get().isPlaying) {
-      return;
-    }
-    const context = this.getContext();
+    const context = this.ensureContext();
     await context.resume();
-    // Give every source a shared future AudioContext anchor. Their relative
-    // placement is then determined only by timeline offsets.
-    const startTime = context.currentTime + PLAYBACK_LEAD_SECONDS;
-    for (const playback of this.audioTrackPlaybacks.values()) {
-      playback.start({
-        scheduledContextTime: startTime,
-        playheadTime: this.store.get().position,
-      });
-    }
     this.recordingTrackPlayback!.setTimelineOffset(
       this.store.get().getTakeOffset(),
     );
-    this.recordingTrackPlayback!.start({
-      scheduledContextTime: startTime,
-      playheadTime: this.store.get().position,
-    });
-    this.clock!.start({
-      contextTime: startTime,
-      position: this.store.get().position,
-    });
-    if (this.store.get().metronomeEnabled) {
-      this.metronome!.start({
-        contextTime: startTime,
-        position: this.store.get().position,
-        tempo: this.store.get().tempo,
-      });
-    }
+    this.transport!.play();
   }
 
   pause(): void {
-    if (!this.store.get().isPlaying) {
-      return;
-    }
-    this.clock!.pause();
-    this.metronome?.stop();
-    this.stopPlayback();
+    this.transport?.pause();
   }
 
   seek(position: number): void {
-    // Seeking preserves whether the transport was running. Active buffer sources
-    // cannot be repositioned, so running playback must be recreated at the new
-    // playhead position.
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const nextPosition = Math.max(0, position);
-    this.clock?.setPosition(nextPosition);
-    if (!this.clock) {
-      this.store.update({ position: nextPosition });
-    }
-    if (wasPlaying) {
-      void this.play();
-    }
+    this.ensureContext();
+    this.transport!.seek(position);
   }
 
   async startRecording(): Promise<void> {
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = this.getContext();
+    const context = this.ensureContext();
     await context.resume();
-    // Recording rolls the transport so the worklet's capture frame can be
-    // converted through an active clock into a stable timeline placement.
+    // TODO: Split recording start by product intent.
+    //
+    // When recording rolls a stopped transport:
+    // 1. Start capture and await its render-thread start frame.
+    // 2. Schedule transport playback only after capture is confirmed active.
+    // 3. Use the scheduled playback context frame as ActiveRecording's start frame,
+    //    which clips capture pre-roll during absolute-frame assembly.
+    // 4. Place the take at the transport's requested playback position.
+    //
+    // When recording joins an already-running transport, keep using the acknowledged
+    // capture start frame for both ActiveRecording and frame-to-position placement.
+    //
+    // CaptureInput and ActiveRecording should remain transport-agnostic. Runtime owns
+    // which absolute frame becomes product sample zero.
     if (!this.store.get().isPlaying) {
       await this.play();
     }
@@ -362,9 +330,9 @@ export class RecorderRuntime {
     // first captured frame. Convert that exact boundary to musical timeline
     // coordinates instead of using main-thread request time.
     const startFrame = await this.captureInput.startCapture();
-    this.activeRecording = new ActiveRecording(
-      startFrame,
-      Math.floor(context.sampleRate * MAX_RECORDING_SECONDS),
+    this.activeRecording = new ActiveRecording(startFrame);
+    const captureOffset = this.transport!.getPlaybackPositionByContextTime(
+      startFrame / context.sampleRate,
     );
     this.store.update({
       status: "recording",
@@ -373,9 +341,7 @@ export class RecorderRuntime {
         takes: [
           {
             duration: 0,
-            captureOffset: this.clock!.getTimelinePosition(
-              startFrame / context.sampleRate,
-            ),
+            captureOffset,
           },
         ],
       },
@@ -400,6 +366,7 @@ export class RecorderRuntime {
 
   setTempo(tempo: number): void {
     this.store.update({ tempo });
+    this.metronome?.setTempo(tempo);
     if (this.store.get().isPlaying) {
       this.seek(this.store.get().position);
     }
@@ -407,34 +374,30 @@ export class RecorderRuntime {
 
   setMetronomeEnabled(metronomeEnabled: boolean): void {
     this.store.update({ metronomeEnabled });
+    this.metronome?.setEnabled(metronomeEnabled);
     if (this.store.get().isPlaying) {
       this.seek(this.store.get().position);
     }
   }
 
-  private getContext(): AudioContext {
+  private ensureContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
+      this.transport = new AudioContextTransport(this.context);
       this.recordingTrackPlayback = new AudioBufferPlayback({
-        context: this.context,
+        transport: this.transport,
         output: this.context.destination,
       });
       this.syncTrackMix();
-      this.clock = new AudioContextTimelineClock(this.context);
-      this.metronome = new RecorderMetronome(this.context);
-      this.clock.subscribe(() => {
-        const { position, running } = this.clock!.getSnapshot();
+      this.metronome = new RecorderMetronome(this.transport);
+      this.metronome.setEnabled(this.store.get().metronomeEnabled);
+      this.metronome.setTempo(this.store.get().tempo);
+      this.transport.store.subscribe(() => {
+        const { position, running } = this.transport!.store.get();
         this.store.update({ isPlaying: running, position });
       });
     }
     return this.context;
-  }
-
-  private stopPlayback(): void {
-    for (const playback of this.audioTrackPlaybacks.values()) {
-      playback.stop();
-    }
-    this.recordingTrackPlayback?.stop();
   }
 
   private syncTrackMix(): void {
