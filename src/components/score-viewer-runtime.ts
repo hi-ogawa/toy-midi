@@ -1,4 +1,4 @@
-import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
+import { OpenSheetMusicDisplay } from "virtual:opensheetmusicdisplay";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../types";
 
