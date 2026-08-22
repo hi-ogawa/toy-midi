@@ -83,7 +83,7 @@ export class RecorderRuntime {
   }: {
     deviceId: string;
     onLevel: (peak: number) => void;
-  }): Promise<void> {
+  }): Promise<{ channelCount: number }> {
     const context = this.getContext();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
@@ -141,6 +141,7 @@ export class RecorderRuntime {
       inputChannelCount: channelCount,
       selectedChannel: 0,
     });
+    return { channelCount };
   }
 
   stopInput(): void {
