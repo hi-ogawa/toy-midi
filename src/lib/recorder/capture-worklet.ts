@@ -25,38 +25,40 @@ class CaptureProcessor extends AudioWorkletProcessor {
 
   constructor() {
     super();
-    registerEndpointRpcHandlers(this.port, {
-      detectChannels: async () => {
-        if (this.observedChannelCount > 0) {
-          return this.observedChannelCount;
+    registerEndpointRpcHandlers(this.port, this);
+  }
+
+  async detectChannels(_params: Record<string, never>): Promise<number> {
+    if (this.observedChannelCount > 0) {
+      return this.observedChannelCount;
+    }
+    return await new Promise<number>((resolve) => {
+      this.pendingChannelRequests.push(resolve);
+    });
+  }
+
+  async setChannel({ value }: { value: number }): Promise<void> {
+    this.selectedChannel = value;
+    this.meterBlockCount = 0;
+    this.meterPeak = 0;
+  }
+
+  async setActive({ value }: { value: boolean }): Promise<number> {
+    // Resolving schedules the RPC response through a microtask on the render
+    // thread. Keep this pattern to infrequent control transitions; validate
+    // AudioWorklet scheduling before using it for per-quantum work.
+    return await new Promise<number>((resolve) => {
+      // Queue transitions until process() so capture state and buffered PCM
+      // share render-thread ordering with the returned frame.
+      this.pendingRenderActions.push(() => {
+        if (value) {
+          this.captureLength = 0;
+        } else {
+          this.flushCapture();
         }
-        return await new Promise<number>((resolve) => {
-          this.pendingChannelRequests.push(resolve);
-        });
-      },
-      setChannel: async ({ value }: { value: number }) => {
-        this.selectedChannel = value;
-        this.meterBlockCount = 0;
-        this.meterPeak = 0;
-      },
-      setActive: async ({ value }: { value: boolean }) => {
-        // Resolving schedules the RPC response through a microtask on the
-        // render thread. Keep this pattern to infrequent control transitions;
-        // validate AudioWorklet scheduling before using it for per-quantum work.
-        return await new Promise<number>((resolve) => {
-          // Queue transitions until process() so capture state and buffered PCM
-          // share render-thread ordering with the returned frame.
-          this.pendingRenderActions.push(() => {
-            if (value) {
-              this.captureLength = 0;
-            } else {
-              this.flushCapture();
-            }
-            this.recording = value;
-            resolve(currentFrame);
-          });
-        });
-      },
+        this.recording = value;
+        resolve(currentFrame);
+      });
     });
   }
 
@@ -143,5 +145,10 @@ class CaptureProcessor extends AudioWorkletProcessor {
     this.port.postMessage(message, transfer ?? []);
   }
 }
+
+export type CaptureProcessorRpc = Pick<
+  CaptureProcessor,
+  "detectChannels" | "setActive" | "setChannel"
+>;
 
 registerProcessor(CAPTURE_PROCESSOR_NAME, CaptureProcessor);
