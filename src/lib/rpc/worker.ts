@@ -46,14 +46,7 @@ export function registerWorkerRpcHandlers(handlers: object): void {
   registerEndpointRpcHandlers(self, handlers);
 }
 
-export function createMessagePortRpc<Handlers>(
-  port: MessagePort,
-): RpcClient<Handlers> {
-  port.start();
-  return createEndpointRpc<Handlers>(port);
-}
-
-function createEndpointRpc<Handlers>(
+export function createEndpointRpc<Handlers>(
   endpoint: RpcEndpoint,
 ): RpcClient<Handlers> {
   return createRpcProxy<Handlers>((method, params) => {

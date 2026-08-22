@@ -1,5 +1,5 @@
 import type { RpcClient } from "../rpc/core.ts";
-import { createMessagePortRpc } from "../rpc/worker.ts";
+import { createEndpointRpc } from "../rpc/worker.ts";
 import { CAPTURE_PROCESSOR_NAME } from "./capture-worklet-shared.ts";
 import type {
   CaptureProcessor,
@@ -30,7 +30,8 @@ export class CaptureWorkletClient {
         }
       },
     );
-    this.rpc = createMessagePortRpc<CaptureProcessor>(this.node.port);
+    this.node.port.start();
+    this.rpc = createEndpointRpc<CaptureProcessor>(this.node.port);
   }
 
   async getChannelCount() {
