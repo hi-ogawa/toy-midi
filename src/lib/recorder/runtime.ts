@@ -302,15 +302,20 @@ export class RecorderRuntime {
     }
     const context = this.ensureContext();
     await context.resume();
-    // TODO: Split recording start by product intent. When recording rolls a
-    // stopped transport, await the render-thread capture start before scheduling
-    // playback. Use the scheduled playback context frame as ActiveRecording's
-    // start frame so absolute-frame assembly clips capture pre-roll, and place
-    // the take at the requested playback position. When recording joins an
-    // already-running transport, keep using the acknowledged capture start frame
-    // for both ActiveRecording and frame-to-position placement. CaptureInput and
-    // ActiveRecording remain transport-agnostic; runtime owns which absolute
-    // frame becomes product sample zero.
+    // TODO: Split recording start by product intent.
+    //
+    // When recording rolls a stopped transport:
+    // 1. Start capture and await its render-thread start frame.
+    // 2. Schedule transport playback only after capture is confirmed active.
+    // 3. Use the scheduled playback context frame as ActiveRecording's start frame,
+    //    which clips capture pre-roll during absolute-frame assembly.
+    // 4. Place the take at the transport's requested playback position.
+    //
+    // When recording joins an already-running transport, keep using the acknowledged
+    // capture start frame for both ActiveRecording and frame-to-position placement.
+    //
+    // CaptureInput and ActiveRecording should remain transport-agnostic. Runtime owns
+    // which absolute frame becomes product sample zero.
     if (!this.store.get().isPlaying) {
       await this.play();
     }
