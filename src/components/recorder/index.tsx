@@ -38,6 +38,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
@@ -596,42 +598,48 @@ function RecorderHeader({
           className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
         />
       </div>
-      <label className="flex items-center gap-1.5 text-xs text-neutral-400">
-        <span>Meter</span>
-        <select
-          value={timeSignature}
-          onChange={(event) =>
-            onTimeSignatureChange(
-              event.currentTarget.value as RecorderTimeSignature,
-            )
-          }
-          className="h-8 rounded border border-neutral-600 bg-neutral-900 px-1.5 font-mono text-sm text-neutral-100"
-        >
-          {RECORDER_TIME_SIGNATURES.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex items-center gap-1.5 text-xs text-neutral-400">
-        <span>Grid</span>
-        <select
-          value={gridDivision}
-          onChange={(event) =>
-            onGridDivisionChange(
-              event.currentTarget.value as RecorderGridDivision,
-            )
-          }
-          className="h-8 rounded border border-neutral-600 bg-neutral-900 px-1.5 font-mono text-sm text-neutral-100"
-        >
-          {RECORDER_GRID_DIVISIONS.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+            {timeSignature}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={timeSignature}
+            onValueChange={(value) =>
+              onTimeSignatureChange(value as RecorderTimeSignature)
+            }
+          >
+            {RECORDER_TIME_SIGNATURES.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                {value}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50">
+            {gridDivision}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={gridDivision}
+            onValueChange={(value) =>
+              onGridDivisionChange(value as RecorderGridDivision)
+            }
+          >
+            {RECORDER_GRID_DIVISIONS.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                {value}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className="flex-1" />
       <span className="font-mono text-[10px] text-neutral-500">
         {Math.round(pixelsPerBeat)} px/beat
