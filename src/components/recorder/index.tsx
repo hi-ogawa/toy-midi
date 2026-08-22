@@ -197,7 +197,7 @@ export function Recorder() {
               <TrackRow
                 key={track.id}
                 title={`Audio ${index + 1}`}
-                subtitle={track.name ?? "No file loaded"}
+                subtitle={track.clip?.name ?? "No file loaded"}
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
@@ -222,10 +222,10 @@ export function Recorder() {
               >
                 <TimelineLane
                   clip={
-                    track.name
+                    track.clip
                       ? {
-                          duration: track.duration,
-                          label: track.name,
+                          duration: track.clip.duration,
+                          label: track.clip.name,
                           offset: track.timelineOffset,
                           variant: "audio",
                         }

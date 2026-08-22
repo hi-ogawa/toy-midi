@@ -11,8 +11,10 @@ type RecorderStatus = "idle" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
   id: string;
-  name?: string;
-  duration: number;
+  clip?: {
+    name: string;
+    duration: number;
+  };
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -176,8 +178,10 @@ export class RecorderRuntime {
     playback.setBuffer(buffer);
     this.updateAudioTrack(id, (track) => ({
       ...track,
-      name: file.name,
-      duration: buffer.duration,
+      clip: {
+        name: file.name,
+        duration: buffer.duration,
+      },
     }));
   }
 
@@ -457,7 +461,6 @@ export class RecorderRuntime {
 function createAudioTrackState(): AudioTrackState {
   return {
     id: crypto.randomUUID(),
-    duration: 0,
     gain: 1,
     muted: false,
     soloed: false,
