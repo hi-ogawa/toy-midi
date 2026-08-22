@@ -225,6 +225,21 @@ export function Recorder() {
                   scrollX={timeline.scrollX}
                   tempo={timeline.tempo}
                   emptyLabel="Load an audio file"
+                  onClipDragStart={() => {
+                    const wasPlaying = runtime.store.get().isPlaying;
+                    if (wasPlaying) {
+                      runtime.pause();
+                    }
+                    return wasPlaying;
+                  }}
+                  onClipOffsetChange={(offset) =>
+                    runtime.setAudioTrackOffset(track.id, offset)
+                  }
+                  onClipDragEnd={(resumePlayback) => {
+                    if (resumePlayback) {
+                      playMutation.mutate();
+                    }
+                  }}
                   onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
@@ -825,6 +840,9 @@ function TimelineLane({
   pixelsPerBeat,
   scrollX,
   tempo,
+  onClipDragStart,
+  onClipOffsetChange,
+  onClipDragEnd,
   onSeek,
 }: {
   clip?: {
@@ -837,8 +855,19 @@ function TimelineLane({
   pixelsPerBeat: number;
   scrollX: number;
   tempo: number;
+  onClipDragStart?: () => boolean;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: (resumePlayback: boolean) => void;
   onSeek: (position: number) => void;
 }) {
+  const [drag, setDrag] = useState<{
+    pointerId: number;
+    startClientX: number;
+    startOffset: number;
+    pixelsPerBeat: number;
+    tempo: number;
+    resumePlayback: boolean;
+  }>();
   const clipClass = {
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
@@ -864,7 +893,12 @@ function TimelineLane({
     >
       {clip ? (
         <div
-          className={`absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px] ${clipClass}`}
+          className={cn(
+            "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
+            clipClass,
+            onClipOffsetChange && "cursor-ew-resize select-none",
+            drag && "brightness-125",
+          )}
           style={{
             left:
               (recorderSecondsToBeats(clip.offset, tempo) - scrollX) *
@@ -873,6 +907,57 @@ function TimelineLane({
               2,
               recorderSecondsToBeats(clip.duration, tempo) * pixelsPerBeat,
             ),
+          }}
+          onPointerDown={(event) => {
+            if (event.button !== 0 || !onClipOffsetChange) {
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            setDrag({
+              pointerId: event.pointerId,
+              startClientX: event.clientX,
+              startOffset: clip.offset,
+              pixelsPerBeat,
+              tempo,
+              resumePlayback: onClipDragStart?.() ?? false,
+            });
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerId !== drag?.pointerId || !onClipOffsetChange) {
+              return;
+            }
+            const deltaBeats =
+              (event.clientX - drag.startClientX) / drag.pixelsPerBeat;
+            onClipOffsetChange(
+              Math.max(
+                0,
+                drag.startOffset +
+                  recorderBeatsToSeconds(deltaBeats, drag.tempo),
+              ),
+            );
+          }}
+          onPointerUp={(event) => {
+            if (event.pointerId !== drag?.pointerId) {
+              return;
+            }
+            onClipDragEnd?.(drag.resumePlayback);
+            setDrag(undefined);
+          }}
+          onPointerCancel={(event) => {
+            if (event.pointerId !== drag?.pointerId) {
+              return;
+            }
+            onClipDragEnd?.(drag.resumePlayback);
+            setDrag(undefined);
+          }}
+          onLostPointerCapture={(event) => {
+            if (event.pointerId !== drag?.pointerId) {
+              return;
+            }
+            onClipDragEnd?.(drag.resumePlayback);
+            setDrag(undefined);
           }}
         >
           <span className="truncate">{clip.label}</span>
