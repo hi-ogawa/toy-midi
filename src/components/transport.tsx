@@ -41,9 +41,6 @@ type TransportProps = {
   controls: ReactNode;
 };
 
-const choiceFieldClassName =
-  "border-neutral-600 bg-neutral-900 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900";
-
 export function Transport({ projectName, controls }: TransportProps) {
   const {
     tempo,
@@ -200,7 +197,7 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="time-signature-select"
-            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
+            className="h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 font-mono text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
           >
             {timeSignature.numerator}/{timeSignature.denominator}
             <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
@@ -231,7 +228,7 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
+            className="h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 font-mono text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
           >
             {gridSnap}
             <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
@@ -370,10 +367,7 @@ function InstrumentCombobox({
           data-testid="instrument-select"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            "h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal",
-            choiceFieldClassName,
-          )}
+          className="h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}
