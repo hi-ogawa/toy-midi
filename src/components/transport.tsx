@@ -1,5 +1,6 @@
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronsUpDownIcon,
   PauseIcon,
   PlayIcon,
@@ -39,6 +40,9 @@ type TransportProps = {
   projectName: string;
   controls: ReactNode;
 };
+
+const choiceFieldClassName =
+  "border-neutral-600 bg-neutral-900 text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900";
 
 export function Transport({ projectName, controls }: TransportProps) {
   const {
@@ -176,7 +180,7 @@ export function Transport({ projectName, controls }: TransportProps) {
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="w-14 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
+          className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
         />
         <Button
           data-testid="tap-tempo-button"
@@ -196,9 +200,10 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="time-signature-select"
-            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
           >
             {timeSignature.numerator}/{timeSignature.denominator}
+            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -226,9 +231,10 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className={cn("h-8 gap-1.5 px-3 font-mono", choiceFieldClassName)}
           >
             {gridSnap}
+            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -364,7 +370,10 @@ function InstrumentCombobox({
           data-testid="instrument-select"
           role="combobox"
           aria-expanded={open}
-          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className={cn(
+            "h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal",
+            choiceFieldClassName,
+          )}
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}
