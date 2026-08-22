@@ -579,22 +579,24 @@ function TimelineHeader({
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
-        <Button
-          onClick={onAddAudioTrack}
-          className="size-7 hover:bg-neutral-700"
-          title="Add empty audio track"
-        >
-          <PlusIcon className="size-3.5" />
-        </Button>
-        <Button
-          onClick={() =>
-            openFilePicker({ accept: "audio/*,.wav", onFile: onAddAudioFile })
-          }
-          title="Add audio track from file"
-          className="size-7 hover:bg-neutral-700"
-        >
-          <UploadIcon className="size-3.5" />
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            onClick={onAddAudioTrack}
+            className="size-7 hover:bg-neutral-700"
+            title="Add empty audio track"
+          >
+            <PlusIcon className="size-3.5" />
+          </Button>
+          <Button
+            onClick={() =>
+              openFilePicker({ accept: "audio/*,.wav", onFile: onAddAudioFile })
+            }
+            title="Add audio track from file"
+            className="size-7 hover:bg-neutral-700"
+          >
+            <UploadIcon className="size-3.5" />
+          </Button>
+        </div>
       </div>
       <TimelineRuler
         pixelsPerBeat={pixelsPerBeat}
