@@ -7,16 +7,16 @@ export function beatsToSeconds(beats: number, tempo: number): number {
 }
 
 export function getVisibleTimelineInterval({
-  baseInterval,
+  beatsPerBar,
+  beatWidth,
   minimumPixelSpacing,
-  pixelsPerUnit,
 }: {
-  baseInterval: number;
+  beatsPerBar: number;
+  beatWidth: number;
   minimumPixelSpacing: number;
-  pixelsPerUnit: number;
 }): number {
-  let interval = baseInterval;
-  while (interval * pixelsPerUnit < minimumPixelSpacing) {
+  let interval = beatsPerBar;
+  while (interval * beatWidth < minimumPixelSpacing) {
     interval *= 2;
   }
   return interval;

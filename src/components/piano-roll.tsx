@@ -1261,9 +1261,9 @@ function generateVerticalGridLayers(
   // Vertical bar lines (every 4 beats, or coarser at extreme zoom)
   const coarseBarWidth =
     getVisibleTimelineInterval({
-      baseInterval: beatsPerBar,
+      beatsPerBar,
+      beatWidth,
       minimumPixelSpacing: MIN_LINE_SPACING,
-      pixelsPerUnit: beatWidth,
     }) * beatWidth;
   const coarseBarOffsetX = -(scrollX * beatWidth) % coarseBarWidth;
 
@@ -1522,9 +1522,9 @@ function Timeline({
 
   // Find label step: smallest power of 2 bars where spacing >= MIN_LABEL_SPACING
   const labelBeatStep = getVisibleTimelineInterval({
-    baseInterval: beatsPerBar,
+    beatsPerBar,
+    beatWidth,
     minimumPixelSpacing: MIN_LABEL_SPACING,
-    pixelsPerUnit: beatWidth,
   });
 
   // Calculate visible beat range, aligned to label step
