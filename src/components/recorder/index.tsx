@@ -1022,27 +1022,67 @@ function TimelineLane({
       onClipDragEnd?.();
     },
   });
-  const clipClass = {
-    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
-    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
-    recording: "border-red-400/70 bg-red-400/20 text-red-100",
-  }[clip?.variant ?? "audio"];
-  const clipStartBeat = clip ? secondsToBeats(clip.offset, tempo) : 0;
-  const clipWidth = clip
-    ? Math.max(2, secondsToBeats(clip.duration, tempo) * pixelsPerBeat)
-    : 0;
-  const visibleStart = clip
-    ? Math.max(0, beatsToSeconds(scrollX - clipStartBeat, tempo))
-    : 0;
-  const visibleEnd = clip
-    ? Math.min(
-        clip.duration,
-        beatsToSeconds(
-          scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
-          tempo,
-        ),
-      )
-    : 0;
+  function renderClip() {
+    if (!clip) {
+      return (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      );
+    }
+    const clipClass = {
+      audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+      take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
+      recording: "border-red-400/70 bg-red-400/20 text-red-100",
+    }[clip.variant];
+    const clipStartBeat = secondsToBeats(clip.offset, tempo);
+    const clipWidth = Math.max(
+      2,
+      secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
+    );
+    const visibleStart = Math.max(
+      0,
+      beatsToSeconds(scrollX - clipStartBeat, tempo),
+    );
+    const visibleEnd = Math.min(
+      clip.duration,
+      beatsToSeconds(
+        scrollX + viewportWidth / pixelsPerBeat - clipStartBeat,
+        tempo,
+      ),
+    );
+    return (
+      <div
+        ref={onClipOffsetChange ? clipDragRef : undefined}
+        className={cn(
+          "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
+          clipClass,
+          onClipOffsetChange && "cursor-ew-resize select-none",
+          isDragging && "brightness-125",
+        )}
+        style={{
+          left: (clipStartBeat - scrollX) * pixelsPerBeat,
+          width: clipWidth,
+        }}
+      >
+        {clip.audioView && visibleEnd > visibleStart && (
+          <AudioWaveformView
+            audioView={clip.audioView}
+            audioDuration={clip.duration}
+            visibleStart={visibleStart}
+            visibleEnd={visibleEnd}
+            pixelWidth={clipWidth}
+          />
+        )}
+        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+          <span className="mr-1.5">{clip.label}</span>
+          {onClipOffsetChange && clip.offset > 0 && (
+            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -1061,41 +1101,7 @@ function TimelineLane({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
-      {clip ? (
-        <div
-          ref={onClipOffsetChange ? clipDragRef : undefined}
-          className={cn(
-            "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
-            clipClass,
-            onClipOffsetChange && "cursor-ew-resize select-none",
-            isDragging && "brightness-125",
-          )}
-          style={{
-            left: (clipStartBeat - scrollX) * pixelsPerBeat,
-            width: clipWidth,
-          }}
-        >
-          {clip.audioView && visibleEnd > visibleStart && (
-            <AudioWaveformView
-              audioView={clip.audioView}
-              audioDuration={clip.duration}
-              visibleStart={visibleStart}
-              visibleEnd={visibleEnd}
-              pixelWidth={clipWidth}
-            />
-          )}
-          <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-            <span className="mr-1.5">{clip.label}</span>
-            {onClipOffsetChange && clip.offset > 0 && (
-              <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          {emptyLabel}
-        </div>
-      )}
+      {renderClip()}
     </div>
   );
 }
