@@ -21,36 +21,41 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useDraftInput } from "../hooks/use-draft-input";
-import { useWindowEvent } from "../hooks/use-window-event";
-import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
+import { useDraftInput } from "../../hooks/use-draft-input";
+import { useWindowEvent } from "../../hooks/use-window-event";
 import {
-  dbToPercent,
-  gainToDb,
-  gainToPercent,
-  percentToGain,
-} from "../lib/music";
+  isShortcutTextInputTarget,
+  matchKeyboardEvent,
+} from "../../lib/keyboard";
+import { dbToPercent, gainToPercent, percentToGain } from "../../lib/music";
 import {
   getCaptureInputs,
   requestCaptureAccess,
-} from "../lib/recorder/capture-input";
-import { RecorderRuntime } from "../lib/recorder/runtime";
-import { routes } from "../lib/routes";
-import { Button } from "./ui/button";
+} from "../../lib/recorder/capture-input";
+import { RecorderRuntime } from "../../lib/recorder/runtime";
+import { routes } from "../../lib/routes";
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { cn } from "./ui/utils";
-
-const BEATS_PER_BAR = 4;
-const DEFAULT_PIXELS_PER_BEAT = 80;
-const MIN_PIXELS_PER_BEAT = 20;
-const MAX_PIXELS_PER_BEAT = 320;
+} from "../ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { cn } from "../ui/utils";
+import { InputMeter } from "./input-meter";
+import {
+  BEATS_PER_BAR,
+  DEFAULT_PIXELS_PER_BEAT,
+  MAX_PIXELS_PER_BEAT,
+  MIN_PIXELS_PER_BEAT,
+  formatBarBeat,
+  formatDb,
+  formatLatencyMilliseconds,
+  recorderBeatsToSeconds,
+  recorderSecondsToBeats,
+} from "./utils";
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -1053,81 +1058,4 @@ function getRecorderRulerLabelEveryBars(pixelsPerBeat: number): number {
     bars *= 2;
   }
   return bars;
-}
-
-function recorderSecondsToBeats(seconds: number, tempo: number): number {
-  return (seconds / 60) * tempo;
-}
-
-function recorderBeatsToSeconds(beats: number, tempo: number): number {
-  return (beats / tempo) * 60;
-}
-
-function formatBarBeat(seconds: number, tempo: number): string {
-  const totalBeats = recorderSecondsToBeats(seconds, tempo);
-  const bar = Math.floor(totalBeats / BEATS_PER_BAR) + 1;
-  const beat = Math.floor(totalBeats % BEATS_PER_BAR) + 1;
-  return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
-}
-
-function formatDb(gain: number): string {
-  if (gain === 0) {
-    return "-∞ dB";
-  }
-  const db = gainToDb(gain);
-  return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
-}
-
-function formatLatencyMilliseconds(value: number): string {
-  return value.toFixed(1);
-}
-
-// TODO: Unify this with the Latency Checker input meter.
-function InputMeter({ active, peak }: { active: boolean; peak: number }) {
-  const meterMin = -60;
-  const meterMax = 6;
-  const getMeterPosition = (value: number) =>
-    ((value - meterMin) / (meterMax - meterMin)) * 100;
-  const zeroPosition = getMeterPosition(0);
-  const decibels = gainToDb(peak);
-  const meterValue = clamp(decibels, meterMin, meterMax);
-  const levelPosition = active ? getMeterPosition(meterValue) : 0;
-  const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
-
-  return (
-    <div className="grid grid-cols-[1fr_4.5rem] items-center gap-2">
-      <div
-        role="meter"
-        aria-label="Input peak level"
-        aria-valuemin={meterMin}
-        aria-valuemax={meterMax}
-        aria-valuenow={active ? meterValue : meterMin}
-        aria-valuetext={label}
-        className="relative h-2 overflow-hidden bg-neutral-700"
-      >
-        <div
-          className="absolute inset-y-0 right-0 bg-red-950"
-          style={{ width: `${100 - zeroPosition}%` }}
-        />
-        <div
-          className="absolute inset-y-0 left-0 bg-emerald-500 transition-[width] duration-75"
-          style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
-        />
-        <div
-          className="absolute inset-y-0 bg-red-500 transition-[width] duration-75"
-          style={{
-            left: `${zeroPosition}%`,
-            width: `${Math.max(0, levelPosition - zeroPosition)}%`,
-          }}
-        />
-      </div>
-      <output className="text-right font-mono text-[10px] tabular-nums text-neutral-400">
-        {label}
-      </output>
-    </div>
-  );
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }
