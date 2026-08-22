@@ -1,9 +1,10 @@
-import { useEffectEvent, useRef } from "react";
+import { useCallback, useEffectEvent } from "react";
+import { listenPointerDrag } from "../utils/pointer-drag";
 
 type PointerDragOptions<T> = {
-  onStart: (event: React.PointerEvent<HTMLElement>) => T;
-  onMove: (event: React.PointerEvent<HTMLElement>, data: T) => void;
-  onEnd?: (event: React.PointerEvent<HTMLElement>, data: T) => void;
+  onStart: (event: PointerEvent) => T;
+  onMove: (event: PointerEvent, data: T) => void;
+  onEnd?: (event: PointerEvent, data: T) => void;
 };
 
 export function usePointerDrag<T>({
@@ -11,43 +12,22 @@ export function usePointerDrag<T>({
   onMove,
   onEnd,
 }: PointerDragOptions<T>) {
-  const dragRef = useRef<{ pointerId: number; data: T } | undefined>(undefined);
-  const handlePointerDown = useEffectEvent(
-    (event: React.PointerEvent<HTMLElement>) => {
-      if (event.button !== 0 || dragRef.current) {
-        return;
-      }
-      dragRef.current = {
-        pointerId: event.pointerId,
-        data: onStart(event),
-      };
-      event.currentTarget.setPointerCapture(event.pointerId);
-    },
-  );
-  const handlePointerMove = useEffectEvent(
-    (event: React.PointerEvent<HTMLElement>) => {
-      const drag = dragRef.current;
-      if (!drag || drag.pointerId !== event.pointerId) {
-        return;
-      }
-      onMove(event, drag.data);
-    },
-  );
-  const handlePointerEnd = useEffectEvent(
-    (event: React.PointerEvent<HTMLElement>) => {
-      const drag = dragRef.current;
-      if (drag?.pointerId === event.pointerId) {
-        dragRef.current = undefined;
-        onEnd?.(event, drag.data);
-      }
-    },
-  );
+  const handlePointerStart = useEffectEvent(onStart);
+  const handlePointerMove = useEffectEvent(onMove);
+  const handlePointerEnd = useEffectEvent(onEnd ?? (() => {}));
 
-  return {
-    onPointerDown: handlePointerDown,
-    onPointerMove: handlePointerMove,
-    onPointerUp: handlePointerEnd,
-    onPointerCancel: handlePointerEnd,
-    onLostPointerCapture: handlePointerEnd,
-  };
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (!element) {
+        return;
+      }
+      return listenPointerDrag({
+        element,
+        onStart: handlePointerStart,
+        onMove: handlePointerMove,
+        onEnd: handlePointerEnd,
+      });
+    },
+    [handlePointerEnd, handlePointerMove, handlePointerStart],
+  );
 }

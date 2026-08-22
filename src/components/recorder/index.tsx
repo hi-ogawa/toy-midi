@@ -959,7 +959,7 @@ function TimelineLane({
   onSeek: (position: number) => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const clipDragHandlerProps = usePointerDrag({
+  const clipDragRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -1011,7 +1011,7 @@ function TimelineLane({
     >
       {clip ? (
         <div
-          {...(onClipOffsetChange ? clipDragHandlerProps : {})}
+          ref={onClipOffsetChange ? clipDragRef : undefined}
           className={cn(
             "absolute top-4 h-14 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
             clipClass,
