@@ -11,8 +11,6 @@ export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
   private interval?: ReturnType<typeof setInterval>;
   private nextBeat = 0;
-  private startContextTime = 0;
-  private startPosition = 0;
   private tempo = 120;
 
   constructor(private readonly transport: AudioContextTransport) {
@@ -36,8 +34,6 @@ export class RecorderMetronome implements TransportParticipant {
   start(): void {
     this.stop();
     const playbackAnchor = this.transport.playbackAnchor!;
-    this.startContextTime = playbackAnchor.contextTime;
-    this.startPosition = playbackAnchor.position;
     this.nextBeat = Math.ceil(
       (playbackAnchor.position * this.tempo) / 60 - 1e-9,
     );
@@ -58,8 +54,9 @@ export class RecorderMetronome implements TransportParticipant {
       // Convert this beat's timeline position through the transport playback
       // anchor: contextTime = anchor context + beat position - anchor position.
       const timelineTime = this.nextBeat * secondsPerBeat;
+      const playbackAnchor = this.transport.playbackAnchor!;
       const contextTime =
-        this.startContextTime + timelineTime - this.startPosition;
+        playbackAnchor.contextTime + timelineTime - playbackAnchor.position;
       // Schedule only the near future, then let the interval extend the window.
       if (
         contextTime >
