@@ -13,14 +13,17 @@ type TransportState = {
   running: boolean;
 };
 
+type PlaybackAnchor = {
+  contextTime: number;
+  position: number;
+};
+
 export class AudioContextTransport {
   readonly store = createStore<TransportState>(() => ({
     position: 0,
     running: false,
   }));
-  // Absolute AudioContext time corresponding to timelineTime while running.
-  contextTime?: number;
-  timelineTime = 0;
+  playbackAnchor?: PlaybackAnchor;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
 
@@ -38,8 +41,10 @@ export class AudioContextTransport {
     if (this.store.get().running) {
       return;
     }
-    this.contextTime = this.context.currentTime + PLAYBACK_LEAD_SECONDS;
-    this.timelineTime = this.store.get().position;
+    this.playbackAnchor = {
+      contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
+      position: this.store.get().position,
+    };
     for (const participant of this.participants) {
       participant.start();
     }
@@ -55,8 +60,7 @@ export class AudioContextTransport {
     for (const participant of this.participants) {
       participant.stop();
     }
-    this.contextTime = undefined;
-    this.timelineTime = position;
+    this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ position, running: false });
   }
@@ -67,7 +71,6 @@ export class AudioContextTransport {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
-    this.timelineTime = nextPosition;
     this.store.update({ position: nextPosition });
     if (wasRunning) {
       this.play();
@@ -77,16 +80,17 @@ export class AudioContextTransport {
   private getTransportPosition(): number {
     // A future scheduled start must not move the visible playhead backward.
     return Math.max(
-      this.timelineTime,
+      this.playbackAnchor!.position,
       this.getTimelinePositionAtContextTime(this.context.currentTime),
     );
   }
 
   getTimelinePositionAtContextTime(contextTime: number): number {
-    if (this.contextTime === undefined) {
+    const playbackAnchor = this.playbackAnchor;
+    if (!playbackAnchor) {
       return this.store.get().position;
     }
-    return this.timelineTime + contextTime - this.contextTime;
+    return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
   }
 
   frameToPosition(frame: number): number {

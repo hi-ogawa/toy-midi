@@ -52,9 +52,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (!buffer) {
       return;
     }
+    const playbackAnchor = this.transport.playbackAnchor!;
     const bufferOffset = Math.max(
       0,
-      this.transport.timelineTime - this.timelineOffset,
+      playbackAnchor.position - this.timelineOffset,
     );
     if (bufferOffset >= buffer.duration) {
       return;
@@ -63,8 +64,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      this.transport.contextTime! +
-        Math.max(0, this.timelineOffset - this.transport.timelineTime),
+      playbackAnchor.contextTime +
+        Math.max(0, this.timelineOffset - playbackAnchor.position),
       bufferOffset,
     );
     this.source = source;
