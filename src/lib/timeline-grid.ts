@@ -1,3 +1,5 @@
+import { getVisibleBarInterval } from "./timeline";
+
 type TimelineGridKind = "bar" | "beat" | "subdivision";
 
 type TimelineGridLayer = {
@@ -63,10 +65,11 @@ function calculateTimelineGridLayers({
   subdivisionsPerBeat: number;
 }): TimelineGridLayer[] {
   const layers: TimelineGridLayer[] = [];
-  let barInterval = beatsPerBar;
-  while (barInterval * pixelsPerBeat < minimumPixelSpacing) {
-    barInterval *= 2;
-  }
+  const barInterval =
+    getVisibleBarInterval({
+      barWidth: beatsPerBar * pixelsPerBeat,
+      minimumPixelSpacing,
+    }) * beatsPerBar;
   layers.push(
     createLayer({
       intervalBeats: barInterval,
