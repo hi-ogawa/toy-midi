@@ -19,6 +19,7 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
+import { AudioView } from "../../lib/audio-view";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -39,6 +40,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
@@ -243,6 +245,7 @@ export function Recorder() {
                           label: track.clip.name,
                           offset: track.timelineOffset,
                           variant: "audio",
+                          audioView: track.clip.audioView,
                         }
                       : undefined
                   }
@@ -251,6 +254,7 @@ export function Recorder() {
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                   viewportStartBeat={timeline.viewportStartBeat}
                   tempo={timeline.tempo}
+                  viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   onClipOffsetChange={(offset) =>
                     runtime.setAudioTrackOffset(track.id, offset)
@@ -300,6 +304,7 @@ export function Recorder() {
                             : "Take 1",
                         offset: state.getTakeOffset(),
                         variant: isRecording ? "recording" : "take",
+                        audioView: take.audioView,
                       }
                     : undefined
                 }
@@ -308,6 +313,7 @@ export function Recorder() {
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
@@ -963,6 +969,14 @@ function TrackRow({
   );
 }
 
+type RecorderTimelineClip = {
+  duration: number;
+  label: string;
+  offset: number;
+  variant: "audio" | "take" | "recording";
+  audioView?: AudioView;
+};
+
 function TimelineLane({
   beatsPerBar,
   clip,
@@ -970,29 +984,80 @@ function TimelineLane({
   pixelsPerBeat,
   viewportStartBeat,
   tempo,
+  viewportWidth,
   onClipOffsetChange,
   onClipDragEnd,
   subdivisionsPerBeat,
   onSeek,
 }: {
   beatsPerBar: number;
-  clip?: {
-    duration: number;
-    label: string;
-    offset: number;
-    variant: "audio" | "take" | "recording";
-  };
+  clip?: RecorderTimelineClip;
   emptyLabel: string;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
+  viewportWidth: number;
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
+  return (
+    <div
+      className="relative overflow-hidden bg-neutral-900"
+      style={getTimelineGridStyle({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
+      onPointerDown={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const beat = Math.max(
+          0,
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        );
+        onSeek(beatsToSeconds(beat, tempo));
+      }}
+    >
+      {clip ? (
+        <TimelineClip
+          clip={clip}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onClipOffsetChange={onClipOffsetChange}
+          onClipDragEnd={onClipDragEnd}
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimelineClip({
+  clip,
+  pixelsPerBeat,
+  viewportStartBeat,
+  tempo,
+  viewportWidth,
+  onClipOffsetChange,
+  onClipDragEnd,
+}: {
+  clip: RecorderTimelineClip;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  tempo: number;
+  viewportWidth: number;
+  onClipOffsetChange?: (offset: number) => void;
+  onClipDragEnd?: () => void;
+}) {
   const [isDragging, setIsDragging] = useState(false);
-  const clipDragRef = usePointerDrag({
+  const dragRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -1020,56 +1085,52 @@ function TimelineLane({
     audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
-  }[clip?.variant ?? "audio"];
+  }[clip.variant];
+  const clipStartBeat = secondsToBeats(clip.offset, tempo);
+  const clipWidth = Math.max(
+    2,
+    secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
+  );
+  const visibleStart = Math.max(
+    0,
+    beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
+  );
+  const visibleEnd = Math.min(
+    clip.duration,
+    beatsToSeconds(
+      viewportStartBeat + viewportWidth / pixelsPerBeat - clipStartBeat,
+      tempo,
+    ),
+  );
   return (
     <div
-      className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
-        beatsPerBar,
-        pixelsPerBeat,
-        viewportStartBeat,
-        subdivisionsPerBeat,
-      })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
+      ref={onClipOffsetChange ? dragRef : undefined}
+      className={cn(
+        "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
+        clipClass,
+        onClipOffsetChange && "cursor-ew-resize select-none",
+        isDragging && "brightness-125",
+      )}
+      style={{
+        left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
+        width: clipWidth,
       }}
     >
-      {clip ? (
-        <div
-          ref={onClipOffsetChange ? clipDragRef : undefined}
-          className={cn(
-            "absolute inset-y-4 overflow-hidden rounded-sm border px-2 py-1.5 text-[11px]",
-            clipClass,
-            onClipOffsetChange && "cursor-ew-resize select-none",
-            isDragging && "brightness-125",
-          )}
-          style={{
-            left:
-              (secondsToBeats(clip.offset, tempo) - viewportStartBeat) *
-              pixelsPerBeat,
-            width: Math.max(
-              2,
-              secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
-            ),
-          }}
-        >
-          <span className="truncate">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
-            <span className="ml-1.5 opacity-75">
-              +{clip.offset.toFixed(3)}s
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          {emptyLabel}
-        </div>
+      {clip.audioView && visibleEnd > visibleStart && (
+        <AudioWaveformView
+          audioView={clip.audioView}
+          audioDuration={clip.duration}
+          visibleStart={visibleStart}
+          visibleEnd={visibleEnd}
+          pixelWidth={clipWidth}
+        />
       )}
+      <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+        <span className="mr-1.5">{clip.label}</span>
+        {onClipOffsetChange && clip.offset > 0 && (
+          <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+        )}
+      </div>
     </div>
   );
 }
