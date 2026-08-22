@@ -1,4 +1,4 @@
-import type { CaptureChunk } from "./capture-worklet.ts";
+import type { CaptureChunk } from "./capture-worklet-client.ts";
 
 export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];

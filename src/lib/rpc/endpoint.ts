@@ -135,7 +135,7 @@ export function registerEndpointRpcHandlers(
   );
 }
 
-export function collectTransferables(value: unknown): Transferable[] {
+function collectTransferables(value: unknown): Transferable[] {
   const transferables: Transferable[] = [];
   const seen = new WeakSet<object>();
   function visit(current: unknown): void {
