@@ -85,7 +85,6 @@ export class CaptureInput {
       context,
       onNotification,
     });
-    this.ready = this.worklet.ready;
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
@@ -94,6 +93,7 @@ export class CaptureInput {
       .connect(this.worklet.node)
       .connect(this.silentGain)
       .connect(context.destination);
+    this.ready = this.worklet.detectChannels();
   }
 
   setChannel(channel: number): void {

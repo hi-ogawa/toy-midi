@@ -1,8 +1,9 @@
 const CAPTURE_PROCESSOR_NAME = "recorder-capture";
-const INITIAL_CHANNEL_TIMEOUT = 3_000;
+const REQUEST_TIMEOUT = 3_000;
 
 type ClientMessage =
   | { type: "channel"; value: number }
+  | { type: "detectChannels"; requestId: number }
   | { type: "active"; requestId: number; value: boolean };
 
 export type CaptureChunk = {
@@ -17,7 +18,7 @@ export type CaptureWorkletNotification =
 
 type WorkletMessage =
   | CaptureWorkletNotification
-  | { type: "channels"; value: number }
+  | { type: "channelsDetected"; requestId: number; value: number }
   | {
       type: "activeChanged";
       requestId: number;
@@ -25,18 +26,17 @@ type WorkletMessage =
       frame: number;
     };
 
+type WorkletResponse = Extract<WorkletMessage, { requestId: number }>;
+
 export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
-  readonly ready: Promise<{ channelCount: number }>;
   private nextRequestId = 0;
-  private readyState = Promise.withResolvers<{ channelCount: number }>();
-  private readySettled = false;
-  private readyTimeout: number;
-  private pendingActiveChanges = new Map<
+  private pendingRequests = new Map<
     number,
     {
       reject: (error: Error) => void;
-      resolve: (frameStart: number) => void;
+      resolve: (message: WorkletResponse) => void;
+      responseType: WorkletResponse["type"];
       timeout: number;
     }
   >();
@@ -48,39 +48,37 @@ export class CaptureWorkletClient {
     context: AudioContext;
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
-    this.ready = this.readyState.promise;
-    this.readyTimeout = window.setTimeout(() => {
-      this.readySettled = true;
-      this.readyState.reject(
-        new Error("Audio input channel detection timed out."),
-      );
-    }, INITIAL_CHANNEL_TIMEOUT);
     this.node = new AudioWorkletNode(context, CAPTURE_PROCESSOR_NAME, {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       outputChannelCount: [1],
     });
     this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
-      if (event.data.type === "channels") {
-        if (event.data.value > 0 && !this.readySettled) {
-          this.readySettled = true;
-          window.clearTimeout(this.readyTimeout);
-          this.readyState.resolve({ channelCount: event.data.value });
-        }
-        return;
-      }
-      if (event.data.type !== "activeChanged") {
+      if (!("requestId" in event.data)) {
         onNotification(event.data);
         return;
       }
-      const pending = this.pendingActiveChanges.get(event.data.requestId);
+      const pending = this.pendingRequests.get(event.data.requestId);
       if (!pending) {
         return;
       }
       window.clearTimeout(pending.timeout);
-      pending.resolve(event.data.frame);
-      this.pendingActiveChanges.delete(event.data.requestId);
+      this.pendingRequests.delete(event.data.requestId);
+      if (event.data.type !== pending.responseType) {
+        pending.reject(new Error("Unexpected worklet response."));
+        return;
+      }
+      pending.resolve(event.data);
     };
+  }
+
+  async detectChannels() {
+    const response = await this.request({
+      message: (requestId) => ({ type: "detectChannels", requestId }),
+      responseType: "channelsDetected",
+      timeoutMessage: "Audio input channel detection timed out.",
+    });
+    return { channelCount: response.value };
   }
 
   setChannel(value: number) {
@@ -96,36 +94,51 @@ export class CaptureWorkletClient {
   }
 
   dispose() {
-    const error = new Error(
-      "Input stopped during an audio capture transition.",
-    );
-    if (!this.readySettled) {
-      this.readySettled = true;
-      window.clearTimeout(this.readyTimeout);
-      this.readyState.reject(
-        new Error("Input stopped before channel detection."),
-      );
-    }
-    for (const pending of this.pendingActiveChanges.values()) {
+    const error = new Error("Input stopped during a worklet request.");
+    for (const pending of this.pendingRequests.values()) {
       window.clearTimeout(pending.timeout);
       pending.reject(error);
     }
-    this.pendingActiveChanges.clear();
+    this.pendingRequests.clear();
     this.node.disconnect();
   }
 
-  private setActive(value: boolean) {
-    const requestId = this.nextRequestId++;
-    // Resolve only after the render thread applies this transition. Request IDs
-    // prevent delayed acknowledgements from satisfying a newer transition.
-    return new Promise<number>((resolve, reject) => {
-      const timeout = window.setTimeout(() => {
-        this.pendingActiveChanges.delete(requestId);
-        reject(new Error("Audio capture state change timed out."));
-      }, 3_000);
-      this.pendingActiveChanges.set(requestId, { reject, resolve, timeout });
-      this.postMessage({ type: "active", requestId, value });
+  private async setActive(value: boolean) {
+    const response = await this.request({
+      message: (requestId) => ({ type: "active", requestId, value }),
+      responseType: "activeChanged",
+      timeoutMessage: "Audio capture state change timed out.",
     });
+    return response.frame;
+  }
+
+  private request<T extends WorkletResponse["type"]>({
+    message,
+    responseType,
+    timeoutMessage,
+  }: {
+    message: (requestId: number) => ClientMessage;
+    responseType: T;
+    timeoutMessage: string;
+  }): Promise<Extract<WorkletResponse, { type: T }>> {
+    const requestId = this.nextRequestId++;
+    return new Promise<Extract<WorkletResponse, { type: T }>>(
+      (resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          this.pendingRequests.delete(requestId);
+          reject(new Error(timeoutMessage));
+        }, REQUEST_TIMEOUT);
+        this.pendingRequests.set(requestId, {
+          reject,
+          resolve: (response) => {
+            resolve(response as Extract<WorkletResponse, { type: T }>);
+          },
+          responseType,
+          timeout,
+        });
+        this.postMessage(message(requestId));
+      },
+    );
   }
 
   private postMessage(message: ClientMessage) {
@@ -152,6 +165,7 @@ function createCaptureProcessor() {
     declare recording: boolean;
     declare selectedChannel: number;
     declare observedChannelCount: number;
+    declare pendingChannelRequests: number[];
     declare meterBlockCount: number;
     declare meterPeak: number;
     declare pendingRenderActions: Array<() => void>;
@@ -164,6 +178,7 @@ function createCaptureProcessor() {
       this.recording = false;
       this.selectedChannel = 0;
       this.observedChannelCount = -1;
+      this.pendingChannelRequests = [];
       this.meterBlockCount = 0;
       this.meterPeak = 0;
       this.pendingRenderActions = [];
@@ -176,6 +191,18 @@ function createCaptureProcessor() {
             this.selectedChannel = event.data.value;
             this.meterBlockCount = 0;
             this.meterPeak = 0;
+            break;
+          }
+          case "detectChannels": {
+            if (this.observedChannelCount > 0) {
+              this.postMessage({
+                type: "channelsDetected",
+                requestId: event.data.requestId,
+                value: this.observedChannelCount,
+              });
+            } else {
+              this.pendingChannelRequests.push(event.data.requestId);
+            }
             break;
           }
           case "active": {
@@ -216,7 +243,16 @@ function createCaptureProcessor() {
       if (channels.length !== this.observedChannelCount) {
         // Track settings may be absent or disagree with actual render quanta.
         this.observedChannelCount = channels.length;
-        this.postMessage({ type: "channels", value: channels.length });
+        if (channels.length > 0) {
+          for (const requestId of this.pendingChannelRequests) {
+            this.postMessage({
+              type: "channelsDetected",
+              requestId,
+              value: channels.length,
+            });
+          }
+          this.pendingChannelRequests = [];
+        }
       }
       if (channels.length > 0) {
         // Clamp against the observed graph so a transient channel-count change
