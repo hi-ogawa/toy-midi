@@ -1056,6 +1056,11 @@ function TimelineLane({
           }}
         >
           <span className="truncate">{clip.label}</span>
+          {onClipOffsetChange && clip.offset > 0 && (
+            <span className="ml-1.5 opacity-75">
+              +{clip.offset.toFixed(3)}s
+            </span>
+          )}
         </div>
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
