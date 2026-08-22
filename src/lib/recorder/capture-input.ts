@@ -53,7 +53,6 @@ export class CaptureInput {
         onNotification(message);
       },
     });
-
     const channelCount = await Promise.race([
       channelCountPromise.promise,
       new Promise<never>((_resolve, reject) => {
