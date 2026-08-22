@@ -33,6 +33,7 @@ import {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
+import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
 import {
   beatsToSeconds,
@@ -348,7 +349,7 @@ export function Recorder() {
           onInputToggle={input.toggle}
           onChannelChange={(channel) => {
             input.setPeak(0);
-            runtime.selectChannel(channel);
+            input.selectChannel(channel);
           }}
           onLatencyCompensationChange={(compensation) => {
             const wasPlaying = state.isPlaying;
@@ -374,25 +375,44 @@ function useRecorderInput({
   state: RecorderRuntimeState;
 }) {
   const active = state.inputSettings !== undefined;
+  const [preference, setPreference] = useState(() =>
+    recorderStorage.readPreferences(),
+  );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [deviceId, setDeviceId] = useState<string>();
+  const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
   const [peak, setPeak] = useState(0);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
     selectDevice(
-      nextDevices.some((device) => device.deviceId === deviceId)
-        ? deviceId
+      nextDevices.some(
+        (device) => device.deviceId === preference.input?.deviceId,
+      )
+        ? preference.input?.deviceId
         : nextDevices[0]?.deviceId,
+      { remember: false },
     );
   }
 
-  function selectDevice(nextDeviceId?: string) {
+  function selectDevice(
+    nextDeviceId?: string,
+    { remember = true }: { remember?: boolean } = {},
+  ) {
     if (nextDeviceId !== deviceId && active) {
       stop();
     }
     setDeviceId(nextDeviceId);
+    if (remember) {
+      const nextPreference = {
+        ...preference,
+        input: nextDeviceId
+          ? { deviceId: nextDeviceId, channel: 0 }
+          : undefined,
+      };
+      setPreference(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
+    }
   }
 
   function stop() {
@@ -411,8 +431,15 @@ function useRecorderInput({
   const refreshMutation = useMutation({ mutationFn: refresh });
 
   const startMutation = useMutation({
-    mutationFn: (nextDeviceId: string) =>
-      runtime.startInput({ deviceId: nextDeviceId, onLevel: setPeak }),
+    mutationFn: async (nextDeviceId: string) => {
+      const { channelCount } = await runtime.startInput({
+        deviceId: nextDeviceId,
+        onLevel: setPeak,
+      });
+      runtime.selectChannel(
+        Math.min(preference.input?.channel ?? 0, channelCount - 1),
+      );
+    },
   });
 
   // refresh on mount and watch for device changes
@@ -443,6 +470,18 @@ function useRecorderInput({
     setPeak,
     selectedDevice,
     selectDevice,
+    selectChannel: (channel: number) => {
+      runtime.selectChannel(channel);
+      if (!deviceId) {
+        return;
+      }
+      const nextPreference = {
+        ...preference,
+        input: { deviceId, channel },
+      };
+      setPreference(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
+    },
     toggle: () => {
       if (!hasAccess) {
         grantMutation.mutate();

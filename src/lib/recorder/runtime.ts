@@ -89,25 +89,15 @@ export class RecorderRuntime {
   }: {
     deviceId: string;
     onLevel: (peak: number) => void;
-  }): Promise<void> {
+  }): Promise<{ channelCount: number }> {
     const context = this.getContext();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
-    const { input, settings } = await CaptureInput.open({
+    const { input, settings, channelCount } = await CaptureInput.open({
       context,
       deviceId,
       onNotification: (message) => {
         switch (message.type) {
-          case "channels": {
-            const inputChannelCount = message.value;
-            const selectedChannel = Math.min(
-              this.store.get().selectedChannel,
-              Math.max(0, inputChannelCount - 1),
-            );
-            this.store.update({ inputChannelCount, selectedChannel });
-            this.selectChannel(selectedChannel);
-            break;
-          }
           case "level": {
             onLevel(message.peak);
             break;
@@ -154,9 +144,10 @@ export class RecorderRuntime {
     this.store.update({
       status: "ready",
       inputSettings: settings,
-      inputChannelCount: 0,
+      inputChannelCount: channelCount,
       selectedChannel: 0,
     });
+    return { channelCount };
   }
 
   stopInput(): void {
