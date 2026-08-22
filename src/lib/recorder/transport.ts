@@ -97,8 +97,7 @@ export class AudioContextTransport {
    * the whole take remains aligned.
    */
   getCaptureOffset(startFrame: number): number {
-    return getPositionAtContextTime(
-      this.playbackAnchor!,
+    return this.getPlaybackPositionByContextTime(
       startFrame / this.context.sampleRate,
     );
   }
@@ -114,7 +113,7 @@ export class AudioContextTransport {
         // Hold at the requested position until the future playback anchor arrives.
         position: Math.max(
           playbackAnchor.position,
-          getPositionAtContextTime(playbackAnchor, this.context.currentTime),
+          this.getPlaybackPositionByContextTime(this.context.currentTime),
         ),
       });
     });
@@ -125,13 +124,15 @@ export class AudioContextTransport {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
   }
-}
 
-function getPositionAtContextTime(
-  playbackAnchor: PlaybackAnchor,
-  contextTime: number,
-): number {
-  return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
+  /**
+   * Converts an absolute AudioContext time to its exact position relative to the
+   * active playback anchor. This intentionally includes playback warmup time.
+   */
+  private getPlaybackPositionByContextTime(contextTime: number): number {
+    const playbackAnchor = this.playbackAnchor!;
+    return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
+  }
 }
 
 function startAnimationFrameLoop(callback: () => void): () => void {
