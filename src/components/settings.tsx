@@ -12,7 +12,11 @@ import { audioManager, loadAudioFile } from "../lib/audio";
 import { resolveAudioFiles } from "../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../lib/export-utils";
 import { exportMidi } from "../lib/midi-export";
-import { importMidiNotes, type MidiImportOptions } from "../lib/midi-import";
+import {
+  importMidiNotes,
+  parseMidiFile,
+  type MidiImportOptions,
+} from "../lib/midi-import";
 import { exportMusicXml } from "../lib/musicxml/render";
 import { KEY_SIGNATURE_OPTION_GROUPS } from "../lib/pitch-spelling";
 import { exportProjectFile } from "../lib/project-file";
@@ -77,9 +81,7 @@ export function Settings({
   const importMidiMutation = useMutation({
     mutationFn: async (file: File) => {
       // First parse to get available tracks
-      const parsed = await import("../lib/midi-import").then((m) =>
-        m.parseMidiFile(file),
-      );
+      const parsed = await parseMidiFile(file);
 
       // Import all tracks
       const options: MidiImportOptions = {
