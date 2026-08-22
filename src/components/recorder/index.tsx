@@ -74,14 +74,6 @@ import {
   RecorderTimeSignature,
 } from "./utils";
 
-type RecorderTimelineClip = {
-  duration: number;
-  label: string;
-  offset: number;
-  variant: "audio" | "take" | "recording";
-  audioView?: AudioView;
-};
-
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
@@ -973,6 +965,14 @@ function TrackRow({
     </div>
   );
 }
+
+type RecorderTimelineClip = {
+  duration: number;
+  label: string;
+  offset: number;
+  variant: "audio" | "take" | "recording";
+  audioView?: AudioView;
+};
 
 function TimelineLane({
   beatsPerBar,
