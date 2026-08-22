@@ -19,10 +19,9 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  readonly ready: Promise<{ channelCount: number }>;
+  readonly worklet: CaptureWorkletClient;
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
-  private readonly worklet: CaptureWorkletClient;
   private readonly silentGain: GainNode;
 
   static async open({
@@ -54,7 +53,7 @@ export class CaptureInput {
         onNotification,
       });
       try {
-        const { channelCount } = await input.ready;
+        const { channelCount } = await input.worklet.detectChannels();
         return {
           input,
           settings: track.getSettings(),
@@ -93,7 +92,6 @@ export class CaptureInput {
       .connect(this.worklet.node)
       .connect(this.silentGain)
       .connect(context.destination);
-    this.ready = this.worklet.detectChannels();
   }
 
   setChannel(channel: number): void {
