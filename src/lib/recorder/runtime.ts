@@ -316,7 +316,6 @@ export class RecorderRuntime {
     //
     // CaptureInput and ActiveRecording should remain transport-agnostic. Runtime owns
     // which absolute frame becomes product sample zero.
-
     if (!this.store.get().isPlaying) {
       await this.play();
     }
