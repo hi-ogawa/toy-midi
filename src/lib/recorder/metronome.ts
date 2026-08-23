@@ -6,7 +6,7 @@ import type {
 } from "./transport.ts";
 
 const SCHEDULE_AHEAD_SECONDS = 0.1;
-const SCHEDULER_INTERVAL_MS = 25;
+const SCHEDULER_INTERVAL_SECONDS = 0.025;
 
 export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
@@ -54,7 +54,7 @@ export class RecorderMetronome implements TransportParticipant {
     this.schedule();
     this.disposeScheduling = startInterval(
       () => this.schedule(),
-      SCHEDULER_INTERVAL_MS,
+      SCHEDULER_INTERVAL_SECONDS * 1000,
     );
   }
 
@@ -139,7 +139,7 @@ function scheduleOscillatorClick({
   oscillator.stop(decayEndTime);
 }
 
-function startInterval(callback: () => void, interval: number): () => void {
-  const id = setInterval(callback, interval);
+function startInterval(callback: () => void, milliseconds: number): () => void {
+  const id = setInterval(callback, milliseconds);
   return () => clearInterval(id);
 }
