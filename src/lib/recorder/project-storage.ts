@@ -1,5 +1,5 @@
 import { IdbStore } from "../idb.ts";
-import type { RecorderProjectContent } from "./project.ts";
+import type { RecorderProjectContent } from "./project-persistence.ts";
 
 interface StoredRecorderProject {
   id: string;
