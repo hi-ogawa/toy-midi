@@ -548,6 +548,7 @@ function useRecorderTimeline({
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
+  // Let the playhead approach the right edge, then reveal the next 80% of the timeline.
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
