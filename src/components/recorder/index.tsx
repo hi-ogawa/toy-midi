@@ -711,6 +711,26 @@ function RecorderHeader({
         )}
       </Button>
       <Button
+        data-testid="recorder-record-button"
+        onClick={onRecordToggle}
+        disabled={recordDisabled || isProcessing}
+        aria-pressed={isRecording}
+        className={cn(
+          "size-9",
+          isRecording
+            ? "bg-red-600 text-white hover:bg-red-500"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+        title={isRecording ? "Stop recording (R)" : "Record (R)"}
+      >
+        {isRecording ? (
+          <CircleStopIcon className="size-5" />
+        ) : (
+          <CircleIcon className="size-4 fill-current" />
+        )}
+      </Button>
+      <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
         title="Toggle metronome (M)"
@@ -736,26 +756,6 @@ function RecorderHeader({
       >
         <LocateFixedIcon className="size-5" />
       </Button>
-      <Button
-        data-testid="recorder-record-button"
-        onClick={onRecordToggle}
-        disabled={recordDisabled || isProcessing}
-        aria-pressed={isRecording}
-        className={cn(
-          "size-9",
-          isRecording
-            ? "bg-red-600 text-white hover:bg-red-500"
-            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        )}
-        title={isRecording ? "Stop recording (R)" : "Record (R)"}
-      >
-        {isRecording ? (
-          <CircleStopIcon className="size-5" />
-        ) : (
-          <CircleIcon className="size-4 fill-current" />
-        )}
-      </Button>
-      <div className="mx-1 h-5 w-px bg-neutral-600" />
       <output
         data-testid="recorder-position"
         className="font-mono text-sm tabular-nums text-neutral-300"
