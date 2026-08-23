@@ -737,8 +737,8 @@ function RecorderHeader({
         className={cn(
           "size-9",
           metronomeEnabled
-            ? "bg-neutral-700 text-emerald-400 hover:bg-neutral-700"
-            : "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100",
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
         )}
       >
         <MetronomeIcon className="size-5" />
@@ -750,8 +750,8 @@ function RecorderHeader({
         className={cn(
           "size-9",
           autoScrollEnabled
-            ? "bg-neutral-700 text-emerald-400 hover:bg-neutral-700"
-            : "text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100",
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
         )}
       >
         <LocateFixedIcon className="size-5" />
