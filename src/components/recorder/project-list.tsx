@@ -2,18 +2,13 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, PlusIcon, Trash2Icon } from "lucide-react";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
+import { toResult } from "../../utils/result";
 import { Button } from "../ui/button";
 
 export function RecorderProjectList() {
   const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
-    queryFn: async () => {
-      try {
-        return { ok: true as const, data: await recorderProjectStorage.list() };
-      } catch (error) {
-        return { ok: false as const, error };
-      }
-    },
+    queryFn: () => toResult(recorderProjectStorage.list()),
   });
   const createProject = useMutation({
     mutationFn: () => recorderProjectStorage.create(),
@@ -58,7 +53,7 @@ export function RecorderProjectList() {
             <div className="p-8 text-center text-sm text-orange-300">
               {String(projects.data.error)}
             </div>
-          ) : projects.data.data.length === 0 ? (
+          ) : projects.data.value.length === 0 ? (
             <div className="p-12 text-center">
               <p className="font-medium text-neutral-300">No recordings yet</p>
               <p className="mt-1 text-sm text-neutral-500">
@@ -66,7 +61,7 @@ export function RecorderProjectList() {
               </p>
             </div>
           ) : (
-            projects.data.data.map((project) => (
+            projects.data.value.map((project) => (
               <div
                 key={project.id}
                 className="flex h-[4.5rem] items-center border-b border-neutral-700 px-4 last:border-b-0"
