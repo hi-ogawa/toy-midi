@@ -85,19 +85,40 @@ export class RecorderMetronome implements TransportParticipant {
     accent: boolean;
     contextTime: number;
   }): void {
-    const oscillator = this.transport.context.createOscillator();
-    const gain = this.transport.context.createGain();
-    oscillator.frequency.value = accent ? 1760 : 1320;
-    // Shape each oscillator into a short click instead of a sustained tone.
-    gain.gain.setValueAtTime(accent ? 0.2 : 0.12, contextTime);
-    gain.gain.exponentialRampToValueAtTime(
-      0.0001,
-      contextTime + CLICK_DURATION_SECONDS,
-    );
-    oscillator.connect(gain).connect(this.output);
-    oscillator.start(contextTime);
-    oscillator.stop(contextTime + CLICK_DURATION_SECONDS);
+    scheduleOscillatorClick({
+      context: this.transport.context,
+      output: this.output,
+      contextTime,
+      frequency: accent ? 1760 : 1320,
+      gain: accent ? 0.2 : 0.12,
+      duration: CLICK_DURATION_SECONDS,
+    });
   }
+}
+
+function scheduleOscillatorClick({
+  context,
+  output,
+  contextTime,
+  frequency,
+  gain,
+  duration,
+}: {
+  context: AudioContext;
+  output: AudioNode;
+  contextTime: number;
+  frequency: number;
+  gain: number;
+  duration: number;
+}): void {
+  const oscillator = context.createOscillator();
+  const envelope = context.createGain();
+  oscillator.frequency.value = frequency;
+  envelope.gain.setValueAtTime(gain, contextTime);
+  envelope.gain.exponentialRampToValueAtTime(0.0001, contextTime + duration);
+  oscillator.connect(envelope).connect(output);
+  oscillator.start(contextTime);
+  oscillator.stop(contextTime + duration);
 }
 
 function startInterval(callback: () => void, interval: number): () => void {
