@@ -7,6 +7,7 @@ import {
   spellMidiPitch,
 } from "../pitch-spelling";
 import { resolveTabPosition, type TabPosition } from "../tab-annotation";
+import { getBeatsPerBar } from "../timeline";
 import {
   buildMeasureEvents,
   MUSICXML_DIVISIONS,
@@ -81,7 +82,7 @@ export function buildMusicXmlModel({
   validateOpenStringPitches(openStringPitches);
   // Measure length in MusicXML grid units.
   const measureDuration = toGridUnits(
-    timeSignature.numerator * (4 / timeSignature.denominator),
+    getBeatsPerBar(timeSignature),
     "time signature",
   );
   const beatDuration =

@@ -17,6 +17,7 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { routes } from "../lib/routes";
 import { SCORE_VIEWER_SAMPLES } from "../lib/score-viewer-samples";
 import { formatTimeCompact } from "../lib/time-format";
+import { formatBarBeat } from "../lib/timeline";
 import { FileDropInput, openFilePicker } from "./file-drop-input";
 import { ScoreSettings } from "./score-settings";
 import {
@@ -368,8 +369,4 @@ function ScoreSamplesMenu({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
-
-function formatBarBeat(bar: number, beat: number) {
-  return `${String(bar).padStart(2, "0")}|${String(beat).padStart(2, "0")}`;
 }
