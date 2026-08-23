@@ -788,15 +788,6 @@ function RecorderHeader({
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Mic2Icon className="size-4 text-emerald-400" />
       <span className="mr-2 text-sm font-medium">Recorder</span>
-      <input
-        value={title}
-        onChange={(event) => onTitleChange(event.currentTarget.value)}
-        aria-label="Recording title"
-        className="h-8 w-56 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
-      />
-      <span className="text-xs text-neutral-500">
-        {savePending ? "Saving..." : dirty ? "Unsaved" : "Saved"}
-      </span>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-play-button"
@@ -935,6 +926,24 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <button
+        type="button"
+        data-testid="recorder-project-name"
+        title="Rename project"
+        onClick={() => {
+          const nextTitle = window.prompt("Project name", title)?.trim();
+          if (nextTitle && nextTitle !== title) {
+            onTitleChange(nextTitle);
+          }
+        }}
+        className="max-w-[220px] truncate text-sm text-neutral-300 hover:text-neutral-100"
+      >
+        {title}
+      </button>
+      <span className="text-xs text-neutral-500">
+        {savePending ? "Saving..." : dirty ? "Unsaved" : "Saved"}
+      </span>
+      <div className="h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
