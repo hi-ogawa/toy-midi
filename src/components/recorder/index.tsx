@@ -620,25 +620,24 @@ function useRecorderTimeline({
   );
 
   return {
-    autoScrollEnabled,
     beatsPerBar,
     gridDivision,
     pixelsPerBeat,
     playheadX,
     viewportStartBeat,
     setGridDivision,
-    setAutoScrollEnabled,
     subdivisionsPerBeat,
     tempo,
     timeSignature,
     viewportRef,
     viewportWidth,
     showPlayhead,
+    autoScrollEnabled,
+    setAutoScrollEnabled,
   };
 }
 
 function RecorderHeader({
-  autoScrollEnabled,
   isPlaying,
   isProcessing,
   isRecording,
@@ -648,6 +647,7 @@ function RecorderHeader({
   timeSignature,
   gridDivision,
   recordDisabled,
+  autoScrollEnabled,
   onPlayToggle,
   onRecordToggle,
   onAutoScrollChange,
@@ -656,7 +656,6 @@ function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
 }: {
-  autoScrollEnabled: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -666,6 +665,7 @@ function RecorderHeader({
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
   recordDisabled: boolean;
+  autoScrollEnabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
   onAutoScrollChange: (enabled: boolean) => void;
