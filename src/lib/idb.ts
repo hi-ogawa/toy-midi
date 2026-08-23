@@ -44,9 +44,8 @@ export class IdbStore<T> {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        for (const storeName of this.options.storeNames ?? [
-          this.options.storeName,
-        ]) {
+        const storeNames = this.options.storeNames ?? [this.options.storeName];
+        for (const storeName of storeNames) {
           if (!db.objectStoreNames.contains(storeName)) {
             db.createObjectStore(storeName, { keyPath: this.options.keyPath });
           }
