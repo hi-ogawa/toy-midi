@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
   CircleIcon,
@@ -133,12 +133,9 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
-  const loadProjectMutation = useMutation({
-    mutationFn: () => recorderProjectStorage.load(projectId),
-    onSuccess: (project) => {
-      runtime.importProject(project);
-      runtime.setTitle(project.title);
-    },
+  const projectQuery = useQuery({
+    queryKey: ["recorder-project", projectId],
+    queryFn: () => recorderProjectStorage.load(projectId),
   });
   const saveProjectMutation = useMutation({
     mutationFn: () =>
@@ -151,17 +148,19 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   useEffect(() => {
-    loadProjectMutation.mutate();
-  }, [loadProjectMutation.mutate]);
+    if (projectQuery.data) {
+      runtime.importProject(projectQuery.data);
+      runtime.setTitle(projectQuery.data.title);
+    }
+  }, [projectQuery.data, runtime]);
 
-  const projectReady =
-    loadProjectMutation.isSuccess || loadProjectMutation.isError;
+  const projectReady = projectQuery.isSuccess || projectQuery.isError;
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
   const error =
     input.error ??
-    loadProjectMutation.error ??
+    projectQuery.error ??
     saveProjectMutation.error ??
     addAudioMutation.error ??
     audioTrackMutation.error ??
