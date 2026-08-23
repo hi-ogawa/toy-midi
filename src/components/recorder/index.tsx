@@ -1049,9 +1049,9 @@ function RecorderSaveStatus({
       title={label}
       className={cn(
         "grid size-6 place-items-center",
-        status === "saved" && "text-neutral-500",
-        status === "unsaved" && "text-amber-400",
-        status === "saving" && "text-neutral-300",
+        status === "saved" && "text-neutral-600",
+        status === "unsaved" && "text-neutral-400",
+        status === "saving" && "text-neutral-500",
         status === "error" && "text-red-400",
       )}
     >
