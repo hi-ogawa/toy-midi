@@ -9,7 +9,7 @@ import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
-export const RECORDER_WAVEFORM_POINTS_PER_SECOND = 800;
+export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MAX_TRACK_HEIGHT = 300;
@@ -195,7 +195,7 @@ export class RecorderRuntime {
         audioView: createAudioView(
           buffer.getChannelData(0),
           buffer.sampleRate,
-          RECORDER_WAVEFORM_POINTS_PER_SECOND,
+          WAVEFORM_POINTS_PER_SECOND,
         ),
       },
     }));
@@ -496,7 +496,7 @@ export class RecorderRuntime {
             audioView: createAudioView(
               samples,
               context.sampleRate,
-              RECORDER_WAVEFORM_POINTS_PER_SECOND,
+              WAVEFORM_POINTS_PER_SECOND,
             ),
           },
         ],
