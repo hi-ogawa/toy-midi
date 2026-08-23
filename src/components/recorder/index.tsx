@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
-  CheckIcon,
+  createLucideIcon,
   CircleAlertIcon,
   CircleIcon,
   CircleHelpIcon,
@@ -30,6 +30,19 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
+
+const SaveCheckIcon = createLucideIcon("SaveCheck", [
+  [
+    "path",
+    {
+      d: "M15.2 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.8Z",
+      key: "1cqn1j",
+    },
+  ],
+  ["path", { d: "M17 21v-8H7v8", key: "1ydtos" }],
+  ["path", { d: "M7 3v5h8", key: "1pvjzy" }],
+  ["path", { d: "m9 13 2 2 4-4", key: "634lzl" }],
+]);
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -173,10 +186,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     recordMutation.mutate(isRecording ? "stop" : "start");
   }
 
+  const saveDisabled =
+    !project.ready ||
+    !project.dirty ||
+    project.saving ||
+    isRecording ||
+    isProcessing;
+
   useWindowEvent("keydown", (event) => {
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
-      if (project.ready && project.dirty && !project.saving) {
+      if (!saveDisabled) {
         project.save();
       }
       return;
@@ -203,10 +223,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
         title={state.title}
-        dirty={project.dirty}
-        projectReady={project.ready}
-        savePending={project.saving}
         saveStatus={project.saveStatus}
+        saveDisabled={saveDisabled}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -762,10 +780,8 @@ function useRecorderTimeline({
 
 function RecorderHeader({
   title,
-  dirty,
-  projectReady,
-  savePending,
   saveStatus,
+  saveDisabled,
   isPlaying,
   isProcessing,
   isRecording,
@@ -787,10 +803,8 @@ function RecorderHeader({
   onGridDivisionChange,
 }: {
   title: string;
-  dirty: boolean;
-  projectReady: boolean;
-  savePending: boolean;
   saveStatus: "saved" | "unsaved" | "saving" | "error";
+  saveDisabled: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -965,7 +979,11 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
-      <RecorderSaveStatus status={saveStatus} />
+      <RecorderSaveButton
+        status={saveStatus}
+        disabled={saveDisabled}
+        onSave={onSave}
+      />
       <button
         type="button"
         data-testid="recorder-project-name"
@@ -992,21 +1010,6 @@ function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={onSave}
-            disabled={
-              !projectReady ||
-              !dirty ||
-              isRecording ||
-              isProcessing ||
-              savePending
-            }
-          >
-            <SaveIcon />
-            Save
-            <span className="ml-auto text-xs text-neutral-500">Ctrl+S</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
@@ -1025,30 +1028,36 @@ function RecorderHeader({
   );
 }
 
-function RecorderSaveStatus({
+function RecorderSaveButton({
   status,
+  disabled,
+  onSave,
 }: {
   status: "saved" | "unsaved" | "saving" | "error";
+  disabled: boolean;
+  onSave: () => void;
 }) {
   const label = {
     saved: "All changes saved",
     unsaved: "Unsaved changes (Ctrl/Cmd+S to save)",
     saving: "Saving project",
-    error: "Save failed (Ctrl/Cmd+S to retry)",
+    error: "Save failed (click or Ctrl/Cmd+S to retry)",
   }[status];
   const icon = {
-    saved: <CheckIcon className="size-3.5" />,
-    unsaved: <CircleIcon className="size-3.5 fill-current" />,
+    saved: <SaveCheckIcon className="size-4" />,
+    unsaved: <SaveIcon className="size-4" />,
     saving: <LoaderCircleIcon className="size-3.5 animate-spin" />,
     error: <CircleAlertIcon className="size-3.5" />,
   }[status];
   return (
-    <span
-      role="status"
+    <button
+      type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
+      onClick={onSave}
       className={cn(
-        "grid size-6 place-items-center",
+        "grid size-6 place-items-center disabled:cursor-default",
         status === "saved" && "text-neutral-600",
         status === "unsaved" && "text-neutral-400",
         status === "saving" && "text-neutral-500",
@@ -1056,7 +1065,7 @@ function RecorderSaveStatus({
       )}
     >
       {icon}
-    </span>
+    </button>
   );
 }
 

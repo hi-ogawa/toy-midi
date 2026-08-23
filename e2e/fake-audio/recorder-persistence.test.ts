@@ -6,10 +6,10 @@ test("saves and restores a recorder project", async ({ page }) => {
   await createRecorderProject(page);
   const projectUrl = page.url();
   await expect(
-    page.getByRole("status", { name: "All changes saved" }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toBeDisabled();
   await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
+  await expect(page.getByRole("menuitem", { name: /Save/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
@@ -31,19 +31,19 @@ test("saves and restores a recorder project", async ({ page }) => {
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
   await expect(
-    page.getByRole("status", {
+    page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
     }),
-  ).toBeVisible();
+  ).toBeEnabled();
   await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeEnabled();
+  await expect(page.getByRole("menuitem", { name: /Save/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.keyboard.press("Control+S");
+  await page
+    .getByRole("button", { name: "Unsaved changes (Ctrl/Cmd+S to save)" })
+    .click();
   await expect(
-    page.getByRole("status", { name: "All changes saved" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toBeDisabled();
 
   // Reload restores document fields and PCM-backed waveform data.
   await page.reload();
