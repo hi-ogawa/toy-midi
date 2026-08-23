@@ -59,6 +59,14 @@ export function gainToDb(gain: number): number {
   return 20 * Math.log10(gain);
 }
 
+export function formatGainDb(gain: number): string {
+  if (gain === 0) {
+    return "-∞ dB";
+  }
+  const db = gainToDb(gain);
+  return `${db > 0 ? "+" : ""}${db.toFixed(1)} dB`;
+}
+
 export function clampGain(gain: number): number {
   return clamp(gain, 0, MAX_GAIN);
 }

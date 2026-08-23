@@ -37,6 +37,8 @@ import {
 import {
   beatsToSeconds,
   getVisibleBarInterval,
+  MAX_PIXELS_PER_BEAT,
+  MIN_PIXELS_PER_BEAT,
   secondsToBeats,
 } from "../lib/timeline";
 import { GRID_SNAP_VALUES, GridSnap, Note } from "../types";
@@ -56,8 +58,6 @@ const MAX_WAVEFORM_HEIGHT = 300;
 // Zoom limits (pixels per beat/key)
 // TODO: consider discrete integer zoom levels (e.g. 1,2,3,4,6,8,...,192)
 // for simpler state and guaranteed zoom roundtrip
-const MIN_PIXELS_PER_BEAT = 1; // Allow extreme zoom out for song overview
-const MAX_PIXELS_PER_BEAT = 400;
 const MIN_PIXELS_PER_KEY = 10;
 const MAX_PIXELS_PER_KEY = 40;
 
