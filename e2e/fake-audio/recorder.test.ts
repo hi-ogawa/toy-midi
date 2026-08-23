@@ -1,3 +1,4 @@
+import { open } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -37,6 +38,8 @@ test("records, plays, and replaces a take", async ({ page }) => {
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
+  const downloadButton = page.getByTestId("recorder-download-take");
+  await expect(downloadButton).toBeDisabled();
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
@@ -58,9 +61,22 @@ test("records, plays, and replaces a take", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   await expect(take).toContainText("Take 1");
   await expect(take.locator("svg")).toBeVisible();
+  await expect(downloadButton).toBeEnabled();
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
+
+  const downloadPromise = page.waitForEvent("download");
+  await downloadButton.click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^toy-midi-take-1-.*\.wav$/);
+  const downloadPath = test.info().outputPath("take.wav");
+  await download.saveAs(downloadPath);
+  const file = await open(downloadPath);
+  const header = Buffer.alloc(4);
+  await file.read(header, 0, header.length, 0);
+  await file.close();
+  expect(header.toString()).toBe("RIFF");
 
   // The completed take immediately joins normal transport playback.
   await playButton.click();
