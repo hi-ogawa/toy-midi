@@ -5,9 +5,10 @@ import {
   PauseIcon,
   PlayIcon,
 } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
+import { useTapTempo } from "../hooks/use-tap-tempo";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { GM_PROGRAMS } from "../lib/general-midi";
@@ -69,8 +70,6 @@ export function Transport({ projectName, controls }: TransportProps) {
     setGridSnap,
   } = useProjectStore();
 
-  const tapTimesRef = useRef<number[]>([]);
-
   const handleMidiProgramChange = (program: number) => {
     setMidiProgram(program);
     projectStorage.updatePreferences({ defaultMidiProgram: program });
@@ -81,6 +80,11 @@ export function Transport({ projectName, controls }: TransportProps) {
     onCommit: setTempo,
     min: 30,
     max: 300,
+  });
+  const handleTapTempo = useTapTempo({
+    min: 30,
+    max: 300,
+    onTempoChange: setTempo,
   });
 
   // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
@@ -110,39 +114,6 @@ export function Transport({ projectName, controls }: TransportProps) {
       }
     }
   });
-
-  const handleTapTempo = () => {
-    const now = performance.now();
-    const taps = tapTimesRef.current;
-
-    // Reset if last tap was more than 2 seconds ago
-    if (taps.length > 0 && now - taps[taps.length - 1] > 2000) {
-      tapTimesRef.current = [];
-    }
-
-    taps.push(now);
-
-    // Keep only last 8 taps
-    if (taps.length > 8) {
-      taps.shift();
-    }
-
-    // Need at least 2 taps to calculate BPM
-    if (taps.length >= 2) {
-      const intervals: number[] = [];
-      for (let i = 1; i < taps.length; i++) {
-        intervals.push(taps[i] - taps[i - 1]);
-      }
-      const avgInterval =
-        intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      const bpm = Math.round(60000 / avgInterval);
-
-      // Clamp to valid range
-      if (bpm >= 30 && bpm <= 300) {
-        setTempo(bpm);
-      }
-    }
-  };
 
   return (
     <div
