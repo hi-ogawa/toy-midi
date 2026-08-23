@@ -5,6 +5,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   // The musician creates a project and gives it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
+  await page.getByRole("button", { name: "More" }).click();
+  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
+  await page.keyboard.press("Escape");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
