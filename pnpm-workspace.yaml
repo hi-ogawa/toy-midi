@@ -1,4 +1,5 @@
 packages:
   - crates/bass-pitch-wasm
-onlyBuiltDependencies:
-  - wasm-pack
+allowBuilds:
+  gl: false
+  wasm-pack: true
