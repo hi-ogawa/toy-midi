@@ -1,13 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, PlusIcon, Trash2Icon } from "lucide-react";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { Button } from "../ui/button";
 
 export function RecorderProjectList() {
-  const projects = useQuery({
+  const projects = useSuspenseQuery({
     queryKey: ["recorder-projects"],
-    queryFn: () => recorderProjectStorage.list(),
+    queryFn: async () => {
+      try {
+        return { ok: true as const, data: await recorderProjectStorage.list() };
+      } catch (error) {
+        return { ok: false as const, error };
+      }
+    },
   });
   const createProject = useMutation({
     mutationFn: () => recorderProjectStorage.create(),
@@ -48,15 +54,11 @@ export function RecorderProjectList() {
           Your Recordings
         </h2>
         <div className="mt-4 overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800/60">
-          {projects.isPending ? (
-            <div className="p-8 text-center text-sm text-neutral-500">
-              Loading recordings...
-            </div>
-          ) : projects.error ? (
+          {!projects.data.ok ? (
             <div className="p-8 text-center text-sm text-orange-300">
-              {projects.error.message}
+              {String(projects.data.error)}
             </div>
-          ) : projects.data.length === 0 ? (
+          ) : projects.data.data.length === 0 ? (
             <div className="p-12 text-center">
               <p className="font-medium text-neutral-300">No recordings yet</p>
               <p className="mt-1 text-sm text-neutral-500">
@@ -64,7 +66,7 @@ export function RecorderProjectList() {
               </p>
             </div>
           ) : (
-            projects.data.map((project) => (
+            projects.data.data.map((project) => (
               <div
                 key={project.id}
                 className="flex h-[4.5rem] items-center border-b border-neutral-700 px-4 last:border-b-0"
