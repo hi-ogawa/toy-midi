@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createRecorderProject } from "./helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
+  // The musician creates a project and gives it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
 
@@ -11,6 +12,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     "Practice take",
   );
 
+  // They load a backing track, including its decoded waveform.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   const fileChooser = await fileChooserPromise;
@@ -19,6 +21,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
+  // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
   await page.getByRole("button", { name: "More" }).click();
@@ -28,6 +31,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
 
+  // Reload restores document fields and PCM-backed waveform data.
   await page.reload();
   await expect(page).toHaveURL(projectUrl);
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
@@ -37,6 +41,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
+  // The metadata index finds the saved project and reopens the same route.
   await page.goto("/recorder");
   const project = page.getByText("Practice take", { exact: true });
   await expect(project).toBeVisible();
@@ -46,6 +51,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     "Practice take",
   );
 
+  // Deleting from the index removes the project metadata and content.
   await page.goto("/recorder");
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete recording" }).click();
