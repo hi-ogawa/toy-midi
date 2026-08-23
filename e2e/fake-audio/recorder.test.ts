@@ -48,7 +48,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  let take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-take");
   await expect(take).toContainText("Take 1");
   await expect(take.locator("svg")).toBeVisible();
 
@@ -66,7 +66,6 @@ test("records, plays, and replaces a take", async ({ page }) => {
   await recordButton.click();
 
   // MVP keeps one take, so the second recording replaces and repositions it.
-  take = page.getByTestId("recorder-clip-take");
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 1");
   const left = Number.parseFloat(
