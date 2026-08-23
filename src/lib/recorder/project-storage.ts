@@ -1,5 +1,9 @@
 import { IdbStore } from "../idb.ts";
-import type { SerializedRecorderRuntimeState } from "./persistence.ts";
+import {
+  type SerializedRecorderRuntimeState,
+  serializeRecorderRuntimeState,
+} from "./persistence.ts";
+import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 
 interface StoredRecorderProject {
   id: string;
@@ -39,20 +43,9 @@ export const recorderProjectStorage = {
     const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
-      content: {
-        title: "Untitled recording",
-        audioTracks: [],
-        recordingTrack: {
-          height: 96,
-          gain: 1,
-          muted: false,
-          soloed: false,
-          takes: [],
-        },
-        latencyCompensation: 0,
-        tempo: 120,
-        timeSignature: { numerator: 4, denominator: 4 },
-      },
+      content: serializeRecorderRuntimeState(
+        createDefaultRecorderRuntimeState(),
+      ),
     };
     await projects.put(project);
     await metadata.put(toMetadata(project));

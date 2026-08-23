@@ -79,8 +79,8 @@ export type PersistableRecorderRuntimeState = Pick<
 
 const METRONOME_GAIN = 0.5;
 
-export class RecorderRuntime {
-  readonly store = createStore<RecorderRuntimeState>(() => ({
+export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
+  return {
     title: "Untitled recording",
     position: 0,
     isPlaying: false,
@@ -93,7 +93,11 @@ export class RecorderRuntime {
     inputChannelCount: 0,
     selectedChannel: 0,
     latencyCompensation: 0,
-  }));
+  };
+}
+
+export class RecorderRuntime {
+  readonly store = createStore(createDefaultRecorderRuntimeState);
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
