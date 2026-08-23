@@ -1,3 +1,4 @@
+import type { TimeSignature } from "../../types.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import { secondsToBeats } from "../timeline.ts";
 import type {
@@ -13,6 +14,7 @@ export class RecorderMetronome implements TransportParticipant {
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;
   private tempo = 120;
+  private clickDurationInQuarterNotes = 1;
   private clicksPerAccent = 4;
 
   constructor(private readonly transport: AudioContextTransport) {
@@ -33,8 +35,9 @@ export class RecorderMetronome implements TransportParticipant {
     }
   }
 
-  setClicksPerAccent(clicksPerAccent: number): void {
-    this.clicksPerAccent = clicksPerAccent;
+  setTimeSignature({ numerator, denominator }: TimeSignature): void {
+    this.clickDurationInQuarterNotes = 4 / denominator;
+    this.clicksPerAccent = numerator;
     if (this.transport.store.get().running) {
       this.start();
     }
@@ -44,7 +47,9 @@ export class RecorderMetronome implements TransportParticipant {
     this.stop();
     const playbackAnchor = this.transport.playbackAnchor!;
     this.nextClickIndex = Math.ceil(
-      secondsToBeats(playbackAnchor.position, this.tempo) - 1e-9,
+      secondsToBeats(playbackAnchor.position, this.tempo) /
+        this.clickDurationInQuarterNotes -
+        1e-9,
     );
     this.schedule();
     this.disposeScheduling = startInterval(
@@ -59,7 +64,8 @@ export class RecorderMetronome implements TransportParticipant {
   }
 
   private schedule(): void {
-    const secondsPerClick = 60 / this.tempo;
+    const secondsPerClick =
+      (60 / this.tempo) * this.clickDurationInQuarterNotes;
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.

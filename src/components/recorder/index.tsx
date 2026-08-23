@@ -60,7 +60,6 @@ import { cn } from "../ui/utils";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   DEFAULT_RECORDER_GRID_DIVISION,
-  DEFAULT_RECORDER_TIME_SIGNATURE,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
   formatBarBeat,
@@ -88,6 +87,8 @@ export function Recorder() {
   const timeline = useRecorderTimeline({
     position: state.position,
     tempo: state.tempo,
+    timeSignature:
+      `${state.timeSignature.numerator}/${state.timeSignature.denominator}` as RecorderTimeSignature,
   });
 
   const playMutation = useMutation({
@@ -185,10 +186,8 @@ export function Recorder() {
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onTimeSignatureChange={(timeSignature) => {
-          timeline.setTimeSignature(timeSignature);
-          runtime.setMetronomeClicksPerAccent(
-            Number(timeSignature.split("/")[0]),
-          );
+          const [numerator, denominator] = timeSignature.split("/").map(Number);
+          runtime.setTimeSignature({ numerator, denominator });
         }}
         onGridDivisionChange={timeline.setGridDivision}
       />
@@ -504,13 +503,12 @@ function useRecorderInput({
 function useRecorderTimeline({
   position,
   tempo,
+  timeSignature,
 }: {
   position: number;
   tempo: number;
+  timeSignature: RecorderTimeSignature;
 }) {
-  const [timeSignature, setTimeSignature] = useState<RecorderTimeSignature>(
-    DEFAULT_RECORDER_TIME_SIGNATURE,
-  );
   const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
     DEFAULT_RECORDER_GRID_DIVISION,
   );
@@ -579,7 +577,6 @@ function useRecorderTimeline({
     playheadX,
     viewportStartBeat,
     setGridDivision,
-    setTimeSignature,
     subdivisionsPerBeat,
     tempo,
     timeSignature,
