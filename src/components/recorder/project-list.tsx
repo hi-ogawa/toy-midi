@@ -43,7 +43,7 @@ export function RecorderProjectList() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
           Your Recordings
         </h2>
-        <div className="mt-4 overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800/60">
+        <div className="mt-4 rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
           {!projects.data.ok ? (
             <div className="p-8 text-center text-sm text-orange-300">
               {String(projects.data.error)}
@@ -56,17 +56,25 @@ export function RecorderProjectList() {
               </p>
             </div>
           ) : (
-            projects.data.value.map((project) => (
-              <RecorderProjectListItem
-                key={project.id}
-                project={project}
-                deletePending={deleteProject.isPending}
-                onDelete={() => deleteProject.mutate(project.id)}
-              />
-            ))
+            <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+              {projects.data.value.map((project) => (
+                <RecorderProjectListItem
+                  key={project.id}
+                  project={project}
+                  deletePending={deleteProject.isPending}
+                  onDelete={() => deleteProject.mutate(project.id)}
+                />
+              ))}
+            </div>
           )}
           {projects.data.ok && (
-            <div className="border-t border-neutral-700 p-4">
+            <div
+              className={
+                projects.data.value.length > 0
+                  ? "mt-4 border-t border-neutral-700/70 pt-4"
+                  : ""
+              }
+            >
               <Button
                 onClick={() => createProject.mutate()}
                 disabled={createProject.isPending}
@@ -98,7 +106,7 @@ function RecorderProjectListItem({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex h-[4.5rem] items-center border-b border-neutral-700 px-4 last:border-b-0">
+    <div className="group flex h-[4.5rem] w-full items-center rounded-lg border border-neutral-700/60 bg-neutral-800/70 px-4 transition-colors hover:bg-neutral-800">
       <a
         href={routes.recorderProject.href({ projectId: project.id })}
         className="min-w-0 flex-1"
@@ -121,7 +129,7 @@ function RecorderProjectListItem({
         }}
         disabled={deletePending}
         title="Delete recording"
-        className="size-8 text-neutral-400 hover:bg-red-950 hover:text-red-300"
+        className="size-8 text-neutral-400 hover:bg-red-600/30"
       >
         <Trash2Icon className="size-4" />
       </Button>
