@@ -13,7 +13,7 @@ const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MAX_TRACK_HEIGHT = 300;
 
-type RecorderStatus = "idle" | "ready" | "recording" | "processing";
+type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
   id: string;
@@ -50,7 +50,7 @@ export interface RecorderRuntimeState {
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
   audioTracks: AudioTrackState[];
-  status: RecorderStatus;
+  captureStatus: CaptureStatus;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
   selectedChannel: number;
@@ -61,7 +61,7 @@ export interface RecorderRuntimeState {
 
 export class RecorderRuntime {
   readonly store = createStore<RecorderRuntimeState>((get) => ({
-    status: "idle",
+    captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
     audioTracks: [],
@@ -132,7 +132,7 @@ export class RecorderRuntime {
             if (
               activeRecording.getDurationFrames() >=
                 context.sampleRate * MAX_RECORDING_SECONDS &&
-              this.store.get().status === "recording"
+              this.store.get().captureStatus === "recording"
             ) {
               void this.stopRecording();
             }
@@ -145,7 +145,7 @@ export class RecorderRuntime {
     this.captureInput = input;
 
     this.store.update({
-      status: "ready",
+      captureStatus: "ready",
       inputSettings: settings,
       inputChannelCount: channelCount,
       selectedChannel: 0,
@@ -156,7 +156,7 @@ export class RecorderRuntime {
   stopInput(): void {
     this.closeInput();
     this.store.update({
-      status: "idle",
+      captureStatus: "disabled",
       inputSettings: undefined,
       inputChannelCount: 0,
       selectedChannel: 0,
@@ -338,7 +338,7 @@ export class RecorderRuntime {
       startFrame / context.sampleRate,
     );
     this.store.update({
-      status: "recording",
+      captureStatus: "recording",
       recordingTrack: {
         ...this.store.get().recordingTrack,
         takes: [
@@ -353,10 +353,10 @@ export class RecorderRuntime {
 
   async stopRecording(): Promise<void> {
     const captureInput = this.captureInput;
-    if (this.store.get().status !== "recording" || !captureInput) {
+    if (this.store.get().captureStatus !== "recording" || !captureInput) {
       return;
     }
-    this.store.update({ status: "processing" });
+    this.store.update({ captureStatus: "processing" });
     // Stopping is two-phase: the worklet first flushes its final partial batch,
     // then acknowledges the exclusive frame at which capture ended.
     const stopFrame = await captureInput.stopCapture();
@@ -431,7 +431,7 @@ export class RecorderRuntime {
     if (!samples) {
       this.activeRecording = undefined;
       this.clearTake();
-      this.store.update({ status: "ready" });
+      this.store.update({ captureStatus: "ready" });
       return;
     }
     const takeBuffer = context.createBuffer(
@@ -449,7 +449,7 @@ export class RecorderRuntime {
       throw new Error("Recording take state is missing.");
     }
     this.store.update({
-      status: "ready",
+      captureStatus: "ready",
       recordingTrack: {
         ...this.store.get().recordingTrack,
         takes: [

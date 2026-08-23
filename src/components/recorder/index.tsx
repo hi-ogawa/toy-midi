@@ -123,8 +123,8 @@ export function Recorder() {
   });
 
   const take = state.recordingTrack.takes[0];
-  const isRecording = state.status === "recording";
-  const isProcessing = state.status === "processing";
+  const isRecording = state.captureStatus === "recording";
+  const isProcessing = state.captureStatus === "processing";
   const error =
     input.error ??
     addAudioMutation.error ??
@@ -146,7 +146,7 @@ export function Recorder() {
   }
 
   function toggleRecord() {
-    if (isProcessing || state.status === "idle") {
+    if (isProcessing || state.captureStatus === "disabled") {
       return;
     }
     recordMutation.mutate(isRecording ? "stop" : "start");
@@ -180,7 +180,7 @@ export function Recorder() {
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
         pixelsPerBeat={timeline.pixelsPerBeat}
-        recordDisabled={state.status === "idle"}
+        recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
