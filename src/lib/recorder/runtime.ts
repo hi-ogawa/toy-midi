@@ -44,18 +44,18 @@ interface TakeState {
 }
 
 export interface RecorderRuntimeState {
+  position: number;
+  isPlaying: boolean;
+  tempo: number;
+  timeSignature: TimeSignature;
+  metronomeEnabled: boolean;
+  audioTracks: AudioTrackState[];
   status: RecorderStatus;
   inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
   selectedChannel: number;
-  audioTracks: AudioTrackState[];
-  isPlaying: boolean;
-  position: number;
   recordingTrack: RecordingTrackState;
   latencyCompensation: number;
-  metronomeEnabled: boolean;
-  tempo: number;
-  timeSignature: TimeSignature;
   getTakeOffset: () => number;
 }
 
