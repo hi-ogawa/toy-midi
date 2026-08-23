@@ -5,21 +5,42 @@ import {
   type SavedRecorderProject,
 } from "./project.ts";
 
-const projects = new IdbStore<SavedRecorderProject>({
+interface RecorderProjectMetadata {
+  id: string;
+  title: string;
+  updatedAt: number;
+}
+
+const storeOptions = {
   dbName: "toy-midi-recorder",
-  storeName: "projects",
-  version: 1,
+  version: 2,
   keyPath: "id",
+  storeNames: ["projects", "metadata"],
+};
+
+const projects = new IdbStore<SavedRecorderProject>({
+  ...storeOptions,
+  storeName: "projects",
+});
+const metadata = new IdbStore<RecorderProjectMetadata>({
+  ...storeOptions,
+  storeName: "metadata",
 });
 
 export const recorderProjectStorage = {
-  async list(): Promise<SavedRecorderProject[]> {
-    return (await projects.getAll()).sort((a, b) => b.updatedAt - a.updatedAt);
+  async list(): Promise<RecorderProjectMetadata[]> {
+    let result = await metadata.getAll();
+    if (result.length === 0) {
+      const legacyProjects = await projects.getAll();
+      result = legacyProjects.map(toMetadata);
+      await Promise.all(result.map((entry) => metadata.put(entry)));
+    }
+    return result.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
   async create(): Promise<string> {
     const id = crypto.randomUUID();
-    await projects.put({
+    const project: SavedRecorderProject = {
       id,
       title: "Untitled recording",
       updatedAt: Date.now(),
@@ -35,7 +56,9 @@ export const recorderProjectStorage = {
       latencyCompensation: 0,
       tempo: 120,
       timeSignature: { numerator: 4, denominator: 4 },
-    });
+    };
+    await projects.put(project);
+    await metadata.put(toMetadata(project));
     return id;
   },
 
@@ -61,15 +84,26 @@ export const recorderProjectStorage = {
     title: string;
     content: RecorderProjectContent;
   }): Promise<void> {
-    await projects.put({
+    const project: SavedRecorderProject = {
       ...content,
       id,
       title,
       updatedAt: Date.now(),
-    });
+    };
+    await projects.put(project);
+    await metadata.put(toMetadata(project));
   },
 
   async delete(id: string): Promise<void> {
     await projects.delete(id);
+    await metadata.delete(id);
   },
 };
+
+function toMetadata(project: SavedRecorderProject): RecorderProjectMetadata {
+  return {
+    id: project.id,
+    title: project.title,
+    updatedAt: project.updatedAt,
+  };
+}

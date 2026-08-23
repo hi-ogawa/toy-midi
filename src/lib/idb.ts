@@ -8,6 +8,7 @@ export class IdbStore<T> {
       storeName: string;
       version: number;
       keyPath: string;
+      storeNames?: string[];
     },
   ) {}
 
@@ -43,10 +44,12 @@ export class IdbStore<T> {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(this.options.storeName)) {
-          db.createObjectStore(this.options.storeName, {
-            keyPath: this.options.keyPath,
-          });
+        for (const storeName of this.options.storeNames ?? [
+          this.options.storeName,
+        ]) {
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: this.options.keyPath });
+          }
         }
       };
     });
