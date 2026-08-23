@@ -313,31 +313,19 @@ export class RecorderRuntime {
     }
     const context = this.ensureContext();
     await context.resume();
-    // TODO: Split recording start by product intent.
-    //
-    // When recording rolls a stopped transport:
-    // 1. Start capture and await its render-thread start frame.
-    // 2. Schedule transport playback only after capture is confirmed active.
-    // 3. Use the scheduled playback context frame as ActiveRecording's start frame,
-    //    which clips capture pre-roll during absolute-frame assembly.
-    // 4. Place the take at the transport's requested playback position.
-    //
-    // When recording joins an already-running transport, keep using the acknowledged
-    // capture start frame for both ActiveRecording and frame-to-position placement.
-    //
-    // CaptureInput and ActiveRecording should remain transport-agnostic. Runtime owns
-    // which absolute frame becomes product sample zero.
+    const captureStartFrame = await this.captureInput.startCapture();
     if (!this.store.get().isPlaying) {
       await this.play();
     }
     this.clearTake();
-    // The worklet applies capture changes on the render thread and returns the
-    // first captured frame. Convert that exact boundary to musical timeline
-    // coordinates instead of using main-thread request time.
-    const startFrame = await this.captureInput.startCapture();
-    this.activeRecording = new ActiveRecording(startFrame);
+    // Product sample zero is the later of render-thread capture activation and
+    // playback start, which trims capture pre-roll in either start sequence.
+    const playbackStartFrame =
+      this.transport!.playbackAnchor!.contextTime * context.sampleRate;
+    const productStartFrame = Math.max(captureStartFrame, playbackStartFrame);
+    this.activeRecording = new ActiveRecording(productStartFrame);
     const captureOffset = this.transport!.getPlaybackPositionByContextTime(
-      startFrame / context.sampleRate,
+      productStartFrame / context.sampleRate,
     );
     this.store.update({
       captureStatus: "recording",
