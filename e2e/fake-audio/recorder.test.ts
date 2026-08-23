@@ -66,6 +66,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
+  // The finalized take downloads as a timestamped WAV file.
   const downloadPromise = page.waitForEvent("download");
   await downloadButton.click();
   const download = await downloadPromise;
