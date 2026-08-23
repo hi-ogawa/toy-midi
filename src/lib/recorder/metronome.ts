@@ -11,9 +11,9 @@ const SCHEDULER_INTERVAL_MS = 25;
 export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
   private disposeScheduling?: () => void;
-  private nextBeat = 0;
+  private nextClickIndex = 0;
   private tempo = 120;
-  private beatsPerBar = 4;
+  private clicksPerAccent = 4;
 
   constructor(private readonly transport: AudioContextTransport) {
     this.output = transport.context.createGain();
@@ -33,8 +33,8 @@ export class RecorderMetronome implements TransportParticipant {
     }
   }
 
-  setBeatsPerBar(beatsPerBar: number): void {
-    this.beatsPerBar = beatsPerBar;
+  setClicksPerAccent(clicksPerAccent: number): void {
+    this.clicksPerAccent = clicksPerAccent;
     if (this.transport.store.get().running) {
       this.start();
     }
@@ -43,7 +43,7 @@ export class RecorderMetronome implements TransportParticipant {
   start(): void {
     this.stop();
     const playbackAnchor = this.transport.playbackAnchor!;
-    this.nextBeat = Math.ceil(
+    this.nextClickIndex = Math.ceil(
       secondsToBeats(playbackAnchor.position, this.tempo) - 1e-9,
     );
     this.schedule();
@@ -59,14 +59,14 @@ export class RecorderMetronome implements TransportParticipant {
   }
 
   private schedule(): void {
-    const secondsPerBeat = 60 / this.tempo;
+    const secondsPerClick = 60 / this.tempo;
     while (true) {
-      // Convert this beat's timeline position through the transport playback
-      // anchor: contextTime = anchor context + beat position - anchor position.
-      const timelineTime = this.nextBeat * secondsPerBeat;
+      // Convert this click's timeline position through the transport playback
+      // anchor: contextTime = anchor context + click position - anchor position.
+      const clickPosition = this.nextClickIndex * secondsPerClick;
       const playbackAnchor = this.transport.playbackAnchor!;
       const contextTime =
-        playbackAnchor.contextTime + timelineTime - playbackAnchor.position;
+        playbackAnchor.contextTime + clickPosition - playbackAnchor.position;
       // Schedule only the near future, then let the interval extend the window.
       if (
         contextTime >
@@ -74,14 +74,14 @@ export class RecorderMetronome implements TransportParticipant {
       ) {
         break;
       }
-      // Tempo changes restart from the anchor, so skip beats already elapsed.
+      // Tempo changes restart from the anchor, so skip clicks already elapsed.
       if (contextTime >= this.transport.context.currentTime) {
         this.scheduleClick({
-          accent: this.nextBeat % this.beatsPerBar === 0,
+          accent: this.nextClickIndex % this.clicksPerAccent === 0,
           contextTime,
         });
       }
-      this.nextBeat += 1;
+      this.nextClickIndex += 1;
     }
   }
 

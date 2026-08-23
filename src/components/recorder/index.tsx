@@ -186,7 +186,9 @@ export function Recorder() {
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onTimeSignatureChange={(timeSignature) => {
           timeline.setTimeSignature(timeSignature);
-          runtime.setMetronomeBeatsPerBar(Number(timeSignature.split("/")[0]));
+          runtime.setMetronomeClicksPerAccent(
+            Number(timeSignature.split("/")[0]),
+          );
         }}
         onGridDivisionChange={timeline.setGridDivision}
       />
