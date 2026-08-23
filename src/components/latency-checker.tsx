@@ -11,8 +11,8 @@ import {
   LatencyCheckerRuntime,
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
-import { gainToDb } from "../lib/music";
 import { routes } from "../lib/routes";
+import { InputMeter } from "./input-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -107,7 +107,7 @@ export function LatencyChecker() {
   }
 
   return (
-    <main className="h-screen overflow-y-auto bg-neutral-100 text-neutral-950">
+    <main className="h-screen overflow-y-auto bg-neutral-900 text-neutral-100">
       <header className="sticky top-0 z-10 flex h-[53px] items-center border-b border-neutral-700 bg-neutral-800 px-4 text-neutral-100 shadow-sm">
         <AudioLinesIcon className="mr-2 size-5 text-emerald-400" />
         <span className="font-medium">Latency Checker</span>
@@ -139,14 +139,14 @@ export function LatencyChecker() {
             <h1 className="text-4xl font-semibold tracking-[-0.045em]">
               Measure audio latency
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-600">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-neutral-400">
               Choose an input, start monitoring, connect browser output back to
               that input, then measure and audition the recording offset.
             </p>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_16px_45px_rgb(34_48_41/0.08)]">
+        <div className="overflow-hidden rounded-xl border border-neutral-700/70 bg-neutral-800/60 shadow-2xl shadow-black/20">
           <WorkflowSection
             number={1}
             title="Connect audio"
@@ -154,7 +154,7 @@ export function LatencyChecker() {
             state={result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Browser audio input
                 <select
                   value={selectedDevice?.deviceId ?? ""}
@@ -168,7 +168,7 @@ export function LatencyChecker() {
                   onChange={(event) =>
                     selectDevice(event.currentTarget.value || undefined)
                   }
-                  className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
+                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {!inputsInitialized ? (
                     <option>Loading audio inputs...</option>
@@ -216,7 +216,7 @@ export function LatencyChecker() {
               <ErrorMessage>{grantAccessMutation.error.message}</ErrorMessage>
             )}
             <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Channel
                 <select
                   value={channel}
@@ -230,7 +230,7 @@ export function LatencyChecker() {
                     setChannel(value);
                     runtime.setChannel(value);
                   }}
-                  className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm disabled:bg-neutral-100 disabled:text-neutral-500"
+                  className="h-10 w-full rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 disabled:bg-neutral-800 disabled:text-neutral-500"
                 >
                   {startMonitoringMutation.data ? (
                     Array.from(
@@ -263,7 +263,7 @@ export function LatencyChecker() {
               </ActionButton>
             </div>
             <div className="mt-4">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
                 <InputMeter active={isMonitoring} peak={inputPeak} />
               </label>
@@ -282,7 +282,7 @@ export function LatencyChecker() {
             state={!isMonitoring ? "disabled" : result ? "complete" : "active"}
           >
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-6">
-              <label className="grid gap-2 text-xs font-semibold text-neutral-600">
+              <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Calibration click level
                 <div className="grid grid-cols-[1fr_68px] items-center gap-3">
                   <input
@@ -298,7 +298,7 @@ export function LatencyChecker() {
                     }
                     className="accent-emerald-700 disabled:opacity-50"
                   />
-                  <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+                  <output className="text-right font-mono text-xs tabular-nums text-neutral-400">
                     {outputLevel} dB
                   </output>
                 </div>
@@ -380,12 +380,12 @@ function ResultsView({
   return (
     <>
       {weakCount > 0 && (
-        <p className="mb-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
+        <p className="mb-5 rounded-md border border-orange-700/60 bg-orange-950/40 px-4 py-3 text-sm leading-5 text-orange-200">
           {weakCount} click{weakCount === 1 ? "" : "s"} had weak correlation.
           Check routing, channel, and levels before trusting the median.
         </p>
       )}
-      <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
+      <div className="mb-6 grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
         <ResultMetric
           label="Median offset"
           value={`${formatSigned(medianMs, 3)} ms`}
@@ -406,17 +406,17 @@ function ResultsView({
 
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] items-start gap-7">
         <div>
-          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
+          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Detected clicks
           </h3>
           <ol className="grid grid-cols-2 gap-2">
             {measurements.map((measurement, index) => (
               <li
                 key={index}
-                className="flex justify-between gap-2 rounded-md bg-neutral-100 px-3 py-2 text-xs text-neutral-600"
+                className="flex justify-between gap-2 rounded-md bg-neutral-900/70 px-3 py-2 text-xs text-neutral-400"
               >
                 <span>Click {index + 1}</span>
-                <strong className="font-mono font-semibold tabular-nums text-neutral-950">
+                <strong className="font-mono font-semibold tabular-nums text-neutral-100">
                   {formatSigned(
                     (measurement.offsetSamples * 1000) / sampleRate,
                     3,
@@ -428,11 +428,11 @@ function ResultsView({
           </ol>
         </div>
 
-        <div className="border-l border-neutral-200 pl-7">
-          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-700 uppercase">
+        <div className="border-l border-neutral-700 pl-7">
+          <h3 className="mb-5 text-xs font-bold tracking-[0.12em] text-neutral-300 uppercase">
             Audition
           </h3>
-          <p className="mb-4 text-sm leading-6 text-neutral-600">
+          <p className="mb-4 text-sm leading-6 text-neutral-400">
             Compare the raw capture with the same recording shifted by the
             measured median of {formatSigned(medianMs, 2)} ms.
           </p>
@@ -466,7 +466,7 @@ function ResultsView({
 function ResultPlaceholder() {
   return (
     <>
-      <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-200 bg-neutral-200">
+      <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-neutral-700 bg-neutral-700">
         <ResultMetric label="Median offset" value="—" />
         <ResultMetric label="Median samples" value="—" />
         <ResultMetric label="Measurement spread" value="—" />
@@ -481,8 +481,8 @@ function ResultPlaceholder() {
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white p-4">
-      <small className="mb-2 block text-xs text-neutral-500">{label}</small>
+    <div className="bg-neutral-900/70 p-4">
+      <small className="mb-2 block text-xs text-neutral-400">{label}</small>
       <strong className="block whitespace-nowrap font-mono text-lg font-semibold tabular-nums">
         {value}
       </strong>
@@ -508,8 +508,8 @@ function WorkflowSection({
       data-testid={`step-${title.toLowerCase().replaceAll(" ", "-")}`}
       data-state={state}
       className={cn(
-        "border-t border-neutral-200 p-7 first:border-t-0",
-        state === "disabled" && "bg-neutral-50 text-neutral-400",
+        "border-t border-neutral-700/70 p-7 first:border-t-0",
+        state === "disabled" && "bg-neutral-900/30 text-neutral-500",
       )}
     >
       <div className="flex items-center gap-3">
@@ -517,10 +517,10 @@ function WorkflowSection({
           className={cn(
             "grid size-7 shrink-0 place-items-center rounded-full font-mono text-xs font-semibold",
             state === "disabled"
-              ? "bg-neutral-200 text-neutral-500"
+              ? "bg-neutral-700 text-neutral-400"
               : state === "complete"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-emerald-700 text-white",
+                ? "bg-emerald-900/70 text-emerald-300"
+                : "bg-emerald-600 text-white",
           )}
         >
           {number}
@@ -528,70 +528,19 @@ function WorkflowSection({
         <h2
           className={cn(
             "text-xl font-semibold tracking-[-0.025em]",
-            state === "disabled" ? "text-neutral-500" : "text-neutral-950",
+            state === "disabled" ? "text-neutral-500" : "text-neutral-100",
           )}
         >
           {title}
         </h2>
       </div>
-      <p className="mt-2 ml-10 text-sm leading-6 text-neutral-500">
+      <p className="mt-2 ml-10 text-sm leading-6 text-neutral-400">
         {description}
       </p>
       <div className={cn("mt-5 ml-10", state === "disabled" && "opacity-60")}>
         {children}
       </div>
     </section>
-  );
-}
-
-function InputMeter({ active, peak }: { active: boolean; peak: number }) {
-  const meterMin = -60;
-  const meterMax = 6;
-  const getMeterPosition = (value: number) =>
-    ((value - meterMin) / (meterMax - meterMin)) * 100;
-  const zeroPosition = getMeterPosition(0);
-
-  const decibels = gainToDb(peak);
-  const meterValue = clamp(decibels, meterMin, meterMax);
-  const levelPosition = active ? getMeterPosition(meterValue) : 0;
-  const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
-
-  return (
-    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
-      <div
-        role="meter"
-        aria-label="Input peak level"
-        aria-valuemin={meterMin}
-        aria-valuemax={meterMax}
-        aria-valuenow={active ? meterValue : meterMin}
-        aria-valuetext={label}
-        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
-      >
-        <div
-          className="absolute inset-y-0 right-0 bg-red-100"
-          style={{ width: `${100 - zeroPosition}%` }}
-        />
-        <div
-          className="absolute inset-y-0 left-0 bg-emerald-600 transition-[width] duration-75"
-          style={{ width: `${Math.min(levelPosition, zeroPosition)}%` }}
-        />
-        <div
-          className="absolute inset-y-0 bg-red-600 transition-[width] duration-75"
-          style={{
-            left: `${zeroPosition}%`,
-            width: `${Math.max(0, levelPosition - zeroPosition)}%`,
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 w-px bg-red-700"
-          style={{ left: `${zeroPosition}%` }}
-        />
-      </div>
-      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
-        {label}
-      </output>
-    </div>
   );
 }
 
@@ -605,8 +554,8 @@ function ActionButton({
       className={cn(
         "min-h-10 flex-1 px-3 text-sm font-semibold",
         accent
-          ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-          : "border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100",
+          ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-500"
+          : "border-neutral-700 bg-neutral-800 text-neutral-100 hover:bg-neutral-700",
         className,
       )}
       {...props}
@@ -616,7 +565,7 @@ function ActionButton({
 
 function ErrorMessage({ children }: { children: ReactNode }) {
   return (
-    <p className="mt-5 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-5 text-orange-900">
+    <p className="mt-5 rounded-md border border-orange-700/60 bg-orange-950/40 px-4 py-3 text-sm leading-5 text-orange-200">
       {children}
     </p>
   );
@@ -633,8 +582,4 @@ function calculateMedian(values: number[]) {
 function formatSigned(value: number, digits = 2) {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${Math.abs(value).toFixed(digits)}`;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }

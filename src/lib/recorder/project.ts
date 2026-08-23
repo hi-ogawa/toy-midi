@@ -6,7 +6,9 @@ export interface RecorderPcm {
 }
 
 export interface RecorderProjectAudioTrack {
-  name?: string;
+  id: string;
+  height: number;
+  name: string;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -15,7 +17,7 @@ export interface RecorderProjectAudioTrack {
 }
 
 export interface RecorderProjectTake {
-  captureOffset: number;
+  timelineOffset: number;
   pcm: RecorderPcm;
 }
 
@@ -23,12 +25,18 @@ export interface RecorderProjectContent {
   version: typeof RECORDER_PROJECT_VERSION;
   audioTracks: RecorderProjectAudioTrack[];
   recordingTrack: {
+    height: number;
     gain: number;
     muted: boolean;
     soloed: boolean;
     takes: RecorderProjectTake[];
   };
   latencyCompensation: number;
+  tempo: number;
+  timeSignature: {
+    numerator: number;
+    denominator: number;
+  };
 }
 
 export interface SavedRecorderProject extends RecorderProjectContent {

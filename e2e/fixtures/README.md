@@ -34,7 +34,7 @@ node --input-type=module -e 'import { readFile, writeFile } from "node:fs/promis
 
 ## test-tones.pcm
 
-Raw f32le mono 22050 Hz PCM (the exact layout the Basic Pitch model consumes, accepted directly by `node tools/basic-pitch.mjs`) with a C4/E4/G4/C5 arpeggio (MIDI 60/64/67/72) for 1s each, built from three harmonics plus a 10 ms attack and 20 ms release. No pitch repeats and the release is sharp because slow fades make the decoder split note tails into spurious retriggers; this shape transcribes cleanly to exactly the four expected notes. In the expression, `st(0,…)` holds the current note's frequency and `st(1,…)` the per-note time driving the envelope:
+Raw f32le mono 22050 Hz PCM with a C4/E4/G4/C5 arpeggio (MIDI 60/64/67/72) for 1s each, built from three harmonics plus a 10 ms attack and 20 ms release. No pitch repeats and the release is sharp because slow fades can split note tails into spurious retriggers. In the expression, `st(0,…)` holds the current note's frequency and `st(1,…)` the per-note time driving the envelope:
 
 ```sh
 ffmpeg -hide_banner -loglevel error -f lavfi \

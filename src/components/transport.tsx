@@ -1,12 +1,14 @@
 import {
   CheckIcon,
+  ChevronDownIcon,
   ChevronsUpDownIcon,
   PauseIcon,
   PlayIcon,
 } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useAudio } from "../hooks/use-audio";
 import { useDraftInput } from "../hooks/use-draft-input";
+import { useTapTempo } from "../hooks/use-tap-tempo";
 import { useWindowEvent } from "../hooks/use-window-event";
 import { audioManager } from "../lib/audio";
 import { GM_PROGRAMS } from "../lib/general-midi";
@@ -14,7 +16,15 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { formatTimeCompact } from "../lib/time-format";
-import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import {
+  formatBarBeat as formatBarBeatPosition,
+  secondsToBeats,
+} from "../lib/timeline";
+import {
+  COMMON_TIME_SIGNATURES,
+  type GridSnap,
+  parseTimeSignature,
+} from "../types";
 import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
@@ -60,8 +70,6 @@ export function Transport({ projectName, controls }: TransportProps) {
     setGridSnap,
   } = useProjectStore();
 
-  const tapTimesRef = useRef<number[]>([]);
-
   const handleMidiProgramChange = (program: number) => {
     setMidiProgram(program);
     projectStorage.updatePreferences({ defaultMidiProgram: program });
@@ -72,6 +80,11 @@ export function Transport({ projectName, controls }: TransportProps) {
     onCommit: setTempo,
     min: 30,
     max: 300,
+  });
+  const handleTapTempo = useTapTempo({
+    min: 30,
+    max: 300,
+    onTempoChange: setTempo,
   });
 
   // Keyboard shortcuts: M=metronome, F=auto-scroll, Shift+1/2=mute (Space is handled by PlayPauseButton)
@@ -101,39 +114,6 @@ export function Transport({ projectName, controls }: TransportProps) {
       }
     }
   });
-
-  const handleTapTempo = () => {
-    const now = performance.now();
-    const taps = tapTimesRef.current;
-
-    // Reset if last tap was more than 2 seconds ago
-    if (taps.length > 0 && now - taps[taps.length - 1] > 2000) {
-      tapTimesRef.current = [];
-    }
-
-    taps.push(now);
-
-    // Keep only last 8 taps
-    if (taps.length > 8) {
-      taps.shift();
-    }
-
-    // Need at least 2 taps to calculate BPM
-    if (taps.length >= 2) {
-      const intervals: number[] = [];
-      for (let i = 1; i < taps.length; i++) {
-        intervals.push(taps[i] - taps[i - 1]);
-      }
-      const avgInterval =
-        intervals.reduce((a, b) => a + b, 0) / intervals.length;
-      const bpm = Math.round(60000 / avgInterval);
-
-      // Clamp to valid range
-      if (bpm >= 30 && bpm <= 300) {
-        setTempo(bpm);
-      }
-    }
-  };
 
   return (
     <div
@@ -176,7 +156,7 @@ export function Transport({ projectName, controls }: TransportProps) {
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
-          className="w-14 h-8 px-1 text-sm font-mono bg-input border border-border rounded text-center text-foreground"
+          className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100 focus:border-neutral-500 focus:outline-none"
         />
         <Button
           data-testid="tap-tempo-button"
@@ -196,17 +176,17 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="time-signature-select"
-            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 font-mono text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
           >
             {timeSignature.numerator}/{timeSignature.denominator}
+            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuRadioGroup
             value={`${timeSignature.numerator}/${timeSignature.denominator}`}
             onValueChange={(v) => {
-              const [numerator, denominator] = v.split("/").map(Number);
-              setTimeSignature({ numerator, denominator });
+              setTimeSignature(parseTimeSignature(v));
             }}
           >
             {COMMON_TIME_SIGNATURES.map((ts) => (
@@ -226,9 +206,10 @@ export function Transport({ projectName, controls }: TransportProps) {
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="grid-snap-select"
-            className="h-8 gap-1 px-3 font-mono hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="h-8 gap-1.5 border-neutral-600 bg-neutral-900 px-3 font-mono text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
           >
             {gridSnap}
+            <ChevronDownIcon className="size-3.5 shrink-0 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -321,11 +302,10 @@ function TimeDisplay({ tempo }: { tempo: number }) {
 }
 
 function formatBarBeat(seconds: number, tempo: number): string {
-  const beatsPerSecond = tempo / 60;
-  const totalBeats = seconds * beatsPerSecond;
+  const totalBeats = secondsToBeats(seconds, tempo);
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
-  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
+  return formatBarBeatPosition(bar, beatInBar);
 }
 
 // GM instrument groups for organized display
@@ -364,7 +344,7 @@ function InstrumentCombobox({
           data-testid="instrument-select"
           role="combobox"
           aria-expanded={open}
-          className="h-8 w-44 justify-between gap-1.5 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+          className="h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
         >
           <span className="truncate">
             {value}: {GM_PROGRAMS[value]}

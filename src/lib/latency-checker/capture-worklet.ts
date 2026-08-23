@@ -20,8 +20,8 @@ export class CaptureWorkletClient {
   readonly node: AudioWorkletNode;
   active = false;
 
-  #nextRequestId = 0;
-  #pendingActiveChanges = new Map<
+  private nextRequestId = 0;
+  private pendingActiveChanges = new Map<
     number,
     {
       reject: (error: Error) => void;
@@ -47,46 +47,46 @@ export class CaptureWorkletClient {
         onNotification(event.data);
         return;
       }
-      const pending = this.#pendingActiveChanges.get(event.data.requestId);
+      const pending = this.pendingActiveChanges.get(event.data.requestId);
       if (!pending) {
         return;
       }
       window.clearTimeout(pending.timeout);
       this.active = event.data.value;
       pending.resolve();
-      this.#pendingActiveChanges.delete(event.data.requestId);
+      this.pendingActiveChanges.delete(event.data.requestId);
     };
   }
 
   setActive(value: boolean) {
-    const requestId = this.#nextRequestId++;
+    const requestId = this.nextRequestId++;
     return new Promise<void>((resolve, reject) => {
       const timeout = window.setTimeout(() => {
-        this.#pendingActiveChanges.delete(requestId);
+        this.pendingActiveChanges.delete(requestId);
         reject(new Error("The audio capture state change timed out."));
       }, 3_000);
-      this.#pendingActiveChanges.set(requestId, { reject, resolve, timeout });
-      this.#postMessage({ type: "active", requestId, value });
+      this.pendingActiveChanges.set(requestId, { reject, resolve, timeout });
+      this.postMessage({ type: "active", requestId, value });
     });
   }
 
   setChannel(value: number) {
-    this.#postMessage({ type: "channel", value });
+    this.postMessage({ type: "channel", value });
   }
 
   dispose() {
     const error = new Error(
       "Input monitoring stopped during a capture state change.",
     );
-    for (const pending of this.#pendingActiveChanges.values()) {
+    for (const pending of this.pendingActiveChanges.values()) {
       window.clearTimeout(pending.timeout);
       pending.reject(error);
     }
-    this.#pendingActiveChanges.clear();
+    this.pendingActiveChanges.clear();
     this.node.disconnect();
   }
 
-  #postMessage(message: ClientMessage) {
+  private postMessage(message: ClientMessage) {
     this.node.port.postMessage(message);
   }
 }
