@@ -13,7 +13,6 @@ export class RecorderMetronome implements TransportParticipant {
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;
   private tempo = 60;
-
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
 
