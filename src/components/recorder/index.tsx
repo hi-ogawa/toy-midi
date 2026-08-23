@@ -195,7 +195,7 @@ export function Recorder() {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="relative min-w-0 overflow-auto border-r border-neutral-700">
+        <section className="relative min-w-0 overflow-x-hidden overflow-y-auto border-r border-neutral-700">
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
