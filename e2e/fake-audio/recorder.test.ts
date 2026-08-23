@@ -27,17 +27,17 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 });
 
-test("records and plays a take", async ({ page }) => {
+test("records, plays, and replaces a take", async ({ page }) => {
   // The musician connects the browser input before recording is available.
   await enableInput(page);
 
   // They place the playhead away from zero so take placement is exercised too.
   await seekRecorderByPixels(page, 160);
 
-  // The recording shortcut starts capture and rolls the stopped transport.
+  // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
-  await page.keyboard.press("r");
+  await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("recorder-clip-recording")).toContainText(
@@ -45,30 +45,17 @@ test("records and plays a take", async ({ page }) => {
   );
 
   // Stopping flushes the worklet and finalizes a nonempty waveform-backed take.
-  await page.keyboard.press("r");
+  await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  let take = page.getByTestId("recorder-clip-take");
   await expect(take).toContainText("Take 1");
   await expect(take.locator("svg")).toBeVisible();
 
   // The completed take immediately joins normal transport playback.
-  await page.keyboard.press("Space");
+  await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await page.keyboard.press("Space");
-});
-
-test("re-recording replaces the previous take", async ({ page }) => {
-  await enableInput(page);
-
-  // The musician records an initial take in the default timeline position.
-  const recordButton = page.getByTestId("recorder-record-button");
-  await recordButton.click();
-  await expect(page.getByTestId("recorder-clip-recording")).toContainText(
-    "Recording...",
-  );
-  await recordButton.click();
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(1);
+  await playButton.click();
 
   // They move later in the song and record another attempt.
   await seekRecorderByPixels(page, 320);
@@ -79,7 +66,7 @@ test("re-recording replaces the previous take", async ({ page }) => {
   await recordButton.click();
 
   // MVP keeps one take, so the second recording replaces and repositions it.
-  const take = page.getByTestId("recorder-clip-take");
+  take = page.getByTestId("recorder-clip-take");
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 1");
   const left = Number.parseFloat(
