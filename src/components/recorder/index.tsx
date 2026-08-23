@@ -548,7 +548,6 @@ function useRecorderTimeline({
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
 
-  // Let the playhead approach the right edge, then reveal the next 80% of the timeline.
   useEffect(() => {
     if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
       return;
@@ -556,8 +555,8 @@ function useRecorderTimeline({
     const playheadBeat = secondsToBeats(position, tempo);
     const visibleBeats = viewportWidth / pixelsPerBeat;
     if (
-      playheadBeat > viewportStartBeat + visibleBeats * 0.9 ||
-      playheadBeat < viewportStartBeat
+      playheadBeat < viewportStartBeat ||
+      viewportStartBeat + visibleBeats * 0.9 < playheadBeat
     ) {
       setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
     }
