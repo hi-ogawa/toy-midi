@@ -41,7 +41,11 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
-import { parseTimeSignature, type TimeSignature } from "../../types";
+import {
+  COMMON_TIME_SIGNATURES,
+  parseTimeSignature,
+  type TimeSignature,
+} from "../../types";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
@@ -70,9 +74,7 @@ import {
   getRecorderBeatsPerBar,
   getRecorderSubdivisionsPerBeat,
   RECORDER_GRID_DIVISIONS,
-  RECORDER_TIME_SIGNATURES,
   RecorderGridDivision,
-  RecorderTimeSignature,
 } from "./utils";
 
 export function Recorder() {
@@ -184,9 +186,9 @@ export function Recorder() {
         onRecordToggle={toggleRecord}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onTimeSignatureChange={(timeSignature) => {
-          runtime.setTimeSignature(parseTimeSignature(timeSignature));
-        }}
+        onTimeSignatureChange={(timeSignature) =>
+          runtime.setTimeSignature(parseTimeSignature(timeSignature))
+        }
         onGridDivisionChange={timeline.setGridDivision}
       />
 
@@ -614,7 +616,7 @@ function RecorderHeader({
   onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
-  onTimeSignatureChange: (value: RecorderTimeSignature) => void;
+  onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: RecorderGridDivision) => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -702,15 +704,16 @@ function RecorderHeader({
         <DropdownMenuContent>
           <DropdownMenuRadioGroup
             value={timeSignatureValue}
-            onValueChange={(value) =>
-              onTimeSignatureChange(value as RecorderTimeSignature)
-            }
+            onValueChange={(value) => onTimeSignatureChange(value)}
           >
-            {RECORDER_TIME_SIGNATURES.map((value) => (
-              <DropdownMenuRadioItem key={value} value={value}>
-                {value}
-              </DropdownMenuRadioItem>
-            ))}
+            {COMMON_TIME_SIGNATURES.map(({ numerator, denominator }) => {
+              const value = `${numerator}/${denominator}`;
+              return (
+                <DropdownMenuRadioItem key={value} value={value}>
+                  {value}
+                </DropdownMenuRadioItem>
+              );
+            })}
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
