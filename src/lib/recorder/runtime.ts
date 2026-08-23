@@ -318,8 +318,8 @@ export class RecorderRuntime {
       await this.play();
     }
     this.clearTake();
-    // Product sample zero is the later of render-thread capture activation and
-    // playback start, which trims capture pre-roll in either start sequence.
+    // Trim capture pre-roll in either start sequence by placing sample zero at
+    // the later of render-thread capture activation and playback start.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
