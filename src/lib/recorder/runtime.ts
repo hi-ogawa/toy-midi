@@ -322,10 +322,10 @@ export class RecorderRuntime {
     // playback start, which trims capture pre-roll in either start sequence.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
-    const productStartFrame = Math.max(captureStartFrame, playbackStartFrame);
-    this.activeRecording = new ActiveRecording(productStartFrame);
+    const startFrame = Math.max(captureStartFrame, playbackStartFrame);
+    this.activeRecording = new ActiveRecording(startFrame);
     const captureOffset = this.transport!.getPlaybackPositionByContextTime(
-      productStartFrame / context.sampleRate,
+      startFrame / context.sampleRate,
     );
     this.store.update({
       captureStatus: "recording",
