@@ -44,33 +44,36 @@ interface TakeState {
 }
 
 export interface RecorderRuntimeState {
+  // Transport
   position: number;
   isPlaying: boolean;
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  // Tracks
   audioTracks: AudioTrackState[];
+  recordingTrack: RecordingTrackState;
+  // Capture
   captureStatus: CaptureStatus;
   inputChannelCount: number;
   selectedChannel: number;
-  recordingTrack: RecordingTrackState;
   latencyCompensation: number;
   getTakeOffset: () => number;
 }
 
 export class RecorderRuntime {
   readonly store = createStore<RecorderRuntimeState>((get) => ({
+    position: 0,
+    isPlaying: false,
+    tempo: 120,
+    timeSignature: DEFAULT_TIME_SIGNATURE,
+    metronomeEnabled: false,
+    audioTracks: [],
+    recordingTrack: createRecordingTrackState(),
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
-    audioTracks: [],
-    isPlaying: false,
-    position: 0,
-    recordingTrack: createRecordingTrackState(),
     latencyCompensation: 0,
-    metronomeEnabled: false,
-    tempo: 120,
-    timeSignature: DEFAULT_TIME_SIGNATURE,
     getTakeOffset: () =>
       (get().recordingTrack.takes[0]?.captureOffset ?? 0) -
       get().latencyCompensation,
