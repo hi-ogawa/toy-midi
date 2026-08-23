@@ -39,7 +39,7 @@ interface RecordingTrackState {
 
 interface TakeState {
   duration: number;
-  captureOffset: number;
+  timelineOffset: number;
   audioView?: AudioView;
 }
 
@@ -58,13 +58,12 @@ export interface RecorderRuntimeState {
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
-  getTakeOffset: () => number;
 }
 
 const METRONOME_GAIN = 0.5;
 
 export class RecorderRuntime {
-  readonly store = createStore<RecorderRuntimeState>((get) => ({
+  readonly store = createStore<RecorderRuntimeState>(() => ({
     position: 0,
     isPlaying: false,
     tempo: 120,
@@ -76,9 +75,6 @@ export class RecorderRuntime {
     inputChannelCount: 0,
     selectedChannel: 0,
     latencyCompensation: 0,
-    getTakeOffset: () =>
-      (get().recordingTrack.takes[0]?.captureOffset ?? 0) -
-      get().latencyCompensation,
   }));
 
   private context?: AudioContext;
@@ -292,9 +288,8 @@ export class RecorderRuntime {
   async play(): Promise<void> {
     const context = this.ensureContext();
     await context.resume();
-    this.recordingTrackPlayback!.setTimelineOffset(
-      this.store.get().getTakeOffset(),
-    );
+    const take = this.store.get().recordingTrack.takes[0];
+    this.recordingTrackPlayback!.setTimelineOffset(take?.timelineOffset ?? 0);
     this.transport!.play();
   }
 
@@ -323,9 +318,10 @@ export class RecorderRuntime {
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     this.activeRecording = new ActiveRecording(startFrame);
-    const captureOffset = this.transport!.getPlaybackPositionByContextTime(
-      startFrame / context.sampleRate,
-    );
+    const timelineOffset =
+      this.transport!.getPlaybackPositionByContextTime(
+        startFrame / context.sampleRate,
+      ) - this.store.get().latencyCompensation;
     this.store.update({
       captureStatus: "recording",
       recordingTrack: {
@@ -333,7 +329,7 @@ export class RecorderRuntime {
         takes: [
           {
             duration: 0,
-            captureOffset,
+            timelineOffset,
           },
         ],
       },
@@ -432,8 +428,6 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(samples);
     this.recordingTrackPlayback!.setBuffer(takeBuffer);
-    // Preserve the uncompensated timeline location of captured sample zero so
-    // compensation can be adjusted repeatedly without accumulating drift.
     this.activeRecording = undefined;
     const take = this.store.get().recordingTrack.takes[0];
     if (!take) {
