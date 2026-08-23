@@ -9,7 +9,7 @@ const CLICK_DURATION_SECONDS = 0.03;
 
 export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
-  private interval?: ReturnType<typeof setInterval>;
+  private disposeScheduling?: () => void;
   private nextBeat = 0;
   private tempo = 120;
 
@@ -38,14 +38,15 @@ export class RecorderMetronome implements TransportParticipant {
       (playbackAnchor.position * this.tempo) / 60 - 1e-9,
     );
     this.schedule();
-    this.interval = setInterval(() => this.schedule(), SCHEDULER_INTERVAL_MS);
+    this.disposeScheduling = startInterval(
+      () => this.schedule(),
+      SCHEDULER_INTERVAL_MS,
+    );
   }
 
   stop(): void {
-    if (this.interval !== undefined) {
-      clearInterval(this.interval);
-      this.interval = undefined;
-    }
+    this.disposeScheduling?.();
+    this.disposeScheduling = undefined;
   }
 
   private schedule(): void {
@@ -96,4 +97,9 @@ export class RecorderMetronome implements TransportParticipant {
     oscillator.start(contextTime);
     oscillator.stop(contextTime + CLICK_DURATION_SECONDS);
   }
+}
+
+function startInterval(callback: () => void, interval: number): () => void {
+  const id = setInterval(callback, interval);
+  return () => clearInterval(id);
 }
