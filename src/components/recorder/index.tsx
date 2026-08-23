@@ -41,7 +41,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
-import { parseTimeSignature } from "../../types";
+import { parseTimeSignature, type TimeSignature } from "../../types";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
@@ -88,8 +88,7 @@ export function Recorder() {
   const timeline = useRecorderTimeline({
     position: state.position,
     tempo: state.tempo,
-    timeSignature:
-      `${state.timeSignature.numerator}/${state.timeSignature.denominator}` as RecorderTimeSignature,
+    timeSignature: state.timeSignature,
   });
 
   const playMutation = useMutation({
@@ -507,7 +506,7 @@ function useRecorderTimeline({
 }: {
   position: number;
   tempo: number;
-  timeSignature: RecorderTimeSignature;
+  timeSignature: TimeSignature;
 }) {
   const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
     DEFAULT_RECORDER_GRID_DIVISION,
@@ -610,7 +609,7 @@ function RecorderHeader({
   metronomeEnabled: boolean;
   position: number;
   tempo: number;
-  timeSignature: RecorderTimeSignature;
+  timeSignature: TimeSignature;
   gridDivision: RecorderGridDivision;
   pixelsPerBeat: number;
   recordDisabled: boolean;
@@ -621,6 +620,7 @@ function RecorderHeader({
   onTimeSignatureChange: (value: RecorderTimeSignature) => void;
   onGridDivisionChange: (value: RecorderGridDivision) => void;
 }) {
+  const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -698,13 +698,13 @@ function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
-            {timeSignature}
+            {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuRadioGroup
-            value={timeSignature}
+            value={timeSignatureValue}
             onValueChange={(value) =>
               onTimeSignatureChange(value as RecorderTimeSignature)
             }
