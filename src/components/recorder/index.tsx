@@ -40,10 +40,7 @@ import {
 } from "../../lib/recorder/runtime";
 import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
-import {
-  formatMilliseconds,
-  formatTimeWithMilliseconds,
-} from "../../lib/time-format";
+import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   beatsToSeconds,
   DEFAULT_GRID_DIVISION,
@@ -1287,7 +1284,7 @@ function InputInspector({
     min: 0,
     step: 0.1,
     parse: "float",
-    format: formatMilliseconds,
+    format: (value) => value.toFixed(1),
   });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
