@@ -1,9 +1,18 @@
 import { createAudioView } from "../audio-view.ts";
 import {
   RECORDER_WAVEFORM_POINTS_PER_SECOND,
-  type RecorderProjectState,
   type RecorderRuntimeState,
 } from "./runtime.ts";
+
+export type RecorderProjectState = Pick<
+  RecorderRuntimeState,
+  | "title"
+  | "tempo"
+  | "timeSignature"
+  | "audioTracks"
+  | "recordingTrack"
+  | "latencyCompensation"
+>;
 
 export interface RecorderPcm {
   sampleRate: number;
