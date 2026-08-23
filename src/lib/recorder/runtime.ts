@@ -191,7 +191,7 @@ export class RecorderRuntime {
     }
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
-    playback.setBuffer(buffer);
+    playback.buffer = buffer;
     this.updateAudioTrack(id, (track) => ({
       ...track,
       clip: {
@@ -386,7 +386,7 @@ export class RecorderRuntime {
       version: RECORDER_PROJECT_VERSION,
       title: state.title,
       audioTracks: state.audioTracks.map((track) => {
-        const buffer = this.audioTrackPlaybacks.get(track.id)?.getBuffer();
+        const buffer = this.audioTrackPlaybacks.get(track.id)?.buffer;
         if (!track.clip || !buffer) {
           throw new Error(`Audio track ${track.id} has no loaded buffer.`);
         }
@@ -410,7 +410,7 @@ export class RecorderRuntime {
           if (index !== 0) {
             throw new Error("Multiple persisted takes are not supported yet.");
           }
-          const buffer = this.recordingTrackPlayback?.getBuffer();
+          const buffer = this.recordingTrackPlayback?.buffer;
           if (!buffer) {
             throw new Error("Recording take has no loaded buffer.");
           }
@@ -448,7 +448,7 @@ export class RecorderRuntime {
         transport: this.transport!,
         output: context.destination,
       });
-      playback.setBuffer(buffer);
+      playback.buffer = buffer;
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(track.id, playback);
       return {
@@ -474,7 +474,7 @@ export class RecorderRuntime {
       ? deserializeAudioBuffer(context, take.pcm)
       : undefined;
     this.recordingTrackPlayback!.stop();
-    this.recordingTrackPlayback!.setBuffer(takeBuffer);
+    this.recordingTrackPlayback!.buffer = takeBuffer;
     this.store.update({
       title: project.title,
       audioTracks,
@@ -568,7 +568,7 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.recordingTrackPlayback!.setBuffer(takeBuffer);
+    this.recordingTrackPlayback!.buffer = takeBuffer;
     this.activeRecording = undefined;
     const take = this.store.get().recordingTrack.takes[0];
     if (!take) {
@@ -601,7 +601,9 @@ export class RecorderRuntime {
 
   private clearTake(): void {
     this.recordingTrackPlayback?.stop();
-    this.recordingTrackPlayback?.setBuffer(undefined);
+    if (this.recordingTrackPlayback) {
+      this.recordingTrackPlayback.buffer = undefined;
+    }
     this.store.update({
       recordingTrack: {
         ...this.store.get().recordingTrack,
