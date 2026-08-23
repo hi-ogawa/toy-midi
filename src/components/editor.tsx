@@ -123,6 +123,19 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
         controls={
           <>
             <Button
+              data-testid="mixer-button"
+              onClick={() => setIsMixerOpen((open) => !open)}
+              aria-pressed={isMixerOpen}
+              title="Mixer"
+              className={cn(
+                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+                isMixerOpen &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              <SlidersHorizontalIcon className="size-5" />
+            </Button>
+            <Button
               data-testid="score-preview-button"
               onClick={() => setIsScorePreviewOpen((open) => !open)}
               aria-pressed={isScorePreviewOpen}
@@ -142,19 +155,6 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
               className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
             >
               <SettingsIcon className="size-5" />
-            </Button>
-            <Button
-              data-testid="mixer-button"
-              onClick={() => setIsMixerOpen((open) => !open)}
-              aria-pressed={isMixerOpen}
-              title="Mixer"
-              className={cn(
-                "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-                isMixerOpen &&
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-              )}
-            >
-              <SlidersHorizontalIcon className="size-5" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
