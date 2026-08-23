@@ -444,6 +444,9 @@ function useRecorderInput({
       runtime.selectChannel(
         Math.min(preference.input?.channel ?? 0, channelCount - 1),
       );
+      runtime.setLatencyCompensation(
+        preference.input?.latencyCompensation ?? 0,
+      );
     },
   });
 
