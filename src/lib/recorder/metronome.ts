@@ -12,9 +12,10 @@ export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;
-  private tempo = 120;
+  private tempo = 60;
+
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
-  private secondsPerClick = 0.5;
+  private secondsPerClick = 1;
 
   constructor(private readonly transport: AudioContextTransport) {
     this.output = transport.context.createGain();
