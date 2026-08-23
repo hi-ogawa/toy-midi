@@ -78,10 +78,9 @@ test("records, plays, and replaces a take", async ({ page }) => {
   // MVP keeps one take, so the second recording replaces and repositions it.
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 1");
-  const left = Number.parseFloat(
-    await take.evaluate((element) => element.style.left),
-  );
-  expect(left).toBeCloseTo(320, -1);
+  expect(
+    Number.parseFloat(await take.evaluate((element) => element.style.left)),
+  ).toBeCloseTo(320, -1);
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
