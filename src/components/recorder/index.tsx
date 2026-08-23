@@ -433,6 +433,7 @@ function useRecorderProject({
   runtime: RecorderRuntime;
 }) {
   const [dirty, setDirty] = useState(false);
+
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
     queryFn: async () => {
@@ -441,6 +442,7 @@ function useRecorderProject({
       return true;
     },
   });
+
   const saveMutation = useMutation({
     mutationFn: () =>
       recorderProjectStorage.save({
@@ -450,7 +452,9 @@ function useRecorderProject({
     onSuccess: () => setDirty(false),
   });
 
-  useEffect(() => runtime.store.subscribe(() => setDirty(true)), [runtime]);
+  useEffect(() => {
+    runtime.store.subscribe(() => setDirty(true));
+  }, [runtime]);
 
   useWindowEvent("beforeunload", (event) => {
     if (dirty) {
