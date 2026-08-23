@@ -1,28 +1,19 @@
 import { createAudioView } from "../audio-view.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
+  type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
 } from "./runtime.ts";
 
-export type RecorderProjectState = Pick<
-  RecorderRuntimeState,
-  | "title"
-  | "tempo"
-  | "timeSignature"
-  | "audioTracks"
-  | "recordingTrack"
-  | "latencyCompensation"
->;
-
-export interface RecorderProjectContent {
+export interface SerializedRecorderRuntimeState {
   title: string;
-  audioTracks: RecorderProjectAudioTrack[];
+  audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     height: number;
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: RecorderProjectTake[];
+    takes: SerializedTakeState[];
   };
   latencyCompensation: number;
   tempo: number;
@@ -32,7 +23,7 @@ export interface RecorderProjectContent {
   };
 }
 
-interface RecorderProjectAudioTrack {
+interface SerializedAudioTrackState {
   id: string;
   height: number;
   clip?: {
@@ -45,7 +36,7 @@ interface RecorderProjectAudioTrack {
   timelineOffset: number;
 }
 
-interface RecorderProjectTake {
+interface SerializedTakeState {
   timelineOffset: number;
   pcm: RecorderPcm;
 }
@@ -55,9 +46,9 @@ interface RecorderPcm {
   channels: Float32Array[];
 }
 
-export function serializeRecorderProject(
+export function serializeRecorderRuntimeState(
   state: RecorderRuntimeState,
-): RecorderProjectContent {
+): SerializedRecorderRuntimeState {
   return {
     title: state.title,
     audioTracks: state.audioTracks.map((track) => ({
@@ -95,13 +86,13 @@ export function serializeRecorderProject(
   };
 }
 
-export function deserializeRecorderProject({
+export function deserializeRecorderRuntimeState({
   context,
   project,
 }: {
   context: AudioContext;
-  project: RecorderProjectContent;
-}): RecorderProjectState {
+  project: SerializedRecorderRuntimeState;
+}): PersistableRecorderRuntimeState {
   return {
     title: project.title,
     audioTracks: project.audioTracks.map((track) => {

@@ -40,8 +40,8 @@ import {
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
 import {
-  deserializeRecorderProject,
-  serializeRecorderProject,
+  deserializeRecorderRuntimeState,
+  serializeRecorderRuntimeState,
 } from "../../lib/recorder/project-persistence";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
@@ -442,8 +442,8 @@ function useRecorderProject({
     queryKey: ["recorder-project", projectId],
     queryFn: async () => {
       const project = await recorderProjectStorage.load(projectId);
-      runtime.replaceProjectState(
-        deserializeRecorderProject({
+      runtime.replacePersistableState(
+        deserializeRecorderRuntimeState({
           context: runtime.getAudioContext(),
           project,
         }),
@@ -456,7 +456,7 @@ function useRecorderProject({
     mutationFn: () =>
       recorderProjectStorage.save({
         id: projectId,
-        content: serializeRecorderProject(runtime.store.get()),
+        content: serializeRecorderRuntimeState(runtime.store.get()),
       }),
     onSuccess: () => setDirty(false),
   });

@@ -4,7 +4,6 @@ import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
-import type { RecorderProjectState } from "./project-persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
@@ -62,6 +61,16 @@ export interface RecorderRuntimeState {
   selectedChannel: number;
   latencyCompensation: number;
 }
+
+export type PersistableRecorderRuntimeState = Pick<
+  RecorderRuntimeState,
+  | "title"
+  | "tempo"
+  | "timeSignature"
+  | "audioTracks"
+  | "recordingTrack"
+  | "latencyCompensation"
+>;
 
 const METRONOME_GAIN = 0.5;
 
@@ -379,7 +388,7 @@ export class RecorderRuntime {
     return this.ensureContext();
   }
 
-  replaceProjectState(project: RecorderProjectState): void {
+  replacePersistableState(project: PersistableRecorderRuntimeState): void {
     if (
       this.store.get().captureStatus === "recording" ||
       this.store.get().captureStatus === "processing"

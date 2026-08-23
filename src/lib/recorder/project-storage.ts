@@ -1,10 +1,10 @@
 import { IdbStore } from "../idb.ts";
-import type { RecorderProjectContent } from "./project-persistence.ts";
+import type { SerializedRecorderRuntimeState } from "./project-persistence.ts";
 
-interface StoredRecorderProject {
+interface StoredRecorderRuntimeState {
   id: string;
   updatedAt: number;
-  content: RecorderProjectContent;
+  content: SerializedRecorderRuntimeState;
 }
 
 export interface RecorderProjectMetadata {
@@ -20,7 +20,7 @@ const storeOptions = {
   storeNames: ["projects", "metadata"],
 };
 
-const projects = new IdbStore<StoredRecorderProject>({
+const projects = new IdbStore<StoredRecorderRuntimeState>({
   ...storeOptions,
   storeName: "projects",
 });
@@ -42,7 +42,7 @@ export const recorderProjectStorage = {
 
   async create(): Promise<string> {
     const id = crypto.randomUUID();
-    const project: StoredRecorderProject = {
+    const project: StoredRecorderRuntimeState = {
       id,
       updatedAt: Date.now(),
       content: {
@@ -65,7 +65,7 @@ export const recorderProjectStorage = {
     return id;
   },
 
-  async load(id: string): Promise<RecorderProjectContent> {
+  async load(id: string): Promise<SerializedRecorderRuntimeState> {
     const project = await projects.get(id);
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
@@ -78,9 +78,9 @@ export const recorderProjectStorage = {
     content,
   }: {
     id: string;
-    content: RecorderProjectContent;
+    content: SerializedRecorderRuntimeState;
   }): Promise<void> {
-    const project: StoredRecorderProject = {
+    const project: StoredRecorderRuntimeState = {
       id,
       updatedAt: Date.now(),
       content,
@@ -95,7 +95,9 @@ export const recorderProjectStorage = {
   },
 };
 
-function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
+function toMetadata(
+  project: StoredRecorderRuntimeState,
+): RecorderProjectMetadata {
   return {
     id: project.id,
     updatedAt: project.updatedAt,
