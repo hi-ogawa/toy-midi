@@ -89,7 +89,7 @@ export class RecorderMetronome implements TransportParticipant {
       context: this.transport.context,
       output: this.output,
       contextTime,
-      frequency: midiToHz(accent ? 93 : 88),
+      frequency: midiToHz(accent ? "C7" : "G6"),
       gain: accent ? 0.2 : 0.12,
       duration: 0.03,
     });

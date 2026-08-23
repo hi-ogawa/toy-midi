@@ -27,9 +27,28 @@ export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }
 
-export function midiToHz(midi: number): number {
+export function midiToHz(pitch: `${NoteLetter}${number}`): number {
+  const match = /^([A-G])(\d+)$/.exec(pitch);
+  if (!match) {
+    throw new Error(`Invalid MIDI pitch: ${pitch}`);
+  }
+  const [, letter, octave] = match;
+  const midi =
+    (Number(octave) + 1) * 12 + PITCH_CLASS_BY_LETTER[letter as NoteLetter];
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
+
+type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+
+const PITCH_CLASS_BY_LETTER: Record<NoteLetter, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
+};
 
 export function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
