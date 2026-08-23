@@ -1,7 +1,9 @@
+import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
+import { RecorderMetronome } from "./metronome.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
@@ -51,6 +53,9 @@ export interface RecorderRuntimeState {
   position: number;
   recordingTrack: RecordingTrackState;
   latencyCompensation: number;
+  metronomeEnabled: boolean;
+  tempo: number;
+  timeSignature: TimeSignature;
   getTakeOffset: () => number;
 }
 
@@ -64,6 +69,9 @@ export class RecorderRuntime {
     position: 0,
     recordingTrack: createRecordingTrackState(),
     latencyCompensation: 0,
+    metronomeEnabled: false,
+    tempo: 120,
+    timeSignature: DEFAULT_TIME_SIGNATURE,
     getTakeOffset: () =>
       (get().recordingTrack.takes[0]?.captureOffset ?? 0) -
       get().latencyCompensation,
@@ -75,6 +83,7 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
+  private metronome?: RecorderMetronome;
 
   async startInput({
     deviceId,
@@ -358,6 +367,21 @@ export class RecorderRuntime {
     this.store.update({ latencyCompensation: compensation });
   }
 
+  setTempo(tempo: number): void {
+    this.store.update({ tempo });
+    this.metronome?.setTempo(tempo);
+  }
+
+  setMetronomeEnabled(metronomeEnabled: boolean): void {
+    this.store.update({ metronomeEnabled });
+    this.metronome?.setGain(metronomeEnabled ? 1 : 0);
+  }
+
+  setTimeSignature(timeSignature: TimeSignature): void {
+    this.store.update({ timeSignature });
+    this.metronome?.setTimeSignature(timeSignature);
+  }
+
   private ensureContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
@@ -367,6 +391,10 @@ export class RecorderRuntime {
         output: this.context.destination,
       });
       this.syncTrackMix();
+      this.metronome = new RecorderMetronome(this.transport);
+      this.metronome.setGain(this.store.get().metronomeEnabled ? 1 : 0);
+      this.metronome.setTempo(this.store.get().tempo);
+      this.metronome.setTimeSignature(this.store.get().timeSignature);
       this.transport.store.subscribe(() => {
         const { position, running } = this.transport!.store.get();
         this.store.update({ isPlaying: running, position });

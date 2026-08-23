@@ -15,7 +15,11 @@ import { isShortcutTextInputTarget, matchKeyboardEvent } from "../lib/keyboard";
 import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { formatTimeCompact } from "../lib/time-format";
-import { COMMON_TIME_SIGNATURES, type GridSnap } from "../types";
+import {
+  COMMON_TIME_SIGNATURES,
+  type GridSnap,
+  parseTimeSignature,
+} from "../types";
 import { MetronomeIcon } from "./icons";
 import { Button } from "./ui/button";
 import {
@@ -207,8 +211,7 @@ export function Transport({ projectName, controls }: TransportProps) {
           <DropdownMenuRadioGroup
             value={`${timeSignature.numerator}/${timeSignature.denominator}`}
             onValueChange={(v) => {
-              const [numerator, denominator] = v.split("/").map(Number);
-              setTimeSignature({ numerator, denominator });
+              setTimeSignature(parseTimeSignature(v));
             }}
           >
             {COMMON_TIME_SIGNATURES.map((ts) => (

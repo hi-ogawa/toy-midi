@@ -1,3 +1,8 @@
+import {
+  NATURAL_PITCH_CLASS_BY_LETTER,
+  type NoteLetter,
+} from "./pitch-spelling.ts";
+
 // Full MIDI range: C-1 (0) to G9 (127)
 export const MIN_PITCH = 0; // C-1
 export const MAX_PITCH = 127; // G9
@@ -25,6 +30,22 @@ export function snapToGrid(
 
 export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
+}
+
+export function parseMidiPitch(pitch: string): number {
+  const match = /^([A-G])(\d+)$/.exec(pitch);
+  if (!match) {
+    throw new Error(`Invalid MIDI pitch: ${pitch}`);
+  }
+  const [, letter, octave] = match;
+  return (
+    (Number(octave) + 1) * 12 +
+    NATURAL_PITCH_CLASS_BY_LETTER[letter as NoteLetter]
+  );
+}
+
+export function midiToHz(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
 export function dbToGain(db: number): number {

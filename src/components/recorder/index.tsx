@@ -41,8 +41,10 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { parseTimeSignature, type TimeSignature } from "../../types";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
+import { MetronomeIcon } from "../icons";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
 import {
@@ -59,8 +61,6 @@ import { cn } from "../ui/utils";
 import {
   DEFAULT_PIXELS_PER_BEAT,
   DEFAULT_RECORDER_GRID_DIVISION,
-  DEFAULT_RECORDER_TEMPO,
-  DEFAULT_RECORDER_TIME_SIGNATURE,
   MAX_PIXELS_PER_BEAT,
   MIN_PIXELS_PER_BEAT,
   formatBarBeat,
@@ -85,7 +85,11 @@ export function Recorder() {
     runtime,
     state,
   });
-  const timeline = useRecorderTimeline({ position: state.position });
+  const timeline = useRecorderTimeline({
+    position: state.position,
+    tempo: state.tempo,
+    timeSignature: state.timeSignature,
+  });
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -158,6 +162,9 @@ export function Recorder() {
     } else if (matchKeyboardEvent(event, "R")) {
       event.preventDefault();
       toggleRecord();
+    } else if (matchKeyboardEvent(event, "M")) {
+      event.preventDefault();
+      runtime.setMetronomeEnabled(!state.metronomeEnabled);
     }
   });
 
@@ -167,6 +174,7 @@ export function Recorder() {
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
+        metronomeEnabled={state.metronomeEnabled}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -175,8 +183,11 @@ export function Recorder() {
         recordDisabled={state.status === "idle"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
-        onTempoChange={timeline.setTempo}
-        onTimeSignatureChange={timeline.setTimeSignature}
+        onTempoChange={(tempo) => runtime.setTempo(tempo)}
+        onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
+        onTimeSignatureChange={(timeSignature) => {
+          runtime.setTimeSignature(parseTimeSignature(timeSignature));
+        }}
         onGridDivisionChange={timeline.setGridDivision}
       />
 
@@ -488,11 +499,15 @@ function useRecorderInput({
   };
 }
 
-function useRecorderTimeline({ position }: { position: number }) {
-  const [tempo, setTempo] = useState(DEFAULT_RECORDER_TEMPO);
-  const [timeSignature, setTimeSignature] = useState<RecorderTimeSignature>(
-    DEFAULT_RECORDER_TIME_SIGNATURE,
-  );
+function useRecorderTimeline({
+  position,
+  tempo,
+  timeSignature,
+}: {
+  position: number;
+  tempo: number;
+  timeSignature: TimeSignature;
+}) {
   const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
     DEFAULT_RECORDER_GRID_DIVISION,
   );
@@ -561,8 +576,6 @@ function useRecorderTimeline({ position }: { position: number }) {
     playheadX,
     viewportStartBeat,
     setGridDivision,
-    setTempo,
-    setTimeSignature,
     subdivisionsPerBeat,
     tempo,
     timeSignature,
@@ -576,6 +589,7 @@ function RecorderHeader({
   isPlaying,
   isProcessing,
   isRecording,
+  metronomeEnabled,
   position,
   tempo,
   timeSignature,
@@ -585,24 +599,28 @@ function RecorderHeader({
   onPlayToggle,
   onRecordToggle,
   onTempoChange,
+  onMetronomeChange,
   onTimeSignatureChange,
   onGridDivisionChange,
 }: {
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
+  metronomeEnabled: boolean;
   position: number;
   tempo: number;
-  timeSignature: RecorderTimeSignature;
+  timeSignature: TimeSignature;
   gridDivision: RecorderGridDivision;
   pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
+  onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: RecorderTimeSignature) => void;
   onGridDivisionChange: (value: RecorderGridDivision) => void;
 }) {
+  const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -631,6 +649,19 @@ function RecorderHeader({
         ) : (
           <PlayIcon className="size-5" />
         )}
+      </Button>
+      <Button
+        onClick={() => onMetronomeChange(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome (M)"
+        className={cn(
+          "size-9",
+          metronomeEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+      >
+        <MetronomeIcon className="size-5" />
       </Button>
       <Button
         onClick={onRecordToggle}
@@ -667,13 +698,13 @@ function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800">
-            {timeSignature}
+            {timeSignatureValue}
             <ChevronDownIcon className="size-3 text-neutral-400" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuRadioGroup
-            value={timeSignature}
+            value={timeSignatureValue}
             onValueChange={(value) =>
               onTimeSignatureChange(value as RecorderTimeSignature)
             }
