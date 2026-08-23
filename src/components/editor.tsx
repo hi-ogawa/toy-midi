@@ -5,7 +5,7 @@ import {
   HouseIcon,
   MoreVerticalIcon,
   SettingsIcon,
-  SlidersHorizontalIcon,
+  SlidersVerticalIcon,
   SparklesIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -133,7 +133,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
                   "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
-              <SlidersHorizontalIcon className="size-5" />
+              <SlidersVerticalIcon className="size-5" />
             </Button>
             <Button
               data-testid="score-preview-button"
