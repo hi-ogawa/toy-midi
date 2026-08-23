@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
-  createLucideIcon,
   CircleAlertIcon,
   CircleIcon,
   CircleHelpIcon,
@@ -16,6 +15,7 @@ import {
   PlayIcon,
   PlusIcon,
   SaveIcon,
+  SaveCheckIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -30,19 +30,6 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
-
-const SaveCheckIcon = createLucideIcon("SaveCheck", [
-  [
-    "path",
-    {
-      d: "M15.2 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.8Z",
-      key: "1cqn1j",
-    },
-  ],
-  ["path", { d: "M17 21v-8H7v8", key: "1ydtos" }],
-  ["path", { d: "M7 3v5h8", key: "1pvjzy" }],
-  ["path", { d: "m9 13 2 2 4-4", key: "634lzl" }],
-]);
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
