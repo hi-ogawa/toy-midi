@@ -79,18 +79,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
 export function Recorder() {
-  const [preference] = useState(() => recorderStorage.readPreferences());
-  const [runtime] = useState(() => {
-    const runtime = new RecorderRuntime();
-    runtime.setLatencyCompensation(preference.input?.latencyCompensation ?? 0);
-    return runtime;
-  });
+  const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
   );
   const input = useRecorderInput({
-    preference,
     runtime,
     state,
   });
@@ -379,16 +373,16 @@ export function Recorder() {
 }
 
 function useRecorderInput({
-  preference: initialPreference,
   runtime,
   state,
 }: {
-  preference: ReturnType<typeof recorderStorage.readPreferences>;
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [preference, setPreference] = useState(initialPreference);
+  const [preference, setPreference] = useState(() =>
+    recorderStorage.readPreferences(),
+  );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
   const [peak, setPeak] = useState(0);
