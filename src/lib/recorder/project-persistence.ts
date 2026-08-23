@@ -1,7 +1,9 @@
 import { createAudioView } from "../audio-view.ts";
-import type { RecorderProjectState, RecorderRuntimeState } from "./runtime.ts";
-
-const WAVEFORM_POINTS_PER_SECOND = 800;
+import {
+  RECORDER_WAVEFORM_POINTS_PER_SECOND,
+  type RecorderProjectState,
+  type RecorderRuntimeState,
+} from "./runtime.ts";
 
 export interface RecorderPcm {
   sampleRate: number;
@@ -113,7 +115,7 @@ export function deserializeRecorderProject({
           audioView: createAudioView(
             buffer.getChannelData(0),
             buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
+            RECORDER_WAVEFORM_POINTS_PER_SECOND,
           ),
         },
         gain: track.gain,
@@ -136,7 +138,7 @@ export function deserializeRecorderProject({
               audioView: createAudioView(
                 takeBuffer.getChannelData(0),
                 takeBuffer.sampleRate,
-                WAVEFORM_POINTS_PER_SECOND,
+                RECORDER_WAVEFORM_POINTS_PER_SECOND,
               ),
             },
           ]
