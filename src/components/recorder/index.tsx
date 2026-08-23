@@ -555,10 +555,10 @@ function useRecorderTimeline({
     const playheadBeat = secondsToBeats(position, tempo);
     const visibleBeats = viewportWidth / pixelsPerBeat;
     if (
-      playheadBeat > viewportStartBeat + visibleBeats * 0.95 ||
+      playheadBeat > viewportStartBeat + visibleBeats * 0.9 ||
       playheadBeat < viewportStartBeat
     ) {
-      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.25));
+      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
     }
   }, [
     autoScrollEnabled,
