@@ -455,8 +455,11 @@ function useRecorderProject({
   });
 
   useEffect(() => {
-    runtime.store.subscribe(() => setDirty(true));
-  }, [runtime]);
+    if (!projectQuery.isSuccess) {
+      return;
+    }
+    return runtime.store.subscribe(() => setDirty(true));
+  }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
     if (dirty) {
