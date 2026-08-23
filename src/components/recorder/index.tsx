@@ -133,42 +133,13 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const [dirty, setDirty] = useState(false);
-  const projectQuery = useQuery({
-    queryKey: ["recorder-project", projectId],
-    queryFn: async () => {
-      const project = await recorderProjectStorage.load(projectId);
-      runtime.importProject(project);
-      return true;
-    },
-  });
-  const saveProjectMutation = useMutation({
-    mutationFn: () =>
-      recorderProjectStorage.save({
-        id: projectId,
-        content: runtime.exportProject(),
-      }),
-    onSuccess: () => setDirty(false),
-  });
-
-  useEffect(() => {
-    runtime.store.subscribe(() => setDirty(true));
-  }, [runtime]);
-
-  useWindowEvent("beforeunload", (event) => {
-    if (dirty) {
-      event.preventDefault();
-    }
-  });
-
-  const projectReady = projectQuery.isSuccess || projectQuery.isError;
+  const project = useRecorderProject({ projectId, runtime });
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
   const error =
     input.error ??
-    projectQuery.error ??
-    saveProjectMutation.error ??
+    project.error ??
     addAudioMutation.error ??
     audioTrackMutation.error ??
     playMutation.error ??
@@ -197,8 +168,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   useWindowEvent("keydown", (event) => {
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
-      if (projectReady && dirty && !saveProjectMutation.isPending) {
-        saveProjectMutation.mutate();
+      if (project.ready && project.dirty && !project.saving) {
+        project.save();
       }
       return;
     }
@@ -224,9 +195,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
         title={state.title}
-        dirty={dirty}
-        projectReady={projectReady}
-        savePending={saveProjectMutation.isPending}
+        dirty={project.dirty}
+        projectReady={project.ready}
+        savePending={project.saving}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -241,7 +212,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onTitleChange={(nextTitle) => {
           runtime.setTitle(nextTitle);
         }}
-        onSave={() => saveProjectMutation.mutate()}
+        onSave={project.save}
         onRecordToggle={toggleRecord}
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
@@ -452,6 +423,48 @@ export function Recorder({ projectId }: { projectId: string }) {
       </div>
     </main>
   );
+}
+
+function useRecorderProject({
+  projectId,
+  runtime,
+}: {
+  projectId: string;
+  runtime: RecorderRuntime;
+}) {
+  const [dirty, setDirty] = useState(false);
+  const projectQuery = useQuery({
+    queryKey: ["recorder-project", projectId],
+    queryFn: async () => {
+      const project = await recorderProjectStorage.load(projectId);
+      runtime.importProject(project);
+      return true;
+    },
+  });
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      recorderProjectStorage.save({
+        id: projectId,
+        content: runtime.exportProject(),
+      }),
+    onSuccess: () => setDirty(false),
+  });
+
+  useEffect(() => runtime.store.subscribe(() => setDirty(true)), [runtime]);
+
+  useWindowEvent("beforeunload", (event) => {
+    if (dirty) {
+      event.preventDefault();
+    }
+  });
+
+  return {
+    dirty,
+    error: projectQuery.error ?? saveMutation.error,
+    ready: projectQuery.isSuccess || projectQuery.isError,
+    save: saveMutation.mutate,
+    saving: saveMutation.isPending,
+  };
 }
 
 function useRecorderInput({
