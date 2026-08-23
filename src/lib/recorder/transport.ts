@@ -11,7 +11,7 @@ export interface TransportParticipant {
 
 type TransportState = {
   position: number;
-  running: boolean;
+  isPlaying: boolean;
 };
 
 type PlaybackAnchor = {
@@ -27,7 +27,7 @@ export class AudioContextTransport {
   /** Published transport state consumed by recorder runtime and UI. */
   readonly store = createStore<TransportState>(() => ({
     position: 0,
-    running: false,
+    isPlaying: false,
   }));
 
   /**
@@ -51,7 +51,7 @@ export class AudioContextTransport {
 
   /** Schedules every participant against one shared future playback anchor. */
   play(): void {
-    if (this.store.get().running) {
+    if (this.store.get().isPlaying) {
       return;
     }
     this.playbackAnchor = {
@@ -61,13 +61,13 @@ export class AudioContextTransport {
     for (const participant of this.participants) {
       participant.start();
     }
-    this.store.update({ running: true });
+    this.store.update({ isPlaying: true });
     this.startTicking();
   }
 
   /** Stops participants and preserves the position reached by the audio clock. */
   pause(): void {
-    if (!this.store.get().running) {
+    if (!this.store.get().isPlaying) {
       return;
     }
     for (const participant of this.participants) {
@@ -76,18 +76,18 @@ export class AudioContextTransport {
     const finalPosition = this.getPublishedPlaybackPosition();
     this.playbackAnchor = undefined;
     this.stopTicking();
-    this.store.update({ running: false, position: finalPosition });
+    this.store.update({ isPlaying: false, position: finalPosition });
   }
 
   /** Moves the playhead, restarting participants when playback is running. */
   seek(position: number): void {
-    const wasRunning = this.store.get().running;
-    if (wasRunning) {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
       this.pause();
     }
     const nextPosition = Math.max(0, position);
     this.store.update({ position: nextPosition });
-    if (wasRunning) {
+    if (wasPlaying) {
       this.play();
     }
   }

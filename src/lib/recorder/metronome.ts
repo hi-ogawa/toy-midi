@@ -40,7 +40,7 @@ export class RecorderMetronome implements TransportParticipant {
   private updateTiming(): void {
     this.secondsPerClick =
       (60 / this.tempo) * (4 / this.timeSignature.denominator);
-    if (this.transport.store.get().running) {
+    if (this.transport.store.get().isPlaying) {
       this.start();
     }
   }

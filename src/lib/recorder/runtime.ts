@@ -396,8 +396,8 @@ export class RecorderRuntime {
       this.metronome.setTempo(this.store.get().tempo);
       this.metronome.setTimeSignature(this.store.get().timeSignature);
       this.transport.store.subscribe(() => {
-        const { position, running } = this.transport!.store.get();
-        this.store.update({ isPlaying: running, position });
+        const { position, isPlaying } = this.transport!.store.get();
+        this.store.update({ isPlaying, position });
       });
     }
     return this.context;
