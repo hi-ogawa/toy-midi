@@ -32,9 +32,7 @@ test("records and plays a take", async ({ page }) => {
   await enableInput(page);
 
   // They place the playhead away from zero so take placement is exercised too.
-  const ruler = page.getByTestId("recorder-timeline-ruler");
-  const rulerBox = (await ruler.boundingBox())!;
-  await page.mouse.click(rulerBox.x + 160, rulerBox.y + rulerBox.height / 2);
+  await seekRecorderByPixels(page, 160);
 
   // The recording shortcut starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
@@ -70,9 +68,7 @@ test("re-recording replaces the previous take", async ({ page }) => {
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(1);
 
   // They move later in the song and record another attempt.
-  const ruler = page.getByTestId("recorder-timeline-ruler");
-  const rulerBox = (await ruler.boundingBox())!;
-  await page.mouse.click(rulerBox.x + 320, rulerBox.y + rulerBox.height / 2);
+  await seekRecorderByPixels(page, 320);
   await recordButton.click();
   await expect(page.getByText(/Recording.+0:00\.[1-9]/)).toBeVisible();
   await recordButton.click();
@@ -87,6 +83,13 @@ test("re-recording replaces the previous take", async ({ page }) => {
   expect(left).toBeGreaterThan(300);
   expect(left).toBeLessThanOrEqual(320);
 });
+
+async function seekRecorderByPixels(page: Page, pixels: number) {
+  const ruler = page.getByTestId("recorder-timeline-ruler");
+  const box = await ruler.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+}
 
 async function enableInput(page: Page) {
   // Fake audio still exercises permission, device discovery, and channel setup.
