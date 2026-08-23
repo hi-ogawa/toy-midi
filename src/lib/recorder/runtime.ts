@@ -16,7 +16,7 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-export interface AudioTrackState {
+interface AudioTrackState {
   id: string;
   height: number;
   clip?: {
@@ -30,7 +30,7 @@ export interface AudioTrackState {
   timelineOffset: number;
 }
 
-export interface RecordingTrackState {
+interface RecordingTrackState {
   height: number;
   gain: number;
   muted: boolean;
@@ -38,7 +38,7 @@ export interface RecordingTrackState {
   takes: TakeState[];
 }
 
-export interface TakeState {
+interface TakeState {
   duration: number;
   timelineOffset: number;
   buffer?: AudioBuffer;
