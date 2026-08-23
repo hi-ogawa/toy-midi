@@ -40,9 +40,16 @@ test("records, plays, and replaces a take", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("recorder-clip-recording")).toContainText(
-    "Recording...",
+  const recording = page.getByTestId("recorder-clip-recording");
+  await expect(recording).toContainText("Recording...");
+  const initialWidth = await recording.evaluate(
+    (element) => element.getBoundingClientRect().width,
   );
+  await expect
+    .poll(() =>
+      recording.evaluate((element) => element.getBoundingClientRect().width),
+    )
+    .toBeGreaterThan(initialWidth);
 
   // Stopping flushes the worklet and finalizes a nonempty waveform-backed take.
   await recordButton.click();
