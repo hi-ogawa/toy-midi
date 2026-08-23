@@ -34,6 +34,14 @@ export async function waitForAudioReady(page: Page): Promise<void> {
   await expect(page.getByTestId("play-pause-button")).toBeEnabled();
 }
 
+/** Create a recorder project from its index and wait for the recorder app. */
+export async function createRecorderProject(page: Page): Promise<void> {
+  await page.goto("/recorder");
+  await page.getByRole("button", { name: "New recording" }).click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+}
+
 /** @deprecated Use clickNewProject instead */
 export const clickThroughStartup = clickNewProject;
 

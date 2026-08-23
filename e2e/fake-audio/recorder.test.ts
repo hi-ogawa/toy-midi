@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
+import { createRecorderProject } from "../helpers";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/recorder");
+  await createRecorderProject(page);
 });
 
 test("uploads and plays a backing track", async ({ page }) => {
