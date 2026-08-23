@@ -101,6 +101,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
+  const project = useRecorderProject({ projectId, runtime });
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -133,7 +134,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const project = useRecorderProject({ projectId, runtime });
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
