@@ -1,7 +1,7 @@
 import { Editor } from "./components/editor";
 import { LatencyChecker } from "./components/latency-checker";
 import { ProjectListView } from "./components/project-list-view";
-import { Recorder } from "./components/recorder";
+import { Recorder, RecorderProjectList } from "./components/recorder";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
@@ -13,7 +13,10 @@ export function App() {
 
   switch (match?.data) {
     case "recorder": {
-      return <Recorder />;
+      return <RecorderProjectList />;
+    }
+    case "recorderProject": {
+      return <Recorder projectId={match.params.projectId} />;
     }
     case "latencyChecker": {
       return <LatencyChecker />;

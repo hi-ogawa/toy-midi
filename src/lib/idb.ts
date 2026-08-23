@@ -23,6 +23,10 @@ export class IdbStore<T> {
     await this.request("readwrite", (store) => store.delete(key));
   }
 
+  async getAll(): Promise<T[]> {
+    return await this.request("readonly", (store) => store.getAll());
+  }
+
   private openDB(): Promise<IDBDatabase> {
     if (this.dbPromise) {
       return this.dbPromise;
