@@ -1,5 +1,6 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, PlusIcon, Trash2Icon } from "lucide-react";
+import type { SavedRecorderProject } from "../../lib/recorder/project";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
@@ -62,36 +63,52 @@ export function RecorderProjectList() {
             </div>
           ) : (
             projects.data.value.map((project) => (
-              <div
+              <RecorderProjectListItem
                 key={project.id}
-                className="flex h-[4.5rem] items-center border-b border-neutral-700 px-4 last:border-b-0"
-              >
-                <a
-                  href={routes.recorderProject.href({ projectId: project.id })}
-                  className="min-w-0 flex-1"
-                >
-                  <div className="truncate font-medium">{project.title}</div>
-                  <div className="mt-1 text-xs text-neutral-500">
-                    Last saved {new Date(project.updatedAt).toLocaleString()}
-                  </div>
-                </a>
-                <Button
-                  onClick={() => {
-                    if (confirm("Delete this recording?")) {
-                      deleteProject.mutate(project.id);
-                    }
-                  }}
-                  disabled={deleteProject.isPending}
-                  title="Delete recording"
-                  className="size-8 text-neutral-400 hover:bg-red-950 hover:text-red-300"
-                >
-                  <Trash2Icon className="size-4" />
-                </Button>
-              </div>
+                project={project}
+                deletePending={deleteProject.isPending}
+                onDelete={() => deleteProject.mutate(project.id)}
+              />
             ))
           )}
         </div>
       </section>
     </main>
+  );
+}
+
+function RecorderProjectListItem({
+  project,
+  deletePending,
+  onDelete,
+}: {
+  project: Pick<SavedRecorderProject, "id" | "title" | "updatedAt">;
+  deletePending: boolean;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex h-[4.5rem] items-center border-b border-neutral-700 px-4 last:border-b-0">
+      <a
+        href={routes.recorderProject.href({ projectId: project.id })}
+        className="min-w-0 flex-1"
+      >
+        <div className="truncate font-medium">{project.title}</div>
+        <div className="mt-1 text-xs text-neutral-500">
+          Last saved {new Date(project.updatedAt).toLocaleString()}
+        </div>
+      </a>
+      <Button
+        onClick={() => {
+          if (confirm("Delete this recording?")) {
+            onDelete();
+          }
+        }}
+        disabled={deletePending}
+        title="Delete recording"
+        className="size-8 text-neutral-400 hover:bg-red-950 hover:text-red-300"
+      >
+        <Trash2Icon className="size-4" />
+      </Button>
+    </div>
   );
 }
