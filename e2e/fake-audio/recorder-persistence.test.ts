@@ -5,6 +5,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   // The musician creates a project and gives it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
+  await expect(
+    page.getByRole("status", { name: "All changes saved" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
   await page.keyboard.press("Escape");
@@ -27,10 +30,18 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
+  await expect(
+    page.getByRole("status", {
+      name: "Unsaved changes (Ctrl/Cmd+S to save)",
+    }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("menuitem", { name: /Save/ })).toBeEnabled();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+S");
+  await expect(
+    page.getByRole("status", { name: "All changes saved" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "More" }).click();
   await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
 

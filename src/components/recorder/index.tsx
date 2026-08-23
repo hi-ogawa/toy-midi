@@ -1,6 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
+  CheckIcon,
+  CircleAlertIcon,
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
@@ -17,7 +19,13 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -198,6 +206,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         dirty={project.dirty}
         projectReady={project.ready}
         savePending={project.saving}
+        saveStatus={project.saveStatus}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -432,7 +441,9 @@ function useRecorderProject({
   projectId: string;
   runtime: RecorderRuntime;
 }) {
+  type SaveStatus = "saved" | "unsaved" | "saving" | "error";
   const [dirty, setDirty] = useState(false);
+  const revisionRef = useRef(0);
 
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
@@ -446,19 +457,27 @@ function useRecorderProject({
   });
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      recorderProjectStorage.save({
+    mutationFn: async () => {
+      const revision = revisionRef.current;
+      await recorderProjectStorage.save({
         id: projectId,
         content: runtime.serializeProject(),
-      }),
-    onSuccess: () => setDirty(false),
+      });
+      return revision;
+    },
+    onSuccess: (savedRevision) => {
+      setDirty(revisionRef.current !== savedRevision);
+    },
   });
 
   useEffect(() => {
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribe(() => setDirty(true));
+    return runtime.store.subscribe(() => {
+      revisionRef.current += 1;
+      setDirty(true);
+    });
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
@@ -467,11 +486,19 @@ function useRecorderProject({
     }
   });
 
+  const saveStatus: SaveStatus = saveMutation.isError
+    ? "error"
+    : saveMutation.isPending
+      ? "saving"
+      : dirty
+        ? "unsaved"
+        : "saved";
   return {
     dirty,
     error: projectQuery.error ?? saveMutation.error,
     ready: projectQuery.isSuccess || projectQuery.isError,
     save: saveMutation.mutate,
+    saveStatus,
     saving: saveMutation.isPending,
   };
 }
@@ -738,6 +765,7 @@ function RecorderHeader({
   dirty,
   projectReady,
   savePending,
+  saveStatus,
   isPlaying,
   isProcessing,
   isRecording,
@@ -762,6 +790,7 @@ function RecorderHeader({
   dirty: boolean;
   projectReady: boolean;
   savePending: boolean;
+  saveStatus: "saved" | "unsaved" | "saving" | "error";
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -936,6 +965,7 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <RecorderSaveStatus status={saveStatus} />
       <button
         type="button"
         data-testid="recorder-project-name"
@@ -992,6 +1022,41 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
+  );
+}
+
+function RecorderSaveStatus({
+  status,
+}: {
+  status: "saved" | "unsaved" | "saving" | "error";
+}) {
+  const label = {
+    saved: "All changes saved",
+    unsaved: "Unsaved changes (Ctrl/Cmd+S to save)",
+    saving: "Saving project",
+    error: "Save failed (Ctrl/Cmd+S to retry)",
+  }[status];
+  const icon = {
+    saved: <CheckIcon className="size-3.5" />,
+    unsaved: <CircleIcon className="size-3.5 fill-current" />,
+    saving: <LoaderCircleIcon className="size-3.5 animate-spin" />,
+    error: <CircleAlertIcon className="size-3.5" />,
+  }[status];
+  return (
+    <span
+      role="status"
+      aria-label={label}
+      title={label}
+      className={cn(
+        "grid size-6 place-items-center",
+        status === "saved" && "text-neutral-500",
+        status === "unsaved" && "text-amber-400",
+        status === "saving" && "text-neutral-300",
+        status === "error" && "text-red-400",
+      )}
+    >
+      {icon}
+    </span>
   );
 }
 
