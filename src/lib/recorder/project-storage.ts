@@ -1,7 +1,7 @@
 import { IdbStore } from "../idb.ts";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 
-interface StoredRecorderRuntimeState {
+interface StoredRecorderProject {
   id: string;
   updatedAt: number;
   content: SerializedRecorderRuntimeState;
@@ -20,7 +20,7 @@ const storeOptions = {
   storeNames: ["projects", "metadata"],
 };
 
-const projects = new IdbStore<StoredRecorderRuntimeState>({
+const projects = new IdbStore<StoredRecorderProject>({
   ...storeOptions,
   storeName: "projects",
 });
@@ -36,7 +36,7 @@ export const recorderProjectStorage = {
 
   async create(): Promise<string> {
     const id = crypto.randomUUID();
-    const project: StoredRecorderRuntimeState = {
+    const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
       content: {
@@ -74,7 +74,7 @@ export const recorderProjectStorage = {
     id: string;
     content: SerializedRecorderRuntimeState;
   }): Promise<void> {
-    const project: StoredRecorderRuntimeState = {
+    const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
       content,
@@ -89,9 +89,7 @@ export const recorderProjectStorage = {
   },
 };
 
-function toMetadata(
-  project: StoredRecorderRuntimeState,
-): RecorderProjectMetadata {
+function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
   return {
     id: project.id,
     updatedAt: project.updatedAt,
