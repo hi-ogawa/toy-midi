@@ -92,7 +92,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const [title, setTitle] = useState("Untitled recording");
   const [projectReady, setProjectReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const input = useRecorderInput({
@@ -141,7 +140,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     onSuccess: (project) => {
       if (project) {
         runtime.importProject(project);
-        setTitle(project.title);
+        runtime.setTitle(project.title);
       }
       setProjectReady(true);
     },
@@ -151,7 +150,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     mutationFn: () =>
       recorderProjectStorage.save({
         id: projectId,
-        title,
+        title: runtime.store.get().title,
         content: runtime.exportProject(),
       }),
     onSuccess: () => setDirty(false),
@@ -234,7 +233,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
-        title={title}
+        title={state.title}
         dirty={dirty}
         projectReady={projectReady}
         savePending={saveProjectMutation.isPending}
@@ -250,8 +249,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onTitleChange={(nextTitle) => {
-          setTitle(nextTitle);
-          setDirty(true);
+          runtime.setTitle(nextTitle);
         }}
         onSave={() => saveProjectMutation.mutate()}
         onRecordToggle={toggleRecord}

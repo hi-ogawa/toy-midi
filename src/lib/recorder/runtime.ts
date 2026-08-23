@@ -51,6 +51,7 @@ interface TakeState {
 }
 
 export interface RecorderRuntimeState {
+  title: string;
   // Transport
   position: number;
   isPlaying: boolean;
@@ -71,6 +72,7 @@ const METRONOME_GAIN = 0.5;
 
 export class RecorderRuntime {
   readonly store = createStore<RecorderRuntimeState>(() => ({
+    title: "Untitled recording",
     position: 0,
     isPlaying: false,
     tempo: 120,
@@ -372,6 +374,10 @@ export class RecorderRuntime {
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
     this.metronome?.setTimeSignature(timeSignature);
+  }
+
+  setTitle(title: string): void {
+    this.store.update({ title });
   }
 
   exportProject(): RecorderProjectContent {
