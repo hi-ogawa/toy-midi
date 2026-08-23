@@ -138,7 +138,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     queryFn: async () => {
       const project = await recorderProjectStorage.load(projectId);
       runtime.importProject(project);
-      return project;
+      return true;
     },
   });
   const saveProjectMutation = useMutation({
