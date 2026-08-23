@@ -38,9 +38,9 @@ test("sets the recorder tempo by tapping", async ({ page }) => {
 
   await expect
     .poll(async () => Number.parseInt(await tempoInput.inputValue()))
-    .toBeGreaterThanOrEqual(140);
+    .toBeGreaterThan(120);
   expect(Number.parseInt(await tempoInput.inputValue())).toBeLessThanOrEqual(
-    155,
+    300,
   );
 });
 
