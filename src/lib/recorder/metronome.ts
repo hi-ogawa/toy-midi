@@ -90,8 +90,9 @@ export class RecorderMetronome implements TransportParticipant {
       output: this.output,
       contextTime,
       frequency: midiToHz(parseMidiPitch(accent ? "C7" : "G6")),
-      gain: accent ? 0.2 : 0.12,
-      duration: 0.03,
+      gain: 1,
+      attack: 0.001,
+      decay: 0.03,
     });
   }
 }
@@ -102,23 +103,30 @@ function scheduleOscillatorClick({
   contextTime,
   frequency,
   gain,
-  duration,
+  attack,
+  decay,
 }: {
   context: AudioContext;
   output: AudioNode;
   contextTime: number;
   frequency: number;
   gain: number;
-  duration: number;
+  attack: number;
+  decay: number;
 }): void {
   const oscillator = context.createOscillator();
   const envelope = context.createGain();
+  const attackEndTime = contextTime + attack;
+  const decayEndTime = attackEndTime + decay;
   oscillator.frequency.value = frequency;
-  envelope.gain.setValueAtTime(gain, contextTime);
-  envelope.gain.exponentialRampToValueAtTime(0.0001, contextTime + duration);
+  envelope.gain.setValueAtTime(0, contextTime);
+  envelope.gain.linearRampToValueAtTime(gain, attackEndTime);
+  const decayTimeConstant = Math.log(decay + 1) / Math.log(200);
+  envelope.gain.setTargetAtTime(0, attackEndTime, decayTimeConstant);
+  envelope.gain.linearRampToValueAtTime(0, decayEndTime);
   oscillator.connect(envelope).connect(output);
   oscillator.start(contextTime);
-  oscillator.stop(contextTime + duration);
+  oscillator.stop(decayEndTime);
 }
 
 function startInterval(callback: () => void, interval: number): () => void {
