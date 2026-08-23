@@ -824,7 +824,7 @@ function TimelineHeader({
   onSeek: (position: number) => void;
 }) {
   return (
-    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_minmax(0,1fr)] border-b border-neutral-700 bg-neutral-800">
+    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
@@ -1016,7 +1016,7 @@ function TrackRow({
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div
-      className="relative grid grid-cols-[13.5rem_minmax(0,1fr)] border-b border-neutral-700"
+      className="relative grid grid-cols-[13.5rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
