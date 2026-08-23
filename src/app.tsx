@@ -1,6 +1,7 @@
 import { Editor } from "./components/editor";
 import { LatencyChecker } from "./components/latency-checker";
 import { ProjectListView } from "./components/project-list-view";
+import { Recorder } from "./components/recorder";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
@@ -11,6 +12,9 @@ export function App() {
   const match = matchRoute(window.location.href);
 
   switch (match?.data) {
+    case "recorder": {
+      return <Recorder />;
+    }
     case "latencyChecker": {
       return <LatencyChecker />;
     }
