@@ -31,13 +31,7 @@ const metadata = new IdbStore<RecorderProjectMetadata>({
 
 export const recorderProjectStorage = {
   async list(): Promise<RecorderProjectMetadata[]> {
-    let result = await metadata.getAll();
-    if (result.length === 0) {
-      const legacyProjects = await projects.getAll();
-      result = legacyProjects.map(toMetadata);
-      await Promise.all(result.map((entry) => metadata.put(entry)));
-    }
-    return result.sort((a, b) => b.updatedAt - a.updatedAt);
+    return (await metadata.getAll()).sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
   async create(): Promise<string> {
