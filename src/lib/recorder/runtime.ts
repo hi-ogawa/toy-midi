@@ -318,8 +318,8 @@ export class RecorderRuntime {
       await this.play();
     }
     this.clearTake();
-    // Trim capture pre-roll in either start sequence by placing sample zero at
-    // the later of render-thread capture activation and playback start.
+    // Trim capture pre-roll whether recording starts before or during playback.
+    // Sample zero begins only after both capture and playback have started.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
