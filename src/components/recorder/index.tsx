@@ -285,7 +285,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clip={
                     track.clip
                       ? {
-                          duration: track.clip.duration,
+                          duration: track.clip.buffer.duration,
                           label: track.clip.name,
                           offset: track.timelineOffset,
                           variant: "audio",

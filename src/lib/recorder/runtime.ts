@@ -25,7 +25,7 @@ interface AudioTrackState {
   height: number;
   clip?: {
     name: string;
-    duration: number;
+    buffer: AudioBuffer;
     audioView: AudioView;
   };
   gain: number;
@@ -195,7 +195,7 @@ export class RecorderRuntime {
       ...track,
       clip: {
         name: file.name,
-        duration: buffer.duration,
+        buffer,
         audioView: createAudioView(
           buffer.getChannelData(0),
           buffer.sampleRate,
@@ -384,8 +384,7 @@ export class RecorderRuntime {
     return {
       title: state.title,
       audioTracks: state.audioTracks.map((track) => {
-        const buffer = this.audioTrackPlaybacks.get(track.id)?.buffer;
-        if (!track.clip || !buffer) {
+        if (!track.clip) {
           throw new Error(`Audio track ${track.id} has no loaded buffer.`);
         }
         return {
@@ -396,7 +395,7 @@ export class RecorderRuntime {
           muted: track.muted,
           soloed: track.soloed,
           timelineOffset: track.timelineOffset,
-          pcm: serializeAudioBuffer(buffer),
+          pcm: serializeAudioBuffer(track.clip.buffer),
         };
       }),
       recordingTrack: {
@@ -454,7 +453,7 @@ export class RecorderRuntime {
         height: track.height,
         clip: {
           name: track.name,
-          duration: buffer.duration,
+          buffer,
           audioView: createAudioView(
             buffer.getChannelData(0),
             buffer.sampleRate,
