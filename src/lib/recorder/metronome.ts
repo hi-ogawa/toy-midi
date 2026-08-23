@@ -1,3 +1,4 @@
+import { midiToHz } from "../music.ts";
 import { secondsToBeats } from "../timeline.ts";
 import type {
   AudioContextTransport,
@@ -88,7 +89,7 @@ export class RecorderMetronome implements TransportParticipant {
       context: this.transport.context,
       output: this.output,
       contextTime,
-      frequency: accent ? 1760 : 1320,
+      frequency: midiToHz(accent ? 93 : 88),
       gain: accent ? 0.2 : 0.12,
       duration: 0.03,
     });

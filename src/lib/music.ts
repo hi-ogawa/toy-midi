@@ -27,6 +27,10 @@ export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }
 
+export function midiToHz(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
 export function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
 }
