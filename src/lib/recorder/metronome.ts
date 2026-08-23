@@ -1,3 +1,4 @@
+import { secondsToBeats } from "../timeline.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -35,7 +36,7 @@ export class RecorderMetronome implements TransportParticipant {
     this.stop();
     const playbackAnchor = this.transport.playbackAnchor!;
     this.nextBeat = Math.ceil(
-      (playbackAnchor.position * this.tempo) / 60 - 1e-9,
+      secondsToBeats(playbackAnchor.position, this.tempo) - 1e-9,
     );
     this.schedule();
     this.disposeScheduling = startInterval(
