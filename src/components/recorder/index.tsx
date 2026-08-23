@@ -59,7 +59,11 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
-import { parseTimeSignature, type TimeSignature } from "../../types";
+import {
+  COMMON_TIME_SIGNATURES,
+  parseTimeSignature,
+  type TimeSignature,
+} from "../../types";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
@@ -76,9 +80,6 @@ import {
 } from "../ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
-
-const RECORDER_TIME_SIGNATURES = ["3/4", "4/4", "6/8"] as const;
-type RecorderTimeSignature = (typeof RECORDER_TIME_SIGNATURES)[number];
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -184,15 +185,14 @@ export function Recorder() {
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
-        pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onTimeSignatureChange={(timeSignature) => {
-          runtime.setTimeSignature(parseTimeSignature(timeSignature));
-        }}
+        onTimeSignatureChange={(timeSignature) =>
+          runtime.setTimeSignature(parseTimeSignature(timeSignature))
+        }
         onGridDivisionChange={timeline.setGridDivision}
       />
 
@@ -599,7 +599,6 @@ function RecorderHeader({
   tempo,
   timeSignature,
   gridDivision,
-  pixelsPerBeat,
   recordDisabled,
   onPlayToggle,
   onRecordToggle,
@@ -616,13 +615,12 @@ function RecorderHeader({
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
-  pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
-  onTimeSignatureChange: (value: RecorderTimeSignature) => void;
+  onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -711,15 +709,16 @@ function RecorderHeader({
         <DropdownMenuContent>
           <DropdownMenuRadioGroup
             value={timeSignatureValue}
-            onValueChange={(value) =>
-              onTimeSignatureChange(value as RecorderTimeSignature)
-            }
+            onValueChange={(value) => onTimeSignatureChange(value)}
           >
-            {RECORDER_TIME_SIGNATURES.map((value) => (
-              <DropdownMenuRadioItem key={value} value={value}>
-                {value}
-              </DropdownMenuRadioItem>
-            ))}
+            {COMMON_TIME_SIGNATURES.map(({ numerator, denominator }) => {
+              const value = `${numerator}/${denominator}`;
+              return (
+                <DropdownMenuRadioItem key={value} value={value}>
+                  {value}
+                </DropdownMenuRadioItem>
+              );
+            })}
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -746,9 +745,6 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
-      <span className="font-mono text-[10px] text-neutral-500">
-        {Math.round(pixelsPerBeat)} px/beat
-      </span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -1158,7 +1154,7 @@ function TimelineClip({
     },
   });
   const clipClass = {
-    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+    audio: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip.variant];
