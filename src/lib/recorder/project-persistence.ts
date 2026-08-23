@@ -14,29 +14,6 @@ export type RecorderProjectState = Pick<
   | "latencyCompensation"
 >;
 
-export interface RecorderPcm {
-  sampleRate: number;
-  channels: Float32Array[];
-}
-
-export interface RecorderProjectAudioTrack {
-  id: string;
-  height: number;
-  clip?: {
-    name: string;
-    pcm: RecorderPcm;
-  };
-  gain: number;
-  muted: boolean;
-  soloed: boolean;
-  timelineOffset: number;
-}
-
-export interface RecorderProjectTake {
-  timelineOffset: number;
-  pcm: RecorderPcm;
-}
-
 export interface RecorderProjectContent {
   title: string;
   audioTracks: RecorderProjectAudioTrack[];
@@ -53,6 +30,29 @@ export interface RecorderProjectContent {
     numerator: number;
     denominator: number;
   };
+}
+
+interface RecorderProjectAudioTrack {
+  id: string;
+  height: number;
+  clip?: {
+    name: string;
+    pcm: RecorderPcm;
+  };
+  gain: number;
+  muted: boolean;
+  soloed: boolean;
+  timelineOffset: number;
+}
+
+interface RecorderProjectTake {
+  timelineOffset: number;
+  pcm: RecorderPcm;
+}
+
+interface RecorderPcm {
+  sampleRate: number;
+  channels: Float32Array[];
 }
 
 export function serializeRecorderProject(
