@@ -37,7 +37,7 @@ export async function waitForAudioReady(page: Page): Promise<void> {
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
   await page.goto("/recorder");
-  await page.getByRole("button", { name: "New recording" }).click();
+  await page.getByTestId("new-recorder-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 }

@@ -56,4 +56,8 @@ test("saves and restores a recorder project", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete recording" }).click();
   await expect(page.getByText("Practice take", { exact: true })).toBeHidden();
+
+  // A stale deep link reports the missing project without retrying its read.
+  await page.goto(projectUrl);
+  await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
 });

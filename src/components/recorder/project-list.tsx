@@ -76,6 +76,7 @@ export function RecorderProjectList() {
               }
             >
               <Button
+                data-testid="new-recorder-project-button"
                 onClick={() => createProject.mutate()}
                 disabled={createProject.isPending}
                 className={
