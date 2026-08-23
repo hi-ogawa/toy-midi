@@ -752,9 +752,9 @@ function RecorderHeader({
           <Button
             title="More"
             aria-label="More"
-            className="size-8 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+            className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
           >
-            <MoreVerticalIcon className="size-4" />
+            <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
