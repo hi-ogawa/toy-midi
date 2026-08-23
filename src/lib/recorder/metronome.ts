@@ -6,7 +6,6 @@ import type {
 
 const SCHEDULE_AHEAD_SECONDS = 0.1;
 const SCHEDULER_INTERVAL_MS = 25;
-const CLICK_DURATION_SECONDS = 0.03;
 
 export class RecorderMetronome implements TransportParticipant {
   private readonly output: GainNode;
@@ -91,7 +90,7 @@ export class RecorderMetronome implements TransportParticipant {
       contextTime,
       frequency: accent ? 1760 : 1320,
       gain: accent ? 0.2 : 0.12,
-      duration: CLICK_DURATION_SECONDS,
+      duration: 0.03,
     });
   }
 }
