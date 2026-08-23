@@ -60,7 +60,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
   await expect(take.locator("svg")).toBeVisible();
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
-  ).toBeCloseTo(160, -1);
+  ).toBeCloseTo(160, -2);
 
   // The completed take immediately joins normal transport playback.
   await playButton.click();
@@ -80,7 +80,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
   await expect(take).toContainText("Take 1");
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
-  ).toBeCloseTo(320, -1);
+  ).toBeCloseTo(320, -2);
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {

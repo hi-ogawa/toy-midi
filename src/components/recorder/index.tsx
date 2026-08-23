@@ -24,7 +24,12 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import { dbToPercent, gainToPercent, percentToGain } from "../../lib/music";
+import {
+  dbToPercent,
+  formatGainDb,
+  gainToPercent,
+  percentToGain,
+} from "../../lib/music";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -36,8 +41,21 @@ import {
 import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
 import {
+  formatMilliseconds,
+  formatTimeWithMilliseconds,
+} from "../../lib/time-format";
+import {
   beatsToSeconds,
+  DEFAULT_GRID_DIVISION,
+  DEFAULT_PIXELS_PER_BEAT,
+  formatBarBeatAtTime,
+  getBeatsPerBar,
+  getSubdivisionsPerBeat,
   getVisibleBarInterval,
+  GRID_DIVISIONS,
+  type GridDivision,
+  MAX_PIXELS_PER_BEAT,
+  MIN_PIXELS_PER_BEAT,
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
@@ -62,20 +80,6 @@ import {
 } from "../ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
-import {
-  DEFAULT_PIXELS_PER_BEAT,
-  DEFAULT_RECORDER_GRID_DIVISION,
-  MAX_PIXELS_PER_BEAT,
-  MIN_PIXELS_PER_BEAT,
-  formatBarBeat,
-  formatDb,
-  formatLatencyMilliseconds,
-  formatTime,
-  getRecorderBeatsPerBar,
-  getRecorderSubdivisionsPerBeat,
-  RECORDER_GRID_DIVISIONS,
-  RecorderGridDivision,
-} from "./utils";
 
 export function Recorder() {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -287,9 +291,9 @@ export function Recorder() {
               title="Capture"
               subtitle={
                 isRecording
-                  ? `Recording · ${formatTime(take?.duration ?? 0)}`
+                  ? `Recording · ${formatTimeWithMilliseconds(take?.duration ?? 0)}`
                   : take
-                    ? `Take 1 · ${formatTime(take.duration)}`
+                    ? `Take 1 · ${formatTimeWithMilliseconds(take.duration)}`
                     : "No take"
               }
               gain={state.recordingTrack.gain}
@@ -509,14 +513,14 @@ function useRecorderTimeline({
   tempo: number;
   timeSignature: TimeSignature;
 }) {
-  const [gridDivision, setGridDivision] = useState<RecorderGridDivision>(
-    DEFAULT_RECORDER_GRID_DIVISION,
+  const [gridDivision, setGridDivision] = useState<GridDivision>(
+    DEFAULT_GRID_DIVISION,
   );
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
-  const subdivisionsPerBeat = getRecorderSubdivisionsPerBeat(gridDivision);
+  const beatsPerBar = getBeatsPerBar(timeSignature);
+  const subdivisionsPerBeat = getSubdivisionsPerBeat(gridDivision);
   const playheadX =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
@@ -610,14 +614,14 @@ function RecorderHeader({
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
-  gridDivision: RecorderGridDivision;
+  gridDivision: GridDivision;
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
-  onGridDivisionChange: (value: RecorderGridDivision) => void;
+  onGridDivisionChange: (value: GridDivision) => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -687,7 +691,8 @@ function RecorderHeader({
         data-testid="recorder-position"
         className="font-mono text-sm tabular-nums text-neutral-300"
       >
-        {formatBarBeat(position, tempo, timeSignature)} - {formatTime(position)}
+        {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
+        {formatTimeWithMilliseconds(position)}
       </output>
       <div className="h-5 w-px bg-neutral-600" />
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
@@ -733,10 +738,10 @@ function RecorderHeader({
           <DropdownMenuRadioGroup
             value={gridDivision}
             onValueChange={(value) =>
-              onGridDivisionChange(value as RecorderGridDivision)
+              onGridDivisionChange(value as GridDivision)
             }
           >
-            {RECORDER_GRID_DIVISIONS.map((value) => (
+            {GRID_DIVISIONS.map((value) => (
               <DropdownMenuRadioItem key={value} value={value}>
                 {value}
               </DropdownMenuRadioItem>
@@ -1030,7 +1035,7 @@ function TrackRow({
               className="w-full accent-emerald-600"
             />
           </div>
-          <span className="text-right font-mono">{formatDb(gain)}</span>
+          <span className="text-right font-mono">{formatGainDb(gain)}</span>
         </label>
       </div>
       {children}
@@ -1282,7 +1287,7 @@ function InputInspector({
     min: 0,
     step: 0.1,
     parse: "float",
-    format: formatLatencyMilliseconds,
+    format: formatMilliseconds,
   });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
