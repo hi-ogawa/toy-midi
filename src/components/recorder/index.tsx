@@ -195,11 +195,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   useWindowEvent("keydown", (event) => {
-    if (
-      matchKeyboardEvent(event, "S") &&
-      (event.ctrlKey || event.metaKey) &&
-      !event.repeat
-    ) {
+    if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
       if (projectReady && dirty && !saveProjectMutation.isPending) {
         saveProjectMutation.mutate();

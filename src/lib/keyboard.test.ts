@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShortcut } from "./keyboard";
+import { matchKeyboardEvent, parseShortcut } from "./keyboard";
 
 describe("parseShortcut", () => {
   it("parses plain letter shortcuts without modifiers", () => {
@@ -93,5 +93,22 @@ describe("parseShortcut", () => {
     expect(() => parseShortcut("Bs")).toThrowErrorMatchingInlineSnapshot(
       `[Error: Invalid shortcut 'Bs']`,
     );
+  });
+});
+
+describe("matchKeyboardEvent", () => {
+  it("matches Ctrl shortcuts with Control or Command", () => {
+    const event = {
+      key: "s",
+      code: "KeyS",
+      shiftKey: false,
+      altKey: false,
+      ctrlKey: true,
+      metaKey: false,
+    };
+    expect(matchKeyboardEvent(event, "Ctrl+S")).toBe(true);
+    expect(
+      matchKeyboardEvent({ ...event, ctrlKey: false, metaKey: true }, "Ctrl+S"),
+    ).toBe(true);
   });
 });

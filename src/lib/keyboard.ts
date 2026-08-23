@@ -88,10 +88,10 @@ export function matchKeyboardEvent(
     return false;
   }
 
-  if (e.metaKey) {
+  if ((e.ctrlKey || e.metaKey) !== parsed.modifiers.ctrl) {
     return false;
   }
-  if (e.ctrlKey !== parsed.modifiers.ctrl) {
+  if (e.ctrlKey && e.metaKey) {
     return false;
   }
   if (e.shiftKey !== parsed.modifiers.shift) {
