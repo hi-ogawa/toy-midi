@@ -5,7 +5,7 @@ import {
   type SavedRecorderProject,
 } from "./project.ts";
 
-interface RecorderProjectMetadata {
+export interface RecorderProjectMetadata {
   id: string;
   title: string;
   updatedAt: number;

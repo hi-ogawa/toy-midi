@@ -1,7 +1,9 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, PlusIcon, Trash2Icon } from "lucide-react";
-import type { SavedRecorderProject } from "../../lib/recorder/project";
-import { recorderProjectStorage } from "../../lib/recorder/project-storage";
+import {
+  type RecorderProjectMetadata,
+  recorderProjectStorage,
+} from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
 import { Button } from "../ui/button";
@@ -82,7 +84,7 @@ function RecorderProjectListItem({
   deletePending,
   onDelete,
 }: {
-  project: Pick<SavedRecorderProject, "id" | "title" | "updatedAt">;
+  project: RecorderProjectMetadata;
   deletePending: boolean;
   onDelete: () => void;
 }) {
