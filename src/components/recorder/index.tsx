@@ -179,7 +179,6 @@ export function Recorder() {
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
-        pixelsPerBeat={timeline.pixelsPerBeat}
         recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
@@ -594,7 +593,6 @@ function RecorderHeader({
   tempo,
   timeSignature,
   gridDivision,
-  pixelsPerBeat,
   recordDisabled,
   onPlayToggle,
   onRecordToggle,
@@ -611,7 +609,6 @@ function RecorderHeader({
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: RecorderGridDivision;
-  pixelsPerBeat: number;
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
@@ -740,9 +737,6 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
-      <span className="font-mono text-[10px] text-neutral-500">
-        {Math.round(pixelsPerBeat)} px/beat
-      </span>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -1152,7 +1146,7 @@ function TimelineClip({
     },
   });
   const clipClass = {
-    audio: "border-blue-400/60 bg-blue-400/20 text-blue-100",
+    audio: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip.variant];
