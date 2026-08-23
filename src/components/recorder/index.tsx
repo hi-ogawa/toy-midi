@@ -91,7 +91,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const [dirty, setDirty] = useState(false);
   const input = useRecorderInput({
     runtime,
     state,
@@ -133,6 +132,8 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
+
+  const [dirty, setDirty] = useState(false);
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
     queryFn: async () => {
@@ -148,6 +149,16 @@ export function Recorder({ projectId }: { projectId: string }) {
         content: runtime.exportProject(),
       }),
     onSuccess: () => setDirty(false),
+  });
+
+  useEffect(() => {
+    runtime.store.subscribe(() => setDirty(true));
+  }, [runtime]);
+
+  useWindowEvent("beforeunload", (event) => {
+    if (dirty) {
+      event.preventDefault();
+    }
   });
 
   const projectReady = projectQuery.isSuccess || projectQuery.isError;
@@ -212,14 +223,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       timeline.setAutoScrollEnabled(!timeline.autoScrollEnabled);
     }
   });
-
-  useWindowEvent("beforeunload", (event) => {
-    if (dirty) {
-      event.preventDefault();
-    }
-  });
-
-  useEffect(() => runtime.store.subscribe(() => setDirty(true)), [runtime]);
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
