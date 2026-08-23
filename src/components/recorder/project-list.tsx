@@ -105,7 +105,12 @@ function RecorderProjectListItem({
       >
         <div className="truncate font-medium">{project.title}</div>
         <div className="mt-1 text-xs text-neutral-500">
-          Last saved {new Date(project.updatedAt).toLocaleString()}
+          Last edited{" "}
+          {new Date(project.updatedAt).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
         </div>
       </a>
       <Button
