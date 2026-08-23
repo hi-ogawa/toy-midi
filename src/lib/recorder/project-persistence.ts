@@ -13,12 +13,14 @@ export interface RecorderPcm {
 export interface RecorderProjectAudioTrack {
   id: string;
   height: number;
-  name: string;
+  clip?: {
+    name: string;
+    pcm: RecorderPcm;
+  };
   gain: number;
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
-  pcm: RecorderPcm;
 }
 
 export interface RecorderProjectTake {
@@ -49,21 +51,20 @@ export function serializeRecorderProject(
 ): RecorderProjectContent {
   return {
     title: state.title,
-    audioTracks: state.audioTracks.map((track) => {
-      if (!track.clip) {
-        throw new Error(`Audio track ${track.id} has no loaded buffer.`);
-      }
-      return {
-        id: track.id,
-        height: track.height,
-        name: track.clip.name,
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
-        timelineOffset: track.timelineOffset,
-        pcm: serializeAudioBuffer(track.clip.buffer),
-      };
-    }),
+    audioTracks: state.audioTracks.map((track) => ({
+      id: track.id,
+      height: track.height,
+      clip: track.clip
+        ? {
+            name: track.clip.name,
+            pcm: serializeAudioBuffer(track.clip.buffer),
+          }
+        : undefined,
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+      timelineOffset: track.timelineOffset,
+    })),
     recordingTrack: {
       height: state.recordingTrack.height,
       gain: state.recordingTrack.gain,
@@ -105,19 +106,24 @@ export function deserializeRecorderProject({
   return {
     title: project.title,
     audioTracks: project.audioTracks.map((track) => {
-      const buffer = deserializeAudioBuffer(context, track.pcm);
+      const buffer = track.clip
+        ? deserializeAudioBuffer(context, track.clip.pcm)
+        : undefined;
       return {
         id: track.id,
         height: track.height,
-        clip: {
-          name: track.name,
-          buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            RECORDER_WAVEFORM_POINTS_PER_SECOND,
-          ),
-        },
+        clip:
+          track.clip && buffer
+            ? {
+                name: track.clip.name,
+                buffer,
+                audioView: createAudioView(
+                  buffer.getChannelData(0),
+                  buffer.sampleRate,
+                  RECORDER_WAVEFORM_POINTS_PER_SECOND,
+                ),
+              }
+            : undefined,
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
