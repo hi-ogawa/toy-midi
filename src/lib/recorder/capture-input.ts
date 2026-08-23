@@ -63,7 +63,6 @@ export class CaptureInput {
     ]);
     return {
       input,
-      settings: track.getSettings(),
       channelCount,
     };
   }

@@ -377,7 +377,7 @@ function useRecorderInput({
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
-  const active = state.inputSettings !== undefined;
+  const active = state.captureStatus !== "disabled";
   const [preference, setPreference] = useState(() =>
     recorderStorage.readPreferences(),
   );

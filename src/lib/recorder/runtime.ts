@@ -51,7 +51,6 @@ export interface RecorderRuntimeState {
   metronomeEnabled: boolean;
   audioTracks: AudioTrackState[];
   captureStatus: CaptureStatus;
-  inputSettings?: MediaTrackSettings;
   inputChannelCount: number;
   selectedChannel: number;
   recordingTrack: RecordingTrackState;
@@ -95,7 +94,7 @@ export class RecorderRuntime {
     const context = this.ensureContext();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
-    const { input, settings, channelCount } = await CaptureInput.open({
+    const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
       onNotification: (message) => {
@@ -146,7 +145,6 @@ export class RecorderRuntime {
 
     this.store.update({
       captureStatus: "ready",
-      inputSettings: settings,
       inputChannelCount: channelCount,
       selectedChannel: 0,
     });
@@ -157,7 +155,6 @@ export class RecorderRuntime {
     this.closeInput();
     this.store.update({
       captureStatus: "disabled",
-      inputSettings: undefined,
       inputChannelCount: 0,
       selectedChannel: 0,
     });
