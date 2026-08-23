@@ -317,7 +317,7 @@ export function Recorder() {
                           : isProcessing
                             ? "Finalizing..."
                             : "Take 1",
-                        offset: state.getTakeOffset(),
+                        offset: take.timelineOffset,
                         variant: isRecording ? "recording" : "take",
                         audioView: take.audioView,
                       }
