@@ -61,6 +61,8 @@ export interface RecorderRuntimeState {
   getTakeOffset: () => number;
 }
 
+const METRONOME_GAIN = 0.5;
+
 export class RecorderRuntime {
   readonly store = createStore<RecorderRuntimeState>((get) => ({
     position: 0,
@@ -374,7 +376,7 @@ export class RecorderRuntime {
 
   setMetronomeEnabled(metronomeEnabled: boolean): void {
     this.store.update({ metronomeEnabled });
-    this.metronome?.setGain(metronomeEnabled ? 1 : 0);
+    this.metronome?.setGain(metronomeEnabled ? METRONOME_GAIN : 0);
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
@@ -392,7 +394,9 @@ export class RecorderRuntime {
       });
       this.syncTrackMix();
       this.metronome = new RecorderMetronome(this.transport);
-      this.metronome.setGain(this.store.get().metronomeEnabled ? 1 : 0);
+      this.metronome.setGain(
+        this.store.get().metronomeEnabled ? METRONOME_GAIN : 0,
+      );
       this.metronome.setTempo(this.store.get().tempo);
       this.metronome.setTimeSignature(this.store.get().timeSignature);
       this.transport.store.subscribe(() => {
