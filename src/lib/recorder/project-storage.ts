@@ -99,7 +99,6 @@ function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
   return {
     id: project.id,
     updatedAt: project.updatedAt,
-
     title: project.content.title,
   };
 }
