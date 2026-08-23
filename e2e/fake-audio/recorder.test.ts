@@ -1,4 +1,4 @@
-import { open } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -73,11 +73,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^toy-midi-take-1-.*\.wav$/);
   const downloadPath = test.info().outputPath("take.wav");
   await download.saveAs(downloadPath);
-  const file = await open(downloadPath);
-  const header = Buffer.alloc(4);
-  await file.read(header, 0, header.length, 0);
-  await file.close();
-  expect(header.toString()).toBe("RIFF");
+  expect(readFileSync(downloadPath).subarray(0, 4).toString()).toBe("RIFF");
 
   // The completed take immediately joins normal transport playback.
   await playButton.click();
