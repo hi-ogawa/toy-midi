@@ -16,6 +16,10 @@ import { projectStorage } from "../lib/project-storage";
 import { useProjectStore } from "../lib/project-store";
 import { formatTimeCompact } from "../lib/time-format";
 import {
+  formatBarBeat as formatBarBeatPosition,
+  secondsToBeats,
+} from "../lib/timeline";
+import {
   COMMON_TIME_SIGNATURES,
   type GridSnap,
   parseTimeSignature,
@@ -327,11 +331,10 @@ function TimeDisplay({ tempo }: { tempo: number }) {
 }
 
 function formatBarBeat(seconds: number, tempo: number): string {
-  const beatsPerSecond = tempo / 60;
-  const totalBeats = seconds * beatsPerSecond;
+  const totalBeats = secondsToBeats(seconds, tempo);
   const bar = Math.floor(totalBeats / 4) + 1; // 4/4 time signature
   const beatInBar = Math.floor(totalBeats % 4) + 1;
-  return `${String(bar).padStart(2, "0")}|${String(beatInBar).padStart(2, "0")}`;
+  return formatBarBeatPosition(bar, beatInBar);
 }
 
 // GM instrument groups for organized display
