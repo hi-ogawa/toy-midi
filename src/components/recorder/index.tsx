@@ -6,6 +6,7 @@ import {
   CircleStopIcon,
   HouseIcon,
   LoaderCircleIcon,
+  LocateFixedIcon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -90,6 +91,7 @@ export function Recorder() {
     state,
   });
   const timeline = useRecorderTimeline({
+    isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
@@ -169,6 +171,9 @@ export function Recorder() {
     } else if (matchKeyboardEvent(event, "M")) {
       event.preventDefault();
       runtime.setMetronomeEnabled(!state.metronomeEnabled);
+    } else if (matchKeyboardEvent(event, "F")) {
+      event.preventDefault();
+      timeline.setAutoScrollEnabled(!timeline.autoScrollEnabled);
     }
   });
 
@@ -178,6 +183,7 @@ export function Recorder() {
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
+        autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
         position={state.position}
         tempo={timeline.tempo}
@@ -186,6 +192,7 @@ export function Recorder() {
         recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onRecordToggle={toggleRecord}
+        onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onTimeSignatureChange={(timeSignature) =>
@@ -518,10 +525,12 @@ function useRecorderInput({
 }
 
 function useRecorderTimeline({
+  isPlaying,
   position,
   tempo,
   timeSignature,
 }: {
+  isPlaying: boolean;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -529,6 +538,7 @@ function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -537,6 +547,28 @@ function useRecorderTimeline({
   const playheadX =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  useEffect(() => {
+    if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
+      return;
+    }
+    const playheadBeat = secondsToBeats(position, tempo);
+    const visibleBeats = viewportWidth / pixelsPerBeat;
+    if (
+      playheadBeat > viewportStartBeat + visibleBeats * 0.8 ||
+      playheadBeat < viewportStartBeat
+    ) {
+      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.2));
+    }
+  }, [
+    autoScrollEnabled,
+    isPlaying,
+    pixelsPerBeat,
+    position,
+    tempo,
+    viewportStartBeat,
+    viewportWidth,
+  ]);
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
@@ -588,12 +620,14 @@ function useRecorderTimeline({
   );
 
   return {
+    autoScrollEnabled,
     beatsPerBar,
     gridDivision,
     pixelsPerBeat,
     playheadX,
     viewportStartBeat,
     setGridDivision,
+    setAutoScrollEnabled,
     subdivisionsPerBeat,
     tempo,
     timeSignature,
@@ -604,6 +638,7 @@ function useRecorderTimeline({
 }
 
 function RecorderHeader({
+  autoScrollEnabled,
   isPlaying,
   isProcessing,
   isRecording,
@@ -615,11 +650,13 @@ function RecorderHeader({
   recordDisabled,
   onPlayToggle,
   onRecordToggle,
+  onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
   onTimeSignatureChange,
   onGridDivisionChange,
 }: {
+  autoScrollEnabled: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -631,6 +668,7 @@ function RecorderHeader({
   recordDisabled: boolean;
   onPlayToggle: () => void;
   onRecordToggle: () => void;
+  onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
@@ -684,6 +722,19 @@ function RecorderHeader({
         )}
       >
         <MetronomeIcon className="size-5" />
+      </Button>
+      <Button
+        onClick={() => onAutoScrollChange(!autoScrollEnabled)}
+        aria-pressed={autoScrollEnabled}
+        title="Toggle auto-scroll (F)"
+        className={cn(
+          "size-9",
+          autoScrollEnabled
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        )}
+      >
+        <LocateFixedIcon className="size-5" />
       </Button>
       <Button
         data-testid="recorder-record-button"
