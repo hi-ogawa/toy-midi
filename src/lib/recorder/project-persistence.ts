@@ -70,10 +70,7 @@ export function serializeRecorderProject(
       gain: state.recordingTrack.gain,
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
-      takes: state.recordingTrack.takes.map((take, index) => {
-        if (index !== 0) {
-          throw new Error("Multiple persisted takes are not supported yet.");
-        }
+      takes: state.recordingTrack.takes.map((take) => {
         if (!take.buffer) {
           throw new Error("Recording take has no loaded buffer.");
         }
@@ -96,13 +93,6 @@ export function deserializeRecorderProject({
   context: AudioContext;
   project: RecorderProjectContent;
 }): RecorderProjectState {
-  if (project.recordingTrack.takes.length > 1) {
-    throw new Error("Multiple persisted takes are not supported yet.");
-  }
-  const take = project.recordingTrack.takes[0];
-  const takeBuffer = take
-    ? deserializeAudioBuffer(context, take.pcm)
-    : undefined;
   return {
     title: project.title,
     audioTracks: project.audioTracks.map((track) => {
@@ -135,20 +125,19 @@ export function deserializeRecorderProject({
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
-      takes: takeBuffer
-        ? [
-            {
-              duration: takeBuffer.duration,
-              timelineOffset: take!.timelineOffset,
-              buffer: takeBuffer,
-              audioView: createAudioView(
-                takeBuffer.getChannelData(0),
-                takeBuffer.sampleRate,
-                RECORDER_WAVEFORM_POINTS_PER_SECOND,
-              ),
-            },
-          ]
-        : [],
+      takes: project.recordingTrack.takes.map((take) => {
+        const buffer = deserializeAudioBuffer(context, take.pcm);
+        return {
+          duration: buffer.duration,
+          timelineOffset: take.timelineOffset,
+          buffer,
+          audioView: createAudioView(
+            buffer.getChannelData(0),
+            buffer.sampleRate,
+            RECORDER_WAVEFORM_POINTS_PER_SECOND,
+          ),
+        };
+      }),
     },
     latencyCompensation: project.latencyCompensation,
     tempo: project.tempo,
