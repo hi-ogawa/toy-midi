@@ -636,6 +636,7 @@ function RecorderHeader({
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
+        data-testid="recorder-play-button"
         onClick={onPlayToggle}
         disabled={isProcessing}
         aria-pressed={isPlaying}
@@ -667,6 +668,7 @@ function RecorderHeader({
         <MetronomeIcon className="size-5" />
       </Button>
       <Button
+        data-testid="recorder-record-button"
         onClick={onRecordToggle}
         disabled={recordDisabled || isProcessing}
         aria-pressed={isRecording}
@@ -685,7 +687,10 @@ function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
-      <output className="font-mono text-sm tabular-nums text-neutral-300">
+      <output
+        data-testid="recorder-position"
+        className="font-mono text-sm tabular-nums text-neutral-300"
+      >
         {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}
         {formatTimeWithMilliseconds(position)}
       </output>
@@ -806,6 +811,7 @@ function TimelineHeader({
             <PlusIcon className="size-3.5" />
           </Button>
           <Button
+            data-testid="recorder-add-audio-file"
             disabled={isAddingAudio}
             onClick={() =>
               openFilePicker({
@@ -908,6 +914,7 @@ function TimelineRuler({
     ) + 1;
   return (
     <div
+      data-testid="recorder-timeline-ruler"
       className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
       style={getTimelineGridStyle({
         beatsPerBar,
@@ -1176,6 +1183,7 @@ function TimelineClip({
   );
   return (
     <div
+      data-testid={`recorder-clip-${clip.variant}`}
       ref={onClipOffsetChange ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
