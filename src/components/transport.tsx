@@ -211,7 +211,7 @@ export function Transport({ projectName, controls }: TransportProps) {
           <DropdownMenuRadioGroup
             value={`${timeSignature.numerator}/${timeSignature.denominator}`}
             onValueChange={(v) => {
-              setTimeSignature(parseTimeSignature(v as `${number}/${number}`));
+              setTimeSignature(parseTimeSignature(v));
             }}
           >
             {COMMON_TIME_SIGNATURES.map((ts) => (

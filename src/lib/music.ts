@@ -32,7 +32,7 @@ export function clampPitch(pitch: number): number {
   return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
 }
 
-export function parseMidiPitch(pitch: `${NoteLetter}${number}`): number {
+export function parseMidiPitch(pitch: string): number {
   const match = /^([A-G])(\d+)$/.exec(pitch);
   if (!match) {
     throw new Error(`Invalid MIDI pitch: ${pitch}`);
