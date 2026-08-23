@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
   CircleIcon,
@@ -13,6 +13,7 @@ import {
   PauseIcon,
   PlayIcon,
   PlusIcon,
+  SaveIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -38,6 +39,7 @@ import {
   getCaptureInputs,
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
+import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -83,7 +85,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
-export function Recorder() {
+export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
     runtime.store.subscribe,
@@ -99,6 +101,7 @@ export function Recorder() {
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
+  const project = useRecorderProject({ projectId, runtime });
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -136,6 +139,7 @@ export function Recorder() {
   const isProcessing = state.captureStatus === "processing";
   const error =
     input.error ??
+    project.error ??
     addAudioMutation.error ??
     audioTrackMutation.error ??
     playMutation.error ??
@@ -162,6 +166,13 @@ export function Recorder() {
   }
 
   useWindowEvent("keydown", (event) => {
+    if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
+      event.preventDefault();
+      if (project.ready && project.dirty && !project.saving) {
+        project.save();
+      }
+      return;
+    }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
@@ -183,6 +194,10 @@ export function Recorder() {
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
+        title={state.title}
+        dirty={project.dirty}
+        projectReady={project.ready}
+        savePending={project.saving}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -194,6 +209,10 @@ export function Recorder() {
         gridDivision={timeline.gridDivision}
         recordDisabled={state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
+        onTitleChange={(nextTitle) => {
+          runtime.setTitle(nextTitle);
+        }}
+        onSave={project.save}
         onRecordToggle={toggleRecord}
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
@@ -266,7 +285,7 @@ export function Recorder() {
                   clip={
                     track.clip
                       ? {
-                          duration: track.clip.duration,
+                          duration: track.clip.buffer.duration,
                           label: track.clip.name,
                           offset: track.timelineOffset,
                           variant: "audio",
@@ -404,6 +423,54 @@ export function Recorder() {
       </div>
     </main>
   );
+}
+
+function useRecorderProject({
+  projectId,
+  runtime,
+}: {
+  projectId: string;
+  runtime: RecorderRuntime;
+}) {
+  const [dirty, setDirty] = useState(false);
+
+  const projectQuery = useQuery({
+    queryKey: ["recorder-project", projectId],
+    retry: false,
+    refetchOnMount: false,
+    queryFn: async () => {
+      const project = await recorderProjectStorage.load(projectId);
+      runtime.deserializeProject(project);
+      return true;
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      recorderProjectStorage.save({
+        id: projectId,
+        content: runtime.serializeProject(),
+      }),
+    onSuccess: () => setDirty(false),
+  });
+
+  useEffect(() => {
+    runtime.store.subscribe(() => setDirty(true));
+  }, [runtime]);
+
+  useWindowEvent("beforeunload", (event) => {
+    if (dirty) {
+      event.preventDefault();
+    }
+  });
+
+  return {
+    dirty,
+    error: projectQuery.error ?? saveMutation.error,
+    ready: projectQuery.isSuccess || projectQuery.isError,
+    save: saveMutation.mutate,
+    saving: saveMutation.isPending,
+  };
 }
 
 function useRecorderInput({
@@ -664,6 +731,10 @@ function useRecorderTimeline({
 }
 
 function RecorderHeader({
+  title,
+  dirty,
+  projectReady,
+  savePending,
   isPlaying,
   isProcessing,
   isRecording,
@@ -675,6 +746,8 @@ function RecorderHeader({
   recordDisabled,
   autoScrollEnabled,
   onPlayToggle,
+  onTitleChange,
+  onSave,
   onRecordToggle,
   onAutoScrollChange,
   onTempoChange,
@@ -682,6 +755,10 @@ function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
 }: {
+  title: string;
+  dirty: boolean;
+  projectReady: boolean;
+  savePending: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -693,6 +770,8 @@ function RecorderHeader({
   recordDisabled: boolean;
   autoScrollEnabled: boolean;
   onPlayToggle: () => void;
+  onTitleChange: (title: string) => void;
+  onSave: () => void;
   onRecordToggle: () => void;
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
@@ -854,6 +933,21 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <button
+        type="button"
+        data-testid="recorder-project-name"
+        title="Rename project"
+        onClick={() => {
+          const nextTitle = window.prompt("Project name", title)?.trim();
+          if (nextTitle && nextTitle !== title) {
+            onTitleChange(nextTitle);
+          }
+        }}
+        className="max-w-[220px] truncate text-sm text-neutral-300 hover:text-neutral-100"
+      >
+        {title}
+      </button>
+      <div className="h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -865,10 +959,31 @@ function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={onSave}
+            disabled={
+              !projectReady ||
+              !dirty ||
+              isRecording ||
+              isProcessing ||
+              savePending
+            }
+          >
+            <SaveIcon />
+            Save
+            <span className="ml-auto text-xs text-neutral-500">Ctrl+S</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
               Home
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a href={routes.recorder.href()}>
+              <Mic2Icon />
+              Recorder projects
             </a>
           </DropdownMenuItem>
         </DropdownMenuContent>

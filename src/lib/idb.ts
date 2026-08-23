@@ -8,6 +8,7 @@ export class IdbStore<T> {
       storeName: string;
       version: number;
       keyPath: string;
+      storeNames?: string[];
     },
   ) {}
 
@@ -21,6 +22,10 @@ export class IdbStore<T> {
 
   async delete(key: string): Promise<void> {
     await this.request("readwrite", (store) => store.delete(key));
+  }
+
+  async getAll(): Promise<T[]> {
+    return await this.request("readonly", (store) => store.getAll());
   }
 
   private openDB(): Promise<IDBDatabase> {
@@ -39,10 +44,11 @@ export class IdbStore<T> {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(this.options.storeName)) {
-          db.createObjectStore(this.options.storeName, {
-            keyPath: this.options.keyPath,
-          });
+        const storeNames = this.options.storeNames ?? [this.options.storeName];
+        for (const storeName of storeNames) {
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: this.options.keyPath });
+          }
         }
       };
     });

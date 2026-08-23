@@ -4,11 +4,16 @@ import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
+import {
+  deserializeRecorderRuntimeState,
+  type SerializedRecorderRuntimeState,
+  serializeRecorderRuntimeState,
+} from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
-const WAVEFORM_POINTS_PER_SECOND = 800;
+export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MAX_TRACK_HEIGHT = 300;
@@ -20,7 +25,7 @@ interface AudioTrackState {
   height: number;
   clip?: {
     name: string;
-    duration: number;
+    buffer: AudioBuffer;
     audioView: AudioView;
   };
   gain: number;
@@ -45,6 +50,7 @@ interface TakeState {
 }
 
 export interface RecorderRuntimeState {
+  title: string;
   // Transport
   position: number;
   isPlaying: boolean;
@@ -61,10 +67,21 @@ export interface RecorderRuntimeState {
   latencyCompensation: number;
 }
 
+export type PersistableRecorderRuntimeState = Pick<
+  RecorderRuntimeState,
+  | "title"
+  | "tempo"
+  | "timeSignature"
+  | "audioTracks"
+  | "recordingTrack"
+  | "latencyCompensation"
+>;
+
 const METRONOME_GAIN = 0.5;
 
-export class RecorderRuntime {
-  readonly store = createStore<RecorderRuntimeState>(() => ({
+export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
+  return {
+    title: "Untitled recording",
     position: 0,
     isPlaying: false,
     tempo: 120,
@@ -76,7 +93,11 @@ export class RecorderRuntime {
     inputChannelCount: 0,
     selectedChannel: 0,
     latencyCompensation: 0,
-  }));
+  };
+}
+
+export class RecorderRuntime {
+  readonly store = createStore(createDefaultRecorderRuntimeState);
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
@@ -188,7 +209,7 @@ export class RecorderRuntime {
       ...track,
       clip: {
         name: file.name,
-        duration: buffer.duration,
+        buffer,
         audioView: createAudioView(
           buffer.getChannelData(0),
           buffer.sampleRate,
@@ -366,6 +387,64 @@ export class RecorderRuntime {
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
     this.metronome?.setTimeSignature(timeSignature);
+  }
+
+  setTitle(title: string): void {
+    this.store.update({ title });
+  }
+
+  serializeProject(): SerializedRecorderRuntimeState {
+    return serializeRecorderRuntimeState(this.store.get());
+  }
+
+  deserializeProject(project: SerializedRecorderRuntimeState): void {
+    this.replacePersistableState(
+      deserializeRecorderRuntimeState({
+        context: this.ensureContext(),
+        project,
+      }),
+    );
+  }
+
+  private replacePersistableState(
+    project: PersistableRecorderRuntimeState,
+  ): void {
+    if (
+      this.store.get().captureStatus === "recording" ||
+      this.store.get().captureStatus === "processing"
+    ) {
+      throw new Error("Cannot load a project while recording.");
+    }
+    const context = this.ensureContext();
+    this.pause();
+    for (const playback of this.audioTrackPlaybacks.values()) {
+      playback.dispose();
+    }
+    this.audioTrackPlaybacks.clear();
+    for (const track of project.audioTracks) {
+      const buffer = track.clip?.buffer;
+      if (!buffer) {
+        continue;
+      }
+      const playback = new AudioBufferPlayback({
+        transport: this.transport!,
+        output: context.destination,
+      });
+      playback.setBuffer(buffer);
+      playback.setTimelineOffset(track.timelineOffset);
+      this.audioTrackPlaybacks.set(track.id, playback);
+    }
+    const take = project.recordingTrack.takes[0];
+    this.recordingTrackPlayback!.stop();
+    this.recordingTrackPlayback!.setBuffer(take?.buffer);
+    this.store.update({
+      ...project,
+      position: 0,
+    });
+    this.transport!.seek(0);
+    this.metronome!.setTempo(project.tempo);
+    this.metronome!.setTimeSignature(project.timeSignature);
+    this.syncTrackMix();
   }
 
   private ensureContext(): AudioContext {
