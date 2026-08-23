@@ -200,7 +200,7 @@ export class RecorderRuntime {
     }
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
-    playback.buffer = buffer;
+    playback.setBuffer(buffer);
     this.updateAudioTrack(id, (track) => ({
       ...track,
       clip: {
@@ -426,13 +426,13 @@ export class RecorderRuntime {
         transport: this.transport!,
         output: context.destination,
       });
-      playback.buffer = buffer;
+      playback.setBuffer(buffer);
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(track.id, playback);
     }
     const take = project.recordingTrack.takes[0];
     this.recordingTrackPlayback!.stop();
-    this.recordingTrackPlayback!.buffer = take?.buffer;
+    this.recordingTrackPlayback!.setBuffer(take?.buffer);
     this.store.update({
       ...project,
       position: 0,
@@ -503,7 +503,7 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.recordingTrackPlayback!.buffer = takeBuffer;
+    this.recordingTrackPlayback!.setBuffer(takeBuffer);
     this.activeRecording = undefined;
     const take = this.store.get().recordingTrack.takes[0];
     if (!take) {
@@ -537,7 +537,7 @@ export class RecorderRuntime {
   private clearTake(): void {
     this.recordingTrackPlayback?.stop();
     if (this.recordingTrackPlayback) {
-      this.recordingTrackPlayback.buffer = undefined;
+      this.recordingTrackPlayback.setBuffer(undefined);
     }
     this.store.update({
       recordingTrack: {

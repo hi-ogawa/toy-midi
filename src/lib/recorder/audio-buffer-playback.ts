@@ -7,7 +7,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
   private readonly unregister: () => void;
-  buffer?: AudioBuffer;
+  private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
   private timelineOffset = 0;
 
@@ -22,6 +22,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.gain = transport.context.createGain();
     this.gain.connect(output);
     this.unregister = transport.register(this);
+  }
+
+  setBuffer(buffer?: AudioBuffer): void {
+    this.buffer = buffer;
   }
 
   setGain(gain: number): void {
