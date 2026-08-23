@@ -3,7 +3,7 @@ export interface KeySignature {
   mode: "major" | "minor";
 }
 
-type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
+export type NoteLetter = "A" | "B" | "C" | "D" | "E" | "F" | "G";
 
 export type SpelledPitch = {
   step: NoteLetter;
@@ -62,7 +62,7 @@ export const KEY_SIGNATURE_OPTION_GROUPS = [
   },
 ] as const;
 
-const NATURAL_PITCH_CLASS_BY_LETTER: Record<NoteLetter, number> = {
+export const NATURAL_PITCH_CLASS_BY_LETTER: Record<NoteLetter, number> = {
   C: 0,
   D: 2,
   E: 4,
