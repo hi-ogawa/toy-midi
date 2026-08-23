@@ -39,10 +39,6 @@ import {
   getCaptureInputs,
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
-import {
-  deserializeRecorderRuntimeState,
-  serializeRecorderRuntimeState,
-} from "../../lib/recorder/project-persistence";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
   RecorderRuntime,
@@ -442,12 +438,7 @@ function useRecorderProject({
     queryKey: ["recorder-project", projectId],
     queryFn: async () => {
       const project = await recorderProjectStorage.load(projectId);
-      runtime.replacePersistableState(
-        deserializeRecorderRuntimeState({
-          context: runtime.getAudioContext(),
-          project,
-        }),
-      );
+      runtime.deserializeProject(project);
       return true;
     },
   });
@@ -456,7 +447,7 @@ function useRecorderProject({
     mutationFn: () =>
       recorderProjectStorage.save({
         id: projectId,
-        content: serializeRecorderRuntimeState(runtime.store.get()),
+        content: runtime.serializeProject(),
       }),
     onSuccess: () => setDirty(false),
   });

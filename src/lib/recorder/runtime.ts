@@ -4,6 +4,11 @@ import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
+import {
+  deserializeRecorderRuntimeState,
+  type SerializedRecorderRuntimeState,
+  serializeRecorderRuntimeState,
+} from "./project-persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
@@ -384,11 +389,22 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  getAudioContext(): AudioContext {
-    return this.ensureContext();
+  serializeProject(): SerializedRecorderRuntimeState {
+    return serializeRecorderRuntimeState(this.store.get());
   }
 
-  replacePersistableState(project: PersistableRecorderRuntimeState): void {
+  deserializeProject(project: SerializedRecorderRuntimeState): void {
+    this.replacePersistableState(
+      deserializeRecorderRuntimeState({
+        context: this.ensureContext(),
+        project,
+      }),
+    );
+  }
+
+  private replacePersistableState(
+    project: PersistableRecorderRuntimeState,
+  ): void {
     if (
       this.store.get().captureStatus === "recording" ||
       this.store.get().captureStatus === "processing"
