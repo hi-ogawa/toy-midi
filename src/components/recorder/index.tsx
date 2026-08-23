@@ -79,12 +79,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
 export function Recorder() {
-  const [runtime] = useState(() => new RecorderRuntime());
+  const [preference] = useState(() => recorderStorage.readPreferences());
+  const [runtime] = useState(() => {
+    const runtime = new RecorderRuntime();
+    runtime.setLatencyCompensation(preference.input?.latencyCompensation ?? 0);
+    return runtime;
+  });
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
   );
   const input = useRecorderInput({
+    preference,
     runtime,
     state,
   });
@@ -361,7 +367,7 @@ export function Recorder() {
             if (wasPlaying) {
               runtime.pause();
             }
-            runtime.setLatencyCompensation(compensation);
+            input.setLatencyCompensation(compensation);
             if (wasPlaying) {
               playMutation.mutate();
             }
@@ -373,16 +379,16 @@ export function Recorder() {
 }
 
 function useRecorderInput({
+  preference: initialPreference,
   runtime,
   state,
 }: {
+  preference: ReturnType<typeof recorderStorage.readPreferences>;
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
-  const [preference, setPreference] = useState(() =>
-    recorderStorage.readPreferences(),
-  );
+  const [preference, setPreference] = useState(initialPreference);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
   const [peak, setPeak] = useState(0);
@@ -482,7 +488,19 @@ function useRecorderInput({
       }
       const nextPreference = {
         ...preference,
-        input: { deviceId, channel },
+        input: { ...preference.input, deviceId, channel },
+      };
+      setPreference(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
+    },
+    setLatencyCompensation: (latencyCompensation: number) => {
+      runtime.setLatencyCompensation(latencyCompensation);
+      if (!preference.input) {
+        return;
+      }
+      const nextPreference = {
+        ...preference,
+        input: { ...preference.input, latencyCompensation },
       };
       setPreference(nextPreference);
       recorderStorage.writePreferences(nextPreference);
