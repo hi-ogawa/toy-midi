@@ -1,5 +1,5 @@
 import { IdbStore } from "../idb.ts";
-import type { SerializedRecorderRuntimeState } from "./project-persistence.ts";
+import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 
 interface StoredRecorderRuntimeState {
   id: string;

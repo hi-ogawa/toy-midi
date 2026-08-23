@@ -8,7 +8,7 @@ import {
   deserializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
-} from "./project-persistence.ts";
+} from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { AudioContextTransport } from "./transport.ts";
 
