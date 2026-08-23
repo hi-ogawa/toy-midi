@@ -18,11 +18,11 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
+  const position = page.getByTestId("recorder-position");
+  await expect(position).toHaveText("01|01 - 00:00.000");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("recorder-position")).not.toContainText(
-    "1.1 - 0:00.000",
-  );
+  await expect(position).not.toHaveText("01|01 - 00:00.000");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 });
