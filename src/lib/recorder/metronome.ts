@@ -47,9 +47,9 @@ export class RecorderMetronome implements TransportParticipant {
 
   start(): void {
     this.stop();
-    const playbackAnchor = this.transport.playbackAnchor!;
+    const anchor = this.transport.playbackAnchor!;
     this.nextClickIndex = Math.ceil(
-      playbackAnchor.position / this.secondsPerClick - 1e-9,
+      anchor.position / this.secondsPerClick - 1e-9,
     );
     this.schedule();
     this.disposeScheduling = startInterval(
@@ -67,25 +67,24 @@ export class RecorderMetronome implements TransportParticipant {
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.
-      const clickPosition = this.nextClickIndex * this.secondsPerClick;
-      const playbackAnchor = this.transport.playbackAnchor!;
-      const contextTime =
-        playbackAnchor.contextTime + clickPosition - playbackAnchor.position;
+      const anchor = this.transport.playbackAnchor!;
+      const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
+      const nextClickTime =
+        anchor.contextTime + nextClickPosition - anchor.position;
+      const currentTime = this.transport.context.currentTime;
       // Schedule only the near future, then let the interval extend the window.
-      if (
-        contextTime >
-        this.transport.context.currentTime + SCHEDULE_AHEAD_SECONDS
-      ) {
+      if (nextClickTime <= currentTime + SCHEDULE_AHEAD_SECONDS) {
+        // Tempo changes restart from the anchor, so skip clicks already elapsed.
+        if (currentTime <= nextClickTime) {
+          this.scheduleClick({
+            accent: this.nextClickIndex % this.timeSignature.numerator === 0,
+            contextTime: nextClickTime,
+          });
+        }
+        this.nextClickIndex += 1;
+      } else {
         break;
       }
-      // Tempo changes restart from the anchor, so skip clicks already elapsed.
-      if (contextTime >= this.transport.context.currentTime) {
-        this.scheduleClick({
-          accent: this.nextClickIndex % this.timeSignature.numerator === 0,
-          contextTime,
-        });
-      }
-      this.nextClickIndex += 1;
     }
   }
 
