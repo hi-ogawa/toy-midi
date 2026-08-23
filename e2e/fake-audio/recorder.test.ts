@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -37,6 +38,8 @@ test("records, plays, and replaces a take", async ({ page }) => {
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
+  const downloadButton = page.getByTestId("recorder-download-take");
+  await expect(downloadButton).toBeDisabled();
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
@@ -58,9 +61,19 @@ test("records, plays, and replaces a take", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   await expect(take).toContainText("Take 1");
   await expect(take.locator("svg")).toBeVisible();
+  await expect(downloadButton).toBeEnabled();
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
+
+  // The finalized take downloads as a timestamped WAV file.
+  const downloadPromise = page.waitForEvent("download");
+  await downloadButton.click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^toy-midi-take-1-.*\.wav$/);
+  const downloadPath = test.info().outputPath("take.wav");
+  await download.saveAs(downloadPath);
+  expect(readFileSync(downloadPath).subarray(0, 4).toString()).toBe("RIFF");
 
   // The completed take immediately joins normal transport playback.
   await playButton.click();

@@ -4,6 +4,7 @@ import {
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
+  DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
@@ -22,6 +23,7 @@ import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
+import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -58,6 +60,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { encodeWav } from "../../lib/wav";
 import {
   COMMON_TIME_SIGNATURES,
   parseTimeSignature,
@@ -312,6 +315,29 @@ export function Recorder() {
               }
               onHeightChange={(height) =>
                 runtime.setRecordingTrackHeight(height)
+              }
+              action={
+                <Button
+                  data-testid="recorder-download-take"
+                  disabled={!take?.buffer || isRecording || isProcessing}
+                  onClick={() => {
+                    if (!take?.buffer) {
+                      return;
+                    }
+                    downloadBlob(
+                      encodeWav(take.buffer),
+                      buildExportFileName({
+                        baseName: "toy-midi-take-1",
+                        extension: "wav",
+                      }),
+                    );
+                  }}
+                  className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                  title="Download take"
+                  aria-label="Download take"
+                >
+                  <DownloadIcon className="size-3.5" />
+                </Button>
               }
             >
               <TimelineLane

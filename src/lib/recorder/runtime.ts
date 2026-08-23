@@ -40,6 +40,7 @@ interface RecordingTrackState {
 interface TakeState {
   duration: number;
   timelineOffset: number;
+  buffer?: AudioBuffer;
   audioView?: AudioView;
 }
 
@@ -440,6 +441,7 @@ export class RecorderRuntime {
         takes: [
           {
             ...take,
+            buffer: takeBuffer,
             duration: takeBuffer.duration,
             audioView: createAudioView(
               samples,
