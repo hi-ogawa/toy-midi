@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
+import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
@@ -627,6 +628,11 @@ function RecorderHeader({
     min: 30,
     max: 300,
   });
+  const handleTapTempo = useTapTempo({
+    min: 30,
+    max: 300,
+    onTempoChange,
+  });
   return (
     <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Mic2Icon className="size-4 text-emerald-400" />
@@ -695,11 +701,20 @@ function RecorderHeader({
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
         <span>BPM</span>
         <input
+          data-testid="recorder-tempo-input"
           type="text"
           inputMode="numeric"
           {...tempoInput.props}
           className="h-8 w-14 rounded border border-neutral-600 bg-neutral-900 px-1 text-center font-mono text-sm text-neutral-100"
         />
+        <Button
+          data-testid="recorder-tap-tempo-button"
+          onClick={handleTapTempo}
+          title="Tap tempo"
+          className="h-8 px-1.5 text-xs hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+        >
+          TAP
+        </Button>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
