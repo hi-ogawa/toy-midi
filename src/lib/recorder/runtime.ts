@@ -384,6 +384,7 @@ export class RecorderRuntime {
     const state = this.store.get();
     return {
       version: RECORDER_PROJECT_VERSION,
+      title: state.title,
       audioTracks: state.audioTracks.map((track) => {
         const buffer = this.audioTrackPlaybacks.get(track.id)?.getBuffer();
         if (!track.clip || !buffer) {
@@ -475,6 +476,7 @@ export class RecorderRuntime {
     this.recordingTrackPlayback!.stop();
     this.recordingTrackPlayback!.setBuffer(takeBuffer);
     this.store.update({
+      title: project.title,
       audioTracks,
       recordingTrack: {
         height: project.recordingTrack.height,

@@ -23,6 +23,7 @@ export interface RecorderProjectTake {
 
 export interface RecorderProjectContent {
   version: typeof RECORDER_PROJECT_VERSION;
+  title: string;
   audioTracks: RecorderProjectAudioTrack[];
   recordingTrack: {
     height: number;
@@ -41,7 +42,6 @@ export interface RecorderProjectContent {
 
 export interface SavedRecorderProject extends RecorderProjectContent {
   id: string;
-  title: string;
   updatedAt: number;
 }
 

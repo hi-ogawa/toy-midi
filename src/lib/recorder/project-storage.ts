@@ -42,9 +42,9 @@ export const recorderProjectStorage = {
     const id = crypto.randomUUID();
     const project: SavedRecorderProject = {
       id,
-      title: "Untitled recording",
       updatedAt: Date.now(),
       version: RECORDER_PROJECT_VERSION,
+      title: "Untitled recording",
       audioTracks: [],
       recordingTrack: {
         height: 96,
@@ -77,17 +77,14 @@ export const recorderProjectStorage = {
 
   async save({
     id,
-    title,
     content,
   }: {
     id: string;
-    title: string;
     content: RecorderProjectContent;
   }): Promise<void> {
     const project: SavedRecorderProject = {
       ...content,
       id,
-      title,
       updatedAt: Date.now(),
     };
     await projects.put(project);

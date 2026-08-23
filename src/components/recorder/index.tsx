@@ -141,7 +141,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     mutationFn: () =>
       recorderProjectStorage.save({
         id: projectId,
-        title: runtime.store.get().title,
         content: runtime.exportProject(),
       }),
     onSuccess: () => setDirty(false),
@@ -150,7 +149,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (projectQuery.data) {
       runtime.importProject(projectQuery.data);
-      runtime.setTitle(projectQuery.data.title);
     }
   }, [projectQuery.data, runtime]);
 
