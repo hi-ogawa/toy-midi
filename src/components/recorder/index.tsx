@@ -91,7 +91,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime.store.subscribe,
     runtime.store.get,
   );
-  const [projectReady, setProjectReady] = useState(false);
   const [dirty, setDirty] = useState(false);
   const input = useRecorderInput({
     runtime,
@@ -137,13 +136,9 @@ export function Recorder({ projectId }: { projectId: string }) {
   const loadProjectMutation = useMutation({
     mutationFn: () => recorderProjectStorage.load(projectId),
     onSuccess: (project) => {
-      if (project) {
-        runtime.importProject(project);
-        runtime.setTitle(project.title);
-      }
-      setProjectReady(true);
+      runtime.importProject(project);
+      runtime.setTitle(project.title);
     },
-    onError: () => setProjectReady(true),
   });
   const saveProjectMutation = useMutation({
     mutationFn: () =>
@@ -159,6 +154,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     loadProjectMutation.mutate();
   }, [loadProjectMutation.mutate]);
 
+  const projectReady =
+    loadProjectMutation.isSuccess || loadProjectMutation.isError;
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
