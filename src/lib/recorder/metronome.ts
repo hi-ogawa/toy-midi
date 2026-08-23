@@ -1,6 +1,5 @@
 import type { TimeSignature } from "../../types.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
-import { secondsToBeats } from "../timeline.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -14,7 +13,8 @@ export class RecorderMetronome implements TransportParticipant {
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;
   private tempo = 120;
-  private clickDurationInQuarterNotes = 1;
+  private denominator = 4;
+  private secondsPerClick = 0.5;
   private clicksPerAccent = 4;
 
   constructor(private readonly transport: AudioContextTransport) {
@@ -30,14 +30,17 @@ export class RecorderMetronome implements TransportParticipant {
 
   setTempo(tempo: number): void {
     this.tempo = tempo;
-    if (this.transport.store.get().running) {
-      this.start();
-    }
+    this.updateTiming();
   }
 
   setTimeSignature({ numerator, denominator }: TimeSignature): void {
-    this.clickDurationInQuarterNotes = 4 / denominator;
+    this.denominator = denominator;
     this.clicksPerAccent = numerator;
+    this.updateTiming();
+  }
+
+  private updateTiming(): void {
+    this.secondsPerClick = (60 / this.tempo) * (4 / this.denominator);
     if (this.transport.store.get().running) {
       this.start();
     }
@@ -47,9 +50,7 @@ export class RecorderMetronome implements TransportParticipant {
     this.stop();
     const playbackAnchor = this.transport.playbackAnchor!;
     this.nextClickIndex = Math.ceil(
-      secondsToBeats(playbackAnchor.position, this.tempo) /
-        this.clickDurationInQuarterNotes -
-        1e-9,
+      playbackAnchor.position / this.secondsPerClick - 1e-9,
     );
     this.schedule();
     this.disposeScheduling = startInterval(
@@ -64,12 +65,10 @@ export class RecorderMetronome implements TransportParticipant {
   }
 
   private schedule(): void {
-    const secondsPerClick =
-      (60 / this.tempo) * this.clickDurationInQuarterNotes;
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.
-      const clickPosition = this.nextClickIndex * secondsPerClick;
+      const clickPosition = this.nextClickIndex * this.secondsPerClick;
       const playbackAnchor = this.transport.playbackAnchor!;
       const contextTime =
         playbackAnchor.contextTime + clickPosition - playbackAnchor.position;
