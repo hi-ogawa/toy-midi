@@ -928,9 +928,6 @@ function RecorderHeader({
       >
         {title}
       </button>
-      <span className="text-xs text-neutral-500">
-        {savePending ? "Saving..." : dirty ? "Unsaved" : "Saved"}
-      </span>
       <div className="h-5 w-px bg-neutral-600" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
