@@ -30,14 +30,6 @@ export function RecorderProjectList() {
         <Mic2Icon className="mr-2 size-4 text-emerald-400" />
         <h1 className="text-sm font-medium">Recorder Projects</h1>
         <div className="flex-1" />
-        <Button
-          onClick={() => createProject.mutate()}
-          disabled={createProject.isPending}
-          className="mr-2 h-8 gap-2 bg-emerald-700 px-3 text-white hover:bg-emerald-600"
-        >
-          <PlusIcon className="size-4" />
-          New recording
-        </Button>
         <a
           href={routes.home.href()}
           title="Home"
@@ -72,6 +64,24 @@ export function RecorderProjectList() {
                 onDelete={() => deleteProject.mutate(project.id)}
               />
             ))
+          )}
+          {projects.data.ok && (
+            <div className="border-t border-neutral-700 p-4">
+              <Button
+                onClick={() => createProject.mutate()}
+                disabled={createProject.isPending}
+                className={
+                  projects.data.value.length > 0
+                    ? "gap-2 bg-neutral-700 px-4 py-2 text-neutral-200 hover:bg-neutral-600"
+                    : "gap-2 bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
+                }
+              >
+                <PlusIcon className="size-4" />
+                {projects.data.value.length > 0
+                  ? "New Recording"
+                  : "Create Your First Recording"}
+              </Button>
+            </div>
           )}
         </div>
       </section>
