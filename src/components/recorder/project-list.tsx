@@ -1,5 +1,5 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { HouseIcon, Mic2Icon, PlusIcon, Trash2Icon } from "lucide-react";
+import { HouseIcon, Mic2Icon, Trash2Icon } from "lucide-react";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
@@ -72,11 +72,10 @@ export function RecorderProjectList() {
                 disabled={createProject.isPending}
                 className={
                   projects.data.value.length > 0
-                    ? "gap-2 bg-neutral-700 px-4 py-2 text-neutral-200 hover:bg-neutral-600"
-                    : "gap-2 bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500"
+                    ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+                    : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
                 }
               >
-                <PlusIcon className="size-4" />
                 {projects.data.value.length > 0
                   ? "New Recording"
                   : "Create Your First Recording"}
