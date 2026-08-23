@@ -1,5 +1,6 @@
 import { gainToDb } from "../../lib/music";
 import { secondsToBeats } from "../../lib/timeline";
+import { parseTimeSignature } from "../../types";
 
 export const DEFAULT_PIXELS_PER_BEAT = 80;
 export const MIN_PIXELS_PER_BEAT = 1;
@@ -16,7 +17,7 @@ export const DEFAULT_RECORDER_GRID_DIVISION: RecorderGridDivision = "1/16";
 export function getRecorderBeatsPerBar(
   timeSignature: RecorderTimeSignature,
 ): number {
-  const [numerator, denominator] = timeSignature.split("/").map(Number);
+  const { numerator, denominator } = parseTimeSignature(timeSignature);
   return numerator * (4 / denominator);
 }
 
@@ -32,7 +33,7 @@ export function formatBarBeat(
   timeSignature: RecorderTimeSignature,
 ): string {
   const totalBeats = secondsToBeats(seconds, tempo);
-  const [numerator, denominator] = timeSignature.split("/").map(Number);
+  const { numerator, denominator } = parseTimeSignature(timeSignature);
   const beatsPerBar = getRecorderBeatsPerBar(timeSignature);
   const bar = Math.floor(totalBeats / beatsPerBar) + 1;
   const beat = Math.min(

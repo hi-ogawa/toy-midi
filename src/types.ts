@@ -25,6 +25,13 @@ export interface TimeSignature {
   denominator: number; // beat unit (e.g., 4 for quarter note, 8 for eighth note)
 }
 
+export function parseTimeSignature(
+  value: `${number}/${number}`,
+): TimeSignature {
+  const [numerator, denominator] = value.split("/").map(Number);
+  return { numerator, denominator };
+}
+
 export interface Locator {
   id: string;
   position: number; // Position on timeline in beats

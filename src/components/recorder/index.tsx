@@ -41,6 +41,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { parseTimeSignature } from "../../types";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
@@ -186,8 +187,7 @@ export function Recorder() {
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onTimeSignatureChange={(timeSignature) => {
-          const [numerator, denominator] = timeSignature.split("/").map(Number);
-          runtime.setTimeSignature({ numerator, denominator });
+          runtime.setTimeSignature(parseTimeSignature(timeSignature));
         }}
         onGridDivisionChange={timeline.setGridDivision}
       />
