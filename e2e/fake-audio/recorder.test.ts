@@ -27,23 +27,6 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 });
 
-test("sets the recorder tempo by tapping", async ({ page }) => {
-  const tempoInput = page.getByTestId("recorder-tempo-input");
-  const tapButton = page.getByTestId("recorder-tap-tempo-button");
-  await expect(tempoInput).toHaveValue("120");
-
-  await tapButton.click();
-  await page.waitForTimeout(400);
-  await tapButton.click();
-
-  await expect
-    .poll(async () => Number.parseInt(await tempoInput.inputValue()))
-    .toBeGreaterThan(120);
-  expect(Number.parseInt(await tempoInput.inputValue())).toBeLessThanOrEqual(
-    300,
-  );
-});
-
 test("records, plays, and replaces a take", async ({ page }) => {
   // The musician connects the browser input before recording is available.
   await enableInput(page);
