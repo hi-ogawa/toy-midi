@@ -4,8 +4,10 @@ import {
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
+  DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
+  LocateFixedIcon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -22,6 +24,7 @@ import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
+import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -59,6 +62,7 @@ import {
   secondsToBeats,
 } from "../../lib/timeline";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { encodeWav } from "../../lib/wav";
 import {
   COMMON_TIME_SIGNATURES,
   parseTimeSignature,
@@ -94,6 +98,7 @@ export function Recorder() {
     state,
   });
   const timeline = useRecorderTimeline({
+    isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
@@ -194,6 +199,9 @@ export function Recorder() {
     } else if (matchKeyboardEvent(event, "M")) {
       event.preventDefault();
       runtime.setMetronomeEnabled(!state.metronomeEnabled);
+    } else if (matchKeyboardEvent(event, "F")) {
+      event.preventDefault();
+      timeline.setAutoScrollEnabled(!timeline.autoScrollEnabled);
     }
   });
 
@@ -206,6 +214,7 @@ export function Recorder() {
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
+        autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
         position={state.position}
         tempo={timeline.tempo}
@@ -216,6 +225,7 @@ export function Recorder() {
         onTitleChange={setTitle}
         onSave={() => saveProjectMutation.mutate()}
         onRecordToggle={toggleRecord}
+        onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onTimeSignatureChange={(timeSignature) =>
@@ -225,7 +235,7 @@ export function Recorder() {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="relative min-w-0 overflow-auto border-r border-neutral-700">
+        <section className="relative min-w-0 overflow-x-hidden overflow-y-auto border-r border-neutral-700">
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
@@ -335,6 +345,29 @@ export function Recorder() {
               }
               onHeightChange={(height) =>
                 runtime.setRecordingTrackHeight(height)
+              }
+              action={
+                <Button
+                  data-testid="recorder-download-take"
+                  disabled={!take?.buffer || isRecording || isProcessing}
+                  onClick={() => {
+                    if (!take?.buffer) {
+                      return;
+                    }
+                    downloadBlob(
+                      encodeWav(take.buffer),
+                      buildExportFileName({
+                        baseName: "toy-midi-take-1",
+                        extension: "wav",
+                      }),
+                    );
+                  }}
+                  className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                  title="Download take"
+                  aria-label="Download take"
+                >
+                  <DownloadIcon className="size-3.5" />
+                </Button>
               }
             >
               <TimelineLane
@@ -548,10 +581,12 @@ function useRecorderInput({
 }
 
 function useRecorderTimeline({
+  isPlaying,
   position,
   tempo,
   timeSignature,
 }: {
+  isPlaying: boolean;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -559,6 +594,7 @@ function useRecorderTimeline({
   const [gridDivision, setGridDivision] = useState<GridDivision>(
     DEFAULT_GRID_DIVISION,
   );
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(DEFAULT_PIXELS_PER_BEAT);
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
@@ -567,6 +603,28 @@ function useRecorderTimeline({
   const playheadX =
     (secondsToBeats(position, tempo) - viewportStartBeat) * pixelsPerBeat;
   const showPlayhead = playheadX >= 0 && playheadX <= viewportWidth;
+
+  useEffect(() => {
+    if (!isPlaying || !autoScrollEnabled || viewportWidth === 0) {
+      return;
+    }
+    const playheadBeat = secondsToBeats(position, tempo);
+    const visibleBeats = viewportWidth / pixelsPerBeat;
+    if (
+      playheadBeat < viewportStartBeat ||
+      viewportStartBeat + visibleBeats * 0.9 < playheadBeat
+    ) {
+      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+    }
+  }, [
+    autoScrollEnabled,
+    isPlaying,
+    pixelsPerBeat,
+    position,
+    tempo,
+    viewportStartBeat,
+    viewportWidth,
+  ]);
 
   function zoom(nextPixelsPerBeat: number, anchorX: number) {
     const beatAtAnchor = anchorX / pixelsPerBeat + viewportStartBeat;
@@ -630,6 +688,8 @@ function useRecorderTimeline({
     viewportRef,
     viewportWidth,
     showPlayhead,
+    autoScrollEnabled,
+    setAutoScrollEnabled,
   };
 }
 
@@ -646,10 +706,12 @@ function RecorderHeader({
   timeSignature,
   gridDivision,
   recordDisabled,
+  autoScrollEnabled,
   onPlayToggle,
   onTitleChange,
   onSave,
   onRecordToggle,
+  onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
   onTimeSignatureChange,
@@ -667,10 +729,12 @@ function RecorderHeader({
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
   recordDisabled: boolean;
+  autoScrollEnabled: boolean;
   onPlayToggle: () => void;
   onTitleChange: (title: string) => void;
   onSave: () => void;
   onRecordToggle: () => void;
+  onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
@@ -719,19 +783,6 @@ function RecorderHeader({
         )}
       </Button>
       <Button
-        onClick={() => onMetronomeChange(!metronomeEnabled)}
-        aria-pressed={metronomeEnabled}
-        title="Toggle metronome (M)"
-        className={cn(
-          "size-9",
-          metronomeEnabled
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        )}
-      >
-        <MetronomeIcon className="size-5" />
-      </Button>
-      <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
         disabled={recordDisabled || isProcessing}
@@ -751,6 +802,32 @@ function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <Button
+        onClick={() => onMetronomeChange(!metronomeEnabled)}
+        aria-pressed={metronomeEnabled}
+        title="Toggle metronome (M)"
+        className={cn(
+          "size-9",
+          metronomeEnabled
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+        )}
+      >
+        <MetronomeIcon className="size-5" />
+      </Button>
+      <Button
+        onClick={() => onAutoScrollChange(!autoScrollEnabled)}
+        aria-pressed={autoScrollEnabled}
+        title="Toggle auto-scroll (F)"
+        className={cn(
+          "size-9",
+          autoScrollEnabled
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+        )}
+      >
+        <LocateFixedIcon className="size-5" />
+      </Button>
       <output
         data-testid="recorder-position"
         className="font-mono text-sm tabular-nums text-neutral-300"
