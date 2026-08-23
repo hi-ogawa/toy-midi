@@ -24,10 +24,10 @@ export function InputMeter({
         aria-valuemax={MAX_DB}
         aria-valuenow={active ? meterValue : MIN_DB}
         aria-valuetext={label}
-        className="relative h-3 overflow-hidden rounded-full bg-neutral-200"
+        className="relative h-3 overflow-hidden rounded-full bg-neutral-800 ring-1 ring-inset ring-neutral-700"
       >
         <div
-          className="absolute inset-y-0 right-0 bg-red-100"
+          className="absolute inset-y-0 right-0 bg-red-950/50"
           style={{ width: `${100 - zeroPosition}%` }}
         />
         <div
@@ -47,7 +47,7 @@ export function InputMeter({
           style={{ left: `${zeroPosition}%` }}
         />
       </div>
-      <output className="text-right font-mono text-xs tabular-nums text-neutral-600">
+      <output className="text-right font-mono text-xs tabular-nums text-neutral-400">
         {label}
       </output>
     </div>
