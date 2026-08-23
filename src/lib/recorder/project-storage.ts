@@ -9,8 +9,8 @@ interface StoredRecorderProject {
 
 export interface RecorderProjectMetadata {
   id: string;
-  title: string;
   updatedAt: number;
+  title: string;
 }
 
 const storeOptions = {
@@ -98,7 +98,8 @@ export const recorderProjectStorage = {
 function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
   return {
     id: project.id,
-    title: project.content.title,
     updatedAt: project.updatedAt,
+
+    title: project.content.title,
   };
 }
