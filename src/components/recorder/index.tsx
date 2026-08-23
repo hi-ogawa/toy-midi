@@ -184,7 +184,10 @@ export function Recorder() {
         onRecordToggle={toggleRecord}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onTimeSignatureChange={timeline.setTimeSignature}
+        onTimeSignatureChange={(timeSignature) => {
+          timeline.setTimeSignature(timeSignature);
+          runtime.setMetronomeBeatsPerBar(Number(timeSignature.split("/")[0]));
+        }}
         onGridDivisionChange={timeline.setGridDivision}
       />
 

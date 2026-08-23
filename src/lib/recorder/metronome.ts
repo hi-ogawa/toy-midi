@@ -13,6 +13,7 @@ export class RecorderMetronome implements TransportParticipant {
   private disposeScheduling?: () => void;
   private nextBeat = 0;
   private tempo = 120;
+  private beatsPerBar = 4;
 
   constructor(private readonly transport: AudioContextTransport) {
     this.output = transport.context.createGain();
@@ -27,6 +28,13 @@ export class RecorderMetronome implements TransportParticipant {
 
   setTempo(tempo: number): void {
     this.tempo = tempo;
+    if (this.transport.store.get().running) {
+      this.start();
+    }
+  }
+
+  setBeatsPerBar(beatsPerBar: number): void {
+    this.beatsPerBar = beatsPerBar;
     if (this.transport.store.get().running) {
       this.start();
     }
@@ -69,8 +77,7 @@ export class RecorderMetronome implements TransportParticipant {
       // Tempo changes restart from the anchor, so skip beats already elapsed.
       if (contextTime >= this.transport.context.currentTime) {
         this.scheduleClick({
-          // The recorder currently accents every fourth quarter-note beat.
-          accent: this.nextBeat % 4 === 0,
+          accent: this.nextBeat % this.beatsPerBar === 0,
           contextTime,
         });
       }

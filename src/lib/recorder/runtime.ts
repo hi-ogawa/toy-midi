@@ -374,6 +374,10 @@ export class RecorderRuntime {
     this.metronome?.setGain(metronomeEnabled ? 1 : 0);
   }
 
+  setMetronomeBeatsPerBar(beatsPerBar: number): void {
+    this.metronome?.setBeatsPerBar(beatsPerBar);
+  }
+
   private ensureContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
