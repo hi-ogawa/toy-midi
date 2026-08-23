@@ -1282,9 +1282,6 @@ function InputInspector({
     onCommit: (milliseconds) =>
       onLatencyCompensationChange(milliseconds / 1000),
     min: 0,
-    step: 0.1,
-    parse: "float",
-    format: (value) => value.toFixed(1),
   });
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
@@ -1402,7 +1399,7 @@ function InputInspector({
           <div className="mt-1 flex items-center gap-2">
             <input
               type="text"
-              inputMode="decimal"
+              inputMode="numeric"
               {...latencyInput.props}
               className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
             />
