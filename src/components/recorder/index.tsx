@@ -362,7 +362,7 @@ export function Recorder() {
             if (wasPlaying) {
               runtime.pause();
             }
-            runtime.setLatencyCompensation(compensation);
+            input.setLatencyCompensation(compensation);
             if (wasPlaying) {
               playMutation.mutate();
             }
@@ -445,6 +445,9 @@ function useRecorderInput({
       runtime.selectChannel(
         Math.min(preference.input?.channel ?? 0, channelCount - 1),
       );
+      runtime.setLatencyCompensation(
+        preference.input?.latencyCompensation ?? 0,
+      );
     },
   });
 
@@ -483,7 +486,19 @@ function useRecorderInput({
       }
       const nextPreference = {
         ...preference,
-        input: { deviceId, channel },
+        input: { ...preference.input, deviceId, channel },
+      };
+      setPreference(nextPreference);
+      recorderStorage.writePreferences(nextPreference);
+    },
+    setLatencyCompensation: (latencyCompensation: number) => {
+      runtime.setLatencyCompensation(latencyCompensation);
+      if (!preference.input) {
+        return;
+      }
+      const nextPreference = {
+        ...preference,
+        input: { ...preference.input, latencyCompensation },
       };
       setPreference(nextPreference);
       recorderStorage.writePreferences(nextPreference);

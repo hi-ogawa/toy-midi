@@ -7,6 +7,7 @@ const recorderPreferencesSchema = z.object({
     .object({
       deviceId: z.string(),
       channel: z.number().int().nonnegative(),
+      latencyCompensation: z.number().nonnegative().optional(),
     })
     .optional(),
 });
