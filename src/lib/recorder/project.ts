@@ -1,5 +1,3 @@
-export const RECORDER_PROJECT_VERSION = 1;
-
 export interface RecorderPcm {
   sampleRate: number;
   channels: Float32Array[];
@@ -22,7 +20,6 @@ export interface RecorderProjectTake {
 }
 
 export interface RecorderProjectContent {
-  version: typeof RECORDER_PROJECT_VERSION;
   title: string;
   audioTracks: RecorderProjectAudioTrack[];
   recordingTrack: {
@@ -38,11 +35,6 @@ export interface RecorderProjectContent {
     numerator: number;
     denominator: number;
   };
-}
-
-export interface SavedRecorderProject extends RecorderProjectContent {
-  id: string;
-  updatedAt: number;
 }
 
 export function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {

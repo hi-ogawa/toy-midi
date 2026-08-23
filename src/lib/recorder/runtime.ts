@@ -6,7 +6,6 @@ import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deserializeAudioBuffer,
-  RECORDER_PROJECT_VERSION,
   type RecorderProjectContent,
   serializeAudioBuffer,
 } from "./project.ts";
@@ -383,7 +382,6 @@ export class RecorderRuntime {
   exportProject(): RecorderProjectContent {
     const state = this.store.get();
     return {
-      version: RECORDER_PROJECT_VERSION,
       title: state.title,
       audioTracks: state.audioTracks.map((track) => {
         const buffer = this.audioTrackPlaybacks.get(track.id)?.buffer;

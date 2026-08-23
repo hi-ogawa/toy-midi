@@ -1,9 +1,11 @@
 import { IdbStore } from "../idb.ts";
-import {
-  RECORDER_PROJECT_VERSION,
-  type RecorderProjectContent,
-  type SavedRecorderProject,
-} from "./project.ts";
+import type { RecorderProjectContent } from "./project.ts";
+
+interface StoredRecorderProject {
+  id: string;
+  updatedAt: number;
+  content: RecorderProjectContent;
+}
 
 export interface RecorderProjectMetadata {
   id: string;
@@ -13,12 +15,12 @@ export interface RecorderProjectMetadata {
 
 const storeOptions = {
   dbName: "toy-midi-recorder",
-  version: 2,
+  version: 3,
   keyPath: "id",
   storeNames: ["projects", "metadata"],
 };
 
-const projects = new IdbStore<SavedRecorderProject>({
+const projects = new IdbStore<StoredRecorderProject>({
   ...storeOptions,
   storeName: "projects",
 });
@@ -40,39 +42,35 @@ export const recorderProjectStorage = {
 
   async create(): Promise<string> {
     const id = crypto.randomUUID();
-    const project: SavedRecorderProject = {
+    const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
-      version: RECORDER_PROJECT_VERSION,
-      title: "Untitled recording",
-      audioTracks: [],
-      recordingTrack: {
-        height: 96,
-        gain: 1,
-        muted: false,
-        soloed: false,
-        takes: [],
+      content: {
+        title: "Untitled recording",
+        audioTracks: [],
+        recordingTrack: {
+          height: 96,
+          gain: 1,
+          muted: false,
+          soloed: false,
+          takes: [],
+        },
+        latencyCompensation: 0,
+        tempo: 120,
+        timeSignature: { numerator: 4, denominator: 4 },
       },
-      latencyCompensation: 0,
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
     };
     await projects.put(project);
     await metadata.put(toMetadata(project));
     return id;
   },
 
-  async load(id: string): Promise<SavedRecorderProject> {
+  async load(id: string): Promise<RecorderProjectContent> {
     const project = await projects.get(id);
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
     }
-    if (project && project.version !== RECORDER_PROJECT_VERSION) {
-      throw new Error(
-        `Unsupported recorder project version: ${project.version}`,
-      );
-    }
-    return project;
+    return project.content;
   },
 
   async save({
@@ -82,10 +80,10 @@ export const recorderProjectStorage = {
     id: string;
     content: RecorderProjectContent;
   }): Promise<void> {
-    const project: SavedRecorderProject = {
-      ...content,
+    const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
+      content,
     };
     await projects.put(project);
     await metadata.put(toMetadata(project));
@@ -97,10 +95,10 @@ export const recorderProjectStorage = {
   },
 };
 
-function toMetadata(project: SavedRecorderProject): RecorderProjectMetadata {
+function toMetadata(project: StoredRecorderProject): RecorderProjectMetadata {
   return {
     id: project.id,
-    title: project.title,
+    title: project.content.title,
     updatedAt: project.updatedAt,
   };
 }
