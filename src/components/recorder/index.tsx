@@ -135,7 +135,11 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
-    queryFn: () => recorderProjectStorage.load(projectId),
+    queryFn: async () => {
+      const project = await recorderProjectStorage.load(projectId);
+      runtime.importProject(project);
+      return project;
+    },
   });
   const saveProjectMutation = useMutation({
     mutationFn: () =>
@@ -145,12 +149,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       }),
     onSuccess: () => setDirty(false),
   });
-
-  useEffect(() => {
-    if (projectQuery.data) {
-      runtime.importProject(projectQuery.data);
-    }
-  }, [projectQuery.data, runtime]);
 
   const projectReady = projectQuery.isSuccess || projectQuery.isError;
   const take = state.recordingTrack.takes[0];
