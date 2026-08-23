@@ -540,9 +540,7 @@ export class RecorderRuntime {
 
   private clearTake(): void {
     this.recordingTrackPlayback?.stop();
-    if (this.recordingTrackPlayback) {
-      this.recordingTrackPlayback.setBuffer(undefined);
-    }
+    this.recordingTrackPlayback?.setBuffer(undefined);
     this.store.update({
       recordingTrack: {
         ...this.store.get().recordingTrack,
