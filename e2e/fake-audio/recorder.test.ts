@@ -71,8 +71,7 @@ test("records, plays, and replaces a take", async ({ page }) => {
   const left = Number.parseFloat(
     await take.evaluate((element) => element.style.left),
   );
-  expect(left).toBeGreaterThan(300);
-  expect(left).toBeLessThanOrEqual(320);
+  expect(left).toBeCloseTo(320, -1);
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
