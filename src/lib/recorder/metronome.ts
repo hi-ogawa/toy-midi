@@ -13,9 +13,8 @@ export class RecorderMetronome implements TransportParticipant {
   private disposeScheduling?: () => void;
   private nextClickIndex = 0;
   private tempo = 120;
-  private denominator = 4;
+  private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 0.5;
-  private clicksPerAccent = 4;
 
   constructor(private readonly transport: AudioContextTransport) {
     this.output = transport.context.createGain();
@@ -33,14 +32,14 @@ export class RecorderMetronome implements TransportParticipant {
     this.updateTiming();
   }
 
-  setTimeSignature({ numerator, denominator }: TimeSignature): void {
-    this.denominator = denominator;
-    this.clicksPerAccent = numerator;
+  setTimeSignature(timeSignature: TimeSignature): void {
+    this.timeSignature = timeSignature;
     this.updateTiming();
   }
 
   private updateTiming(): void {
-    this.secondsPerClick = (60 / this.tempo) * (4 / this.denominator);
+    this.secondsPerClick =
+      (60 / this.tempo) * (4 / this.timeSignature.denominator);
     if (this.transport.store.get().running) {
       this.start();
     }
@@ -82,7 +81,7 @@ export class RecorderMetronome implements TransportParticipant {
       // Tempo changes restart from the anchor, so skip clicks already elapsed.
       if (contextTime >= this.transport.context.currentTime) {
         this.scheduleClick({
-          accent: this.nextClickIndex % this.clicksPerAccent === 0,
+          accent: this.nextClickIndex % this.timeSignature.numerator === 0,
           contextTime,
         });
       }
