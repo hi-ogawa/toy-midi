@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./helpers";
+import { createRecorderProject } from "../helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // The musician creates a project and gives it a recognizable name.
