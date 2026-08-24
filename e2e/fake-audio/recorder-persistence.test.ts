@@ -5,9 +5,19 @@ test("saves and restores a recorder project", async ({ page }) => {
   // The musician creates a project and gives it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
-  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toHaveAttribute("aria-disabled", "true");
+
+  // Transport updates are session state and do not stale persisted state.
+  await page.getByTestId("recorder-play-button").click();
+  await expect(page.getByTestId("recorder-position")).not.toHaveText(
+    "1.1 - 0:00.000",
+  );
+  await page.getByTestId("recorder-play-button").click();
+  await expect(
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toHaveAttribute("aria-disabled", "true");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
@@ -27,12 +37,17 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeEnabled();
-  await page.keyboard.press("Escape");
-  await page.keyboard.press("Control+S");
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toBeDisabled();
+  await expect(
+    page.getByRole("button", {
+      name: "Unsaved changes (Ctrl/Cmd+S to save)",
+    }),
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Unsaved changes (Ctrl/Cmd+S to save)" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toHaveAttribute("aria-disabled", "true");
 
   // Reload restores document fields and PCM-backed waveform data.
   await page.reload();

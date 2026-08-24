@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
+  CircleAlertIcon,
   CircleIcon,
   CircleHelpIcon,
   CircleStopIcon,
@@ -14,10 +15,17 @@ import {
   PlayIcon,
   PlusIcon,
   SaveIcon,
+  SaveCheckIcon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -166,10 +174,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     recordMutation.mutate(isRecording ? "stop" : "start");
   }
 
+  const saveDisabled =
+    !project.ready ||
+    !project.dirty ||
+    project.saving ||
+    isRecording ||
+    isProcessing;
+
   useWindowEvent("keydown", (event) => {
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
-      if (project.ready && project.dirty && !project.saving) {
+      if (!saveDisabled) {
         project.save();
       }
       return;
@@ -196,9 +211,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
         title={state.title}
-        dirty={project.dirty}
-        projectReady={project.ready}
-        savePending={project.saving}
+        saveStatus={project.saveStatus}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -425,6 +438,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   );
 }
 
+type SaveStatus = "saved" | "unsaved" | "saving" | "error";
+
 function useRecorderProject({
   projectId,
   runtime,
@@ -433,6 +448,7 @@ function useRecorderProject({
   runtime: RecorderRuntime;
 }) {
   const [dirty, setDirty] = useState(false);
+  const revisionRef = useRef(0);
 
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
@@ -446,19 +462,27 @@ function useRecorderProject({
   });
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      recorderProjectStorage.save({
+    mutationFn: async () => {
+      const revision = revisionRef.current;
+      await recorderProjectStorage.save({
         id: projectId,
         content: runtime.serializeProject(),
-      }),
-    onSuccess: () => setDirty(false),
+      });
+      return revision;
+    },
+    onSuccess: (savedRevision) => {
+      setDirty(revisionRef.current !== savedRevision);
+    },
   });
 
   useEffect(() => {
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribe(() => setDirty(true));
+    return runtime.subscribePersistableState(() => {
+      revisionRef.current += 1;
+      setDirty(true);
+    });
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
@@ -467,11 +491,19 @@ function useRecorderProject({
     }
   });
 
+  const saveStatus: SaveStatus = saveMutation.isError
+    ? "error"
+    : saveMutation.isPending
+      ? "saving"
+      : dirty
+        ? "unsaved"
+        : "saved";
   return {
     dirty,
     error: projectQuery.error ?? saveMutation.error,
     ready: projectQuery.isSuccess || projectQuery.isError,
     save: saveMutation.mutate,
+    saveStatus,
     saving: saveMutation.isPending,
   };
 }
@@ -729,9 +761,7 @@ function useRecorderTimeline({
 
 function RecorderHeader({
   title,
-  dirty,
-  projectReady,
-  savePending,
+  saveStatus,
   isPlaying,
   isProcessing,
   isRecording,
@@ -753,9 +783,7 @@ function RecorderHeader({
   onGridDivisionChange,
 }: {
   title: string;
-  dirty: boolean;
-  projectReady: boolean;
-  savePending: boolean;
+  saveStatus: SaveStatus;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -930,6 +958,7 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
         data-testid="recorder-project-name"
@@ -956,21 +985,6 @@ function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={onSave}
-            disabled={
-              !projectReady ||
-              !dirty ||
-              isRecording ||
-              isProcessing ||
-              savePending
-            }
-          >
-            <SaveIcon />
-            Save
-            <span className="ml-auto text-xs text-neutral-500">Ctrl+S</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
@@ -986,6 +1000,45 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
+  );
+}
+
+function RecorderSaveButton({
+  status,
+  onSave,
+}: {
+  status: SaveStatus;
+  onSave: () => void;
+}) {
+  const canSave = status === "unsaved" || status === "error";
+  const label = {
+    saved: "All changes saved",
+    unsaved: "Unsaved changes (Ctrl/Cmd+S to save)",
+    saving: "Saving project",
+    error: "Save failed (click or Ctrl/Cmd+S to retry)",
+  }[status];
+  const icon = {
+    saved: <SaveCheckIcon className="size-4" />,
+    unsaved: <SaveIcon className="size-4" />,
+    saving: <LoaderCircleIcon className="size-3.5 animate-spin" />,
+    error: <CircleAlertIcon className="size-3.5" />,
+  }[status];
+  return (
+    <Button
+      aria-label={label}
+      title={label}
+      aria-disabled={!canSave}
+      onClick={canSave ? onSave : undefined}
+      className={cn(
+        "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        status === "saved" && "text-neutral-500",
+        status === "unsaved" && "text-neutral-300",
+        status === "saving" && "text-neutral-400",
+        status === "error" && "text-red-400 hover:text-red-300",
+      )}
+    >
+      {icon}
+    </Button>
   );
 }
 

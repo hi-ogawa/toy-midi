@@ -1,5 +1,5 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
-import { createStore } from "../../utils/store.ts";
+import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -439,6 +439,22 @@ export class RecorderRuntime {
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
     this.syncTrackMix();
+  }
+
+  subscribePersistableState(listener: () => void): () => void {
+    return this.store.subscribeWithSelector({
+      selector: (state) =>
+        ({
+          title: state.title,
+          tempo: state.tempo,
+          timeSignature: state.timeSignature,
+          audioTracks: state.audioTracks,
+          recordingTrack: state.recordingTrack,
+          latencyCompensation: state.latencyCompensation,
+        }) satisfies PersistableRecorderRuntimeState,
+      listener,
+      equals: shallowEqual,
+    });
   }
 
   private ensureContext(): AudioContext {

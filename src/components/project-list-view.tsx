@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   AudioLinesIcon,
-  Github,
+  GitForkIcon,
   Mic2Icon,
   Music2Icon,
   Pencil,
@@ -120,7 +120,7 @@ export function ProjectListView({
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
             >
-              <Github className="size-4" />
+              <GitForkIcon className="size-4" />
               GitHub
             </a>
           </nav>
