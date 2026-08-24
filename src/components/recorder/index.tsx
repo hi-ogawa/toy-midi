@@ -95,6 +95,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
+const MIN_CAPTURE_TRACK_HEIGHT = 128;
+
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
@@ -1366,7 +1368,12 @@ function CaptureTrackRow({
       return { startClientY: event.clientY, startHeight: height };
     },
     onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+      onHeightChange(
+        Math.max(
+          MIN_CAPTURE_TRACK_HEIGHT,
+          drag.startHeight + event.clientY - drag.startClientY,
+        ),
+      );
     },
   });
   const mixToggleClass = (active: boolean) =>
@@ -1374,7 +1381,10 @@ function CaptureTrackRow({
       ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
-    <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
+    <div
+      className="relative grid grid-cols-[15rem_1fr]"
+      style={{ height: Math.max(MIN_CAPTURE_TRACK_HEIGHT, height) }}
+    >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">Capture</div>
