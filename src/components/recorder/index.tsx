@@ -237,7 +237,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
-          <div className="relative min-h-full">
+          <div className="relative">
             {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-30 overflow-hidden">
                 <div
@@ -1374,10 +1374,7 @@ function CaptureTrackRow({
       ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
-    <div
-      className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
-      style={{ height }}
-    >
+    <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">Capture</div>
@@ -1472,7 +1469,7 @@ function CaptureTrackRow({
       {children}
       <div
         ref={resizeRef}
-        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title="Resize Capture"
       />
     </div>
