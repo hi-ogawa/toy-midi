@@ -5,37 +5,28 @@ export function createStore<State>(initialize: (get: () => State) => State) {
   const get = (): State => state;
   state = initialize(get);
 
-  function subscribe(listener: () => void): () => void;
-  function subscribe<Selection>(
+  const subscribe = (listener: () => void): (() => void) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+
+  const subscribeSelector = <Selection>(
     selector: (state: State) => Selection,
     listener: () => void,
     equals: (left: Selection, right: Selection) => boolean,
-  ): () => void;
-  function subscribe<Selection>(
-    selectorOrListener: ((state: State) => Selection) | (() => void),
-    listener?: () => void,
-    equals?: (left: Selection, right: Selection) => boolean,
-  ): () => void {
-    if (arguments.length === 1) {
-      const storeListener = selectorOrListener as () => void;
-      listeners.add(storeListener);
-      return () => listeners.delete(storeListener);
-    }
-    const selector = selectorOrListener as (state: State) => Selection;
-    const selectionListener = listener!;
-    const selectionEquals = equals!;
+  ): (() => void) => {
     let selection = selector(state);
     const storeListener = () => {
       const nextSelection = selector(state);
-      if (selectionEquals(selection, nextSelection)) {
+      if (equals(selection, nextSelection)) {
         return;
       }
       selection = nextSelection;
-      selectionListener();
+      listener();
     };
     listeners.add(storeListener);
     return () => listeners.delete(storeListener);
-  }
+  };
 
   const update = (update: Partial<State>): void => {
     state = { ...state, ...update };
@@ -44,7 +35,7 @@ export function createStore<State>(initialize: (get: () => State) => State) {
     }
   };
 
-  return { get, subscribe, update };
+  return { get, subscribe, subscribeSelector, update };
 }
 
 export function shallowEqual<T extends object>(left: T, right: T): boolean {

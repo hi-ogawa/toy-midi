@@ -481,7 +481,7 @@ function useRecorderProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribe(
+    return runtime.store.subscribeSelector(
       selectPersistableRecorderRuntimeState,
       () => {
         revisionRef.current += 1;
