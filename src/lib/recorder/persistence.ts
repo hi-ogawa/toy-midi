@@ -1,5 +1,6 @@
 import { createAudioView } from "../audio-view.ts";
 import {
+  clampRecordingTrackHeight,
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
@@ -121,7 +122,7 @@ export function deserializeRecorderRuntimeState({
       };
     }),
     recordingTrack: {
-      height: project.recordingTrack.height,
+      height: clampRecordingTrackHeight(project.recordingTrack.height),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,

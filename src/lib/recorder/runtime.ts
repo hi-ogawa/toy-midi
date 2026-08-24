@@ -16,6 +16,7 @@ const MAX_RECORDING_SECONDS = 5 * 60;
 export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
+const MIN_RECORDING_TRACK_HEIGHT = 128;
 const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
@@ -296,7 +297,7 @@ export class RecorderRuntime {
     this.store.update({
       recordingTrack: {
         ...this.store.get().recordingTrack,
-        height: clampTrackHeight(height),
+        height: clampRecordingTrackHeight(height),
       },
     });
   }
@@ -573,7 +574,7 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
-    height: DEFAULT_TRACK_HEIGHT,
+    height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,
     muted: false,
     soloed: false,
@@ -583,4 +584,11 @@ function createRecordingTrackState(): RecordingTrackState {
 
 function clampTrackHeight(height: number): number {
   return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
+}
+
+export function clampRecordingTrackHeight(height: number): number {
+  return Math.max(
+    MIN_RECORDING_TRACK_HEIGHT,
+    Math.min(MAX_TRACK_HEIGHT, height),
+  );
 }
