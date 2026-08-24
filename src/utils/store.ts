@@ -42,11 +42,13 @@ export function createStore<State>(initialize: (get: () => State) => State) {
   return { get, subscribe, subscribeWithSelector, update };
 }
 
-export function shallowEqual<T extends object>(left: T, right: T): boolean {
-  const leftKeys = Object.keys(left) as (keyof T)[];
+export function shallowEqual(left: object, right: object): boolean {
+  const leftRecord = left as Record<string, unknown>;
+  const rightRecord = right as Record<string, unknown>;
+  const leftKeys = Object.keys(leftRecord);
   const rightKeys = Object.keys(right);
   return (
     leftKeys.length === rightKeys.length &&
-    leftKeys.every((key) => Object.is(left[key], right[key]))
+    leftKeys.every((key) => Object.is(leftRecord[key], rightRecord[key]))
   );
 }
