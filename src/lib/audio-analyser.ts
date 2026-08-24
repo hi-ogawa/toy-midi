@@ -12,11 +12,11 @@ export class AudioAnalyser {
 
   constructor(context: BaseAudioContext) {
     this.node = context.createAnalyser();
-    this.node.fftSize = 2048;
-    this.samples = new Float32Array(this.node.fftSize);
     // Match the old worklet cadence of 16 render quanta. The analyser window is
     // 16 * 128 samples, so one window at the actual context rate is the intended
     // approximate UI update interval.
+    this.node.fftSize = 2048;
+    this.samples = new Float32Array(this.node.fftSize);
     this.sampleInterval = (this.node.fftSize / context.sampleRate) * 1000;
   }
 
