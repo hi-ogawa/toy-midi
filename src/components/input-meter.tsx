@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
+import { startAnimationFrameLoop } from "../utils/timing";
 
 export function InputMeter({
   active,
@@ -74,16 +75,14 @@ function useAnalyserPeak({
       return;
     }
     const samples = new Float32Array(analyser.fftSize);
-    let frame = requestAnimationFrame(function sample() {
+    return startAnimationFrameLoop(() => {
       analyser.getFloatTimeDomainData(samples);
       let nextPeak = 0;
       for (const value of samples) {
         nextPeak = Math.max(nextPeak, Math.abs(value));
       }
       setPeak(nextPeak);
-      frame = requestAnimationFrame(sample);
     });
-    return () => cancelAnimationFrame(frame);
   }, [active, analyser]);
 
   return peak;
