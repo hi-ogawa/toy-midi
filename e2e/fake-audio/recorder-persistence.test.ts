@@ -80,10 +80,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
 });
 
-test("keeps unsaved changes when the tab regains focus", async ({
-  context,
-  page,
-}) => {
+test("keeps unsaved changes when the tab regains focus", async ({ page }) => {
   await createRecorderProject(page);
 
   await page.getByTestId("recorder-tempo-input").fill("140");
@@ -93,9 +90,9 @@ test("keeps unsaved changes when the tab regains focus", async ({
   });
   await expect(saveButton).toBeEnabled();
 
-  const otherPage = await context.newPage();
-  await otherPage.bringToFront();
-  await page.bringToFront();
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event("visibilitychange")),
+  );
 
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(saveButton).toBeEnabled();
