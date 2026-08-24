@@ -1,16 +1,33 @@
+import { useEffect, useState } from "react";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
+import type { PeakSource } from "../lib/recorder/capture-input";
 
 export function InputMeter({
   active,
   peak,
+  peakSource,
 }: {
   active: boolean;
-  peak: number;
+  peak?: number;
+  peakSource?: PeakSource;
 }) {
+  const [sampledPeak, setSampledPeak] = useState(0);
+  useEffect(() => {
+    if (!active || !peakSource) {
+      setSampledPeak(0);
+      return;
+    }
+    let frame = requestAnimationFrame(function sample() {
+      setSampledPeak(peakSource.readPeak());
+      frame = requestAnimationFrame(sample);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active, peakSource]);
+
   const getPosition = (value: number) =>
     ((value - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
   const zeroPosition = getPosition(0);
-  const decibels = gainToDb(peak);
+  const decibels = gainToDb(peakSource ? sampledPeak : (peak ?? 0));
   const meterValue = Math.max(MIN_DB, Math.min(MAX_DB, decibels));
   const levelPosition = active ? getPosition(meterValue) : 0;
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";

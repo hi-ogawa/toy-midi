@@ -1,15 +1,14 @@
 import {
   CaptureWorkletClient,
-  type CaptureWorkletNotification as WorkletNotification,
+  type CaptureWorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
 
-type CaptureInputNotification =
-  | WorkletNotification
-  | { type: "level"; peak: number };
-
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
-const METER_INTERVAL_MS = 50;
+
+export interface PeakSource {
+  readPeak(): number;
+}
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -24,13 +23,14 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
+  readonly peakSource: PeakSource;
+
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   private readonly analyser: AnalyserNode;
   private readonly analyserSamples: Float32Array<ArrayBuffer>;
   private readonly silentGain: GainNode;
-  private meterInterval: number;
 
   static async open({
     context,
@@ -39,7 +39,7 @@ export class CaptureInput {
   }: {
     context: AudioContext;
     deviceId: string;
-    onNotification: (message: CaptureInputNotification) => void;
+    onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     await ensureCaptureWorklet(context);
     const stream = await navigator.mediaDevices.getUserMedia(
@@ -82,7 +82,7 @@ export class CaptureInput {
   }: {
     context: AudioContext;
     stream: MediaStream;
-    onNotification: (message: CaptureInputNotification) => void;
+    onNotification: (message: CaptureWorkletNotification) => void;
   }) {
     this.stream = stream;
     this.source = context.createMediaStreamSource(stream);
@@ -93,6 +93,7 @@ export class CaptureInput {
     this.analyser = context.createAnalyser();
     this.analyser.fftSize = 2048;
     this.analyserSamples = new Float32Array(this.analyser.fftSize);
+    this.peakSource = { readPeak: () => this.readPeak() };
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
@@ -102,14 +103,6 @@ export class CaptureInput {
       .connect(this.analyser)
       .connect(this.silentGain)
       .connect(context.destination);
-    this.meterInterval = window.setInterval(() => {
-      this.analyser.getFloatTimeDomainData(this.analyserSamples);
-      let peak = 0;
-      for (const sample of this.analyserSamples) {
-        peak = Math.max(peak, Math.abs(sample));
-      }
-      onNotification({ type: "level", peak });
-    }, METER_INTERVAL_MS);
   }
 
   setChannel(channel: number): void {
@@ -124,8 +117,16 @@ export class CaptureInput {
     return this.worklet.stop();
   }
 
+  private readPeak(): number {
+    this.analyser.getFloatTimeDomainData(this.analyserSamples);
+    let peak = 0;
+    for (const sample of this.analyserSamples) {
+      peak = Math.max(peak, Math.abs(sample));
+    }
+    return peak;
+  }
+
   dispose(): void {
-    window.clearInterval(this.meterInterval);
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.disconnect();
