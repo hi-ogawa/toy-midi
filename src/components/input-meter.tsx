@@ -10,24 +10,7 @@ export function InputMeter({
   analyser?: AnalyserNode;
   peak?: number;
 }) {
-  const [sampledPeak, setSampledPeak] = useState(0);
-  useEffect(() => {
-    if (!active || !analyser) {
-      setSampledPeak(0);
-      return;
-    }
-    const samples = new Float32Array(analyser.fftSize);
-    let frame = requestAnimationFrame(function sample() {
-      analyser.getFloatTimeDomainData(samples);
-      let nextPeak = 0;
-      for (const value of samples) {
-        nextPeak = Math.max(nextPeak, Math.abs(value));
-      }
-      setSampledPeak(nextPeak);
-      frame = requestAnimationFrame(sample);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [active, analyser]);
+  const sampledPeak = useAnalyserPeak({ active, analyser });
 
   const getPosition = (value: number) =>
     ((value - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
@@ -74,4 +57,34 @@ export function InputMeter({
       </output>
     </div>
   );
+}
+
+function useAnalyserPeak({
+  active,
+  analyser,
+}: {
+  active: boolean;
+  analyser?: AnalyserNode;
+}): number {
+  const [peak, setPeak] = useState(0);
+
+  useEffect(() => {
+    if (!active || !analyser) {
+      setPeak(0);
+      return;
+    }
+    const samples = new Float32Array(analyser.fftSize);
+    let frame = requestAnimationFrame(function sample() {
+      analyser.getFloatTimeDomainData(samples);
+      let nextPeak = 0;
+      for (const value of samples) {
+        nextPeak = Math.max(nextPeak, Math.abs(value));
+      }
+      setPeak(nextPeak);
+      frame = requestAnimationFrame(sample);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [active, analyser]);
+
+  return peak;
 }
