@@ -37,7 +37,6 @@ import {
 } from "../../lib/music";
 import {
   getCaptureInputs,
-  type PeakSource,
   requestCaptureAccess,
 } from "../../lib/recorder/capture-input";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
@@ -394,7 +393,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           error={error}
           hasAccess={input.hasAccess}
           inputActive={input.active}
-          inputPeakSource={runtime.getInputPeakSource()}
+          inputAnalyser={runtime.getInputAnalyser()}
           inputsInitialized={input.initialized}
           isProcessing={isProcessing}
           isRecording={isRecording}
@@ -1461,7 +1460,7 @@ function InputInspector({
   error,
   hasAccess,
   inputActive,
-  inputPeakSource,
+  inputAnalyser,
   inputsInitialized,
   isProcessing,
   isRecording,
@@ -1480,7 +1479,7 @@ function InputInspector({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputPeakSource?: PeakSource;
+  inputAnalyser?: AnalyserNode;
   inputsInitialized: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -1580,7 +1579,7 @@ function InputInspector({
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <InputMeter active={inputActive} peakSource={inputPeakSource} />
+            <InputMeter active={inputActive} analyser={inputAnalyser} />
           </div>
         </label>
         <label className="block text-[11px] font-medium text-neutral-400">

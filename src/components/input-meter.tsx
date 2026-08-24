@@ -1,33 +1,38 @@
 import { useEffect, useState } from "react";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
-import type { PeakSource } from "../lib/recorder/capture-input";
 
 export function InputMeter({
   active,
+  analyser,
   peak,
-  peakSource,
 }: {
   active: boolean;
+  analyser?: AnalyserNode;
   peak?: number;
-  peakSource?: PeakSource;
 }) {
   const [sampledPeak, setSampledPeak] = useState(0);
   useEffect(() => {
-    if (!active || !peakSource) {
+    if (!active || !analyser) {
       setSampledPeak(0);
       return;
     }
+    const samples = new Float32Array(analyser.fftSize);
     let frame = requestAnimationFrame(function sample() {
-      setSampledPeak(peakSource.readPeak());
+      analyser.getFloatTimeDomainData(samples);
+      let nextPeak = 0;
+      for (const value of samples) {
+        nextPeak = Math.max(nextPeak, Math.abs(value));
+      }
+      setSampledPeak(nextPeak);
       frame = requestAnimationFrame(sample);
     });
     return () => cancelAnimationFrame(frame);
-  }, [active, peakSource]);
+  }, [active, analyser]);
 
   const getPosition = (value: number) =>
     ((value - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
   const zeroPosition = getPosition(0);
-  const decibels = gainToDb(peakSource ? sampledPeak : (peak ?? 0));
+  const decibels = gainToDb(analyser ? sampledPeak : (peak ?? 0));
   const meterValue = Math.max(MIN_DB, Math.min(MAX_DB, decibels));
   const levelPosition = active ? getPosition(meterValue) : 0;
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";

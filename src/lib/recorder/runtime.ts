@@ -2,7 +2,7 @@ import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
-import { CaptureInput, type PeakSource } from "./capture-input.ts";
+import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deserializeRecorderRuntimeState,
@@ -182,8 +182,8 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  getInputPeakSource(): PeakSource | undefined {
-    return this.captureInput?.peakSource;
+  getInputAnalyser(): AnalyserNode | undefined {
+    return this.captureInput?.analyser;
   }
 
   addAudioTrack(): string {

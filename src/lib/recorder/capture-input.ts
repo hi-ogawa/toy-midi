@@ -6,10 +6,6 @@ import {
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
-export interface PeakSource {
-  readPeak(): number;
-}
-
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
     await navigator.mediaDevices.getUserMedia(captureConstraints());
@@ -23,13 +19,11 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
-  readonly peakSource: PeakSource;
+  readonly analyser: AnalyserNode;
 
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
-  private readonly analyser: AnalyserNode;
-  private readonly analyserSamples: Float32Array<ArrayBuffer>;
   private readonly silentGain: GainNode;
 
   static async open({
@@ -92,8 +86,6 @@ export class CaptureInput {
     });
     this.analyser = context.createAnalyser();
     this.analyser.fftSize = 2048;
-    this.analyserSamples = new Float32Array(this.analyser.fftSize);
-    this.peakSource = { readPeak: () => this.readPeak() };
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
@@ -115,15 +107,6 @@ export class CaptureInput {
 
   stopCapture(): Promise<number> {
     return this.worklet.stop();
-  }
-
-  private readPeak(): number {
-    this.analyser.getFloatTimeDomainData(this.analyserSamples);
-    let peak = 0;
-    for (const sample of this.analyserSamples) {
-      peak = Math.max(peak, Math.abs(sample));
-    }
-    return peak;
   }
 
   dispose(): void {
