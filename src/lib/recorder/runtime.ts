@@ -1,5 +1,5 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
-import { createStore } from "../../utils/store.ts";
+import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -77,7 +77,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
-export function selectPersistableRecorderRuntimeState(
+function selectPersistableRecorderRuntimeState(
   state: RecorderRuntimeState,
 ): PersistableRecorderRuntimeState {
   return {
@@ -119,6 +119,14 @@ export class RecorderRuntime {
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
   private metronome?: RecorderMetronome;
+
+  subscribePersistableState(listener: () => void): () => void {
+    return this.store.subscribeSelector({
+      selector: selectPersistableRecorderRuntimeState,
+      listener,
+      equals: shallowEqual,
+    });
+  }
 
   async startInput({
     deviceId,
