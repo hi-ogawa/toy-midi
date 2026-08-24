@@ -98,6 +98,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
+  inputAnalyser?: AnalyserNode;
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
@@ -159,6 +160,7 @@ export class RecorderRuntime {
     });
     this.closeInput();
     this.captureInput = input;
+    this.inputAnalyser = input.analyser;
 
     this.store.update({
       captureStatus: "ready",
@@ -180,10 +182,6 @@ export class RecorderRuntime {
   selectChannel(channel: number): void {
     this.captureInput?.setChannel(channel);
     this.store.update({ selectedChannel: channel });
-  }
-
-  getInputAnalyser(): AnalyserNode | undefined {
-    return this.captureInput?.analyser;
   }
 
   addAudioTrack(): string {
@@ -534,6 +532,7 @@ export class RecorderRuntime {
   private closeInput(): void {
     this.captureInput?.dispose();
     this.captureInput = undefined;
+    this.inputAnalyser = undefined;
   }
 
   private clearTake(): void {
