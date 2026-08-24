@@ -1,4 +1,4 @@
-import { startAnimationFrameLoop } from "../utils/timing.ts";
+import { startThrottledAnimationFrameLoop } from "../utils/timing.ts";
 
 export type AudioAnalysis = {
   peak: number;
@@ -21,18 +21,16 @@ export class AudioAnalyser {
   }
 
   subscribe(onAnalysis: (analysis: AudioAnalysis) => void): () => void {
-    let lastSampleTime = -Infinity;
-    return startAnimationFrameLoop((time) => {
-      if (time - lastSampleTime < this.sampleInterval) {
-        return;
-      }
-      lastSampleTime = time;
-      this.node.getFloatTimeDomainData(this.samples);
-      let peak = 0;
-      for (const sample of this.samples) {
-        peak = Math.max(peak, Math.abs(sample));
-      }
-      onAnalysis({ peak });
+    return startThrottledAnimationFrameLoop({
+      interval: this.sampleInterval,
+      callback: () => {
+        this.node.getFloatTimeDomainData(this.samples);
+        let peak = 0;
+        for (const sample of this.samples) {
+          peak = Math.max(peak, Math.abs(sample));
+        }
+        onAnalysis({ peak });
+      },
     });
   }
 

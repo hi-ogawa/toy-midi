@@ -39,3 +39,20 @@ export function startAnimationFrameLoop(
   frame = requestAnimationFrame(tick);
   return () => cancelAnimationFrame(frame);
 }
+
+export function startThrottledAnimationFrameLoop({
+  callback,
+  interval,
+}: {
+  callback: FrameRequestCallback;
+  interval: number;
+}): () => void {
+  let lastTime = -Infinity;
+  return startAnimationFrameLoop((time) => {
+    if (time - lastTime < interval) {
+      return;
+    }
+    lastTime = time;
+    callback(time);
+  });
+}
