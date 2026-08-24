@@ -1401,7 +1401,7 @@ function CaptureTrackRow({
       className="relative grid grid-cols-[15rem_1fr]"
       style={{ height: Math.max(MIN_CAPTURE_TRACK_HEIGHT, height) }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1rem_0.75rem_1fr] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">Capture</div>
           <div className="mt-0.5 truncate text-[11px] text-neutral-400">
@@ -1475,7 +1475,7 @@ function CaptureTrackRow({
         <div className="col-span-2">
           <InputMeter active={inputActive} analyser={inputAnalyser} compact />
         </div>
-        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-end gap-2 text-[10px] text-neutral-400">
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
