@@ -73,7 +73,13 @@ function useAnalyserPeak({
       return;
     }
     const samples = new Float32Array(analyser.fftSize);
-    return startAnimationFrameLoop(() => {
+    const sampleInterval = (analyser.fftSize / 48_000) * 1000;
+    let lastSampleTime = -Infinity;
+    return startAnimationFrameLoop((time) => {
+      if (time - lastSampleTime < sampleInterval) {
+        return;
+      }
+      lastSampleTime = time;
       analyser.getFloatTimeDomainData(samples);
       let nextPeak = 0;
       for (const value of samples) {

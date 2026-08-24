@@ -28,10 +28,12 @@ export function debounce(fn: () => void, ms: number) {
   return { schedule, cancel, flush };
 }
 
-export function startAnimationFrameLoop(callback: () => void): () => void {
+export function startAnimationFrameLoop(
+  callback: FrameRequestCallback,
+): () => void {
   let frame: number;
-  const tick = () => {
-    callback();
+  const tick = (time: number) => {
+    callback(time);
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
