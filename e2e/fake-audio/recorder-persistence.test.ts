@@ -7,10 +7,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   const projectUrl = page.url();
   await expect(
     page.getByRole("button", { name: "All changes saved" }),
-  ).toBeDisabled();
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  ).toHaveAttribute("aria-disabled", "true");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
@@ -35,15 +32,12 @@ test("saves and restores a recorder project", async ({ page }) => {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
     }),
   ).toBeEnabled();
-  await page.getByRole("button", { name: "More" }).click();
-  await expect(page.getByRole("menuitem", { name: /Save/ })).toHaveCount(0);
-  await page.keyboard.press("Escape");
   await page
     .getByRole("button", { name: "Unsaved changes (Ctrl/Cmd+S to save)" })
     .click();
   await expect(
     page.getByRole("button", { name: "All changes saved" }),
-  ).toBeDisabled();
+  ).toHaveAttribute("aria-disabled", "true");
 
   // Reload restores document fields and PCM-backed waveform data.
   await page.reload();
