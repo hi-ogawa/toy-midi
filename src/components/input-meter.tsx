@@ -73,6 +73,9 @@ function useAnalyserPeak({
       return;
     }
     const samples = new Float32Array(analyser.fftSize);
+    // Match the old worklet cadence of 16 render quanta: 16 * 128 / 48 kHz is
+    // about 43 ms. This is intentionally an approximate UI throttle rather than
+    // sample-accurate timing, so assuming the common 48 kHz rate is sufficient.
     const sampleInterval = (analyser.fftSize / 48_000) * 1000;
     let lastSampleTime = -Infinity;
     return startAnimationFrameLoop((time) => {
