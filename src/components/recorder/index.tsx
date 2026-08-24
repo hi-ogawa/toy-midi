@@ -479,7 +479,7 @@ function useRecorderProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribe(() => {
+    return runtime.subscribePersistableState(() => {
       revisionRef.current += 1;
       setDirty(true);
     });
