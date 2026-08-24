@@ -151,7 +151,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
   const inputRoute = !input.initialized
-    ? { label: "Loading audio inputs…", needsSetup: true }
+    ? { label: "Loading audio inputs…", needsSetup: false }
     : !input.hasAccess
       ? { label: "Microphone access required · Set up", needsSetup: true }
       : input.selectedDevice
@@ -352,6 +352,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputAnalyser={runtime.captureInput?.analyser}
               inputToggleDisabled={
                 input.mutationPending ||
+                !input.initialized ||
                 isRecording ||
                 isProcessing ||
                 (!input.active && inputRoute.needsSetup)
