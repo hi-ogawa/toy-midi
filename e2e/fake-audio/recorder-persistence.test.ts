@@ -80,7 +80,10 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByText(/Recorder project .* not found/)).toBeVisible();
 });
 
-test("keeps unsaved changes when the tab regains focus", async ({ page }) => {
+test("keeps unsaved changes when the tab regains focus", async ({
+  context,
+  page,
+}) => {
   await createRecorderProject(page);
 
   await page.getByTestId("recorder-tempo-input").fill("140");
@@ -90,10 +93,19 @@ test("keeps unsaved changes when the tab regains focus", async ({ page }) => {
   });
   await expect(saveButton).toBeEnabled();
 
+  const otherPage = await context.newPage();
+  await otherPage.goto("/recorder");
+  await otherPage.bringToFront();
+  await otherPage.getByTestId("new-recorder-project-button").focus();
+  await page.bringToFront();
+  await page.getByTestId("recorder-project-name").click();
   await page.evaluate(() =>
     window.dispatchEvent(new Event("visibilitychange")),
   );
+  await page.getByTestId("recorder-tempo-input").press("ArrowUp");
+  await expect
+    .poll(() => page.getByTestId("recorder-tempo-input").inputValue())
+    .toBe("141");
 
-  await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(saveButton).toBeEnabled();
 });
