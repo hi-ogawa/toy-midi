@@ -10,6 +10,7 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
+import { deriveTakeRegions } from "./take-regions.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -40,9 +41,12 @@ interface RecordingTrackState {
   muted: boolean;
   soloed: boolean;
   takes: TakeState[];
+  nextTakeNumber: number;
 }
 
 interface TakeState {
+  id: string;
+  number: number;
   duration: number;
   timelineOffset: number;
   buffer?: AudioBuffer;
@@ -60,6 +64,10 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
+  pendingTake?: Pick<
+    TakeState,
+    "id" | "number" | "duration" | "timelineOffset"
+  >;
   // Capture
   captureStatus: CaptureStatus;
   inputChannelCount: number;
@@ -103,8 +111,13 @@ export class RecorderRuntime {
   private transport?: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
-  private recordingTrackPlayback?: AudioBufferPlayback;
-  private activeRecording?: ActiveRecording;
+  private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private activeRecording?: {
+    id: string;
+    number: number;
+    timelineOffset: number;
+    recording: ActiveRecording;
+  };
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -127,26 +140,19 @@ export class RecorderRuntime {
             if (!activeRecording) {
               break;
             }
-            activeRecording.append(message);
-            const recordingTrack = this.store.get().recordingTrack;
-            const take = recordingTrack.takes[0];
-            if (!take) {
-              throw new Error("Recording take state is missing.");
-            }
+            activeRecording.recording.append(message);
             this.store.update({
-              recordingTrack: {
-                ...recordingTrack,
-                takes: [
-                  {
-                    ...take,
-                    duration:
-                      activeRecording.getDurationFrames() / context.sampleRate,
-                  },
-                ],
+              pendingTake: {
+                id: activeRecording.id,
+                number: activeRecording.number,
+                duration:
+                  activeRecording.recording.getDurationFrames() /
+                  context.sampleRate,
+                timelineOffset: activeRecording.timelineOffset,
               },
             });
             if (
-              activeRecording.getDurationFrames() >=
+              activeRecording.recording.getDurationFrames() >=
                 context.sampleRate * MAX_RECORDING_SECONDS &&
               this.store.get().captureStatus === "recording"
             ) {
@@ -304,8 +310,6 @@ export class RecorderRuntime {
   async play(): Promise<void> {
     const context = this.ensureContext();
     await context.resume();
-    const take = this.store.get().recordingTrack.takes[0];
-    this.recordingTrackPlayback!.setTimelineOffset(take?.timelineOffset ?? 0);
     this.transport!.play();
   }
 
@@ -328,27 +332,25 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.clearTake();
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
-    this.activeRecording = new ActiveRecording(startFrame);
     const timelineOffset =
       this.transport!.getPlaybackPositionByContextTime(
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
+    const id = crypto.randomUUID();
+    const number = this.store.get().recordingTrack.nextTakeNumber;
+    this.activeRecording = {
+      id,
+      number,
+      timelineOffset,
+      recording: new ActiveRecording(startFrame),
+    };
     this.store.update({
       captureStatus: "recording",
-      recordingTrack: {
-        ...this.store.get().recordingTrack,
-        takes: [
-          {
-            duration: 0,
-            timelineOffset,
-          },
-        ],
-      },
+      pendingTake: { id, number, duration: 0, timelineOffset },
     });
   }
 
@@ -391,6 +393,47 @@ export class RecorderRuntime {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
+  renderComp(): AudioBuffer | undefined {
+    const context = this.ensureContext();
+    const takes = this.store.get().recordingTrack.takes;
+    const regions = deriveTakeRegions(takes);
+    if (regions.length === 0) {
+      return undefined;
+    }
+    const timelineOffset = Math.min(0, regions[0]!.timelineOffset);
+    const timelineEnd = Math.max(
+      ...regions.map((region) => region.timelineOffset + region.duration),
+    );
+    const sampleRate = context.sampleRate;
+    const buffer = context.createBuffer(
+      1,
+      Math.ceil((timelineEnd - timelineOffset) * sampleRate),
+      sampleRate,
+    );
+    const output = buffer.getChannelData(0);
+    for (const region of regions) {
+      const take = takes.find((entry) => entry.id === region.takeId);
+      if (!take?.buffer) {
+        continue;
+      }
+      const source = take.buffer.getChannelData(0);
+      const outputStart = Math.round(
+        (region.timelineOffset - timelineOffset) * sampleRate,
+      );
+      const outputLength = Math.round(region.duration * sampleRate);
+      for (let index = 0; index < outputLength; index++) {
+        const sourcePosition =
+          (region.sourceOffset + index / sampleRate) * take.buffer.sampleRate;
+        const sourceIndex = Math.floor(sourcePosition);
+        const fraction = sourcePosition - sourceIndex;
+        output[outputStart + index] =
+          (source[sourceIndex] ?? 0) * (1 - fraction) +
+          (source[sourceIndex + 1] ?? source[sourceIndex] ?? 0) * fraction;
+      }
+    }
+    return buffer;
+  }
+
   deserializeProject(project: SerializedRecorderRuntimeState): void {
     this.replacePersistableState(
       deserializeRecorderRuntimeState({
@@ -428,9 +471,7 @@ export class RecorderRuntime {
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(track.id, playback);
     }
-    const take = project.recordingTrack.takes[0];
-    this.recordingTrackPlayback!.stop();
-    this.recordingTrackPlayback!.setBuffer(take?.buffer);
+    this.disposeRecordingTrackPlaybacks();
     this.store.update({
       ...project,
       position: 0,
@@ -438,6 +479,7 @@ export class RecorderRuntime {
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
+    this.syncRecordingTrackPlaybacks();
     this.syncTrackMix();
   }
 
@@ -461,11 +503,6 @@ export class RecorderRuntime {
     if (!this.context) {
       this.context = new AudioContext();
       this.transport = new AudioContextTransport(this.context);
-      this.recordingTrackPlayback = new AudioBufferPlayback({
-        transport: this.transport,
-        output: this.context.destination,
-      });
-      this.syncTrackMix();
       this.metronome = new RecorderMetronome(this.transport);
       this.metronome.setGain(
         this.store.get().metronomeEnabled ? METRONOME_GAIN : 0,
@@ -491,11 +528,13 @@ export class RecorderRuntime {
           track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
         );
     }
-    this.recordingTrackPlayback?.setGain(
+    const recordingGain =
       recordingTrack.muted || (anyTrackSoloed && !recordingTrack.soloed)
         ? 0
-        : recordingTrack.gain,
-    );
+        : recordingTrack.gain;
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.setGain(recordingGain);
+    }
   }
 
   private finishRecording(stopFrame: number): void {
@@ -504,11 +543,10 @@ export class RecorderRuntime {
     if (!context || !activeRecording) {
       throw new Error("Recording state is incomplete.");
     }
-    const samples = activeRecording.finish(stopFrame);
+    const samples = activeRecording.recording.finish(stopFrame);
     if (!samples) {
       this.activeRecording = undefined;
-      this.clearTake();
-      this.store.update({ captureStatus: "ready" });
+      this.store.update({ captureStatus: "ready", pendingTake: undefined });
       return;
     }
     const takeBuffer = context.createBuffer(
@@ -517,21 +555,22 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.recordingTrackPlayback!.setBuffer(takeBuffer);
     this.activeRecording = undefined;
-    const take = this.store.get().recordingTrack.takes[0];
-    if (!take) {
-      throw new Error("Recording take state is missing.");
-    }
+    const recordingTrack = this.store.get().recordingTrack;
     this.store.update({
       captureStatus: "ready",
+      pendingTake: undefined,
       recordingTrack: {
-        ...this.store.get().recordingTrack,
+        ...recordingTrack,
+        nextTakeNumber: recordingTrack.nextTakeNumber + 1,
         takes: [
+          ...recordingTrack.takes,
           {
-            ...take,
+            id: activeRecording.id,
+            number: activeRecording.number,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
+            timelineOffset: activeRecording.timelineOffset,
             audioView: createAudioView(
               samples,
               context.sampleRate,
@@ -541,6 +580,7 @@ export class RecorderRuntime {
         ],
       },
     });
+    this.syncRecordingTrackPlaybacks();
   }
 
   private closeInput(): void {
@@ -548,15 +588,54 @@ export class RecorderRuntime {
     this.captureInput = undefined;
   }
 
-  private clearTake(): void {
-    this.recordingTrackPlayback?.stop();
-    this.recordingTrackPlayback?.setBuffer(undefined);
+  removeTake(id: string): void {
     this.store.update({
       recordingTrack: {
         ...this.store.get().recordingTrack,
-        takes: [],
+        takes: this.store
+          .get()
+          .recordingTrack.takes.filter((take) => take.id !== id),
       },
     });
+    this.syncRecordingTrackPlaybacks();
+  }
+
+  private syncRecordingTrackPlaybacks(): void {
+    const context = this.ensureContext();
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const takes = this.store.get().recordingTrack.takes;
+    this.disposeRecordingTrackPlaybacks();
+    for (const region of deriveTakeRegions(takes)) {
+      const take = takes.find((entry) => entry.id === region.takeId);
+      if (!take?.buffer) {
+        continue;
+      }
+      const playback = new AudioBufferPlayback({
+        transport: this.transport!,
+        output: context.destination,
+      });
+      playback.setBuffer(take.buffer);
+      playback.setTimelineOffset(region.timelineOffset);
+      playback.setSourceRange({
+        sourceOffset: region.sourceOffset,
+        duration: region.duration,
+      });
+      this.recordingTrackPlaybacks.push(playback);
+    }
+    this.syncTrackMix();
+    if (wasPlaying) {
+      this.transport!.play();
+    }
+  }
+
+  private disposeRecordingTrackPlaybacks(): void {
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.dispose();
+    }
+    this.recordingTrackPlaybacks = [];
   }
 }
 
@@ -578,6 +657,7 @@ function createRecordingTrackState(): RecordingTrackState {
     muted: false,
     soloed: false,
     takes: [],
+    nextTakeNumber: 1,
   };
 }
 

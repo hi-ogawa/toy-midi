@@ -10,6 +10,8 @@ export class AudioBufferPlayback implements TransportParticipant {
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
   private timelineOffset = 0;
+  private sourceOffset = 0;
+  private duration?: number;
 
   constructor({
     transport,
@@ -40,6 +42,17 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.timelineOffset = offset;
   }
 
+  setSourceRange({
+    sourceOffset,
+    duration,
+  }: {
+    sourceOffset: number;
+    duration?: number;
+  }): void {
+    this.sourceOffset = sourceOffset;
+    this.duration = duration;
+  }
+
   /**
    * Starts this buffer from the transport's shared context and timeline anchor.
    *
@@ -53,11 +66,12 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     const playbackAnchor = this.transport.playbackAnchor!;
-    const bufferOffset = Math.max(
-      0,
-      playbackAnchor.position - this.timelineOffset,
+    const elapsed = Math.max(0, playbackAnchor.position - this.timelineOffset);
+    const duration = Math.min(
+      this.duration ?? buffer.duration - this.sourceOffset,
+      buffer.duration - this.sourceOffset,
     );
-    if (bufferOffset >= buffer.duration) {
+    if (elapsed >= duration) {
       return;
     }
     const source = this.transport.context.createBufferSource();
@@ -66,7 +80,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.start(
       playbackAnchor.contextTime +
         Math.max(0, this.timelineOffset - playbackAnchor.position),
-      bufferOffset,
+      this.sourceOffset + elapsed,
+      duration - elapsed,
     );
     this.source = source;
   }

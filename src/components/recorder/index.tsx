@@ -96,6 +96,7 @@ import { cn } from "../ui/utils";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [selectedTakeId, setSelectedTakeId] = useState<string>();
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -143,7 +144,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const take = state.recordingTrack.takes[0];
+  const takes = state.recordingTrack.takes;
+  const selectedTake = takes.find((take) => take.id === selectedTakeId);
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
   const error =
@@ -153,6 +155,12 @@ export function Recorder({ projectId }: { projectId: string }) {
     audioTrackMutation.error ??
     playMutation.error ??
     recordMutation.error;
+
+  useEffect(() => {
+    if (selectedTakeId && !selectedTake) {
+      setSelectedTakeId(undefined);
+    }
+  }, [selectedTake, selectedTakeId]);
 
   function togglePlay() {
     if (isProcessing) {
@@ -332,10 +340,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               title="Capture"
               subtitle={
                 isRecording
-                  ? `Recording · ${formatTimeWithMilliseconds(take?.duration ?? 0)}`
-                  : take
-                    ? `Take 1 · ${formatTimeWithMilliseconds(take.duration)}`
-                    : "No take"
+                  ? `Recording · ${formatTimeWithMilliseconds(state.pendingTake?.duration ?? 0)}`
+                  : takes.length > 0
+                    ? `${takes.length} ${takes.length === 1 ? "take" : "takes"}`
+                    : "No takes"
               }
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
@@ -352,43 +360,46 @@ export function Recorder({ projectId }: { projectId: string }) {
               action={
                 <Button
                   data-testid="recorder-download-take"
-                  disabled={!take?.buffer || isRecording || isProcessing}
+                  disabled={takes.length === 0 || isRecording || isProcessing}
                   onClick={() => {
-                    if (!take?.buffer) {
+                    const comp = runtime.renderComp();
+                    if (!comp) {
                       return;
                     }
                     downloadBlob(
-                      encodeWav(take.buffer),
+                      encodeWav(comp),
                       buildExportFileName({
-                        baseName: "toy-midi-take-1",
+                        baseName: "toy-midi-comp",
                         extension: "wav",
                       }),
                     );
                   }}
                   className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                  title="Download take"
-                  aria-label="Download take"
+                  title="Download comp"
+                  aria-label="Download comp"
                 >
                   <DownloadIcon className="size-3.5" />
                 </Button>
               }
             >
-              <TimelineLane
-                clip={
-                  take
+              <TakeTimelineLane
+                takes={takes.map((take) => ({
+                  id: take.id,
+                  duration: take.duration,
+                  label: `Take ${take.number}`,
+                  offset: take.timelineOffset,
+                  audioView: take.audioView,
+                }))}
+                pendingTake={
+                  state.pendingTake
                     ? {
-                        duration: take.duration,
-                        label: isRecording
-                          ? "Recording..."
-                          : isProcessing
-                            ? "Finalizing..."
-                            : "Take 1",
-                        offset: take.timelineOffset,
-                        variant: isRecording ? "recording" : "take",
-                        audioView: take.audioView,
+                        duration: state.pendingTake.duration,
+                        label: isProcessing ? "Finalizing..." : "Recording...",
+                        offset: state.pendingTake.timelineOffset,
                       }
                     : undefined
                 }
+                selectedTakeId={selectedTakeId}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -397,6 +408,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
+                onTakeSelect={setSelectedTakeId}
+                onTakeDelete={(id) => {
+                  runtime.removeTake(id);
+                  if (selectedTake?.id === id) {
+                    setSelectedTakeId(undefined);
+                  }
+                }}
               />
             </TrackRow>
           </div>
@@ -1325,6 +1343,110 @@ type RecorderTimelineClip = {
   audioView?: AudioView;
 };
 
+type RecorderTakeClip = Omit<RecorderTimelineClip, "variant"> & { id: string };
+
+function TakeTimelineLane({
+  beatsPerBar,
+  emptyLabel,
+  onSeek,
+  onTakeDelete,
+  onTakeSelect,
+  pendingTake,
+  pixelsPerBeat,
+  selectedTakeId,
+  subdivisionsPerBeat,
+  takes,
+  tempo,
+  viewportStartBeat,
+  viewportWidth,
+}: {
+  beatsPerBar: number;
+  emptyLabel: string;
+  onSeek: (position: number) => void;
+  onTakeDelete: (id: string) => void;
+  onTakeSelect: (id: string) => void;
+  pendingTake?: Omit<RecorderTimelineClip, "variant">;
+  pixelsPerBeat: number;
+  selectedTakeId?: string;
+  subdivisionsPerBeat: number;
+  takes: RecorderTakeClip[];
+  tempo: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+}) {
+  const laneCount = takes.length + (pendingTake ? 1 : 0);
+  return (
+    <div
+      className="relative grid overflow-hidden bg-neutral-900"
+      style={{
+        gridTemplateRows: `repeat(${Math.max(1, laneCount)}, minmax(0, 1fr))`,
+        ...getTimelineGridStyle({
+          beatsPerBar,
+          pixelsPerBeat,
+          viewportStartBeat,
+          subdivisionsPerBeat,
+        }),
+      }}
+      onPointerDown={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const beat = Math.max(
+          0,
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        );
+        onSeek(beatsToSeconds(beat, tempo));
+      }}
+    >
+      {laneCount === 0 && (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+      {takes.map((take) => (
+        <div
+          key={take.id}
+          className={cn(
+            "relative min-h-0 border-b border-neutral-800 last:border-b-0",
+            selectedTakeId === take.id && "bg-sky-950/30",
+          )}
+        >
+          <TimelineClip
+            clip={{ ...take, variant: "take" }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            onSelect={() => onTakeSelect(take.id)}
+            selected={selectedTakeId === take.id}
+          />
+          {selectedTakeId === take.id && (
+            <Button
+              data-testid={`recorder-delete-${take.id}`}
+              className="absolute right-1 top-1 z-20 size-6 border-red-900 bg-neutral-900/90 text-red-400 hover:bg-red-950"
+              title={`Delete ${take.label}`}
+              aria-label={`Delete ${take.label}`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => onTakeDelete(take.id)}
+            >
+              <Trash2Icon className="size-3" />
+            </Button>
+          )}
+        </div>
+      ))}
+      {pendingTake && (
+        <div className="relative min-h-0">
+          <TimelineClip
+            clip={{ ...pendingTake, variant: "recording" }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TimelineLane({
   beatsPerBar,
   clip,
@@ -1395,6 +1517,8 @@ function TimelineClip({
   viewportWidth,
   onClipOffsetChange,
   onClipDragEnd,
+  onSelect,
+  selected = false,
 }: {
   clip: RecorderTimelineClip;
   pixelsPerBeat: number;
@@ -1403,6 +1527,8 @@ function TimelineClip({
   viewportWidth: number;
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
+  onSelect?: () => void;
+  selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerDrag({
@@ -1454,10 +1580,18 @@ function TimelineClip({
     <div
       data-testid={`recorder-clip-${clip.variant}`}
       ref={onClipOffsetChange ? dragRef : undefined}
+      onClick={(event) => {
+        if (onSelect) {
+          event.stopPropagation();
+          onSelect();
+        }
+      }}
       className={cn(
         "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
         clipClass,
         onClipOffsetChange && "cursor-ew-resize select-none",
+        onSelect && "cursor-pointer",
+        selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging && "brightness-125",
       )}
       style={{

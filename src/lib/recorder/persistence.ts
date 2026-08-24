@@ -14,6 +14,7 @@ export interface SerializedRecorderRuntimeState {
     muted: boolean;
     soloed: boolean;
     takes: SerializedTakeState[];
+    nextTakeNumber?: number;
   };
   latencyCompensation: number;
   tempo: number;
@@ -37,6 +38,8 @@ interface SerializedAudioTrackState {
 }
 
 interface SerializedTakeState {
+  id?: string;
+  number?: number;
   timelineOffset: number;
   pcm: RecorderPcm;
 }
@@ -70,11 +73,14 @@ export function serializeRecorderRuntimeState(
       gain: state.recordingTrack.gain,
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
+      nextTakeNumber: state.recordingTrack.nextTakeNumber,
       takes: state.recordingTrack.takes.map((take) => {
         if (!take.buffer) {
           throw new Error("Recording take has no loaded buffer.");
         }
         return {
+          id: take.id,
+          number: take.number,
           timelineOffset: take.timelineOffset,
           pcm: serializeAudioBuffer(take.buffer),
         };
@@ -125,9 +131,14 @@ export function deserializeRecorderRuntimeState({
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
-      takes: project.recordingTrack.takes.map((take) => {
+      nextTakeNumber:
+        project.recordingTrack.nextTakeNumber ??
+        project.recordingTrack.takes.length + 1,
+      takes: project.recordingTrack.takes.map((take, index) => {
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
+          id: take.id ?? crypto.randomUUID(),
+          number: take.number ?? index + 1,
           duration: buffer.duration,
           timelineOffset: take.timelineOffset,
           buffer,

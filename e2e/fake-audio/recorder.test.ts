@@ -29,7 +29,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 });
 
-test("records, plays, and replaces a take", async ({ page }) => {
+test("records, plays, and manages multiple takes", async ({ page }) => {
   // The musician connects the browser input before recording is available.
   await enableInput(page);
 
@@ -67,11 +67,11 @@ test("records, plays, and replaces a take", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
-  // The finalized take downloads as a timestamped WAV file.
+  // The resolved comp downloads as a timestamped WAV file.
   const downloadPromise = page.waitForEvent("download");
   await downloadButton.click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^toy-midi-take-1-.*\.wav$/);
+  expect(download.suggestedFilename()).toMatch(/^toy-midi-comp-.*\.wav$/);
   const downloadPath = test.info().outputPath("take.wav");
   await download.saveAs(downloadPath);
   expect(readFileSync(downloadPath).subarray(0, 4).toString()).toBe("RIFF");
@@ -89,12 +89,21 @@ test("records, plays, and replaces a take", async ({ page }) => {
   );
   await recordButton.click();
 
-  // MVP keeps one take, so the second recording replaces and repositions it.
-  await expect(take).toHaveCount(1);
-  await expect(take).toContainText("Take 1");
+  // The second recording is retained as a new source take.
+  await expect(take).toHaveCount(2);
+  await expect(take.nth(0)).toContainText("Take 1");
+  await expect(take.nth(1)).toContainText("Take 2");
   expect(
-    Number.parseFloat(await take.evaluate((element) => element.style.left)),
+    Number.parseFloat(
+      await take.nth(1).evaluate((element) => element.style.left),
+    ),
   ).toBeCloseTo(320, -2);
+
+  // Selecting and deleting a source take leaves the other take intact.
+  await take.nth(0).click();
+  await page.getByRole("button", { name: "Delete Take 1" }).click();
+  await expect(take).toHaveCount(1);
+  await expect(take).toContainText("Take 2");
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
