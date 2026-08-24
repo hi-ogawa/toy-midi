@@ -211,7 +211,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       <RecorderHeader
         title={state.title}
         saveStatus={project.saveStatus}
-        saveDisabled={saveDisabled}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -768,7 +767,6 @@ function useRecorderTimeline({
 function RecorderHeader({
   title,
   saveStatus,
-  saveDisabled,
   isPlaying,
   isProcessing,
   isRecording,
@@ -791,7 +789,6 @@ function RecorderHeader({
 }: {
   title: string;
   saveStatus: "saved" | "unsaved" | "saving" | "error";
-  saveDisabled: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -966,11 +963,7 @@ function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
-      <RecorderSaveButton
-        status={saveStatus}
-        disabled={saveDisabled}
-        onSave={onSave}
-      />
+      <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
         data-testid="recorder-project-name"
@@ -1017,13 +1010,12 @@ function RecorderHeader({
 
 function RecorderSaveButton({
   status,
-  disabled,
   onSave,
 }: {
   status: "saved" | "unsaved" | "saving" | "error";
-  disabled: boolean;
   onSave: () => void;
 }) {
+  const canSave = status === "unsaved" || status === "error";
   const label = {
     saved: "All changes saved",
     unsaved: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -1040,8 +1032,8 @@ function RecorderSaveButton({
     <Button
       aria-label={label}
       title={label}
-      disabled={disabled && status !== "saved"}
-      onClick={status === "saved" ? undefined : onSave}
+      aria-disabled={!canSave}
+      onClick={canSave ? onSave : undefined}
       className={cn(
         "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         status === "saved" && "text-neutral-500",
