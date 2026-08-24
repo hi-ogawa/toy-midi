@@ -150,6 +150,16 @@ export function Recorder({ projectId }: { projectId: string }) {
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
+  const inputRoute = !input.initialized
+    ? { label: "Loading audio inputs…", needsSetup: true }
+    : !input.hasAccess
+      ? { label: "Microphone access required · Set up", needsSetup: true }
+      : input.selectedDevice
+        ? {
+            label: `${input.selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
+            needsSetup: false,
+          }
+        : { label: "No input configured · Set up", needsSetup: true };
   function togglePlay() {
     if (isProcessing) {
       return;
@@ -325,11 +335,8 @@ export function Recorder({ projectId }: { projectId: string }) {
             ))}
 
             <CaptureTrackRow
-              route={
-                input.selectedDevice
-                  ? `${input.selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`
-                  : "Set up input"
-              }
+              route={inputRoute.label}
+              routeNeedsSetup={inputRoute.needsSetup}
               subtitle={
                 isProcessing
                   ? "Finalizing take…"
@@ -344,7 +351,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputActive={input.active}
               inputAnalyser={runtime.captureInput?.analyser}
               inputToggleDisabled={
-                input.mutationPending || isRecording || isProcessing
+                input.mutationPending ||
+                isRecording ||
+                isProcessing ||
+                (!input.active && inputRoute.needsSetup)
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
@@ -1325,6 +1335,7 @@ function TrackRow({
 
 function CaptureTrackRow({
   route,
+  routeNeedsSetup,
   subtitle,
   height,
   gain,
@@ -1344,6 +1355,7 @@ function CaptureTrackRow({
   children,
 }: {
   route: string;
+  routeNeedsSetup: boolean;
   subtitle: string;
   height: number;
   gain: number;
@@ -1447,7 +1459,12 @@ function CaptureTrackRow({
         <button
           type="button"
           onClick={onInputSetup}
-          className="col-span-2 min-w-0 truncate text-left text-[11px] text-neutral-400 hover:text-neutral-100 hover:underline"
+          className={cn(
+            "col-span-2 min-w-0 truncate text-left text-[11px] hover:underline",
+            routeNeedsSetup
+              ? "font-medium text-orange-300 hover:text-orange-200"
+              : "text-neutral-400 hover:text-neutral-100",
+          )}
         >
           {route}
         </button>
