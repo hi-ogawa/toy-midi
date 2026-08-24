@@ -30,13 +30,12 @@ export type LatencyResult = {
 export type PreviewVariant = "raw" | "compensated";
 
 export class LatencyCheckerRuntime {
-  inputAnalyser?: AnalyserNode;
-
   private audioContext?: AudioContext;
   private workletReady = false;
   private activeStream?: MediaStream;
   private activeSource?: MediaStreamAudioSourceNode;
   private captureWorklet?: CaptureWorkletClient;
+  inputAnalyser?: AnalyserNode;
   private activeSilentGain?: GainNode;
   private activeSettings?: MediaTrackSettings;
   private activePreviewSources: AudioBufferSourceNode[] = [];
