@@ -279,7 +279,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onHeightChange={(height) =>
                   runtime.setAudioTrackHeight(track.id, height)
                 }
-                actions={
+                action={
                   <AudioTrackActions
                     label={`Audio ${index + 1}`}
                     onFileChange={(file) =>
@@ -1227,7 +1227,7 @@ function TrackRow({
   gain,
   muted,
   soloed,
-  actions,
+  action,
   onGainChange,
   onMutedChange,
   onSoloedChange,
@@ -1240,7 +1240,7 @@ function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  actions: React.ReactNode;
+  action: React.ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -1273,7 +1273,7 @@ function TrackRow({
           </div>
         </div>
         <div className="flex gap-1">
-          {actions}
+          {action}
           <Button
             onClick={() => onMutedChange(!muted)}
             className={toggleClass(muted)}
