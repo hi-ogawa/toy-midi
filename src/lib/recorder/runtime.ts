@@ -77,19 +77,6 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
-function selectPersistableRecorderRuntimeState(
-  state: RecorderRuntimeState,
-): PersistableRecorderRuntimeState {
-  return {
-    title: state.title,
-    tempo: state.tempo,
-    timeSignature: state.timeSignature,
-    audioTracks: state.audioTracks,
-    recordingTrack: state.recordingTrack,
-    latencyCompensation: state.latencyCompensation,
-  };
-}
-
 const METRONOME_GAIN = 0.5;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -119,14 +106,6 @@ export class RecorderRuntime {
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
   private metronome?: RecorderMetronome;
-
-  subscribePersistableState(listener: () => void): () => void {
-    return this.store.subscribeWithSelector({
-      selector: selectPersistableRecorderRuntimeState,
-      listener,
-      equals: shallowEqual,
-    });
-  }
 
   async startInput({
     deviceId,
@@ -466,6 +445,22 @@ export class RecorderRuntime {
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
     this.syncTrackMix();
+  }
+
+  subscribePersistableState(listener: () => void): () => void {
+    return this.store.subscribeWithSelector({
+      selector: (state) =>
+        ({
+          title: state.title,
+          tempo: state.tempo,
+          timeSignature: state.timeSignature,
+          audioTracks: state.audioTracks,
+          recordingTrack: state.recordingTrack,
+          latencyCompensation: state.latencyCompensation,
+        }) satisfies PersistableRecorderRuntimeState,
+      listener,
+      equals: shallowEqual,
+    });
   }
 
   private ensureContext(): AudioContext {
