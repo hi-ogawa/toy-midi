@@ -77,6 +77,19 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
+export function selectPersistableRecorderRuntimeState(
+  state: RecorderRuntimeState,
+): PersistableRecorderRuntimeState {
+  return {
+    title: state.title,
+    tempo: state.tempo,
+    timeSignature: state.timeSignature,
+    audioTracks: state.audioTracks,
+    recordingTrack: state.recordingTrack,
+    latencyCompensation: state.latencyCompensation,
+  };
+}
+
 const METRONOME_GAIN = 0.5;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {

@@ -9,6 +9,16 @@ test("saves and restores a recorder project", async ({ page }) => {
     page.getByRole("button", { name: "All changes saved" }),
   ).toHaveAttribute("aria-disabled", "true");
 
+  // Transport updates are session state and do not stale persisted state.
+  await page.getByTestId("recorder-play-button").click();
+  await expect(page.getByTestId("recorder-position")).not.toHaveText(
+    "1.1 - 0:00.000",
+  );
+  await page.getByTestId("recorder-play-button").click();
+  await expect(
+    page.getByRole("button", { name: "All changes saved" }),
+  ).toHaveAttribute("aria-disabled", "true");
+
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
   await expect(page.getByTestId("recorder-project-name")).toHaveText(

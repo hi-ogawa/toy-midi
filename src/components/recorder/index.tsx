@@ -51,6 +51,7 @@ import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
   RecorderRuntime,
   RecorderRuntimeState,
+  selectPersistableRecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { recorderStorage } from "../../lib/recorder/storage";
 import { routes } from "../../lib/routes";
@@ -76,6 +77,7 @@ import {
   parseTimeSignature,
   type TimeSignature,
 } from "../../types";
+import { shallowEqual } from "../../utils/store";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
@@ -479,10 +481,14 @@ function useRecorderProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribe(() => {
-      revisionRef.current += 1;
-      setDirty(true);
-    });
+    return runtime.store.subscribe(
+      selectPersistableRecorderRuntimeState,
+      () => {
+        revisionRef.current += 1;
+        setDirty(true);
+      },
+      shallowEqual,
+    );
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
