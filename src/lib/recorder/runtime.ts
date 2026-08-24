@@ -98,11 +98,10 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
-  inputAnalyser?: AnalyserNode;
+  captureInput?: CaptureInput;
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
-  private captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
@@ -160,7 +159,6 @@ export class RecorderRuntime {
     });
     this.closeInput();
     this.captureInput = input;
-    this.inputAnalyser = input.analyser;
 
     this.store.update({
       captureStatus: "ready",
@@ -532,7 +530,6 @@ export class RecorderRuntime {
   private closeInput(): void {
     this.captureInput?.dispose();
     this.captureInput = undefined;
-    this.inputAnalyser = undefined;
   }
 
   private clearTake(): void {

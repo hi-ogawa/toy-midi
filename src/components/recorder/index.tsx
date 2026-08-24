@@ -393,7 +393,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           error={error}
           hasAccess={input.hasAccess}
           inputActive={input.active}
-          inputAnalyser={runtime.inputAnalyser}
+          inputAnalyser={runtime.captureInput?.analyser}
           inputsInitialized={input.initialized}
           isProcessing={isProcessing}
           isRecording={isRecording}
