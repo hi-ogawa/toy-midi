@@ -237,7 +237,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
-          <div className="relative">
+          <div className="relative min-h-full">
             {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-30 overflow-hidden">
                 <div
