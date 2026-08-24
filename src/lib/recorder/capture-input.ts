@@ -1,3 +1,4 @@
+import { AnalyserMeter, type AudioMeterSource } from "../audio-meter.ts";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
@@ -19,9 +20,12 @@ export async function getCaptureInputs(): Promise<MediaDeviceInfo[]> {
 }
 
 export class CaptureInput {
+  readonly meter: AudioMeterSource;
+
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
+  private readonly analyser: AnalyserMeter;
   private readonly silentGain: GainNode;
 
   static async open({
@@ -82,12 +86,15 @@ export class CaptureInput {
       context,
       onNotification,
     });
+    this.analyser = new AnalyserMeter(context);
+    this.meter = this.analyser;
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents microphone monitoring and feedback at the destination.
     this.source
       .connect(this.worklet.node)
+      .connect(this.analyser.node)
       .connect(this.silentGain)
       .connect(context.destination);
   }
@@ -107,6 +114,7 @@ export class CaptureInput {
   dispose(): void {
     this.source.disconnect();
     this.worklet.dispose();
+    this.analyser.dispose();
     this.silentGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();

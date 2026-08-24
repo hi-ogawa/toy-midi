@@ -12,7 +12,7 @@ import {
   type PreviewVariant,
 } from "../lib/latency-checker/runtime";
 import { routes } from "../lib/routes";
-import { InputMeter } from "./input-meter";
+import { LevelMeter } from "./level-meter";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -265,7 +265,11 @@ export function LatencyChecker() {
             <div className="mt-4">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
-                <InputMeter active={isMonitoring} peak={inputPeak} />
+                <LevelMeter
+                  active={isMonitoring}
+                  label="Input"
+                  peak={inputPeak}
+                />
               </label>
             </div>
             {startMonitoringMutation.error && (

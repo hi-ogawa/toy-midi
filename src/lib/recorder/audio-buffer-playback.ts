@@ -1,11 +1,15 @@
+import { AnalyserMeter, type AudioMeterSource } from "../audio-meter.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
 } from "./transport.ts";
 
 export class AudioBufferPlayback implements TransportParticipant {
+  readonly meter: AudioMeterSource;
+
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
+  private readonly analyser: AnalyserMeter;
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
@@ -20,7 +24,9 @@ export class AudioBufferPlayback implements TransportParticipant {
   }) {
     this.transport = transport;
     this.gain = transport.context.createGain();
-    this.gain.connect(output);
+    this.analyser = new AnalyserMeter(transport.context);
+    this.meter = this.analyser;
+    this.gain.connect(this.analyser.node).connect(output);
     this.unregister = transport.register(this);
   }
 
@@ -80,5 +86,6 @@ export class AudioBufferPlayback implements TransportParticipant {
   dispose(): void {
     this.unregister();
     this.gain.disconnect();
+    this.analyser.dispose();
   }
 }

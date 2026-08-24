@@ -1,5 +1,6 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore } from "../../utils/store.ts";
+import type { AudioMeterSource } from "../audio-meter.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -109,10 +110,8 @@ export class RecorderRuntime {
 
   async startInput({
     deviceId,
-    onLevel,
   }: {
     deviceId: string;
-    onLevel: (peak: number) => void;
   }): Promise<{ channelCount: number }> {
     const context = this.ensureContext();
     // Open the replacement completely before closing the current input so a
@@ -122,10 +121,6 @@ export class RecorderRuntime {
       deviceId,
       onNotification: (message) => {
         switch (message.type) {
-          case "level": {
-            onLevel(message.peak);
-            break;
-          }
           case "samples": {
             const activeRecording = this.activeRecording;
             // Batched samples can arrive after stop is requested. Keep accepting
@@ -186,6 +181,18 @@ export class RecorderRuntime {
   selectChannel(channel: number): void {
     this.captureInput?.setChannel(channel);
     this.store.update({ selectedChannel: channel });
+  }
+
+  getInputMeter(): AudioMeterSource | undefined {
+    return this.captureInput?.meter;
+  }
+
+  getAudioTrackMeter(id: string): AudioMeterSource | undefined {
+    return this.audioTrackPlaybacks.get(id)?.meter;
+  }
+
+  getRecordingTrackMeter(): AudioMeterSource | undefined {
+    return this.recordingTrackPlayback?.meter;
   }
 
   addAudioTrack(): string {
