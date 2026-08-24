@@ -30,6 +30,7 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -406,7 +407,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           error={error}
           hasAccess={input.hasAccess}
           inputActive={input.active}
-          inputPeak={input.peak}
+          inputAnalyser={runtime.captureInput?.analyser}
           inputsInitialized={input.initialized}
           isProcessing={isProcessing}
           isRecording={isRecording}
@@ -419,7 +420,6 @@ export function Recorder({ projectId }: { projectId: string }) {
           onDeviceChange={input.selectDevice}
           onInputToggle={input.toggle}
           onChannelChange={(channel) => {
-            input.setPeak(0);
             input.selectChannel(channel);
           }}
           onLatencyCompensationChange={(compensation) => {
@@ -521,7 +521,6 @@ function useRecorderInput({
   );
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState(preference.input?.deviceId);
-  const [peak, setPeak] = useState(0);
 
   async function refresh() {
     const nextDevices = await getCaptureInputs();
@@ -558,7 +557,6 @@ function useRecorderInput({
 
   function stop() {
     runtime.stopInput();
-    setPeak(0);
     startMutation.reset();
   }
 
@@ -575,7 +573,6 @@ function useRecorderInput({
     mutationFn: async (nextDeviceId: string) => {
       const { channelCount } = await runtime.startInput({
         deviceId: nextDeviceId,
-        onLevel: setPeak,
       });
       runtime.selectChannel(
         Math.min(preference.input?.channel ?? 0, channelCount - 1),
@@ -610,8 +607,6 @@ function useRecorderInput({
       refreshMutation.isPending ||
       grantMutation.isPending ||
       startMutation.isPending,
-    peak,
-    setPeak,
     selectedDevice,
     selectDevice,
     selectChannel: (channel: number) => {
@@ -644,7 +639,6 @@ function useRecorderInput({
       } else if (active) {
         stop();
       } else if (selectedDevice) {
-        setPeak(0);
         startMutation.mutate(selectedDevice.deviceId);
       }
     },
@@ -1520,7 +1514,7 @@ function InputInspector({
   error,
   hasAccess,
   inputActive,
-  inputPeak,
+  inputAnalyser,
   inputsInitialized,
   isProcessing,
   isRecording,
@@ -1539,7 +1533,7 @@ function InputInspector({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputPeak: number;
+  inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -1639,7 +1633,7 @@ function InputInspector({
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <InputMeter active={inputActive} peak={inputPeak} />
+            <InputMeter active={inputActive} analyser={inputAnalyser} />
           </div>
         </label>
         <label className="block text-[11px] font-medium text-neutral-400">

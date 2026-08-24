@@ -1,16 +1,20 @@
+import { useEffect, useState } from "react";
+import type { AudioAnalyser } from "../lib/audio-analyser";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
 
 export function InputMeter({
   active,
-  peak,
+  analyser,
 }: {
   active: boolean;
-  peak: number;
+  analyser?: AudioAnalyser;
 }) {
+  const sampledPeak = useAnalyserPeak({ active, analyser });
+
   const getPosition = (value: number) =>
     ((value - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
   const zeroPosition = getPosition(0);
-  const decibels = gainToDb(peak);
+  const decibels = gainToDb(sampledPeak);
   const meterValue = Math.max(MIN_DB, Math.min(MAX_DB, decibels));
   const levelPosition = active ? getPosition(meterValue) : 0;
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
@@ -52,4 +56,24 @@ export function InputMeter({
       </output>
     </div>
   );
+}
+
+function useAnalyserPeak({
+  active,
+  analyser,
+}: {
+  active: boolean;
+  analyser?: AudioAnalyser;
+}): number {
+  const [peak, setPeak] = useState(0);
+
+  useEffect(() => {
+    if (!active || !analyser) {
+      setPeak(0);
+      return;
+    }
+    return analyser.subscribe(({ peak }) => setPeak(peak));
+  }, [active, analyser]);
+
+  return peak;
 }

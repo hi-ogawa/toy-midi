@@ -101,7 +101,7 @@ export class RecorderRuntime {
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
-  private captureInput?: CaptureInput;
+  captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
@@ -109,10 +109,8 @@ export class RecorderRuntime {
 
   async startInput({
     deviceId,
-    onLevel,
   }: {
     deviceId: string;
-    onLevel: (peak: number) => void;
   }): Promise<{ channelCount: number }> {
     const context = this.ensureContext();
     // Open the replacement completely before closing the current input so a
@@ -122,10 +120,6 @@ export class RecorderRuntime {
       deviceId,
       onNotification: (message) => {
         switch (message.type) {
-          case "level": {
-            onLevel(message.peak);
-            break;
-          }
           case "samples": {
             const activeRecording = this.activeRecording;
             // Batched samples can arrive after stop is requested. Keep accepting

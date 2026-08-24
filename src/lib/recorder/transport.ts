@@ -1,4 +1,5 @@
 import { createStore } from "../../utils/store.ts";
+import { startAnimationFrameLoop } from "../../utils/timing.ts";
 
 /** Gives every participant time to schedule against the same future audio frame. */
 const PLAYBACK_LEAD_SECONDS = 0.03;
@@ -130,14 +131,4 @@ export class AudioContextTransport {
     this.disposeTicking?.();
     this.disposeTicking = undefined;
   }
-}
-
-function startAnimationFrameLoop(callback: () => void): () => void {
-  let frame: number;
-  const tick = () => {
-    callback();
-    frame = requestAnimationFrame(tick);
-  };
-  frame = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(frame);
 }

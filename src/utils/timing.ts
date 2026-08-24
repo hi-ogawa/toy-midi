@@ -27,3 +27,32 @@ export function debounce(fn: () => void, ms: number) {
 
   return { schedule, cancel, flush };
 }
+
+export function startAnimationFrameLoop(
+  callback: FrameRequestCallback,
+): () => void {
+  let frame: number;
+  const tick = (time: number) => {
+    callback(time);
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(frame);
+}
+
+export function startThrottledAnimationFrameLoop({
+  callback,
+  interval,
+}: {
+  callback: FrameRequestCallback;
+  interval: number;
+}): () => void {
+  let lastTime = -Infinity;
+  return startAnimationFrameLoop((time) => {
+    if (time - lastTime < interval) {
+      return;
+    }
+    lastTime = time;
+    callback(time);
+  });
+}
