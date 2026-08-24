@@ -263,7 +263,7 @@ export function LatencyChecker() {
                 Input meter
                 <InputMeter
                   active={isMonitoring}
-                  analyser={runtime.getInputAnalyser()}
+                  analyser={runtime.inputAnalyser}
                 />
               </label>
             </div>
