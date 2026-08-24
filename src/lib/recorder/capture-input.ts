@@ -1,10 +1,15 @@
 import {
   CaptureWorkletClient,
-  type CaptureWorkletNotification,
+  type CaptureWorkletNotification as WorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
 
+type CaptureInputNotification =
+  | WorkletNotification
+  | { type: "level"; peak: number };
+
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
+const METER_INTERVAL_MS = 50;
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -22,7 +27,10 @@ export class CaptureInput {
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
+  private readonly analyser: AnalyserNode;
+  private readonly analyserSamples: Float32Array<ArrayBuffer>;
   private readonly silentGain: GainNode;
+  private meterInterval: number;
 
   static async open({
     context,
@@ -31,7 +39,7 @@ export class CaptureInput {
   }: {
     context: AudioContext;
     deviceId: string;
-    onNotification: (message: CaptureWorkletNotification) => void;
+    onNotification: (message: CaptureInputNotification) => void;
   }) {
     await ensureCaptureWorklet(context);
     const stream = await navigator.mediaDevices.getUserMedia(
@@ -74,7 +82,7 @@ export class CaptureInput {
   }: {
     context: AudioContext;
     stream: MediaStream;
-    onNotification: (message: CaptureWorkletNotification) => void;
+    onNotification: (message: CaptureInputNotification) => void;
   }) {
     this.stream = stream;
     this.source = context.createMediaStreamSource(stream);
@@ -82,14 +90,26 @@ export class CaptureInput {
       context,
       onNotification,
     });
+    this.analyser = context.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.analyserSamples = new Float32Array(this.analyser.fftSize);
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
     // prevents microphone monitoring and feedback at the destination.
     this.source
       .connect(this.worklet.node)
+      .connect(this.analyser)
       .connect(this.silentGain)
       .connect(context.destination);
+    this.meterInterval = window.setInterval(() => {
+      this.analyser.getFloatTimeDomainData(this.analyserSamples);
+      let peak = 0;
+      for (const sample of this.analyserSamples) {
+        peak = Math.max(peak, Math.abs(sample));
+      }
+      onNotification({ type: "level", peak });
+    }, METER_INTERVAL_MS);
   }
 
   setChannel(channel: number): void {
@@ -105,8 +125,10 @@ export class CaptureInput {
   }
 
   dispose(): void {
+    window.clearInterval(this.meterInterval);
     this.source.disconnect();
     this.worklet.dispose();
+    this.analyser.disconnect();
     this.silentGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();

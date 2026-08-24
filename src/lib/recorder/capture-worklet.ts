@@ -12,7 +12,6 @@ export type CaptureChunk = {
 
 export type CaptureWorkletNotification =
   | { type: "channels"; value: number }
-  | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk);
 
 type WorkletMessage =
@@ -125,8 +124,6 @@ function createCaptureProcessor() {
     declare recording: boolean;
     declare selectedChannel: number;
     declare observedChannelCount: number;
-    declare meterBlockCount: number;
-    declare meterPeak: number;
     declare pendingRenderActions: Array<() => void>;
     declare captureBuffer: Float32Array;
     declare captureLength: number;
@@ -137,8 +134,6 @@ function createCaptureProcessor() {
       this.recording = false;
       this.selectedChannel = 0;
       this.observedChannelCount = -1;
-      this.meterBlockCount = 0;
-      this.meterPeak = 0;
       this.pendingRenderActions = [];
       this.captureBuffer = new Float32Array(4096);
       this.captureLength = 0;
@@ -147,8 +142,6 @@ function createCaptureProcessor() {
         switch (event.data.type) {
           case "channel": {
             this.selectedChannel = event.data.value;
-            this.meterBlockCount = 0;
-            this.meterPeak = 0;
             break;
           }
           case "active": {
@@ -181,11 +174,7 @@ function createCaptureProcessor() {
       }
       this.pendingRenderActions = [];
       const channels = inputs[0] ?? [];
-      // The output keeps this processor in the render graph, but input audio
-      // must never pass through to speakers.
-      for (const samples of outputs[0] ?? []) {
-        samples.fill(0);
-      }
+      const output = outputs[0]?.[0];
       if (channels.length !== this.observedChannelCount) {
         // Track settings may be absent or disagree with actual render quanta.
         this.observedChannelCount = channels.length;
@@ -196,17 +185,7 @@ function createCaptureProcessor() {
         // still produces capture from an available channel.
         const source =
           channels[Math.min(this.selectedChannel, channels.length - 1)];
-        for (const sample of source) {
-          this.meterPeak = Math.max(this.meterPeak, Math.abs(sample));
-        }
-        this.meterBlockCount++;
-        if (this.meterBlockCount >= 16) {
-          // Aggregate render quanta to avoid flooding the main thread with meter
-          // updates while retaining a responsive peak display.
-          this.postMessage({ type: "level", peak: this.meterPeak });
-          this.meterBlockCount = 0;
-          this.meterPeak = 0;
-        }
+        output?.set(source);
         if (this.recording) {
           this.appendCapture(source);
         }
@@ -214,6 +193,9 @@ function createCaptureProcessor() {
         // Flush before a gap so no chunk claims frame-contiguous PCM across
         // missing input. Take assembly leaves the absent interval as silence.
         this.flushCapture();
+      }
+      if (channels.length === 0) {
+        output?.fill(0);
       }
       return true;
     }
