@@ -231,6 +231,12 @@ export function Recorder({ projectId }: { projectId: string }) {
         onGridDivisionChange={timeline.setGridDivision}
       />
 
+      {project.error && (
+        <div className="border-b border-orange-700/60 bg-orange-950/40 px-4 py-3 text-xs text-orange-200">
+          {project.error.message}
+        </div>
+      )}
+
       <div className="min-h-0 flex-1">
         <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
           <div
