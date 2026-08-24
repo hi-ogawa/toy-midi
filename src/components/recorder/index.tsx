@@ -93,6 +93,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
+type SaveStatus = "saved" | "unsaved" | "saving" | "error";
+
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
@@ -445,7 +447,6 @@ function useRecorderProject({
   projectId: string;
   runtime: RecorderRuntime;
 }) {
-  type SaveStatus = "saved" | "unsaved" | "saving" | "error";
   const [dirty, setDirty] = useState(false);
   const revisionRef = useRef(0);
 
@@ -788,7 +789,7 @@ function RecorderHeader({
   onGridDivisionChange,
 }: {
   title: string;
-  saveStatus: "saved" | "unsaved" | "saving" | "error";
+  saveStatus: SaveStatus;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -1012,7 +1013,7 @@ function RecorderSaveButton({
   status,
   onSave,
 }: {
-  status: "saved" | "unsaved" | "saving" | "error";
+  status: SaveStatus;
   onSave: () => void;
 }) {
   const canSave = status === "unsaved" || status === "error";
