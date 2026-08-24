@@ -27,7 +27,6 @@ export function LatencyChecker() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [deviceId, setDeviceId] = useState<string>();
   const [channel, setChannel] = useState(0);
-  const [inputPeak, setInputPeak] = useState(0);
   const [outputLevel, setOutputLevel] = useState(-24);
 
   useEffect(() => {
@@ -72,8 +71,7 @@ export function LatencyChecker() {
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
 
   const startMonitoringMutation = useMutation({
-    mutationFn: (deviceId: string) =>
-      runtime.startMonitoring({ deviceId, onLevel: setInputPeak }),
+    mutationFn: (deviceId: string) => runtime.startMonitoring({ deviceId }),
   });
   const isMonitoring = startMonitoringMutation.isSuccess;
 
@@ -85,7 +83,6 @@ export function LatencyChecker() {
   function stopMonitoring() {
     runtime.stopMonitoring();
     setChannel(0);
-    setInputPeak(0);
     startMonitoringMutation.reset();
     calibrationMutation.reset();
   }
@@ -94,7 +91,6 @@ export function LatencyChecker() {
     if (isMonitoring) {
       stopMonitoring();
     } else if (selectedDevice) {
-      setInputPeak(0);
       startMonitoringMutation.mutate(selectedDevice.deviceId);
     }
   }
@@ -265,7 +261,10 @@ export function LatencyChecker() {
             <div className="mt-4">
               <label className="grid gap-2 text-xs font-semibold text-neutral-400">
                 Input meter
-                <InputMeter active={isMonitoring} peak={inputPeak} />
+                <InputMeter
+                  active={isMonitoring}
+                  analyser={runtime.getInputAnalyser()}
+                />
               </label>
             </div>
             {startMonitoringMutation.error && (

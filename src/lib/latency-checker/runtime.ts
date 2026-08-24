@@ -35,6 +35,7 @@ export class LatencyCheckerRuntime {
   private activeStream?: MediaStream;
   private activeSource?: MediaStreamAudioSourceNode;
   private captureWorklet?: CaptureWorkletClient;
+  private activeAnalyser?: AnalyserNode;
   private activeSilentGain?: GainNode;
   private activeSettings?: MediaTrackSettings;
   private activePreviewSources: AudioBufferSourceNode[] = [];
@@ -54,13 +55,7 @@ export class LatencyCheckerRuntime {
     );
   }
 
-  async startMonitoring({
-    deviceId,
-    onLevel,
-  }: {
-    deviceId: string;
-    onLevel: (peak: number) => void;
-  }) {
+  async startMonitoring({ deviceId }: { deviceId: string }) {
     const context = await this.ensureAudioContext();
     this.activeStream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
@@ -86,17 +81,17 @@ export class LatencyCheckerRuntime {
             channelCount.resolve(message.value);
           }
         }
-        if (message.type === "level") {
-          onLevel(message.peak);
-        }
       },
     });
+    this.activeAnalyser = context.createAnalyser();
+    this.activeAnalyser.fftSize = 2048;
     this.activeSilentGain = context.createGain();
     this.activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
     // through zero gain to keep processing without audible input passthrough.
     this.activeSource
       .connect(this.captureWorklet.node)
+      .connect(this.activeAnalyser)
       .connect(this.activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
@@ -110,11 +105,13 @@ export class LatencyCheckerRuntime {
   stopMonitoring() {
     this.activeSource?.disconnect();
     this.captureWorklet?.dispose();
+    this.activeAnalyser?.disconnect();
     this.activeSilentGain?.disconnect();
     this.activeStream?.getTracks().forEach((track) => track.stop());
     this.activeStream = undefined;
     this.activeSource = undefined;
     this.captureWorklet = undefined;
+    this.activeAnalyser = undefined;
     this.activeSilentGain = undefined;
     this.activeSettings = undefined;
     this.captureChunks = undefined;
@@ -123,6 +120,10 @@ export class LatencyCheckerRuntime {
 
   setChannel(channel: number) {
     this.captureWorklet?.setChannel(channel);
+  }
+
+  getInputAnalyser(): AnalyserNode | undefined {
+    return this.activeAnalyser;
   }
 
   async calibrate({

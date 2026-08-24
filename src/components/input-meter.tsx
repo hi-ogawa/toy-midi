@@ -5,18 +5,16 @@ import { startAnimationFrameLoop } from "../utils/timing";
 export function InputMeter({
   active,
   analyser,
-  peak,
 }: {
   active: boolean;
   analyser?: AnalyserNode;
-  peak?: number;
 }) {
   const sampledPeak = useAnalyserPeak({ active, analyser });
 
   const getPosition = (value: number) =>
     ((value - MIN_DB) / (MAX_DB - MIN_DB)) * 100;
   const zeroPosition = getPosition(0);
-  const decibels = gainToDb(analyser ? sampledPeak : (peak ?? 0));
+  const decibels = gainToDb(sampledPeak);
   const meterValue = Math.max(MIN_DB, Math.min(MAX_DB, decibels));
   const levelPosition = active ? getPosition(meterValue) : 0;
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";

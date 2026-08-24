@@ -7,7 +7,6 @@ type ClientMessage =
 type WorkletMessage =
   | { type: "activeChanged"; requestId: number; value: boolean }
   | { type: "channels"; value: number }
-  | { type: "level"; peak: number }
   | ({ type: "samples" } & CaptureChunk);
 
 export type CaptureChunk = {
@@ -110,8 +109,6 @@ function createCaptureProcessor() {
     declare active: boolean;
     declare channel: number;
     declare lastChannelCount: number;
-    declare meterBlockCount: number;
-    declare meterPeak: number;
     declare pendingRenderActions: Array<() => void>;
 
     constructor() {
@@ -119,8 +116,6 @@ function createCaptureProcessor() {
       this.active = false;
       this.channel = 0;
       this.lastChannelCount = -1;
-      this.meterBlockCount = 0;
-      this.meterPeak = 0;
       this.pendingRenderActions = [];
       this.port.onmessage = (event: MessageEvent<ClientMessage>) => {
         if (event.data.type === "active") {
@@ -134,9 +129,6 @@ function createCaptureProcessor() {
         }
         if (event.data.type === "channel") {
           this.channel = event.data.value;
-          // Do not mix meter history from the previously selected channel.
-          this.meterBlockCount = 0;
-          this.meterPeak = 0;
         }
       };
     }
@@ -148,11 +140,6 @@ function createCaptureProcessor() {
       this.pendingRenderActions = [];
       const channels = inputs[0] || [];
       const output = outputs[0] || [];
-      // A connected output keeps the processor in the render graph, but capture
-      // must never feed input audio back to speakers.
-      for (const samples of output) {
-        samples.fill(0);
-      }
       if (channels.length !== this.lastChannelCount) {
         // Browser track settings can be incomplete, so report the channel count
         // observed in actual render quanta.
@@ -161,17 +148,7 @@ function createCaptureProcessor() {
       }
       const selected = channels[this.channel];
       if (selected) {
-        for (const sample of selected) {
-          this.meterPeak = Math.max(this.meterPeak, Math.abs(sample));
-        }
-        this.meterBlockCount++;
-        if (this.meterBlockCount >= 16) {
-          // Aggregate render quanta to avoid flooding the main thread with UI
-          // meter updates while retaining a responsive peak display.
-          this.postMessage({ type: "level", peak: this.meterPeak });
-          this.meterBlockCount = 0;
-          this.meterPeak = 0;
-        }
+        output[0]?.set(selected);
 
         if (this.active) {
           // TODO: Batch multiple render quanta before transferring. The input
@@ -189,6 +166,9 @@ function createCaptureProcessor() {
             [copy.buffer],
           );
         }
+      }
+      if (!selected) {
+        output[0]?.fill(0);
       }
       return true;
     }
