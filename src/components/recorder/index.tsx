@@ -1037,22 +1037,21 @@ function RecorderSaveButton({
     error: <CircleAlertIcon className="size-3.5" />,
   }[status];
   return (
-    <button
-      type="button"
+    <Button
       aria-label={label}
       title={label}
-      disabled={disabled}
-      onClick={onSave}
+      disabled={disabled && status !== "saved"}
+      onClick={status === "saved" ? undefined : onSave}
       className={cn(
-        "grid size-6 place-items-center disabled:cursor-default",
-        status === "saved" && "text-neutral-600",
-        status === "unsaved" && "text-neutral-400",
-        status === "saving" && "text-neutral-500",
-        status === "error" && "text-red-400",
+        "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+        status === "saved" && "text-neutral-500",
+        status === "unsaved" && "text-neutral-300",
+        status === "saving" && "text-neutral-400",
+        status === "error" && "text-red-400 hover:text-red-300",
       )}
     >
       {icon}
-    </button>
+    </Button>
   );
 }
 
