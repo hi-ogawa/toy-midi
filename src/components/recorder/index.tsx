@@ -453,7 +453,6 @@ function useRecorderProject({
   const projectQuery = useQuery({
     queryKey: ["recorder-project", projectId],
     retry: false,
-    refetchOnMount: false,
     staleTime: Infinity,
     queryFn: async () => {
       const project = await recorderProjectStorage.load(projectId);
