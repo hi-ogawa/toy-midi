@@ -22,6 +22,7 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { AudioView } from "../../lib/audio-view";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -1479,7 +1480,7 @@ function InputInspector({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputAnalyser?: AnalyserNode;
+  inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
   isProcessing: boolean;
   isRecording: boolean;

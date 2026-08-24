@@ -1,3 +1,4 @@
+import { AudioAnalyser } from "../audio-analyser.ts";
 import { dbToGain } from "../music.ts";
 import {
   analyzeCalibration,
@@ -35,7 +36,7 @@ export class LatencyCheckerRuntime {
   private activeStream?: MediaStream;
   private activeSource?: MediaStreamAudioSourceNode;
   private captureWorklet?: CaptureWorkletClient;
-  inputAnalyser?: AnalyserNode;
+  inputAnalyser?: AudioAnalyser;
   private activeSilentGain?: GainNode;
   private activeSettings?: MediaTrackSettings;
   private activePreviewSources: AudioBufferSourceNode[] = [];
@@ -83,15 +84,14 @@ export class LatencyCheckerRuntime {
         }
       },
     });
-    this.inputAnalyser = context.createAnalyser();
-    this.inputAnalyser.fftSize = 2048;
+    this.inputAnalyser = new AudioAnalyser(context);
     this.activeSilentGain = context.createGain();
     this.activeSilentGain.gain.value = 0;
     // Web Audio may suspend a disconnected worklet. Route it to destination
     // through zero gain to keep processing without audible input passthrough.
     this.activeSource
       .connect(this.captureWorklet.node)
-      .connect(this.inputAnalyser)
+      .connect(this.inputAnalyser.node)
       .connect(this.activeSilentGain)
       .connect(context.destination);
     this.setChannel(0);
@@ -105,7 +105,7 @@ export class LatencyCheckerRuntime {
   stopMonitoring() {
     this.activeSource?.disconnect();
     this.captureWorklet?.dispose();
-    this.inputAnalyser?.disconnect();
+    this.inputAnalyser?.dispose();
     this.activeSilentGain?.disconnect();
     this.activeStream?.getTracks().forEach((track) => track.stop());
     this.activeStream = undefined;

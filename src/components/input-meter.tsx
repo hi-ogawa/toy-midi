@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
+import type { AudioAnalyser } from "../lib/audio-analyser";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
-import { startAnimationFrameLoop } from "../utils/timing";
 
 export function InputMeter({
   active,
   analyser,
 }: {
   active: boolean;
-  analyser?: AnalyserNode;
+  analyser?: AudioAnalyser;
 }) {
   const sampledPeak = useAnalyserPeak({ active, analyser });
 
@@ -63,7 +63,7 @@ function useAnalyserPeak({
   analyser,
 }: {
   active: boolean;
-  analyser?: AnalyserNode;
+  analyser?: AudioAnalyser;
 }): number {
   const [peak, setPeak] = useState(0);
 
@@ -72,24 +72,7 @@ function useAnalyserPeak({
       setPeak(0);
       return;
     }
-    const samples = new Float32Array(analyser.fftSize);
-    // Match the old worklet cadence of 16 render quanta: 16 * 128 / 48 kHz is
-    // about 43 ms. This is intentionally an approximate UI throttle rather than
-    // sample-accurate timing, so assuming the common 48 kHz rate is sufficient.
-    const sampleInterval = (analyser.fftSize / 48_000) * 1000;
-    let lastSampleTime = -Infinity;
-    return startAnimationFrameLoop((time) => {
-      if (time - lastSampleTime < sampleInterval) {
-        return;
-      }
-      lastSampleTime = time;
-      analyser.getFloatTimeDomainData(samples);
-      let nextPeak = 0;
-      for (const value of samples) {
-        nextPeak = Math.max(nextPeak, Math.abs(value));
-      }
-      setPeak(nextPeak);
-    });
+    return analyser.subscribe(({ peak }) => setPeak(peak));
   }, [active, analyser]);
 
   return peak;
