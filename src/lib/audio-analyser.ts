@@ -1,6 +1,7 @@
 import { startAnimationFrameLoop } from "../utils/timing.ts";
 
 export type AudioAnalysis = {
+  rms: number;
   peak: number;
 };
 
@@ -28,11 +29,16 @@ export class AudioAnalyser {
       }
       lastSampleTime = time;
       this.node.getFloatTimeDomainData(this.samples);
+      let sumSquares = 0;
       let peak = 0;
       for (const sample of this.samples) {
+        sumSquares += sample * sample;
         peak = Math.max(peak, Math.abs(sample));
       }
-      onAnalysis({ peak });
+      onAnalysis({
+        rms: Math.sqrt(sumSquares / this.samples.length),
+        peak,
+      });
     });
   }
 

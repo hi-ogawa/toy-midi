@@ -72,7 +72,7 @@ import {
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
-import { InputMeter } from "../input-meter";
+import { LevelMeter } from "../level-meter";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -260,6 +260,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
+                analyser={runtime.getAudioTrackAnalyser(track.id)}
                 onGainChange={(gain) =>
                   runtime.setAudioTrackMix(track.id, { gain })
                 }
@@ -328,6 +329,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
+              analyser={runtime.getRecordingTrackAnalyser()}
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
               onSoloedChange={(soloed) =>
@@ -1170,6 +1172,7 @@ function TrackRow({
   gain,
   muted,
   soloed,
+  analyser,
   action,
   onGainChange,
   onMutedChange,
@@ -1183,6 +1186,7 @@ function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
+  analyser?: AudioAnalyser;
   action?: React.ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
@@ -1232,7 +1236,10 @@ function TrackRow({
             S
           </Button>
         </div>
-        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+        <div className="col-span-2 mt-auto">
+          <LevelMeter active analyser={analyser} label={title} compact />
+        </div>
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
@@ -1580,7 +1587,11 @@ function InputInspector({
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <InputMeter active={inputActive} analyser={inputAnalyser} />
+            <LevelMeter
+              active={inputActive}
+              analyser={inputAnalyser}
+              label="Input"
+            />
           </div>
         </label>
         <label className="block text-[11px] font-medium text-neutral-400">

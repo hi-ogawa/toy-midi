@@ -1,5 +1,6 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore } from "../../utils/store.ts";
+import type { AudioAnalyser } from "../audio-analyser.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -180,6 +181,14 @@ export class RecorderRuntime {
   selectChannel(channel: number): void {
     this.captureInput?.setChannel(channel);
     this.store.update({ selectedChannel: channel });
+  }
+
+  getAudioTrackAnalyser(id: string): AudioAnalyser | undefined {
+    return this.audioTrackPlaybacks.get(id)?.analyser;
+  }
+
+  getRecordingTrackAnalyser(): AudioAnalyser | undefined {
+    return this.recordingTrackPlayback?.analyser;
   }
 
   addAudioTrack(): string {
