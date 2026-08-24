@@ -93,8 +93,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "../ui/utils";
 
-type SaveStatus = "saved" | "unsaved" | "saving" | "error";
-
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const state = useSyncExternalStore(
@@ -439,6 +437,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     </main>
   );
 }
+
+type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
 function useRecorderProject({
   projectId,
