@@ -481,14 +481,14 @@ function useRecorderProject({
     if (!projectQuery.isSuccess) {
       return;
     }
-    return runtime.store.subscribeSelector(
-      selectPersistableRecorderRuntimeState,
-      () => {
+    return runtime.store.subscribeSelector({
+      selector: selectPersistableRecorderRuntimeState,
+      listener: () => {
         revisionRef.current += 1;
         setDirty(true);
       },
-      shallowEqual,
-    );
+      equals: shallowEqual,
+    });
   }, [projectQuery.isSuccess, runtime]);
 
   useWindowEvent("beforeunload", (event) => {
