@@ -150,16 +150,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
-  const inputRoute = !input.initialized
-    ? { label: "Loading audio inputs…", needsSetup: false }
-    : !input.hasAccess
-      ? { label: "Microphone access required · Set up", needsSetup: true }
-      : input.selectedDevice
-        ? {
-            label: `${input.selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
-            needsSetup: false,
-          }
-        : { label: "No input configured · Set up", needsSetup: true };
   function togglePlay() {
     if (isProcessing) {
       return;
@@ -335,8 +325,8 @@ export function Recorder({ projectId }: { projectId: string }) {
             ))}
 
             <CaptureTrackRow
-              route={inputRoute.label}
-              routeNeedsSetup={inputRoute.needsSetup}
+              route={input.route.label}
+              routeNeedsSetup={input.route.needsSetup}
               subtitle={
                 isProcessing
                   ? "Finalizing take…"
@@ -355,7 +345,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 !input.initialized ||
                 isRecording ||
                 isProcessing ||
-                (!input.active && inputRoute.needsSetup)
+                (!input.active && input.route.needsSetup)
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
@@ -616,6 +606,16 @@ function useRecorderInput({
   const hasAccess =
     grantMutation.isPending || devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
+  const route = !initialized
+    ? { label: "Loading audio inputs…", needsSetup: false }
+    : !hasAccess
+      ? { label: "Microphone access required · Set up", needsSetup: true }
+      : selectedDevice
+        ? {
+            label: `${selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
+            needsSetup: false,
+          }
+        : { label: "No input configured · Set up", needsSetup: true };
 
   return {
     active,
@@ -627,6 +627,7 @@ function useRecorderInput({
       refreshMutation.isPending ||
       grantMutation.isPending ||
       startMutation.isPending,
+    route,
     selectedDevice,
     selectDevice,
     selectChannel: (channel: number) => {
