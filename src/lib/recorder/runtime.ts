@@ -432,9 +432,15 @@ export class RecorderRuntime {
     const take = project.recordingTrack.takes[0];
     this.recordingTrackPlayback!.stop();
     this.recordingTrackPlayback!.setBuffer(take?.buffer);
+    // Clamp loaded external state at the runtime boundary so older projects
+    // cannot restore a Capture row too short for its current controls.
     this.store.update({
       ...project,
       position: 0,
+      recordingTrack: {
+        ...project.recordingTrack,
+        height: clampRecordingTrackHeight(project.recordingTrack.height),
+      },
     });
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
@@ -586,7 +592,7 @@ function clampTrackHeight(height: number): number {
   return Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, height));
 }
 
-export function clampRecordingTrackHeight(height: number): number {
+function clampRecordingTrackHeight(height: number): number {
   return Math.max(
     MIN_RECORDING_TRACK_HEIGHT,
     Math.min(MAX_TRACK_HEIGHT, height),
