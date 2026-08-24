@@ -26,6 +26,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { toast } from "sonner";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -230,12 +231,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
       />
-
-      {project.error && (
-        <div className="border-b border-orange-700/60 bg-orange-950/40 px-4 py-3 text-xs text-orange-200">
-          {project.error.message}
-        </div>
-      )}
 
       <div className="min-h-0 flex-1">
         <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
@@ -466,9 +461,14 @@ function useRecorderProject({
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
-      const project = await recorderProjectStorage.load(projectId);
-      runtime.deserializeProject(project);
-      return true;
+      try {
+        const project = await recorderProjectStorage.load(projectId);
+        runtime.deserializeProject(project);
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unknown error");
+        throw error;
+      }
     },
   });
 
