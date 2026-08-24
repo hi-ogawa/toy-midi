@@ -610,7 +610,10 @@ function useRecorderInput({
 
   // The initial device enumeration has settled, so the UI can leave loading state.
   const initialized = refreshMutation.isSuccess || refreshMutation.isError;
-  const hasAccess = devices.some((device) => device.label);
+  // Optimistically treat a pending grant as access so the UI does not flash
+  // the permission callout between a successful prompt and device refresh.
+  const hasAccess =
+    grantMutation.isPending || devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
 
   return {
