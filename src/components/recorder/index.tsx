@@ -1374,19 +1374,15 @@ function TakeTimelineLane({
   viewportStartBeat: number;
   viewportWidth: number;
 }) {
-  const laneCount = takes.length + (pendingTake ? 1 : 0);
   return (
     <div
-      className="relative grid overflow-hidden bg-neutral-900"
-      style={{
-        gridTemplateRows: `repeat(${Math.max(1, laneCount)}, minmax(0, 1fr))`,
-        ...getTimelineGridStyle({
-          beatsPerBar,
-          pixelsPerBeat,
-          viewportStartBeat,
-          subdivisionsPerBeat,
-        }),
-      }}
+      className="relative overflow-hidden bg-neutral-900"
+      style={getTimelineGridStyle({
+        beatsPerBar,
+        pixelsPerBeat,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
         const beat = Math.max(
@@ -1396,19 +1392,13 @@ function TakeTimelineLane({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
-      {laneCount === 0 && (
+      {takes.length === 0 && !pendingTake && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
       )}
       {takes.map((take) => (
-        <div
-          key={take.id}
-          className={cn(
-            "relative min-h-0 border-b border-neutral-800 last:border-b-0",
-            selectedTakeId === take.id && "bg-sky-950/30",
-          )}
-        >
+        <div key={take.id}>
           <TimelineClip
             clip={{ ...take, variant: "take" }}
             pixelsPerBeat={pixelsPerBeat}
@@ -1433,7 +1423,7 @@ function TakeTimelineLane({
         </div>
       ))}
       {pendingTake && (
-        <div className="relative min-h-0">
+        <div>
           <TimelineClip
             clip={{ ...pendingTake, variant: "recording" }}
             pixelsPerBeat={pixelsPerBeat}
