@@ -10,7 +10,7 @@ export function createStore<State>(initialize: (get: () => State) => State) {
     return () => listeners.delete(listener);
   };
 
-  const subscribeSelector = <Selection>({
+  const subscribeWithSelector = <Selection>({
     selector,
     listener,
     equals,
@@ -39,7 +39,7 @@ export function createStore<State>(initialize: (get: () => State) => State) {
     }
   };
 
-  return { get, subscribe, subscribeSelector, update };
+  return { get, subscribe, subscribeWithSelector, update };
 }
 
 export function shallowEqual<T extends object>(left: T, right: T): boolean {

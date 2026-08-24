@@ -121,7 +121,7 @@ export class RecorderRuntime {
   private metronome?: RecorderMetronome;
 
   subscribePersistableState(listener: () => void): () => void {
-    return this.store.subscribeSelector({
+    return this.store.subscribeWithSelector({
       selector: selectPersistableRecorderRuntimeState,
       listener,
       equals: shallowEqual,
