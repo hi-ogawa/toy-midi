@@ -22,8 +22,8 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
+import type { AudioAnalyser } from "../../lib/audio-analyser";
 import { resolveAudioFiles } from "../../lib/audio-files";
-import type { AudioMeterSource } from "../../lib/audio-meter";
 import { AudioView } from "../../lib/audio-view";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
 import {
@@ -260,7 +260,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
-                meter={runtime.getAudioTrackMeter(track.id)}
+                analyser={runtime.getAudioTrackAnalyser(track.id)}
                 onGainChange={(gain) =>
                   runtime.setAudioTrackMix(track.id, { gain })
                 }
@@ -329,7 +329,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               height={state.recordingTrack.height}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
-              meter={runtime.getRecordingTrackMeter()}
+              analyser={runtime.getRecordingTrackAnalyser()}
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
               onSoloedChange={(soloed) =>
@@ -396,7 +396,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           error={error}
           hasAccess={input.hasAccess}
           inputActive={input.active}
-          inputMeter={runtime.getInputMeter()}
+          inputAnalyser={runtime.captureInput?.analyser}
           inputsInitialized={input.initialized}
           isProcessing={isProcessing}
           isRecording={isRecording}
@@ -1172,7 +1172,7 @@ function TrackRow({
   gain,
   muted,
   soloed,
-  meter,
+  analyser,
   action,
   onGainChange,
   onMutedChange,
@@ -1186,7 +1186,7 @@ function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  meter?: AudioMeterSource;
+  analyser?: AudioAnalyser;
   action?: React.ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
@@ -1237,7 +1237,7 @@ function TrackRow({
           </Button>
         </div>
         <div className="col-span-2 mt-auto">
-          <LevelMeter active label={title} meter={meter} compact />
+          <LevelMeter active analyser={analyser} label={title} compact />
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
@@ -1468,7 +1468,7 @@ function InputInspector({
   error,
   hasAccess,
   inputActive,
-  inputMeter,
+  inputAnalyser,
   inputsInitialized,
   isProcessing,
   isRecording,
@@ -1487,7 +1487,7 @@ function InputInspector({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputMeter?: AudioMeterSource;
+  inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -1587,7 +1587,11 @@ function InputInspector({
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
           <div className="mt-2">
-            <LevelMeter active={inputActive} label="Input" meter={inputMeter} />
+            <LevelMeter
+              active={inputActive}
+              analyser={inputAnalyser}
+              label="Input"
+            />
           </div>
         </label>
         <label className="block text-[11px] font-medium text-neutral-400">

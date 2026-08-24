@@ -1,6 +1,6 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore } from "../../utils/store.ts";
-import type { AudioMeterSource } from "../audio-meter.ts";
+import type { AudioAnalyser } from "../audio-analyser.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -102,7 +102,7 @@ export class RecorderRuntime {
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
-  private captureInput?: CaptureInput;
+  captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
@@ -183,16 +183,12 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
-  getInputMeter(): AudioMeterSource | undefined {
-    return this.captureInput?.meter;
+  getAudioTrackAnalyser(id: string): AudioAnalyser | undefined {
+    return this.audioTrackPlaybacks.get(id)?.analyser;
   }
 
-  getAudioTrackMeter(id: string): AudioMeterSource | undefined {
-    return this.audioTrackPlaybacks.get(id)?.meter;
-  }
-
-  getRecordingTrackMeter(): AudioMeterSource | undefined {
-    return this.recordingTrackPlayback?.meter;
+  getRecordingTrackAnalyser(): AudioAnalyser | undefined {
+    return this.recordingTrackPlayback?.analyser;
   }
 
   addAudioTrack(): string {
