@@ -98,10 +98,10 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
-  captureInput?: CaptureInput;
 
   private context?: AudioContext;
   private transport?: AudioContextTransport;
+  captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlayback?: AudioBufferPlayback;
   private activeRecording?: ActiveRecording;
