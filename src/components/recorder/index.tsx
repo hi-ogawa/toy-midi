@@ -82,6 +82,7 @@ import { openFilePicker } from "../file-drop-input";
 import { MetronomeIcon } from "../icons";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
+import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,6 +97,7 @@ import { cn } from "../ui/utils";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -146,14 +148,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const take = state.recordingTrack.takes[0];
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
-  const error =
-    input.error ??
-    project.error ??
-    addAudioMutation.error ??
-    audioTrackMutation.error ??
-    playMutation.error ??
-    recordMutation.error;
-
   function togglePlay() {
     if (isProcessing) {
       return;
@@ -237,15 +231,15 @@ export function Recorder({ projectId }: { projectId: string }) {
         onGridDivisionChange={timeline.setGridDivision}
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(44rem,1fr)_18rem]">
-        <section className="relative min-w-0 overflow-x-hidden overflow-y-auto border-r border-neutral-700">
+      <div className="min-h-0 flex-1">
+        <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
           <div
             ref={timeline.viewportRef}
-            className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0"
+            className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
           <div className="relative">
             {timeline.showPlayhead && (
-              <div className="pointer-events-none absolute inset-y-0 left-[13.5rem] right-0 z-30 overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-30 overflow-hidden">
                 <div
                   className="absolute inset-y-0 w-px bg-sky-400"
                   style={{ left: timeline.playheadX }}
@@ -328,20 +322,36 @@ export function Recorder({ projectId }: { projectId: string }) {
               </TrackRow>
             ))}
 
-            <TrackRow
-              title="Capture"
+            <CaptureTrackRow
+              route={
+                input.selectedDevice
+                  ? `${input.selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`
+                  : "Set up input"
+              }
               subtitle={
-                isRecording
-                  ? `Recording · ${formatTimeWithMilliseconds(take?.duration ?? 0)}`
-                  : take
-                    ? `Take 1 · ${formatTimeWithMilliseconds(take.duration)}`
-                    : "No take"
+                isProcessing
+                  ? "Finalizing take…"
+                  : isRecording
+                    ? `Recording · ${formatTimeWithMilliseconds(take?.duration ?? 0)}`
+                    : take
+                      ? `Take 1 · ${formatTimeWithMilliseconds(take.duration)}`
+                      : "No take"
               }
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
+              inputActive={input.active}
+              inputAnalyser={runtime.captureInput?.analyser}
+              inputToggleDisabled={
+                input.mutationPending || isRecording || isProcessing
+              }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
+              takeDownloadDisabled={
+                !take?.buffer || isRecording || isProcessing
+              }
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+              onInputSetup={() => setIsInputSetupOpen(true)}
+              onInputToggle={input.toggle}
               onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
               onSoloedChange={(soloed) =>
                 runtime.setRecordingTrackMix({ soloed })
@@ -349,29 +359,18 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setRecordingTrackHeight(height)
               }
-              action={
-                <Button
-                  data-testid="recorder-download-take"
-                  disabled={!take?.buffer || isRecording || isProcessing}
-                  onClick={() => {
-                    if (!take?.buffer) {
-                      return;
-                    }
-                    downloadBlob(
-                      encodeWav(take.buffer),
-                      buildExportFileName({
-                        baseName: "toy-midi-take-1",
-                        extension: "wav",
-                      }),
-                    );
-                  }}
-                  className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                  title="Download take"
-                  aria-label="Download take"
-                >
-                  <DownloadIcon className="size-3.5" />
-                </Button>
-              }
+              onTakeDownload={() => {
+                if (!take?.buffer) {
+                  return;
+                }
+                downloadBlob(
+                  encodeWav(take.buffer),
+                  buildExportFileName({
+                    baseName: "toy-midi-take-1",
+                    extension: "wav",
+                  }),
+                );
+              }}
             >
               <TimelineLane
                 clip={
@@ -398,41 +397,46 @@ export function Recorder({ projectId }: { projectId: string }) {
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
               />
-            </TrackRow>
+            </CaptureTrackRow>
           </div>
         </section>
 
-        <InputInspector
-          devices={input.devices}
-          error={error}
-          hasAccess={input.hasAccess}
-          inputActive={input.active}
-          inputAnalyser={runtime.captureInput?.analyser}
-          inputsInitialized={input.initialized}
-          isProcessing={isProcessing}
-          isRecording={isRecording}
-          selectedDevice={input.selectedDevice}
-          selectedChannel={state.selectedChannel}
-          inputChannelCount={state.inputChannelCount}
-          latencyCompensation={state.latencyCompensation}
-          inputTogglePending={input.togglePending}
-          mutationPending={input.mutationPending}
-          onDeviceChange={input.selectDevice}
-          onInputToggle={input.toggle}
-          onChannelChange={(channel) => {
-            input.selectChannel(channel);
-          }}
-          onLatencyCompensationChange={(compensation) => {
-            const wasPlaying = state.isPlaying;
-            if (wasPlaying) {
-              runtime.pause();
-            }
-            input.setLatencyCompensation(compensation);
-            if (wasPlaying) {
-              playMutation.mutate();
-            }
-          }}
-        />
+        <Dialog
+          isOpen={isInputSetupOpen}
+          onClose={() => setIsInputSetupOpen(false)}
+          title="Audio Input Setup"
+          testId="recorder-input-setup"
+        >
+          <InputSetup
+            devices={input.devices}
+            error={input.error}
+            hasAccess={input.hasAccess}
+            inputActive={input.active}
+            inputAnalyser={runtime.captureInput?.analyser}
+            inputsInitialized={input.initialized}
+            isProcessing={isProcessing}
+            isRecording={isRecording}
+            selectedDevice={input.selectedDevice}
+            selectedChannel={state.selectedChannel}
+            inputChannelCount={state.inputChannelCount}
+            latencyCompensation={state.latencyCompensation}
+            inputTogglePending={input.togglePending}
+            mutationPending={input.mutationPending}
+            onDeviceChange={input.selectDevice}
+            onInputToggle={input.toggle}
+            onChannelChange={input.selectChannel}
+            onLatencyCompensationChange={(compensation) => {
+              const wasPlaying = state.isPlaying;
+              if (wasPlaying) {
+                runtime.pause();
+              }
+              input.setLatencyCompensation(compensation);
+              if (wasPlaying) {
+                playMutation.mutate();
+              }
+            }}
+          />
+        </Dialog>
       </div>
     </main>
   );
@@ -1066,7 +1070,7 @@ function TimelineHeader({
   onSeek: (position: number) => void;
 }) {
   return (
-    <div className="sticky top-0 z-10 grid h-10 grid-cols-[13.5rem_1fr] border-b border-neutral-700 bg-neutral-800">
+    <div className="sticky top-0 z-10 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
@@ -1258,7 +1262,7 @@ function TrackRow({
       : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div
-      className="relative grid grid-cols-[13.5rem_1fr] border-b border-neutral-700"
+      className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
@@ -1312,6 +1316,164 @@ function TrackRow({
         ref={resizeRef}
         className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
         title={`Resize ${title}`}
+      />
+    </div>
+  );
+}
+
+function CaptureTrackRow({
+  route,
+  subtitle,
+  height,
+  gain,
+  inputActive,
+  inputAnalyser,
+  inputToggleDisabled,
+  muted,
+  soloed,
+  takeDownloadDisabled,
+  onGainChange,
+  onInputSetup,
+  onInputToggle,
+  onMutedChange,
+  onSoloedChange,
+  onTakeDownload,
+  onHeightChange,
+  children,
+}: {
+  route: string;
+  subtitle: string;
+  height: number;
+  gain: number;
+  inputActive: boolean;
+  inputAnalyser?: AudioAnalyser;
+  inputToggleDisabled: boolean;
+  muted: boolean;
+  soloed: boolean;
+  takeDownloadDisabled: boolean;
+  onGainChange: (gain: number) => void;
+  onInputSetup: () => void;
+  onInputToggle: () => void;
+  onMutedChange: (muted: boolean) => void;
+  onSoloedChange: (soloed: boolean) => void;
+  onTakeDownload: () => void;
+  onHeightChange: (height: number) => void;
+  children: React.ReactNode;
+}) {
+  const resizeRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      return { startClientY: event.clientY, startHeight: height };
+    },
+    onMove: (event, drag) => {
+      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+    },
+  });
+  const mixToggleClass = (active: boolean) =>
+    active
+      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
+      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
+  return (
+    <div
+      className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
+      style={{ height }}
+    >
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
+        <div className="min-w-0">
+          <div className="truncate text-xs font-semibold">Capture</div>
+          <div className="mt-0.5 truncate text-[11px] text-neutral-400">
+            {subtitle}
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                title="Capture actions"
+                aria-label="Capture actions"
+              >
+                <MoreVerticalIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                data-testid="recorder-download-take"
+                disabled={takeDownloadDisabled}
+                onSelect={onTakeDownload}
+              >
+                <DownloadIcon />
+                Download take
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            data-testid="recorder-input-toggle"
+            disabled={inputToggleDisabled}
+            onClick={onInputToggle}
+            className={
+              inputActive
+                ? "size-7 border-red-600 bg-red-700 text-white hover:bg-red-600"
+                : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+            }
+            title={inputActive ? "Disable input" : "Enable input"}
+            aria-label={inputActive ? "Disable input" : "Enable input"}
+            aria-pressed={inputActive}
+          >
+            R
+          </Button>
+          <Button
+            onClick={() => onMutedChange(!muted)}
+            className={mixToggleClass(muted)}
+            title={muted ? "Unmute Capture" : "Mute Capture"}
+          >
+            M
+          </Button>
+          <Button
+            onClick={() => onSoloedChange(!soloed)}
+            className={mixToggleClass(soloed)}
+            title={soloed ? "Disable Capture solo" : "Solo Capture"}
+          >
+            S
+          </Button>
+        </div>
+        <button
+          type="button"
+          onClick={onInputSetup}
+          className="col-span-2 min-w-0 truncate text-left text-[11px] text-neutral-400 hover:text-neutral-100 hover:underline"
+        >
+          {route}
+        </button>
+        <div className="col-span-2">
+          <InputMeter active={inputActive} analyser={inputAnalyser} compact />
+        </div>
+        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+              style={{ left: `${dbToPercent(0)}%` }}
+            />
+            <input
+              aria-label="Capture gain"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={gainToPercent(gain)}
+              onChange={(event) =>
+                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
+              }
+              className="w-full accent-emerald-600"
+            />
+          </div>
+          <span className="text-right font-mono">{formatGainDb(gain)}</span>
+        </label>
+      </div>
+      {children}
+      <div
+        ref={resizeRef}
+        className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
+        title="Resize Capture"
       />
     </div>
   );
@@ -1509,7 +1671,7 @@ function getTimelineGridStyle({
   });
 }
 
-function InputInspector({
+function InputSetup({
   devices,
   error,
   hasAccess,
@@ -1558,11 +1720,8 @@ function InputInspector({
   const inputClass =
     "mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500";
   return (
-    <aside className="min-h-0 overflow-y-auto bg-neutral-800">
-      <h2 className="flex h-10 items-center border-b border-neutral-700 px-3 text-xs font-semibold">
-        Input
-      </h2>
-      <div className="space-y-4 border-b border-neutral-700 p-3">
+    <div className="max-h-[70vh] overflow-y-auto">
+      <div className="space-y-4">
         <label className="block text-[11px] font-medium text-neutral-400">
           Device
           <select
@@ -1681,10 +1840,10 @@ function InputInspector({
       </div>
 
       {error && (
-        <div className="m-3 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
+        <div className="mt-4 border border-orange-700/60 bg-orange-950/40 p-3 text-xs text-orange-200">
           {error.message}
         </div>
       )}
-    </aside>
+    </div>
   );
 }

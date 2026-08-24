@@ -39,8 +39,10 @@ test("records, plays, and replaces a take", async ({ page }) => {
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
-  const downloadButton = page.getByTestId("recorder-download-take");
-  await expect(downloadButton).toBeDisabled();
+  const captureActions = page.getByRole("button", { name: "Capture actions" });
+  await captureActions.click();
+  await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
+  await page.keyboard.press("Escape");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
@@ -62,14 +64,17 @@ test("records, plays, and replaces a take", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   await expect(take).toContainText("Take 1");
   await expect(take.locator("svg")).toBeVisible();
-  await expect(downloadButton).toBeEnabled();
+  await captureActions.click();
+  await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
+  await page.keyboard.press("Escape");
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
   // The finalized take downloads as a timestamped WAV file.
   const downloadPromise = page.waitForEvent("download");
-  await downloadButton.click();
+  await captureActions.click();
+  await page.getByTestId("recorder-download-take").click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^toy-midi-take-1-.*\.wav$/);
   const downloadPath = test.info().outputPath("take.wav");
@@ -106,14 +111,36 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
 
 async function enableInput(page: Page) {
   // Fake audio still exercises permission, device discovery, and channel setup.
-  const inputButton = page.getByRole("button", { name: "Enable input" });
-  await expect(inputButton).toBeVisible();
-  await inputButton.click();
+  const route = page.getByRole("button", {
+    name: /Set up input|Fake Default Audio Input · Input 1/,
+  });
+  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await route.click();
   await expect(
-    page.getByRole("button", { name: "Disable input" }),
+    page.getByRole("heading", { name: "Audio Input Setup" }),
+  ).toBeVisible();
+  const setup = page.getByTestId("recorder-input-setup");
+  await setup
+    .getByRole("button", { name: /Grant access|Enable input/ })
+    .click();
+  await expect(
+    setup.getByRole("button", { name: "Disable input" }),
   ).toBeVisible();
   await expect(page.getByLabel("Device")).toContainText(
     "Fake Default Audio Input",
   );
   await expect(page.getByLabel("Channel")).toContainText("Channel 1");
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Fake Default Audio Input · Input 1",
+    }),
+  ).toBeVisible();
+  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 }
