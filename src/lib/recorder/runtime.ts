@@ -333,6 +333,9 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.setGain(0);
+    }
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
@@ -554,6 +557,7 @@ export class RecorderRuntime {
     if (!samples) {
       this.activeRecording = undefined;
       this.store.update({ captureStatus: "ready", pendingTake: undefined });
+      this.syncTrackMix();
       return;
     }
     const takeBuffer = context.createBuffer(
