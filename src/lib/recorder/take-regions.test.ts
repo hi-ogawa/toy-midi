@@ -9,44 +9,44 @@ describe(deriveTakeRegions, () => {
     ).toEqual([
       {
         takeId: "second",
-        timelineOffset: 0,
-        duration: 2,
+        timelineStart: 0,
+        timelineEnd: 2,
       },
       {
         takeId: "first",
-        timelineOffset: 4,
-        duration: 2,
+        timelineStart: 4,
+        timelineEnd: 6,
       },
     ]);
   });
 
   it("lets a newer take replace the end of an older take", () => {
     expect(deriveTakeRegions([take("old", 0, 5), take("new", 3, 4)])).toEqual([
-      { takeId: "old", timelineOffset: 0, duration: 3 },
-      { takeId: "new", timelineOffset: 3, duration: 4 },
+      { takeId: "old", timelineStart: 0, timelineEnd: 3 },
+      { takeId: "new", timelineStart: 3, timelineEnd: 7 },
     ]);
   });
 
   it("splits an older take around a contained newer take", () => {
     expect(deriveTakeRegions([take("old", 0, 10), take("new", 3, 4)])).toEqual([
-      { takeId: "old", timelineOffset: 0, duration: 3 },
-      { takeId: "new", timelineOffset: 3, duration: 4 },
-      { takeId: "old", timelineOffset: 7, duration: 3 },
+      { takeId: "old", timelineStart: 0, timelineEnd: 3 },
+      { takeId: "new", timelineStart: 3, timelineEnd: 7 },
+      { takeId: "old", timelineStart: 7, timelineEnd: 10 },
     ]);
   });
 
   it("uses the newest take for equal ranges", () => {
     expect(deriveTakeRegions([take("old", 1, 4), take("new", 1, 4)])).toEqual([
-      { takeId: "new", timelineOffset: 1, duration: 4 },
+      { takeId: "new", timelineStart: 1, timelineEnd: 5 },
     ]);
   });
 
   it("preserves negative timeline offsets", () => {
     expect(deriveTakeRegions([take("old", -4, 6), take("new", -2, 3)])).toEqual(
       [
-        { takeId: "old", timelineOffset: -4, duration: 2 },
-        { takeId: "new", timelineOffset: -2, duration: 3 },
-        { takeId: "old", timelineOffset: 1, duration: 1 },
+        { takeId: "old", timelineStart: -4, timelineEnd: -2 },
+        { takeId: "new", timelineStart: -2, timelineEnd: 1 },
+        { takeId: "old", timelineStart: 1, timelineEnd: 2 },
       ],
     );
   });

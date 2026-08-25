@@ -10,16 +10,13 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
     if (take.duration <= 0) {
       continue;
     }
-    const takeEnd = take.timelineOffset + take.duration;
+    const takeStart = take.timelineOffset;
+    const takeEnd = takeStart + take.duration;
     const nextRegions: TakeRegion[] = [];
     for (const region of regions) {
-      const regionEnd = region.timelineOffset + region.duration;
       // no overlap
       // [--region--] [---take---]  (or reversed)
-      if (
-        regionEnd <= take.timelineOffset ||
-        takeEnd <= region.timelineOffset
-      ) {
+      if (region.timelineEnd <= takeStart || takeEnd <= region.timelineStart) {
         // Half-open intervals that only touch at an edge do not overlap.
         nextRegions.push(region);
         continue;
@@ -29,11 +26,11 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       // or
       // [------region-------]
       //     [---take---]
-      if (region.timelineOffset < take.timelineOffset) {
+      if (region.timelineStart < takeStart) {
         // Preserve the older region before the new take starts.
         nextRegions.push({
           ...region,
-          duration: take.timelineOffset - region.timelineOffset,
+          timelineEnd: takeStart,
         });
       }
       //         [--region--]
@@ -41,12 +38,11 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       // or
       // [------region------]
       //     [---take---]
-      if (takeEnd < regionEnd) {
+      if (takeEnd < region.timelineEnd) {
         // Preserve the older timeline slice after the new take.
         nextRegions.push({
           ...region,
-          timelineOffset: takeEnd,
-          duration: regionEnd - takeEnd,
+          timelineStart: takeEnd,
         });
       }
       // otherwise region gets covered fully and disappears
@@ -57,11 +53,11 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
     // already been removed from older regions.
     nextRegions.push({
       takeId: take.id,
-      timelineOffset: take.timelineOffset,
-      duration: take.duration,
+      timelineStart: takeStart,
+      timelineEnd: takeEnd,
     });
     regions = nextRegions;
   }
 
-  return regions.sort((a, b) => a.timelineOffset - b.timelineOffset);
+  return regions.sort((a, b) => a.timelineStart - b.timelineStart);
 }

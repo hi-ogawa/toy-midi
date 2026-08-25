@@ -14,10 +14,8 @@ export function renderTakeComp({
   }
   // Keep timeline zero in the export so positive-offset recordings retain
   // their leading silence. Negative latency-compensated offsets extend it left.
-  const timelineOffset = Math.min(0, regions[0]!.timelineOffset);
-  const timelineEnd = Math.max(
-    ...regions.map((region) => region.timelineOffset + region.duration),
-  );
+  const timelineOffset = Math.min(0, regions[0]!.timelineStart);
+  const timelineEnd = Math.max(...regions.map((region) => region.timelineEnd));
   const sampleRate = context.sampleRate;
   const buffer = context.createBuffer(
     1,
@@ -31,13 +29,15 @@ export function renderTakeComp({
       continue;
     }
     const source = take.buffer.getChannelData(0);
-    const sourceOffset = region.timelineOffset - take.timelineOffset;
+    const sourceOffset = region.timelineStart - take.timelineOffset;
     // Convert the region's timeline placement to an output frame relative to
     // the earliest exported timeline position.
     const outputStart = Math.round(
-      (region.timelineOffset - timelineOffset) * sampleRate,
+      (region.timelineStart - timelineOffset) * sampleRate,
     );
-    const outputLength = Math.round(region.duration * sampleRate);
+    const outputLength = Math.round(
+      (region.timelineEnd - region.timelineStart) * sampleRate,
+    );
     const sourceStart = Math.round(sourceOffset * take.buffer.sampleRate);
     if (take.buffer.sampleRate === sampleRate) {
       output.set(

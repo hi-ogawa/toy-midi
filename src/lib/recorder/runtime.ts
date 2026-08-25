@@ -221,7 +221,7 @@ export class RecorderRuntime {
   }
 
   setAudioTrackOffset(id: string, timelineOffset: number): void {
-    this.getAudioTrackPlayback(id).setTimelineOffset(timelineOffset);
+    this.getAudioTrackPlayback(id).setBufferTimelineOffset(timelineOffset);
     this.updateAudioTrack(id, (track) => ({
       ...track,
       timelineOffset,
@@ -274,7 +274,7 @@ export class RecorderRuntime {
       if (!track) {
         throw new Error("Audio track state is missing.");
       }
-      playback.setTimelineOffset(track.timelineOffset);
+      playback.setBufferTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
@@ -430,7 +430,7 @@ export class RecorderRuntime {
         output: context.destination,
       });
       playback.setBuffer(buffer);
-      playback.setTimelineOffset(track.timelineOffset);
+      playback.setBufferTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
@@ -593,10 +593,10 @@ export class RecorderRuntime {
         output: context.destination,
       });
       playback.setBuffer(take.buffer);
-      playback.setTimelineOffset(take.timelineOffset);
-      playback.setSourceRange({
-        sourceOffset: region.timelineOffset - take.timelineOffset,
-        duration: region.duration,
+      playback.setBufferTimelineOffset(take.timelineOffset);
+      playback.setTimelineRange({
+        start: region.timelineStart,
+        end: region.timelineEnd,
       });
       this.recordingTrackPlaybacks.push(playback);
     }
