@@ -98,7 +98,6 @@ import { cn } from "../ui/utils";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [selectedTakeId, setSelectedTakeId] = useState<string>();
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
@@ -115,6 +114,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
+  const takeSelection = useRecorderTakeSelection({
+    runtime,
+    takes: state.recordingTrack.takes,
+  });
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -148,15 +151,9 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.takes;
-  const selectedTake = takes.find((take) => take.id === selectedTakeId);
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
 
-  useEffect(() => {
-    if (selectedTakeId && !selectedTake) {
-      setSelectedTakeId(undefined);
-    }
-  }, [selectedTake, selectedTakeId]);
   function togglePlay() {
     if (isProcessing) {
       return;
@@ -195,9 +192,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && selectedTakeId) {
+    if (matchKeyboardEvent(event, "Escape") && takeSelection.selectedId) {
       event.preventDefault();
-      setSelectedTakeId(undefined);
+      takeSelection.clear();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -403,7 +400,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       }
                     : undefined
                 }
-                selectedTakeId={selectedTakeId}
+                selectedTakeId={takeSelection.selectedId}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -412,13 +409,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
-                onTakeSelect={setSelectedTakeId}
-                onTakeDelete={(id) => {
-                  runtime.removeTake(id);
-                  if (selectedTake?.id === id) {
-                    setSelectedTakeId(undefined);
-                  }
-                }}
+                onTakeSelect={takeSelection.select}
+                onTakeDelete={takeSelection.remove}
               />
             </CaptureTrackRow>
           </div>
@@ -466,6 +458,34 @@ export function Recorder({ projectId }: { projectId: string }) {
 }
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
+
+function useRecorderTakeSelection({
+  runtime,
+  takes,
+}: {
+  runtime: RecorderRuntime;
+  takes: RecorderRuntimeState["recordingTrack"]["takes"];
+}) {
+  const [selectedId, setSelectedId] = useState<string>();
+
+  useEffect(() => {
+    if (selectedId && !takes.some((take) => take.id === selectedId)) {
+      setSelectedId(undefined);
+    }
+  }, [selectedId, takes]);
+
+  return {
+    clear: () => setSelectedId(undefined),
+    remove: (id: string) => {
+      runtime.removeTake(id);
+      if (selectedId === id) {
+        setSelectedId(undefined);
+      }
+    },
+    select: setSelectedId,
+    selectedId,
+  };
+}
 
 function useRecorderProject({
   projectId,
