@@ -593,9 +593,9 @@ export class RecorderRuntime {
         output: context.destination,
       });
       playback.setBuffer(take.buffer);
-      playback.setTimelineOffset(region.timelineOffset);
+      playback.setTimelineOffset(take.timelineOffset);
       playback.setSourceRange({
-        sourceOffset: region.sourceOffset,
+        sourceOffset: region.timelineOffset - take.timelineOffset,
         duration: region.duration,
       });
       this.recordingTrackPlaybacks.push(playback);

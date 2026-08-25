@@ -31,15 +31,14 @@ export function renderTakeComp({
       continue;
     }
     const source = take.buffer.getChannelData(0);
+    const sourceOffset = region.timelineOffset - take.timelineOffset;
     // Convert the region's timeline placement to an output frame relative to
     // the earliest exported timeline position.
     const outputStart = Math.round(
       (region.timelineOffset - timelineOffset) * sampleRate,
     );
     const outputLength = Math.round(region.duration * sampleRate);
-    const sourceStart = Math.round(
-      region.sourceOffset * take.buffer.sampleRate,
-    );
+    const sourceStart = Math.round(sourceOffset * take.buffer.sampleRate);
     if (take.buffer.sampleRate === sampleRate) {
       output.set(
         source.subarray(sourceStart, sourceStart + outputLength),
@@ -51,7 +50,7 @@ export function renderTakeComp({
     // Linearly interpolate those as a compatibility fallback.
     for (let index = 0; index < outputLength; index++) {
       const sourcePosition =
-        (region.sourceOffset + index / sampleRate) * take.buffer.sampleRate;
+        (sourceOffset + index / sampleRate) * take.buffer.sampleRate;
       const sourceIndex = Math.floor(sourcePosition);
       const fraction = sourcePosition - sourceIndex;
       output[outputStart + index] =

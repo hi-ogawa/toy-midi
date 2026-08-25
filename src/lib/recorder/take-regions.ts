@@ -42,12 +42,10 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       // [------region------]
       //     [---take---]
       if (takeEnd < regionEnd) {
-        // Preserve the older region after the new take. Advance sourceOffset by
-        // the removed timeline span so it still addresses the same source audio.
+        // Preserve the older timeline slice after the new take.
         nextRegions.push({
           ...region,
           timelineOffset: takeEnd,
-          sourceOffset: region.sourceOffset + takeEnd - region.timelineOffset,
           duration: regionEnd - takeEnd,
         });
       }
@@ -60,7 +58,6 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
     nextRegions.push({
       takeId: take.id,
       timelineOffset: take.timelineOffset,
-      sourceOffset: 0,
       duration: take.duration,
     });
     regions = nextRegions;

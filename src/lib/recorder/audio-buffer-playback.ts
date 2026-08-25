@@ -9,7 +9,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
-  /** Transport timeline time where this playback region begins. */
+  /** Transport timeline time corresponding to source-buffer time zero. */
   private timelineOffset = 0;
   /** Time within the source buffer where this playback region begins. */
   private sourceOffset = 0;
@@ -69,7 +69,8 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     const playbackAnchor = this.transport.playbackAnchor!;
-    const elapsed = Math.max(0, playbackAnchor.position - this.timelineOffset);
+    const regionTimelineOffset = this.timelineOffset + this.sourceOffset;
+    const elapsed = Math.max(0, playbackAnchor.position - regionTimelineOffset);
     const duration = Math.min(
       this.duration ?? buffer.duration - this.sourceOffset,
       buffer.duration - this.sourceOffset,
@@ -82,7 +83,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.connect(this.gain);
     source.start(
       playbackAnchor.contextTime +
-        Math.max(0, this.timelineOffset - playbackAnchor.position),
+        Math.max(0, regionTimelineOffset - playbackAnchor.position),
       this.sourceOffset + elapsed,
       duration - elapsed,
     );

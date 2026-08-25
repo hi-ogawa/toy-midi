@@ -12,6 +12,5 @@ export interface TakeState {
 export interface TakeRegion {
   takeId: string;
   timelineOffset: number;
-  sourceOffset: number;
   duration: number;
 }
