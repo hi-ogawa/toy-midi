@@ -112,7 +112,7 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
 async function enableInput(page: Page) {
   // Fake audio still exercises permission, device discovery, and channel setup.
   const route = page.getByRole("button", {
-    name: /Microphone access required · Set up|Fake Default Audio Input · Input 1/,
+    name: "Fake Default Audio Input · Input 1",
   });
   await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
     "aria-pressed",
@@ -123,9 +123,7 @@ async function enableInput(page: Page) {
     page.getByRole("heading", { name: "Audio Input Setup" }),
   ).toBeVisible();
   const setup = page.getByTestId("recorder-input-setup");
-  await setup
-    .getByRole("button", { name: /Grant access|Enable input/ })
-    .click();
+  await setup.getByRole("button", { name: "Enable input" }).click();
   await expect(
     setup.getByRole("button", { name: "Disable input" }),
   ).toBeVisible();
