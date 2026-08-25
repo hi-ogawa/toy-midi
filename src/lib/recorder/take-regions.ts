@@ -16,7 +16,7 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       const regionEnd = region.timelineOffset + region.duration;
       if (
         regionEnd <= take.timelineOffset ||
-        region.timelineOffset >= takeEnd
+        takeEnd <= region.timelineOffset
       ) {
         // Half-open intervals that only touch at an edge do not overlap.
         nextRegions.push(region);
@@ -29,7 +29,7 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
           duration: take.timelineOffset - region.timelineOffset,
         });
       }
-      if (regionEnd > takeEnd) {
+      if (takeEnd < regionEnd) {
         // Preserve the older region after the new take. Advance sourceOffset by
         // the removed timeline span so it still addresses the same source audio.
         nextRegions.push({
