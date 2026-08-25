@@ -568,6 +568,10 @@ export class RecorderRuntime {
   }
 
   removeTake(id: string): void {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
     const recordingTrack = this.store.get().recordingTrack;
     this.store.update({
       recordingTrack: {
@@ -576,14 +580,13 @@ export class RecorderRuntime {
       },
     });
     this.syncTakeRegions();
+    if (wasPlaying) {
+      this.transport!.play();
+    }
   }
 
   private syncTakeRegions(): void {
     const context = this.ensureContext();
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
     const takes = this.store.get().recordingTrack.takes;
     this.takeRegions = deriveTakeRegions(takes);
     for (const playback of this.recordingTrackPlaybacks) {
@@ -608,9 +611,6 @@ export class RecorderRuntime {
       this.recordingTrackPlaybacks.push(playback);
     }
     this.syncTrackMix();
-    if (wasPlaying) {
-      this.transport!.play();
-    }
   }
 }
 
