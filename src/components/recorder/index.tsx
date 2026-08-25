@@ -51,6 +51,7 @@ import {
 } from "../../lib/recorder/capture-input";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
+  MIN_TAKE_DURATION,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -403,6 +404,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => runtime.seek(position)}
                 onTakeSelect={takeSelection.select}
+                onTakeOffsetChange={(id, offset) =>
+                  runtime.setTakeTimelineOffset(id, offset)
+                }
+                onTakeTrimStartChange={(id, trimStart) =>
+                  runtime.setTakeTrimStart(id, trimStart)
+                }
+                onTakeTrimEndChange={(id, trimEnd) =>
+                  runtime.setTakeTrimEnd(id, trimEnd)
+                }
               />
             </CaptureTrackRow>
           </div>
@@ -1544,6 +1554,8 @@ type RecorderTimelineClip = {
   offset: number;
   variant: "audio" | "take" | "recording";
   audioView?: AudioView;
+  audioDuration?: number;
+  audioOffset?: number;
 };
 
 function TakeTimelineLane({
@@ -1559,6 +1571,9 @@ function TakeTimelineLane({
   viewportWidth,
   onSeek,
   onTakeSelect,
+  onTakeOffsetChange,
+  onTakeTrimStartChange,
+  onTakeTrimEndChange,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
@@ -1572,6 +1587,9 @@ function TakeTimelineLane({
   viewportWidth: number;
   onSeek: (position: number) => void;
   onTakeSelect: (id: string) => void;
+  onTakeOffsetChange: (id: string, offset: number) => void;
+  onTakeTrimStartChange: (id: string, trimStart: number) => void;
+  onTakeTrimEndChange: (id: string, trimEnd: number) => void;
 }) {
   return (
     <div
@@ -1596,25 +1614,43 @@ function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      {takes.map((take) => (
-        <div key={take.id}>
-          <TimelineClip
-            clip={{
-              duration: take.duration,
-              label: `Take ${take.number}`,
-              offset: take.timelineOffset,
-              variant: "take",
-              audioView: take.audioView,
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onSelect={() => onTakeSelect(take.id)}
-            selected={selectedTakeId === take.id}
-          />
-        </div>
-      ))}
+      {takes.map((take) => {
+        const timelineStart = take.timelineOffset + take.trimStart;
+        return (
+          <div key={take.id}>
+            <TimelineClip
+              clip={{
+                duration: take.trimEnd - take.trimStart,
+                label: `Take ${take.number}`,
+                offset: timelineStart,
+                variant: "take",
+                audioView: take.audioView,
+                audioDuration: take.duration,
+                audioOffset: take.trimStart,
+              }}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
+              tempo={tempo}
+              viewportWidth={viewportWidth}
+              onSelect={() => onTakeSelect(take.id)}
+              onClipOffsetChange={(offset) =>
+                onTakeOffsetChange(take.id, offset - take.trimStart)
+              }
+              onTrimStartChange={(offset) =>
+                onTakeTrimStartChange(take.id, offset - take.timelineOffset)
+              }
+              onTrimEndChange={(offset) =>
+                onTakeTrimEndChange(take.id, offset - take.timelineOffset)
+              }
+              trimBounds={{
+                start: take.timelineOffset,
+                end: take.timelineOffset + take.duration,
+              }}
+              selected={selectedTakeId === take.id}
+            />
+          </div>
+        );
+      })}
       {pendingRecording && (
         <div>
           <TimelineClip
@@ -1709,6 +1745,9 @@ function TimelineClip({
   onClipOffsetChange,
   onClipDragEnd,
   onSelect,
+  onTrimStartChange,
+  onTrimEndChange,
+  trimBounds,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -1719,6 +1758,9 @@ function TimelineClip({
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
   onSelect?: () => void;
+  onTrimStartChange?: (offset: number) => void;
+  onTrimEndChange?: (offset: number) => void;
+  trimBounds?: { start: number; end: number };
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -1746,6 +1788,57 @@ function TimelineClip({
       onClipDragEnd?.();
     },
   });
+  const trimStartRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      return {
+        startClientX: event.clientX,
+        startOffset: clip.offset,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const delta = beatsToSeconds(
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat,
+        drag.tempo,
+      );
+      onTrimStartChange!(
+        Math.max(
+          trimBounds!.start,
+          Math.min(
+            drag.startOffset + delta,
+            clip.offset + clip.duration - MIN_TAKE_DURATION,
+          ),
+        ),
+      );
+    },
+  });
+  const trimEndRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      return {
+        startClientX: event.clientX,
+        startOffset: clip.offset + clip.duration,
+        pixelsPerBeat,
+        tempo,
+      };
+    },
+    onMove: (event, drag) => {
+      const delta = beatsToSeconds(
+        (event.clientX - drag.startClientX) / drag.pixelsPerBeat,
+        drag.tempo,
+      );
+      onTrimEndChange!(
+        Math.min(
+          trimBounds!.end,
+          Math.max(drag.startOffset + delta, clip.offset + MIN_TAKE_DURATION),
+        ),
+      );
+    },
+  });
   const clipClass = {
     audio: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
@@ -1758,14 +1851,16 @@ function TimelineClip({
   );
   const visibleStart = Math.max(
     0,
-    beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
+    (clip.audioOffset ?? 0) +
+      beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
   );
   const visibleEnd = Math.min(
-    clip.duration,
-    beatsToSeconds(
-      viewportStartBeat + viewportWidth / pixelsPerBeat - clipStartBeat,
-      tempo,
-    ),
+    (clip.audioOffset ?? 0) + clip.duration,
+    (clip.audioOffset ?? 0) +
+      beatsToSeconds(
+        viewportStartBeat + viewportWidth / pixelsPerBeat - clipStartBeat,
+        tempo,
+      ),
   );
   return (
     <div
@@ -1796,13 +1891,24 @@ function TimelineClip({
       }}
     >
       {clip.audioView && visibleEnd > visibleStart && (
-        <AudioWaveformView
-          audioView={clip.audioView}
-          audioDuration={clip.duration}
-          visibleStart={visibleStart}
-          visibleEnd={visibleEnd}
-          pixelWidth={clipWidth}
-        />
+        <div
+          className="absolute inset-0"
+          style={{
+            left: `${(-100 * (clip.audioOffset ?? 0)) / clip.duration}%`,
+            width: `${(100 * (clip.audioDuration ?? clip.duration)) / clip.duration}%`,
+          }}
+        >
+          <AudioWaveformView
+            audioView={clip.audioView}
+            audioDuration={clip.audioDuration ?? clip.duration}
+            visibleStart={visibleStart}
+            visibleEnd={visibleEnd}
+            pixelWidth={
+              (clipWidth * (clip.audioDuration ?? clip.duration)) /
+              clip.duration
+            }
+          />
+        </div>
       )}
       <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
         <span className="mr-1.5">{clip.label}</span>
@@ -1810,6 +1916,22 @@ function TimelineClip({
           <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
         )}
       </div>
+      {onTrimStartChange && (
+        <div
+          ref={trimStartRef}
+          data-testid="recorder-take-trim-start"
+          onClick={(event) => event.stopPropagation()}
+          className="absolute inset-y-0 left-0 z-20 w-1.5 cursor-ew-resize bg-white/20"
+        />
+      )}
+      {onTrimEndChange && (
+        <div
+          ref={trimEndRef}
+          data-testid="recorder-take-trim-end"
+          onClick={(event) => event.stopPropagation()}
+          className="absolute inset-y-0 right-0 z-20 w-1.5 cursor-ew-resize bg-white/20"
+        />
+      )}
     </div>
   );
 }

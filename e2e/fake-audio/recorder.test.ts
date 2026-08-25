@@ -72,6 +72,35 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
+  // The take can be moved and trimmed without changing its source audio.
+  const beforeEdit = await take.boundingBox();
+  expect(beforeEdit).not.toBeNull();
+  await dragBy(page, take, 80);
+  const afterMove = await take.boundingBox();
+  expect(afterMove).not.toBeNull();
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+  const trimPixels = Math.max(2, afterMove!.width / 4);
+
+  const trimStart = take.getByTestId("recorder-take-trim-start");
+  await dragBy(page, trimStart, trimPixels);
+  const afterStartTrim = await take.boundingBox();
+  expect(afterStartTrim).not.toBeNull();
+  expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
+  expect(afterStartTrim!.x + afterStartTrim!.width).toBeCloseTo(
+    afterMove!.x + afterMove!.width,
+    -1,
+  );
+
+  const trimEnd = take.getByTestId("recorder-take-trim-end");
+  await dragBy(page, trimEnd, -trimPixels);
+  const afterEndTrim = await take.boundingBox();
+  expect(afterEndTrim).not.toBeNull();
+  expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);
+  expect(afterEndTrim!.width).toBeCloseTo(
+    afterStartTrim!.width - trimPixels,
+    -1,
+  );
+
   // The resolved recording downloads as a timestamped WAV file.
   const downloadPromise = page.waitForEvent("download");
   await captureActions.click();
@@ -107,14 +136,14 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
-  await take.nth(0).click();
+  await take.nth(0).getByText("Take 1").click();
   await expect(position).toHaveText(positionBeforeSelection!);
   await expect(take.nth(0)).toHaveClass(/border-sky-300/);
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
 
   // Deleting a selected source take leaves the other take intact.
-  await take.nth(0).click();
+  await take.nth(0).getByText("Take 1").click();
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 2");
@@ -125,6 +154,23 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
   const box = await ruler.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+}
+
+async function dragBy(
+  page: Page,
+  locator: ReturnType<Page["getByTestId"]>,
+  deltaX: number,
+) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    box!.x + box!.width / 2 + deltaX,
+    box!.y + box!.height / 2,
+    { steps: 4 },
+  );
+  await page.mouse.up();
 }
 
 async function enableInput(page: Page) {

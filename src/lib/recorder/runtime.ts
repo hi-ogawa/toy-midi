@@ -16,6 +16,7 @@ import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
+export const MIN_TAKE_DURATION = 0.01;
 export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
@@ -539,6 +540,8 @@ export class RecorderRuntime {
             number: pendingRecording.number,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
+            trimStart: 0,
+            trimEnd: takeBuffer.duration,
             timelineOffset: pendingRecording.timelineOffset,
             audioView: createAudioView(
               samples,
@@ -558,6 +561,47 @@ export class RecorderRuntime {
   }
 
   removeTake(id: string): void {
+    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
+  }
+
+  setTakeTimelineOffset(id: string, timelineOffset: number): void {
+    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
+  }
+
+  setTakeTrimStart(id: string, trimStart: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimStart: Math.max(
+        0,
+        Math.min(trimStart, take.trimEnd - MIN_TAKE_DURATION),
+      ),
+    }));
+  }
+
+  setTakeTrimEnd(id: string, trimEnd: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimEnd: Math.min(
+        take.duration,
+        Math.max(trimEnd, take.trimStart + MIN_TAKE_DURATION),
+      ),
+    }));
+  }
+
+  private updateTake(id: string, update: (take: TakeState) => TakeState): void {
+    this.updateTakes((takes) => {
+      const index = takes.findIndex((take) => take.id === id);
+      const take = takes[index];
+      if (!take) {
+        throw new Error("Recording take state is missing.");
+      }
+      const nextTakes = takes.slice();
+      nextTakes[index] = update(take);
+      return nextTakes;
+    });
+  }
+
+  private updateTakes(update: (takes: TakeState[]) => TakeState[]): void {
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -566,7 +610,7 @@ export class RecorderRuntime {
     this.store.update({
       recordingTrack: {
         ...recordingTrack,
-        takes: recordingTrack.takes.filter((take) => take.id !== id),
+        takes: update(recordingTrack.takes),
       },
     });
     this.syncTakeRegions();

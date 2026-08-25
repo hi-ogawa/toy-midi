@@ -43,6 +43,8 @@ interface SerializedTakeState {
   id?: string;
   number?: number;
   timelineOffset: number;
+  trimStart?: number;
+  trimEnd?: number;
   pcm: RecorderPcm;
 }
 
@@ -84,6 +86,8 @@ export function serializeRecorderRuntimeState(
           id: take.id,
           number: take.number,
           timelineOffset: take.timelineOffset,
+          trimStart: take.trimStart,
+          trimEnd: take.trimEnd,
           pcm: serializeAudioBuffer(take.buffer),
         };
       }),
@@ -143,6 +147,8 @@ export function deserializeRecorderRuntimeState({
           number: take.number ?? index + 1,
           duration: buffer.duration,
           timelineOffset: take.timelineOffset,
+          trimStart: take.trimStart ?? 0,
+          trimEnd: take.trimEnd ?? buffer.duration,
           buffer,
           audioView: createAudioView(
             buffer.getChannelData(0),

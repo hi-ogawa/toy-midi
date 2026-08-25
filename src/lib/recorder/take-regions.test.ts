@@ -50,8 +50,21 @@ describe(deriveTakeRegions, () => {
       ],
     );
   });
+
+  it("uses the trimmed source interval on the timeline", () => {
+    expect(
+      deriveTakeRegions([{ ...take("take", 3, 6), trimStart: 1, trimEnd: 5 }]),
+    ).toEqual([{ takeId: "take", timelineStart: 4, timelineEnd: 8 }]);
+  });
 });
 
 function take(id: string, timelineOffset: number, duration: number): TakeState {
-  return { id, number: 1, timelineOffset, duration };
+  return {
+    id,
+    number: 1,
+    timelineOffset,
+    duration,
+    trimStart: 0,
+    trimEnd: duration,
+  };
 }

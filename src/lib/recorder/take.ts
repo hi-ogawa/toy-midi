@@ -4,6 +4,9 @@ export interface TakeState {
   id: string;
   number: number;
   duration: number;
+  /** Audible source-buffer interval [trimStart, trimEnd), in seconds. */
+  trimStart: number;
+  trimEnd: number;
   timelineOffset: number;
   buffer?: AudioBuffer;
   audioView?: AudioView;
