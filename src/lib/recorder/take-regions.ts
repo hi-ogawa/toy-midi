@@ -14,6 +14,8 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
     const nextRegions: TakeRegion[] = [];
     for (const region of regions) {
       const regionEnd = region.timelineOffset + region.duration;
+      // no overlap
+      // [--region--] [---take---]  (or reversed)
       if (
         regionEnd <= take.timelineOffset ||
         takeEnd <= region.timelineOffset
@@ -22,6 +24,11 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
         nextRegions.push(region);
         continue;
       }
+      // [--region--]
+      //     [---take---]
+      // or
+      // [------region-------]
+      //     [---take---]
       if (region.timelineOffset < take.timelineOffset) {
         // Preserve the older region before the new take starts.
         nextRegions.push({
@@ -29,6 +36,11 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
           duration: take.timelineOffset - region.timelineOffset,
         });
       }
+      //         [--region--]
+      //     [---take---]
+      // or
+      // [------region------]
+      //     [---take---]
       if (takeEnd < regionEnd) {
         // Preserve the older region after the new take. Advance sourceOffset by
         // the removed timeline span so it still addresses the same source audio.
@@ -39,6 +51,9 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
           duration: regionEnd - takeEnd,
         });
       }
+      // otherwise region gets covered fully and disappears
+      //    [--region--]
+      // [------take------]
     }
     // The complete new take wins its own interval because all overlaps have
     // already been removed from older regions.
@@ -48,29 +63,8 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       sourceOffset: 0,
       duration: take.duration,
     });
-    regions = mergeAdjacentRegions(
-      nextRegions.sort((a, b) => a.timelineOffset - b.timelineOffset),
-    );
+    regions = nextRegions.sort((a, b) => a.timelineOffset - b.timelineOffset);
   }
 
   return regions;
-}
-
-function mergeAdjacentRegions(regions: readonly TakeRegion[]): TakeRegion[] {
-  const merged: TakeRegion[] = [];
-  for (const region of regions) {
-    const previous = merged.at(-1);
-    if (
-      previous &&
-      previous.takeId === region.takeId &&
-      // Merge only when both timeline and source coordinates are contiguous.
-      previous.timelineOffset + previous.duration === region.timelineOffset &&
-      previous.sourceOffset + previous.duration === region.sourceOffset
-    ) {
-      previous.duration += region.duration;
-    } else {
-      merged.push({ ...region });
-    }
-  }
-  return merged;
 }
