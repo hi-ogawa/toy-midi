@@ -377,7 +377,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 downloadBlob(
                   encodeWav(comp),
                   buildExportFileName({
-                    baseName: "toy-midi-comp",
+                    baseName: "toy-midi-recording",
                     extension: "wav",
                   }),
                 );
@@ -1459,7 +1459,7 @@ function CaptureTrackRow({
                 onSelect={onTakeDownload}
               >
                 <DownloadIcon />
-                Download comp
+                Download recording
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

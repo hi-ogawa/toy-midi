@@ -72,12 +72,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
-  // The resolved comp downloads as a timestamped WAV file.
+  // The resolved recording downloads as a timestamped WAV file.
   const downloadPromise = page.waitForEvent("download");
   await captureActions.click();
   await page.getByTestId("recorder-download-take").click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^toy-midi-comp-.*\.wav$/);
+  expect(download.suggestedFilename()).toMatch(/^toy-midi-recording-.*\.wav$/);
   const downloadPath = test.info().outputPath("take.wav");
   await download.saveAs(downloadPath);
   expect(readFileSync(downloadPath).subarray(0, 4).toString()).toBe("RIFF");
