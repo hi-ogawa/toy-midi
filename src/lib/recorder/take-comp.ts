@@ -37,9 +37,19 @@ export function renderTakeComp({
       (region.timelineOffset - timelineOffset) * sampleRate,
     );
     const outputLength = Math.round(region.duration * sampleRate);
+    const sourceStart = Math.round(
+      region.sourceOffset * take.buffer.sampleRate,
+    );
+    if (take.buffer.sampleRate === sampleRate) {
+      output.set(
+        source.subarray(sourceStart, sourceStart + outputLength),
+        outputStart,
+      );
+      continue;
+    }
+    // Persisted takes may come from a context with another sample rate.
+    // Linearly interpolate those as a compatibility fallback.
     for (let index = 0; index < outputLength; index++) {
-      // Map each output frame back into the source buffer. The source may use a
-      // different sample rate, so interpolate between its neighboring frames.
       const sourcePosition =
         (region.sourceOffset + index / sampleRate) * take.buffer.sampleRate;
       const sourceIndex = Math.floor(sourcePosition);
