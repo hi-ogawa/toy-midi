@@ -50,7 +50,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     duration,
   }: {
     sourceOffset: number;
-    duration?: number;
+    duration: number;
   }): void {
     this.sourceOffset = sourceOffset;
     this.duration = duration;
