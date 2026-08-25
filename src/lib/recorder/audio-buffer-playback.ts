@@ -9,7 +9,9 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
-  private timelineOffset = 0;
+  /** Transport timeline time corresponding to source-buffer time zero. */
+  private bufferTimelineOffset = 0;
+  private timelineRange?: { start: number; end: number };
 
   constructor({
     transport,
@@ -36,8 +38,12 @@ export class AudioBufferPlayback implements TransportParticipant {
     );
   }
 
-  setTimelineOffset(offset: number): void {
-    this.timelineOffset = offset;
+  setBufferTimelineOffset(offset: number): void {
+    this.bufferTimelineOffset = offset;
+  }
+
+  setTimelineRange(range: { start: number; end: number }): void {
+    this.timelineRange = range;
   }
 
   /**
@@ -53,11 +59,13 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     const playbackAnchor = this.transport.playbackAnchor!;
-    const bufferOffset = Math.max(
-      0,
-      playbackAnchor.position - this.timelineOffset,
-    );
-    if (bufferOffset >= buffer.duration) {
+    const timelineStart =
+      this.timelineRange?.start ?? this.bufferTimelineOffset;
+    const timelineEnd =
+      this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
+    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
+    const duration = timelineEnd - timelineStart;
+    if (elapsed >= duration) {
       return;
     }
     const source = this.transport.context.createBufferSource();
@@ -65,8 +73,9 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.connect(this.gain);
     source.start(
       playbackAnchor.contextTime +
-        Math.max(0, this.timelineOffset - playbackAnchor.position),
-      bufferOffset,
+        Math.max(0, timelineStart - playbackAnchor.position),
+      timelineStart - this.bufferTimelineOffset + elapsed,
+      duration - elapsed,
     );
     this.source = source;
   }
