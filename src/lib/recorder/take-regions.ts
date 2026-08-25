@@ -4,6 +4,8 @@ import type { TakeRegion, TakeState } from "./take.ts";
 export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
   let regions: TakeRegion[] = [];
 
+  // Apply takes oldest to newest. Each new take subtracts its interval from
+  // every existing region before being inserted as the winning region.
   for (const take of takes) {
     if (take.duration <= 0) {
       continue;
@@ -16,16 +18,20 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
         regionEnd <= take.timelineOffset ||
         region.timelineOffset >= takeEnd
       ) {
+        // Half-open intervals that only touch at an edge do not overlap.
         nextRegions.push(region);
         continue;
       }
       if (region.timelineOffset < take.timelineOffset) {
+        // Preserve the older region before the new take starts.
         nextRegions.push({
           ...region,
           duration: take.timelineOffset - region.timelineOffset,
         });
       }
       if (regionEnd > takeEnd) {
+        // Preserve the older region after the new take. Advance sourceOffset by
+        // the removed timeline span so it still addresses the same source audio.
         nextRegions.push({
           ...region,
           timelineOffset: takeEnd,
@@ -34,6 +40,8 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
         });
       }
     }
+    // The complete new take wins its own interval because all overlaps have
+    // already been removed from older regions.
     nextRegions.push({
       takeId: take.id,
       timelineOffset: take.timelineOffset,
@@ -55,6 +63,7 @@ function mergeAdjacentRegions(regions: readonly TakeRegion[]): TakeRegion[] {
     if (
       previous &&
       previous.takeId === region.takeId &&
+      // Merge only when both timeline and source coordinates are contiguous.
       previous.timelineOffset + previous.duration === region.timelineOffset &&
       previous.sourceOffset + previous.duration === region.sourceOffset
     ) {
