@@ -393,10 +393,6 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  serializeProject(): SerializedRecorderRuntimeState {
-    return serializeRecorderRuntimeState(this.store.get());
-  }
-
   renderComp(): AudioBuffer | undefined {
     const context = this.ensureContext();
     const takes = this.store.get().recordingTrack.takes;
@@ -436,6 +432,10 @@ export class RecorderRuntime {
       }
     }
     return buffer;
+  }
+
+  serializeProject(): SerializedRecorderRuntimeState {
+    return serializeRecorderRuntimeState(this.store.get());
   }
 
   deserializeProject(project: SerializedRecorderRuntimeState): void {
