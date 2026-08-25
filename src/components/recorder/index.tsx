@@ -384,16 +384,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               }}
             >
               <TakeTimelineLane
-                takes={takes}
-                pendingTake={
-                  state.pendingTake
-                    ? {
-                        duration: state.pendingTake.duration,
-                        label: isProcessing ? "Finalizing..." : "Recording...",
-                        offset: state.pendingTake.timelineOffset,
-                      }
-                    : undefined
-                }
+                state={state}
                 selectedTakeId={takeSelection.selectedId}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
@@ -1554,11 +1545,10 @@ function TakeTimelineLane({
   onSeek,
   onTakeDelete,
   onTakeSelect,
-  pendingTake,
   pixelsPerBeat,
   selectedTakeId,
+  state,
   subdivisionsPerBeat,
-  takes,
   tempo,
   viewportStartBeat,
   viewportWidth,
@@ -1568,15 +1558,16 @@ function TakeTimelineLane({
   onSeek: (position: number) => void;
   onTakeDelete: (id: string) => void;
   onTakeSelect: (id: string) => void;
-  pendingTake?: Omit<RecorderTimelineClip, "variant">;
   pixelsPerBeat: number;
   selectedTakeId?: string;
+  state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
-  takes: RecorderRuntimeState["recordingTrack"]["takes"];
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
 }) {
+  const takes = state.recordingTrack.takes;
+  const pendingTake = state.pendingTake;
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -1634,7 +1625,15 @@ function TakeTimelineLane({
       {pendingTake && (
         <div>
           <TimelineClip
-            clip={{ ...pendingTake, variant: "recording" }}
+            clip={{
+              duration: pendingTake.duration,
+              label:
+                state.captureStatus === "processing"
+                  ? "Finalizing..."
+                  : "Recording...",
+              offset: pendingTake.timelineOffset,
+              variant: "recording",
+            }}
             pixelsPerBeat={pixelsPerBeat}
             viewportStartBeat={viewportStartBeat}
             tempo={tempo}
