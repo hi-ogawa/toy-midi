@@ -384,13 +384,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               }}
             >
               <TakeTimelineLane
-                takes={takes.map((take) => ({
-                  id: take.id,
-                  duration: take.duration,
-                  label: `Take ${take.number}`,
-                  offset: take.timelineOffset,
-                  audioView: take.audioView,
-                }))}
+                takes={takes}
                 pendingTake={
                   state.pendingTake
                     ? {
@@ -1554,8 +1548,6 @@ type RecorderTimelineClip = {
   audioView?: AudioView;
 };
 
-type RecorderTakeClip = Omit<RecorderTimelineClip, "variant"> & { id: string };
-
 function TakeTimelineLane({
   beatsPerBar,
   emptyLabel,
@@ -1580,7 +1572,7 @@ function TakeTimelineLane({
   pixelsPerBeat: number;
   selectedTakeId?: string;
   subdivisionsPerBeat: number;
-  takes: RecorderTakeClip[];
+  takes: RecorderRuntimeState["recordingTrack"]["takes"];
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
@@ -1611,7 +1603,13 @@ function TakeTimelineLane({
       {takes.map((take) => (
         <div key={take.id}>
           <TimelineClip
-            clip={{ ...take, variant: "take" }}
+            clip={{
+              duration: take.duration,
+              label: `Take ${take.number}`,
+              offset: take.timelineOffset,
+              variant: "take",
+              audioView: take.audioView,
+            }}
             pixelsPerBeat={pixelsPerBeat}
             viewportStartBeat={viewportStartBeat}
             tempo={tempo}
@@ -1623,8 +1621,8 @@ function TakeTimelineLane({
             <Button
               data-testid={`recorder-delete-${take.id}`}
               className="absolute right-1 top-1 z-20 size-6 border-red-900 bg-neutral-900/90 text-red-400 hover:bg-red-950"
-              title={`Delete ${take.label}`}
-              aria-label={`Delete ${take.label}`}
+              title={`Delete Take ${take.number}`}
+              aria-label={`Delete Take ${take.number}`}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={() => onTakeDelete(take.id)}
             >
