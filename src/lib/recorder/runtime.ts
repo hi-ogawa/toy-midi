@@ -569,12 +569,11 @@ export class RecorderRuntime {
   }
 
   removeTake(id: string): void {
+    const recordingTrack = this.store.get().recordingTrack;
     this.store.update({
       recordingTrack: {
-        ...this.store.get().recordingTrack,
-        takes: this.store
-          .get()
-          .recordingTrack.takes.filter((take) => take.id !== id),
+        ...recordingTrack,
+        takes: recordingTrack.takes.filter((take) => take.id !== id),
       },
     });
     this.syncTakeRegions();
