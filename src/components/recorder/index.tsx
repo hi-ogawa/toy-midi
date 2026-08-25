@@ -116,7 +116,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const project = useRecorderProject({ projectId, runtime });
   const takeSelection = useRecorderTakeSelection({
     runtime,
-    takes: state.recordingTrack.takes,
+    state,
   });
 
   const playMutation = useMutation({
@@ -461,12 +461,13 @@ type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
 function useRecorderTakeSelection({
   runtime,
-  takes,
+  state,
 }: {
   runtime: RecorderRuntime;
-  takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  state: RecorderRuntimeState;
 }) {
   const [selectedId, setSelectedId] = useState<string>();
+  const takes = state.recordingTrack.takes;
 
   useEffect(() => {
     if (selectedId && !takes.some((take) => take.id === selectedId)) {
