@@ -63,8 +63,8 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
       sourceOffset: 0,
       duration: take.duration,
     });
-    regions = nextRegions.sort((a, b) => a.timelineOffset - b.timelineOffset);
+    regions = nextRegions;
   }
 
-  return regions;
+  return regions.sort((a, b) => a.timelineOffset - b.timelineOffset);
 }
