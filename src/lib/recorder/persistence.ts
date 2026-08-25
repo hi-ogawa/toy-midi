@@ -14,6 +14,7 @@ export interface SerializedRecorderRuntimeState {
     muted: boolean;
     soloed: boolean;
     takes: SerializedTakeState[];
+    // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
   latencyCompensation: number;
@@ -38,6 +39,7 @@ interface SerializedAudioTrackState {
 }
 
 interface SerializedTakeState {
+  // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
   timelineOffset: number;
