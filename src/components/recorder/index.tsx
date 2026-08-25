@@ -384,7 +384,9 @@ export function Recorder({ projectId }: { projectId: string }) {
               }}
             >
               <TakeTimelineLane
-                state={state}
+                captureStatus={state.captureStatus}
+                pendingTake={state.pendingTake}
+                takes={takes}
                 selectedTakeId={takeSelection.selectedId}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
@@ -1541,33 +1543,35 @@ type RecorderTimelineClip = {
 
 function TakeTimelineLane({
   beatsPerBar,
+  captureStatus,
   emptyLabel,
   onSeek,
   onTakeDelete,
   onTakeSelect,
+  pendingTake,
   pixelsPerBeat,
   selectedTakeId,
-  state,
   subdivisionsPerBeat,
+  takes,
   tempo,
   viewportStartBeat,
   viewportWidth,
 }: {
   beatsPerBar: number;
+  captureStatus: RecorderRuntimeState["captureStatus"];
   emptyLabel: string;
   onSeek: (position: number) => void;
   onTakeDelete: (id: string) => void;
   onTakeSelect: (id: string) => void;
+  pendingTake: RecorderRuntimeState["pendingTake"];
   pixelsPerBeat: number;
   selectedTakeId?: string;
-  state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
+  takes: RecorderRuntimeState["recordingTrack"]["takes"];
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
 }) {
-  const takes = state.recordingTrack.takes;
-  const pendingTake = state.pendingTake;
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -1628,7 +1632,7 @@ function TakeTimelineLane({
             clip={{
               duration: pendingTake.duration,
               label:
-                state.captureStatus === "processing"
+                captureStatus === "processing"
                   ? "Finalizing..."
                   : "Recording...",
               offset: pendingTake.timelineOffset,
