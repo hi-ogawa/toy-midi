@@ -11,7 +11,7 @@ import {
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { renderTakeComp } from "./take-comp.ts";
-import { deriveTakeRegions } from "./take-regions.ts";
+import { deriveTakeRegions, type TakeRegion } from "./take-regions.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -114,6 +114,7 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private takeRegions: TakeRegion[] = [];
   private activeRecording?: {
     id: string;
     number: number;
@@ -397,6 +398,7 @@ export class RecorderRuntime {
   renderComp(): AudioBuffer | undefined {
     return renderTakeComp({
       context: this.ensureContext(),
+      regions: this.takeRegions,
       takes: this.store.get().recordingTrack.takes,
     });
   }
@@ -456,7 +458,7 @@ export class RecorderRuntime {
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
-    this.syncRecordingTrackPlaybacks();
+    this.syncTakeRegions();
     this.syncTrackMix();
   }
 
@@ -558,7 +560,7 @@ export class RecorderRuntime {
         ],
       },
     });
-    this.syncRecordingTrackPlaybacks();
+    this.syncTakeRegions();
   }
 
   private closeInput(): void {
@@ -575,18 +577,19 @@ export class RecorderRuntime {
           .recordingTrack.takes.filter((take) => take.id !== id),
       },
     });
-    this.syncRecordingTrackPlaybacks();
+    this.syncTakeRegions();
   }
 
-  private syncRecordingTrackPlaybacks(): void {
+  private syncTakeRegions(): void {
     const context = this.ensureContext();
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
     }
     const takes = this.store.get().recordingTrack.takes;
+    this.takeRegions = deriveTakeRegions(takes);
     this.disposeRecordingTrackPlaybacks();
-    for (const region of deriveTakeRegions(takes)) {
+    for (const region of this.takeRegions) {
       const take = takes.find((entry) => entry.id === region.takeId);
       if (!take?.buffer) {
         continue;

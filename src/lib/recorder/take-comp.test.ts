@@ -1,25 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { renderTakeComp } from "./take-comp.ts";
+import { deriveTakeRegions } from "./take-regions.ts";
 
 describe(renderTakeComp, () => {
   it("renders newer overlapping samples over an older take", () => {
     const context = createContext(4);
+    const takes = [
+      {
+        id: "old",
+        timelineOffset: 0,
+        duration: 2,
+        buffer: createBuffer({ sampleRate: 4, samples: Array(8).fill(1) }),
+      },
+      {
+        id: "new",
+        timelineOffset: 0.75,
+        duration: 0.5,
+        buffer: createBuffer({ sampleRate: 4, samples: [2, 2] }),
+      },
+    ];
     const result = renderTakeComp({
       context,
-      takes: [
-        {
-          id: "old",
-          timelineOffset: 0,
-          duration: 2,
-          buffer: createBuffer({ sampleRate: 4, samples: Array(8).fill(1) }),
-        },
-        {
-          id: "new",
-          timelineOffset: 0.75,
-          duration: 0.5,
-          buffer: createBuffer({ sampleRate: 4, samples: [2, 2] }),
-        },
-      ],
+      regions: deriveTakeRegions(takes),
+      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([
@@ -28,32 +31,36 @@ describe(renderTakeComp, () => {
   });
 
   it("resamples take audio to the context sample rate", () => {
+    const takes = [
+      {
+        id: "take",
+        timelineOffset: 0,
+        duration: 1,
+        buffer: createBuffer({ sampleRate: 2, samples: [0, 1] }),
+      },
+    ];
     const result = renderTakeComp({
       context: createContext(4),
-      takes: [
-        {
-          id: "take",
-          timelineOffset: 0,
-          duration: 1,
-          buffer: createBuffer({ sampleRate: 2, samples: [0, 1] }),
-        },
-      ],
+      regions: deriveTakeRegions(takes),
+      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([0, 0.5, 1, 1]);
   });
 
   it("includes silence before a positive timeline offset", () => {
+    const takes = [
+      {
+        id: "take",
+        timelineOffset: 1,
+        duration: 1,
+        buffer: createBuffer({ sampleRate: 2, samples: [1, 1] }),
+      },
+    ];
     const result = renderTakeComp({
       context: createContext(2),
-      takes: [
-        {
-          id: "take",
-          timelineOffset: 1,
-          duration: 1,
-          buffer: createBuffer({ sampleRate: 2, samples: [1, 1] }),
-        },
-      ],
+      regions: deriveTakeRegions(takes),
+      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([0, 0, 1, 1]);
