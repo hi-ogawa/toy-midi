@@ -65,10 +65,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
     const sourceOffset = timelineStart - this.bufferTimelineOffset;
     const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
-    const duration = Math.min(
-      timelineEnd - timelineStart,
-      buffer.duration - sourceOffset,
-    );
+    const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
       return;
     }
