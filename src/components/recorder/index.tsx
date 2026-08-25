@@ -401,7 +401,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
                 onTakeSelect={takeSelection.select}
               />
@@ -1558,7 +1557,6 @@ function TakeTimelineLane({
   tempo,
   viewportStartBeat,
   viewportWidth,
-  emptyLabel,
   onSeek,
   onTakeSelect,
 }: {
@@ -1572,7 +1570,6 @@ function TakeTimelineLane({
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
-  emptyLabel: string;
   onSeek: (position: number) => void;
   onTakeSelect: (id: string) => void;
 }) {
@@ -1596,7 +1593,7 @@ function TakeTimelineLane({
     >
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          {emptyLabel}
+          Enable input, place the playhead, then record
         </div>
       )}
       {takes.map((take) => (
