@@ -586,7 +586,10 @@ export class RecorderRuntime {
     }
     const takes = this.store.get().recordingTrack.takes;
     this.takeRegions = deriveTakeRegions(takes);
-    this.disposeRecordingTrackPlaybacks();
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.dispose();
+    }
+    this.recordingTrackPlaybacks = [];
     for (const region of this.takeRegions) {
       const take = takes.find((entry) => entry.id === region.takeId);
       if (!take?.buffer) {
@@ -608,13 +611,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.transport!.play();
     }
-  }
-
-  private disposeRecordingTrackPlaybacks(): void {
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.dispose();
-    }
-    this.recordingTrackPlaybacks = [];
   }
 }
 
