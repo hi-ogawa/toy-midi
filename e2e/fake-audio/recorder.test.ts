@@ -109,17 +109,13 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const positionBeforeSelection = await position.textContent();
   await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
-  await expect(
-    page.getByRole("button", { name: "Delete Take 1" }),
-  ).toBeVisible();
+  await expect(take.nth(0)).toHaveClass(/border-sky-300/);
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("button", { name: "Delete Take 1" }),
-  ).toBeHidden();
+  await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
 
   // Deleting a selected source take leaves the other take intact.
   await take.nth(0).click();
-  await page.getByRole("button", { name: "Delete Take 1" }).click();
+  await page.keyboard.press("Delete");
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 2");
 });

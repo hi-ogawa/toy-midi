@@ -195,6 +195,13 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (matchKeyboardEvent(event, "Escape") && takeSelection.selectedId) {
       event.preventDefault();
       takeSelection.clear();
+    } else if (
+      takeSelection.selectedId &&
+      (matchKeyboardEvent(event, "Delete") ||
+        matchKeyboardEvent(event, "Backspace"))
+    ) {
+      event.preventDefault();
+      takeSelection.remove(takeSelection.selectedId);
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -397,7 +404,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
                 onTakeSelect={takeSelection.select}
-                onTakeDelete={takeSelection.remove}
               />
             </CaptureTrackRow>
           </div>
@@ -1555,7 +1561,6 @@ function TakeTimelineLane({
   emptyLabel,
   onSeek,
   onTakeSelect,
-  onTakeDelete,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
@@ -1570,7 +1575,6 @@ function TakeTimelineLane({
   emptyLabel: string;
   onSeek: (position: number) => void;
   onTakeSelect: (id: string) => void;
-  onTakeDelete: (id: string) => void;
 }) {
   return (
     <div
@@ -1612,18 +1616,6 @@ function TakeTimelineLane({
             onSelect={() => onTakeSelect(take.id)}
             selected={selectedTakeId === take.id}
           />
-          {selectedTakeId === take.id && (
-            <Button
-              data-testid={`recorder-delete-${take.id}`}
-              className="absolute right-1 top-1 z-20 size-6 border-red-900 bg-neutral-900/90 text-red-400 hover:bg-red-950"
-              title={`Delete Take ${take.number}`}
-              aria-label={`Delete Take ${take.number}`}
-              onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => onTakeDelete(take.id)}
-            >
-              <Trash2Icon className="size-3" />
-            </Button>
-          )}
         </div>
       ))}
       {pendingRecording && (
