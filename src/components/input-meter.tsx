@@ -5,9 +5,11 @@ import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
 export function InputMeter({
   active,
   analyser,
+  compact = false,
 }: {
   active: boolean;
   analyser?: AudioAnalyser;
+  compact?: boolean;
 }) {
   const sampledPeak = useAnalyserPeak({ active, analyser });
 
@@ -20,7 +22,13 @@ export function InputMeter({
   const label = active ? `${decibels.toFixed(1)} dBFS` : "-∞ dBFS";
 
   return (
-    <div className="grid grid-cols-[1fr_76px] items-center gap-3">
+    <div
+      className={
+        compact
+          ? "grid items-center"
+          : "grid grid-cols-[1fr_76px] items-center gap-3"
+      }
+    >
       <div
         role="meter"
         aria-label="Input peak level"
@@ -51,9 +59,11 @@ export function InputMeter({
           style={{ left: `${zeroPosition}%` }}
         />
       </div>
-      <output className="text-right font-mono text-xs tabular-nums text-neutral-400">
-        {label}
-      </output>
+      {!compact && (
+        <output className="text-right font-mono text-xs tabular-nums text-neutral-400">
+          {label}
+        </output>
+      )}
     </div>
   );
 }
