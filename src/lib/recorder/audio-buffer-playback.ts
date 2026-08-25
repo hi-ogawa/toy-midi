@@ -9,8 +9,11 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
+  /** Transport timeline time where this playback region begins. */
   private timelineOffset = 0;
+  /** Time within the source buffer where this playback region begins. */
   private sourceOffset = 0;
+  /** Length of this playback region in seconds; defaults to the remaining buffer. */
   private duration?: number;
 
   constructor({
