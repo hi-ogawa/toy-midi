@@ -384,15 +384,15 @@ export function Recorder({ projectId }: { projectId: string }) {
               }}
             >
               <TakeTimelineLane
-                captureStatus={state.captureStatus}
-                pendingTake={state.pendingTake}
                 takes={takes}
+                pendingTake={state.pendingTake}
+                captureStatus={state.captureStatus}
                 selectedTakeId={takeSelection.selectedId}
-                pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                viewportStartBeat={timeline.viewportStartBeat}
+                pixelsPerBeat={timeline.pixelsPerBeat}
                 tempo={timeline.tempo}
+                viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 emptyLabel="Enable input, place the playhead, then record"
                 onSeek={(position) => runtime.seek(position)}
@@ -1542,35 +1542,35 @@ type RecorderTimelineClip = {
 };
 
 function TakeTimelineLane({
-  beatsPerBar,
-  captureStatus,
-  emptyLabel,
-  onSeek,
-  onTakeDelete,
-  onTakeSelect,
-  pendingTake,
-  pixelsPerBeat,
-  selectedTakeId,
-  subdivisionsPerBeat,
   takes,
+  pendingTake,
+  captureStatus,
+  selectedTakeId,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  pixelsPerBeat,
   tempo,
   viewportStartBeat,
   viewportWidth,
+  emptyLabel,
+  onSeek,
+  onTakeSelect,
+  onTakeDelete,
 }: {
-  beatsPerBar: number;
-  captureStatus: RecorderRuntimeState["captureStatus"];
-  emptyLabel: string;
-  onSeek: (position: number) => void;
-  onTakeDelete: (id: string) => void;
-  onTakeSelect: (id: string) => void;
-  pendingTake: RecorderRuntimeState["pendingTake"];
-  pixelsPerBeat: number;
-  selectedTakeId?: string;
-  subdivisionsPerBeat: number;
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  pendingTake: RecorderRuntimeState["pendingTake"];
+  captureStatus: RecorderRuntimeState["captureStatus"];
+  selectedTakeId?: string;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
+  emptyLabel: string;
+  onSeek: (position: number) => void;
+  onTakeSelect: (id: string) => void;
+  onTakeDelete: (id: string) => void;
 }) {
   return (
     <div
