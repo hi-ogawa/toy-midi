@@ -6,7 +6,7 @@ import type { TakeState } from "./take.ts";
 describe(renderTakeComp, () => {
   it("renders newer overlapping samples over an older take", () => {
     const context = createContext(4);
-    const takes = [
+    const takes: TakeState[] = [
       {
         id: "old",
         number: 1,
@@ -21,7 +21,7 @@ describe(renderTakeComp, () => {
         duration: 0.5,
         buffer: createBuffer({ sampleRate: 4, samples: [2, 2] }),
       },
-    ] satisfies TakeState[];
+    ];
     const result = renderTakeComp({
       context,
       regions: deriveTakeRegions(takes),
@@ -34,7 +34,7 @@ describe(renderTakeComp, () => {
   });
 
   it("resamples take audio to the context sample rate", () => {
-    const takes = [
+    const takes: TakeState[] = [
       {
         id: "take",
         number: 1,
@@ -42,7 +42,7 @@ describe(renderTakeComp, () => {
         duration: 1,
         buffer: createBuffer({ sampleRate: 2, samples: [0, 1] }),
       },
-    ] satisfies TakeState[];
+    ];
     const result = renderTakeComp({
       context: createContext(4),
       regions: deriveTakeRegions(takes),
@@ -53,7 +53,7 @@ describe(renderTakeComp, () => {
   });
 
   it("includes silence before a positive timeline offset", () => {
-    const takes = [
+    const takes: TakeState[] = [
       {
         id: "take",
         number: 1,
@@ -61,7 +61,7 @@ describe(renderTakeComp, () => {
         duration: 1,
         buffer: createBuffer({ sampleRate: 2, samples: [1, 1] }),
       },
-    ] satisfies TakeState[];
+    ];
     const result = renderTakeComp({
       context: createContext(2),
       regions: deriveTakeRegions(takes),
