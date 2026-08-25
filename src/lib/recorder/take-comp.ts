@@ -1,8 +1,4 @@
-import type { TakeRange, TakeRegion } from "./take-regions.ts";
-
-interface TakeWithBuffer extends TakeRange {
-  buffer?: AudioBuffer;
-}
+import type { TakeRegion, TakeState } from "./take.ts";
 
 export function renderTakeComp({
   context,
@@ -11,7 +7,7 @@ export function renderTakeComp({
 }: {
   context: BaseAudioContext;
   regions: readonly TakeRegion[];
-  takes: readonly TakeWithBuffer[];
+  takes: readonly TakeState[];
 }): AudioBuffer | undefined {
   if (regions.length === 0) {
     return undefined;

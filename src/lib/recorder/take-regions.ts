@@ -1,18 +1,7 @@
-export interface TakeRange {
-  id: string;
-  timelineOffset: number;
-  duration: number;
-}
-
-export interface TakeRegion {
-  takeId: string;
-  timelineOffset: number;
-  sourceOffset: number;
-  duration: number;
-}
+import type { TakeRegion, TakeState } from "./take.ts";
 
 /** Resolves overlapping takes so later array entries win their timeline range. */
-export function deriveTakeRegions(takes: readonly TakeRange[]): TakeRegion[] {
+export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
   let regions: TakeRegion[] = [];
 
   for (const take of takes) {

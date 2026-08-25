@@ -11,7 +11,8 @@ import {
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
 import { renderTakeComp } from "./take-comp.ts";
-import { deriveTakeRegions, type TakeRegion } from "./take-regions.ts";
+import { deriveTakeRegions } from "./take-regions.ts";
+import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -44,15 +45,6 @@ interface RecordingTrackState {
   soloed: boolean;
   takes: TakeState[];
   nextTakeNumber: number;
-}
-
-interface TakeState {
-  id: string;
-  number: number;
-  duration: number;
-  timelineOffset: number;
-  buffer?: AudioBuffer;
-  audioView?: AudioView;
 }
 
 interface PendingRecordingState extends Pick<
