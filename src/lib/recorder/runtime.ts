@@ -55,6 +55,13 @@ interface TakeState {
   audioView?: AudioView;
 }
 
+interface PendingRecordingState extends Pick<
+  TakeState,
+  "id" | "number" | "duration" | "timelineOffset"
+> {
+  recording: ActiveRecording;
+}
+
 export interface RecorderRuntimeState {
   title: string;
   // Transport
@@ -66,10 +73,7 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
-  pendingTake?: Pick<
-    TakeState,
-    "id" | "number" | "duration" | "timelineOffset"
-  >;
+  pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
   inputChannelCount: number;
@@ -115,12 +119,6 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private takeRegions: TakeRegion[] = [];
-  private activeRecording?: {
-    id: string;
-    number: number;
-    timelineOffset: number;
-    recording: ActiveRecording;
-  };
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -137,25 +135,23 @@ export class RecorderRuntime {
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
-            const activeRecording = this.activeRecording;
+            const pendingRecording = this.store.get().pendingRecording;
             // Batched samples can arrive after stop is requested. Keep accepting
             // them until the render thread confirms its boundary.
-            if (!activeRecording) {
+            if (!pendingRecording) {
               break;
             }
-            activeRecording.recording.append(message);
+            pendingRecording.recording.append(message);
             this.store.update({
-              pendingTake: {
-                id: activeRecording.id,
-                number: activeRecording.number,
+              pendingRecording: {
+                ...pendingRecording,
                 duration:
-                  activeRecording.recording.getDurationFrames() /
+                  pendingRecording.recording.getDurationFrames() /
                   context.sampleRate,
-                timelineOffset: activeRecording.timelineOffset,
               },
             });
             if (
-              activeRecording.recording.getDurationFrames() >=
+              pendingRecording.recording.getDurationFrames() >=
                 context.sampleRate * MAX_RECORDING_SECONDS &&
               this.store.get().captureStatus === "recording"
             ) {
@@ -348,15 +344,16 @@ export class RecorderRuntime {
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const number = this.store.get().recordingTrack.nextTakeNumber;
-    this.activeRecording = {
+    const pendingRecording: PendingRecordingState = {
       id,
       number,
+      duration: 0,
       timelineOffset,
       recording: new ActiveRecording(startFrame),
     };
     this.store.update({
       captureStatus: "recording",
-      pendingTake: { id, number, duration: 0, timelineOffset },
+      pendingRecording,
     });
   }
 
@@ -517,14 +514,16 @@ export class RecorderRuntime {
 
   private finishRecording(stopFrame: number): void {
     const context = this.context;
-    const activeRecording = this.activeRecording;
-    if (!context || !activeRecording) {
+    const pendingRecording = this.store.get().pendingRecording;
+    if (!context || !pendingRecording) {
       throw new Error("Recording state is incomplete.");
     }
-    const samples = activeRecording.recording.finish(stopFrame);
+    const samples = pendingRecording.recording.finish(stopFrame);
     if (!samples) {
-      this.activeRecording = undefined;
-      this.store.update({ captureStatus: "ready", pendingTake: undefined });
+      this.store.update({
+        captureStatus: "ready",
+        pendingRecording: undefined,
+      });
       this.syncTrackMix();
       return;
     }
@@ -534,22 +533,21 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
-    this.activeRecording = undefined;
     const recordingTrack = this.store.get().recordingTrack;
     this.store.update({
       captureStatus: "ready",
-      pendingTake: undefined,
+      pendingRecording: undefined,
       recordingTrack: {
         ...recordingTrack,
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
         takes: [
           ...recordingTrack.takes,
           {
-            id: activeRecording.id,
-            number: activeRecording.number,
+            id: pendingRecording.id,
+            number: pendingRecording.number,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
-            timelineOffset: activeRecording.timelineOffset,
+            timelineOffset: pendingRecording.timelineOffset,
             audioView: createAudioView(
               samples,
               context.sampleRate,

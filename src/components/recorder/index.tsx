@@ -338,7 +338,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 isProcessing
                   ? "Finalizing take…"
                   : isRecording
-                    ? `Recording · ${formatTimeWithMilliseconds(state.pendingTake?.duration ?? 0)}`
+                    ? `Recording · ${formatTimeWithMilliseconds(state.pendingRecording?.duration ?? 0)}`
                     : takes.length > 0
                       ? `${takes.length} ${takes.length === 1 ? "take" : "takes"}`
                       : "No takes"
@@ -385,7 +385,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                pendingTake={state.pendingTake}
+                pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 selectedTakeId={takeSelection.selectedId}
                 beatsPerBar={timeline.beatsPerBar}
@@ -1543,7 +1543,7 @@ type RecorderTimelineClip = {
 
 function TakeTimelineLane({
   takes,
-  pendingTake,
+  pendingRecording,
   captureStatus,
   selectedTakeId,
   beatsPerBar,
@@ -1558,7 +1558,7 @@ function TakeTimelineLane({
   onTakeDelete,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
-  pendingTake: RecorderRuntimeState["pendingTake"];
+  pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   selectedTakeId?: string;
   beatsPerBar: number;
@@ -1590,7 +1590,7 @@ function TakeTimelineLane({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
-      {takes.length === 0 && !pendingTake && (
+      {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
@@ -1626,16 +1626,16 @@ function TakeTimelineLane({
           )}
         </div>
       ))}
-      {pendingTake && (
+      {pendingRecording && (
         <div>
           <TimelineClip
             clip={{
-              duration: pendingTake.duration,
+              duration: pendingRecording.duration,
               label:
                 captureStatus === "processing"
                   ? "Finalizing..."
                   : "Recording...",
-              offset: pendingTake.timelineOffset,
+              offset: pendingRecording.timelineOffset,
               variant: "recording",
             }}
             pixelsPerBeat={pixelsPerBeat}
