@@ -195,7 +195,10 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Space")) {
+    if (matchKeyboardEvent(event, "Escape") && selectedTakeId) {
+      event.preventDefault();
+      setSelectedTakeId(undefined);
+    } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
     } else if (matchKeyboardEvent(event, "R")) {
@@ -1757,6 +1760,11 @@ function TimelineClip({
     <div
       data-testid={`recorder-clip-${clip.variant}`}
       ref={onClipOffsetChange ? dragRef : undefined}
+      onPointerDown={(event) => {
+        if (onSelect) {
+          event.stopPropagation();
+        }
+      }}
       onClick={(event) => {
         if (onSelect) {
           event.stopPropagation();

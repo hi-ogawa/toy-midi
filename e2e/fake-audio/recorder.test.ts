@@ -39,6 +39,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
+  const position = page.getByTestId("recorder-position");
   const captureActions = page.getByRole("button", { name: "Capture actions" });
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
@@ -104,7 +105,19 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(320, -2);
 
-  // Selecting and deleting a source take leaves the other take intact.
+  // Selecting a source take does not seek, and Escape clears the selection.
+  const positionBeforeSelection = await position.textContent();
+  await take.nth(0).click();
+  await expect(position).toHaveText(positionBeforeSelection!);
+  await expect(
+    page.getByRole("button", { name: "Delete Take 1" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Delete Take 1" }),
+  ).toBeHidden();
+
+  // Deleting a selected source take leaves the other take intact.
   await take.nth(0).click();
   await page.getByRole("button", { name: "Delete Take 1" }).click();
   await expect(take).toHaveCount(1);
