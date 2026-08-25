@@ -444,7 +444,6 @@ export class RecorderRuntime {
       playback.setTimelineOffset(track.timelineOffset);
       this.audioTrackPlaybacks.set(track.id, playback);
     }
-    this.disposeRecordingTrackPlaybacks();
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
     this.store.update({
