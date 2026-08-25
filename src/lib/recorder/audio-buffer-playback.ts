@@ -63,7 +63,6 @@ export class AudioBufferPlayback implements TransportParticipant {
       this.timelineRange?.start ?? this.bufferTimelineOffset;
     const timelineEnd =
       this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
-    const sourceOffset = timelineStart - this.bufferTimelineOffset;
     const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
     const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
@@ -75,7 +74,7 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.start(
       playbackAnchor.contextTime +
         Math.max(0, timelineStart - playbackAnchor.position),
-      sourceOffset + elapsed,
+      timelineStart - this.bufferTimelineOffset + elapsed,
       duration - elapsed,
     );
     this.source = source;
