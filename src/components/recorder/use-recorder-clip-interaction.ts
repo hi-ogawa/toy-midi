@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import {
+  type RecorderClipMove,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 
-export type RecorderClipId = { type: "audio" | "take"; id: string };
+type RecorderClipId = { type: "audio" | "take"; id: string };
 
 export type RecorderClipMoveSnapshot = {
-  clips: (RecorderClipId & { timelineOffset: number })[];
+  clips: RecorderClipMove[];
   minimumVisibleStart: number;
 };
 

@@ -88,6 +88,10 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
+export type RecorderClipMove =
+  | { type: "audio"; id: string; timelineOffset: number }
+  | { type: "take"; id: string; timelineOffset: number };
+
 const METRONOME_GAIN = 0.5;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -228,12 +232,7 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  moveClips(
-    updates: readonly (
-      | { type: "audio"; id: string; timelineOffset: number }
-      | { type: "take"; id: string; timelineOffset: number }
-    )[],
-  ): void {
+  moveClips(updates: readonly RecorderClipMove[]): void {
     if (updates.length === 0) {
       return;
     }
