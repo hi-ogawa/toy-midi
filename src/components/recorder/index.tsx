@@ -114,7 +114,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const takeSelection = useRecorderTakeSelection({
+  const clipSelection = useRecorderClipSelection({
     runtime,
     state,
   });
@@ -192,16 +192,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && takeSelection.selectedId) {
+    if (matchKeyboardEvent(event, "Escape") && clipSelection.selected) {
       event.preventDefault();
-      takeSelection.clear();
+      clipSelection.clear();
     } else if (
-      takeSelection.selectedId &&
+      clipSelection.selected &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      takeSelection.remove(takeSelection.selectedId);
+      clipSelection.remove();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -301,8 +301,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
                     }
-                    hasAudio={Boolean(track.clip)}
-                    onClear={() => runtime.clearAudioTrack(track.id)}
                     onRemove={() => runtime.removeAudioTrack(track.id)}
                   />
                 }
@@ -342,6 +340,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                   trimStart={track.trimStart}
                   trimEnd={track.trimEnd}
+                  onSelect={() =>
+                    clipSelection.select({ type: "audio", id: track.id })
+                  }
+                  selected={
+                    clipSelection.selected?.type === "audio" &&
+                    clipSelection.selected.id === track.id
+                  }
                   onClipDragEnd={() => {
                     if (state.isPlaying) {
                       runtime.pause();
@@ -409,7 +414,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedTakeId={takeSelection.selectedId}
+                selectedTakeId={
+                  clipSelection.selected?.type === "take"
+                    ? clipSelection.selected.id
+                    : undefined
+                }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
@@ -417,7 +426,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => runtime.seek(position)}
-                onTakeSelect={takeSelection.select}
+                onTakeSelect={(id) =>
+                  clipSelection.select({ type: "take", id })
+                }
                 onTakeOffsetChange={(id, offset) =>
                   runtime.setTakeTimelineOffset(id, offset)
                 }
@@ -475,32 +486,47 @@ export function Recorder({ projectId }: { projectId: string }) {
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
-function useRecorderTakeSelection({
+type RecorderClipSelection =
+  | { type: "audio"; id: string }
+  | { type: "take"; id: string };
+
+function useRecorderClipSelection({
   runtime,
   state,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
-  const [selectedId, setSelectedId] = useState<string>();
+  const [selected, setSelected] = useState<RecorderClipSelection>();
   const takes = state.recordingTrack.takes;
+  const audioTracks = state.audioTracks;
 
   useEffect(() => {
-    if (selectedId && !takes.some((take) => take.id === selectedId)) {
-      setSelectedId(undefined);
+    if (
+      selected?.type === "take" &&
+      !takes.some((take) => take.id === selected.id)
+    ) {
+      setSelected(undefined);
+    } else if (
+      selected?.type === "audio" &&
+      !audioTracks.some((track) => track.id === selected.id && track.clip)
+    ) {
+      setSelected(undefined);
     }
-  }, [selectedId, takes]);
+  }, [audioTracks, selected, takes]);
 
   return {
-    clear: () => setSelectedId(undefined),
-    remove: (id: string) => {
-      runtime.removeTake(id);
-      if (selectedId === id) {
-        setSelectedId(undefined);
+    clear: () => setSelected(undefined),
+    remove: () => {
+      if (selected?.type === "take") {
+        runtime.removeTake(selected.id);
+      } else if (selected?.type === "audio") {
+        runtime.clearAudioTrack(selected.id);
       }
+      setSelected(undefined);
     },
-    select: setSelectedId,
-    selectedId,
+    select: setSelected,
+    selected,
   };
 }
 
@@ -1199,15 +1225,11 @@ function TimelineHeader({
 
 function AudioTrackActions({
   label,
-  hasAudio,
   onFileChange,
-  onClear,
   onRemove,
 }: {
   label: string;
-  hasAudio: boolean;
   onFileChange: (file: File) => void;
-  onClear: () => void;
   onRemove: () => void;
 }) {
   return (
@@ -1229,12 +1251,6 @@ function AudioTrackActions({
           <UploadIcon />
           Replace audio
         </DropdownMenuItem>
-        {hasAudio && (
-          <DropdownMenuItem onSelect={onClear}>
-            <Trash2Icon />
-            Clear audio
-          </DropdownMenuItem>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
@@ -1709,6 +1725,8 @@ function TimelineLane({
   onTrimEndChange,
   trimStart,
   trimEnd,
+  onSelect,
+  selected,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -1725,6 +1743,8 @@ function TimelineLane({
   onTrimEndChange?: (offset: number) => void;
   trimStart?: number;
   trimEnd?: number;
+  onSelect?: () => void;
+  selected?: boolean;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -1759,6 +1779,8 @@ function TimelineLane({
           onTrimEndChange={onTrimEndChange}
           trimStart={trimStart}
           trimEnd={trimEnd}
+          onSelect={onSelect}
+          selected={selected}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">

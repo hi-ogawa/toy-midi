@@ -55,9 +55,10 @@ test("uploads and plays a backing track", async ({ page }) => {
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 
-  // Clearing the source preserves the empty audio track row.
-  await page.getByRole("button", { name: "Audio 1 actions" }).click();
-  await page.getByRole("menuitem", { name: "Clear audio" }).click();
+  // Deleting the selected clip preserves the empty audio track row.
+  await clip.dispatchEvent("click");
+  await expect(clip).toHaveClass(/border-sky-300/);
+  await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
   await expect(page.getByText("No file loaded")).toBeVisible();
