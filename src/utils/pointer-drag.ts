@@ -2,6 +2,7 @@ export type PointerDragOptions<T> = {
   onStart: (event: PointerEvent) => T;
   onMove: (event: PointerEvent, data: T) => void;
   onEnd?: (event: PointerEvent, data: T) => void;
+  onCancel?: (event: PointerEvent, data: T) => void;
 };
 
 export function listenPointerDrag<T>({
@@ -9,6 +10,7 @@ export function listenPointerDrag<T>({
   onStart,
   onMove,
   onEnd,
+  onCancel,
 }: PointerDragOptions<T> & { element: HTMLElement }) {
   let drag: { pointerId: number; data: T } | undefined;
 
@@ -36,17 +38,24 @@ export function listenPointerDrag<T>({
       onEnd?.(event, data);
     }
   };
+  const handlePointerCancel = (event: PointerEvent) => {
+    if (drag?.pointerId === event.pointerId) {
+      const { data } = drag;
+      drag = undefined;
+      onCancel?.(event, data);
+    }
+  };
 
   element.addEventListener("pointerdown", handlePointerDown);
   element.addEventListener("pointermove", handlePointerMove);
   element.addEventListener("pointerup", handlePointerEnd);
-  element.addEventListener("pointercancel", handlePointerEnd);
-  element.addEventListener("lostpointercapture", handlePointerEnd);
+  element.addEventListener("pointercancel", handlePointerCancel);
+  element.addEventListener("lostpointercapture", handlePointerCancel);
   return () => {
     element.removeEventListener("pointerdown", handlePointerDown);
     element.removeEventListener("pointermove", handlePointerMove);
     element.removeEventListener("pointerup", handlePointerEnd);
-    element.removeEventListener("pointercancel", handlePointerEnd);
-    element.removeEventListener("lostpointercapture", handlePointerEnd);
+    element.removeEventListener("pointercancel", handlePointerCancel);
+    element.removeEventListener("lostpointercapture", handlePointerCancel);
   };
 }

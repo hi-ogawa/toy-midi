@@ -18,21 +18,35 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
-  // Dragging previews the new position before committing it on pointer-up.
-  const initialBox = await clip.boundingBox();
-  expect(initialBox).not.toBeNull();
-  const center = {
-    x: initialBox!.x + initialBox!.width / 2,
-    y: initialBox!.y + initialBox!.height / 2,
-  };
-  await page.mouse.move(center.x, center.y);
-  await page.mouse.down();
-  await page.mouse.move(center.x + 80, center.y, { steps: 4 });
-  const previewBox = await clip.boundingBox();
-  expect(previewBox!.x).toBeCloseTo(initialBox!.x + 80, -1);
+  // Backing audio supports the same non-destructive move and trim workflow.
+  const beforeEdit = await clip.boundingBox();
+  expect(beforeEdit).not.toBeNull();
+  await previewDragBy(page, clip, 80);
+  const movePreview = await clip.boundingBox();
+  expect(movePreview!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
   await page.mouse.up();
-  const committedBox = await clip.boundingBox();
-  expect(committedBox!.x).toBeCloseTo(previewBox!.x, -1);
+  const afterMove = await clip.boundingBox();
+  expect(afterMove).not.toBeNull();
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+
+  const trimPixels = afterMove!.width / 4;
+  await dragBy(page, clip.getByTestId("recorder-take-trim-start"), trimPixels);
+  const afterStartTrim = await clip.boundingBox();
+  expect(afterStartTrim).not.toBeNull();
+  expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
+  expect(afterStartTrim!.x + afterStartTrim!.width).toBeCloseTo(
+    afterMove!.x + afterMove!.width,
+    -1,
+  );
+
+  await dragBy(page, clip.getByTestId("recorder-take-trim-end"), -trimPixels);
+  const afterEndTrim = await clip.boundingBox();
+  expect(afterEndTrim).not.toBeNull();
+  expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);
+  expect(afterEndTrim!.width).toBeCloseTo(
+    afterStartTrim!.width - trimPixels,
+    -1,
+  );
 
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
@@ -43,6 +57,66 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(position).not.toHaveText("01|01 - 00:00.000");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
+
+  // Deleting the selected clip preserves the empty audio track row.
+  await clip.dispatchEvent("click");
+  await expect(clip).toHaveClass(/border-sky-300/);
+  await page.keyboard.press("Delete");
+  await expect(clip).toHaveCount(0);
+  await expect(page.getByText("Load an audio file")).toBeVisible();
+  await expect(page.getByText("No file loaded")).toBeVisible();
+});
+
+test("selects and moves audio and take clips together", async ({ page }) => {
+  // The musician imports a backing track.
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  const audio = page.getByTestId("recorder-clip-audio");
+  await expect(audio).toBeVisible();
+
+  // They record a take away from zero.
+  await enableInput(page);
+  await seekRecorderByPixels(page, 160);
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await recordButton.click();
+  const take = page.getByTestId("recorder-clip-take");
+  await expect(take).toBeVisible();
+
+  // Ctrl-click adds the take to the selected backing track.
+  await audio.click();
+  await take.click({ modifiers: ["Control"] });
+  await expect(audio).toHaveAttribute("data-selected", "true");
+  await expect(take).toHaveAttribute("data-selected", "true");
+
+  // Dragging either selected clip moves the whole selection.
+  const audioBefore = await audio.boundingBox();
+  const takeBefore = await take.boundingBox();
+  expect(audioBefore).not.toBeNull();
+  expect(takeBefore).not.toBeNull();
+  const takeCenter = {
+    x: takeBefore!.x + takeBefore!.width / 2,
+    y: takeBefore!.y + takeBefore!.height / 2,
+  };
+  await page.mouse.move(takeCenter.x, takeCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(takeCenter.x + 80, takeCenter.y, { steps: 4 });
+  await page.mouse.up();
+
+  // Both clips preserve their relative spacing through the shared movement.
+  const audioAfter = await audio.boundingBox();
+  const takeAfter = await take.boundingBox();
+  expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(80, -1);
+  expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(80, -1);
+
+  // Delete clears every selected clip while preserving the audio track row.
+  await page.keyboard.press("Delete");
+  await expect(audio).toHaveCount(0);
+  await expect(take).toHaveCount(0);
+  await expect(page.getByText("Load an audio file")).toBeVisible();
+  await expect(page.getByText("No file loaded")).toBeVisible();
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
@@ -145,17 +219,18 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
-  await take.nth(0).dispatchEvent("click");
+  await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
   await expect(take.nth(0)).toHaveClass(/border-sky-300/);
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
 
-  // Deleting a selected source take leaves the other take intact.
-  await take.nth(0).dispatchEvent("click");
+  // Delete removes every selected source take together.
+  await take.nth(0).click();
+  await take.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
-  await expect(take).toHaveCount(1);
-  await expect(take).toContainText("Take 2");
+  await expect(take).toHaveCount(0);
+  await expect(page.getByText("No takes")).toBeVisible();
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
@@ -166,6 +241,11 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
 }
 
 async function dragBy(page: Page, locator: Locator, deltaX: number) {
+  await previewDragBy(page, locator, deltaX);
+  await page.mouse.up();
+}
+
+async function previewDragBy(page: Page, locator: Locator, deltaX: number) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -175,7 +255,6 @@ async function dragBy(page: Page, locator: Locator, deltaX: number) {
     box!.y + box!.height / 2,
     { steps: 4 },
   );
-  await page.mouse.up();
 }
 
 async function waitForRecordingSamples(recording: Locator) {
