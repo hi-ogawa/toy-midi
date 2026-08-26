@@ -1,6 +1,7 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import { clamp } from "../music.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -16,6 +17,7 @@ import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
+const MIN_TAKE_DURATION = 0.01;
 export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 96;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
@@ -298,6 +300,66 @@ export class RecorderRuntime {
     });
   }
 
+  setTakeTimelineOffset(id: string, timelineOffset: number): void {
+    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
+  }
+
+  setTakeTrimStart(id: string, trimStart: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimStart: clamp(trimStart, 0, take.trimEnd - MIN_TAKE_DURATION),
+    }));
+  }
+
+  setTakeTrimEnd(id: string, trimEnd: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimEnd: clamp(
+        trimEnd,
+        take.trimStart + MIN_TAKE_DURATION,
+        take.duration,
+      ),
+    }));
+  }
+
+  removeTake(id: string): void {
+    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
+  }
+
+  private updateTake(
+    id: string,
+    updateFn: (take: TakeState) => TakeState,
+  ): void {
+    this.updateTakes((takes) => {
+      const index = takes.findIndex((take) => take.id === id);
+      const take = takes[index];
+      if (!take) {
+        throw new Error("Recording take state is missing.");
+      }
+      const nextTakes = takes.slice();
+      nextTakes[index] = updateFn(take);
+      return nextTakes;
+    });
+  }
+
+  private updateTakes(updateFn: (takes: TakeState[]) => TakeState[]): void {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const recordingTrack = this.store.get().recordingTrack;
+    this.store.update({
+      recordingTrack: {
+        ...recordingTrack,
+        takes: updateFn(recordingTrack.takes),
+      },
+    });
+    this.syncTakeRegions();
+    if (wasPlaying) {
+      this.transport!.play();
+    }
+  }
+
   async play(): Promise<void> {
     const context = this.ensureContext();
     await context.resume();
@@ -539,6 +601,8 @@ export class RecorderRuntime {
             number: pendingRecording.number,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
+            trimStart: 0,
+            trimEnd: takeBuffer.duration,
             timelineOffset: pendingRecording.timelineOffset,
             audioView: createAudioView(
               samples,
@@ -555,24 +619,6 @@ export class RecorderRuntime {
   private closeInput(): void {
     this.captureInput?.dispose();
     this.captureInput = undefined;
-  }
-
-  removeTake(id: string): void {
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const recordingTrack = this.store.get().recordingTrack;
-    this.store.update({
-      recordingTrack: {
-        ...recordingTrack,
-        takes: recordingTrack.takes.filter((take) => take.id !== id),
-      },
-    });
-    this.syncTakeRegions();
-    if (wasPlaying) {
-      this.transport!.play();
-    }
   }
 
   private syncTakeRegions(): void {

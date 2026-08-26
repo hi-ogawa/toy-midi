@@ -12,6 +12,8 @@ describe(renderTakeComp, () => {
         number: 1,
         timelineOffset: 0,
         duration: 2,
+        trimStart: 0,
+        trimEnd: 2,
         buffer: createBuffer({ sampleRate: 4, samples: Array(8).fill(1) }),
       },
       {
@@ -19,6 +21,8 @@ describe(renderTakeComp, () => {
         number: 2,
         timelineOffset: 0.75,
         duration: 0.5,
+        trimStart: 0,
+        trimEnd: 0.5,
         buffer: createBuffer({ sampleRate: 4, samples: [2, 2] }),
       },
     ];
@@ -40,6 +44,8 @@ describe(renderTakeComp, () => {
         number: 1,
         timelineOffset: 0,
         duration: 1,
+        trimStart: 0,
+        trimEnd: 1,
         buffer: createBuffer({ sampleRate: 2, samples: [0, 1] }),
       },
     ];
@@ -59,6 +65,8 @@ describe(renderTakeComp, () => {
         number: 1,
         timelineOffset: 1,
         duration: 1,
+        trimStart: 0,
+        trimEnd: 1,
         buffer: createBuffer({ sampleRate: 2, samples: [1, 1] }),
       },
     ];
