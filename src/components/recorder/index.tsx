@@ -502,10 +502,6 @@ type RecorderClipMoveSnapshot = (RecorderClipId & {
   visibleStart: number;
 })[];
 
-function getRecorderClipKey(clip: RecorderClipId): string {
-  return `${clip.type}:${clip.id}`;
-}
-
 function useRecorderClipInteraction({
   runtime,
   state,
@@ -514,6 +510,10 @@ function useRecorderClipInteraction({
   state: RecorderRuntimeState;
 }) {
   const [keys, setKeys] = useState(() => new Set<string>());
+
+  function getRecorderClipKey(clip: RecorderClipId): string {
+    return `${clip.type}:${clip.id}`;
+  }
 
   useEffect(() => {
     const available = new Set([
