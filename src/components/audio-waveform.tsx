@@ -15,7 +15,7 @@ export function AudioWaveformView({
   /** Source interval mapped across the component width; defaults to the full buffer. */
   displayStart?: number;
   displayEnd?: number;
-  /** Viewport-visible subset of the displayed source interval, in seconds. */
+  /** Viewport-visible source interval to query and render, in seconds. */
   visibleStart: number;
   visibleEnd: number;
   /** Pixel width occupied by the complete displayed source interval. */
