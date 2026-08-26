@@ -25,8 +25,8 @@ test("uploads and plays a backing track", async ({ page }) => {
   const afterMove = await clip.boundingBox();
   expect(afterMove).not.toBeNull();
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
-  const trimPixels = afterMove!.width / 4;
 
+  const trimPixels = afterMove!.width / 4;
   await dragBy(page, clip.getByTestId("recorder-take-trim-start"), trimPixels);
   const afterStartTrim = await clip.boundingBox();
   expect(afterStartTrim).not.toBeNull();
