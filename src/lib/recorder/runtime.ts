@@ -222,12 +222,61 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  setAudioTrackOffset(id: string, timelineOffset: number): void {
-    this.getAudioTrackPlayback(id).setBufferTimelineOffset(timelineOffset);
-    this.updateAudioTrack(id, (track) => ({
+  moveClips(
+    updates: readonly (
+      | { type: "audio"; id: string; timelineOffset: number }
+      | { type: "take"; id: string; timelineOffset: number }
+    )[],
+  ): void {
+    if (updates.length === 0) {
+      return;
+    }
+    const state = this.store.get();
+    const audioOffsets = new Map(
+      updates
+        .filter((update) => update.type === "audio")
+        .map((update) => [update.id, update.timelineOffset]),
+    );
+    const takeOffsets = new Map(
+      updates
+        .filter((update) => update.type === "take")
+        .map((update) => [update.id, update.timelineOffset]),
+    );
+    if (
+      [...audioOffsets.keys()].some(
+        (id) => !state.audioTracks.some((track) => track.id === id),
+      ) ||
+      [...takeOffsets.keys()].some(
+        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
+      )
+    ) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    const wasPlaying = state.isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const audioTracks = state.audioTracks.map((track) => ({
       ...track,
-      timelineOffset,
+      timelineOffset: audioOffsets.get(track.id) ?? track.timelineOffset,
     }));
+    const recordingTrack = {
+      ...state.recordingTrack,
+      takes: state.recordingTrack.takes.map((take) => ({
+        ...take,
+        timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
+      })),
+    };
+    this.store.update({ audioTracks, recordingTrack });
+    for (const [id, timelineOffset] of audioOffsets) {
+      this.getAudioTrackPlayback(id).setBufferTimelineOffset(timelineOffset);
+    }
+    if (takeOffsets.size > 0) {
+      this.syncTakeRegions();
+    }
+    if (wasPlaying) {
+      this.transport!.play();
+    }
   }
 
   setAudioTrackHeight(id: string, height: number): void {
@@ -298,10 +347,6 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(height),
       },
     });
-  }
-
-  setTakeTimelineOffset(id: string, timelineOffset: number): void {
-    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
   }
 
   setTakeTrimStart(id: string, trimStart: number): void {

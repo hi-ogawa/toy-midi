@@ -29,6 +29,56 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 });
 
+test("selects and moves audio and take clips together", async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  const audio = page.getByTestId("recorder-clip-audio");
+  await expect(audio).toBeVisible();
+
+  await enableInput(page);
+  await seekRecorderByPixels(page, 160);
+  const recordButton = page.getByTestId("recorder-record-button");
+  await recordButton.click();
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+  await recordButton.click();
+  const take = page.getByTestId("recorder-clip-take");
+  await expect(take).toBeVisible();
+
+  await audio.click();
+  await take.click({ modifiers: ["Control"] });
+  await expect(audio).toHaveAttribute("data-selected", "true");
+  await expect(take).toHaveAttribute("data-selected", "true");
+
+  const audioBefore = await audio.boundingBox();
+  const takeBefore = await take.boundingBox();
+  expect(audioBefore).not.toBeNull();
+  expect(takeBefore).not.toBeNull();
+  const takeCenter = {
+    x: takeBefore!.x + takeBefore!.width / 2,
+    y: takeBefore!.y + takeBefore!.height / 2,
+  };
+  await page.mouse.move(takeCenter.x, takeCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(takeCenter.x + 80, takeCenter.y, { steps: 4 });
+
+  const audioPreview = await audio.boundingBox();
+  const takePreview = await take.boundingBox();
+  expect(audioPreview!.x - audioBefore!.x).toBeCloseTo(80, -1);
+  expect(takePreview!.x - takeBefore!.x).toBeCloseTo(80, -1);
+  await page.mouse.up();
+
+  const audioLane = audio.locator("xpath=..");
+  const audioLaneBox = await audioLane.boundingBox();
+  expect(audioLaneBox).not.toBeNull();
+  await page.mouse.click(
+    audioLaneBox!.x + audioLaneBox!.width - 10,
+    audioLaneBox!.y + audioLaneBox!.height / 2,
+  );
+  await expect(audio).not.toHaveAttribute("data-selected", "true");
+  await expect(take).not.toHaveAttribute("data-selected", "true");
+});
+
 test("records, plays, and manages multiple takes", async ({ page }) => {
   // The musician connects the browser input before recording is available.
   await enableInput(page);
@@ -129,14 +179,14 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
-  await take.nth(0).dispatchEvent("click");
+  await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
   await expect(take.nth(0)).toHaveClass(/border-sky-300/);
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
 
   // Deleting a selected source take leaves the other take intact.
-  await take.nth(0).dispatchEvent("click");
+  await take.nth(0).click();
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(1);
   await expect(take).toContainText("Take 2");

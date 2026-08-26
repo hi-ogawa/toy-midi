@@ -114,9 +114,14 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const takeSelection = useRecorderTakeSelection({
+  const clipSelection = useRecorderClipSelection({
     runtime,
     state,
+  });
+  const clipMovement = useRecorderClipMovement({
+    runtime,
+    state,
+    selection: clipSelection,
   });
 
   const playMutation = useMutation({
@@ -192,16 +197,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && takeSelection.selectedId) {
+    if (matchKeyboardEvent(event, "Escape") && clipSelection.keys.size > 0) {
       event.preventDefault();
-      takeSelection.clear();
+      clipSelection.clear();
     } else if (
-      takeSelection.selectedId &&
+      clipSelection.keys.size > 0 &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      takeSelection.remove(takeSelection.selectedId);
+      clipSelection.removeSelectedTakes();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -311,7 +316,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                       ? {
                           duration: track.clip.buffer.duration,
                           label: track.clip.name,
-                          offset: track.timelineOffset,
+                          offset:
+                            clipMovement.previewOffsets.get(
+                              getRecorderClipKey({
+                                type: "audio",
+                                id: track.id,
+                              }),
+                            ) ?? track.timelineOffset,
                           variant: "audio",
                           audioView: track.clip.audioView,
                         }
@@ -324,16 +335,19 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  onClipOffsetChange={(offset) =>
-                    runtime.setAudioTrackOffset(track.id, offset)
+                  selected={clipSelection.has({ type: "audio", id: track.id })}
+                  onClipDragStart={(additive) =>
+                    clipMovement.start(
+                      { type: "audio", id: track.id },
+                      additive,
+                    )
                   }
-                  onClipDragEnd={() => {
-                    if (state.isPlaying) {
-                      runtime.pause();
-                      playMutation.mutate();
-                    }
+                  onClipDragMove={clipMovement.move}
+                  onClipDragEnd={clipMovement.end}
+                  onSeek={(position) => {
+                    clipSelection.clear();
+                    runtime.seek(position);
                   }}
-                  onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
             ))}
@@ -394,18 +408,23 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedTakeId={takeSelection.selectedId}
+                selectedClipKeys={clipSelection.keys}
+                previewOffsets={clipMovement.previewOffsets}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => runtime.seek(position)}
-                onTakeSelect={takeSelection.select}
-                onTakeOffsetChange={(id, offset) =>
-                  runtime.setTakeTimelineOffset(id, offset)
+                onSeek={(position) => {
+                  clipSelection.clear();
+                  runtime.seek(position);
+                }}
+                onTakeDragStart={(id, additive) =>
+                  clipMovement.start({ type: "take", id }, additive)
                 }
+                onTakeDragMove={clipMovement.move}
+                onTakeDragEnd={clipMovement.end}
                 onTakeTrimStartChange={(id, trimStart) =>
                   runtime.setTakeTrimStart(id, trimStart)
                 }
@@ -460,32 +479,166 @@ export function Recorder({ projectId }: { projectId: string }) {
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
-function useRecorderTakeSelection({
+type RecorderClipId =
+  | { type: "audio"; id: string }
+  | { type: "take"; id: string };
+
+function getRecorderClipKey(clip: RecorderClipId): string {
+  return `${clip.type}:${clip.id}`;
+}
+
+function useRecorderClipSelection({
   runtime,
   state,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
-  const [selectedId, setSelectedId] = useState<string>();
-  const takes = state.recordingTrack.takes;
+  const [keys, setKeys] = useState(() => new Set<string>());
 
   useEffect(() => {
-    if (selectedId && !takes.some((take) => take.id === selectedId)) {
-      setSelectedId(undefined);
-    }
-  }, [selectedId, takes]);
+    const available = new Set([
+      ...state.audioTracks
+        .filter((track) => track.clip)
+        .map((track) => getRecorderClipKey({ type: "audio", id: track.id })),
+      ...state.recordingTrack.takes.map((take) =>
+        getRecorderClipKey({ type: "take", id: take.id }),
+      ),
+    ]);
+    setKeys((current) => {
+      const next = new Set([...current].filter((key) => available.has(key)));
+      return next.size === current.size ? current : next;
+    });
+  }, [state.audioTracks, state.recordingTrack.takes]);
 
   return {
-    clear: () => setSelectedId(undefined),
-    remove: (id: string) => {
-      runtime.removeTake(id);
-      if (selectedId === id) {
-        setSelectedId(undefined);
+    clear: () => setKeys(new Set()),
+    has: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
+    keys,
+    removeSelectedTakes: () => {
+      const selectedTakes = state.recordingTrack.takes.filter((take) =>
+        keys.has(getRecorderClipKey({ type: "take", id: take.id })),
+      );
+      if (selectedTakes.length !== 1) {
+        return;
       }
+      runtime.removeTake(selectedTakes[0]!.id);
+      setKeys(new Set());
     },
-    select: setSelectedId,
-    selectedId,
+    select: (clip: RecorderClipId, additive: boolean) => {
+      const key = getRecorderClipKey(clip);
+      setKeys((current) => {
+        if (!additive) {
+          return current.has(key) ? current : new Set([key]);
+        }
+        const next = new Set(current);
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          next.add(key);
+        }
+        return next;
+      });
+    },
+  };
+}
+
+function useRecorderClipMovement({
+  runtime,
+  state,
+  selection,
+}: {
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
+  selection: ReturnType<typeof useRecorderClipSelection>;
+}) {
+  const [gesture, setGesture] = useState<{
+    clips: Array<
+      RecorderClipId & { timelineOffset: number; visibleStart: number }
+    >;
+    delta: number;
+  }>();
+  const gestureRef = useRef<typeof gesture>(undefined);
+  const previewOffsets = new Map(
+    gesture?.clips.map((clip) => [
+      getRecorderClipKey(clip),
+      clip.timelineOffset + gesture.delta,
+    ]),
+  );
+
+  return {
+    previewOffsets,
+    start: (dragged: RecorderClipId, additive: boolean) => {
+      const draggedKey = getRecorderClipKey(dragged);
+      let keys = selection.keys;
+      if (additive) {
+        keys = new Set(keys);
+        if (keys.has(draggedKey)) {
+          keys.delete(draggedKey);
+        } else {
+          keys.add(draggedKey);
+        }
+        selection.select(dragged, true);
+      } else if (!keys.has(draggedKey)) {
+        keys = new Set([draggedKey]);
+        selection.select(dragged, false);
+      }
+      const clips = [
+        ...state.audioTracks
+          .filter((track) =>
+            keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+          )
+          .map((track) => ({
+            type: "audio" as const,
+            id: track.id,
+            timelineOffset: track.timelineOffset,
+            visibleStart: track.timelineOffset,
+          })),
+        ...state.recordingTrack.takes
+          .filter((take) =>
+            keys.has(getRecorderClipKey({ type: "take", id: take.id })),
+          )
+          .map((take) => ({
+            type: "take" as const,
+            id: take.id,
+            timelineOffset: take.timelineOffset,
+            visibleStart: take.timelineOffset + take.trimStart,
+          })),
+      ];
+      const nextGesture = { clips, delta: 0 };
+      gestureRef.current = nextGesture;
+      setGesture(nextGesture);
+    },
+    move: (delta: number) => {
+      setGesture((current) => {
+        if (!current) {
+          return current;
+        }
+        const minimumVisibleStart = Math.min(
+          ...current.clips.map((clip) => clip.visibleStart),
+        );
+        const next = {
+          ...current,
+          delta: Math.max(delta, -minimumVisibleStart),
+        };
+        gestureRef.current = next;
+        return next;
+      });
+    },
+    end: () => {
+      const gesture = gestureRef.current;
+      if (gesture && gesture.delta !== 0) {
+        runtime.moveClips(
+          gesture.clips.map((clip) => ({
+            type: clip.type,
+            id: clip.id,
+            timelineOffset: clip.timelineOffset + gesture.delta,
+          })),
+        );
+      }
+      gestureRef.current = undefined;
+      setGesture(undefined);
+    },
   };
 }
 
@@ -1565,7 +1718,8 @@ function TakeTimelineLane({
   takes,
   pendingRecording,
   captureStatus,
-  selectedTakeId,
+  selectedClipKeys,
+  previewOffsets,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -1573,15 +1727,17 @@ function TakeTimelineLane({
   viewportStartBeat,
   viewportWidth,
   onSeek,
-  onTakeSelect,
-  onTakeOffsetChange,
+  onTakeDragStart,
+  onTakeDragMove,
+  onTakeDragEnd,
   onTakeTrimStartChange,
   onTakeTrimEndChange,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
-  selectedTakeId?: string;
+  selectedClipKeys: ReadonlySet<string>;
+  previewOffsets: ReadonlyMap<string, number>;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -1589,8 +1745,9 @@ function TakeTimelineLane({
   viewportStartBeat: number;
   viewportWidth: number;
   onSeek: (position: number) => void;
-  onTakeSelect: (id: string) => void;
-  onTakeOffsetChange: (id: string, offset: number) => void;
+  onTakeDragStart: (id: string, additive: boolean) => void;
+  onTakeDragMove: (delta: number) => void;
+  onTakeDragEnd: () => void;
   onTakeTrimStartChange: (id: string, trimStart: number) => void;
   onTakeTrimEndChange: (id: string, trimEnd: number) => void;
 }) {
@@ -1623,7 +1780,10 @@ function TakeTimelineLane({
             clip={{
               label: `Take ${take.number}`,
               duration: take.trimEnd - take.trimStart,
-              offset: take.timelineOffset + take.trimStart,
+              offset:
+                (previewOffsets.get(
+                  getRecorderClipKey({ type: "take", id: take.id }),
+                ) ?? take.timelineOffset) + take.trimStart,
               audioDuration: take.duration,
               audioOffset: take.trimStart,
               variant: "take",
@@ -1633,17 +1793,18 @@ function TakeTimelineLane({
             viewportStartBeat={viewportStartBeat}
             tempo={tempo}
             viewportWidth={viewportWidth}
-            onSelect={() => onTakeSelect(take.id)}
-            onClipOffsetChange={(offset) =>
-              onTakeOffsetChange(take.id, offset - take.trimStart)
-            }
+            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+            onClipDragMove={onTakeDragMove}
+            onClipDragEnd={onTakeDragEnd}
             onTrimStartChange={(trimStart) =>
               onTakeTrimStartChange(take.id, trimStart)
             }
             onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
             trimStart={take.trimStart}
             trimEnd={take.trimEnd}
-            selected={selectedTakeId === take.id}
+            selected={selectedClipKeys.has(
+              getRecorderClipKey({ type: "take", id: take.id }),
+            )}
           />
         </div>
       ))}
@@ -1678,7 +1839,9 @@ function TimelineLane({
   viewportStartBeat,
   tempo,
   viewportWidth,
-  onClipOffsetChange,
+  selected,
+  onClipDragStart,
+  onClipDragMove,
   onClipDragEnd,
   subdivisionsPerBeat,
   onSeek,
@@ -1690,7 +1853,9 @@ function TimelineLane({
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  onClipOffsetChange?: (offset: number) => void;
+  selected: boolean;
+  onClipDragStart: (additive: boolean) => void;
+  onClipDragMove: (delta: number) => void;
   onClipDragEnd?: () => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
@@ -1720,7 +1885,9 @@ function TimelineLane({
           viewportStartBeat={viewportStartBeat}
           tempo={tempo}
           viewportWidth={viewportWidth}
-          onClipOffsetChange={onClipOffsetChange}
+          selected={selected}
+          onClipDragStart={onClipDragStart}
+          onClipDragMove={onClipDragMove}
           onClipDragEnd={onClipDragEnd}
         />
       ) : (
@@ -1738,9 +1905,9 @@ function TimelineClip({
   viewportStartBeat,
   tempo,
   viewportWidth,
-  onClipOffsetChange,
+  onClipDragStart,
+  onClipDragMove,
   onClipDragEnd,
-  onSelect,
   onTrimStartChange,
   onTrimEndChange,
   trimStart,
@@ -1752,9 +1919,9 @@ function TimelineClip({
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  onClipOffsetChange?: (offset: number) => void;
+  onClipDragStart?: (additive: boolean) => void;
+  onClipDragMove?: (delta: number) => void;
   onClipDragEnd?: () => void;
-  onSelect?: () => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
   trimStart?: number;
@@ -1767,15 +1934,17 @@ function TimelineClip({
       event.preventDefault();
       event.stopPropagation();
       setIsDragging(true);
+      onClipDragStart?.(event.ctrlKey || event.metaKey);
       return {
         startClientX: event.clientX,
-        initialValue: clip.offset,
       };
     },
     onMove: (event, drag) => {
-      const deltaBeats = (event.clientX - drag.startClientX) / pixelsPerBeat;
-      onClipOffsetChange!(
-        Math.max(0, drag.initialValue + beatsToSeconds(deltaBeats, tempo)),
+      onClipDragMove!(
+        beatsToSeconds(
+          (event.clientX - drag.startClientX) / pixelsPerBeat,
+          tempo,
+        ),
       );
     },
     onEnd: () => {
@@ -1843,23 +2012,13 @@ function TimelineClip({
   return (
     <div
       data-testid={`recorder-clip-${clip.variant}`}
-      ref={onClipOffsetChange ? dragRef : undefined}
-      onPointerDown={(event) => {
-        if (onSelect) {
-          event.stopPropagation();
-        }
-      }}
-      onClick={(event) => {
-        if (onSelect) {
-          event.stopPropagation();
-          onSelect();
-        }
-      }}
+      data-selected={selected ? "true" : undefined}
+      ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm border text-[11px]",
         clipClass,
-        onClipOffsetChange && "cursor-ew-resize select-none",
-        onSelect && "cursor-pointer",
+        onClipDragMove && "cursor-ew-resize select-none",
+        onClipDragStart && "cursor-pointer",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging && "brightness-125",
       )}
@@ -1882,7 +2041,7 @@ function TimelineClip({
         )}
         <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
           <span className="mr-1.5">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
+          {onClipDragMove && clip.offset > 0 && (
             <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
           )}
         </div>
