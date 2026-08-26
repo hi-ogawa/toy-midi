@@ -598,28 +598,30 @@ function useRecorderClipInteraction({
     );
   }
 
+  function removeSelected(): void {
+    const selectedAudio = state.audioTracks.filter((track) =>
+      keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+    );
+    const selectedTakes = state.recordingTrack.takes.filter((take) =>
+      keys.has(getRecorderClipKey({ type: "take", id: take.id })),
+    );
+    if (selectedAudio.length + selectedTakes.length !== 1) {
+      return;
+    }
+    if (selectedAudio[0]) {
+      runtime.clearAudioTrack(selectedAudio[0].id);
+    } else {
+      runtime.removeTake(selectedTakes[0]!.id);
+    }
+    setKeys(new Set());
+  }
+
   return {
     clear: () => setKeys(new Set()),
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
     move,
-    removeSelected: () => {
-      const selectedAudio = state.audioTracks.filter((track) =>
-        keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
-      );
-      const selectedTakes = state.recordingTrack.takes.filter((take) =>
-        keys.has(getRecorderClipKey({ type: "take", id: take.id })),
-      );
-      if (selectedAudio.length + selectedTakes.length !== 1) {
-        return;
-      }
-      if (selectedAudio[0]) {
-        runtime.clearAudioTrack(selectedAudio[0].id);
-      } else {
-        runtime.removeTake(selectedTakes[0]!.id);
-      }
-      setKeys(new Set());
-    },
+    removeSelected,
     select,
     startMove,
   };
