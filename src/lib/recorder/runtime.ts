@@ -92,6 +92,11 @@ export type RecorderClipId = { type: "audio" | "take"; id: string };
 
 export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
 
+export type RecorderClipTrim = RecorderClipId & {
+  edge: "start" | "end";
+  value: number;
+};
+
 const METRONOME_GAIN = 0.5;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -286,7 +291,28 @@ export class RecorderRuntime {
     }
   }
 
-  setAudioTrackTrimStart(id: string, trimStart: number): void {
+  trimClip({ type, id, edge, value }: RecorderClipTrim): void {
+    switch (type) {
+      case "audio": {
+        if (edge === "start") {
+          this.setAudioTrackTrimStart(id, value);
+        } else {
+          this.setAudioTrackTrimEnd(id, value);
+        }
+        break;
+      }
+      case "take": {
+        if (edge === "start") {
+          this.setTakeTrimStart(id, value);
+        } else {
+          this.setTakeTrimEnd(id, value);
+        }
+        break;
+      }
+    }
+  }
+
+  private setAudioTrackTrimStart(id: string, trimStart: number): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: clamp(trimStart, 0, track.trimEnd - MIN_TAKE_DURATION),
@@ -294,7 +320,7 @@ export class RecorderRuntime {
     this.syncAudioTrackPlayback(track);
   }
 
-  setAudioTrackTrimEnd(id: string, trimEnd: number): void {
+  private setAudioTrackTrimEnd(id: string, trimEnd: number): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimEnd: clamp(
@@ -444,14 +470,14 @@ export class RecorderRuntime {
     });
   }
 
-  setTakeTrimStart(id: string, trimStart: number): void {
+  private setTakeTrimStart(id: string, trimStart: number): void {
     this.updateTake(id, (take) => ({
       ...take,
       trimStart: clamp(trimStart, 0, take.trimEnd - MIN_TAKE_DURATION),
     }));
   }
 
-  setTakeTrimEnd(id: string, trimEnd: number): void {
+  private setTakeTrimEnd(id: string, trimEnd: number): void {
     this.updateTake(id, (take) => ({
       ...take,
       trimEnd: clamp(
