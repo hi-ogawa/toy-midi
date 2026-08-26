@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
+import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
@@ -328,10 +329,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                     type: "audio",
                     id: track.id,
                   })}
+                  onClipClick={(additive) =>
+                    clipInteraction.select(
+                      { type: "audio", id: track.id },
+                      additive,
+                    )
+                  }
                   onClipDragStart={(additive) =>
                     clipInteraction.startMove(
                       { type: "audio", id: track.id },
                       additive,
+                      clipInteraction.keys,
                     )
                   }
                   onClipDragMove={clipInteraction.move}
@@ -411,7 +419,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.seek(position);
                 }}
                 onTakeDragStart={(id, additive) =>
-                  clipInteraction.startMove({ type: "take", id }, additive)
+                  clipInteraction.startMove(
+                    { type: "take", id },
+                    additive,
+                    clipInteraction.keys,
+                  )
+                }
+                onTakeClick={(id, additive) =>
+                  clipInteraction.select({ type: "take", id }, additive)
                 }
                 onTakeDragMove={clipInteraction.move}
                 onTakeTrimStartChange={(id, trimStart) =>
@@ -504,12 +519,12 @@ function useRecorderClipInteraction({
     });
   }, [state.audioTracks, state.recordingTrack.takes]);
 
-  function select(clip: RecorderClipId, additive: boolean): Set<string> {
+  function select(clip: RecorderClipId, additive: boolean): void {
     const key = getRecorderClipKey(clip);
     if (!additive) {
       const next = keys.has(key) ? keys : new Set([key]);
       setKeys(next);
-      return next;
+      return;
     }
     const next = new Set(keys);
     if (next.has(key)) {
@@ -518,14 +533,20 @@ function useRecorderClipInteraction({
       next.add(key);
     }
     setKeys(next);
-    return next;
   }
 
   function startMove(
     dragged: RecorderClipId,
     additive: boolean,
+    initialKeys: ReadonlySet<string>,
   ): RecorderClipMoveSnapshot {
-    const selectedKeys = select(dragged, additive);
+    const draggedKey = getRecorderClipKey(dragged);
+    const selectedKeys = initialKeys.has(draggedKey)
+      ? new Set(initialKeys)
+      : additive
+        ? new Set([...initialKeys, draggedKey])
+        : new Set([draggedKey]);
+    setKeys(selectedKeys);
     return [
       ...state.audioTracks
         .filter((track) =>
@@ -579,6 +600,7 @@ function useRecorderClipInteraction({
       runtime.removeTake(selectedTakes[0]!.id);
       setKeys(new Set());
     },
+    select,
     startMove,
   };
 }
@@ -1668,6 +1690,7 @@ function TakeTimelineLane({
   viewportWidth,
   onSeek,
   onTakeDragStart,
+  onTakeClick,
   onTakeDragMove,
   onTakeTrimStartChange,
   onTakeTrimEndChange,
@@ -1684,6 +1707,7 @@ function TakeTimelineLane({
   viewportWidth: number;
   onSeek: (position: number) => void;
   onTakeDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onTakeClick: (id: string, additive: boolean) => void;
   onTakeDragMove: (clips: RecorderClipMoveSnapshot, delta: number) => void;
   onTakeTrimStartChange: (id: string, trimStart: number) => void;
   onTakeTrimEndChange: (id: string, trimEnd: number) => void;
@@ -1728,6 +1752,7 @@ function TakeTimelineLane({
             tempo={tempo}
             viewportWidth={viewportWidth}
             onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+            onClipClick={(additive) => onTakeClick(take.id, additive)}
             onClipDragMove={onTakeDragMove}
             onTrimStartChange={(trimStart) =>
               onTakeTrimStartChange(take.id, trimStart)
@@ -1774,6 +1799,7 @@ function TimelineLane({
   viewportWidth,
   selected,
   onClipDragStart,
+  onClipClick,
   onClipDragMove,
   subdivisionsPerBeat,
   onSeek,
@@ -1787,6 +1813,7 @@ function TimelineLane({
   viewportWidth: number;
   selected: boolean;
   onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (additive: boolean) => void;
   onClipDragMove: (clips: RecorderClipMoveSnapshot, delta: number) => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
@@ -1818,6 +1845,7 @@ function TimelineLane({
           viewportWidth={viewportWidth}
           selected={selected}
           onClipDragStart={onClipDragStart}
+          onClipClick={onClipClick}
           onClipDragMove={onClipDragMove}
         />
       ) : (
@@ -1836,6 +1864,7 @@ function TimelineClip({
   tempo,
   viewportWidth,
   onClipDragStart,
+  onClipClick,
   onClipDragMove,
   onTrimStartChange,
   onTrimEndChange,
@@ -1849,6 +1878,7 @@ function TimelineClip({
   tempo: number;
   viewportWidth: number;
   onClipDragStart?: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick?: (additive: boolean) => void;
   onClipDragMove?: (clips: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
@@ -1857,26 +1887,32 @@ function TimelineClip({
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = usePointerDrag({
+  const dragRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      setIsDragging(true);
       return {
-        startClientX: event.clientX,
-        clips: onClipDragStart?.(event.ctrlKey || event.metaKey) ?? [],
+        additive: event.ctrlKey || event.metaKey,
+        clips: [] as RecorderClipMoveSnapshot,
       };
     },
-    onMove: (event, drag) => {
+    onClick: ({ data }) => {
+      onClipClick?.(data.additive);
+    },
+    onDragStart: ({ data }) => {
+      setIsDragging(true);
+      data.clips = onClipDragStart?.(data.additive) ?? [];
+    },
+    onDragMove: ({ data, deltaX }) => {
       onClipDragMove!(
-        drag.clips,
-        beatsToSeconds(
-          (event.clientX - drag.startClientX) / pixelsPerBeat,
-          tempo,
-        ),
+        data.clips,
+        beatsToSeconds(deltaX / pixelsPerBeat, tempo),
       );
     },
-    onEnd: () => {
+    onDragEnd: () => {
+      setIsDragging(false);
+    },
+    onCancel: () => {
       setIsDragging(false);
     },
   });
