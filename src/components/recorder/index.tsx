@@ -327,12 +327,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                   onClipOffsetChange={(offset) =>
                     runtime.setAudioTrackOffset(track.id, offset)
                   }
-                  onClipDragEnd={() => {
-                    if (state.isPlaying) {
-                      runtime.pause();
-                      playMutation.mutate();
-                    }
-                  }}
                   onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
@@ -1762,6 +1756,8 @@ function TimelineClip({
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [previewOffset, setPreviewOffset] = useState<number>();
+  const previewOffsetRef = useRef<number | undefined>(undefined);
   const dragRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
@@ -1774,12 +1770,21 @@ function TimelineClip({
     },
     onMove: (event, drag) => {
       const deltaBeats = (event.clientX - drag.startClientX) / pixelsPerBeat;
-      onClipOffsetChange!(
-        Math.max(0, drag.initialValue + beatsToSeconds(deltaBeats, tempo)),
+      const offset = Math.max(
+        0,
+        drag.initialValue + beatsToSeconds(deltaBeats, tempo),
       );
+      previewOffsetRef.current = offset;
+      setPreviewOffset(offset);
     },
-    onEnd: () => {
+    onEnd: (_event, drag) => {
       setIsDragging(false);
+      const offset = previewOffsetRef.current ?? drag.initialValue;
+      previewOffsetRef.current = undefined;
+      setPreviewOffset(undefined);
+      if (offset !== drag.initialValue) {
+        onClipOffsetChange!(offset);
+      }
       onClipDragEnd?.();
     },
   });
@@ -1822,7 +1827,8 @@ function TimelineClip({
     take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
     recording: "border-red-400/70 bg-red-400/20 text-red-100",
   }[clip.variant];
-  const clipStartBeat = secondsToBeats(clip.offset, tempo);
+  const renderedOffset = previewOffset ?? clip.offset;
+  const clipStartBeat = secondsToBeats(renderedOffset, tempo);
   const clipWidth = Math.max(
     2,
     secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
@@ -1882,8 +1888,8 @@ function TimelineClip({
         )}
         <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
           <span className="mr-1.5">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
-            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+          {onClipOffsetChange && renderedOffset > 0 && (
+            <span className="opacity-75">+{renderedOffset.toFixed(3)}s</span>
           )}
         </div>
       </div>

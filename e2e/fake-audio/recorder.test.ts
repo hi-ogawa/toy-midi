@@ -18,6 +18,22 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
+  // Dragging previews the new position before committing it on pointer-up.
+  const initialBox = await clip.boundingBox();
+  expect(initialBox).not.toBeNull();
+  const center = {
+    x: initialBox!.x + initialBox!.width / 2,
+    y: initialBox!.y + initialBox!.height / 2,
+  };
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.mouse.move(center.x + 80, center.y, { steps: 4 });
+  const previewBox = await clip.boundingBox();
+  expect(previewBox!.x).toBeCloseTo(initialBox!.x + 80, -1);
+  await page.mouse.up();
+  const committedBox = await clip.boundingBox();
+  expect(committedBox!.x).toBeCloseTo(previewBox!.x, -1);
+
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
   const position = page.getByTestId("recorder-position");
