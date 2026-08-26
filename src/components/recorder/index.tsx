@@ -495,10 +495,10 @@ type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
 type RecorderClipId = { type: "audio" | "take"; id: string };
 
-type RecorderClipMoveSnapshot = (RecorderClipId & {
-  timelineOffset: number;
-  visibleStart: number;
-})[];
+type RecorderClipMoveSnapshot = {
+  clips: (RecorderClipId & { timelineOffset: number })[];
+  minimumVisibleStart: number;
+};
 
 function useRecorderClipInteraction({
   runtime,
@@ -572,29 +572,33 @@ function useRecorderClipInteraction({
         : new Set([draggedKey]);
     setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
-    return [
+    const clips = [
       ...selected.audioTracks.map((track) => ({
         type: "audio" as const,
         id: track.id,
         timelineOffset: track.timelineOffset,
-        visibleStart: track.timelineOffset + track.trimStart,
       })),
       ...selected.takes.map((take) => ({
         type: "take" as const,
         id: take.id,
         timelineOffset: take.timelineOffset,
-        visibleStart: take.timelineOffset + take.trimStart,
       })),
     ];
+    return {
+      clips,
+      minimumVisibleStart: Math.min(
+        ...selected.audioTracks.map(
+          (track) => track.timelineOffset + track.trimStart,
+        ),
+        ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
+      ),
+    };
   }
 
-  function move(clips: RecorderClipMoveSnapshot, delta: number): void {
-    const minimumVisibleStart = Math.min(
-      ...clips.map((clip) => clip.visibleStart),
-    );
-    const clampedDelta = Math.max(delta, -minimumVisibleStart);
+  function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
+    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
     runtime.moveClips(
-      clips.map((clip) => ({
+      snapshot.clips.map((clip) => ({
         type: clip.type,
         id: clip.id,
         timelineOffset: clip.timelineOffset + clampedDelta,
@@ -1924,7 +1928,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         additive: event.ctrlKey || event.metaKey,
-        clips: [] as RecorderClipMoveSnapshot,
+        snapshot: undefined as RecorderClipMoveSnapshot | undefined,
       };
     },
     onClick: (_event, { data }) => {
@@ -1932,11 +1936,11 @@ function TimelineClip({
     },
     onDragStart: (_event, { data }) => {
       setIsDragging(true);
-      data.clips = onClipDragStart?.(data.additive) ?? [];
+      data.snapshot = onClipDragStart?.(data.additive);
     },
     onDragMove: (_event, { data, deltaX }) => {
       onClipDragMove!(
-        data.clips,
+        data.snapshot!,
         beatsToSeconds(deltaX / pixelsPerBeat, tempo),
       );
     },
