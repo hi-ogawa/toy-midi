@@ -40,6 +40,7 @@ import {
   matchKeyboardEvent,
 } from "../../lib/keyboard";
 import {
+  clamp,
   dbToPercent,
   formatGainDb,
   gainToPercent,
@@ -1805,12 +1806,10 @@ function TimelineClip({
         drag.tempo,
       );
       onTrimStartChange!(
-        Math.max(
+        clamp(
+          drag.startOffset + delta,
           trimBounds!.start,
-          Math.min(
-            drag.startOffset + delta,
-            clip.offset + clip.duration - MIN_TAKE_DURATION,
-          ),
+          clip.offset + clip.duration - MIN_TAKE_DURATION,
         ),
       );
     },
@@ -1832,9 +1831,10 @@ function TimelineClip({
         drag.tempo,
       );
       onTrimEndChange!(
-        Math.min(
+        clamp(
+          drag.startOffset + delta,
+          clip.offset + MIN_TAKE_DURATION,
           trimBounds!.end,
-          Math.max(drag.startOffset + delta, clip.offset + MIN_TAKE_DURATION),
         ),
       );
     },

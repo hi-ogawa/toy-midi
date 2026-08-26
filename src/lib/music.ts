@@ -91,6 +91,6 @@ export function dbToPercent(db: number): number {
   return gainToPercent(dbToGain(clamp(db, MIN_DB, MAX_DB)));
 }
 
-function clamp(value: number, min: number, max: number): number {
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

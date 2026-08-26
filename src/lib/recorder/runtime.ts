@@ -1,6 +1,7 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import { clamp } from "../music.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -306,19 +307,17 @@ export class RecorderRuntime {
   setTakeTrimStart(id: string, trimStart: number): void {
     this.updateTake(id, (take) => ({
       ...take,
-      trimStart: Math.max(
-        0,
-        Math.min(trimStart, take.trimEnd - MIN_TAKE_DURATION),
-      ),
+      trimStart: clamp(trimStart, 0, take.trimEnd - MIN_TAKE_DURATION),
     }));
   }
 
   setTakeTrimEnd(id: string, trimEnd: number): void {
     this.updateTake(id, (take) => ({
       ...take,
-      trimEnd: Math.min(
+      trimEnd: clamp(
+        trimEnd,
+        take.trimStart + MIN_TAKE_DURATION,
         take.duration,
-        Math.max(trimEnd, take.trimStart + MIN_TAKE_DURATION),
       ),
     }));
   }
