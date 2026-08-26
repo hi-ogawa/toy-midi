@@ -554,6 +554,8 @@ function useRecorderClipInteraction({
     additive: boolean;
   }): RecorderClipMoveSnapshot {
     const draggedKey = getRecorderClipKey(clip);
+    // Dragging a selected clip preserves the group; an unselected clip joins
+    // with Ctrl/Cmd or replaces the selection otherwise.
     const selectedKeys = keys.has(draggedKey)
       ? new Set(keys)
       : additive
