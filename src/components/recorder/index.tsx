@@ -40,7 +40,6 @@ import {
   matchKeyboardEvent,
 } from "../../lib/keyboard";
 import {
-  clamp,
   dbToPercent,
   formatGainDb,
   gainToPercent,
@@ -52,7 +51,6 @@ import {
 } from "../../lib/recorder/capture-input";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
-  MIN_TAKE_DURATION,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -1637,16 +1635,14 @@ function TakeTimelineLane({
               onClipOffsetChange={(offset) =>
                 onTakeOffsetChange(take.id, offset - take.trimStart)
               }
-              onTrimStartChange={(offset) =>
-                onTakeTrimStartChange(take.id, offset - take.timelineOffset)
+              onTrimStartChange={(trimStart) =>
+                onTakeTrimStartChange(take.id, trimStart)
               }
-              onTrimEndChange={(offset) =>
-                onTakeTrimEndChange(take.id, offset - take.timelineOffset)
+              onTrimEndChange={(trimEnd) =>
+                onTakeTrimEndChange(take.id, trimEnd)
               }
-              trimBounds={{
-                start: take.timelineOffset,
-                end: take.timelineOffset + take.duration,
-              }}
+              trimStart={take.trimStart}
+              trimEnd={take.trimEnd}
               selected={selectedTakeId === take.id}
             />
           </div>
@@ -1748,7 +1744,8 @@ function TimelineClip({
   onSelect,
   onTrimStartChange,
   onTrimEndChange,
-  trimBounds,
+  trimStart,
+  trimEnd,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -1761,7 +1758,8 @@ function TimelineClip({
   onSelect?: () => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
-  trimBounds?: { start: number; end: number };
+  trimStart?: number;
+  trimEnd?: number;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -1795,7 +1793,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        startOffset: clip.offset,
+        startTrim: trimStart!,
         pixelsPerBeat,
         tempo,
       };
@@ -1805,13 +1803,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / drag.pixelsPerBeat,
         drag.tempo,
       );
-      onTrimStartChange!(
-        clamp(
-          drag.startOffset + delta,
-          trimBounds!.start,
-          clip.offset + clip.duration - MIN_TAKE_DURATION,
-        ),
-      );
+      onTrimStartChange!(drag.startTrim + delta);
     },
   });
   const trimEndRef = usePointerDrag({
@@ -1820,7 +1812,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        startOffset: clip.offset + clip.duration,
+        startTrim: trimEnd!,
         pixelsPerBeat,
         tempo,
       };
@@ -1830,13 +1822,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / drag.pixelsPerBeat,
         drag.tempo,
       );
-      onTrimEndChange!(
-        clamp(
-          drag.startOffset + delta,
-          clip.offset + MIN_TAKE_DURATION,
-          trimBounds!.end,
-        ),
-      );
+      onTrimEndChange!(drag.startTrim + delta);
     },
   });
   const clipClass = {
