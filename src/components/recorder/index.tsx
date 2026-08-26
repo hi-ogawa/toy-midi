@@ -497,9 +497,10 @@ type RecorderClipId =
   | { type: "audio"; id: string }
   | { type: "take"; id: string };
 
-type RecorderClipMoveSnapshot = Array<
-  RecorderClipId & { timelineOffset: number; visibleStart: number }
->;
+type RecorderClipMoveSnapshot = (RecorderClipId & {
+  timelineOffset: number;
+  visibleStart: number;
+})[];
 
 function getRecorderClipKey(clip: RecorderClipId): string {
   return `${clip.type}:${clip.id}`;
