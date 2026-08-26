@@ -193,11 +193,11 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipInteraction.keys.size > 0) {
+    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
       event.preventDefault();
       clipInteraction.clear();
     } else if (
-      clipInteraction.keys.size > 0 &&
+      clipInteraction.hasSelection &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
@@ -327,7 +327,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  selected={clipInteraction.has({
+                  selected={clipInteraction.isSelected({
                     type: "audio",
                     id: track.id,
                   })}
@@ -346,11 +346,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   trimStart={track.trimStart}
                   trimEnd={track.trimEnd}
                   onClipDragStart={(additive) =>
-                    clipInteraction.startMove(
-                      { type: "audio", id: track.id },
+                    clipInteraction.startMove({
+                      clip: { type: "audio", id: track.id },
                       additive,
-                      clipInteraction.keys,
-                    )
+                    })
                   }
                   onClipDragMove={clipInteraction.move}
                   onSeek={(position) => {
@@ -417,7 +416,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedClipKeys={clipInteraction.keys}
+                isTakeSelected={(id) =>
+                  clipInteraction.isSelected({ type: "take", id })
+                }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
@@ -429,11 +430,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.seek(position);
                 }}
                 onTakeDragStart={(id, additive) =>
-                  clipInteraction.startMove(
-                    { type: "take", id },
+                  clipInteraction.startMove({
+                    clip: { type: "take", id },
                     additive,
-                    clipInteraction.keys,
-                  )
+                  })
                 }
                 onTakeClick={(id, additive) =>
                   clipInteraction.select({ type: "take", id }, additive)
@@ -546,16 +546,18 @@ function useRecorderClipInteraction({
     setKeys(next);
   }
 
-  function startMove(
-    dragged: RecorderClipId,
-    additive: boolean,
-    initialKeys: ReadonlySet<string>,
-  ): RecorderClipMoveSnapshot {
-    const draggedKey = getRecorderClipKey(dragged);
-    const selectedKeys = initialKeys.has(draggedKey)
-      ? new Set(initialKeys)
+  function startMove({
+    clip,
+    additive,
+  }: {
+    clip: RecorderClipId;
+    additive: boolean;
+  }): RecorderClipMoveSnapshot {
+    const draggedKey = getRecorderClipKey(clip);
+    const selectedKeys = keys.has(draggedKey)
+      ? new Set(keys)
       : additive
-        ? new Set([...initialKeys, draggedKey])
+        ? new Set([...keys, draggedKey])
         : new Set([draggedKey]);
     setKeys(selectedKeys);
     return [
@@ -598,8 +600,8 @@ function useRecorderClipInteraction({
 
   return {
     clear: () => setKeys(new Set()),
-    has: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
-    keys,
+    hasSelection: keys.size > 0,
+    isSelected: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
     move,
     removeSelected: () => {
       const selectedAudio = state.audioTracks.filter((track) =>
@@ -1699,7 +1701,7 @@ function TakeTimelineLane({
   takes,
   pendingRecording,
   captureStatus,
-  selectedClipKeys,
+  isTakeSelected,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -1716,7 +1718,7 @@ function TakeTimelineLane({
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
-  selectedClipKeys: ReadonlySet<string>;
+  isTakeSelected: (id: string) => boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -1778,9 +1780,7 @@ function TakeTimelineLane({
             onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
             trimStart={take.trimStart}
             trimEnd={take.trimEnd}
-            selected={selectedClipKeys.has(
-              getRecorderClipKey({ type: "take", id: take.id }),
-            )}
+            selected={isTakeSelected(take.id)}
           />
         </div>
       ))}
