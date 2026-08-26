@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   type RecorderClipId,
   type RecorderClipMove,
+  type RecorderClipTrim,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -9,6 +10,12 @@ import {
 export type RecorderClipMoveSnapshot = {
   clips: RecorderClipMove[];
   minimumVisibleStart: number;
+};
+
+export type RecorderClipTrimSnapshot = {
+  clip: RecorderClipId;
+  edge: "start" | "end";
+  initialValue: number;
 };
 
 export function useRecorderClipInteraction({
@@ -21,6 +28,8 @@ export function useRecorderClipInteraction({
   const [keys, setKeys] = useState(() => new Set<string>());
   const [movePreview, setMovePreview] = useState<RecorderClipMove[]>();
   const movePreviewRef = useRef<RecorderClipMove[] | undefined>(undefined);
+  const [trimPreview, setTrimPreview] = useState<RecorderClipTrim>();
+  const trimPreviewRef = useRef<RecorderClipTrim | undefined>(undefined);
 
   function getKey(clip: RecorderClipId): string {
     return `${clip.type}:${clip.id}`;
@@ -136,6 +145,54 @@ export function useRecorderClipInteraction({
     setMovePreview(undefined);
   }
 
+  function startTrim({
+    clip,
+    edge,
+  }: {
+    clip: RecorderClipId;
+    edge: "start" | "end";
+  }): RecorderClipTrimSnapshot {
+    const selected =
+      clip.type === "audio"
+        ? state.audioTracks.find((track) => track.id === clip.id)
+        : state.recordingTrack.takes.find((take) => take.id === clip.id);
+    if (!selected) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    return {
+      clip,
+      edge,
+      initialValue: edge === "start" ? selected.trimStart : selected.trimEnd,
+    };
+  }
+
+  function previewTrim(
+    snapshot: RecorderClipTrimSnapshot,
+    delta: number,
+  ): void {
+    const preview = {
+      ...snapshot.clip,
+      edge: snapshot.edge,
+      value: snapshot.initialValue + delta,
+    };
+    trimPreviewRef.current = preview;
+    setTrimPreview(preview);
+  }
+
+  function commitTrim(): void {
+    const preview = trimPreviewRef.current;
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
+    if (preview) {
+      runtime.trimClip(preview);
+    }
+  }
+
+  function cancelTrim(): void {
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
+  }
+
   function removeSelected(): void {
     const selected = getSelectedClips(keys);
     runtime.removeClips([
@@ -155,16 +212,23 @@ export function useRecorderClipInteraction({
     clear: () => setKeys(new Set()),
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
-    movePreview,
     getPreviewOffset: (clip: RecorderClipId) =>
       movePreview?.find(
         (preview) => preview.type === clip.type && preview.id === clip.id,
       )?.timelineOffset,
+    getTrimPreview: (clip: RecorderClipId) =>
+      trimPreview?.type === clip.type && trimPreview.id === clip.id
+        ? trimPreview
+        : undefined,
     select,
     startMove,
     previewMove,
     commitMove,
     cancelMove,
+    startTrim,
+    previewTrim,
+    commitTrim,
+    cancelTrim,
     removeSelected,
   };
 }

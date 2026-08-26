@@ -273,14 +273,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                       additive,
                     )
                   }
-                  onTrimStartChange={(trimStart) =>
-                    runtime.setAudioTrackTrimStart(track.id, trimStart)
+                  onTrimStart={(edge) =>
+                    clipInteraction.startTrim({
+                      clip: { type: "audio", id: track.id },
+                      edge,
+                    })
                   }
-                  onTrimEndChange={(trimEnd) =>
-                    runtime.setAudioTrackTrimEnd(track.id, trimEnd)
-                  }
-                  trimStart={track.trimStart}
-                  trimEnd={track.trimEnd}
+                  onTrimMove={clipInteraction.previewTrim}
+                  onTrimEnd={clipInteraction.commitTrim}
+                  onTrimCancel={clipInteraction.cancelTrim}
                   onClipDragStart={(additive) =>
                     clipInteraction.startMove({
                       clip: { type: "audio", id: track.id },
@@ -382,9 +383,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeDragMove={clipInteraction.previewMove}
                 onTakeDragEnd={clipInteraction.commitMove}
                 onTakeDragCancel={clipInteraction.cancelMove}
-                onTakeTrimChange={(id, trimStart, trimEnd) =>
-                  runtime.setTakeTrim({ id, trimStart, trimEnd })
+                onTakeTrimStart={(id, edge) =>
+                  clipInteraction.startTrim({
+                    clip: { type: "take", id },
+                    edge,
+                  })
                 }
+                getTakeTrimPreview={(id) =>
+                  clipInteraction.getTrimPreview({ type: "take", id })
+                }
+                onTakeTrimMove={clipInteraction.previewTrim}
+                onTakeTrimEnd={clipInteraction.commitTrim}
+                onTakeTrimCancel={clipInteraction.cancelTrim}
               />
             </CaptureTrackRow>
           </div>
