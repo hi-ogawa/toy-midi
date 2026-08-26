@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  type RecorderClipId,
   type RecorderClipMove,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-
-type RecorderClipId = { type: "audio" | "take"; id: string };
 
 export type RecorderClipMoveSnapshot = {
   clips: RecorderClipMove[];

@@ -88,9 +88,9 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
-export type RecorderClipMove =
-  | { type: "audio"; id: string; timelineOffset: number }
-  | { type: "take"; id: string; timelineOffset: number };
+export type RecorderClipId = { type: "audio" | "take"; id: string };
+
+export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
 
 const METRONOME_GAIN = 0.5;
 
