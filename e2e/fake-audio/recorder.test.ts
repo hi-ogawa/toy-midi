@@ -108,16 +108,12 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(80, -1);
   expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(80, -1);
 
-  // Clicking empty timeline space clears the recorder-wide selection.
-  const audioLane = audio.locator("xpath=..");
-  const audioLaneBox = await audioLane.boundingBox();
-  expect(audioLaneBox).not.toBeNull();
-  await page.mouse.click(
-    audioLaneBox!.x + audioLaneBox!.width - 10,
-    audioLaneBox!.y + audioLaneBox!.height / 2,
-  );
-  await expect(audio).not.toHaveAttribute("data-selected", "true");
-  await expect(take).not.toHaveAttribute("data-selected", "true");
+  // Delete clears every selected clip while preserving the audio track row.
+  await page.keyboard.press("Delete");
+  await expect(audio).toHaveCount(0);
+  await expect(take).toHaveCount(0);
+  await expect(page.getByText("Load an audio file")).toBeVisible();
+  await expect(page.getByText("No file loaded")).toBeVisible();
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
@@ -226,11 +222,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
 
-  // Deleting a selected source take leaves the other take intact.
+  // Delete removes every selected source take together.
   await take.nth(0).click();
+  await take.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
-  await expect(take).toHaveCount(1);
-  await expect(take).toContainText("Take 2");
+  await expect(take).toHaveCount(0);
+  await expect(page.getByText("No takes")).toBeVisible();
 });
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
