@@ -515,6 +515,17 @@ function useRecorderClipInteraction({
     return `${clip.type}:${clip.id}`;
   }
 
+  function getSelectedClips(selectedKeys: ReadonlySet<string>) {
+    return {
+      audioTracks: state.audioTracks.filter((track) =>
+        selectedKeys.has(getKey({ type: "audio", id: track.id })),
+      ),
+      takes: state.recordingTrack.takes.filter((take) =>
+        selectedKeys.has(getKey({ type: "take", id: take.id })),
+      ),
+    };
+  }
+
   useEffect(() => {
     const available = new Set([
       ...state.audioTracks
@@ -562,27 +573,20 @@ function useRecorderClipInteraction({
         ? new Set([...keys, draggedKey])
         : new Set([draggedKey]);
     setKeys(selectedKeys);
+    const selected = getSelectedClips(selectedKeys);
     return [
-      ...state.audioTracks
-        .filter((track) =>
-          selectedKeys.has(getKey({ type: "audio", id: track.id })),
-        )
-        .map((track) => ({
-          type: "audio" as const,
-          id: track.id,
-          timelineOffset: track.timelineOffset,
-          visibleStart: track.timelineOffset + track.trimStart,
-        })),
-      ...state.recordingTrack.takes
-        .filter((take) =>
-          selectedKeys.has(getKey({ type: "take", id: take.id })),
-        )
-        .map((take) => ({
-          type: "take" as const,
-          id: take.id,
-          timelineOffset: take.timelineOffset,
-          visibleStart: take.timelineOffset + take.trimStart,
-        })),
+      ...selected.audioTracks.map((track) => ({
+        type: "audio" as const,
+        id: track.id,
+        timelineOffset: track.timelineOffset,
+        visibleStart: track.timelineOffset + track.trimStart,
+      })),
+      ...selected.takes.map((take) => ({
+        type: "take" as const,
+        id: take.id,
+        timelineOffset: take.timelineOffset,
+        visibleStart: take.timelineOffset + take.trimStart,
+      })),
     ];
   }
 
@@ -601,19 +605,14 @@ function useRecorderClipInteraction({
   }
 
   function removeSelected(): void {
-    const selectedAudio = state.audioTracks.filter((track) =>
-      keys.has(getKey({ type: "audio", id: track.id })),
-    );
-    const selectedTakes = state.recordingTrack.takes.filter((take) =>
-      keys.has(getKey({ type: "take", id: take.id })),
-    );
-    if (selectedAudio.length + selectedTakes.length !== 1) {
+    const selected = getSelectedClips(keys);
+    if (selected.audioTracks.length + selected.takes.length !== 1) {
       return;
     }
-    if (selectedAudio[0]) {
-      runtime.clearAudioTrack(selectedAudio[0].id);
+    if (selected.audioTracks[0]) {
+      runtime.clearAudioTrack(selected.audioTracks[0].id);
     } else {
-      runtime.removeTake(selectedTakes[0]!.id);
+      runtime.removeTake(selected.takes[0]!.id);
     }
     setKeys(new Set());
   }
