@@ -493,9 +493,7 @@ export function Recorder({ projectId }: { projectId: string }) {
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
-type RecorderClipId =
-  | { type: "audio"; id: string }
-  | { type: "take"; id: string };
+type RecorderClipId = { type: "audio" | "take"; id: string };
 
 type RecorderClipMoveSnapshot = (RecorderClipId & {
   timelineOffset: number;
