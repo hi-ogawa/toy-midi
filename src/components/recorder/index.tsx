@@ -1870,24 +1870,15 @@ function TimelineClip({
     >
       <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
         {clip.audioView && visibleEnd > visibleStart && (
-          <div
-            className="absolute inset-0"
-            style={{
-              left: `${(-100 * (clip.audioOffset ?? 0)) / clip.duration}%`,
-              width: `${(100 * (clip.audioDuration ?? clip.duration)) / clip.duration}%`,
-            }}
-          >
-            <AudioWaveformView
-              audioView={clip.audioView}
-              audioDuration={clip.audioDuration ?? clip.duration}
-              visibleStart={visibleStart}
-              visibleEnd={visibleEnd}
-              pixelWidth={
-                (clipWidth * (clip.audioDuration ?? clip.duration)) /
-                clip.duration
-              }
-            />
-          </div>
+          <AudioWaveformView
+            audioView={clip.audioView}
+            audioDuration={clip.audioDuration ?? clip.duration}
+            displayStart={clip.audioOffset ?? 0}
+            displayEnd={(clip.audioOffset ?? 0) + clip.duration}
+            visibleStart={visibleStart}
+            visibleEnd={visibleEnd}
+            pixelWidth={clipWidth}
+          />
         )}
         <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
           <span className="mr-1.5">{clip.label}</span>

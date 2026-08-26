@@ -3,12 +3,16 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 export function AudioWaveformView({
   audioView,
   audioDuration,
+  displayStart = 0,
+  displayEnd = audioDuration,
   visibleStart,
   visibleEnd,
   pixelWidth,
 }: {
   audioView: AudioView;
   audioDuration: number;
+  displayStart?: number;
+  displayEnd?: number;
   visibleStart: number;
   visibleEnd: number;
   pixelWidth: number;
@@ -17,10 +21,11 @@ export function AudioWaveformView({
     return null;
   }
 
+  const displayDuration = displayEnd - displayStart;
   const visibleDuration = visibleEnd - visibleStart;
   const visiblePixelWidth = Math.max(
     1,
-    Math.round((visibleDuration / audioDuration) * pixelWidth),
+    Math.round((visibleDuration / displayDuration) * pixelWidth),
   );
   const slice = queryAudioView(
     audioView,
@@ -33,9 +38,10 @@ export function AudioWaveformView({
     return null;
   }
 
-  const leftPercent = (slice.actualStart / audioDuration) * 100;
+  const leftPercent =
+    ((slice.actualStart - displayStart) / displayDuration) * 100;
   const widthPercent =
-    ((slice.actualEnd - slice.actualStart) / audioDuration) * 100;
+    ((slice.actualEnd - slice.actualStart) / displayDuration) * 100;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
