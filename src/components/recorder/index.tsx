@@ -114,7 +114,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const takeSelection = useRecorderTakeSelection({
+  const clipSelection = useRecorderClipSelection({
     runtime,
     state,
   });
@@ -192,16 +192,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && takeSelection.selectedId) {
+    if (matchKeyboardEvent(event, "Escape") && clipSelection.selected) {
       event.preventDefault();
-      takeSelection.clear();
+      clipSelection.clear();
     } else if (
-      takeSelection.selectedId &&
+      clipSelection.selected &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      takeSelection.remove(takeSelection.selectedId);
+      clipSelection.remove();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -309,11 +309,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clip={
                     track.clip
                       ? {
-                          duration: track.clip.buffer.duration,
+                          duration: track.trimEnd - track.trimStart,
                           label: track.clip.name,
-                          offset: track.timelineOffset,
+                          offset: track.timelineOffset + track.trimStart,
                           variant: "audio",
                           audioView: track.clip.audioView,
+                          audioDuration: track.clip.buffer.duration,
+                          audioOffset: track.trimStart,
                         }
                       : undefined
                   }
@@ -325,7 +327,25 @@ export function Recorder({ projectId }: { projectId: string }) {
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   onClipOffsetChange={(offset) =>
-                    runtime.setAudioTrackOffset(track.id, offset)
+                    runtime.setAudioTrackOffset(
+                      track.id,
+                      offset - track.trimStart,
+                    )
+                  }
+                  onTrimStartChange={(trimStart) =>
+                    runtime.setAudioTrackTrimStart(track.id, trimStart)
+                  }
+                  onTrimEndChange={(trimEnd) =>
+                    runtime.setAudioTrackTrimEnd(track.id, trimEnd)
+                  }
+                  trimStart={track.trimStart}
+                  trimEnd={track.trimEnd}
+                  onSelect={() =>
+                    clipSelection.select({ type: "audio", id: track.id })
+                  }
+                  selected={
+                    clipSelection.selected?.type === "audio" &&
+                    clipSelection.selected.id === track.id
                   }
                   onClipDragEnd={() => {
                     if (state.isPlaying) {
@@ -394,7 +414,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedTakeId={takeSelection.selectedId}
+                selectedTakeId={
+                  clipSelection.selected?.type === "take"
+                    ? clipSelection.selected.id
+                    : undefined
+                }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
@@ -402,7 +426,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => runtime.seek(position)}
-                onTakeSelect={takeSelection.select}
+                onTakeSelect={(id) =>
+                  clipSelection.select({ type: "take", id })
+                }
                 onTakeOffsetChange={(id, offset) =>
                   runtime.setTakeTimelineOffset(id, offset)
                 }
@@ -460,32 +486,47 @@ export function Recorder({ projectId }: { projectId: string }) {
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
-function useRecorderTakeSelection({
+type RecorderClipSelection =
+  | { type: "audio"; id: string }
+  | { type: "take"; id: string };
+
+function useRecorderClipSelection({
   runtime,
   state,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
-  const [selectedId, setSelectedId] = useState<string>();
+  const [selected, setSelected] = useState<RecorderClipSelection>();
   const takes = state.recordingTrack.takes;
+  const audioTracks = state.audioTracks;
 
   useEffect(() => {
-    if (selectedId && !takes.some((take) => take.id === selectedId)) {
-      setSelectedId(undefined);
+    if (
+      selected?.type === "take" &&
+      !takes.some((take) => take.id === selected.id)
+    ) {
+      setSelected(undefined);
+    } else if (
+      selected?.type === "audio" &&
+      !audioTracks.some((track) => track.id === selected.id && track.clip)
+    ) {
+      setSelected(undefined);
     }
-  }, [selectedId, takes]);
+  }, [audioTracks, selected, takes]);
 
   return {
-    clear: () => setSelectedId(undefined),
-    remove: (id: string) => {
-      runtime.removeTake(id);
-      if (selectedId === id) {
-        setSelectedId(undefined);
+    clear: () => setSelected(undefined),
+    remove: () => {
+      if (selected?.type === "take") {
+        runtime.removeTake(selected.id);
+      } else if (selected?.type === "audio") {
+        runtime.clearAudioTrack(selected.id);
       }
+      setSelected(undefined);
     },
-    select: setSelectedId,
-    selectedId,
+    select: setSelected,
+    selected,
   };
 }
 
@@ -1680,6 +1721,12 @@ function TimelineLane({
   viewportWidth,
   onClipOffsetChange,
   onClipDragEnd,
+  onTrimStartChange,
+  onTrimEndChange,
+  trimStart,
+  trimEnd,
+  onSelect,
+  selected,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -1692,6 +1739,12 @@ function TimelineLane({
   viewportWidth: number;
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
+  onTrimStartChange?: (offset: number) => void;
+  onTrimEndChange?: (offset: number) => void;
+  trimStart?: number;
+  trimEnd?: number;
+  onSelect?: () => void;
+  selected?: boolean;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -1722,6 +1775,12 @@ function TimelineLane({
           viewportWidth={viewportWidth}
           onClipOffsetChange={onClipOffsetChange}
           onClipDragEnd={onClipDragEnd}
+          onTrimStartChange={onTrimStartChange}
+          onTrimEndChange={onTrimEndChange}
+          trimStart={trimStart}
+          trimEnd={trimEnd}
+          onSelect={onSelect}
+          selected={selected}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
