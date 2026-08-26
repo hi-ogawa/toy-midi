@@ -306,10 +306,6 @@ export class RecorderRuntime {
     this.syncAudioTrackPlayback(track);
   }
 
-  clearAudioTrack(id: string): void {
-    this.removeClips([{ type: "audio", id }]);
-  }
-
   removeClips(clips: readonly RecorderClipId[]): void {
     if (clips.length === 0) {
       return;
@@ -464,10 +460,6 @@ export class RecorderRuntime {
         take.duration,
       ),
     }));
-  }
-
-  removeTake(id: string): void {
-    this.removeClips([{ type: "take", id }]);
   }
 
   private updateTake(
