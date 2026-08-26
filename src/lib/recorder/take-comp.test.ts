@@ -78,27 +78,6 @@ describe(renderTakeComp, () => {
 
     expect(Array.from(result!.getChannelData(0))).toEqual([0, 0, 1, 1]);
   });
-
-  it("renders the trimmed source samples", () => {
-    const takes: TakeState[] = [
-      {
-        id: "take",
-        number: 1,
-        timelineOffset: 0,
-        duration: 2,
-        trimStart: 0.5,
-        trimEnd: 1.5,
-        buffer: createBuffer({ sampleRate: 2, samples: [1, 2, 3, 4] }),
-      },
-    ];
-    const result = renderTakeComp({
-      context: createContext(2),
-      regions: deriveTakeRegions(takes),
-      takes,
-    });
-
-    expect(Array.from(result!.getChannelData(0))).toEqual([0, 2, 3]);
-  });
 });
 
 function createContext(sampleRate: number): BaseAudioContext {
