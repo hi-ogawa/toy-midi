@@ -34,8 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-
-export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
+import type { SaveStatus } from "./use-recorder-project";
 
 export function RecorderHeader({
   title,
