@@ -114,14 +114,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const clipSelection = useRecorderClipSelection({
+  const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
-  });
-  const clipMovement = useRecorderClipMovement({
-    runtime,
-    state,
-    selection: clipSelection,
   });
 
   const playMutation = useMutation({
@@ -197,16 +192,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipSelection.keys.size > 0) {
+    if (matchKeyboardEvent(event, "Escape") && clipInteraction.keys.size > 0) {
       event.preventDefault();
-      clipSelection.clear();
+      clipInteraction.clear();
     } else if (
-      clipSelection.keys.size > 0 &&
+      clipInteraction.keys.size > 0 &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      clipSelection.removeSelectedTakes();
+      clipInteraction.removeSelectedTakes();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -329,16 +324,19 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  selected={clipSelection.has({ type: "audio", id: track.id })}
+                  selected={clipInteraction.has({
+                    type: "audio",
+                    id: track.id,
+                  })}
                   onClipDragStart={(additive) =>
-                    clipMovement.start(
+                    clipInteraction.startMove(
                       { type: "audio", id: track.id },
                       additive,
                     )
                   }
-                  onClipDragMove={clipMovement.move}
+                  onClipDragMove={clipInteraction.move}
                   onSeek={(position) => {
-                    clipSelection.clear();
+                    clipInteraction.clear();
                     runtime.seek(position);
                   }}
                 />
@@ -401,7 +399,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedClipKeys={clipSelection.keys}
+                selectedClipKeys={clipInteraction.keys}
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
@@ -409,13 +407,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  clipSelection.clear();
+                  clipInteraction.clear();
                   runtime.seek(position);
                 }}
                 onTakeDragStart={(id, additive) =>
-                  clipMovement.start({ type: "take", id }, additive)
+                  clipInteraction.startMove({ type: "take", id }, additive)
                 }
-                onTakeDragMove={clipMovement.move}
+                onTakeDragMove={clipInteraction.move}
                 onTakeTrimStartChange={(id, trimStart) =>
                   runtime.setTakeTrimStart(id, trimStart)
                 }
@@ -482,7 +480,7 @@ function getRecorderClipKey(clip: RecorderClipId): string {
   return `${clip.type}:${clip.id}`;
 }
 
-function useRecorderClipSelection({
+function useRecorderClipInteraction({
   runtime,
   state,
 }: {
@@ -506,10 +504,71 @@ function useRecorderClipSelection({
     });
   }, [state.audioTracks, state.recordingTrack.takes]);
 
+  function select(clip: RecorderClipId, additive: boolean): Set<string> {
+    const key = getRecorderClipKey(clip);
+    if (!additive) {
+      const next = keys.has(key) ? keys : new Set([key]);
+      setKeys(next);
+      return next;
+    }
+    const next = new Set(keys);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setKeys(next);
+    return next;
+  }
+
+  function startMove(
+    dragged: RecorderClipId,
+    additive: boolean,
+  ): RecorderClipMoveSnapshot {
+    const selectedKeys = select(dragged, additive);
+    return [
+      ...state.audioTracks
+        .filter((track) =>
+          selectedKeys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+        )
+        .map((track) => ({
+          type: "audio" as const,
+          id: track.id,
+          timelineOffset: track.timelineOffset,
+          visibleStart: track.timelineOffset,
+        })),
+      ...state.recordingTrack.takes
+        .filter((take) =>
+          selectedKeys.has(getRecorderClipKey({ type: "take", id: take.id })),
+        )
+        .map((take) => ({
+          type: "take" as const,
+          id: take.id,
+          timelineOffset: take.timelineOffset,
+          visibleStart: take.timelineOffset + take.trimStart,
+        })),
+    ];
+  }
+
+  function move(clips: RecorderClipMoveSnapshot, delta: number): void {
+    const minimumVisibleStart = Math.min(
+      ...clips.map((clip) => clip.visibleStart),
+    );
+    const clampedDelta = Math.max(delta, -minimumVisibleStart);
+    runtime.moveClips(
+      clips.map((clip) => ({
+        type: clip.type,
+        id: clip.id,
+        timelineOffset: clip.timelineOffset + clampedDelta,
+      })),
+    );
+  }
+
   return {
     clear: () => setKeys(new Set()),
     has: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
     keys,
+    move,
     removeSelectedTakes: () => {
       const selectedTakes = state.recordingTrack.takes.filter((take) =>
         keys.has(getRecorderClipKey({ type: "take", id: take.id })),
@@ -520,91 +579,7 @@ function useRecorderClipSelection({
       runtime.removeTake(selectedTakes[0]!.id);
       setKeys(new Set());
     },
-    select: (clip: RecorderClipId, additive: boolean) => {
-      const key = getRecorderClipKey(clip);
-      setKeys((current) => {
-        if (!additive) {
-          return current.has(key) ? current : new Set([key]);
-        }
-        const next = new Set(current);
-        if (next.has(key)) {
-          next.delete(key);
-        } else {
-          next.add(key);
-        }
-        return next;
-      });
-    },
-  };
-}
-
-function useRecorderClipMovement({
-  runtime,
-  state,
-  selection,
-}: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
-  selection: ReturnType<typeof useRecorderClipSelection>;
-}) {
-  return {
-    start: (dragged: RecorderClipId, additive: boolean) => {
-      const draggedKey = getRecorderClipKey(dragged);
-      let keys = selection.keys;
-      if (additive) {
-        keys = new Set(keys);
-        if (keys.has(draggedKey)) {
-          keys.delete(draggedKey);
-        } else {
-          keys.add(draggedKey);
-        }
-        selection.select(dragged, true);
-      } else if (!keys.has(draggedKey)) {
-        keys = new Set([draggedKey]);
-        selection.select(dragged, false);
-      }
-      const clips = [
-        ...state.audioTracks
-          .filter((track) =>
-            keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
-          )
-          .map((track) => ({
-            type: "audio" as const,
-            id: track.id,
-            timelineOffset: track.timelineOffset,
-            visibleStart: track.timelineOffset,
-          })),
-        ...state.recordingTrack.takes
-          .filter((take) =>
-            keys.has(getRecorderClipKey({ type: "take", id: take.id })),
-          )
-          .map((take) => ({
-            type: "take" as const,
-            id: take.id,
-            timelineOffset: take.timelineOffset,
-            visibleStart: take.timelineOffset + take.trimStart,
-          })),
-      ];
-      return clips;
-    },
-    move: (
-      clips: Array<
-        RecorderClipId & { timelineOffset: number; visibleStart: number }
-      >,
-      delta: number,
-    ) => {
-      const minimumVisibleStart = Math.min(
-        ...clips.map((clip) => clip.visibleStart),
-      );
-      const clampedDelta = Math.max(delta, -minimumVisibleStart);
-      runtime.moveClips(
-        clips.map((clip) => ({
-          type: clip.type,
-          id: clip.id,
-          timelineOffset: clip.timelineOffset + clampedDelta,
-        })),
-      );
-    },
+    startMove,
   };
 }
 
