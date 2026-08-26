@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 import { createRecorderProject } from "../helpers";
 
 test.beforeEach(async ({ page }) => {
@@ -156,11 +156,7 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
   await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
 }
 
-async function dragBy(
-  page: Page,
-  locator: ReturnType<Page["getByTestId"]>,
-  deltaX: number,
-) {
+async function dragBy(page: Page, locator: Locator, deltaX: number) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
