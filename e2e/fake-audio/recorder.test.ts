@@ -65,7 +65,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("selects and moves audio and take clips together", async ({ page }) => {
-  // The musician imports a backing track and records a take later on the timeline.
+  // The musician imports a backing track and records a take away from zero.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
