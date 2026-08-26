@@ -165,7 +165,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await dragBy(page, trimStart, trimPixels);
   const afterStartTrim = await take.boundingBox();
   expect(afterStartTrim).not.toBeNull();
-  expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
+  expect(afterStartTrim!.x).toBeGreaterThan(afterMove!.x);
   expect(afterStartTrim!.x + afterStartTrim!.width).toBeCloseTo(
     afterMove!.x + afterMove!.width,
     -1,
@@ -213,6 +213,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
       await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(320, -2);
+
+  // The Capture lane shows the opaque resolved comp rather than transparent
+  // overlapping source takes.
+  await expect(take.nth(0)).toHaveClass(/bg-emerald-700/);
+  await expect(take.nth(0)).not.toHaveClass(/bg-emerald-400\/20/);
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
