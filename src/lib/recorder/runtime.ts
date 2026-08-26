@@ -299,6 +299,65 @@ export class RecorderRuntime {
     });
   }
 
+  removeTake(id: string): void {
+    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
+  }
+
+  setTakeTimelineOffset(id: string, timelineOffset: number): void {
+    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
+  }
+
+  setTakeTrimStart(id: string, trimStart: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimStart: Math.max(
+        0,
+        Math.min(trimStart, take.trimEnd - MIN_TAKE_DURATION),
+      ),
+    }));
+  }
+
+  setTakeTrimEnd(id: string, trimEnd: number): void {
+    this.updateTake(id, (take) => ({
+      ...take,
+      trimEnd: Math.min(
+        take.duration,
+        Math.max(trimEnd, take.trimStart + MIN_TAKE_DURATION),
+      ),
+    }));
+  }
+
+  private updateTake(id: string, update: (take: TakeState) => TakeState): void {
+    this.updateTakes((takes) => {
+      const index = takes.findIndex((take) => take.id === id);
+      const take = takes[index];
+      if (!take) {
+        throw new Error("Recording take state is missing.");
+      }
+      const nextTakes = takes.slice();
+      nextTakes[index] = update(take);
+      return nextTakes;
+    });
+  }
+
+  private updateTakes(update: (takes: TakeState[]) => TakeState[]): void {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const recordingTrack = this.store.get().recordingTrack;
+    this.store.update({
+      recordingTrack: {
+        ...recordingTrack,
+        takes: update(recordingTrack.takes),
+      },
+    });
+    this.syncTakeRegions();
+    if (wasPlaying) {
+      this.transport!.play();
+    }
+  }
+
   async play(): Promise<void> {
     const context = this.ensureContext();
     await context.resume();
@@ -558,65 +617,6 @@ export class RecorderRuntime {
   private closeInput(): void {
     this.captureInput?.dispose();
     this.captureInput = undefined;
-  }
-
-  removeTake(id: string): void {
-    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
-  }
-
-  setTakeTimelineOffset(id: string, timelineOffset: number): void {
-    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
-  }
-
-  setTakeTrimStart(id: string, trimStart: number): void {
-    this.updateTake(id, (take) => ({
-      ...take,
-      trimStart: Math.max(
-        0,
-        Math.min(trimStart, take.trimEnd - MIN_TAKE_DURATION),
-      ),
-    }));
-  }
-
-  setTakeTrimEnd(id: string, trimEnd: number): void {
-    this.updateTake(id, (take) => ({
-      ...take,
-      trimEnd: Math.min(
-        take.duration,
-        Math.max(trimEnd, take.trimStart + MIN_TAKE_DURATION),
-      ),
-    }));
-  }
-
-  private updateTake(id: string, update: (take: TakeState) => TakeState): void {
-    this.updateTakes((takes) => {
-      const index = takes.findIndex((take) => take.id === id);
-      const take = takes[index];
-      if (!take) {
-        throw new Error("Recording take state is missing.");
-      }
-      const nextTakes = takes.slice();
-      nextTakes[index] = update(take);
-      return nextTakes;
-    });
-  }
-
-  private updateTakes(update: (takes: TakeState[]) => TakeState[]): void {
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const recordingTrack = this.store.get().recordingTrack;
-    this.store.update({
-      recordingTrack: {
-        ...recordingTrack,
-        takes: update(recordingTrack.takes),
-      },
-    });
-    this.syncTakeRegions();
-    if (wasPlaying) {
-      this.transport!.play();
-    }
   }
 
   private syncTakeRegions(): void {
