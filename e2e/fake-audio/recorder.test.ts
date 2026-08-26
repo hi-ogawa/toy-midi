@@ -79,9 +79,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const afterMove = await take.boundingBox();
   expect(afterMove).not.toBeNull();
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
-  const trimPixels = Math.max(2, afterMove!.width / 4);
 
   const trimStart = take.getByTestId("recorder-take-trim-start");
+  const trimPixels = Math.max(2, afterMove!.width / 4);
   await dragBy(page, trimStart, trimPixels);
   const afterStartTrim = await take.boundingBox();
   expect(afterStartTrim).not.toBeNull();
