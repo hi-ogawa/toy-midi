@@ -1617,41 +1617,36 @@ function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      {takes.map((take) => {
-        const timelineStart = take.timelineOffset + take.trimStart;
-        return (
-          <div key={take.id}>
-            <TimelineClip
-              clip={{
-                duration: take.trimEnd - take.trimStart,
-                label: `Take ${take.number}`,
-                offset: timelineStart,
-                variant: "take",
-                audioView: take.audioView,
-                audioDuration: take.duration,
-                audioOffset: take.trimStart,
-              }}
-              pixelsPerBeat={pixelsPerBeat}
-              viewportStartBeat={viewportStartBeat}
-              tempo={tempo}
-              viewportWidth={viewportWidth}
-              onSelect={() => onTakeSelect(take.id)}
-              onClipOffsetChange={(offset) =>
-                onTakeOffsetChange(take.id, offset - take.trimStart)
-              }
-              onTrimStartChange={(trimStart) =>
-                onTakeTrimStartChange(take.id, trimStart)
-              }
-              onTrimEndChange={(trimEnd) =>
-                onTakeTrimEndChange(take.id, trimEnd)
-              }
-              trimStart={take.trimStart}
-              trimEnd={take.trimEnd}
-              selected={selectedTakeId === take.id}
-            />
-          </div>
-        );
-      })}
+      {takes.map((take) => (
+        <div key={take.id}>
+          <TimelineClip
+            clip={{
+              duration: take.trimEnd - take.trimStart,
+              label: `Take ${take.number}`,
+              offset: take.timelineOffset + take.trimStart,
+              variant: "take",
+              audioView: take.audioView,
+              audioDuration: take.duration,
+              audioOffset: take.trimStart,
+            }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            onSelect={() => onTakeSelect(take.id)}
+            onClipOffsetChange={(offset) =>
+              onTakeOffsetChange(take.id, offset - take.trimStart)
+            }
+            onTrimStartChange={(trimStart) =>
+              onTakeTrimStartChange(take.id, trimStart)
+            }
+            onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
+            trimStart={take.trimStart}
+            trimEnd={take.trimEnd}
+            selected={selectedTakeId === take.id}
+          />
+        </div>
+      ))}
       {pendingRecording && (
         <div>
           <TimelineClip
