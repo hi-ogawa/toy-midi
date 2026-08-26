@@ -61,12 +61,12 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await page.mouse.move(takeCenter.x, takeCenter.y);
   await page.mouse.down();
   await page.mouse.move(takeCenter.x + 80, takeCenter.y, { steps: 4 });
-
-  const audioPreview = await audio.boundingBox();
-  const takePreview = await take.boundingBox();
-  expect(audioPreview!.x - audioBefore!.x).toBeCloseTo(80, -1);
-  expect(takePreview!.x - takeBefore!.x).toBeCloseTo(80, -1);
   await page.mouse.up();
+
+  const audioAfter = await audio.boundingBox();
+  const takeAfter = await take.boundingBox();
+  expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(80, -1);
+  expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(80, -1);
 
   const audioLane = audio.locator("xpath=..");
   const audioLaneBox = await audioLane.boundingBox();
