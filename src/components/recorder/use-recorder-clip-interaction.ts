@@ -11,6 +11,12 @@ export type RecorderClipMoveSnapshot = {
   minimumVisibleStart: number;
 };
 
+export type RecorderClipTrimSnapshot = {
+  clip: RecorderClipId;
+  edge: "start" | "end";
+  initialValue: number;
+};
+
 export function useRecorderClipInteraction({
   runtime,
   state,
@@ -117,6 +123,35 @@ export function useRecorderClipInteraction({
     );
   }
 
+  function startTrim({
+    clip,
+    edge,
+  }: {
+    clip: RecorderClipId;
+    edge: "start" | "end";
+  }): RecorderClipTrimSnapshot {
+    const selected =
+      clip.type === "audio"
+        ? state.audioTracks.find((track) => track.id === clip.id)
+        : state.recordingTrack.takes.find((take) => take.id === clip.id);
+    if (!selected) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    return {
+      clip,
+      edge,
+      initialValue: edge === "start" ? selected.trimStart : selected.trimEnd,
+    };
+  }
+
+  function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
+    runtime.trimClip({
+      ...snapshot.clip,
+      edge: snapshot.edge,
+      value: snapshot.initialValue + delta,
+    });
+  }
+
   function removeSelected(): void {
     const selected = getSelectedClips(keys);
     runtime.removeClips([
@@ -139,6 +174,8 @@ export function useRecorderClipInteraction({
     select,
     startMove,
     move,
+    startTrim,
+    trim,
     removeSelected,
   };
 }

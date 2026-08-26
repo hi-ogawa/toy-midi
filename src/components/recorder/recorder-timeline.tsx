@@ -14,7 +14,10 @@ import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
-import type { RecorderClipMoveSnapshot } from "./use-recorder-clip-interaction";
+import type {
+  RecorderClipMoveSnapshot,
+  RecorderClipTrimSnapshot,
+} from "./use-recorder-clip-interaction";
 
 export function TimelineHeader({
   beatsPerBar,
@@ -181,8 +184,8 @@ export function TakeTimelineLane({
   onTakeDragStart,
   onTakeClick,
   onTakeDragMove,
-  onTakeTrimStartChange,
-  onTakeTrimEndChange,
+  onTakeTrimStart,
+  onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
@@ -198,8 +201,11 @@ export function TakeTimelineLane({
   onTakeDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
   onTakeClick: (id: string, additive: boolean) => void;
   onTakeDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTakeTrimStartChange: (id: string, trimStart: number) => void;
-  onTakeTrimEndChange: (id: string, trimEnd: number) => void;
+  onTakeTrimStart: (
+    id: string,
+    edge: "start" | "end",
+  ) => RecorderClipTrimSnapshot;
+  onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
   return (
     <div
@@ -243,12 +249,8 @@ export function TakeTimelineLane({
             onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
             onClipClick={(additive) => onTakeClick(take.id, additive)}
             onClipDragMove={onTakeDragMove}
-            onTrimStartChange={(trimStart) =>
-              onTakeTrimStartChange(take.id, trimStart)
-            }
-            onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
-            trimStart={take.trimStart}
-            trimEnd={take.trimEnd}
+            onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
+            onTrimMove={onTakeTrimMove}
             selected={isTakeSelected(take.id)}
           />
         </div>
@@ -288,10 +290,8 @@ export function TimelineLane({
   onClipDragStart,
   onClipClick,
   onClipDragMove,
-  onTrimStartChange,
-  onTrimEndChange,
-  trimStart,
-  trimEnd,
+  onTrimStart,
+  onTrimMove,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -306,10 +306,8 @@ export function TimelineLane({
   onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
   onClipClick: (additive: boolean) => void;
   onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTrimStartChange?: (offset: number) => void;
-  onTrimEndChange?: (offset: number) => void;
-  trimStart?: number;
-  trimEnd?: number;
+  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -342,10 +340,8 @@ export function TimelineLane({
           onClipDragStart={onClipDragStart}
           onClipClick={onClipClick}
           onClipDragMove={onClipDragMove}
-          onTrimStartChange={onTrimStartChange}
-          onTrimEndChange={onTrimEndChange}
-          trimStart={trimStart}
-          trimEnd={trimEnd}
+          onTrimStart={onTrimStart}
+          onTrimMove={onTrimMove}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -365,10 +361,8 @@ function TimelineClip({
   onClipDragStart,
   onClipClick,
   onClipDragMove,
-  onTrimStartChange,
-  onTrimEndChange,
-  trimStart,
-  trimEnd,
+  onTrimStart,
+  onTrimMove,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -379,10 +373,8 @@ function TimelineClip({
   onClipDragStart?: (additive: boolean) => RecorderClipMoveSnapshot;
   onClipClick?: (additive: boolean) => void;
   onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTrimStartChange?: (offset: number) => void;
-  onTrimEndChange?: (offset: number) => void;
-  trimStart?: number;
-  trimEnd?: number;
+  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -421,7 +413,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        initialValue: trimStart!,
+        snapshot: onTrimStart!("start"),
       };
     },
     onMove: (event, drag) => {
@@ -429,7 +421,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / pixelsPerBeat,
         tempo,
       );
-      onTrimStartChange!(drag.initialValue + delta);
+      onTrimMove!(drag.snapshot, delta);
     },
   });
   const trimEndRef = usePointerDrag({
@@ -438,7 +430,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        initialValue: trimEnd!,
+        snapshot: onTrimStart!("end"),
       };
     },
     onMove: (event, drag) => {
@@ -446,7 +438,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / pixelsPerBeat,
         tempo,
       );
-      onTrimEndChange!(drag.initialValue + delta);
+      onTrimMove!(drag.snapshot, delta);
     },
   });
   const clipClass = {
@@ -509,7 +501,7 @@ function TimelineClip({
           )}
         </div>
       </div>
-      {onTrimStartChange && (
+      {onTrimStart && (
         <div
           ref={trimStartRef}
           data-testid="recorder-take-trim-start"
@@ -517,7 +509,7 @@ function TimelineClip({
           className="absolute inset-y-0 -left-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
       )}
-      {onTrimEndChange && (
+      {onTrimStart && (
         <div
           ref={trimEndRef}
           data-testid="recorder-take-trim-end"

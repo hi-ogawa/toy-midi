@@ -269,14 +269,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                       additive,
                     )
                   }
-                  onTrimStartChange={(trimStart) =>
-                    runtime.setAudioTrackTrimStart(track.id, trimStart)
+                  onTrimStart={(edge) =>
+                    clipInteraction.startTrim({
+                      clip: { type: "audio", id: track.id },
+                      edge,
+                    })
                   }
-                  onTrimEndChange={(trimEnd) =>
-                    runtime.setAudioTrackTrimEnd(track.id, trimEnd)
-                  }
-                  trimStart={track.trimStart}
-                  trimEnd={track.trimEnd}
+                  onTrimMove={clipInteraction.trim}
                   onClipDragStart={(additive) =>
                     clipInteraction.startMove({
                       clip: { type: "audio", id: track.id },
@@ -371,12 +370,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.select({ type: "take", id }, additive)
                 }
                 onTakeDragMove={clipInteraction.move}
-                onTakeTrimStartChange={(id, trimStart) =>
-                  runtime.setTakeTrimStart(id, trimStart)
+                onTakeTrimStart={(id, edge) =>
+                  clipInteraction.startTrim({
+                    clip: { type: "take", id },
+                    edge,
+                  })
                 }
-                onTakeTrimEndChange={(id, trimEnd) =>
-                  runtime.setTakeTrimEnd(id, trimEnd)
-                }
+                onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
           </div>
