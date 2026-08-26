@@ -308,19 +308,55 @@ export class RecorderRuntime {
   }
 
   clearAudioTrack(id: string): void {
-    const wasPlaying = this.store.get().isPlaying;
+    this.removeClips([{ type: "audio", id }]);
+  }
+
+  removeClips(clips: readonly { type: "audio" | "take"; id: string }[]): void {
+    if (clips.length === 0) {
+      return;
+    }
+    const state = this.store.get();
+    const audioIds = new Set(
+      clips.filter((clip) => clip.type === "audio").map((clip) => clip.id),
+    );
+    const takeIds = new Set(
+      clips.filter((clip) => clip.type === "take").map((clip) => clip.id),
+    );
+    if (
+      [...audioIds].some(
+        (id) => !state.audioTracks.some((track) => track.id === id),
+      ) ||
+      [...takeIds].some(
+        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
+      )
+    ) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    const playback = this.audioTrackPlaybacks.get(id);
-    playback?.stop();
-    playback?.setBuffer(undefined);
-    this.updateAudioTrack(id, (track) => ({
-      ...track,
-      clip: undefined,
-      trimStart: 0,
-      trimEnd: 0,
-    }));
+    for (const id of audioIds) {
+      const playback = this.audioTrackPlaybacks.get(id);
+      playback?.stop();
+      playback?.setBuffer(undefined);
+    }
+    this.store.update({
+      audioTracks: state.audioTracks.map((track) =>
+        audioIds.has(track.id)
+          ? { ...track, clip: undefined, trimStart: 0, trimEnd: 0 }
+          : track,
+      ),
+      recordingTrack: {
+        ...state.recordingTrack,
+        takes: state.recordingTrack.takes.filter(
+          (take) => !takeIds.has(take.id),
+        ),
+      },
+    });
+    if (takeIds.size > 0) {
+      this.syncTakeRegions();
+    }
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -432,7 +468,7 @@ export class RecorderRuntime {
   }
 
   removeTake(id: string): void {
-    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
+    this.removeClips([{ type: "take", id }]);
   }
 
   private updateTake(

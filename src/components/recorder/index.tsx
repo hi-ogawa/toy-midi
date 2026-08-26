@@ -608,14 +608,16 @@ function useRecorderClipInteraction({
 
   function removeSelected(): void {
     const selected = getSelectedClips(keys);
-    if (selected.audioTracks.length + selected.takes.length !== 1) {
-      return;
-    }
-    if (selected.audioTracks[0]) {
-      runtime.clearAudioTrack(selected.audioTracks[0].id);
-    } else {
-      runtime.removeTake(selected.takes[0]!.id);
-    }
+    runtime.removeClips([
+      ...selected.audioTracks.map((track) => ({
+        type: "audio" as const,
+        id: track.id,
+      })),
+      ...selected.takes.map((take) => ({
+        type: "take" as const,
+        id: take.id,
+      })),
+    ]);
     setKeys(new Set());
   }
 
