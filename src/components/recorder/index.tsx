@@ -1621,13 +1621,13 @@ function TakeTimelineLane({
         <div key={take.id}>
           <TimelineClip
             clip={{
-              duration: take.trimEnd - take.trimStart,
               label: `Take ${take.number}`,
+              duration: take.trimEnd - take.trimStart,
               offset: take.timelineOffset + take.trimStart,
-              variant: "take",
-              audioView: take.audioView,
               audioDuration: take.duration,
               audioOffset: take.trimStart,
+              variant: "take",
+              audioView: take.audioView,
             }}
             pixelsPerBeat={pixelsPerBeat}
             viewportStartBeat={viewportStartBeat}
