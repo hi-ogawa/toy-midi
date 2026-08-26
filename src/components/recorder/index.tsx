@@ -1873,8 +1873,8 @@ function TimelineClip({
           <AudioWaveformView
             audioView={clip.audioView}
             audioDuration={clip.audioDuration ?? clip.duration}
-            displayStart={clip.audioOffset ?? 0}
-            displayEnd={(clip.audioOffset ?? 0) + clip.duration}
+            rangeStart={clip.audioOffset ?? 0}
+            rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
             visibleStart={visibleStart}
             visibleEnd={visibleEnd}
             pixelWidth={clipWidth}
