@@ -65,13 +65,14 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("selects and moves audio and take clips together", async ({ page }) => {
-  // The musician imports a backing track and records a take away from zero.
+  // The musician imports a backing track.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio");
   await expect(audio).toBeVisible();
 
+  // They record a take away from zero.
   await enableInput(page);
   await seekRecorderByPixels(page, 160);
   const recordButton = page.getByTestId("recorder-record-button");
