@@ -53,6 +53,7 @@ import {
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
   type RecorderClipId,
+  type RecorderClipMove,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -495,7 +496,7 @@ export function Recorder({ projectId }: { projectId: string }) {
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
 type RecorderClipMoveSnapshot = {
-  clips: (RecorderClipId & { timelineOffset: number })[];
+  clips: RecorderClipMove[];
   minimumVisibleStart: number;
 };
 

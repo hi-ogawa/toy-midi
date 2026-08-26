@@ -79,6 +79,7 @@ export interface RecorderRuntimeState {
 }
 
 export type RecorderClipId = { type: "audio" | "take"; id: string };
+export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
 
 export type PersistableRecorderRuntimeState = Pick<
   RecorderRuntimeState,
@@ -230,12 +231,7 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  moveClips(
-    updates: readonly (
-      | { type: "audio"; id: string; timelineOffset: number }
-      | { type: "take"; id: string; timelineOffset: number }
-    )[],
-  ): void {
+  moveClips(updates: readonly RecorderClipMove[]): void {
     if (updates.length === 0) {
       return;
     }
