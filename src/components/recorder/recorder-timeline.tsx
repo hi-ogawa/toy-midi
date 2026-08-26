@@ -1,6 +1,7 @@
 import { LoaderCircleIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
+import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
 import {
@@ -13,6 +14,7 @@ import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
+import type { RecorderClipMoveSnapshot } from "./use-recorder-clip-interaction";
 
 export function TimelineHeader({
   beatsPerBar,
@@ -168,7 +170,7 @@ export function TakeTimelineLane({
   takes,
   pendingRecording,
   captureStatus,
-  selectedTakeId,
+  isTakeSelected,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -176,15 +178,16 @@ export function TakeTimelineLane({
   viewportStartBeat,
   viewportWidth,
   onSeek,
-  onTakeSelect,
-  onTakeOffsetChange,
+  onTakeDragStart,
+  onTakeClick,
+  onTakeDragMove,
   onTakeTrimStartChange,
   onTakeTrimEndChange,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
-  selectedTakeId?: string;
+  isTakeSelected: (id: string) => boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -192,8 +195,9 @@ export function TakeTimelineLane({
   viewportStartBeat: number;
   viewportWidth: number;
   onSeek: (position: number) => void;
-  onTakeSelect: (id: string) => void;
-  onTakeOffsetChange: (id: string, offset: number) => void;
+  onTakeDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onTakeClick: (id: string, additive: boolean) => void;
+  onTakeDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTakeTrimStartChange: (id: string, trimStart: number) => void;
   onTakeTrimEndChange: (id: string, trimEnd: number) => void;
 }) {
@@ -236,17 +240,16 @@ export function TakeTimelineLane({
             viewportStartBeat={viewportStartBeat}
             tempo={tempo}
             viewportWidth={viewportWidth}
-            onSelect={() => onTakeSelect(take.id)}
-            onClipOffsetChange={(offset) =>
-              onTakeOffsetChange(take.id, offset - take.trimStart)
-            }
+            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+            onClipClick={(additive) => onTakeClick(take.id, additive)}
+            onClipDragMove={onTakeDragMove}
             onTrimStartChange={(trimStart) =>
               onTakeTrimStartChange(take.id, trimStart)
             }
             onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
             trimStart={take.trimStart}
             trimEnd={take.trimEnd}
-            selected={selectedTakeId === take.id}
+            selected={isTakeSelected(take.id)}
           />
         </div>
       ))}
@@ -281,14 +284,14 @@ export function TimelineLane({
   viewportStartBeat,
   tempo,
   viewportWidth,
-  onClipOffsetChange,
-  onClipDragEnd,
+  selected,
+  onClipDragStart,
+  onClipClick,
+  onClipDragMove,
   onTrimStartChange,
   onTrimEndChange,
   trimStart,
   trimEnd,
-  onSelect,
-  selected,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -299,14 +302,14 @@ export function TimelineLane({
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  onClipOffsetChange?: (offset: number) => void;
-  onClipDragEnd?: () => void;
+  selected: boolean;
+  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (additive: boolean) => void;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
   trimStart?: number;
   trimEnd?: number;
-  onSelect?: () => void;
-  selected?: boolean;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -335,14 +338,14 @@ export function TimelineLane({
           viewportStartBeat={viewportStartBeat}
           tempo={tempo}
           viewportWidth={viewportWidth}
-          onClipOffsetChange={onClipOffsetChange}
-          onClipDragEnd={onClipDragEnd}
+          selected={selected}
+          onClipDragStart={onClipDragStart}
+          onClipClick={onClipClick}
+          onClipDragMove={onClipDragMove}
           onTrimStartChange={onTrimStartChange}
           onTrimEndChange={onTrimEndChange}
           trimStart={trimStart}
           trimEnd={trimEnd}
-          onSelect={onSelect}
-          selected={selected}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -359,9 +362,9 @@ function TimelineClip({
   viewportStartBeat,
   tempo,
   viewportWidth,
-  onClipOffsetChange,
-  onClipDragEnd,
-  onSelect,
+  onClipDragStart,
+  onClipClick,
+  onClipDragMove,
   onTrimStartChange,
   onTrimEndChange,
   trimStart,
@@ -373,9 +376,9 @@ function TimelineClip({
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  onClipOffsetChange?: (offset: number) => void;
-  onClipDragEnd?: () => void;
-  onSelect?: () => void;
+  onClipDragStart?: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick?: (additive: boolean) => void;
+  onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
   trimStart?: number;
@@ -383,25 +386,33 @@ function TimelineClip({
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
-  const dragRef = usePointerDrag({
+  const dragRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      setIsDragging(true);
       return {
-        startClientX: event.clientX,
-        initialValue: clip.offset,
+        additive: event.ctrlKey || event.metaKey,
+        snapshot: undefined as RecorderClipMoveSnapshot | undefined,
       };
     },
-    onMove: (event, drag) => {
-      const deltaBeats = (event.clientX - drag.startClientX) / pixelsPerBeat;
-      onClipOffsetChange!(
-        Math.max(0, drag.initialValue + beatsToSeconds(deltaBeats, tempo)),
+    onClick: (_event, { data }) => {
+      onClipClick?.(data.additive);
+    },
+    onDragStart: (_event, { data }) => {
+      setIsDragging(true);
+      data.snapshot = onClipDragStart?.(data.additive);
+    },
+    onDragMove: (_event, { data, deltaX }) => {
+      onClipDragMove!(
+        data.snapshot!,
+        beatsToSeconds(deltaX / pixelsPerBeat, tempo),
       );
     },
-    onEnd: () => {
+    onDragEnd: () => {
       setIsDragging(false);
-      onClipDragEnd?.();
+    },
+    onCancel: () => {
+      setIsDragging(false);
     },
   });
   const trimStartRef = usePointerDrag({
@@ -464,23 +475,13 @@ function TimelineClip({
   return (
     <div
       data-testid={`recorder-clip-${clip.variant}`}
-      ref={onClipOffsetChange ? dragRef : undefined}
-      onPointerDown={(event) => {
-        if (onSelect) {
-          event.stopPropagation();
-        }
-      }}
-      onClick={(event) => {
-        if (onSelect) {
-          event.stopPropagation();
-          onSelect();
-        }
-      }}
+      data-selected={selected ? "true" : undefined}
+      ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm border text-[11px]",
         clipClass,
-        onClipOffsetChange && "cursor-ew-resize select-none",
-        onSelect && "cursor-pointer",
+        onClipDragMove && "cursor-ew-resize select-none",
+        onClipDragStart && "cursor-pointer",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging && "brightness-125",
       )}
@@ -503,7 +504,7 @@ function TimelineClip({
         )}
         <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
           <span className="mr-1.5">{clip.label}</span>
-          {onClipOffsetChange && clip.offset > 0 && (
+          {onClipDragMove && clip.offset > 0 && (
             <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
           )}
         </div>

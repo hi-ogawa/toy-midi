@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -7,10 +7,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import {
-  RecorderRuntime,
-  RecorderRuntimeState,
-} from "../../lib/recorder/runtime";
+import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
@@ -27,6 +24,7 @@ import {
   CaptureTrackRow,
   TrackRow,
 } from "./recorder-tracks";
+import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
@@ -49,7 +47,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const clipSelection = useRecorderClipSelection({
+  const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
   });
@@ -127,16 +125,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipSelection.selected) {
+    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
       event.preventDefault();
-      clipSelection.clear();
+      clipInteraction.clear();
     } else if (
-      clipSelection.selected &&
+      clipInteraction.hasSelection &&
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      clipSelection.remove();
+      clipInteraction.removeSelected();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -261,10 +259,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  onClipOffsetChange={(offset) =>
-                    runtime.setAudioTrackOffset(
-                      track.id,
-                      offset - track.trimStart,
+                  selected={clipInteraction.isSelected({
+                    type: "audio",
+                    id: track.id,
+                  })}
+                  onClipClick={(additive) =>
+                    clipInteraction.select(
+                      { type: "audio", id: track.id },
+                      additive,
                     )
                   }
                   onTrimStartChange={(trimStart) =>
@@ -275,20 +277,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                   trimStart={track.trimStart}
                   trimEnd={track.trimEnd}
-                  onSelect={() =>
-                    clipSelection.select({ type: "audio", id: track.id })
+                  onClipDragStart={(additive) =>
+                    clipInteraction.startMove({
+                      clip: { type: "audio", id: track.id },
+                      additive,
+                    })
                   }
-                  selected={
-                    clipSelection.selected?.type === "audio" &&
-                    clipSelection.selected.id === track.id
-                  }
-                  onClipDragEnd={() => {
-                    if (state.isPlaying) {
-                      runtime.pause();
-                      playMutation.mutate();
-                    }
+                  onClipDragMove={clipInteraction.move}
+                  onSeek={(position) => {
+                    clipInteraction.clear();
+                    runtime.seek(position);
                   }}
-                  onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
             ))}
@@ -349,10 +348,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                 takes={takes}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
-                selectedTakeId={
-                  clipSelection.selected?.type === "take"
-                    ? clipSelection.selected.id
-                    : undefined
+                isTakeSelected={(id) =>
+                  clipInteraction.isSelected({ type: "take", id })
                 }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -360,13 +357,20 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => runtime.seek(position)}
-                onTakeSelect={(id) =>
-                  clipSelection.select({ type: "take", id })
+                onSeek={(position) => {
+                  clipInteraction.clear();
+                  runtime.seek(position);
+                }}
+                onTakeDragStart={(id, additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "take", id },
+                    additive,
+                  })
                 }
-                onTakeOffsetChange={(id, offset) =>
-                  runtime.setTakeTimelineOffset(id, offset)
+                onTakeClick={(id, additive) =>
+                  clipInteraction.select({ type: "take", id }, additive)
                 }
+                onTakeDragMove={clipInteraction.move}
                 onTakeTrimStartChange={(id, trimStart) =>
                   runtime.setTakeTrimStart(id, trimStart)
                 }
@@ -417,48 +421,4 @@ export function Recorder({ projectId }: { projectId: string }) {
       </div>
     </main>
   );
-}
-
-type RecorderClipSelection =
-  | { type: "audio"; id: string }
-  | { type: "take"; id: string };
-
-function useRecorderClipSelection({
-  runtime,
-  state,
-}: {
-  runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
-}) {
-  const [selected, setSelected] = useState<RecorderClipSelection>();
-  const takes = state.recordingTrack.takes;
-  const audioTracks = state.audioTracks;
-
-  useEffect(() => {
-    if (
-      selected?.type === "take" &&
-      !takes.some((take) => take.id === selected.id)
-    ) {
-      setSelected(undefined);
-    } else if (
-      selected?.type === "audio" &&
-      !audioTracks.some((track) => track.id === selected.id && track.clip)
-    ) {
-      setSelected(undefined);
-    }
-  }, [audioTracks, selected, takes]);
-
-  return {
-    clear: () => setSelected(undefined),
-    remove: () => {
-      if (selected?.type === "take") {
-        runtime.removeTake(selected.id);
-      } else if (selected?.type === "audio") {
-        runtime.clearAudioTrack(selected.id);
-      }
-      setSelected(undefined);
-    },
-    select: setSelected,
-    selected,
-  };
 }

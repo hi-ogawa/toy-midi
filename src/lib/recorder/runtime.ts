@@ -88,6 +88,10 @@ export type PersistableRecorderRuntimeState = Pick<
   | "latencyCompensation"
 >;
 
+export type RecorderClipId = { type: "audio" | "take"; id: string };
+
+export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
+
 const METRONOME_GAIN = 0.5;
 
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
@@ -228,12 +232,58 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  setAudioTrackOffset(id: string, timelineOffset: number): void {
-    const track = this.updateAudioTrack(id, (track) => ({
+  moveClips(updates: readonly RecorderClipMove[]): void {
+    if (updates.length === 0) {
+      return;
+    }
+    const state = this.store.get();
+    const audioOffsets = new Map(
+      updates
+        .filter((update) => update.type === "audio")
+        .map((update) => [update.id, update.timelineOffset]),
+    );
+    const takeOffsets = new Map(
+      updates
+        .filter((update) => update.type === "take")
+        .map((update) => [update.id, update.timelineOffset]),
+    );
+    if (
+      [...audioOffsets.keys()].some(
+        (id) => !state.audioTracks.some((track) => track.id === id),
+      ) ||
+      [...takeOffsets.keys()].some(
+        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
+      )
+    ) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    const wasPlaying = state.isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const audioTracks = state.audioTracks.map((track) => ({
       ...track,
-      timelineOffset,
+      timelineOffset: audioOffsets.get(track.id) ?? track.timelineOffset,
     }));
-    this.syncAudioTrackPlayback(track);
+    const recordingTrack = {
+      ...state.recordingTrack,
+      takes: state.recordingTrack.takes.map((take) => ({
+        ...take,
+        timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
+      })),
+    };
+    this.store.update({ audioTracks, recordingTrack });
+    for (const id of audioOffsets.keys()) {
+      this.syncAudioTrackPlayback(
+        audioTracks.find((track) => track.id === id)!,
+      );
+    }
+    if (takeOffsets.size > 0) {
+      this.syncTakeRegions();
+    }
+    if (wasPlaying) {
+      this.transport!.play();
+    }
   }
 
   setAudioTrackTrimStart(id: string, trimStart: number): void {
@@ -360,10 +410,6 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(height),
       },
     });
-  }
-
-  setTakeTimelineOffset(id: string, timelineOffset: number): void {
-    this.updateTake(id, (take) => ({ ...take, timelineOffset }));
   }
 
   setTakeTrimStart(id: string, trimStart: number): void {
