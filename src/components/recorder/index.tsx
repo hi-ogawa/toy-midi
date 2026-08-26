@@ -301,6 +301,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
                     }
+                    hasAudio={Boolean(track.clip)}
+                    onClear={() => runtime.clearAudioTrack(track.id)}
                     onRemove={() => runtime.removeAudioTrack(track.id)}
                   />
                 }
@@ -309,11 +311,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clip={
                     track.clip
                       ? {
-                          duration: track.clip.buffer.duration,
+                          duration: track.trimEnd - track.trimStart,
                           label: track.clip.name,
-                          offset: track.timelineOffset,
+                          offset: track.timelineOffset + track.trimStart,
                           variant: "audio",
                           audioView: track.clip.audioView,
+                          audioDuration: track.clip.buffer.duration,
+                          audioOffset: track.trimStart,
                         }
                       : undefined
                   }
@@ -325,8 +329,19 @@ export function Recorder({ projectId }: { projectId: string }) {
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   onClipOffsetChange={(offset) =>
-                    runtime.setAudioTrackOffset(track.id, offset)
+                    runtime.setAudioTrackOffset(
+                      track.id,
+                      offset - track.trimStart,
+                    )
                   }
+                  onTrimStartChange={(trimStart) =>
+                    runtime.setAudioTrackTrimStart(track.id, trimStart)
+                  }
+                  onTrimEndChange={(trimEnd) =>
+                    runtime.setAudioTrackTrimEnd(track.id, trimEnd)
+                  }
+                  trimStart={track.trimStart}
+                  trimEnd={track.trimEnd}
                   onClipDragEnd={() => {
                     if (state.isPlaying) {
                       runtime.pause();
@@ -1184,11 +1199,15 @@ function TimelineHeader({
 
 function AudioTrackActions({
   label,
+  hasAudio,
   onFileChange,
+  onClear,
   onRemove,
 }: {
   label: string;
+  hasAudio: boolean;
   onFileChange: (file: File) => void;
+  onClear: () => void;
   onRemove: () => void;
 }) {
   return (
@@ -1210,6 +1229,12 @@ function AudioTrackActions({
           <UploadIcon />
           Replace audio
         </DropdownMenuItem>
+        {hasAudio && (
+          <DropdownMenuItem onSelect={onClear}>
+            <Trash2Icon />
+            Clear audio
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
@@ -1680,6 +1705,10 @@ function TimelineLane({
   viewportWidth,
   onClipOffsetChange,
   onClipDragEnd,
+  onTrimStartChange,
+  onTrimEndChange,
+  trimStart,
+  trimEnd,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -1692,6 +1721,10 @@ function TimelineLane({
   viewportWidth: number;
   onClipOffsetChange?: (offset: number) => void;
   onClipDragEnd?: () => void;
+  onTrimStartChange?: (offset: number) => void;
+  onTrimEndChange?: (offset: number) => void;
+  trimStart?: number;
+  trimEnd?: number;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -1722,6 +1755,10 @@ function TimelineLane({
           viewportWidth={viewportWidth}
           onClipOffsetChange={onClipOffsetChange}
           onClipDragEnd={onClipDragEnd}
+          onTrimStartChange={onTrimStartChange}
+          onTrimEndChange={onTrimEndChange}
+          trimStart={trimStart}
+          trimEnd={trimEnd}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">

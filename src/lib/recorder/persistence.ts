@@ -36,6 +36,8 @@ interface SerializedAudioTrackState {
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
+  trimStart?: number;
+  trimEnd?: number;
 }
 
 interface SerializedTakeState {
@@ -71,6 +73,8 @@ export function serializeRecorderRuntimeState(
       muted: track.muted,
       soloed: track.soloed,
       timelineOffset: track.timelineOffset,
+      trimStart: track.trimStart,
+      trimEnd: track.trimEnd,
     })),
     recordingTrack: {
       height: state.recordingTrack.height,
@@ -130,6 +134,8 @@ export function deserializeRecorderRuntimeState({
         muted: track.muted,
         soloed: track.soloed,
         timelineOffset: track.timelineOffset,
+        trimStart: track.trimStart ?? 0,
+        trimEnd: track.trimEnd ?? buffer?.duration ?? 0,
       };
     }),
     recordingTrack: {

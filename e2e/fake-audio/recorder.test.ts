@@ -18,6 +18,33 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
+  // Backing audio supports the same non-destructive move and trim workflow.
+  const beforeEdit = await clip.boundingBox();
+  expect(beforeEdit).not.toBeNull();
+  await dragBy(page, clip, 80);
+  const afterMove = await clip.boundingBox();
+  expect(afterMove).not.toBeNull();
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+  const trimPixels = afterMove!.width / 4;
+
+  await dragBy(page, clip.getByTestId("recorder-take-trim-start"), trimPixels);
+  const afterStartTrim = await clip.boundingBox();
+  expect(afterStartTrim).not.toBeNull();
+  expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
+  expect(afterStartTrim!.x + afterStartTrim!.width).toBeCloseTo(
+    afterMove!.x + afterMove!.width,
+    -1,
+  );
+
+  await dragBy(page, clip.getByTestId("recorder-take-trim-end"), -trimPixels);
+  const afterEndTrim = await clip.boundingBox();
+  expect(afterEndTrim).not.toBeNull();
+  expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);
+  expect(afterEndTrim!.width).toBeCloseTo(
+    afterStartTrim!.width - trimPixels,
+    -1,
+  );
+
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
   const position = page.getByTestId("recorder-position");
@@ -27,6 +54,13 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(position).not.toHaveText("01|01 - 00:00.000");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
+
+  // Clearing the source preserves the empty audio track row.
+  await page.getByRole("button", { name: "Audio 1 actions" }).click();
+  await page.getByRole("menuitem", { name: "Clear audio" }).click();
+  await expect(clip).toHaveCount(0);
+  await expect(page.getByText("Load an audio file")).toBeVisible();
+  await expect(page.getByText("No file loaded")).toBeVisible();
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
