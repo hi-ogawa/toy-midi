@@ -5,10 +5,12 @@ export function usePointerDrag<T>({
   onStart,
   onMove,
   onEnd,
+  onCancel,
 }: PointerDragOptions<T>) {
   const handlePointerStart = useEffectEvent(onStart);
   const handlePointerMove = useEffectEvent(onMove);
   const handlePointerEnd = useEffectEvent(onEnd ?? (() => {}));
+  const handlePointerCancel = useEffectEvent(onCancel ?? (() => {}));
 
   return useCallback((element: HTMLElement | null) => {
     if (!element) {
@@ -19,6 +21,7 @@ export function usePointerDrag<T>({
       onStart: handlePointerStart,
       onMove: handlePointerMove,
       onEnd: handlePointerEnd,
+      onCancel: handlePointerCancel,
     });
   }, []);
 }

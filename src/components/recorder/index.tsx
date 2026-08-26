@@ -1896,14 +1896,14 @@ function TimelineClip({
         clips: [] as RecorderClipMoveSnapshot,
       };
     },
-    onClick: ({ data }) => {
+    onClick: (_event, { data }) => {
       onClipClick?.(data.additive);
     },
-    onDragStart: ({ data }) => {
+    onDragStart: (_event, { data }) => {
       setIsDragging(true);
       data.clips = onClipDragStart?.(data.additive) ?? [];
     },
-    onDragMove: ({ data, deltaX }) => {
+    onDragMove: (_event, { data, deltaX }) => {
       onClipDragMove!(
         data.clips,
         beatsToSeconds(deltaX / pixelsPerBeat, tempo),
