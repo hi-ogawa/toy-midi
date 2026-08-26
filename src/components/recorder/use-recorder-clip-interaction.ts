@@ -1,0 +1,170 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  type RecorderClipId,
+  type RecorderClipMove,
+  RecorderRuntime,
+  RecorderRuntimeState,
+} from "../../lib/recorder/runtime";
+
+export type RecorderClipMoveSnapshot = {
+  clips: RecorderClipMove[];
+  minimumVisibleStart: number;
+};
+
+export function useRecorderClipInteraction({
+  runtime,
+  state,
+}: {
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
+}) {
+  const [keys, setKeys] = useState(() => new Set<string>());
+  const [movePreview, setMovePreview] = useState<RecorderClipMove[]>();
+  const movePreviewRef = useRef<RecorderClipMove[] | undefined>(undefined);
+
+  function getKey(clip: RecorderClipId): string {
+    return `${clip.type}:${clip.id}`;
+  }
+
+  function getSelectedClips(selectedKeys: ReadonlySet<string>) {
+    return {
+      audioTracks: state.audioTracks.filter((track) =>
+        selectedKeys.has(getKey({ type: "audio", id: track.id })),
+      ),
+      takes: state.recordingTrack.takes.filter((take) =>
+        selectedKeys.has(getKey({ type: "take", id: take.id })),
+      ),
+    };
+  }
+
+  useEffect(() => {
+    const available = new Set([
+      ...state.audioTracks
+        .filter((track) => track.clip)
+        .map((track) => getKey({ type: "audio", id: track.id })),
+      ...state.recordingTrack.takes.map((take) =>
+        getKey({ type: "take", id: take.id }),
+      ),
+    ]);
+    setKeys((current) => {
+      const next = new Set([...current].filter((key) => available.has(key)));
+      return next.size === current.size ? current : next;
+    });
+  }, [state.audioTracks, state.recordingTrack.takes]);
+
+  function select(clip: RecorderClipId, additive: boolean): void {
+    const key = getKey(clip);
+    if (!additive) {
+      const next = keys.has(key) ? keys : new Set([key]);
+      setKeys(next);
+      return;
+    }
+    const next = new Set(keys);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setKeys(next);
+  }
+
+  function startMove({
+    clip,
+    additive,
+  }: {
+    clip: RecorderClipId;
+    additive: boolean;
+  }): RecorderClipMoveSnapshot {
+    const draggedKey = getKey(clip);
+    // Dragging a selected clip preserves the group; an unselected clip joins
+    // with Ctrl/Cmd or replaces the selection otherwise.
+    const selectedKeys = keys.has(draggedKey)
+      ? new Set(keys)
+      : additive
+        ? new Set([...keys, draggedKey])
+        : new Set([draggedKey]);
+    setKeys(selectedKeys);
+    const selected = getSelectedClips(selectedKeys);
+    const clips = [
+      ...selected.audioTracks.map((track) => ({
+        type: "audio" as const,
+        id: track.id,
+        timelineOffset: track.timelineOffset,
+      })),
+      ...selected.takes.map((take) => ({
+        type: "take" as const,
+        id: take.id,
+        timelineOffset: take.timelineOffset,
+      })),
+    ];
+    return {
+      clips,
+      minimumVisibleStart: Math.min(
+        ...selected.audioTracks.map(
+          (track) => track.timelineOffset + track.trimStart,
+        ),
+        ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
+      ),
+    };
+  }
+
+  function previewMove(
+    snapshot: RecorderClipMoveSnapshot,
+    delta: number,
+  ): void {
+    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
+    const preview = snapshot.clips.map((clip) => ({
+      type: clip.type,
+      id: clip.id,
+      timelineOffset: clip.timelineOffset + clampedDelta,
+    }));
+    movePreviewRef.current = preview;
+    setMovePreview(preview);
+  }
+
+  function commitMove(): void {
+    const preview = movePreviewRef.current;
+    movePreviewRef.current = undefined;
+    setMovePreview(undefined);
+    if (preview) {
+      runtime.moveClips(preview);
+    }
+  }
+
+  function cancelMove(): void {
+    movePreviewRef.current = undefined;
+    setMovePreview(undefined);
+  }
+
+  function removeSelected(): void {
+    const selected = getSelectedClips(keys);
+    runtime.removeClips([
+      ...selected.audioTracks.map((track) => ({
+        type: "audio" as const,
+        id: track.id,
+      })),
+      ...selected.takes.map((take) => ({
+        type: "take" as const,
+        id: take.id,
+      })),
+    ]);
+    setKeys(new Set());
+  }
+
+  return {
+    clear: () => setKeys(new Set()),
+    hasSelection: keys.size > 0,
+    isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
+    movePreview,
+    getPreviewOffset: (clip: RecorderClipId) =>
+      movePreview?.find(
+        (preview) => preview.type === clip.type && preview.id === clip.id,
+      )?.timelineOffset,
+    select,
+    startMove,
+    previewMove,
+    commitMove,
+    cancelMove,
+    removeSelected,
+  };
+}
