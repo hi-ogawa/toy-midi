@@ -620,10 +620,10 @@ function useRecorderClipInteraction({
     clear: () => setKeys(new Set()),
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
-    move,
-    removeSelected,
     select,
     startMove,
+    move,
+    removeSelected,
   };
 }
 
