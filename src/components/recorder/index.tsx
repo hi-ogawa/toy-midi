@@ -1770,13 +1770,13 @@ function TimelineClip({
       setIsDragging(true);
       return {
         startClientX: event.clientX,
-        startOffset: clip!.offset,
+        initialValue: clip.offset,
       };
     },
     onMove: (event, drag) => {
       const deltaBeats = (event.clientX - drag.startClientX) / pixelsPerBeat;
       onClipOffsetChange!(
-        Math.max(0, drag.startOffset + beatsToSeconds(deltaBeats, tempo)),
+        Math.max(0, drag.initialValue + beatsToSeconds(deltaBeats, tempo)),
       );
     },
     onEnd: () => {
@@ -1790,7 +1790,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        startTrim: trimStart!,
+        initialValue: trimStart!,
       };
     },
     onMove: (event, drag) => {
@@ -1798,7 +1798,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / pixelsPerBeat,
         tempo,
       );
-      onTrimStartChange!(drag.startTrim + delta);
+      onTrimStartChange!(drag.initialValue + delta);
     },
   });
   const trimEndRef = usePointerDrag({
@@ -1807,7 +1807,7 @@ function TimelineClip({
       event.stopPropagation();
       return {
         startClientX: event.clientX,
-        startTrim: trimEnd!,
+        initialValue: trimEnd!,
       };
     },
     onMove: (event, drag) => {
@@ -1815,7 +1815,7 @@ function TimelineClip({
         (event.clientX - drag.startClientX) / pixelsPerBeat,
         tempo,
       );
-      onTrimEndChange!(drag.startTrim + delta);
+      onTrimEndChange!(drag.initialValue + delta);
     },
   });
   const clipClass = {
