@@ -299,10 +299,6 @@ export class RecorderRuntime {
     });
   }
 
-  removeTake(id: string): void {
-    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
-  }
-
   setTakeTimelineOffset(id: string, timelineOffset: number): void {
     this.updateTake(id, (take) => ({ ...take, timelineOffset }));
   }
@@ -325,6 +321,10 @@ export class RecorderRuntime {
         Math.max(trimEnd, take.trimStart + MIN_TAKE_DURATION),
       ),
     }));
+  }
+
+  removeTake(id: string): void {
+    this.updateTakes((takes) => takes.filter((take) => take.id !== id));
   }
 
   private updateTake(
