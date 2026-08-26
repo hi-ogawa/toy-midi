@@ -304,21 +304,19 @@ export class RecorderRuntime {
     this.updateTake(id, (take) => ({ ...take, timelineOffset }));
   }
 
-  setTakeTrimStart(id: string, trimStart: number): void {
+  setTakeTrim({
+    id,
+    trimStart,
+    trimEnd,
+  }: {
+    id: string;
+    trimStart: number;
+    trimEnd: number;
+  }): void {
     this.updateTake(id, (take) => ({
       ...take,
-      trimStart: clamp(trimStart, 0, take.trimEnd - MIN_TAKE_DURATION),
-    }));
-  }
-
-  setTakeTrimEnd(id: string, trimEnd: number): void {
-    this.updateTake(id, (take) => ({
-      ...take,
-      trimEnd: clamp(
-        trimEnd,
-        take.trimStart + MIN_TAKE_DURATION,
-        take.duration,
-      ),
+      trimStart: clamp(trimStart, 0, take.duration - MIN_TAKE_DURATION),
+      trimEnd: clamp(trimEnd, trimStart + MIN_TAKE_DURATION, take.duration),
     }));
   }
 

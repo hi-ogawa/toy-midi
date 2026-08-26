@@ -400,12 +400,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeOffsetChange={(id, offset) =>
                   runtime.setTakeTimelineOffset(id, offset)
                 }
-                onTakeTrimStartChange={(id, trimStart) =>
-                  runtime.setTakeTrimStart(id, trimStart)
-                }
-                onTakeTrimEndChange={(id, trimEnd) =>
-                  runtime.setTakeTrimEnd(id, trimEnd)
-                }
+                onTakeTrimChange={(trim) => runtime.setTakeTrim(trim)}
               />
             </CaptureTrackRow>
           </div>
@@ -1569,8 +1564,7 @@ function TakeTimelineLane({
   onSeek,
   onTakeSelect,
   onTakeOffsetChange,
-  onTakeTrimStartChange,
-  onTakeTrimEndChange,
+  onTakeTrimChange,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
@@ -1585,9 +1579,19 @@ function TakeTimelineLane({
   onSeek: (position: number) => void;
   onTakeSelect: (id: string) => void;
   onTakeOffsetChange: (id: string, offset: number) => void;
-  onTakeTrimStartChange: (id: string, trimStart: number) => void;
-  onTakeTrimEndChange: (id: string, trimEnd: number) => void;
+  onTakeTrimChange: (trim: {
+    id: string;
+    trimStart: number;
+    trimEnd: number;
+  }) => void;
 }) {
+  const [trimPreview, setTrimPreview] = useState<{
+    id: string;
+    trimStart: number;
+    trimEnd: number;
+  }>();
+  const trimPreviewRef = useRef<typeof trimPreview>(undefined);
+
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -1611,36 +1615,61 @@ function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      {takes.map((take) => (
-        <div key={take.id}>
-          <TimelineClip
-            clip={{
-              label: `Take ${take.number}`,
-              duration: take.trimEnd - take.trimStart,
-              offset: take.timelineOffset + take.trimStart,
-              audioDuration: take.duration,
-              audioOffset: take.trimStart,
-              variant: "take",
-              audioView: take.audioView,
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onSelect={() => onTakeSelect(take.id)}
-            onClipOffsetChange={(offset) =>
-              onTakeOffsetChange(take.id, offset - take.trimStart)
-            }
-            onTrimStartChange={(trimStart) =>
-              onTakeTrimStartChange(take.id, trimStart)
-            }
-            onTrimEndChange={(trimEnd) => onTakeTrimEndChange(take.id, trimEnd)}
-            trimStart={take.trimStart}
-            trimEnd={take.trimEnd}
-            selected={selectedTakeId === take.id}
-          />
-        </div>
-      ))}
+      {takes.map((take) => {
+        const trim = trimPreview?.id === take.id ? trimPreview : take;
+        return (
+          <div key={take.id}>
+            <TimelineClip
+              clip={{
+                label: `Take ${take.number}`,
+                duration: trim.trimEnd - trim.trimStart,
+                offset: take.timelineOffset + trim.trimStart,
+                audioDuration: take.duration,
+                audioOffset: trim.trimStart,
+                variant: "take",
+                audioView: take.audioView,
+              }}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
+              tempo={tempo}
+              viewportWidth={viewportWidth}
+              onSelect={() => onTakeSelect(take.id)}
+              onClipOffsetChange={(offset) =>
+                onTakeOffsetChange(take.id, offset - take.trimStart)
+              }
+              onTrimStartChange={(trimStart) => {
+                const preview = {
+                  id: take.id,
+                  trimStart,
+                  trimEnd: take.trimEnd,
+                };
+                trimPreviewRef.current = preview;
+                setTrimPreview(preview);
+              }}
+              onTrimEndChange={(trimEnd) => {
+                const preview = {
+                  id: take.id,
+                  trimStart: take.trimStart,
+                  trimEnd,
+                };
+                trimPreviewRef.current = preview;
+                setTrimPreview(preview);
+              }}
+              onTrimEnd={() => {
+                const preview = trimPreviewRef.current;
+                trimPreviewRef.current = undefined;
+                setTrimPreview(undefined);
+                if (preview) {
+                  onTakeTrimChange(preview);
+                }
+              }}
+              trimStart={trim.trimStart}
+              trimEnd={trim.trimEnd}
+              selected={selectedTakeId === take.id}
+            />
+          </div>
+        );
+      })}
       {pendingRecording && (
         <div>
           <TimelineClip
@@ -1737,6 +1766,7 @@ function TimelineClip({
   onSelect,
   onTrimStartChange,
   onTrimEndChange,
+  onTrimEnd,
   trimStart,
   trimEnd,
   selected = false,
@@ -1751,6 +1781,7 @@ function TimelineClip({
   onSelect?: () => void;
   onTrimStartChange?: (offset: number) => void;
   onTrimEndChange?: (offset: number) => void;
+  onTrimEnd?: () => void;
   trimStart?: number;
   trimEnd?: number;
   selected?: boolean;
@@ -1804,6 +1835,7 @@ function TimelineClip({
       );
       onTrimStartChange!(drag.initialValue + delta);
     },
+    onEnd: onTrimEnd,
   });
   const trimEndRef = usePointerDrag({
     onStart: (event) => {
@@ -1821,6 +1853,7 @@ function TimelineClip({
       );
       onTrimEndChange!(drag.initialValue + delta);
     },
+    onEnd: onTrimEnd,
   });
   const clipClass = {
     audio: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
