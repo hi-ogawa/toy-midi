@@ -511,7 +511,7 @@ function useRecorderClipInteraction({
 }) {
   const [keys, setKeys] = useState(() => new Set<string>());
 
-  function getRecorderClipKey(clip: RecorderClipId): string {
+  function getKey(clip: RecorderClipId): string {
     return `${clip.type}:${clip.id}`;
   }
 
@@ -519,9 +519,9 @@ function useRecorderClipInteraction({
     const available = new Set([
       ...state.audioTracks
         .filter((track) => track.clip)
-        .map((track) => getRecorderClipKey({ type: "audio", id: track.id })),
+        .map((track) => getKey({ type: "audio", id: track.id })),
       ...state.recordingTrack.takes.map((take) =>
-        getRecorderClipKey({ type: "take", id: take.id }),
+        getKey({ type: "take", id: take.id }),
       ),
     ]);
     setKeys((current) => {
@@ -531,7 +531,7 @@ function useRecorderClipInteraction({
   }, [state.audioTracks, state.recordingTrack.takes]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
-    const key = getRecorderClipKey(clip);
+    const key = getKey(clip);
     if (!additive) {
       const next = keys.has(key) ? keys : new Set([key]);
       setKeys(next);
@@ -553,7 +553,7 @@ function useRecorderClipInteraction({
     clip: RecorderClipId;
     additive: boolean;
   }): RecorderClipMoveSnapshot {
-    const draggedKey = getRecorderClipKey(clip);
+    const draggedKey = getKey(clip);
     // Dragging a selected clip preserves the group; an unselected clip joins
     // with Ctrl/Cmd or replaces the selection otherwise.
     const selectedKeys = keys.has(draggedKey)
@@ -565,7 +565,7 @@ function useRecorderClipInteraction({
     return [
       ...state.audioTracks
         .filter((track) =>
-          selectedKeys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+          selectedKeys.has(getKey({ type: "audio", id: track.id })),
         )
         .map((track) => ({
           type: "audio" as const,
@@ -575,7 +575,7 @@ function useRecorderClipInteraction({
         })),
       ...state.recordingTrack.takes
         .filter((take) =>
-          selectedKeys.has(getRecorderClipKey({ type: "take", id: take.id })),
+          selectedKeys.has(getKey({ type: "take", id: take.id })),
         )
         .map((take) => ({
           type: "take" as const,
@@ -602,10 +602,10 @@ function useRecorderClipInteraction({
 
   function removeSelected(): void {
     const selectedAudio = state.audioTracks.filter((track) =>
-      keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+      keys.has(getKey({ type: "audio", id: track.id })),
     );
     const selectedTakes = state.recordingTrack.takes.filter((take) =>
-      keys.has(getRecorderClipKey({ type: "take", id: take.id })),
+      keys.has(getKey({ type: "take", id: take.id })),
     );
     if (selectedAudio.length + selectedTakes.length !== 1) {
       return;
@@ -621,7 +621,7 @@ function useRecorderClipInteraction({
   return {
     clear: () => setKeys(new Set()),
     hasSelection: keys.size > 0,
-    isSelected: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
+    isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     select,
     startMove,
     move,
