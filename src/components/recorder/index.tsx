@@ -1901,7 +1901,7 @@ function TimelineClip({
           ref={trimStartRef}
           data-testid="recorder-take-trim-start"
           onClick={(event) => event.stopPropagation()}
-          className="absolute inset-y-0 left-0 z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-0 after:w-0.5 after:bg-transparent hover:after:bg-white/50"
+          className="absolute inset-y-0 -left-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:left-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
       )}
       {onTrimEndChange && (
@@ -1909,7 +1909,7 @@ function TimelineClip({
           ref={trimEndRef}
           data-testid="recorder-take-trim-end"
           onClick={(event) => event.stopPropagation()}
-          className="absolute inset-y-0 right-0 z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:right-0 after:w-0.5 after:bg-transparent hover:after:bg-white/50"
+          className="absolute inset-y-0 -right-[3px] z-20 w-1.5 cursor-ew-resize after:absolute after:inset-y-0 after:right-[3px] after:w-0.5 after:bg-transparent hover:after:bg-white/50"
         />
       )}
     </div>
