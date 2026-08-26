@@ -78,6 +78,8 @@ export interface RecorderRuntimeState {
   latencyCompensation: number;
 }
 
+export type RecorderClipId = { type: "audio" | "take"; id: string };
+
 export type PersistableRecorderRuntimeState = Pick<
   RecorderRuntimeState,
   | "title"
@@ -311,7 +313,7 @@ export class RecorderRuntime {
     this.removeClips([{ type: "audio", id }]);
   }
 
-  removeClips(clips: readonly { type: "audio" | "take"; id: string }[]): void {
+  removeClips(clips: readonly RecorderClipId[]): void {
     if (clips.length === 0) {
       return;
     }

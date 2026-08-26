@@ -52,6 +52,7 @@ import {
 } from "../../lib/recorder/capture-input";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import {
+  type RecorderClipId,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -492,8 +493,6 @@ export function Recorder({ projectId }: { projectId: string }) {
 }
 
 type SaveStatus = "saved" | "unsaved" | "saving" | "error";
-
-type RecorderClipId = { type: "audio" | "take"; id: string };
 
 type RecorderClipMoveSnapshot = {
   clips: (RecorderClipId & { timelineOffset: number })[];
