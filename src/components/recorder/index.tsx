@@ -1856,7 +1856,7 @@ function TimelineClip({
         }
       }}
       className={cn(
-        "absolute inset-y-1 overflow-hidden rounded-sm border text-[11px]",
+        "absolute inset-y-1 rounded-sm border text-[11px]",
         clipClass,
         onClipOffsetChange && "cursor-ew-resize select-none",
         onSelect && "cursor-pointer",
@@ -1868,38 +1868,40 @@ function TimelineClip({
         width: clipWidth,
       }}
     >
-      {clip.audioView && visibleEnd > visibleStart && (
-        <div
-          className="absolute inset-0"
-          style={{
-            left: `${(-100 * (clip.audioOffset ?? 0)) / clip.duration}%`,
-            width: `${(100 * (clip.audioDuration ?? clip.duration)) / clip.duration}%`,
-          }}
-        >
-          <AudioWaveformView
-            audioView={clip.audioView}
-            audioDuration={clip.audioDuration ?? clip.duration}
-            visibleStart={visibleStart}
-            visibleEnd={visibleEnd}
-            pixelWidth={
-              (clipWidth * (clip.audioDuration ?? clip.duration)) /
-              clip.duration
-            }
-          />
-        </div>
-      )}
-      <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-        <span className="mr-1.5">{clip.label}</span>
-        {onClipOffsetChange && clip.offset > 0 && (
-          <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+        {clip.audioView && visibleEnd > visibleStart && (
+          <div
+            className="absolute inset-0"
+            style={{
+              left: `${(-100 * (clip.audioOffset ?? 0)) / clip.duration}%`,
+              width: `${(100 * (clip.audioDuration ?? clip.duration)) / clip.duration}%`,
+            }}
+          >
+            <AudioWaveformView
+              audioView={clip.audioView}
+              audioDuration={clip.audioDuration ?? clip.duration}
+              visibleStart={visibleStart}
+              visibleEnd={visibleEnd}
+              pixelWidth={
+                (clipWidth * (clip.audioDuration ?? clip.duration)) /
+                clip.duration
+              }
+            />
+          </div>
         )}
+        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+          <span className="mr-1.5">{clip.label}</span>
+          {onClipOffsetChange && clip.offset > 0 && (
+            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+          )}
+        </div>
       </div>
       {onTrimStartChange && (
         <div
           ref={trimStartRef}
           data-testid="recorder-take-trim-start"
           onClick={(event) => event.stopPropagation()}
-          className="absolute inset-y-0 left-0 z-20 w-1.5 cursor-ew-resize border-l border-transparent hover:border-white/40"
+          className="absolute inset-y-0 -left-0.75 z-20 w-1.5 cursor-ew-resize border-x-2 border-transparent hover:border-white/40"
         />
       )}
       {onTrimEndChange && (
@@ -1907,7 +1909,7 @@ function TimelineClip({
           ref={trimEndRef}
           data-testid="recorder-take-trim-end"
           onClick={(event) => event.stopPropagation()}
-          className="absolute inset-y-0 right-0 z-20 w-1.5 cursor-ew-resize border-r border-transparent hover:border-white/40"
+          className="absolute inset-y-0 -right-0.75 z-20 w-1.5 cursor-ew-resize border-x-2 border-transparent hover:border-white/40"
         />
       )}
     </div>
