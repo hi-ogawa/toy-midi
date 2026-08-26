@@ -327,7 +327,10 @@ export class RecorderRuntime {
     }));
   }
 
-  private updateTake(id: string, update: (take: TakeState) => TakeState): void {
+  private updateTake(
+    id: string,
+    updateFn: (take: TakeState) => TakeState,
+  ): void {
     this.updateTakes((takes) => {
       const index = takes.findIndex((take) => take.id === id);
       const take = takes[index];
@@ -335,12 +338,12 @@ export class RecorderRuntime {
         throw new Error("Recording take state is missing.");
       }
       const nextTakes = takes.slice();
-      nextTakes[index] = update(take);
+      nextTakes[index] = updateFn(take);
       return nextTakes;
     });
   }
 
-  private updateTakes(update: (takes: TakeState[]) => TakeState[]): void {
+  private updateTakes(updateFn: (takes: TakeState[]) => TakeState[]): void {
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -349,7 +352,7 @@ export class RecorderRuntime {
     this.store.update({
       recordingTrack: {
         ...recordingTrack,
-        takes: update(recordingTrack.takes),
+        takes: updateFn(recordingTrack.takes),
       },
     });
     this.syncTakeRegions();
