@@ -65,6 +65,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("selects and moves audio and take clips together", async ({ page }) => {
+  // The musician imports a backing track and records a take later on the timeline.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
@@ -80,11 +81,13 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   await expect(take).toBeVisible();
 
+  // Ctrl-click adds the take to the selected backing track.
   await audio.click();
   await take.click({ modifiers: ["Control"] });
   await expect(audio).toHaveAttribute("data-selected", "true");
   await expect(take).toHaveAttribute("data-selected", "true");
 
+  // Dragging either selected clip moves the whole selection.
   const audioBefore = await audio.boundingBox();
   const takeBefore = await take.boundingBox();
   expect(audioBefore).not.toBeNull();
@@ -98,11 +101,13 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await page.mouse.move(takeCenter.x + 80, takeCenter.y, { steps: 4 });
   await page.mouse.up();
 
+  // Both clips preserve their relative spacing through the shared movement.
   const audioAfter = await audio.boundingBox();
   const takeAfter = await take.boundingBox();
   expect(audioAfter!.x - audioBefore!.x).toBeCloseTo(80, -1);
   expect(takeAfter!.x - takeBefore!.x).toBeCloseTo(80, -1);
 
+  // Clicking empty timeline space clears the recorder-wide selection.
   const audioLane = audio.locator("xpath=..");
   const audioLaneBox = await audioLane.boundingBox();
   expect(audioLaneBox).not.toBeNull();
