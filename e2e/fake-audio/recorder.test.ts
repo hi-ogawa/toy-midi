@@ -49,14 +49,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   const recording = page.getByTestId("recorder-clip-recording");
   await expect(recording).toContainText("Recording...");
-  const initialWidth = await recording.evaluate(
-    (element) => element.getBoundingClientRect().width,
-  );
-  await expect
-    .poll(() =>
-      recording.evaluate((element) => element.getBoundingClientRect().width),
-    )
-    .toBeGreaterThan(initialWidth);
+  await waitForRecordingSamples(recording);
 
   // Stopping flushes the worklet and finalizes a nonempty waveform-backed take.
   await recordButton.click();
@@ -119,9 +112,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // They move later in the song and record another attempt.
   await seekRecorderByPixels(page, 320);
   await recordButton.click();
-  await expect(page.getByTestId("recorder-clip-recording")).toContainText(
-    "Recording...",
-  );
+  const secondRecording = page.getByTestId("recorder-clip-recording");
+  await expect(secondRecording).toContainText("Recording...");
+  await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
   // The second recording is retained as a new source take.
@@ -167,6 +160,17 @@ async function dragBy(page: Page, locator: Locator, deltaX: number) {
     { steps: 4 },
   );
   await page.mouse.up();
+}
+
+async function waitForRecordingSamples(recording: Locator) {
+  const initialWidth = await recording.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  await expect
+    .poll(() =>
+      recording.evaluate((element) => element.getBoundingClientRect().width),
+    )
+    .toBeGreaterThan(initialWidth);
 }
 
 async function enableInput(page: Page) {
