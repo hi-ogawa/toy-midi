@@ -202,7 +202,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         matchKeyboardEvent(event, "Backspace"))
     ) {
       event.preventDefault();
-      clipInteraction.removeSelectedTakes();
+      clipInteraction.removeSelected();
     } else if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
@@ -310,11 +310,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clip={
                     track.clip
                       ? {
-                          duration: track.clip.buffer.duration,
+                          duration: track.trimEnd - track.trimStart,
                           label: track.clip.name,
-                          offset: track.timelineOffset,
+                          offset: track.timelineOffset + track.trimStart,
                           variant: "audio",
                           audioView: track.clip.audioView,
+                          audioDuration: track.clip.buffer.duration,
+                          audioOffset: track.trimStart,
                         }
                       : undefined
                   }
@@ -335,6 +337,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                       additive,
                     )
                   }
+                  onTrimStartChange={(trimStart) =>
+                    runtime.setAudioTrackTrimStart(track.id, trimStart)
+                  }
+                  onTrimEndChange={(trimEnd) =>
+                    runtime.setAudioTrackTrimEnd(track.id, trimEnd)
+                  }
+                  trimStart={track.trimStart}
+                  trimEnd={track.trimEnd}
                   onClipDragStart={(additive) =>
                     clipInteraction.startMove(
                       { type: "audio", id: track.id },
@@ -556,7 +566,7 @@ function useRecorderClipInteraction({
           type: "audio" as const,
           id: track.id,
           timelineOffset: track.timelineOffset,
-          visibleStart: track.timelineOffset,
+          visibleStart: track.timelineOffset + track.trimStart,
         })),
       ...state.recordingTrack.takes
         .filter((take) =>
@@ -590,14 +600,21 @@ function useRecorderClipInteraction({
     has: (clip: RecorderClipId) => keys.has(getRecorderClipKey(clip)),
     keys,
     move,
-    removeSelectedTakes: () => {
+    removeSelected: () => {
+      const selectedAudio = state.audioTracks.filter((track) =>
+        keys.has(getRecorderClipKey({ type: "audio", id: track.id })),
+      );
       const selectedTakes = state.recordingTrack.takes.filter((take) =>
         keys.has(getRecorderClipKey({ type: "take", id: take.id })),
       );
-      if (selectedTakes.length !== 1) {
+      if (selectedAudio.length + selectedTakes.length !== 1) {
         return;
       }
-      runtime.removeTake(selectedTakes[0]!.id);
+      if (selectedAudio[0]) {
+        runtime.clearAudioTrack(selectedAudio[0].id);
+      } else {
+        runtime.removeTake(selectedTakes[0]!.id);
+      }
       setKeys(new Set());
     },
     select,
@@ -1801,6 +1818,10 @@ function TimelineLane({
   onClipDragStart,
   onClipClick,
   onClipDragMove,
+  onTrimStartChange,
+  onTrimEndChange,
+  trimStart,
+  trimEnd,
   subdivisionsPerBeat,
   onSeek,
 }: {
@@ -1815,6 +1836,10 @@ function TimelineLane({
   onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
   onClipClick: (additive: boolean) => void;
   onClipDragMove: (clips: RecorderClipMoveSnapshot, delta: number) => void;
+  onTrimStartChange?: (offset: number) => void;
+  onTrimEndChange?: (offset: number) => void;
+  trimStart?: number;
+  trimEnd?: number;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -1847,6 +1872,10 @@ function TimelineLane({
           onClipDragStart={onClipDragStart}
           onClipClick={onClipClick}
           onClipDragMove={onClipDragMove}
+          onTrimStartChange={onTrimStartChange}
+          onTrimEndChange={onTrimEndChange}
+          trimStart={trimStart}
+          trimEnd={trimEnd}
         />
       ) : (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">

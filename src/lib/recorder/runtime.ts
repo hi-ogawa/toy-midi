@@ -38,6 +38,9 @@ interface AudioTrackState {
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
+  /** Audible source-buffer interval [trimStart, trimEnd), in seconds. */
+  trimStart: number;
+  trimEnd: number;
 }
 
 interface RecordingTrackState {
@@ -198,8 +201,10 @@ export class RecorderRuntime {
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
     playback.setBuffer(buffer);
-    this.updateAudioTrack(id, (track) => ({
+    const track = this.updateAudioTrack(id, (track) => ({
       ...track,
+      trimStart: 0,
+      trimEnd: buffer.duration,
       clip: {
         name: file.name,
         buffer,
@@ -210,6 +215,7 @@ export class RecorderRuntime {
         ),
       },
     }));
+    this.syncAudioTrackPlayback(track);
   }
 
   setAudioTrackMix(
@@ -268,12 +274,53 @@ export class RecorderRuntime {
       })),
     };
     this.store.update({ audioTracks, recordingTrack });
-    for (const [id, timelineOffset] of audioOffsets) {
-      this.getAudioTrackPlayback(id).setBufferTimelineOffset(timelineOffset);
+    for (const id of audioOffsets.keys()) {
+      this.syncAudioTrackPlayback(
+        audioTracks.find((track) => track.id === id)!,
+      );
     }
     if (takeOffsets.size > 0) {
       this.syncTakeRegions();
     }
+    if (wasPlaying) {
+      this.transport!.play();
+    }
+  }
+
+  setAudioTrackTrimStart(id: string, trimStart: number): void {
+    const track = this.updateAudioTrack(id, (track) => ({
+      ...track,
+      trimStart: clamp(trimStart, 0, track.trimEnd - MIN_TAKE_DURATION),
+    }));
+    this.syncAudioTrackPlayback(track);
+  }
+
+  setAudioTrackTrimEnd(id: string, trimEnd: number): void {
+    const track = this.updateAudioTrack(id, (track) => ({
+      ...track,
+      trimEnd: clamp(
+        trimEnd,
+        track.trimStart + MIN_TAKE_DURATION,
+        track.clip?.buffer.duration ?? 0,
+      ),
+    }));
+    this.syncAudioTrackPlayback(track);
+  }
+
+  clearAudioTrack(id: string): void {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const playback = this.audioTrackPlaybacks.get(id);
+    playback?.stop();
+    playback?.setBuffer(undefined);
+    this.updateAudioTrack(id, (track) => ({
+      ...track,
+      clip: undefined,
+      trimStart: 0,
+      trimEnd: 0,
+    }));
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -300,7 +347,7 @@ export class RecorderRuntime {
   private updateAudioTrack(
     id: string,
     update: (track: AudioTrackState) => AudioTrackState,
-  ): void {
+  ): AudioTrackState {
     const audioTracks = this.store.get().audioTracks.slice();
     const index = audioTracks.findIndex((track) => track.id === id);
     const track = audioTracks[index];
@@ -309,6 +356,7 @@ export class RecorderRuntime {
     }
     audioTracks[index] = update(track);
     this.store.update({ audioTracks });
+    return audioTracks[index]!;
   }
 
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
@@ -330,6 +378,22 @@ export class RecorderRuntime {
       this.syncTrackMix();
     }
     return playback;
+  }
+
+  private syncAudioTrackPlayback(track: AudioTrackState): void {
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const playback = this.getAudioTrackPlayback(track.id);
+    playback.setBufferTimelineOffset(track.timelineOffset);
+    playback.setTimelineRange({
+      start: track.timelineOffset + track.trimStart,
+      end: track.timelineOffset + track.trimEnd,
+    });
+    if (wasPlaying) {
+      this.transport!.play();
+    }
   }
 
   setRecordingTrackMix(
@@ -538,6 +602,10 @@ export class RecorderRuntime {
       });
       playback.setBuffer(buffer);
       playback.setBufferTimelineOffset(track.timelineOffset);
+      playback.setTimelineRange({
+        start: track.timelineOffset + track.trimStart,
+        end: track.timelineOffset + track.trimEnd,
+      });
       this.audioTrackPlaybacks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
@@ -703,6 +771,8 @@ function createAudioTrackState(): AudioTrackState {
     muted: false,
     soloed: false,
     timelineOffset: 0,
+    trimStart: 0,
+    trimEnd: 0,
   };
 }
 
