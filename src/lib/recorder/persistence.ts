@@ -36,6 +36,7 @@ interface SerializedAudioTrackState {
   muted: boolean;
   soloed: boolean;
   timelineOffset: number;
+  // optional for back compat
   trimStart?: number;
   trimEnd?: number;
 }
