@@ -1548,17 +1548,17 @@ function CaptureTrackRow({
 }
 
 type RecorderTimelineClip = {
+  label: string;
   /** Visible clip length on the timeline, in seconds. */
   duration: number;
-  label: string;
   /** Absolute timeline position where the visible clip begins. */
   offset: number;
-  variant: "audio" | "take" | "recording";
-  audioView?: AudioView;
   /** Complete source-buffer length, used to render a trimmed waveform. */
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
+  variant: "audio" | "take" | "recording";
+  audioView?: AudioView;
 };
 
 function TakeTimelineLane({
