@@ -211,8 +211,6 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
-  const takeById = new Map(takes.map((take) => [take.id, take]));
-
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -238,7 +236,7 @@ export function TakeTimelineLane({
       )}
       <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
-          const take = takeById.get(region.takeId)!;
+          const { take } = region;
           const audioOffset = region.timelineStart - take.timelineOffset;
           const previous = regions[index - 1];
           const next = regions[index + 1];
@@ -252,7 +250,7 @@ export function TakeTimelineLane({
               TIMELINE_EPSILON;
           return (
             <TimelineClip
-              key={`${region.takeId}:${index}`}
+              key={`${take.id}:${index}`}
               clip={{
                 label: `Take ${take.number}`,
                 duration: region.timelineEnd - region.timelineStart,
