@@ -369,12 +369,16 @@ export class RecorderRuntime {
         ? { ...track, clip: undefined, trimStart: 0, trimEnd: 0 }
         : track,
     );
-    const recordingTrack = {
-      ...state.recordingTrack,
-      takes: state.recordingTrack.takes.filter((take) => !takeIds.has(take.id)),
-    };
     if (takeIds.size > 0) {
-      this.updateRecordingTrack({ recordingTrack, audioTracks });
+      this.updateRecordingTrack({
+        audioTracks,
+        recordingTrack: {
+          ...state.recordingTrack,
+          takes: state.recordingTrack.takes.filter(
+            (take) => !takeIds.has(take.id),
+          ),
+        },
+      });
     } else {
       this.store.update({ audioTracks });
     }
