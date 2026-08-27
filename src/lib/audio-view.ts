@@ -20,6 +20,50 @@ export interface AudioViewSlice {
   actualEnd: number; // actual end time in seconds (aligned to data boundaries)
 }
 
+export class AudioViewBuilder {
+  readonly view: AudioView;
+
+  constructor(sampleRate: number, targetPointsPerSecond: number) {
+    this.view = {
+      data: [],
+      samplesPerPoint: Math.floor(sampleRate / targetPointsPerSecond),
+      sampleRate,
+    };
+  }
+
+  append(samples: Float32Array, frameOffset: number): void {
+    if (samples.length === 0 || this.view.samplesPerPoint <= 0) {
+      return;
+    }
+    const sourceStart = Math.max(0, -frameOffset);
+    const targetStart = Math.max(0, frameOffset);
+    const length = samples.length - sourceStart;
+    if (length <= 0) {
+      return;
+    }
+    const { data, samplesPerPoint } = this.view;
+    const end = targetStart + length;
+    for (let offset = targetStart; offset < end; offset++) {
+      const point = Math.floor(offset / samplesPerPoint);
+      const abs = Math.abs(samples[sourceStart + offset - targetStart]);
+      data[point] = Math.max(data[point] ?? 0, abs);
+    }
+  }
+
+  finish(length: number): AudioView {
+    if (this.view.samplesPerPoint <= 0 || length <= 0) {
+      this.view.data.length = 0;
+      return this.view;
+    }
+    this.view.data.length = Math.ceil(length / this.view.samplesPerPoint);
+    return this.view;
+  }
+
+  reset(): void {
+    this.view.data.length = 0;
+  }
+}
+
 // Build AudioView from raw samples
 export function createAudioView(
   samples: Float32Array,
@@ -30,26 +74,12 @@ export function createAudioView(
     return EMPTY_AUDIO_VIEW;
   }
 
-  const samplesPerPoint = Math.floor(sampleRate / targetPointsPerSecond);
-  if (samplesPerPoint <= 0) {
+  const builder = new AudioViewBuilder(sampleRate, targetPointsPerSecond);
+  if (builder.view.samplesPerPoint <= 0) {
     return EMPTY_AUDIO_VIEW;
   }
-
-  const data: number[] = [];
-
-  for (let i = 0; i < samples.length; i += samplesPerPoint) {
-    let max = 0;
-    const end = Math.min(i + samplesPerPoint, samples.length);
-    for (let j = i; j < end; j++) {
-      const abs = Math.abs(samples[j]);
-      if (abs > max) {
-        max = abs;
-      }
-    }
-    data.push(max);
-  }
-
-  return { data, samplesPerPoint, sampleRate };
+  builder.append(samples, 0);
+  return builder.finish(samples.length);
 }
 
 // Query visible range, downsample to pixel width

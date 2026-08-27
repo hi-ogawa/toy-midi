@@ -57,6 +57,7 @@ interface PendingRecordingState extends Pick<
   "id" | "number" | "duration" | "timelineOffset"
 > {
   recording: ActiveRecording;
+  audioView: AudioView;
 }
 
 export interface RecorderRuntimeState {
@@ -560,12 +561,18 @@ export class RecorderRuntime {
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const number = this.store.get().recordingTrack.nextTakeNumber;
+    const recording = new ActiveRecording({
+      startFrame,
+      sampleRate: context.sampleRate,
+      waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
+    });
     const pendingRecording: PendingRecordingState = {
       id,
       number,
       duration: 0,
       timelineOffset,
-      recording: new ActiveRecording(startFrame),
+      recording,
+      audioView: recording.getAudioView(),
     };
     this.store.update({
       captureStatus: "recording",
@@ -770,11 +777,7 @@ export class RecorderRuntime {
             trimStart: 0,
             trimEnd: takeBuffer.duration,
             timelineOffset: pendingRecording.timelineOffset,
-            audioView: createAudioView(
-              samples,
-              context.sampleRate,
-              WAVEFORM_POINTS_PER_SECOND,
-            ),
+            audioView: pendingRecording.audioView,
           },
         ],
       },

@@ -1,21 +1,45 @@
+import { AudioViewBuilder, type AudioView } from "../audio-view.ts";
 import type { CaptureChunk } from "./capture-worklet.ts";
 
 export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];
+  private readonly audioViewBuilder: AudioViewBuilder;
   private readonly startFrame: number;
   private endFrame: number;
 
-  constructor(startFrame: number) {
+  constructor({
+    startFrame,
+    sampleRate,
+    waveformPointsPerSecond,
+  }: {
+    startFrame: number;
+    sampleRate: number;
+    waveformPointsPerSecond: number;
+  }) {
     this.startFrame = startFrame;
     this.endFrame = startFrame;
+    this.audioViewBuilder = new AudioViewBuilder(
+      sampleRate,
+      waveformPointsPerSecond,
+    );
   }
 
   append(chunk: CaptureChunk): void {
     this.chunks.push(chunk);
+    const frameOffset = chunk.frameStart - this.startFrame;
+    if (frameOffset < this.getDurationFrames()) {
+      this.rebuildAudioViewWithPcm();
+    } else {
+      this.audioViewBuilder.append(chunk.samples, frameOffset);
+    }
     this.endFrame = Math.max(
       this.endFrame,
       chunk.frameStart + chunk.samples.length,
     );
+  }
+
+  getAudioView(): AudioView {
+    return this.audioViewBuilder.view;
   }
 
   getDurationFrames(): number {
@@ -39,7 +63,24 @@ export class ActiveRecording {
         chunk.frameStart - this.startFrame,
       );
     }
+    this.audioViewBuilder.reset();
+    this.audioViewBuilder.append(samples, 0);
+    this.audioViewBuilder.finish(length);
     return samples;
+  }
+
+  private rebuildAudioViewWithPcm(stopFrame = this.endFrame): void {
+    const length = Math.max(0, stopFrame - this.startFrame);
+    const samples = new Float32Array(length);
+    for (const chunk of this.chunks) {
+      setArrayClipped(
+        samples,
+        chunk.samples,
+        chunk.frameStart - this.startFrame,
+      );
+    }
+    this.audioViewBuilder.reset();
+    this.audioViewBuilder.append(samples, 0);
   }
 }
 
