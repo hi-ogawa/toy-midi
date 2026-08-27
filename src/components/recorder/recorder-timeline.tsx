@@ -498,7 +498,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${clip.variant}`}
+      data-testid={`recorder-clip-${recording ? "recording" : clip.variant}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(

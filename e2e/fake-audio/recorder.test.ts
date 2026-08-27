@@ -78,9 +78,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await seekRecorderByPixels(page, 160);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
-  await waitForRecordingSamples(
-    page.getByTestId("recorder-clip-comp").filter({ hasText: "Recording..." }),
-  );
+  await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();
   const take = page.getByTestId("recorder-clip-take");
   await expect(take).toBeVisible();
@@ -137,7 +135,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  const recording = page.getByTestId("recorder-clip-comp");
+  const recording = page.getByTestId("recorder-clip-recording");
   await expect(recording).toContainText("Recording...");
   await waitForRecordingSamples(recording);
   await expect(recording.locator("svg")).toBeVisible();
@@ -205,9 +203,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // They move later in the song and record another attempt.
   await seekRecorderByPixels(page, 320);
   await recordButton.click();
-  const secondRecording = page
-    .getByTestId("recorder-clip-comp")
-    .filter({ hasText: "Recording..." });
+  const secondRecording = page.getByTestId("recorder-clip-recording");
   await expect(secondRecording).toContainText("Recording...");
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
