@@ -573,8 +573,9 @@ export class RecorderRuntime {
         waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
       }),
     };
-    this.updatePendingRecording(pendingRecording, {
+    this.store.update({
       captureStatus: "recording",
+      pendingRecording,
     });
   }
 
