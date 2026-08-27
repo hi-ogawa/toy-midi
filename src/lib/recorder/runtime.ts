@@ -563,17 +563,16 @@ export class RecorderRuntime {
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
     const number = this.store.get().recordingTrack.nextTakeNumber;
-    const recording = new ActiveRecording({
-      startFrame,
-      sampleRate: context.sampleRate,
-      waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
-    });
     const pendingRecording: PendingRecordingState = {
       id,
       number,
       duration: 0,
       timelineOffset,
-      recording,
+      recording: new ActiveRecording({
+        startFrame,
+        sampleRate: context.sampleRate,
+        waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
+      }),
     };
     this.store.update({
       captureStatus: "recording",
