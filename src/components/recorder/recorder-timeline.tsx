@@ -170,6 +170,8 @@ type RecorderTimelineClip = {
   audioView?: AudioView;
 };
 
+const TIMELINE_EPSILON = 1e-6;
+
 export function TakeTimelineLane({
   takes,
   pendingRecording,
@@ -238,6 +240,16 @@ export function TakeTimelineLane({
         {regions.map((region, index) => {
           const take = takeById.get(region.takeId)!;
           const audioOffset = region.timelineStart - take.timelineOffset;
+          const previous = regions[index - 1];
+          const next = regions[index + 1];
+          const joinsPrevious =
+            previous !== undefined &&
+            Math.abs(previous.timelineEnd - region.timelineStart) <
+              TIMELINE_EPSILON;
+          const joinsNext =
+            next !== undefined &&
+            Math.abs(region.timelineEnd - next.timelineStart) <
+              TIMELINE_EPSILON;
           return (
             <TimelineClip
               key={`${region.takeId}:${index}`}
@@ -255,6 +267,8 @@ export function TakeTimelineLane({
               tempo={tempo}
               viewportWidth={viewportWidth}
               testId="recorder-comp-region"
+              joinsPrevious={joinsPrevious}
+              joinsNext={joinsNext}
             />
           );
         })}
@@ -392,6 +406,8 @@ function TimelineClip({
   onTrimStart,
   onTrimMove,
   interactionOnly = false,
+  joinsPrevious = false,
+  joinsNext = false,
   testId,
   selected = false,
 }: {
@@ -406,6 +422,8 @@ function TimelineClip({
   onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   interactionOnly?: boolean;
+  joinsPrevious?: boolean;
+  joinsNext?: boolean;
   testId?: string;
   selected?: boolean;
 }) {
@@ -509,6 +527,8 @@ function TimelineClip({
           : clipClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
+        joinsPrevious && "rounded-l-none",
+        joinsNext && "rounded-r-none border-r-0",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging &&
           (interactionOnly
