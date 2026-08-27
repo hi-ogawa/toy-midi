@@ -52,7 +52,7 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
     // The complete new take wins its own interval because all overlaps have
     // already been removed from older regions.
     nextRegions.push({
-      takeId: take.id,
+      take,
       timelineStart: takeStart,
       timelineEnd: takeEnd,
     });

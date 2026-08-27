@@ -615,7 +615,6 @@ export class RecorderRuntime {
     return renderTakeComp({
       context: this.ensureContext(),
       regions: this.store.get().takeRegions,
-      takes: this.store.get().recordingTrack.takes,
     });
   }
 
@@ -795,24 +794,18 @@ export class RecorderRuntime {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
     this.store.update({ ...update, takeRegions });
-    this.syncTakePlayback({ takes: recordingTrack.takes, takeRegions });
+    this.syncTakePlayback(takeRegions);
   }
 
-  private syncTakePlayback({
-    takes,
-    takeRegions,
-  }: {
-    takes: TakeState[];
-    takeRegions: TakeRegion[];
-  }): void {
+  private syncTakePlayback(takeRegions: TakeRegion[]): void {
     const context = this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
     this.recordingTrackPlaybacks = [];
     for (const region of takeRegions) {
-      const take = takes.find((entry) => entry.id === region.takeId);
-      if (!take?.buffer) {
+      const { take } = region;
+      if (!take.buffer) {
         continue;
       }
       const playback = new AudioBufferPlayback({
