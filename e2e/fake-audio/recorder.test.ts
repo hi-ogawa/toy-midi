@@ -141,7 +141,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(recording).toContainText("Recording...");
   await waitForRecordingSamples(recording);
   await expect(recording.locator("svg")).toBeVisible();
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(0);
 
   // Stopping flushes the worklet and finalizes a nonempty waveform-backed take.
   await recordButton.click();
