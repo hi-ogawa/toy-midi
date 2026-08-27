@@ -25,6 +25,17 @@ export class ActiveRecording {
   }
 
   append(chunk: CaptureChunk): void {
+    if (chunk.frameStart < this.startFrame) {
+      const sampleOffset = this.startFrame - chunk.frameStart;
+      chunk = {
+        ...chunk,
+        frameStart: this.startFrame,
+        samples: chunk.samples.subarray(sampleOffset),
+      };
+    }
+    if (chunk.samples.length === 0) {
+      return;
+    }
     this.chunks.push(chunk);
     this.audioViewBuilder.append(
       chunk.samples,

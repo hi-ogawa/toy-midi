@@ -35,13 +35,6 @@ export class AudioViewBuilder {
     if (samples.length === 0 || this.view.samplesPerPoint <= 0) {
       return;
     }
-    if (frameOffset < 0) {
-      samples = samples.subarray(-frameOffset);
-      frameOffset = 0;
-    }
-    if (samples.length === 0) {
-      return;
-    }
     const { data, samplesPerPoint } = this.view;
     const end = frameOffset + samples.length;
     for (let offset = frameOffset; offset < end; offset++) {
