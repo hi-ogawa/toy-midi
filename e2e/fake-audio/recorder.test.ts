@@ -79,7 +79,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();
-  const take = page.getByTestId("recorder-clip-take-interaction");
+  const take = page.getByTestId("recorder-clip-take");
   await expect(take).toBeVisible();
 
   // Ctrl-click adds the take to the selected backing track.
@@ -142,8 +142,8 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take-interaction");
-  const compRegion = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-take");
+  const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(take).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();

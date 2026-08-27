@@ -165,7 +165,7 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  variant: "audio" | "take" | "recording";
+  variant: "audio" | "comp" | "take" | "recording";
   audioView?: AudioView;
 };
 
@@ -259,7 +259,7 @@ export function TakeTimelineLane({
                 offset: region.timelineStart,
                 audioDuration: take.duration,
                 audioOffset,
-                variant: "take",
+                variant: "comp",
                 audioView: take.audioView,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -292,7 +292,6 @@ export function TakeTimelineLane({
           onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
           onTrimMove={onTakeTrimMove}
           selected={isTakeSelected(take.id)}
-          hidePresentation
         />
       ))}
       {pendingRecording && (
@@ -403,7 +402,6 @@ function TimelineClip({
   onClipDragMove,
   onTrimStart,
   onTrimMove,
-  hidePresentation = false,
   joinsPrevious = false,
   joinsNext = false,
   overlayBorder = false,
@@ -419,7 +417,6 @@ function TimelineClip({
   onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
-  hidePresentation?: boolean;
   joinsPrevious?: boolean;
   joinsNext?: boolean;
   overlayBorder?: boolean;
@@ -489,16 +486,15 @@ function TimelineClip({
       onTrimMove!(drag.snapshot, delta);
     },
   });
-  const clipClass = {
-    audio: "bg-emerald-400/20 text-emerald-100",
-    take: "bg-emerald-400/20 text-emerald-100",
-    recording: "bg-red-400/20 text-red-100",
-  }[clip.variant];
-  const clipBorderClass = {
-    audio: "border-emerald-400/60",
-    take: "border-emerald-400/60",
-    recording: "border-red-400/70",
-  }[clip.variant];
+  const hidePresentation = clip.variant === "take";
+  const clipClass =
+    clip.variant === "recording"
+      ? "bg-red-400/20 text-red-100"
+      : "bg-emerald-400/20 text-emerald-100";
+  const clipBorderClass =
+    clip.variant === "recording"
+      ? "border-red-400/70"
+      : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const clipWidth = Math.max(
     2,
@@ -519,7 +515,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${clip.variant}${hidePresentation ? "-interaction" : ""}`}
+      data-testid={`recorder-clip-${clip.variant}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
