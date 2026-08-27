@@ -302,6 +302,7 @@ export function TakeTimelineLane({
                   : "Recording...",
               offset: pendingRecording.timelineOffset,
               variant: "recording",
+              audioView: pendingRecording.recording.getAudioView(),
             }}
             pixelsPerBeat={pixelsPerBeat}
             viewportStartBeat={viewportStartBeat}

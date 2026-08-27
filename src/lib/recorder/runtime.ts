@@ -568,7 +568,11 @@ export class RecorderRuntime {
       number,
       duration: 0,
       timelineOffset,
-      recording: new ActiveRecording(startFrame),
+      recording: new ActiveRecording({
+        startFrame,
+        sampleRate: context.sampleRate,
+        waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
+      }),
     };
     this.store.update({
       captureStatus: "recording",
@@ -771,11 +775,7 @@ export class RecorderRuntime {
             trimStart: 0,
             trimEnd: takeBuffer.duration,
             timelineOffset: pendingRecording.timelineOffset,
-            audioView: createAudioView(
-              samples,
-              context.sampleRate,
-              WAVEFORM_POINTS_PER_SECOND,
-            ),
+            audioView: pendingRecording.recording.getAudioView(),
           },
         ],
       },
