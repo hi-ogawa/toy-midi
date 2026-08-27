@@ -269,6 +269,7 @@ export function TakeTimelineLane({
               testId="recorder-comp-region"
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
+              overlayBorder
             />
           );
         })}
@@ -408,6 +409,7 @@ function TimelineClip({
   interactionOnly = false,
   joinsPrevious = false,
   joinsNext = false,
+  overlayBorder = false,
   testId,
   selected = false,
 }: {
@@ -424,6 +426,7 @@ function TimelineClip({
   interactionOnly?: boolean;
   joinsPrevious?: boolean;
   joinsNext?: boolean;
+  overlayBorder?: boolean;
   testId?: string;
   selected?: boolean;
 }) {
@@ -492,9 +495,14 @@ function TimelineClip({
     },
   });
   const clipClass = {
-    audio: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
-    take: "border-emerald-400/60 bg-emerald-400/20 text-emerald-100",
-    recording: "border-red-400/70 bg-red-400/20 text-red-100",
+    audio: "bg-emerald-400/20 text-emerald-100",
+    take: "bg-emerald-400/20 text-emerald-100",
+    recording: "bg-red-400/20 text-red-100",
+  }[clip.variant];
+  const clipBorderClass = {
+    audio: "border-emerald-400/60",
+    take: "border-emerald-400/60",
+    recording: "border-red-400/70",
   }[clip.variant];
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const clipWidth = Math.max(
@@ -521,14 +529,16 @@ function TimelineClip({
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
-        "absolute inset-y-1 rounded-sm border text-[11px]",
+        "absolute inset-y-1 rounded-sm text-[11px]",
+        !overlayBorder && "border",
         interactionOnly
           ? "border-transparent bg-transparent text-transparent"
           : clipClass,
+        !interactionOnly && !overlayBorder && clipBorderClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
-        joinsNext && "rounded-r-none border-r-transparent",
+        joinsNext && "rounded-r-none",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging &&
           (interactionOnly
@@ -560,6 +570,15 @@ function TimelineClip({
             )}
           </div>
         </div>
+      )}
+      {overlayBorder && (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 rounded-[inherit] border",
+            clipBorderClass,
+            joinsNext && "border-r-0",
+          )}
+        />
       )}
       {onTrimStart && (
         <div
