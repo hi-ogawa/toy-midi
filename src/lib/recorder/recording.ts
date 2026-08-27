@@ -71,7 +71,6 @@ export class ActiveRecording {
     }
     this.audioViewBuilder.reset();
     this.audioViewBuilder.append(samples, 0);
-    this.audioViewBuilder.finish(length);
     return samples;
   }
 }

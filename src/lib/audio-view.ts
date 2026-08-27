@@ -42,14 +42,6 @@ export class AudioViewBuilder {
     }
   }
 
-  finish(length: number): void {
-    if (this.view.samplesPerPoint <= 0 || length <= 0) {
-      this.view.data.length = 0;
-      return;
-    }
-    this.view.data.length = Math.ceil(length / this.view.samplesPerPoint);
-  }
-
   reset(): void {
     this.view.data.length = 0;
   }
@@ -70,7 +62,6 @@ export function createAudioView(
     return EMPTY_AUDIO_VIEW;
   }
   builder.append(samples, 0);
-  builder.finish(samples.length);
   return builder.view;
 }
 
