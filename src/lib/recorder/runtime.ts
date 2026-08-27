@@ -799,16 +799,13 @@ export class RecorderRuntime {
   }
 
   private updatePendingRecording(
-    pendingRecording: PendingRecordingState | undefined,
-    update: Partial<RecorderRuntimeState> = {},
+    pendingRecording: PendingRecordingState,
   ): void {
-    const compPreviewRegions = pendingRecording
-      ? deriveTakeRegions([
-          ...this.store.get().recordingTrack.takes,
-          pendingRecordingToTake(pendingRecording),
-        ])
-      : undefined;
-    this.store.update({ ...update, pendingRecording, compPreviewRegions });
+    const compPreviewRegions = deriveTakeRegions([
+      ...this.store.get().recordingTrack.takes,
+      pendingRecordingToTake(pendingRecording),
+    ]);
+    this.store.update({ pendingRecording, compPreviewRegions });
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
