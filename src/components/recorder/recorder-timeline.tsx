@@ -528,7 +528,7 @@ function TimelineClip({
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
-        joinsNext && "rounded-r-none border-r-0",
+        joinsNext && "rounded-r-none border-r-transparent",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging &&
           (interactionOnly
