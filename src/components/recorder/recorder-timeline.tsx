@@ -484,7 +484,6 @@ function TimelineClip({
     },
   });
   const hidePresentation = clip.variant === "take";
-  const overlayBorder = clip.variant === "comp";
   const clipClass =
     clip.variant === "recording"
       ? "bg-red-400/20 text-red-100"
@@ -518,20 +517,12 @@ function TimelineClip({
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm text-[11px]",
-        !overlayBorder && "border",
-        hidePresentation
-          ? "border-transparent bg-transparent text-transparent"
-          : clipClass,
-        !hidePresentation && !overlayBorder && clipBorderClass,
+        hidePresentation ? "bg-transparent text-transparent" : clipClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
         joinsNext && "rounded-r-none",
-        selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
-        isDragging &&
-          (hidePresentation
-            ? "border-sky-300 ring-1 ring-inset ring-sky-300"
-            : "brightness-125"),
+        isDragging && !hidePresentation && "brightness-125",
       )}
       style={{
         left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
@@ -559,7 +550,7 @@ function TimelineClip({
           </div>
         </div>
       )}
-      {overlayBorder && (
+      {!hidePresentation && (
         <div
           className={cn(
             "pointer-events-none absolute inset-0 rounded-[inherit] border",
@@ -567,6 +558,9 @@ function TimelineClip({
             joinsNext && "border-r-0",
           )}
         />
+      )}
+      {hidePresentation && (selected || isDragging) && (
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-sky-300 ring-1 ring-inset ring-sky-300" />
       )}
       {onTrimStart && (
         <div

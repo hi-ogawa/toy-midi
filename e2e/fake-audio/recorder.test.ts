@@ -57,7 +57,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Deleting the selected clip preserves the empty audio track row.
   await clip.dispatchEvent("click");
-  await expect(clip).toHaveClass(/border-sky-300/);
+  await expect(clip).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
@@ -218,9 +218,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const positionBeforeSelection = await position.textContent();
   await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
-  await expect(take.nth(0)).toHaveClass(/border-sky-300/);
+  await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
-  await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
+  await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");
 
   // Delete removes every selected source take together.
   await take.nth(0).click();
