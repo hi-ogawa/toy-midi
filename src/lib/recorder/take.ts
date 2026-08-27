@@ -13,7 +13,7 @@ export interface TakeState {
 }
 
 export interface TakeRegion {
-  takeId: string;
+  take: TakeState;
   timelineStart: number;
   timelineEnd: number;
 }

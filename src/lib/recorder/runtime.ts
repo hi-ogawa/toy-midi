@@ -150,13 +150,18 @@ export class RecorderRuntime {
               break;
             }
             pendingRecording.recording.append(message);
+            const nextPendingRecording = {
+              ...pendingRecording,
+              duration:
+                pendingRecording.recording.getDurationFrames() /
+                context.sampleRate,
+            };
             this.store.update({
-              pendingRecording: {
-                ...pendingRecording,
-                duration:
-                  pendingRecording.recording.getDurationFrames() /
-                  context.sampleRate,
-              },
+              pendingRecording: nextPendingRecording,
+              takeRegions: deriveTakeRegions([
+                ...this.store.get().recordingTrack.takes,
+                pendingRecordingToTake(nextPendingRecording),
+              ]),
             });
             if (
               pendingRecording.recording.getDurationFrames() >=
@@ -580,6 +585,10 @@ export class RecorderRuntime {
     this.store.update({
       captureStatus: "recording",
       pendingRecording,
+      takeRegions: deriveTakeRegions([
+        ...this.store.get().recordingTrack.takes,
+        pendingRecordingToTake(pendingRecording),
+      ]),
     });
   }
 
@@ -619,10 +628,10 @@ export class RecorderRuntime {
   }
 
   renderComp(): AudioBuffer | undefined {
+    const takes = this.store.get().recordingTrack.takes;
     return renderTakeComp({
       context: this.ensureContext(),
-      regions: this.store.get().takeRegions,
-      takes: this.store.get().recordingTrack.takes,
+      regions: deriveTakeRegions(takes),
     });
   }
 
@@ -749,9 +758,11 @@ export class RecorderRuntime {
     }
     const samples = pendingRecording.recording.finish(stopFrame);
     if (!samples) {
+      const takes = this.store.get().recordingTrack.takes;
       this.store.update({
         captureStatus: "ready",
         pendingRecording: undefined,
+        takeRegions: deriveTakeRegions(takes),
       });
       this.syncTrackMix();
       return;
@@ -798,23 +809,17 @@ export class RecorderRuntime {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
     this.store.update({ ...update, takeRegions });
-    this.syncTakePlayback({ takes: recordingTrack.takes, takeRegions });
+    this.syncTakePlayback(takeRegions);
   }
 
-  private syncTakePlayback({
-    takes,
-    takeRegions,
-  }: {
-    takes: TakeState[];
-    takeRegions: TakeRegion[];
-  }): void {
+  private syncTakePlayback(takeRegions: TakeRegion[]): void {
     const context = this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
     this.recordingTrackPlaybacks = [];
     for (const region of takeRegions) {
-      const take = takes.find((entry) => entry.id === region.takeId);
+      const { take } = region;
       if (!take?.buffer) {
         continue;
       }
@@ -832,6 +837,20 @@ export class RecorderRuntime {
     }
     this.syncTrackMix();
   }
+}
+
+function pendingRecordingToTake(
+  pendingRecording: PendingRecordingState,
+): TakeState {
+  return {
+    id: pendingRecording.id,
+    number: pendingRecording.number,
+    duration: pendingRecording.duration,
+    trimStart: 0,
+    trimEnd: pendingRecording.duration,
+    timelineOffset: pendingRecording.timelineOffset,
+    audioView: pendingRecording.audioView,
+  };
 }
 
 function createAudioTrackState(): AudioTrackState {
