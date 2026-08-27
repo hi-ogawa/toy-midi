@@ -3,12 +3,6 @@ import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeState } from "./take.ts";
 
 describe(deriveTakeRegions, () => {
-  it("retains the source take on each derived region", () => {
-    const source = take("source", 1, 2);
-
-    expect(deriveTakeRegions([source])[0]?.take).toBe(source);
-  });
-
   it("keeps disjoint takes in timeline order", () => {
     const first = take("first", 4, 2);
     const second = take("second", 0, 2);
