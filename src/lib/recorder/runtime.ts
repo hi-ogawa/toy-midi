@@ -71,6 +71,7 @@ export interface RecorderRuntimeState {
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
   takeRegions: TakeRegion[];
+  compPreviewRegions: TakeRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
@@ -111,6 +112,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
     takeRegions: [],
+    compPreviewRegions: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -155,12 +157,8 @@ export class RecorderRuntime {
                 pendingRecording.recording.getDurationFrames() /
                 context.sampleRate,
             };
-            this.store.update({
+            this.updateCompPreview({
               pendingRecording: nextPendingRecording,
-              takeRegions: deriveTakeRegions([
-                ...this.store.get().recordingTrack.takes,
-                pendingRecordingToTake(nextPendingRecording),
-              ]),
             });
             if (
               pendingRecording.recording.getDurationFrames() >=
@@ -579,13 +577,9 @@ export class RecorderRuntime {
         waveformPointsPerSecond: WAVEFORM_POINTS_PER_SECOND,
       }),
     };
-    this.store.update({
+    this.updateCompPreview({
       captureStatus: "recording",
       pendingRecording,
-      takeRegions: deriveTakeRegions([
-        ...this.store.get().recordingTrack.takes,
-        pendingRecordingToTake(pendingRecording),
-      ]),
     });
   }
 
@@ -625,10 +619,9 @@ export class RecorderRuntime {
   }
 
   renderComp(): AudioBuffer | undefined {
-    const takes = this.store.get().recordingTrack.takes;
     return renderTakeComp({
       context: this.ensureContext(),
-      regions: deriveTakeRegions(takes),
+      regions: this.store.get().takeRegions,
     });
   }
 
@@ -755,11 +748,9 @@ export class RecorderRuntime {
     }
     const samples = pendingRecording.recording.finish(stopFrame);
     if (!samples) {
-      const takes = this.store.get().recordingTrack.takes;
-      this.store.update({
+      this.updateCompPreview({
         captureStatus: "ready",
         pendingRecording: undefined,
-        takeRegions: deriveTakeRegions(takes),
       });
       this.syncTrackMix();
       return;
@@ -805,8 +796,26 @@ export class RecorderRuntime {
   ): void {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
-    this.store.update({ ...update, takeRegions });
+    this.store.update({
+      ...update,
+      recordingTrack,
+      takeRegions,
+      compPreviewRegions: takeRegions,
+    });
     this.syncTakePlayback(takeRegions);
+  }
+
+  private updateCompPreview(update: Partial<RecorderRuntimeState>): void {
+    const state = this.store.get();
+    const pendingRecording = Object.hasOwn(update, "pendingRecording")
+      ? update.pendingRecording
+      : state.pendingRecording;
+    const takes = update.recordingTrack?.takes ?? state.recordingTrack.takes;
+    const compPreviewRegions = deriveTakeRegions([
+      ...takes,
+      ...(pendingRecording ? [pendingRecordingToTake(pendingRecording)] : []),
+    ]);
+    this.store.update({ ...update, compPreviewRegions });
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
