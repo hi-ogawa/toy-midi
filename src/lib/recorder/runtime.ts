@@ -57,7 +57,6 @@ interface PendingRecordingState extends Pick<
   "id" | "number" | "duration" | "timelineOffset"
 > {
   recording: ActiveRecording;
-  audioView: AudioView;
 }
 
 export interface RecorderRuntimeState {
@@ -575,7 +574,6 @@ export class RecorderRuntime {
       duration: 0,
       timelineOffset,
       recording,
-      audioView: recording.getAudioView(),
     };
     this.store.update({
       captureStatus: "recording",
@@ -778,7 +776,7 @@ export class RecorderRuntime {
             trimStart: 0,
             trimEnd: takeBuffer.duration,
             timelineOffset: pendingRecording.timelineOffset,
-            audioView: pendingRecording.audioView,
+            audioView: pendingRecording.recording.getAudioView(),
           },
         ],
       },
