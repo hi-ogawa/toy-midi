@@ -150,13 +150,12 @@ export class RecorderRuntime {
               break;
             }
             pendingRecording.recording.append(message);
-            const nextPendingRecording = {
+            this.updatePendingRecording({
               ...pendingRecording,
               duration:
                 pendingRecording.recording.getDurationFrames() /
                 context.sampleRate,
-            };
-            this.updatePendingRecording(nextPendingRecording);
+            });
             if (
               pendingRecording.recording.getDurationFrames() >=
                 context.sampleRate * MAX_RECORDING_SECONDS &&
