@@ -268,7 +268,6 @@ export function TakeTimelineLane({
               viewportWidth={viewportWidth}
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
-              overlayBorder
             />
           );
         })}
@@ -404,7 +403,6 @@ function TimelineClip({
   onTrimMove,
   joinsPrevious = false,
   joinsNext = false,
-  overlayBorder = false,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -419,7 +417,6 @@ function TimelineClip({
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   joinsPrevious?: boolean;
   joinsNext?: boolean;
-  overlayBorder?: boolean;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -487,6 +484,7 @@ function TimelineClip({
     },
   });
   const hidePresentation = clip.variant === "take";
+  const overlayBorder = clip.variant === "comp";
   const clipClass =
     clip.variant === "recording"
       ? "bg-red-400/20 text-red-100"
