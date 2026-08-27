@@ -38,8 +38,7 @@ export class AudioViewBuilder {
     const { data, samplesPerPoint } = this.view;
     for (let i = 0; i < samples.length; i++) {
       const point = Math.floor((frameOffset + i) / samplesPerPoint);
-      const abs = Math.abs(samples[i]);
-      data[point] = Math.max(data[point] ?? 0, abs);
+      data[point] = Math.max(data[point] ?? 0, Math.abs(samples[i]));
     }
   }
 
