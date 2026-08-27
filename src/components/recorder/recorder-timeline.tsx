@@ -165,7 +165,8 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  variant: "audio" | "comp" | "take" | "recording";
+  // TODO: Replace variant and presentation flags with explicit clip concerns.
+  variant: "audio" | "comp" | "take";
   audioView?: AudioView;
 };
 
@@ -237,6 +238,7 @@ export function TakeTimelineLane({
       <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
           const { take } = region;
+          const isPendingRecording = take.id === pendingRecording?.id;
           const audioOffset = region.timelineStart - take.timelineOffset;
           const previous = regions[index - 1];
           const next = regions[index + 1];
@@ -252,12 +254,11 @@ export function TakeTimelineLane({
             <TimelineClip
               key={`${take.id}:${index}`}
               clip={{
-                label:
-                  take.id === pendingRecording?.id
-                    ? captureStatus === "processing"
-                      ? "Finalizing..."
-                      : "Recording..."
-                    : `Take ${take.number}`,
+                label: isPendingRecording
+                  ? captureStatus === "processing"
+                    ? "Finalizing..."
+                    : "Recording..."
+                  : `Take ${take.number}`,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioDuration: take.duration,
@@ -271,6 +272,7 @@ export function TakeTimelineLane({
               viewportWidth={viewportWidth}
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
+              recording={isPendingRecording}
             />
           );
         })}
@@ -387,6 +389,7 @@ function TimelineClip({
   onTrimMove,
   joinsPrevious = false,
   joinsNext = false,
+  recording = false,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -401,6 +404,7 @@ function TimelineClip({
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   joinsPrevious?: boolean;
   joinsNext?: boolean;
+  recording?: boolean;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -468,14 +472,12 @@ function TimelineClip({
     },
   });
   const hidePresentation = clip.variant === "take";
-  const clipClass =
-    clip.variant === "recording"
-      ? "bg-red-400/20 text-red-100"
-      : "bg-emerald-400/20 text-emerald-100";
-  const clipBorderClass =
-    clip.variant === "recording"
-      ? "border-red-400/70"
-      : "border-emerald-400/60";
+  const clipClass = recording
+    ? "bg-red-400/20 text-red-100"
+    : "bg-emerald-400/20 text-emerald-100";
+  const clipBorderClass = recording
+    ? "border-red-400/70"
+    : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const clipWidth = Math.max(
     2,
