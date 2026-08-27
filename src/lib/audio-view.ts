@@ -35,28 +35,19 @@ export class AudioViewBuilder {
     if (samples.length === 0 || this.view.samplesPerPoint <= 0) {
       return;
     }
-    const sourceStart = Math.max(0, -frameOffset);
-    const targetStart = Math.max(0, frameOffset);
-    const length = samples.length - sourceStart;
-    if (length <= 0) {
-      return;
-    }
     const { data, samplesPerPoint } = this.view;
-    const end = targetStart + length;
-    for (let offset = targetStart; offset < end; offset++) {
-      const point = Math.floor(offset / samplesPerPoint);
-      const abs = Math.abs(samples[sourceStart + offset - targetStart]);
-      data[point] = Math.max(data[point] ?? 0, abs);
+    for (let i = 0; i < samples.length; i++) {
+      const point = Math.floor((frameOffset + i) / samplesPerPoint);
+      data[point] = Math.max(data[point] ?? 0, Math.abs(samples[i]));
     }
   }
 
-  finish(length: number): AudioView {
+  finish(length: number): void {
     if (this.view.samplesPerPoint <= 0 || length <= 0) {
       this.view.data.length = 0;
-      return this.view;
+      return;
     }
     this.view.data.length = Math.ceil(length / this.view.samplesPerPoint);
-    return this.view;
   }
 
   reset(): void {
@@ -79,7 +70,8 @@ export function createAudioView(
     return EMPTY_AUDIO_VIEW;
   }
   builder.append(samples, 0);
-  return builder.finish(samples.length);
+  builder.finish(samples.length);
+  return builder.view;
 }
 
 // Query visible range, downsample to pixel width
