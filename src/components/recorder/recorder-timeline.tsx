@@ -266,7 +266,6 @@ export function TakeTimelineLane({
               viewportStartBeat={viewportStartBeat}
               tempo={tempo}
               viewportWidth={viewportWidth}
-              testId="recorder-comp-region"
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
               overlayBorder
@@ -294,7 +293,7 @@ export function TakeTimelineLane({
             onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
             onTrimMove={onTakeTrimMove}
             selected={isTakeSelected(take.id)}
-            interactionOnly
+            hidePresentation
           />
         ))}
       </div>
@@ -406,11 +405,10 @@ function TimelineClip({
   onClipDragMove,
   onTrimStart,
   onTrimMove,
-  interactionOnly = false,
+  hidePresentation = false,
   joinsPrevious = false,
   joinsNext = false,
   overlayBorder = false,
-  testId,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -423,11 +421,10 @@ function TimelineClip({
   onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
-  interactionOnly?: boolean;
+  hidePresentation?: boolean;
   joinsPrevious?: boolean;
   joinsNext?: boolean;
   overlayBorder?: boolean;
-  testId?: string;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -524,24 +521,23 @@ function TimelineClip({
   );
   return (
     <div
-      aria-label={interactionOnly ? clip.label : undefined}
-      data-testid={testId ?? `recorder-clip-${clip.variant}`}
+      data-testid={`recorder-clip-${clip.variant}${hidePresentation ? "-interaction" : ""}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm text-[11px]",
         !overlayBorder && "border",
-        interactionOnly
+        hidePresentation
           ? "border-transparent bg-transparent text-transparent"
           : clipClass,
-        !interactionOnly && !overlayBorder && clipBorderClass,
+        !hidePresentation && !overlayBorder && clipBorderClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
         joinsNext && "rounded-r-none",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
         isDragging &&
-          (interactionOnly
+          (hidePresentation
             ? "border-sky-300 ring-1 ring-inset ring-sky-300"
             : "brightness-125"),
       )}
@@ -550,7 +546,7 @@ function TimelineClip({
         width: clipWidth,
       }}
     >
-      {!interactionOnly && (
+      {!hidePresentation && (
         <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
           {clip.audioView && visibleEnd > visibleStart && (
             <AudioWaveformView
