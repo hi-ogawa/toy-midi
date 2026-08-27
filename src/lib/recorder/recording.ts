@@ -26,12 +26,10 @@ export class ActiveRecording {
 
   append(chunk: CaptureChunk): void {
     this.chunks.push(chunk);
-    const frameOffset = chunk.frameStart - this.startFrame;
-    if (frameOffset < this.getDurationFrames()) {
-      this.rebuildAudioViewWithPcm();
-    } else {
-      this.audioViewBuilder.append(chunk.samples, frameOffset);
-    }
+    this.audioViewBuilder.append(
+      chunk.samples,
+      chunk.frameStart - this.startFrame,
+    );
     this.endFrame = Math.max(
       this.endFrame,
       chunk.frameStart + chunk.samples.length,
@@ -67,20 +65,6 @@ export class ActiveRecording {
     this.audioViewBuilder.append(samples, 0);
     this.audioViewBuilder.finish(length);
     return samples;
-  }
-
-  private rebuildAudioViewWithPcm(stopFrame = this.endFrame): void {
-    const length = Math.max(0, stopFrame - this.startFrame);
-    const samples = new Float32Array(length);
-    for (const chunk of this.chunks) {
-      setArrayClipped(
-        samples,
-        chunk.samples,
-        chunk.frameStart - this.startFrame,
-      );
-    }
-    this.audioViewBuilder.reset();
-    this.audioViewBuilder.append(samples, 0);
   }
 }
 
