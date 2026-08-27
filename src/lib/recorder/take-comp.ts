@@ -23,7 +23,7 @@ export function renderTakeComp({
   const output = buffer.getChannelData(0);
   for (const region of regions) {
     const { take } = region;
-    if (!take?.buffer) {
+    if (!take.buffer) {
       continue;
     }
     const source = take.buffer.getChannelData(0);

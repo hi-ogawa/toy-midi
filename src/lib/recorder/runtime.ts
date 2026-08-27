@@ -820,7 +820,7 @@ export class RecorderRuntime {
     this.recordingTrackPlaybacks = [];
     for (const region of takeRegions) {
       const { take } = region;
-      if (!take?.buffer) {
+      if (!take.buffer) {
         continue;
       }
       const playback = new AudioBufferPlayback({

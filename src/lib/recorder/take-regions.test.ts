@@ -46,8 +46,9 @@ describe(deriveTakeRegions, () => {
   });
 
   it("uses the newest take for equal ranges", () => {
+    const old = take("old", 1, 4);
     const next = take("new", 1, 4);
-    expect(deriveTakeRegions([take("old", 1, 4), next])).toEqual([
+    expect(deriveTakeRegions([old, next])).toEqual([
       { take: next, timelineStart: 1, timelineEnd: 5 },
     ]);
   });
