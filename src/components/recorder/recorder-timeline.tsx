@@ -4,7 +4,6 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
-import { deriveTakeRegions } from "../../lib/recorder/take-regions";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -174,6 +173,7 @@ const TIMELINE_EPSILON = 1e-6;
 
 export function TakeTimelineLane({
   takes,
+  regions,
   pendingRecording,
   captureStatus,
   isTakeSelected,
@@ -191,6 +191,7 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;
@@ -211,7 +212,6 @@ export function TakeTimelineLane({
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
   const takeById = new Map(takes.map((take) => [take.id, take]));
-  const regions = deriveTakeRegions(takes);
 
   return (
     <div
