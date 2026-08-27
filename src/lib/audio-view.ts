@@ -35,17 +35,18 @@ export class AudioViewBuilder {
     if (samples.length === 0 || this.view.samplesPerPoint <= 0) {
       return;
     }
-    const sourceStart = Math.max(0, -frameOffset);
-    const targetStart = Math.max(0, frameOffset);
-    const length = samples.length - sourceStart;
-    if (length <= 0) {
+    if (frameOffset < 0) {
+      samples = samples.subarray(-frameOffset);
+      frameOffset = 0;
+    }
+    if (samples.length === 0) {
       return;
     }
     const { data, samplesPerPoint } = this.view;
-    const end = targetStart + length;
-    for (let offset = targetStart; offset < end; offset++) {
+    const end = frameOffset + samples.length;
+    for (let offset = frameOffset; offset < end; offset++) {
       const point = Math.floor(offset / samplesPerPoint);
-      const abs = Math.abs(samples[sourceStart + offset - targetStart]);
+      const abs = Math.abs(samples[offset - frameOffset]);
       data[point] = Math.max(data[point] ?? 0, abs);
     }
   }
