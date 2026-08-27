@@ -29,7 +29,6 @@ describe(renderTakeComp, () => {
     const result = renderTakeComp({
       context,
       regions: deriveTakeRegions(takes),
-      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([
@@ -52,7 +51,6 @@ describe(renderTakeComp, () => {
     const result = renderTakeComp({
       context: createContext(4),
       regions: deriveTakeRegions(takes),
-      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([0, 0.5, 1, 1]);
@@ -73,7 +71,6 @@ describe(renderTakeComp, () => {
     const result = renderTakeComp({
       context: createContext(2),
       regions: deriveTakeRegions(takes),
-      takes,
     });
 
     expect(Array.from(result!.getChannelData(0))).toEqual([0, 0, 1, 1]);
