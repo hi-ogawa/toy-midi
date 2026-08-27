@@ -58,6 +58,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   // Deleting the selected clip preserves the empty audio track row.
   await clip.dispatchEvent("click");
   await expect(clip).toHaveAttribute("data-selected", "true");
+  await expect(clip.getByTestId("recorder-clip-selection")).toBeVisible();
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
