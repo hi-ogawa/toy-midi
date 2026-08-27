@@ -743,7 +743,11 @@ export class RecorderRuntime {
     }
     const samples = pendingRecording.recording.finish(stopFrame);
     if (!samples) {
-      this.updatePendingRecording(undefined, { captureStatus: "ready" });
+      this.store.update({
+        captureStatus: "ready",
+        pendingRecording: undefined,
+        compPreviewRegions: undefined,
+      });
       this.syncTrackMix();
       return;
     }
