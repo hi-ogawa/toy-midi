@@ -25,6 +25,7 @@ export class ActiveRecording {
   }
 
   append(chunk: CaptureChunk): void {
+    // Capture can begin before the transport-derived recording start.
     if (chunk.frameStart < this.startFrame) {
       const sampleOffset = this.startFrame - chunk.frameStart;
       chunk = {
