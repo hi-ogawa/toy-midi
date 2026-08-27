@@ -231,29 +231,28 @@ export function TakeTimelineLane({
         </div>
       )}
       {takes.map((take) => (
-        <div key={take.id}>
-          <TimelineClip
-            clip={{
-              label: `Take ${take.number}`,
-              duration: take.trimEnd - take.trimStart,
-              offset: take.timelineOffset + take.trimStart,
-              audioDuration: take.duration,
-              audioOffset: take.trimStart,
-              variant: "take",
-              audioView: take.audioView,
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
-            onClipClick={(additive) => onTakeClick(take.id, additive)}
-            onClipDragMove={onTakeDragMove}
-            onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
-            onTrimMove={onTakeTrimMove}
-            selected={isTakeSelected(take.id)}
-          />
-        </div>
+        <TimelineClip
+          key={take.id}
+          clip={{
+            label: `Take ${take.number}`,
+            duration: take.trimEnd - take.trimStart,
+            offset: take.timelineOffset + take.trimStart,
+            audioDuration: take.duration,
+            audioOffset: take.trimStart,
+            variant: "take",
+            audioView: take.audioView,
+          }}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+          onClipClick={(additive) => onTakeClick(take.id, additive)}
+          onClipDragMove={onTakeDragMove}
+          onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
+          onTrimMove={onTakeTrimMove}
+          selected={isTakeSelected(take.id)}
+        />
       ))}
       {pendingRecording && (
         <div>
