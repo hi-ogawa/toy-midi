@@ -4,6 +4,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import { deriveTakeRegions } from "../../lib/recorder/take-regions";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -207,6 +208,9 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
+  const takeById = new Map(takes.map((take) => [take.id, take]));
+  const regions = deriveTakeRegions(takes);
+
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -230,17 +234,40 @@ export function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      {takes.map((take) => (
-        <div key={take.id}>
+      <div className="pointer-events-none absolute inset-0">
+        {regions.map((region, index) => {
+          const take = takeById.get(region.takeId)!;
+          const audioOffset = region.timelineStart - take.timelineOffset;
+          return (
+            <TimelineClip
+              key={`${region.takeId}:${index}`}
+              clip={{
+                label: `Take ${take.number}`,
+                duration: region.timelineEnd - region.timelineStart,
+                offset: region.timelineStart,
+                audioDuration: take.duration,
+                audioOffset,
+                variant: "take",
+                audioView: take.audioView,
+              }}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
+              tempo={tempo}
+              viewportWidth={viewportWidth}
+              testId="recorder-comp-region"
+            />
+          );
+        })}
+      </div>
+      <div className="absolute inset-0">
+        {takes.map((take) => (
           <TimelineClip
+            key={take.id}
             clip={{
               label: `Take ${take.number}`,
               duration: take.trimEnd - take.trimStart,
               offset: take.timelineOffset + take.trimStart,
-              audioDuration: take.duration,
-              audioOffset: take.trimStart,
               variant: "take",
-              audioView: take.audioView,
             }}
             pixelsPerBeat={pixelsPerBeat}
             viewportStartBeat={viewportStartBeat}
@@ -252,9 +279,10 @@ export function TakeTimelineLane({
             onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
             onTrimMove={onTakeTrimMove}
             selected={isTakeSelected(take.id)}
+            interactionOnly
           />
-        </div>
-      ))}
+        ))}
+      </div>
       {pendingRecording && (
         <div>
           <TimelineClip
@@ -363,6 +391,8 @@ function TimelineClip({
   onClipDragMove,
   onTrimStart,
   onTrimMove,
+  interactionOnly = false,
+  testId,
   selected = false,
 }: {
   clip: RecorderTimelineClip;
@@ -375,6 +405,8 @@ function TimelineClip({
   onClipDragMove?: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  interactionOnly?: boolean;
+  testId?: string;
   selected?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -466,41 +498,49 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${clip.variant}`}
+      aria-label={interactionOnly ? clip.label : undefined}
+      data-testid={testId ?? `recorder-clip-${clip.variant}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm border text-[11px]",
-        clipClass,
+        interactionOnly
+          ? "border-transparent bg-transparent text-transparent"
+          : clipClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         selected && "border-sky-300 ring-1 ring-inset ring-sky-300",
-        isDragging && "brightness-125",
+        isDragging &&
+          (interactionOnly
+            ? "border-sky-300 ring-1 ring-inset ring-sky-300"
+            : "brightness-125"),
       )}
       style={{
         left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
         width: clipWidth,
       }}
     >
-      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
-        {clip.audioView && visibleEnd > visibleStart && (
-          <AudioWaveformView
-            audioView={clip.audioView}
-            audioDuration={clip.audioDuration ?? clip.duration}
-            rangeStart={clip.audioOffset ?? 0}
-            rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
-            visibleStart={visibleStart}
-            visibleEnd={visibleEnd}
-            pixelWidth={clipWidth}
-          />
-        )}
-        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-          <span className="mr-1.5">{clip.label}</span>
-          {onClipDragMove && clip.offset > 0 && (
-            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+      {!interactionOnly && (
+        <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+          {clip.audioView && visibleEnd > visibleStart && (
+            <AudioWaveformView
+              audioView={clip.audioView}
+              audioDuration={clip.audioDuration ?? clip.duration}
+              rangeStart={clip.audioOffset ?? 0}
+              rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
+              visibleStart={visibleStart}
+              visibleEnd={visibleEnd}
+              pixelWidth={clipWidth}
+            />
           )}
+          <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+            <span className="mr-1.5">{clip.label}</span>
+            {onClipDragMove && clip.offset > 0 && (
+              <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {onTrimStart && (
         <div
           ref={trimStartRef}

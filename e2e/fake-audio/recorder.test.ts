@@ -143,8 +143,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
   const take = page.getByTestId("recorder-clip-take");
-  await expect(take).toContainText("Take 1");
-  await expect(take.locator("svg")).toBeVisible();
+  const compRegion = page.getByTestId("recorder-comp-region");
+  await expect(take).toHaveAttribute("aria-label", "Take 1");
+  await expect(compRegion).toContainText("Take 1");
+  await expect(compRegion.locator("svg")).toBeVisible();
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
   await page.keyboard.press("Escape");
@@ -206,8 +208,8 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
-  await expect(take.nth(0)).toContainText("Take 1");
-  await expect(take.nth(1)).toContainText("Take 2");
+  await expect(take.nth(0)).toHaveAttribute("aria-label", "Take 1");
+  await expect(take.nth(1)).toHaveAttribute("aria-label", "Take 2");
   expect(
     Number.parseFloat(
       await take.nth(1).evaluate((element) => element.style.left),
