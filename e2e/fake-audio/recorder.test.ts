@@ -16,7 +16,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   // Decoding produces both a named timeline clip and its waveform preview.
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
+  await expect(clip.getByTestId("audio-waveform-tile").first()).toBeVisible();
 
   // Backing audio supports the same non-destructive move and trim workflow.
   const beforeEdit = await clip.boundingBox();
@@ -147,7 +147,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(take).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
-  await expect(compRegion.locator("svg")).toBeVisible();
+  await expect(
+    compRegion.getByTestId("audio-waveform-tile").first(),
+  ).toBeVisible();
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
   await page.keyboard.press("Escape");

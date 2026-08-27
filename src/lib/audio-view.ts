@@ -20,6 +20,41 @@ export interface AudioViewSlice {
   actualEnd: number; // actual end time in seconds (aligned to data boundaries)
 }
 
+export function getAudioViewTiles({
+  audioDuration,
+  pixelsPerSecond,
+  rangeStart,
+  rangeEnd,
+  visibleStart,
+  visibleEnd,
+  tilePixelWidth,
+}: {
+  audioDuration: number;
+  pixelsPerSecond: number;
+  rangeStart: number;
+  rangeEnd: number;
+  visibleStart: number;
+  visibleEnd: number;
+  tilePixelWidth: number;
+}): Array<{ index: number; queryStart: number; queryEnd: number }> {
+  const tileDuration = tilePixelWidth / pixelsPerSecond;
+  const firstTile = Math.floor(
+    Math.max(visibleStart, rangeStart) / tileDuration,
+  );
+  const lastTile = Math.ceil(Math.min(visibleEnd, rangeEnd) / tileDuration);
+  return Array.from(
+    { length: Math.max(0, lastTile - firstTile) },
+    (_, offset) => {
+      const index = firstTile + offset;
+      return {
+        index,
+        queryStart: Math.max(index * tileDuration, 0),
+        queryEnd: Math.min((index + 1) * tileDuration, audioDuration),
+      };
+    },
+  );
+}
+
 // Build AudioView from raw samples
 export function createAudioView(
   samples: Float32Array,

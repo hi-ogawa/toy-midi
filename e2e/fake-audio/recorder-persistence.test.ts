@@ -32,7 +32,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
+  await expect(clip.getByTestId("audio-waveform-tile").first()).toBeVisible();
 
   // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
@@ -57,7 +57,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
+  await expect(clip.getByTestId("audio-waveform-tile").first()).toBeVisible();
 
   // The metadata index finds the saved project and reopens the same route.
   await page.goto("/recorder");
