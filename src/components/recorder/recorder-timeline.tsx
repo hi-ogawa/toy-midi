@@ -510,6 +510,12 @@ function TimelineClip({
         tempo,
       ),
   );
+  const waveformOffset = clip.variant === "comp" ? (clip.audioOffset ?? 0) : 0;
+  const waveformWidth =
+    clip.variant === "comp"
+      ? secondsToBeats(clip.audioDuration ?? clip.duration, tempo) *
+        pixelsPerBeat
+      : clipWidth;
   return (
     <div
       data-testid={`recorder-clip-${clip.variant}`}
@@ -533,15 +539,29 @@ function TimelineClip({
         <>
           <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
             {clip.audioView && visibleEnd > visibleStart && (
-              <AudioWaveformView
-                audioView={clip.audioView}
-                audioDuration={clip.audioDuration ?? clip.duration}
-                rangeStart={clip.audioOffset ?? 0}
-                rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
-                visibleStart={visibleStart}
-                visibleEnd={visibleEnd}
-                pixelWidth={clipWidth}
-              />
+              <div
+                className="absolute inset-y-0"
+                style={{
+                  left: -secondsToBeats(waveformOffset, tempo) * pixelsPerBeat,
+                  width: waveformWidth,
+                }}
+              >
+                <AudioWaveformView
+                  audioView={clip.audioView}
+                  audioDuration={clip.audioDuration ?? clip.duration}
+                  rangeStart={
+                    clip.variant === "comp" ? 0 : (clip.audioOffset ?? 0)
+                  }
+                  rangeEnd={
+                    clip.variant === "comp"
+                      ? (clip.audioDuration ?? clip.duration)
+                      : (clip.audioOffset ?? 0) + clip.duration
+                  }
+                  visibleStart={visibleStart}
+                  visibleEnd={visibleEnd}
+                  pixelWidth={waveformWidth}
+                />
+              </div>
             )}
             <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
               <span className="mr-1.5">{clip.label}</span>
