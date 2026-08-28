@@ -66,8 +66,29 @@ export function createAudioView(
   return builder.view;
 }
 
-// Query visible range, downsample to pixel width
-// Returns data plus actual time bounds (aligned to data boundaries) for renderer positioning
+// Waveform data uses two source-aligned max-pooling levels:
+//
+// 1. AudioViewBuilder maps PCM frames into fixed peak buckets. With
+//    samplesPerPoint = 4:
+//
+//      PCM frames:  0 1 2 3 | 4 5 6 7 | 8 9 10 11
+//      view points:   point 0 |   point 1 |    point 2
+//
+// 2. queryAudioView groups those points for the display scale. With
+//    alignmentStep = 2:
+//
+//      view points:  0 1 | 2 3 | 4 5
+//      output:         0  |  1  |  2
+//
+// Both levels are anchored at source frame/index 0, so a viewport selects
+// globally aligned buckets instead of starting a new pooling grid at its
+// visible edge. Each output point represents:
+//
+//   samplesPerPoint * alignmentStep frames
+//   (samplesPerPoint * alignmentStep) / sampleRate seconds
+//
+// Returning that spacing lets rendering project the same source lattice into
+// pixels without stretching it to the queried duration.
 export function queryAudioView(
   view: AudioView,
   startTime: number, // seconds
@@ -100,9 +121,8 @@ export function queryAudioView(
     return emptySlice;
   }
 
-  // Align boundaries to coarser grid to prevent jiggling during scroll.
-  // Compute alignment step from TIME (constant during scroll), not indices (which shift).
-  // Use Math.round (not ceil) for floating-point stability.
+  // Compute the display scale from time, which stays constant during scroll.
+  // Math.round avoids changing scale around floating-point integer boundaries.
   const viewportDuration = endTime - startTime;
   const pointsPerSec = sampleRate / samplesPerPoint;
   const alignmentStep = Math.max(
@@ -110,6 +130,7 @@ export function queryAudioView(
     Math.round((viewportDuration * pointsPerSec) / targetPoints),
   );
   const secondsPerPoint = (alignmentStep * samplesPerPoint) / sampleRate;
+  // Select globally aligned display buckets so scrolling only clips the lattice.
   const alignedStartIdx = Math.max(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
