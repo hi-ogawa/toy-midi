@@ -145,8 +145,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
   const take = page.getByTestId("recorder-clip-take");
+  const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(take).toHaveCount(1);
+  await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   await captureActions.click();
@@ -210,11 +212,21 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
+  await expect(takeRows).toHaveCount(2);
   expect(
     Number.parseFloat(
       await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(320, -2);
+
+  // The source lanes can be folded without changing the resolved comp.
+  const takesToggle = page.getByTestId("recorder-takes-toggle");
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
+  await expect(compRegion).not.toHaveCount(0);
+  await takesToggle.click();
+  await expect(takeRows).toHaveCount(2);
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();

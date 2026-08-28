@@ -1,4 +1,6 @@
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   DownloadIcon,
   MoreVerticalIcon,
   Trash2Icon,
@@ -321,6 +323,59 @@ export function CaptureTrackRow({
         className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title="Resize Capture"
       />
+    </div>
+  );
+}
+
+export function TakesDisclosureRow({
+  expanded,
+  takeCount,
+  onExpandedChange,
+}: {
+  expanded: boolean;
+  takeCount: number;
+  onExpandedChange: (expanded: boolean) => void;
+}) {
+  return (
+    <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
+      <button
+        type="button"
+        data-testid="recorder-takes-toggle"
+        aria-expanded={expanded}
+        onClick={() => onExpandedChange(!expanded)}
+        className="sticky left-0 z-20 flex items-center gap-2 border-r border-neutral-700 bg-neutral-900 px-3 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+      >
+        {expanded ? (
+          <ChevronDownIcon className="size-3.5 text-neutral-400" />
+        ) : (
+          <ChevronRightIcon className="size-3.5 text-neutral-400" />
+        )}
+        Takes
+        <span className="text-[10px] font-normal text-neutral-500">
+          {takeCount}
+        </span>
+      </button>
+      <div />
+    </div>
+  );
+}
+
+export function TakeTrackRow({
+  number,
+  children,
+}: {
+  number: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-testid="recorder-take-row"
+      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+    >
+      <div className="sticky left-0 z-20 flex items-start border-r border-neutral-700 bg-neutral-900 px-7 py-3 text-xs font-semibold text-neutral-300">
+        Take {number}
+      </div>
+      {children}
     </div>
   );
 }

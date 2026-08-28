@@ -172,12 +172,11 @@ type RecorderTimelineClip = {
 
 const TIMELINE_EPSILON = 1e-6;
 
-export function TakeTimelineLane({
+export function CaptureTimelineLane({
   takes,
   regions,
   pendingRecording,
   captureStatus,
-  isTakeSelected,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -185,17 +184,11 @@ export function TakeTimelineLane({
   viewportStartBeat,
   viewportWidth,
   onSeek,
-  onTakeDragStart,
-  onTakeClick,
-  onTakeDragMove,
-  onTakeTrimStart,
-  onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
-  isTakeSelected: (id: string) => boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -203,14 +196,6 @@ export function TakeTimelineLane({
   viewportStartBeat: number;
   viewportWidth: number;
   onSeek: (position: number) => void;
-  onTakeDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
-  onTakeClick: (id: string, additive: boolean) => void;
-  onTakeDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTakeTrimStart: (
-    id: string,
-    edge: "start" | "end",
-  ) => RecorderClipTrimSnapshot;
-  onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
   return (
     <div
@@ -277,27 +262,6 @@ export function TakeTimelineLane({
           );
         })}
       </div>
-      {takes.map((take) => (
-        <TimelineClip
-          key={take.id}
-          clip={{
-            label: `Take ${take.number}`,
-            duration: take.trimEnd - take.trimStart,
-            offset: take.timelineOffset + take.trimStart,
-            variant: "take",
-          }}
-          pixelsPerBeat={pixelsPerBeat}
-          viewportStartBeat={viewportStartBeat}
-          tempo={tempo}
-          viewportWidth={viewportWidth}
-          onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
-          onClipClick={(additive) => onTakeClick(take.id, additive)}
-          onClipDragMove={onTakeDragMove}
-          onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
-          onTrimMove={onTakeTrimMove}
-          selected={isTakeSelected(take.id)}
-        />
-      ))}
     </div>
   );
 }
@@ -471,7 +435,6 @@ function TimelineClip({
       onTrimMove!(drag.snapshot, delta);
     },
   });
-  const hidePresentation = clip.variant === "take";
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
     : "bg-emerald-400/20 text-emerald-100";
@@ -503,49 +466,45 @@ function TimelineClip({
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm text-[11px]",
-        hidePresentation ? "bg-transparent text-transparent" : clipClass,
+        clipClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
         joinsNext && "rounded-r-none",
-        isDragging && !hidePresentation && "brightness-125",
+        isDragging && "brightness-125",
       )}
       style={{
         left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
         width: clipWidth,
       }}
     >
-      {!hidePresentation && (
-        <>
-          <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
-            {clip.audioView && visibleEnd > visibleStart && (
-              <AudioWaveformView
-                audioView={clip.audioView}
-                audioDuration={clip.audioDuration ?? clip.duration}
-                rangeStart={clip.audioOffset ?? 0}
-                rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
-                visibleStart={visibleStart}
-                visibleEnd={visibleEnd}
-                pixelWidth={clipWidth}
-              />
-            )}
-            <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-              <span className="mr-1.5">{clip.label}</span>
-              {onClipDragMove && clip.offset > 0 && (
-                <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
-              )}
-            </div>
-          </div>
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-0 rounded-[inherit] border",
-              clipBorderClass,
-              joinsNext && "border-r-0",
-            )}
+      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+        {clip.audioView && visibleEnd > visibleStart && (
+          <AudioWaveformView
+            audioView={clip.audioView}
+            audioDuration={clip.audioDuration ?? clip.duration}
+            rangeStart={clip.audioOffset ?? 0}
+            rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
+            visibleStart={visibleStart}
+            visibleEnd={visibleEnd}
+            pixelWidth={clipWidth}
           />
-        </>
-      )}
-      {(selected || (hidePresentation && isDragging)) && (
+        )}
+        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+          <span className="mr-1.5">{clip.label}</span>
+          {onClipDragMove && clip.offset > 0 && (
+            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+          )}
+        </div>
+      </div>
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 rounded-[inherit] border",
+          clipBorderClass,
+          joinsNext && "border-r-0",
+        )}
+      />
+      {(selected || isDragging) && (
         <div
           data-testid="recorder-clip-selection"
           className="pointer-events-none absolute inset-0 rounded-[inherit] border border-sky-300 ring-1 ring-inset ring-sky-300"
