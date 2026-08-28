@@ -105,7 +105,6 @@ describe("queryAudioView", () => {
     data: [],
     actualStart: 0,
     actualEnd: 0,
-    secondsPerPoint: 0,
   };
 
   it("returns empty slice for empty data", () => {
@@ -140,7 +139,7 @@ describe("queryAudioView", () => {
 
     // Actual bounds should be aligned to data boundaries
     expect(result.actualStart).toBeCloseTo(2, 1);
-    expect(result.actualEnd).toBeCloseTo(4, 1);
+    expect(result.actualEnd).toBeCloseTo(3.9, 1);
   });
 
   it("clamps start index to 0 for negative startTime", () => {
@@ -160,7 +159,7 @@ describe("queryAudioView", () => {
     // Should get points from index 80 to 99
     expect(result.data.length).toBe(20);
     expect(result.data[result.data.length - 1]).toBeCloseTo(view.data[99], 1);
-    expect(result.actualEnd).toBe(10); // Clamped to audio duration
+    expect(result.actualEnd).toBe(9.9);
   });
 
   it("returns points as-is when fewer than target", () => {
@@ -174,7 +173,7 @@ describe("queryAudioView", () => {
 
     expect(result.data).toEqual(view.data);
     expect(result.actualStart).toBe(0);
-    expect(result.actualEnd).toBe(0.5);
+    expect(result.actualEnd).toBe(0.4);
   });
 
   it("downsamples to target points when more points than targets", () => {
@@ -183,7 +182,7 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 0, 100, 100);
 
     expect(result.data).toHaveLength(100);
-    expect(result.secondsPerPoint).toBe(1);
+    expect(result.actualEnd - result.actualStart).toBe(99);
   });
 
   it("preserves output point spacing as a source view grows", () => {
@@ -191,10 +190,14 @@ describe("queryAudioView", () => {
     const before = queryAudioView(createTestView(70), 0, 7, 560);
     const after = queryAudioView(createTestView(80), 0, 8, 640);
 
-    expect(before.secondsPerPoint * pixelsPerSecond).toBe(
-      after.secondsPerPoint * pixelsPerSecond,
-    );
-    expect(before.secondsPerPoint * pixelsPerSecond).toBe(8);
+    const beforePixelsPerPoint =
+      ((before.actualEnd - before.actualStart) * pixelsPerSecond) /
+      (before.data.length - 1);
+    const afterPixelsPerPoint =
+      ((after.actualEnd - after.actualStart) * pixelsPerSecond) /
+      (after.data.length - 1);
+    expect(beforePixelsPerPoint).toBe(afterPixelsPerPoint);
+    expect(beforePixelsPerPoint).toBe(8);
   });
 
   it("preserves max values when downsampling", () => {

@@ -44,10 +44,7 @@ export function AudioWaveformView({
 
   const pixelsPerSecond = pixelWidth / rangeDuration;
   const left = (slice.actualStart - rangeStart) * pixelsPerSecond;
-  const width =
-    Math.max(1, slice.data.length - 1) *
-    slice.secondsPerPoint *
-    pixelsPerSecond;
+  const width = (slice.actualEnd - slice.actualStart) * pixelsPerSecond;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {

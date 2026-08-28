@@ -31,8 +31,9 @@
 // proportion to seconds per pixel and max-pools more base points into each
 // rendered point.
 //
-// Returning that spacing lets rendering project the same source lattice into
-// pixels without stretching it to the queried duration.
+// AudioViewSlice returns the source coordinates of its first and last query
+// points so rendering preserves this lattice without stretching it to bucket
+// coverage boundaries.
 
 export interface AudioView {
   data: number[]; // amplitude values (0-1)
@@ -49,9 +50,8 @@ export const EMPTY_AUDIO_VIEW: AudioView = {
 // Result of querying AudioView - includes geometry info for renderer positioning
 export interface AudioViewSlice {
   data: number[]; // culled and downsampled peaks
-  actualStart: number; // actual start time in seconds (aligned to data boundaries)
-  actualEnd: number; // actual end time in seconds (aligned to data boundaries)
-  secondsPerPoint: number;
+  actualStart: number; // source time of data[0]
+  actualEnd: number; // source time of data.at(-1)
 }
 
 export class AudioViewBuilder {
@@ -111,7 +111,6 @@ export function queryAudioView(
     data: [],
     actualStart: 0,
     actualEnd: 0,
-    secondsPerPoint: 0,
   };
 
   if (data.length === 0 || targetPoints <= 0 || samplesPerPoint <= 0) {
@@ -138,7 +137,6 @@ export function queryAudioView(
     1,
     Math.round((viewportDuration * pointsPerSec) / targetPoints),
   );
-  const secondsPerPoint = (alignmentStep * samplesPerPoint) / sampleRate;
   // Anchor pooling buckets at source index 0 rather than the moving startIdx.
   // Scrolling then selects and clips the same global buckets instead of
   // shifting every max-pooling window with the viewport.
@@ -157,17 +155,16 @@ export function queryAudioView(
 
   // Calculate actual time bounds (aligned to coarse grid boundaries)
   const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
-  const actualEnd = (alignedEndIdx * samplesPerPoint) / sampleRate;
 
   const visibleLength = alignedEndIdx - alignedStartIdx;
 
   // If fewer points than target, return as-is
   if (visibleLength <= targetPoints) {
+    const result = data.slice(alignedStartIdx, alignedEndIdx);
     return {
-      data: data.slice(alignedStartIdx, alignedEndIdx),
+      data: result,
       actualStart,
-      actualEnd,
-      secondsPerPoint,
+      actualEnd: ((alignedEndIdx - 1) * samplesPerPoint) / sampleRate,
     };
   }
 
@@ -185,5 +182,12 @@ export function queryAudioView(
     }
     result.push(max);
   }
-  return { data: result, actualStart, actualEnd, secondsPerPoint };
+  return {
+    data: result,
+    actualStart,
+    actualEnd:
+      ((alignedStartIdx + (result.length - 1) * alignmentStep) *
+        samplesPerPoint) /
+      sampleRate,
+  };
 }
