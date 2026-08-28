@@ -60,7 +60,8 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Deleting the selected clip preserves the empty audio track row.
   await clip.dispatchEvent("click");
-  await expect(clip).toHaveClass(/border-sky-300/);
+  await expect(clip).toHaveAttribute("data-selected", "true");
+  await expect(clip.getByTestId("recorder-clip-selection")).toBeVisible();
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
@@ -140,14 +141,17 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const recording = page.getByTestId("recorder-clip-recording");
   await expect(recording).toContainText("Recording...");
   await waitForRecordingSamples(recording);
+  await expect(recording.locator("svg")).toBeVisible();
 
   // Stopping flushes the worklet and finalizes a nonempty waveform-backed take.
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
   const take = page.getByTestId("recorder-clip-take");
-  await expect(take).toContainText("Take 1");
-  await expect(take.locator("svg")).toBeVisible();
+  const compRegion = page.getByTestId("recorder-clip-comp");
+  await expect(take).toHaveCount(1);
+  await expect(compRegion).toContainText("Take 1");
+  await expect(compRegion.locator("svg")).toBeVisible();
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
   await page.keyboard.press("Escape");
@@ -215,8 +219,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
-  await expect(take.nth(0)).toContainText("Take 1");
-  await expect(take.nth(1)).toContainText("Take 2");
   expect(
     Number.parseFloat(
       await take.nth(1).evaluate((element) => element.style.left),
@@ -227,9 +229,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const positionBeforeSelection = await position.textContent();
   await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
-  await expect(take.nth(0)).toHaveClass(/border-sky-300/);
+  await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
-  await expect(take.nth(0)).not.toHaveClass(/border-sky-300/);
+  await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");
 
   // Delete removes every selected source take together.
   await take.nth(0).click();

@@ -1,21 +1,51 @@
+import { AudioViewBuilder, type AudioView } from "../audio-view.ts";
 import type { CaptureChunk } from "./capture-worklet.ts";
 
 export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];
+  private readonly audioViewBuilder: AudioViewBuilder;
   private readonly startFrame: number;
   private endFrame: number;
 
-  constructor(startFrame: number) {
+  constructor({
+    startFrame,
+    sampleRate,
+    waveformPointsPerSecond,
+  }: {
+    startFrame: number;
+    sampleRate: number;
+    waveformPointsPerSecond: number;
+  }) {
     this.startFrame = startFrame;
     this.endFrame = startFrame;
+    this.audioViewBuilder = new AudioViewBuilder(
+      sampleRate,
+      waveformPointsPerSecond,
+    );
   }
 
   append(chunk: CaptureChunk): void {
+    // Capture can begin before the transport-derived recording start.
+    if (chunk.frameStart < this.startFrame) {
+      const sampleOffset = this.startFrame - chunk.frameStart;
+      chunk = {
+        frameStart: this.startFrame,
+        samples: chunk.samples.subarray(sampleOffset),
+      };
+    }
     this.chunks.push(chunk);
+    this.audioViewBuilder.append(
+      chunk.samples,
+      chunk.frameStart - this.startFrame,
+    );
     this.endFrame = Math.max(
       this.endFrame,
       chunk.frameStart + chunk.samples.length,
     );
+  }
+
+  getAudioView(): AudioView {
+    return this.audioViewBuilder.view;
   }
 
   getDurationFrames(): number {
@@ -39,6 +69,8 @@ export class ActiveRecording {
         chunk.frameStart - this.startFrame,
       );
     }
+    this.audioViewBuilder.reset();
+    this.audioViewBuilder.append(samples, 0);
     return samples;
   }
 }

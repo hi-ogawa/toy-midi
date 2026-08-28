@@ -20,6 +20,33 @@ export interface AudioViewSlice {
   actualEnd: number; // actual end time in seconds (aligned to data boundaries)
 }
 
+export class AudioViewBuilder {
+  readonly view: AudioView;
+
+  constructor(sampleRate: number, targetPointsPerSecond: number) {
+    this.view = {
+      data: [],
+      samplesPerPoint: Math.floor(sampleRate / targetPointsPerSecond),
+      sampleRate,
+    };
+  }
+
+  append(samples: Float32Array, frameOffset: number): void {
+    if (samples.length === 0 || this.view.samplesPerPoint <= 0) {
+      return;
+    }
+    const { data, samplesPerPoint } = this.view;
+    for (let i = 0; i < samples.length; i++) {
+      const point = Math.floor((frameOffset + i) / samplesPerPoint);
+      data[point] = Math.max(data[point] ?? 0, Math.abs(samples[i]));
+    }
+  }
+
+  reset(): void {
+    this.view.data.length = 0;
+  }
+}
+
 // Build AudioView from raw samples
 export function createAudioView(
   samples: Float32Array,
@@ -30,26 +57,12 @@ export function createAudioView(
     return EMPTY_AUDIO_VIEW;
   }
 
-  const samplesPerPoint = Math.floor(sampleRate / targetPointsPerSecond);
-  if (samplesPerPoint <= 0) {
+  const builder = new AudioViewBuilder(sampleRate, targetPointsPerSecond);
+  if (builder.view.samplesPerPoint <= 0) {
     return EMPTY_AUDIO_VIEW;
   }
-
-  const data: number[] = [];
-
-  for (let i = 0; i < samples.length; i += samplesPerPoint) {
-    let max = 0;
-    const end = Math.min(i + samplesPerPoint, samples.length);
-    for (let j = i; j < end; j++) {
-      const abs = Math.abs(samples[j]);
-      if (abs > max) {
-        max = abs;
-      }
-    }
-    data.push(max);
-  }
-
-  return { data, samplesPerPoint, sampleRate };
+  builder.append(samples, 0);
+  return builder.view;
 }
 
 // Query visible range, downsample to pixel width
