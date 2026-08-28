@@ -3,13 +3,13 @@
 // 1. AudioViewBuilder maps PCM frames into fixed peak buckets. With
 //    samplesPerPoint = 4:
 //
-//      PCM frames:  0 1 2 3 | 4 5 6 7 | 8 9 10 11
-//      view points:   point 0 |   point 1 |    point 2
+//      PCM frames:    0 1 2 3 | 4 5 6 7 | 8 9 10 11
+//      view points:   point 0 | point 1 |  point 2
 //
 // 2. queryAudioView groups those points for the display scale. With
 //    alignmentStep = 2:
 //
-//      view points:  0 1 | 2 3 | 4 5
+//      view points:   0 1 | 2 3 | 4 5
 //      output:         0  |  1  |  2
 //
 // Both levels are anchored at source frame/index 0, so a viewport selects
