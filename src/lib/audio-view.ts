@@ -131,9 +131,7 @@ export function queryAudioView(
     return emptySlice;
   }
 
-  // Derive the second-stage pooling factor from viewport scale rather than the
-  // number of points in the culled slice. Duration and target width stay fixed
-  // during scrolling, so alignmentStep stays fixed while startIdx/endIdx move.
+  // Choose the second-stage pooling factor for the current viewport scale.
   // Math.round avoids changing it around floating-point integer boundaries.
   const viewportDuration = endTime - startTime;
   const pointsPerSec = sampleRate / samplesPerPoint;
@@ -142,9 +140,9 @@ export function queryAudioView(
     Math.round((viewportDuration * pointsPerSec) / targetPoints),
   );
   const secondsPerPoint = (alignmentStep * samplesPerPoint) / sampleRate;
-  // Snap the moving slice outward to multiples of that fixed factor, anchored
-  // at source index 0. Scrolling therefore selects and clips the same global
-  // pooling buckets instead of repartitioning from each new viewport edge.
+  // Anchor pooling buckets at source index 0 rather than the moving startIdx.
+  // Scrolling then selects and clips the same global buckets instead of
+  // shifting every max-pooling window with the viewport.
   const alignedStartIdx = Math.max(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
