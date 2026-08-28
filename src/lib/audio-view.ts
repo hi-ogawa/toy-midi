@@ -19,6 +19,18 @@
 //   samplesPerPoint * alignmentStep frames
 //   (samplesPerPoint * alignmentStep) / sampleRate seconds
 //
+// In practice, samplesPerPoint is the mostly fixed base resolution of an
+// AudioView. The recorder targets 800 base points per second, so 44.1 kHz audio
+// uses floor(44100 / 800) = 55 samples per point, or about 1.25 ms. This target
+// is chosen to cover the finest useful timeline scale based on viewport width,
+// maximum zoom, tempo, and the visible bar range.
+//
+// alignmentStep is the query-time display resolution. At maximum zoom it is
+// intended to be 1, which returns base AudioView points without further
+// downsampling. As the viewport zooms out, alignmentStep increases roughly in
+// proportion to seconds per pixel and max-pools more base points into each
+// rendered point.
+//
 // Returning that spacing lets rendering project the same source lattice into
 // pixels without stretching it to the queried duration.
 
