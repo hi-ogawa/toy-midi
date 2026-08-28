@@ -42,9 +42,9 @@ export function AudioWaveformView({
     return null;
   }
 
-  const pixelsPerSecond = pixelWidth / rangeDuration;
-  const left = (slice.actualStart - rangeStart) * pixelsPerSecond;
-  const width = (slice.actualEnd - slice.actualStart) * pixelsPerSecond;
+  const leftPercent = ((slice.actualStart - rangeStart) / rangeDuration) * 100;
+  const widthPercent =
+    ((slice.actualEnd - slice.actualStart) / rangeDuration) * 100;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
@@ -57,7 +57,12 @@ export function AudioWaveformView({
   return (
     <svg
       className="absolute"
-      style={{ left, width, top: "5%", height: "90%" }}
+      style={{
+        left: `${leftPercent}%`,
+        width: `${widthPercent}%`,
+        top: "5%",
+        height: "90%",
+      }}
       viewBox={`0 -1 ${slice.data.length - 1 || 1} 2`}
       preserveAspectRatio="none"
     >
