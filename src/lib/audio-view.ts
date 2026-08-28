@@ -18,6 +18,7 @@ export interface AudioViewSlice {
   data: number[]; // culled and downsampled peaks
   actualStart: number; // actual start time in seconds (aligned to data boundaries)
   actualEnd: number; // actual end time in seconds (aligned to data boundaries)
+  secondsPerPoint: number;
 }
 
 export class AudioViewBuilder {
@@ -75,7 +76,12 @@ export function queryAudioView(
 ): AudioViewSlice {
   const { data, samplesPerPoint, sampleRate } = view;
 
-  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
+  const emptySlice: AudioViewSlice = {
+    data: [],
+    actualStart: 0,
+    actualEnd: 0,
+    secondsPerPoint: 0,
+  };
 
   if (data.length === 0 || targetPoints <= 0 || samplesPerPoint <= 0) {
     return emptySlice;
@@ -103,6 +109,7 @@ export function queryAudioView(
     1,
     Math.round((viewportDuration * pointsPerSec) / targetPoints),
   );
+  const secondsPerPoint = (alignmentStep * samplesPerPoint) / sampleRate;
   const alignedStartIdx = Math.max(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
@@ -128,6 +135,7 @@ export function queryAudioView(
       data: data.slice(alignedStartIdx, alignedEndIdx),
       actualStart,
       actualEnd,
+      secondsPerPoint,
     };
   }
 
@@ -145,5 +153,5 @@ export function queryAudioView(
     }
     result.push(max);
   }
-  return { data: result, actualStart, actualEnd };
+  return { data: result, actualStart, actualEnd, secondsPerPoint };
 }

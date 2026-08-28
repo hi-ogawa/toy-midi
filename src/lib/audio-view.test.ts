@@ -101,7 +101,12 @@ describe("queryAudioView", () => {
     sampleRate: 1000,
   });
 
-  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
+  const emptySlice: AudioViewSlice = {
+    data: [],
+    actualStart: 0,
+    actualEnd: 0,
+    secondsPerPoint: 0,
+  };
 
   it("returns empty slice for empty data", () => {
     const result = queryAudioView(EMPTY_AUDIO_VIEW, 0, 5, 500);
@@ -178,6 +183,18 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 0, 100, 100);
 
     expect(result.data).toHaveLength(100);
+    expect(result.secondsPerPoint).toBe(1);
+  });
+
+  it("preserves output point spacing as a source view grows", () => {
+    const pixelsPerSecond = 80;
+    const before = queryAudioView(createTestView(70), 0, 7, 560);
+    const after = queryAudioView(createTestView(80), 0, 8, 640);
+
+    expect(before.secondsPerPoint * pixelsPerSecond).toBe(
+      after.secondsPerPoint * pixelsPerSecond,
+    );
+    expect(before.secondsPerPoint * pixelsPerSecond).toBe(8);
   });
 
   it("preserves max values when downsampling", () => {
