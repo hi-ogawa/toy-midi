@@ -3,6 +3,7 @@ import {
   CircleAlertIcon,
   CircleIcon,
   CircleStopIcon,
+  DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
@@ -58,6 +59,7 @@ export function RecorderHeader({
   onMetronomeChange,
   onTimeSignatureChange,
   onGridDivisionChange,
+  onExportProject,
 }: {
   title: string;
   saveStatus: SaveStatus;
@@ -80,6 +82,7 @@ export function RecorderHeader({
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
+  onExportProject: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -262,6 +265,14 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            data-testid="recorder-export-project"
+            disabled={isRecording || isProcessing}
+            onSelect={onExportProject}
+          >
+            <DownloadIcon />
+            Export Project Archive
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />

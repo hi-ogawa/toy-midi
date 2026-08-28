@@ -232,6 +232,49 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByText("No takes")).toBeVisible();
 });
 
+test("exports and imports a recorder project archive", async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  await expect(
+    page.getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+
+  await enableInput(page);
+  const recordButton = page.getByTestId("recorder-record-button");
+  for (const position of [160, 320]) {
+    await seekRecorderByPixels(page, position);
+    await recordButton.click();
+    await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+    await recordButton.click();
+  }
+  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+
+  page.once("dialog", (dialog) => dialog.accept("Archived recording"));
+  await page.getByTestId("recorder-project-name").click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByTestId("recorder-export-project").click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/\.toymidi$/);
+  const archivePath = test.info().outputPath("recorder.toymidi");
+  await download.saveAs(archivePath);
+
+  await page.goto("/recorder");
+  const importChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("import-recorder-project").click();
+  await (await importChooserPromise).setFiles(archivePath);
+
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Archived recording",
+  );
+  await expect(
+    page.getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+  await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
+});
+
 async function seekRecorderByPixels(page: Page, pixels: number) {
   const ruler = page.getByTestId("recorder-timeline-ruler");
   const box = await ruler.boundingBox();
