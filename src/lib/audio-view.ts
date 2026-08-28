@@ -185,6 +185,9 @@ export function queryAudioView(
   return {
     data: result,
     actualStart,
-    actualEnd: ((alignedEndIdx - alignmentStep) * samplesPerPoint) / sampleRate,
+    actualEnd:
+      ((alignedStartIdx + (result.length - 1) * alignmentStep) *
+        samplesPerPoint) /
+      sampleRate,
   };
 }

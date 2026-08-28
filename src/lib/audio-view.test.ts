@@ -200,6 +200,15 @@ describe("queryAudioView", () => {
     expect(beforePixelsPerPoint).toBe(8);
   });
 
+  it("returns the last pooled point when live data clips the aligned end", () => {
+    const view = createTestView(23);
+    const result = queryAudioView(view, 0, 3, 6);
+
+    expect(result.data).toHaveLength(5);
+    expect(result.actualStart).toBe(0);
+    expect(result.actualEnd).toBe(2);
+  });
+
   it("preserves max values when downsampling", () => {
     // 100 points with a spike at index 50
     const data = new Array(100).fill(0.1);
