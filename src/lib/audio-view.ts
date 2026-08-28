@@ -144,10 +144,7 @@ export function queryAudioView(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
   );
-  const alignedEndIdx = Math.min(
-    data.length,
-    Math.ceil(endIdx / alignmentStep) * alignmentStep,
-  );
+  const alignedEndIdx = Math.ceil(endIdx / alignmentStep) * alignmentStep;
 
   if (alignedEndIdx <= alignedStartIdx) {
     return emptySlice;
@@ -173,11 +170,11 @@ export function queryAudioView(
   // and windows are aligned to global multiples of alignmentStep.
   const result: number[] = [];
   for (let idx = alignedStartIdx; idx < alignedEndIdx; idx += alignmentStep) {
-    const windowEnd = Math.min(idx + alignmentStep, alignedEndIdx);
     let max = 0;
-    for (let j = idx; j < windowEnd; j++) {
-      if (data[j] > max) {
-        max = data[j];
+    for (let j = idx; j < idx + alignmentStep; j++) {
+      const value = data[j] ?? 0;
+      if (value > max) {
+        max = value;
       }
     }
     result.push(max);
@@ -185,9 +182,6 @@ export function queryAudioView(
   return {
     data: result,
     actualStart,
-    actualEnd:
-      ((alignedStartIdx + (result.length - 1) * alignmentStep) *
-        samplesPerPoint) /
-      sampleRate,
+    actualEnd: ((alignedEndIdx - alignmentStep) * samplesPerPoint) / sampleRate,
   };
 }

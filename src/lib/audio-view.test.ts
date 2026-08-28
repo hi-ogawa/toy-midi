@@ -209,6 +209,14 @@ describe("queryAudioView", () => {
     expect(result.actualEnd).toBe(2);
   });
 
+  it("does not add wholly future buckets beyond available data", () => {
+    const view = createTestView(23);
+    const result = queryAudioView(view, 0, 10, 20);
+
+    expect(result.data).toHaveLength(5);
+    expect(result.actualEnd).toBe(2);
+  });
+
   it("preserves max values when downsampling", () => {
     // 100 points with a spike at index 50
     const data = new Array(100).fill(0.1);
