@@ -1,13 +1,11 @@
-import type { TakeRegion, TakeState } from "./take.ts";
+import type { TakeRegion } from "./take.ts";
 
 export function renderTakeComp({
   context,
   regions,
-  takes,
 }: {
   context: BaseAudioContext;
   regions: readonly TakeRegion[];
-  takes: readonly TakeState[];
 }): AudioBuffer | undefined {
   if (regions.length === 0) {
     return undefined;
@@ -24,8 +22,8 @@ export function renderTakeComp({
   );
   const output = buffer.getChannelData(0);
   for (const region of regions) {
-    const take = takes.find((entry) => entry.id === region.takeId);
-    if (!take?.buffer) {
+    const { take } = region;
+    if (!take.buffer) {
       continue;
     }
     const source = take.buffer.getChannelData(0);
