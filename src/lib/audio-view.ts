@@ -1,5 +1,26 @@
-// AudioView - a view into audio data at some resolution
-// Decouples query interface from storage/computation strategy
+// Waveform data uses two source-aligned max-pooling levels:
+//
+// 1. AudioViewBuilder maps PCM frames into fixed peak buckets. With
+//    samplesPerPoint = 4:
+//
+//      PCM frames:  0 1 2 3 | 4 5 6 7 | 8 9 10 11
+//      view points:   point 0 |   point 1 |    point 2
+//
+// 2. queryAudioView groups those points for the display scale. With
+//    alignmentStep = 2:
+//
+//      view points:  0 1 | 2 3 | 4 5
+//      output:         0  |  1  |  2
+//
+// Both levels are anchored at source frame/index 0, so a viewport selects
+// globally aligned buckets instead of starting a new pooling grid at its
+// visible edge. Each output point represents:
+//
+//   samplesPerPoint * alignmentStep frames
+//   (samplesPerPoint * alignmentStep) / sampleRate seconds
+//
+// Returning that spacing lets rendering project the same source lattice into
+// pixels without stretching it to the queried duration.
 
 export interface AudioView {
   data: number[]; // amplitude values (0-1)
@@ -66,29 +87,6 @@ export function createAudioView(
   return builder.view;
 }
 
-// Waveform data uses two source-aligned max-pooling levels:
-//
-// 1. AudioViewBuilder maps PCM frames into fixed peak buckets. With
-//    samplesPerPoint = 4:
-//
-//      PCM frames:  0 1 2 3 | 4 5 6 7 | 8 9 10 11
-//      view points:   point 0 |   point 1 |    point 2
-//
-// 2. queryAudioView groups those points for the display scale. With
-//    alignmentStep = 2:
-//
-//      view points:  0 1 | 2 3 | 4 5
-//      output:         0  |  1  |  2
-//
-// Both levels are anchored at source frame/index 0, so a viewport selects
-// globally aligned buckets instead of starting a new pooling grid at its
-// visible edge. Each output point represents:
-//
-//   samplesPerPoint * alignmentStep frames
-//   (samplesPerPoint * alignmentStep) / sampleRate seconds
-//
-// Returning that spacing lets rendering project the same source lattice into
-// pixels without stretching it to the queried duration.
 export function queryAudioView(
   view: AudioView,
   startTime: number, // seconds
