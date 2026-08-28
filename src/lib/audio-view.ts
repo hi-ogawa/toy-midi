@@ -132,7 +132,6 @@ export function queryAudioView(
   }
 
   // Choose the second-stage pooling factor for the current viewport scale.
-  // Math.round avoids changing it around floating-point integer boundaries.
   const viewportDuration = endTime - startTime;
   const pointsPerSec = sampleRate / samplesPerPoint;
   const alignmentStep = Math.max(
