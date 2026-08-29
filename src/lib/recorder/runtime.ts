@@ -832,12 +832,10 @@ export class RecorderRuntime {
       Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     const { recordingTrack } = update;
-    const activeTakes = deriveActiveTakes(recordingTrack.takes);
-    const takeRegions = deriveTakeRegions(activeTakes);
-    this.store.update({
-      ...update,
-      takeRegions,
-    });
+    const takeRegions = deriveTakeRegions(
+      deriveActiveTakes(recordingTrack.takes),
+    );
+    this.store.update({ ...update, takeRegions });
     this.syncTakePlayback(takeRegions);
   }
 
