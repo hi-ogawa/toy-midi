@@ -3,7 +3,6 @@ import {
   MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
-  VideoIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useState } from "react";
@@ -30,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderMixToggle } from "./recorder-mix-toggle";
 import type {
   RecorderClipMoveSnapshot,
   RecorderClipTrimSnapshot,
@@ -75,10 +75,7 @@ export function ReferenceTimelineRow({
       data-testid="recorder-reference-track"
       className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-center gap-3 border-r border-neutral-700 bg-neutral-800 px-3">
-        <div className="grid size-9 shrink-0 place-items-center rounded bg-red-950 text-red-300">
-          <VideoIcon className="size-4" />
-        </div>
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">Reference</div>
           <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
@@ -91,35 +88,32 @@ export function ReferenceTimelineRow({
             <span>{formatReferenceTime(referenceVideo.duration)}</span>
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              title="Reference actions"
-              className="ml-auto size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-            >
-              <MoreVerticalIcon className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onRemove} className="text-red-400">
-              <Trash2Icon />
-              Remove reference video
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          data-testid="recorder-reference-video-mute"
-          onClick={() => onMutedChange(!muted)}
-          aria-pressed={muted}
-          title={muted ? "Unmute Reference" : "Mute Reference"}
-          className={cn(
-            "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
-            muted &&
-              "border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600",
-          )}
-        >
-          M
-        </Button>
+        <div className="flex gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                title="Reference actions"
+                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+              >
+                <MoreVerticalIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+                <Trash2Icon />
+                Remove reference video
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <RecorderMixToggle
+            data-testid="recorder-reference-video-mute"
+            active={muted}
+            kind="mute"
+            onClick={() => onMutedChange(!muted)}
+            className="size-7"
+            title={muted ? "Unmute Reference" : "Mute Reference"}
+          />
+        </div>
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"
