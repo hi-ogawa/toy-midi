@@ -4,6 +4,7 @@ import { type AudioView, createAudioView } from "../audio-view.ts";
 import { clamp } from "../music.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
+import { RecorderHistory } from "./history.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deserializeRecorderRuntimeState,
@@ -126,6 +127,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
+  private history = new RecorderHistory();
   private context?: AudioContext;
   private masterOutput?: GainNode;
   private transport?: AudioContextTransport;
@@ -359,6 +361,51 @@ export class RecorderRuntime {
     ) {
       throw new Error("Recorder clip state is missing.");
     }
+    const removedAudioTracks = state.audioTracks.filter(
+      (track) => audioIds.has(track.id) && track.clip,
+    );
+    const removedTakes = state.recordingTrack.takes.flatMap((take, index) =>
+      takeIds.has(take.id) ? [{ index, take }] : [],
+    );
+    if (removedAudioTracks.length === 0 && removedTakes.length === 0) {
+      return;
+    }
+    this.applyClipRemoval({ audioIds, takeIds });
+    this.history.push({
+      undo: () =>
+        this.restoreRemovedClips({ removedAudioTracks, removedTakes }),
+      redo: () => this.applyClipRemoval({ audioIds, takeIds }),
+    });
+  }
+
+  undo(): void {
+    if (
+      this.store.get().captureStatus === "recording" ||
+      this.store.get().captureStatus === "processing"
+    ) {
+      return;
+    }
+    this.history.undo();
+  }
+
+  redo(): void {
+    if (
+      this.store.get().captureStatus === "recording" ||
+      this.store.get().captureStatus === "processing"
+    ) {
+      return;
+    }
+    this.history.redo();
+  }
+
+  private applyClipRemoval({
+    audioIds,
+    takeIds,
+  }: {
+    audioIds: ReadonlySet<string>;
+    takeIds: ReadonlySet<string>;
+  }): void {
+    const state = this.store.get();
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -385,6 +432,46 @@ export class RecorderRuntime {
       });
     } else {
       this.store.update({ audioTracks });
+    }
+    if (wasPlaying) {
+      this.transport!.play();
+    }
+  }
+
+  private restoreRemovedClips({
+    removedAudioTracks,
+    removedTakes,
+  }: {
+    removedAudioTracks: AudioTrackState[];
+    removedTakes: Array<{ index: number; take: TakeState }>;
+  }): void {
+    const state = this.store.get();
+    const wasPlaying = state.isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    const audioTracksById = new Map(
+      removedAudioTracks.map((track) => [track.id, track]),
+    );
+    const audioTracks = state.audioTracks.map(
+      (track) => audioTracksById.get(track.id) ?? track,
+    );
+    const takes = state.recordingTrack.takes.slice();
+    for (const { index, take } of removedTakes) {
+      takes.splice(index, 0, take);
+    }
+    if (removedTakes.length > 0) {
+      this.updateRecordingTrack({
+        audioTracks,
+        recordingTrack: { ...state.recordingTrack, takes },
+      });
+    } else {
+      this.store.update({ audioTracks });
+    }
+    for (const track of removedAudioTracks) {
+      const playback = this.getAudioTrackPlayback(track.id);
+      playback.setBuffer(track.clip?.buffer);
+      this.syncAudioTrackPlayback(track);
     }
     if (wasPlaying) {
       this.transport!.play();
@@ -659,6 +746,7 @@ export class RecorderRuntime {
         project,
       }),
     );
+    this.history.clear();
   }
 
   private replacePersistableState(
