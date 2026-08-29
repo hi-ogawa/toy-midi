@@ -42,9 +42,6 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await setup.getByRole("button", { name: "Add video" }).click();
 
   const reference = setup;
-  await expect(reference.getByTestId("recorder-youtube-input")).toHaveValue(
-    "dQw4w9WgXcQ",
-  );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
     /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,
@@ -64,18 +61,12 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await dragBy(page, referenceClip, 80, 0, "start");
   await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 
-  await setup.getByTestId("recorder-youtube-input").fill("M7lc1UVf-VE");
-  await setup.getByRole("button", { name: "Replace" }).click();
-  await expect(reference.getByTestId("recorder-youtube-input")).toHaveValue(
-    "M7lc1UVf-VE",
-  );
-
   const openOnYouTube = reference.getByRole("link", {
     name: "Open on YouTube",
   });
   await expect(openOnYouTube).toHaveAttribute(
     "href",
-    "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+    "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   );
   await page.getByRole("button", { name: "Reference actions" }).click();
   await page.getByRole("menuitem", { name: "Remove reference video" }).click();

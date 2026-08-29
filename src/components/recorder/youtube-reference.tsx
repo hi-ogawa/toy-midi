@@ -159,13 +159,13 @@ export function YouTubeReferencePanel({
           )}
         </div>
       </div>
-      <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
-        <YouTubeReferenceSetup
-          key={referenceVideo?.videoId}
-          initialVideoId={referenceVideo?.videoId}
-          onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
-        />
-      </div>
+      {!referenceVideo && (
+        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
+          <YouTubeReferenceSetup
+            onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
+          />
+        </div>
+      )}
     </div>
   );
 }
