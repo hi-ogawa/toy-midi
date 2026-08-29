@@ -841,7 +841,7 @@ export class RecorderRuntime {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
     const currentAuditionedTakeId = this.store.get().auditionedTakeId;
-    // Keep transient audition only while its take survives this track update.
+    // Automatically clear audition when the associated take is deleted.
     const auditionedTakeId = recordingTrack.takes.some(
       (take) => take.id === currentAuditionedTakeId,
     )
