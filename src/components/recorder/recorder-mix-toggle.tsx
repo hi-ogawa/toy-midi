@@ -1,4 +1,5 @@
 import type { ComponentProps } from "react";
+import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 
 export function RecorderMixToggle({
@@ -6,14 +7,13 @@ export function RecorderMixToggle({
   kind,
   className,
   ...props
-}: Omit<ComponentProps<"button">, "aria-pressed" | "type"> & {
+}: Omit<ComponentProps<typeof Button>, "aria-pressed"> & {
   active: boolean;
   kind: "mute" | "solo";
 }) {
   return (
-    <button
+    <Button
       {...props}
-      type="button"
       aria-pressed={active}
       className={cn(
         "border-neutral-600 text-neutral-300 hover:bg-neutral-700",
