@@ -864,24 +864,22 @@ export class RecorderRuntime {
   }
 
   private syncActiveTakePlayback(): void {
-    const auditionedTake = this.store
-      .get()
-      .recordingTrack.takes.find(
-        (take) => take.id === this.store.get().auditionedTakeId,
-      );
-    this.syncTakePlayback(
-      auditionedTake
-        ? [
-            {
-              take: auditionedTake,
-              timelineStart:
-                auditionedTake.timelineOffset + auditionedTake.trimStart,
-              timelineEnd:
-                auditionedTake.timelineOffset + auditionedTake.trimEnd,
-            },
-          ]
-        : this.store.get().takeRegions,
+    const state = this.store.get();
+    const auditionedTake = state.recordingTrack.takes.find(
+      (take) => take.id === state.auditionedTakeId,
     );
+    if (auditionedTake) {
+      this.syncTakePlayback([
+        {
+          take: auditionedTake,
+          timelineStart:
+            auditionedTake.timelineOffset + auditionedTake.trimStart,
+          timelineEnd: auditionedTake.timelineOffset + auditionedTake.trimEnd,
+        },
+      ]);
+    } else {
+      this.syncTakePlayback(state.takeRegions);
+    }
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
