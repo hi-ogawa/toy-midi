@@ -3,7 +3,7 @@ import type { AudioView } from "../audio-view.ts";
 export interface TakeState {
   id: string;
   number: number;
-  includedInComp: boolean;
+  enabled: boolean;
   duration: number;
   /** Audible source-buffer interval [trimStart, trimEnd), in seconds. */
   trimStart: number;

@@ -480,8 +480,8 @@ export class RecorderRuntime {
     });
   }
 
-  setTakeIncludedInComp(id: string, includedInComp: boolean): void {
-    this.updateTake(id, (take) => ({ ...take, includedInComp }));
+  setTakeEnabled(id: string, enabled: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, enabled }));
   }
 
   setAuditionedTake(id?: string): void {
@@ -836,7 +836,7 @@ export class RecorderRuntime {
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
-            includedInComp: true,
+            enabled: true,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
             trimStart: 0,
@@ -931,7 +931,7 @@ function pendingRecordingToTake(
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
-    includedInComp: true,
+    enabled: true,
     duration: pendingRecording.duration,
     trimStart: 0,
     trimEnd: pendingRecording.duration,

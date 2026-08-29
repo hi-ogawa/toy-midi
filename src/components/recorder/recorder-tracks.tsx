@@ -3,7 +3,7 @@ import {
   ChevronRightIcon,
   DownloadIcon,
   EarIcon,
-  ListPlusIcon,
+  CircleSlashIcon,
   MoreVerticalIcon,
   Trash2Icon,
   UploadIcon,
@@ -357,17 +357,17 @@ export function TakesDisclosureRow({
 
 export function TakeTrackRow({
   number,
-  includedInComp,
+  enabled,
   auditioned,
-  onIncludedInCompChange,
+  onEnabledChange,
   onAuditionedChange,
   onDelete,
   children,
 }: {
   number: number;
-  includedInComp: boolean;
+  enabled: boolean;
   auditioned: boolean;
-  onIncludedInCompChange: (included: boolean) => void;
+  onEnabledChange: (enabled: boolean) => void;
   onAuditionedChange: (auditioned: boolean) => void;
   onDelete: () => void;
   children: React.ReactNode;
@@ -377,30 +377,33 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div
-        className={cn(
-          "sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300",
-          !includedInComp && "opacity-50",
-        )}
-      >
+      <div className="sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
         <span className="mr-auto px-4">Take {number}</span>
         <Button
-          data-testid="recorder-take-include"
-          aria-label={`Include Take ${number} in comp`}
-          aria-pressed={includedInComp}
-          onClick={() => onIncludedInCompChange(!includedInComp)}
-          className={cn("size-7", includedInComp && "text-emerald-300")}
-          title="Include in comp"
+          data-testid="recorder-take-disable"
+          aria-label={`${enabled ? "Disable" : "Enable"} Take ${number}`}
+          aria-pressed={!enabled}
+          onClick={() => onEnabledChange(!enabled)}
+          className={cn(
+            "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+            !enabled &&
+              "border-amber-500/60 bg-amber-500/35 text-amber-300 hover:!bg-amber-500/40 hover:!text-amber-300",
+          )}
+          title={enabled ? "Disable take" : "Enable take"}
         >
-          <ListPlusIcon className="size-3.5" />
+          <CircleSlashIcon className="size-3.5" />
         </Button>
         <Button
           data-testid="recorder-take-audition"
           aria-label={`Audition Take ${number}`}
           aria-pressed={auditioned}
           onClick={() => onAuditionedChange(!auditioned)}
-          className={cn("size-7", auditioned && "text-sky-300")}
-          title="Audition"
+          className={cn(
+            "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+            auditioned &&
+              "border-sky-500/60 bg-sky-500/35 text-sky-300 hover:!bg-sky-500/40 hover:!text-sky-300",
+          )}
+          title={auditioned ? "Stop auditioning" : "Audition take"}
         >
           <EarIcon className="size-3.5" />
         </Button>

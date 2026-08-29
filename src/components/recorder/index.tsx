@@ -415,10 +415,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 <TakeTrackRow
                   key={take.id}
                   number={take.number}
-                  includedInComp={take.includedInComp}
+                  enabled={take.enabled}
                   auditioned={state.auditionedTakeId === take.id}
-                  onIncludedInCompChange={(includedInComp) =>
-                    runtime.setTakeIncludedInComp(take.id, includedInComp)
+                  onEnabledChange={(enabled) =>
+                    runtime.setTakeEnabled(take.id, enabled)
                   }
                   onAuditionedChange={(auditioned) =>
                     runtime.setAuditionedTake(auditioned ? take.id : undefined)
@@ -444,7 +444,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
-                    dimmed={!take.includedInComp}
                     selected={clipInteraction.isSelected({
                       type: "take",
                       id: take.id,

@@ -48,6 +48,8 @@ interface SerializedTakeState {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  enabled?: boolean;
+  // Used by development builds before take disabling was renamed.
   includedInComp?: boolean;
   timelineOffset: number;
   trimStart?: number;
@@ -94,7 +96,7 @@ export function serializeRecorderRuntimeState(
         return {
           id: take.id,
           number: take.number,
-          includedInComp: take.includedInComp,
+          enabled: take.enabled,
           timelineOffset: take.timelineOffset,
           trimStart: take.trimStart,
           trimEnd: take.trimEnd,
@@ -159,7 +161,7 @@ export function deserializeRecorderRuntimeState({
         return {
           id: take.id ?? crypto.randomUUID(),
           number: take.number ?? index + 1,
-          includedInComp: take.includedInComp ?? true,
+          enabled: take.enabled ?? take.includedInComp ?? true,
           duration: buffer.duration,
           timelineOffset: take.timelineOffset,
           trimStart: take.trimStart ?? 0,
