@@ -3,6 +3,7 @@ import {
   CircleAlertIcon,
   CircleIcon,
   CircleStopIcon,
+  DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
@@ -42,6 +43,7 @@ export function RecorderHeader({
   isPlaying,
   isProcessing,
   isRecording,
+  isExporting,
   metronomeEnabled,
   position,
   tempo,
@@ -58,12 +60,14 @@ export function RecorderHeader({
   onMetronomeChange,
   onTimeSignatureChange,
   onGridDivisionChange,
+  onExportProject,
 }: {
   title: string;
   saveStatus: SaveStatus;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
+  isExporting: boolean;
   metronomeEnabled: boolean;
   position: number;
   tempo: number;
@@ -80,6 +84,7 @@ export function RecorderHeader({
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
+  onExportProject: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -262,6 +267,24 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            data-testid="recorder-export-project"
+            disabled={isRecording || isProcessing || isExporting}
+            onSelect={(event) => {
+              event.preventDefault();
+              onExportProject();
+            }}
+          >
+            <DownloadIcon />
+            <span className="grid">
+              <span className="invisible col-start-1 row-start-1">
+                Export Project
+              </span>
+              <span className="col-start-1 row-start-1">
+                {isExporting ? "Exporting..." : "Export Project"}
+              </span>
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
