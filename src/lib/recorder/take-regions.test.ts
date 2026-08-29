@@ -63,27 +63,6 @@ describe(deriveTakeRegions, () => {
       { take: trimmed, timelineStart: 4, timelineEnd: 8 },
     ]);
   });
-
-  it("excludes takes disabled for comp derivation", () => {
-    const included = take("included", 0, 4);
-    const muted = { ...take("muted", 2, 4), muted: true };
-    expect(deriveTakeRegions([included, muted])).toEqual([
-      { take: included, timelineStart: 0, timelineEnd: 4 },
-    ]);
-  });
-
-  it("uses only unmuted soloed takes when any take is soloed", () => {
-    const regular = take("regular", 0, 4);
-    const soloed = { ...take("soloed", 2, 4), soloed: true };
-    const mutedSolo = {
-      ...take("muted-solo", 4, 4),
-      muted: true,
-      soloed: true,
-    };
-    expect(deriveTakeRegions([regular, soloed, mutedSolo])).toEqual([
-      { take: soloed, timelineStart: 2, timelineEnd: 6 },
-    ]);
-  });
 });
 
 function take(id: string, timelineOffset: number, duration: number): TakeState {

@@ -173,6 +173,7 @@ const TIMELINE_EPSILON = 1e-6;
 
 export function TakeTimelineLane({
   takes,
+  activeTakeIds,
   regions,
   pendingRecording,
   captureStatus,
@@ -191,6 +192,7 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  activeTakeIds: RecorderRuntimeState["activeTakeIds"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
@@ -277,7 +279,7 @@ export function TakeTimelineLane({
         })}
       </div>
       {takes
-        .filter((take) => regions.some((region) => region.take.id === take.id))
+        .filter((take) => activeTakeIds.includes(take.id))
         .map((take) => (
           <TimelineClip
             key={take.id}
