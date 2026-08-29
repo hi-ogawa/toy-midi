@@ -152,8 +152,9 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
+    videoId: string;
+    player: YouTubePlayerApi;
     playback: ReferencePlayback;
-    unsubscribe: () => void;
   };
   private metronome?: RecorderMetronome;
 
@@ -330,6 +331,7 @@ export class RecorderRuntime {
     } else {
       this.store.update({ audioTracks, referenceVideo });
     }
+    this.syncYouTubePlayer();
     for (const id of audioOffsets.keys()) {
       this.syncAudioTrackPlayback(
         audioTracks.find((track) => track.id === id)!,
@@ -432,6 +434,7 @@ export class RecorderRuntime {
     } else {
       this.store.update({ audioTracks, referenceVideo });
     }
+    this.syncYouTubePlayer();
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -693,6 +696,7 @@ export class RecorderRuntime {
     this.store.update({
       referenceVideo: { videoId, timelineStart, muted },
     });
+    this.syncYouTubePlayer();
   }
 
   setReferenceVideoMetadata({
@@ -709,6 +713,7 @@ export class RecorderRuntime {
     this.store.update({
       referenceVideo: { ...referenceVideo, title, duration },
     });
+    this.syncYouTubePlayer();
   }
 
   setReferenceVideoTimelineStart(timelineStart: number): void {
@@ -717,6 +722,7 @@ export class RecorderRuntime {
       return;
     }
     this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
+    this.syncYouTubePlayer();
   }
 
   setReferenceVideoMuted(muted: boolean): void {
@@ -725,10 +731,12 @@ export class RecorderRuntime {
       return;
     }
     this.store.update({ referenceVideo: { ...referenceVideo, muted } });
+    this.syncYouTubePlayer();
   }
 
   removeReferenceVideo(): void {
     this.store.update({ referenceVideo: undefined });
+    this.syncYouTubePlayer();
   }
 
   attachYouTubePlayer({
@@ -751,32 +759,9 @@ export class RecorderRuntime {
         player.seekTo(time, true);
       },
     } satisfies ReferencePlayer);
-    const sync = () => {
-      const referenceVideo = this.store.get().referenceVideo;
-      if (referenceVideo?.videoId !== videoId) {
-        playback.setState(undefined);
-        return;
-      }
-      if (referenceVideo.muted) {
-        player.mute();
-      } else {
-        player.unMute();
-      }
-      playback.setState({
-        timelineStart: referenceVideo.timelineStart,
-        duration: referenceVideo.duration,
-      });
-    };
-    const attachment = {
-      playback,
-      unsubscribe: this.store.subscribeWithSelector({
-        selector: (state) => state.referenceVideo,
-        listener: sync,
-        equals: Object.is,
-      }),
-    };
+    const attachment = { videoId, player, playback };
     this.attachedYouTubePlayer = attachment;
-    sync();
+    this.syncYouTubePlayer();
 
     const duration = player.getDuration();
     this.setReferenceVideoMetadata({
@@ -793,7 +778,6 @@ export class RecorderRuntime {
   }
 
   private detachYouTubePlayer(): void {
-    this.attachedYouTubePlayer?.unsubscribe();
     this.attachedYouTubePlayer?.playback.dispose();
     this.attachedYouTubePlayer = undefined;
   }
@@ -860,6 +844,7 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(project.recordingTrack.height),
       },
     });
+    this.syncYouTubePlayer();
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
@@ -904,6 +889,27 @@ export class RecorderRuntime {
       });
     }
     return this.context;
+  }
+
+  private syncYouTubePlayer(): void {
+    const attachment = this.attachedYouTubePlayer;
+    if (!attachment) {
+      return;
+    }
+    const referenceVideo = this.store.get().referenceVideo;
+    if (referenceVideo?.videoId !== attachment.videoId) {
+      attachment.playback.setState(undefined);
+      return;
+    }
+    if (referenceVideo.muted) {
+      attachment.player.mute();
+    } else {
+      attachment.player.unMute();
+    }
+    attachment.playback.setState({
+      timelineStart: referenceVideo.timelineStart,
+      duration: referenceVideo.duration,
+    });
   }
 
   private syncTrackMix(): void {
