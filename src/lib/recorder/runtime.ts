@@ -540,17 +540,6 @@ export class RecorderRuntime {
         takes: updateFn(recordingTrack.takes),
       },
     });
-    if (
-      this.store.get().auditionedTakeId !== undefined &&
-      !this.store
-        .get()
-        .recordingTrack.takes.some(
-          (take) => take.id === this.store.get().auditionedTakeId,
-        )
-    ) {
-      this.store.update({ auditionedTakeId: undefined });
-    }
-    this.syncActiveTakePlayback();
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -852,7 +841,12 @@ export class RecorderRuntime {
   ): void {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
-    this.store.update({ ...update, takeRegions });
+    const auditionedTakeId = recordingTrack.takes.some(
+      (take) => take.id === this.store.get().auditionedTakeId,
+    )
+      ? this.store.get().auditionedTakeId
+      : undefined;
+    this.store.update({ ...update, takeRegions, auditionedTakeId });
     this.syncActiveTakePlayback();
   }
 
