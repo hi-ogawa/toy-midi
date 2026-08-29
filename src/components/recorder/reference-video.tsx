@@ -201,8 +201,7 @@ function YouTubeReference({
   runtime: RecorderRuntime;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const playbackRef = useRef<ReferencePlayback>(undefined);
-  const playerRef = useRef<YouTubePlayerApi>(undefined);
+  const mountedRef = useRef<MountedYouTubeReference>(undefined);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -211,98 +210,23 @@ function YouTubeReference({
     if (!element) {
       return;
     }
-    let disposed = false;
     setHasRenderedVideo(false);
     setError(undefined);
-    let player: YouTubePlayerApi | undefined;
-    let playback: ReferencePlayback | undefined;
-    void (async () => {
-      try {
-        const YT = await loadYouTubeApi();
-        if (disposed) {
-          return;
-        }
-        player = new YT.Player(element, {
-          videoId: referenceVideo.videoId,
-          host: "https://www.youtube-nocookie.com",
-          playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
-          events: {
-            onReady: () => {
-              if (disposed || !player) {
-                return;
-              }
-              playback = runtime.createReferencePlayback({
-                play: (time) => {
-                  player!.seekTo(time, true);
-                  player!.playVideo();
-                },
-                pause: (time) => {
-                  player!.pauseVideo();
-                  player!.seekTo(time, true);
-                },
-              });
-              playbackRef.current = playback;
-              playerRef.current = player;
-              if (referenceVideo.muted) {
-                player.mute();
-              } else {
-                player.unMute();
-              }
-              const duration = player.getDuration();
-              const title = player.getVideoData().title;
-              runtime.setReferenceVideoMetadata({
-                duration: duration > 0 ? duration : undefined,
-                title,
-              });
-              playback.setState({
-                timelineStart: referenceVideo.timelineStart,
-                duration: duration > 0 ? duration : undefined,
-              });
-            },
-            onError: () => setError("YouTube could not load this video."),
-            onStateChange: (event) => {
-              // onReady can still show YouTube's black pre-playback frame. Once
-              // playback actually starts, the iframe owns subsequent paused and
-              // seeked frames without returning to the thumbnail.
-              if (event.data === 1) {
-                setHasRenderedVideo(true);
-              }
-            },
-          },
-        });
-      } catch (error) {
-        if (!disposed) {
-          setError(error instanceof Error ? error.message : "Unknown error");
-        }
-      }
-    })();
+    const mounted = mountYouTubeReference({
+      element,
+      videoId: referenceVideo.videoId,
+      runtime,
+      onPlaying: () => setHasRenderedVideo(true),
+      onError: (nextError) => setError(nextError.message),
+    });
+    mountedRef.current = mounted;
     return () => {
-      disposed = true;
-      playback?.dispose();
-      if (playbackRef.current === playback) {
-        playbackRef.current = undefined;
+      if (mountedRef.current === mounted) {
+        mountedRef.current = undefined;
       }
-      if (playerRef.current === player) {
-        playerRef.current = undefined;
-      }
-      player?.destroy();
+      mounted.dispose();
     };
   }, [referenceVideo.videoId, runtime]);
-
-  useEffect(() => {
-    playbackRef.current?.setState({
-      timelineStart: referenceVideo.timelineStart,
-      duration: referenceVideo.duration,
-    });
-  }, [referenceVideo.duration, referenceVideo.timelineStart]);
-
-  useEffect(() => {
-    if (referenceVideo.muted) {
-      playerRef.current?.mute();
-    } else {
-      playerRef.current?.unMute();
-    }
-  }, [referenceVideo.muted]);
 
   return (
     <div className="relative h-full w-full">
@@ -330,4 +254,107 @@ function YouTubeReference({
       )}
     </div>
   );
+}
+
+interface MountedYouTubeReference {
+  dispose(): void;
+}
+
+function mountYouTubeReference({
+  element,
+  videoId,
+  runtime,
+  onPlaying,
+  onError,
+}: {
+  element: HTMLElement;
+  videoId: string;
+  runtime: RecorderRuntime;
+  onPlaying: () => void;
+  onError: (error: Error) => void;
+}): MountedYouTubeReference {
+  let disposed = false;
+  let player: YouTubePlayerApi | undefined;
+  let playback: ReferencePlayback | undefined;
+
+  const syncReferenceVideo = () => {
+    const referenceVideo = runtime.store.get().referenceVideo;
+    if (referenceVideo?.videoId !== videoId) {
+      return;
+    }
+    if (referenceVideo.muted) {
+      player?.mute();
+    } else {
+      player?.unMute();
+    }
+    playback?.setState({
+      timelineStart: referenceVideo.timelineStart,
+      duration: referenceVideo.duration,
+    });
+  };
+  const unsubscribe = runtime.store.subscribeWithSelector({
+    selector: (state) => state.referenceVideo,
+    listener: syncReferenceVideo,
+    equals: Object.is,
+  });
+
+  void (async () => {
+    try {
+      const YT = await loadYouTubeApi();
+      if (disposed) {
+        return;
+      }
+      player = new YT.Player(element, {
+        videoId,
+        host: "https://www.youtube-nocookie.com",
+        playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
+        events: {
+          onReady: () => {
+            if (disposed || !player) {
+              return;
+            }
+            const duration = player.getDuration();
+            const metadata = {
+              title: player.getVideoData().title,
+              duration: duration > 0 ? duration : undefined,
+            };
+            playback = runtime.createReferencePlayback({
+              play: (time) => {
+                player!.seekTo(time, true);
+                player!.playVideo();
+              },
+              pause: (time) => {
+                player!.pauseVideo();
+                player!.seekTo(time, true);
+              },
+            });
+            runtime.setReferenceVideoMetadata(metadata);
+            syncReferenceVideo();
+          },
+          onError: () =>
+            onError(new Error("YouTube could not load this video.")),
+          onStateChange: (event) => {
+            if (event.data === 1) {
+              onPlaying();
+            }
+          },
+        },
+      });
+    } catch (error) {
+      if (!disposed) {
+        onError(error instanceof Error ? error : new Error("Unknown error"));
+      }
+    }
+  })();
+
+  return {
+    dispose() {
+      disposed = true;
+      unsubscribe();
+      playback?.dispose();
+      playback = undefined;
+      player?.destroy();
+      player = undefined;
+    },
+  };
 }
