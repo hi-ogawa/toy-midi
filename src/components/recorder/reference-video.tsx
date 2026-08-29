@@ -1,5 +1,5 @@
 import { LoaderCircleIcon } from "lucide-react";
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
@@ -98,10 +98,14 @@ function YouTubeReferencePanel({
     );
     setPreviewSize({ width, height: (width * 9) / 16 });
   });
-  const handleEstablished = useCallback(
-    () => setCandidateVideoId(undefined),
-    [],
-  );
+  useEffect(() => {
+    // Clear the candidate once runtime owns the same video so it cannot mask
+    // later runtime changes or resurface after removal. Waiting for matching
+    // props keeps the newly attached player mounted during that handoff.
+    if (candidateVideoId === referenceVideo?.videoId) {
+      setCandidateVideoId(undefined);
+    }
+  }, [candidateVideoId, referenceVideo?.videoId]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -115,7 +119,6 @@ function YouTubeReferencePanel({
             <YouTubeReference
               videoId={candidateVideoId ?? referenceVideo!.videoId}
               runtime={runtime}
-              onEstablished={handleEstablished}
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-xs text-neutral-600">
@@ -185,11 +188,9 @@ function YouTubeReferenceSetup({
 function YouTubeReference({
   videoId,
   runtime,
-  onEstablished,
 }: {
   videoId: string;
   runtime: RecorderRuntime;
-  onEstablished: () => void;
 }) {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
@@ -204,16 +205,13 @@ function YouTubeReference({
         element,
         videoId,
         runtime,
-        onReady: () => {
-          setIsPlayerReady(true);
-          onEstablished();
-        },
+        onReady: () => setIsPlayerReady(true),
         onPlaying: () => setHasRenderedVideo(true),
         onError: (nextError) => setError(nextError.message),
       });
       return () => mounted.dispose();
     },
-    [onEstablished, runtime, videoId],
+    [runtime, videoId],
   );
 
   return (
