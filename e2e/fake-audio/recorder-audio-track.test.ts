@@ -68,7 +68,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
-  // The musician loads backing audio so its channel appears in the mixer.
+  // Load backing audio so its channel appears in the mixer.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
