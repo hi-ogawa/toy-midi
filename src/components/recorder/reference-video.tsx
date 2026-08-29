@@ -282,51 +282,51 @@ function mountYouTubeReference({
     equals: Object.is,
   });
 
-  void (async () => {
-    try {
-      const YT = await loadYouTubeApi();
-      if (disposed) {
-        return;
-      }
-      player = await createYouTubePlayer({
-        YT,
-        element,
-        videoId,
-        onStateChange: (event) => {
-          if (event.data === 1) {
-            onPlaying();
-          }
-        },
-      });
-      if (disposed) {
-        player.destroy();
-        player = undefined;
-        return;
-      }
-      const duration = player.getDuration();
-      const metadata = {
-        title: player.getVideoData().title,
-        duration: duration > 0 ? duration : undefined,
-      };
-      playback = runtime.createReferencePlayback({
-        play: (time) => {
-          player!.seekTo(time, true);
-          player!.playVideo();
-        },
-        pause: (time) => {
-          player!.pauseVideo();
-          player!.seekTo(time, true);
-        },
-      });
-      runtime.setReferenceVideoMetadata(metadata);
-      syncReferenceVideo();
-      onReady();
-    } catch (error) {
-      if (!disposed) {
-        onError(error instanceof Error ? error : new Error("Unknown error"));
-      }
+  const initialize = async () => {
+    const YT = await loadYouTubeApi();
+    if (disposed) {
+      return;
     }
-  })();
+    player = await createYouTubePlayer({
+      YT,
+      element,
+      videoId,
+      onStateChange: (event) => {
+        if (event.data === 1) {
+          onPlaying();
+        }
+      },
+    });
+    if (disposed) {
+      player.destroy();
+      player = undefined;
+      return;
+    }
+    const duration = player.getDuration();
+    const metadata = {
+      title: player.getVideoData().title,
+      duration: duration > 0 ? duration : undefined,
+    };
+    playback = runtime.createReferencePlayback({
+      play: (time) => {
+        player!.seekTo(time, true);
+        player!.playVideo();
+      },
+      pause: (time) => {
+        player!.pauseVideo();
+        player!.seekTo(time, true);
+      },
+    });
+    runtime.setReferenceVideoMetadata(metadata);
+    syncReferenceVideo();
+    onReady();
+  };
+
+  void initialize().catch((error: unknown) => {
+    if (!disposed) {
+      onError(error instanceof Error ? error : new Error("Unknown error"));
+    }
+  });
 
   return {
     dispose() {
