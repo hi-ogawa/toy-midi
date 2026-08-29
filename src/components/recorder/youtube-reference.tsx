@@ -1,3 +1,4 @@
+import { LoaderCircleIcon } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -180,6 +181,7 @@ function YouTubeReference({
   const mountRef = useRef<HTMLDivElement>(null);
   const playbackRef = useRef<ReferencePlayback>(undefined);
   const playerRef = useRef<YouTubePlayerApi>(undefined);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -188,6 +190,8 @@ function YouTubeReference({
       return;
     }
     let disposed = false;
+    setReady(false);
+    setError(undefined);
     let player: YouTubePlayerApi | undefined;
     let playback: ReferencePlayback | undefined;
     void loadYouTubeApi()
@@ -231,6 +235,7 @@ function YouTubeReference({
                 timelineStart: referenceVideo.timelineStart,
                 duration: duration > 0 ? duration : undefined,
               });
+              setReady(true);
             },
             onError: () => setError("YouTube could not load this video."),
           },
@@ -272,6 +277,22 @@ function YouTubeReference({
   return (
     <div className="relative h-full w-full">
       <div ref={mountRef} className="h-full w-full pointer-events-none" />
+      {!ready && (
+        <div
+          data-testid="recorder-reference-video-placeholder"
+          className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
+        >
+          <img
+            src={`https://i.ytimg.com/vi/${referenceVideo.videoId}/mqdefault.jpg`}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/20" />
+          {!error && (
+            <LoaderCircleIcon className="absolute top-3 right-3 size-4 animate-spin text-white/70" />
+          )}
+        </div>
+      )}
       {error && (
         <div className="absolute inset-x-0 bottom-0 bg-black/80 px-3 py-2 text-xs text-orange-300">
           {error}

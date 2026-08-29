@@ -42,6 +42,11 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await setup.getByRole("button", { name: "Add video" }).click();
 
   const reference = setup;
+  await expect(
+    reference
+      .getByTestId("recorder-reference-video-placeholder")
+      .locator("img"),
+  ).toHaveAttribute("src", /i\.ytimg\.com\/vi\/dQw4w9WgXcQ\/mqdefault\.jpg/);
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
     /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,
