@@ -9,6 +9,7 @@ import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 //     ├── tracks/0/channel-0.f32
 //     └── takes/0/channel-0.f32
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
+const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
 
 interface RecorderProjectManifest {
@@ -70,7 +71,7 @@ export async function exportRecorderProjectArchive(
     exportedAt: new Date().toISOString(),
     title: content.title,
   };
-  zip.file("manifest.json", JSON.stringify(manifest, undefined, 2));
+  zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
   zip.file(
     PROJECT_PATH,
     JSON.stringify(toProjectFileContent({ zip, content })),
@@ -90,7 +91,7 @@ export async function parseRecorderProjectArchive(
 
   const manifest = await readJson<Partial<RecorderProjectManifest>>({
     zip,
-    path: "manifest.json",
+    path: MANIFEST_PATH,
   });
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
