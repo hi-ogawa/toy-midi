@@ -67,6 +67,8 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  masterGain: number;
+  metronomeGain: number;
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
@@ -86,6 +88,8 @@ export type PersistableRecorderRuntimeState = Pick<
   | "title"
   | "tempo"
   | "timeSignature"
+  | "masterGain"
+  | "metronomeGain"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -100,8 +104,6 @@ export type RecorderClipTrim = RecorderClipId & {
   value: number;
 };
 
-const METRONOME_GAIN = 0.5;
-
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled recording",
@@ -110,6 +112,8 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
+    masterGain: 1,
+    metronomeGain: 0.5,
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
     takeRegions: [],
@@ -124,6 +128,7 @@ export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
   private context?: AudioContext;
+  private masterOutput?: GainNode;
   private transport?: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
@@ -424,10 +429,10 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
-      const context = this.ensureContext();
+      this.ensureContext();
       playback = new AudioBufferPlayback({
         transport: this.transport!,
-        output: context.destination,
+        output: this.masterOutput!,
       });
       const track = this.store
         .get()
@@ -630,9 +635,23 @@ export class RecorderRuntime {
     this.metronome?.setTempo(tempo);
   }
 
+  setMasterGain(masterGain: number): void {
+    this.store.update({ masterGain });
+    this.masterOutput?.gain.setTargetAtTime(
+      masterGain,
+      this.context!.currentTime,
+      0.01,
+    );
+  }
+
   setMetronomeEnabled(metronomeEnabled: boolean): void {
     this.store.update({ metronomeEnabled });
-    this.metronome?.setGain(metronomeEnabled ? METRONOME_GAIN : 0);
+    this.syncMetronomeGain();
+  }
+
+  setMetronomeGain(metronomeGain: number): void {
+    this.store.update({ metronomeGain });
+    this.syncMetronomeGain();
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
@@ -673,7 +692,7 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot load a project while recording.");
     }
-    const context = this.ensureContext();
+    this.ensureContext();
     this.pause();
     for (const playback of this.audioTrackPlaybacks.values()) {
       playback.dispose();
@@ -689,7 +708,7 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport!,
-        output: context.destination,
+        output: this.masterOutput!,
       });
       playback.setBuffer(buffer);
       playback.setBufferTimelineOffset(track.timelineOffset);
@@ -712,6 +731,8 @@ export class RecorderRuntime {
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
+    this.masterOutput!.gain.value = project.masterGain;
+    this.syncMetronomeGain();
     this.syncTrackMix();
   }
 
@@ -722,6 +743,8 @@ export class RecorderRuntime {
           title: state.title,
           tempo: state.tempo,
           timeSignature: state.timeSignature,
+          masterGain: state.masterGain,
+          metronomeGain: state.metronomeGain,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
@@ -734,11 +757,12 @@ export class RecorderRuntime {
   private ensureContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
+      this.masterOutput = this.context.createGain();
+      this.masterOutput.connect(this.context.destination);
       this.transport = new AudioContextTransport(this.context);
-      this.metronome = new RecorderMetronome(this.transport);
-      this.metronome.setGain(
-        this.store.get().metronomeEnabled ? METRONOME_GAIN : 0,
-      );
+      this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
+      this.masterOutput.gain.value = this.store.get().masterGain;
+      this.syncMetronomeGain();
       this.metronome.setTempo(this.store.get().tempo);
       this.metronome.setTimeSignature(this.store.get().timeSignature);
       this.transport.store.subscribe(() => {
@@ -770,6 +794,11 @@ export class RecorderRuntime {
       );
     }
     this.auditionPlayback?.setGain(recordingGain);
+  }
+
+  private syncMetronomeGain(): void {
+    const state = this.store.get();
+    this.metronome?.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
   }
 
   private finishRecording(stopFrame: number): void {
@@ -846,7 +875,7 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    const context = this.ensureContext();
+    this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
@@ -858,7 +887,7 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport!,
-        output: context.destination,
+        output: this.masterOutput!,
       });
       playback.setBuffer(take.buffer);
       playback.setBufferTimelineOffset(take.timelineOffset);

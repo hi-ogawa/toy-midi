@@ -273,6 +273,40 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByText("No takes")).toBeVisible();
 });
 
+test("mixes recorder outputs in a floating panel", async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+
+  await page.getByTestId("recorder-mixer-button").click();
+  const panel = page.getByTestId("recorder-mixer-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-master")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-audio-1")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-capture")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
+
+  const masterLevel = panel.getByRole("textbox", {
+    name: "Master level in dB",
+  });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await expect(masterLevel).toHaveValue("-6.0");
+
+  const audio = panel.getByTestId("recorder-mixer-audio-1");
+  await audio.getByRole("button", { name: "Toggle Audio 1 mute" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 mute" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await audio.getByRole("button", { name: "Toggle Audio 1 solo" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 solo" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await panel.getByRole("button", { name: "Close Mixer" }).click();
+  await expect(panel).toBeHidden();
+});
+
 test("exports and imports a recorder project archive", async ({ page }) => {
   // Build an editable project with backing audio and two retained takes.
   const fileChooserPromise = page.waitForEvent("filechooser");
@@ -292,6 +326,11 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   }
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   const clipGeometry = await getRecorderClipGeometry(page);
+  await page.getByTestId("recorder-mixer-button").click();
+  const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await page.getByRole("button", { name: "Close Mixer" }).click();
 
   // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
@@ -320,6 +359,10 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+  await page.getByTestId("recorder-mixer-button").click();
+  await expect(
+    page.getByRole("textbox", { name: "Master level in dB" }),
+  ).toHaveValue("-6.0");
 });
 
 async function getRecorderClipGeometry(page: Page) {

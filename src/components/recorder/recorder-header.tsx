@@ -13,6 +13,7 @@ import {
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
+  SlidersVerticalIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -61,6 +62,8 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onMixerToggle,
+  mixerOpen,
 }: {
   title: string;
   saveStatus: SaveStatus;
@@ -85,6 +88,8 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onMixerToggle: () => void;
+  mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -256,6 +261,20 @@ export function RecorderHeader({
         {title}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
+      <Button
+        data-testid="recorder-mixer-button"
+        onClick={onMixerToggle}
+        aria-pressed={mixerOpen}
+        title="Mixer"
+        className={cn(
+          "size-9",
+          mixerOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+        )}
+      >
+        <SlidersVerticalIcon className="size-5" />
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

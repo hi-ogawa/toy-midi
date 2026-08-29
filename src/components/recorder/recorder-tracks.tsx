@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderMixToggle } from "./recorder-mix-toggle";
 
 export function AudioTrackActions({
   label,
@@ -102,10 +103,6 @@ export function TrackRow({
       onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
     },
   });
-  const toggleClass = (active: boolean) =>
-    active
-      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
-      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
@@ -120,20 +117,20 @@ export function TrackRow({
         </div>
         <div className="flex gap-1">
           {action}
-          <Button
+          <RecorderMixToggle
+            active={muted}
+            kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className={toggleClass(muted)}
+            className="size-7"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
-          >
-            M
-          </Button>
-          <Button
+          />
+          <RecorderMixToggle
+            active={soloed}
+            kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className={toggleClass(soloed)}
+            className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          >
-            S
-          </Button>
+          />
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
@@ -217,10 +214,6 @@ export function CaptureTrackRow({
       onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
     },
   });
-  const mixToggleClass = (active: boolean) =>
-    active
-      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
-      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1rem_0.75rem_1fr] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
@@ -267,20 +260,20 @@ export function CaptureTrackRow({
           >
             R
           </Button>
-          <Button
+          <RecorderMixToggle
+            active={muted}
+            kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className={mixToggleClass(muted)}
+            className="size-7"
             title={muted ? "Unmute Capture" : "Mute Capture"}
-          >
-            M
-          </Button>
-          <Button
+          />
+          <RecorderMixToggle
+            active={soloed}
+            kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className={mixToggleClass(soloed)}
+            className="size-7"
             title={soloed ? "Disable Capture solo" : "Solo Capture"}
-          >
-            S
-          </Button>
+          />
         </div>
         <button
           type="button"

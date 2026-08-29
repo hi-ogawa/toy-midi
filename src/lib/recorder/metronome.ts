@@ -16,10 +16,13 @@ export class RecorderMetronome implements TransportParticipant {
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
 
-  constructor(private readonly transport: AudioContextTransport) {
+  constructor(
+    private readonly transport: AudioContextTransport,
+    output: AudioNode,
+  ) {
     this.output = transport.context.createGain();
     this.output.gain.value = 0;
-    this.output.connect(transport.context.destination);
+    this.output.connect(output);
     transport.register(this);
   }
 

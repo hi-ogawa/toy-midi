@@ -13,8 +13,10 @@ import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
+import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderMixer } from "./recorder-mixer";
 import {
   TakeTimelineLane,
   TimelineHeader,
@@ -36,6 +38,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
+  const [isMixerOpen, setIsMixerOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -198,6 +201,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
+        mixerOpen={isMixerOpen}
+        onMixerToggle={() => setIsMixerOpen((open) => !open)}
       />
 
       <div className="min-h-0 flex-1">
@@ -511,6 +516,17 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
+      {isMixerOpen && (
+        <FloatingPanel
+          closeLabel="Close Mixer"
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="recorder-mixer-panel"
+          className="max-w-[calc(100vw-2rem)]"
+        >
+          <RecorderMixer runtime={runtime} state={state} />
+        </FloatingPanel>
+      )}
     </main>
   );
 }
