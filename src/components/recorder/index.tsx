@@ -30,11 +30,11 @@ import {
   TakeTrackRow,
   TrackRow,
 } from "./recorder-tracks";
+import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
-import { ReferenceVideoPanel } from "./youtube-reference";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
