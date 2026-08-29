@@ -13,6 +13,7 @@ import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
+import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import {
@@ -35,7 +36,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [referenceVideoId, setReferenceVideoId] = useState<string>();
-  const [isReferenceSetupOpen, setIsReferenceSetupOpen] = useState(false);
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -173,6 +174,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       <RecorderHeader
         title={state.title}
         saveStatus={project.saveStatus}
+        referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -198,18 +200,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
-        onAddReferenceVideo={() => setIsReferenceSetupOpen(true)}
+        onReferenceVideoOpenChange={setIsReferenceVideoOpen}
       />
 
       <div className="min-h-0 flex-1">
         <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
-          {referenceVideoId && (
-            <YouTubeReference
-              videoId={referenceVideoId}
-              onReplace={() => setIsReferenceSetupOpen(true)}
-              onRemove={() => setReferenceVideoId(undefined)}
-            />
-          )}
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
@@ -412,23 +407,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         </section>
 
         <Dialog
-          isOpen={isReferenceSetupOpen}
-          onClose={() => setIsReferenceSetupOpen(false)}
-          title={
-            referenceVideoId ? "Replace Reference Video" : "Add Reference Video"
-          }
-          testId="recorder-youtube-setup"
-        >
-          <YouTubeReferenceSetup
-            initialVideoId={referenceVideoId}
-            onSubmit={(videoId) => {
-              setReferenceVideoId(videoId);
-              setIsReferenceSetupOpen(false);
-            }}
-          />
-        </Dialog>
-
-        <Dialog
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
@@ -465,6 +443,28 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
+      {isReferenceVideoOpen && (
+        <FloatingPanel
+          title="Reference video"
+          closeLabel="Close Reference Video"
+          onClose={() => setIsReferenceVideoOpen(false)}
+          testId="recorder-youtube-reference"
+          className="w-[30rem] overflow-hidden"
+          contentClassName="p-0"
+        >
+          {referenceVideoId ? (
+            <YouTubeReference
+              videoId={referenceVideoId}
+              onRemove={() => setReferenceVideoId(undefined)}
+              onSubmit={setReferenceVideoId}
+            />
+          ) : (
+            <div className="p-4">
+              <YouTubeReferenceSetup onSubmit={setReferenceVideoId} />
+            </div>
+          )}
+        </FloatingPanel>
+      )}
     </main>
   );
 }

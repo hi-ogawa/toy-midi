@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button } from "../ui/button";
 
@@ -55,66 +55,50 @@ export function YouTubeReferenceSetup({
 
 export function YouTubeReference({
   videoId,
-  onReplace,
   onRemove,
+  onSubmit,
 }: {
   videoId: string;
-  onReplace: () => void;
   onRemove: () => void;
+  onSubmit: (videoId: string) => void;
 }) {
   return (
-    <section
-      data-testid="recorder-youtube-reference"
-      className="border-b border-neutral-700 bg-neutral-950"
-    >
-      <div className="mx-auto flex max-w-5xl items-stretch gap-4 px-5 py-4">
-        <div className="aspect-video w-72 shrink-0 overflow-hidden rounded-md border border-neutral-700 bg-black shadow-lg">
-          <iframe
-            title="YouTube reference video"
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&disablekb=1&playsinline=1&rel=0`}
-            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-            referrerPolicy="strict-origin-when-cross-origin"
-            className="h-full w-full pointer-events-none"
-          />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col py-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-red-400">
-            Reference video
-          </div>
-          <div className="mt-2 truncate font-mono text-sm text-neutral-200">
-            {videoId}
-          </div>
-          <p className="mt-1 max-w-xl text-xs leading-5 text-neutral-500">
-            Playback synchronization is not connected in this UI preview.
-          </p>
-          <div className="mt-auto flex items-center gap-2 pt-3">
-            <Button
-              onClick={onReplace}
-              className="h-8 gap-1.5 border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-300 hover:bg-neutral-800"
-            >
-              <Settings2Icon className="size-3.5" />
-              Replace
-            </Button>
-            <Button
-              onClick={onRemove}
-              className="h-8 gap-1.5 border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-400 hover:border-red-900 hover:bg-red-950 hover:text-red-300"
-            >
-              <Trash2Icon className="size-3.5" />
-              Remove
-            </Button>
-            <a
-              href={`https://www.youtube.com/watch?v=${videoId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="ml-auto inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300"
-            >
-              Open on YouTube
-              <ExternalLinkIcon className="size-3" />
-            </a>
-          </div>
+    <div>
+      <div className="aspect-video bg-black">
+        <iframe
+          title="YouTube reference video"
+          src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&disablekb=1&playsinline=1&rel=0`}
+          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="h-full w-full pointer-events-none"
+        />
+      </div>
+      <div className="space-y-3 border-t border-neutral-700 p-4">
+        <YouTubeReferenceSetup
+          key={videoId}
+          initialVideoId={videoId}
+          onSubmit={onSubmit}
+        />
+        <div className="flex items-center">
+          <Button
+            onClick={onRemove}
+            className="h-8 gap-1.5 border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-400 hover:border-red-900 hover:bg-red-950 hover:text-red-300"
+          >
+            <Trash2Icon className="size-3.5" />
+            Remove
+          </Button>
+          <a
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-auto inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300"
+          >
+            Open on YouTube
+            <ExternalLinkIcon className="size-3" />
+          </a>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 

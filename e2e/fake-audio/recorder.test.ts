@@ -7,10 +7,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
-  await page.getByRole("button", { name: "More" }).click();
-  await page.getByRole("menuitem", { name: "Add reference video" }).click();
+  const toggle = page.getByTestId("recorder-reference-video-button");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-  const setup = page.getByTestId("recorder-youtube-setup");
+  const setup = page.getByTestId("recorder-youtube-reference");
   await setup.getByTestId("recorder-youtube-input").fill("not a video");
   await setup.getByRole("button", { name: "Add video" }).click();
   await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");
@@ -20,20 +21,29 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     .fill("https://youtu.be/dQw4w9WgXcQ?t=42");
   await setup.getByRole("button", { name: "Add video" }).click();
 
-  const reference = page.getByTestId("recorder-youtube-reference");
-  await expect(reference).toContainText("dQw4w9WgXcQ");
+  const reference = setup;
+  await expect(reference.getByTestId("recorder-youtube-input")).toHaveValue(
+    "dQw4w9WgXcQ",
+  );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
     /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/,
   );
 
-  await reference.getByRole("button", { name: "Replace" }).click();
   await setup.getByTestId("recorder-youtube-input").fill("M7lc1UVf-VE");
   await setup.getByRole("button", { name: "Replace" }).click();
-  await expect(reference).toContainText("M7lc1UVf-VE");
+  await expect(reference.getByTestId("recorder-youtube-input")).toHaveValue(
+    "M7lc1UVf-VE",
+  );
 
   await reference.getByRole("button", { name: "Remove" }).click();
+  await expect(reference.locator("iframe")).toHaveCount(0);
+
+  await reference
+    .getByRole("button", { name: "Close Reference Video" })
+    .click();
   await expect(reference).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
 });
 
 test("uploads and plays a backing track", async ({ page }) => {

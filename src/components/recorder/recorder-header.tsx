@@ -41,6 +41,7 @@ import type { SaveStatus } from "./use-recorder-project";
 export function RecorderHeader({
   title,
   saveStatus,
+  referenceVideoOpen,
   isPlaying,
   isProcessing,
   isRecording,
@@ -62,10 +63,11 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
-  onAddReferenceVideo,
+  onReferenceVideoOpenChange,
 }: {
   title: string;
   saveStatus: SaveStatus;
+  referenceVideoOpen: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -87,7 +89,7 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
-  onAddReferenceVideo: () => void;
+  onReferenceVideoOpenChange: (open: boolean) => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -243,6 +245,19 @@ export function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <Button
+        data-testid="recorder-reference-video-button"
+        onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
+        aria-pressed={referenceVideoOpen}
+        title="Reference video"
+        className={cn(
+          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          referenceVideoOpen &&
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+        )}
+      >
+        <VideoIcon className="size-5" />
+      </Button>
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
@@ -270,10 +285,6 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onAddReferenceVideo}>
-            <VideoIcon />
-            Add reference video
-          </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
             disabled={isRecording || isProcessing || isExporting}
