@@ -43,6 +43,7 @@ export function RecorderHeader({
   isPlaying,
   isProcessing,
   isRecording,
+  isExporting,
   metronomeEnabled,
   position,
   tempo,
@@ -66,6 +67,7 @@ export function RecorderHeader({
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
+  isExporting: boolean;
   metronomeEnabled: boolean;
   position: number;
   tempo: number;
@@ -267,11 +269,14 @@ export function RecorderHeader({
         <DropdownMenuContent align="end">
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={isRecording || isProcessing}
-            onSelect={onExportProject}
+            disabled={isRecording || isProcessing || isExporting}
+            onSelect={(event) => {
+              event.preventDefault();
+              onExportProject();
+            }}
           >
             <DownloadIcon />
-            Export Project Archive
+            {isExporting ? "Exporting..." : "Export Project Archive"}
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
