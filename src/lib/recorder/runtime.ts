@@ -690,23 +690,6 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  setReferenceVideoMetadata({
-    title,
-    duration,
-  }: {
-    title?: string;
-    duration?: number;
-  }): void {
-    const referenceVideo = this.store.get().referenceVideo;
-    if (!referenceVideo) {
-      return;
-    }
-    this.store.update({
-      referenceVideo: { ...referenceVideo, title, duration },
-    });
-    this.syncYouTubePlayer();
-  }
-
   setReferenceVideoTimelineStart(timelineStart: number): void {
     const referenceVideo = this.store.get().referenceVideo;
     if (!referenceVideo) {
