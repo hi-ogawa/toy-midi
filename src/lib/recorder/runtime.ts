@@ -684,7 +684,6 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTrackPlaybacks.clear();
-    this.store.update({ auditionedTakeId: undefined });
     for (const track of project.audioTracks) {
       const buffer = track.clip?.buffer;
       if (!buffer) {
