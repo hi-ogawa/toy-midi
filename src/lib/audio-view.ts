@@ -150,6 +150,7 @@ export function queryAudioView(
 
   // Calculate actual time bounds (aligned to coarse grid boundaries)
   const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
+  const actualEnd = (alignedEndIdx * samplesPerPoint) / sampleRate;
 
   const visibleLength = alignedEndIdx - alignedStartIdx;
 
@@ -158,7 +159,7 @@ export function queryAudioView(
     return {
       data: data.slice(alignedStartIdx, alignedEndIdx),
       actualStart,
-      actualEnd: ((alignedEndIdx - 1) * samplesPerPoint) / sampleRate,
+      actualEnd,
     };
   }
 
@@ -176,9 +177,5 @@ export function queryAudioView(
     }
     result.push(max);
   }
-  return {
-    data: result,
-    actualStart,
-    actualEnd: ((alignedEndIdx - alignmentStep) * samplesPerPoint) / sampleRate,
-  };
+  return { data: result, actualStart, actualEnd };
 }
