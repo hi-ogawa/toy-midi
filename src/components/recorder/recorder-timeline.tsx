@@ -211,6 +211,8 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
+  const activeTakeIds = new Set(regions.map(({ take }) => take.id));
+
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -234,7 +236,7 @@ export function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      <div className="absolute inset-0">
+      <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
           const { take } = region;
           const isPendingRecording = take.id === pendingRecording?.id;
@@ -272,28 +274,34 @@ export function TakeTimelineLane({
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
               recording={isPendingRecording}
-              onClipDragStart={
-                isPendingRecording
-                  ? undefined
-                  : (additive) => onTakeDragStart(take.id, additive)
-              }
-              onClipClick={
-                isPendingRecording
-                  ? undefined
-                  : (additive) => onTakeClick(take.id, additive)
-              }
-              onClipDragMove={isPendingRecording ? undefined : onTakeDragMove}
-              onTrimStart={
-                isPendingRecording
-                  ? undefined
-                  : (edge) => onTakeTrimStart(take.id, edge)
-              }
-              onTrimMove={isPendingRecording ? undefined : onTakeTrimMove}
-              selected={!isPendingRecording && isTakeSelected(take.id)}
             />
           );
         })}
       </div>
+      {takes
+        .filter((take) => activeTakeIds.has(take.id))
+        .map((take) => (
+          <TimelineClip
+            key={take.id}
+            clip={{
+              label: `Take ${take.number}`,
+              duration: take.trimEnd - take.trimStart,
+              offset: take.timelineOffset + take.trimStart,
+              testId: "take",
+            }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+            onClipClick={(additive) => onTakeClick(take.id, additive)}
+            onClipDragMove={onTakeDragMove}
+            onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
+            onTrimMove={onTakeTrimMove}
+            selected={isTakeSelected(take.id)}
+            hidePresentation
+          />
+        ))}
     </div>
   );
 }
