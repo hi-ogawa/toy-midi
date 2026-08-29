@@ -713,7 +713,7 @@ export class RecorderRuntime {
         player.pauseVideo();
         player.seekTo(time, true);
       },
-    } satisfies ReferencePlayer);
+    });
     const attachment = { videoId, player, playback };
     this.attachedYouTubePlayer = attachment;
 
