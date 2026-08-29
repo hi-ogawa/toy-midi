@@ -71,6 +71,7 @@ export interface RecorderRuntimeState {
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
   takeRegions: TakeRegion[];
+  auditionedTakeId?: string;
   previewTakeRegions?: TakeRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -127,6 +128,7 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private auditionPlayback?: AudioBufferPlayback;
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -473,6 +475,22 @@ export class RecorderRuntime {
     });
   }
 
+  setTakeIncludedInComp(id: string, includedInComp: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, includedInComp }));
+  }
+
+  setAuditionedTake(id?: string): void {
+    if (
+      id !== undefined &&
+      !this.store.get().recordingTrack.takes.some((take) => take.id === id)
+    ) {
+      throw new Error("Recording take state is missing.");
+    }
+    this.store.update({ auditionedTakeId: id });
+    this.syncAuditionPlayback();
+    this.syncTrackMix();
+  }
+
   private setTakeTrimStart(id: string, trimStart: number): void {
     this.updateTake(id, (take) => ({
       ...take,
@@ -519,6 +537,17 @@ export class RecorderRuntime {
         takes: updateFn(recordingTrack.takes),
       },
     });
+    if (
+      this.store.get().auditionedTakeId !== undefined &&
+      !this.store
+        .get()
+        .recordingTrack.takes.some(
+          (take) => take.id === this.store.get().auditionedTakeId,
+        )
+    ) {
+      this.store.update({ auditionedTakeId: undefined });
+    }
+    this.syncAuditionPlayback();
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -552,6 +581,7 @@ export class RecorderRuntime {
     for (const playback of this.recordingTrackPlaybacks) {
       playback.setGain(0);
     }
+    this.auditionPlayback?.setGain(0);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
@@ -649,6 +679,9 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTrackPlaybacks.clear();
+    this.auditionPlayback?.dispose();
+    this.auditionPlayback = undefined;
+    this.store.update({ auditionedTakeId: undefined });
     for (const track of project.audioTracks) {
       const buffer = track.clip?.buffer;
       if (!buffer) {
@@ -732,8 +765,11 @@ export class RecorderRuntime {
         ? 0
         : recordingTrack.gain;
     for (const playback of this.recordingTrackPlaybacks) {
-      playback.setGain(recordingGain);
+      playback.setGain(
+        this.store.get().auditionedTakeId === undefined ? recordingGain : 0,
+      );
     }
+    this.auditionPlayback?.setGain(recordingGain);
   }
 
   private finishRecording(stopFrame: number): void {
@@ -771,6 +807,7 @@ export class RecorderRuntime {
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
+            includedInComp: true,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
             trimStart: 0,
@@ -833,6 +870,30 @@ export class RecorderRuntime {
     }
     this.syncTrackMix();
   }
+
+  private syncAuditionPlayback(): void {
+    this.auditionPlayback?.dispose();
+    this.auditionPlayback = undefined;
+    const state = this.store.get();
+    const take = state.recordingTrack.takes.find(
+      (entry) => entry.id === state.auditionedTakeId,
+    );
+    if (!take?.buffer) {
+      return;
+    }
+    const context = this.ensureContext();
+    const playback = new AudioBufferPlayback({
+      transport: this.transport!,
+      output: context.destination,
+    });
+    playback.setBuffer(take.buffer);
+    playback.setBufferTimelineOffset(take.timelineOffset);
+    playback.setTimelineRange({
+      start: take.timelineOffset + take.trimStart,
+      end: take.timelineOffset + take.trimEnd,
+    });
+    this.auditionPlayback = playback;
+  }
 }
 
 function pendingRecordingToTake(
@@ -841,6 +902,7 @@ function pendingRecordingToTake(
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
+    includedInComp: true,
     duration: pendingRecording.duration,
     trimStart: 0,
     trimEnd: pendingRecording.duration,

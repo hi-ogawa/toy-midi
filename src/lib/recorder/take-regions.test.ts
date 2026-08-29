@@ -63,12 +63,21 @@ describe(deriveTakeRegions, () => {
       { take: trimmed, timelineStart: 4, timelineEnd: 8 },
     ]);
   });
+
+  it("excludes takes disabled for comp derivation", () => {
+    const included = take("included", 0, 4);
+    const excluded = { ...take("excluded", 2, 4), includedInComp: false };
+    expect(deriveTakeRegions([included, excluded])).toEqual([
+      { take: included, timelineStart: 0, timelineEnd: 4 },
+    ]);
+  });
 });
 
 function take(id: string, timelineOffset: number, duration: number): TakeState {
   return {
     id,
     number: 1,
+    includedInComp: true,
     timelineOffset,
     duration,
     trimStart: 0,
