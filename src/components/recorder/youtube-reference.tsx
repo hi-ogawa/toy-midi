@@ -34,6 +34,7 @@ interface YouTubeApi {
       events: {
         onReady: () => void;
         onError: () => void;
+        onStateChange: (event: { data: number }) => void;
       };
     },
   ) => YouTubePlayerApi;
@@ -181,7 +182,7 @@ function YouTubeReference({
   const mountRef = useRef<HTMLDivElement>(null);
   const playbackRef = useRef<ReferencePlayback>(undefined);
   const playerRef = useRef<YouTubePlayerApi>(undefined);
-  const [ready, setReady] = useState(false);
+  const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -190,7 +191,7 @@ function YouTubeReference({
       return;
     }
     let disposed = false;
-    setReady(false);
+    setHasRenderedVideo(false);
     setError(undefined);
     let player: YouTubePlayerApi | undefined;
     let playback: ReferencePlayback | undefined;
@@ -235,9 +236,16 @@ function YouTubeReference({
                 timelineStart: referenceVideo.timelineStart,
                 duration: duration > 0 ? duration : undefined,
               });
-              setReady(true);
             },
             onError: () => setError("YouTube could not load this video."),
+            onStateChange: (event) => {
+              // onReady can still show YouTube's black pre-playback frame. Once
+              // playback actually starts, the iframe owns subsequent paused and
+              // seeked frames without returning to the thumbnail.
+              if (event.data === 1) {
+                setHasRenderedVideo(true);
+              }
+            },
           },
         });
       })
@@ -277,7 +285,7 @@ function YouTubeReference({
   return (
     <div className="relative h-full w-full">
       <div ref={mountRef} className="h-full w-full pointer-events-none" />
-      {!ready && (
+      {!hasRenderedVideo && (
         <div
           data-testid="recorder-reference-video-placeholder"
           className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
