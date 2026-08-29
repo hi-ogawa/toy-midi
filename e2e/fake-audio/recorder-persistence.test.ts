@@ -44,18 +44,20 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
-  // They change the session tempo and add a reference video for the take.
+  // They change the session tempo.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
+
+  // They add a reference video and mute its audio.
   await page.getByTestId("recorder-reference-video-button").click();
   const referencePanel = page.getByTestId("recorder-youtube-reference");
   await referencePanel
     .getByTestId("recorder-youtube-input")
     .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await referencePanel.getByRole("button", { name: "Add video" }).click();
-
-  // They mute the reference and set output levels from the recorder mixer.
   await page.getByTestId("recorder-reference-video-mute").click();
+
+  // They set output levels from the recorder mixer.
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   const metronomeLevel = page.getByRole("textbox", {
