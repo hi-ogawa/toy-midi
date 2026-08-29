@@ -147,18 +147,18 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const captureTake = page.getByTestId("recorder-clip-take");
-  const take = page
+  const take = page.getByTestId("recorder-clip-take");
+  const takeLane = page
     .getByTestId("recorder-take-row")
     .getByTestId("recorder-clip-take-lane");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takeRows).toHaveCount(0);
-  await expect(captureTake).toHaveCount(1);
+  await expect(take).toHaveCount(1);
   await takesToggle.click();
   await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(take).toHaveCount(1);
+  await expect(takeLane).toHaveCount(1);
   await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
@@ -166,21 +166,21 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
   await page.keyboard.press("Escape");
   expect(
-    Number.parseFloat(await take.evaluate((element) => element.style.left)),
+    Number.parseFloat(await takeLane.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
   // The take can be moved and trimmed without changing its source audio.
-  const beforeEdit = await captureTake.boundingBox();
+  const beforeEdit = await take.boundingBox();
   expect(beforeEdit).not.toBeNull();
-  await dragBy(page, captureTake, 80);
-  const afterMove = await take.boundingBox();
+  await dragBy(page, take, 80);
+  const afterMove = await takeLane.boundingBox();
   expect(afterMove).not.toBeNull();
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
 
-  const trimStart = captureTake.getByTestId("recorder-take-trim-start");
+  const trimStart = take.getByTestId("recorder-take-trim-start");
   const trimPixels = Math.max(2, afterMove!.width / 4);
   await dragBy(page, trimStart, trimPixels);
-  const afterStartTrim = await take.boundingBox();
+  const afterStartTrim = await takeLane.boundingBox();
   expect(afterStartTrim).not.toBeNull();
   expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
   expect(afterStartTrim!.x + afterStartTrim!.width).toBeCloseTo(
@@ -188,9 +188,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     -1,
   );
 
-  const trimEnd = captureTake.getByTestId("recorder-take-trim-end");
+  const trimEnd = take.getByTestId("recorder-take-trim-end");
   await dragBy(page, trimEnd, -trimPixels);
-  const afterEndTrim = await take.boundingBox();
+  const afterEndTrim = await takeLane.boundingBox();
   expect(afterEndTrim).not.toBeNull();
   expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);
   expect(afterEndTrim!.width).toBeCloseTo(
@@ -222,11 +222,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
 
   // The second recording is retained as a new source take.
-  await expect(take).toHaveCount(2);
+  await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
   expect(
     Number.parseFloat(
-      await take.nth(1).evaluate((element) => element.style.left),
+      await takeLane.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(320, -2);
 
@@ -240,17 +240,17 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
-  await take.nth(0).click();
+  await takeLane.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
-  await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
+  await expect(takeLane.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
-  await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");
+  await expect(takeLane.nth(0)).not.toHaveAttribute("data-selected", "true");
 
   // Delete removes every selected source take together.
-  await take.nth(0).click();
-  await take.nth(1).click({ modifiers: ["Control"] });
+  await takeLane.nth(0).click();
+  await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
-  await expect(take).toHaveCount(0);
+  await expect(takeLane).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();
 });
 
