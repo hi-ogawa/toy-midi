@@ -69,7 +69,7 @@ export interface ReferenceVideoState {
   timelineStart: number;
   muted: boolean;
   title?: string;
-  duration?: number;
+  duration: number;
 }
 
 export interface RecorderRuntimeState {
@@ -721,8 +721,12 @@ export class RecorderRuntime {
     player: YouTubePlayerApi;
   }): () => void {
     this.ensureContext();
-    this.detachYouTubePlayer();
+    const duration = player.getDuration();
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error("YouTube player returned an invalid duration.");
+    }
 
+    this.detachYouTubePlayer();
     const playback = new ReferencePlayback(this.transport!, {
       play: (time) => {
         player.seekTo(time, true);
@@ -736,14 +740,13 @@ export class RecorderRuntime {
     const attachment = { videoId, player, playback };
     this.attachedYouTubePlayer = attachment;
 
-    const duration = player.getDuration();
     const currentReference = this.store.get().referenceVideo;
     const referenceVideo = {
       videoId,
       timelineStart: currentReference?.timelineStart ?? 0,
       muted: currentReference?.muted ?? false,
       title: player.getVideoData().title,
-      duration: duration > 0 ? duration : undefined,
+      duration,
     };
     if (!currentReference || !shallowEqual(currentReference, referenceVideo)) {
       this.store.update({ referenceVideo });

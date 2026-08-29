@@ -35,8 +35,6 @@ import type {
   RecorderClipTrimSnapshot,
 } from "./use-recorder-clip-interaction";
 
-const REFERENCE_VIDEO_FALLBACK_DURATION = 3 * 60 + 32;
-
 export function ReferenceTimelineRow({
   referenceVideo,
   position,
@@ -90,11 +88,7 @@ export function ReferenceTimelineRow({
               )}
             </span>
             <span className="text-neutral-600">/</span>
-            <span>
-              {formatReferenceTime(
-                referenceVideo.duration ?? REFERENCE_VIDEO_FALLBACK_DURATION,
-              )}
-            </span>
+            <span>{formatReferenceTime(referenceVideo.duration)}</span>
           </div>
         </div>
         <DropdownMenu>
@@ -147,9 +141,7 @@ export function ReferenceTimelineRow({
         <ReferenceTimelineClip
           label={referenceVideo.title ?? "YouTube reference"}
           offset={referenceVideo.timelineStart}
-          duration={
-            referenceVideo.duration ?? REFERENCE_VIDEO_FALLBACK_DURATION
-          }
+          duration={referenceVideo.duration}
           pixelsPerBeat={pixelsPerBeat}
           tempo={tempo}
           viewportStartBeat={viewportStartBeat}
