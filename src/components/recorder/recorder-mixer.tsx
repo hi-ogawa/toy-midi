@@ -16,7 +16,6 @@ import type {
 } from "../../lib/recorder/runtime";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
-import { Toggle } from "../ui/toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 
 export function RecorderMixer({
@@ -84,14 +83,15 @@ export function RecorderMixer({
         inputProps={metronomeInput.props}
         testId="recorder-mixer-metro"
         action={
-          <Toggle
-            value={!state.metronomeEnabled}
-            onChange={(muted) => runtime.setMetronomeEnabled(!muted)}
+          <RecorderMixToggle
+            active={!state.metronomeEnabled}
+            kind="mute"
+            onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           >
             M
-          </Toggle>
+          </RecorderMixToggle>
         }
       />
     </div>
