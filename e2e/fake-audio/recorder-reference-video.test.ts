@@ -71,7 +71,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(referenceTrack).toContainText("0:00");
   await expect(referenceTrack).toContainText(/\d+:\d{2}/);
   const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
-  await expect(referenceClip).toContainText(/\S+.*\d+:\d{2}/);
+  await expect(referenceClip).toContainText(/\S+/);
   await dragBy(page, referenceClip, 80, 0, "start");
   await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 

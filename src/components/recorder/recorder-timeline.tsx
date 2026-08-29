@@ -132,10 +132,14 @@ export function ReferenceTimelineRow({
           onSeek(beatsToSeconds(beat, tempo));
         }}
       >
-        <ReferenceTimelineClip
-          label={referenceVideo.title ?? "YouTube reference"}
-          offset={referenceVideo.timelineStart}
-          duration={referenceVideo.duration}
+        <TimelineClip
+          clip={{
+            label: referenceVideo.title ?? "YouTube reference",
+            offset: referenceVideo.timelineStart,
+            duration: referenceVideo.duration,
+            testId: "reference",
+            variant: "reference",
+          }}
           pixelsPerBeat={pixelsPerBeat}
           tempo={tempo}
           viewportStartBeat={viewportStartBeat}
@@ -146,92 +150,6 @@ export function ReferenceTimelineRow({
           onClipDragMove={onClipDragMove}
         />
       </div>
-    </div>
-  );
-}
-
-function ReferenceTimelineClip({
-  label,
-  offset,
-  duration,
-  pixelsPerBeat,
-  tempo,
-  viewportStartBeat,
-  viewportWidth,
-  selected,
-  onClipClick,
-  onClipDragStart,
-  onClipDragMove,
-}: {
-  label: string;
-  offset: number;
-  duration: number;
-  pixelsPerBeat: number;
-  tempo: number;
-  viewportStartBeat: number;
-  viewportWidth: number;
-  selected: boolean;
-  onClipClick: (additive: boolean) => void;
-  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
-  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-}) {
-  const [isDragging, setIsDragging] = useState(false);
-  const dragRef = usePointerGesture({
-    onStart: (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      return {
-        additive: event.ctrlKey || event.metaKey,
-        snapshot: undefined as RecorderClipMoveSnapshot | undefined,
-      };
-    },
-    onClick: (_event, { data }) => onClipClick(data.additive),
-    onDragStart: (_event, { data }) => {
-      setIsDragging(true);
-      data.snapshot = onClipDragStart(data.additive);
-    },
-    onDragMove: (_event, { data, deltaX }) => {
-      onClipDragMove(
-        data.snapshot!,
-        beatsToSeconds(deltaX / pixelsPerBeat, tempo),
-      );
-    },
-    onDragEnd: () => setIsDragging(false),
-    onCancel: () => setIsDragging(false),
-  });
-  const left =
-    (secondsToBeats(offset, tempo) - viewportStartBeat) * pixelsPerBeat;
-  const width = secondsToBeats(duration, tempo) * pixelsPerBeat;
-  const visibleLabelLeft = Math.max(0, -left) + 8;
-  return (
-    <div
-      data-testid="recorder-clip-reference"
-      data-selected={selected ? "true" : undefined}
-      ref={dragRef}
-      className={cn(
-        "absolute inset-y-1 cursor-ew-resize select-none overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50",
-        isDragging && "brightness-125",
-      )}
-      style={{ left, width }}
-    >
-      <div
-        className="absolute top-0.5 flex max-w-[calc(100vw-17rem)] items-center whitespace-nowrap text-[11px]"
-        style={{ left: Math.min(visibleLabelLeft, viewportWidth - 8) }}
-      >
-        <span className="mr-1.5 truncate">{label}</span>
-        {offset !== 0 && (
-          <span className="mr-1.5 font-mono opacity-75">
-            {offset > 0 ? "+" : ""}
-            {offset.toFixed(3)}s
-          </span>
-        )}
-        <span className="font-mono opacity-75">
-          {formatReferenceTime(duration)}
-        </span>
-      </div>
-      {selected && (
-        <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-white/90" />
-      )}
     </div>
   );
 }
@@ -388,7 +306,8 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  testId: "audio" | "comp" | "recording" | "take" | "take-lane";
+  testId: "audio" | "comp" | "recording" | "reference" | "take" | "take-lane";
+  variant?: "audio" | "reference";
   audioView?: AudioView;
 };
 
@@ -701,10 +620,14 @@ function TimelineClip({
   });
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
-    : "bg-emerald-400/20 text-emerald-100";
+    : clip.variant === "reference"
+      ? "bg-amber-400/15 text-amber-50"
+      : "bg-emerald-400/20 text-emerald-100";
   const clipBorderClass = recording
     ? "border-red-400/70"
-    : "border-emerald-400/60";
+    : clip.variant === "reference"
+      ? "border-amber-400/60"
+      : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const clipWidth = Math.max(
     2,
