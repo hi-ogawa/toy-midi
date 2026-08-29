@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
 
 /** Log elapsed checkpoints while investigating E2E timing. */
@@ -33,36 +33,6 @@ export async function waitForEditor(page: Page): Promise<void> {
 export async function waitForAudioReady(page: Page): Promise<void> {
   await expect(page.getByTestId("play-pause-button")).toBeEnabled();
 }
-
-/** Create a recorder project from its index and wait for the recorder app. */
-export async function createRecorderProject(page: Page): Promise<void> {
-  await page.goto("/recorder");
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
-}
-
-export async function dragBy(
-  page: Page,
-  locator: Locator,
-  deltaX: number,
-  deltaY = 0,
-  horizontalAnchor: "center" | "start" = "center",
-): Promise<void> {
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-  const startX =
-    horizontalAnchor === "start" ? box!.x + 20 : box!.x + box!.width / 2;
-  await page.mouse.move(startX, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {
-    steps: 4,
-  });
-  await page.mouse.up();
-}
-
-/** @deprecated Use clickNewProject instead */
-export const clickThroughStartup = clickNewProject;
 
 /**
  * Load an audio file via Settings dialog.

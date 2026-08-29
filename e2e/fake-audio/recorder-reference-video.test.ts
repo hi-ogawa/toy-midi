@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "../helpers";
+import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
   await createRecorderProject(page);
