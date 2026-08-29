@@ -231,6 +231,24 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(320, -2);
 
+  // A take can leave the comp without leaving its editable source lane.
+  const includeTake = page.getByTestId("recorder-take-include");
+  await expect(includeTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await includeTake.nth(1).click();
+  await expect(includeTake.nth(1)).toHaveAttribute("aria-pressed", "false");
+  await expect(takeLane).toHaveCount(2);
+  await expect(compRegion).not.toContainText("Take 2");
+
+  // Audition selects one source without changing its comp inclusion.
+  const auditionTake = page.getByTestId("recorder-take-audition");
+  await auditionTake.nth(0).click();
+  await expect(auditionTake.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await auditionTake.nth(1).click();
+  await expect(auditionTake.nth(0)).toHaveAttribute("aria-pressed", "false");
+  await expect(auditionTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(includeTake.nth(1)).toHaveAttribute("aria-pressed", "false");
+  await auditionTake.nth(1).click();
+
   // The source lanes can be folded without changing the resolved comp.
   await takesToggle.click();
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");

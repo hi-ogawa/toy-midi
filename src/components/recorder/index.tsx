@@ -407,7 +407,21 @@ export function Recorder({ projectId }: { projectId: string }) {
             />
             {takesExpanded &&
               takes.map((take) => (
-                <TakeTrackRow key={take.id} number={take.number}>
+                <TakeTrackRow
+                  key={take.id}
+                  number={take.number}
+                  includedInComp={take.includedInComp}
+                  auditioned={state.auditionedTakeId === take.id}
+                  onIncludedInCompChange={(includedInComp) =>
+                    runtime.setTakeIncludedInComp(take.id, includedInComp)
+                  }
+                  onAuditionedChange={(auditioned) =>
+                    runtime.setAuditionedTake(auditioned ? take.id : undefined)
+                  }
+                  onDelete={() =>
+                    runtime.removeClips([{ type: "take", id: take.id }])
+                  }
+                >
                   <TimelineLane
                     clip={{
                       label: `Take ${take.number}`,
@@ -425,6 +439,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
+                    dimmed={!take.includedInComp}
                     selected={clipInteraction.isSelected({
                       type: "take",
                       id: take.id,

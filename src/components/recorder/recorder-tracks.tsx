@@ -2,6 +2,8 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
+  EarIcon,
+  ListPlusIcon,
   MoreVerticalIcon,
   Trash2Icon,
   UploadIcon,
@@ -362,9 +364,19 @@ export function TakesDisclosureRow({
 
 export function TakeTrackRow({
   number,
+  includedInComp,
+  auditioned,
+  onIncludedInCompChange,
+  onAuditionedChange,
+  onDelete,
   children,
 }: {
   number: number;
+  includedInComp: boolean;
+  auditioned: boolean;
+  onIncludedInCompChange: (included: boolean) => void;
+  onAuditionedChange: (auditioned: boolean) => void;
+  onDelete: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -372,8 +384,46 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-start border-r border-neutral-700 bg-neutral-900 px-7 py-3 text-xs font-semibold text-neutral-300">
-        Take {number}
+      <div
+        className={cn(
+          "sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300",
+          !includedInComp && "opacity-50",
+        )}
+      >
+        <span className="mr-auto px-4">Take {number}</span>
+        <Button
+          data-testid="recorder-take-include"
+          aria-label={`Include Take ${number} in comp`}
+          aria-pressed={includedInComp}
+          onClick={() => onIncludedInCompChange(!includedInComp)}
+          className={cn("size-7", includedInComp && "text-emerald-300")}
+          title="Include in comp"
+        >
+          <ListPlusIcon className="size-3.5" />
+        </Button>
+        <Button
+          data-testid="recorder-take-audition"
+          aria-label={`Audition Take ${number}`}
+          aria-pressed={auditioned}
+          onClick={() => onAuditionedChange(!auditioned)}
+          className={cn("size-7", auditioned && "text-sky-300")}
+          title="Audition"
+        >
+          <EarIcon className="size-3.5" />
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Take ${number} actions`} className="size-7">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {children}
     </div>

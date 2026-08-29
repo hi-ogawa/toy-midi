@@ -10,6 +10,7 @@ describe(renderTakeComp, () => {
       {
         id: "old",
         number: 1,
+        includedInComp: true,
         timelineOffset: 0,
         duration: 2,
         trimStart: 0,
@@ -19,6 +20,7 @@ describe(renderTakeComp, () => {
       {
         id: "new",
         number: 2,
+        includedInComp: true,
         timelineOffset: 0.75,
         duration: 0.5,
         trimStart: 0,
@@ -41,6 +43,7 @@ describe(renderTakeComp, () => {
       {
         id: "take",
         number: 1,
+        includedInComp: true,
         timelineOffset: 0,
         duration: 1,
         trimStart: 0,
@@ -61,6 +64,7 @@ describe(renderTakeComp, () => {
       {
         id: "take",
         number: 1,
+        includedInComp: true,
         timelineOffset: 1,
         duration: 1,
         trimStart: 0,

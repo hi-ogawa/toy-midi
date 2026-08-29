@@ -7,7 +7,7 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
   // Apply takes oldest to newest. Each new take subtracts its interval from
   // every existing region before being inserted as the winning region.
   for (const take of takes) {
-    if (take.trimEnd <= take.trimStart) {
+    if (!take.includedInComp || take.trimEnd <= take.trimStart) {
       continue;
     }
     const takeStart = take.timelineOffset + take.trimStart;
