@@ -27,8 +27,8 @@ export function RecorderProjectList() {
   });
   const importProject = useMutation({
     mutationFn: async (file: File) => {
-      const parsed = await parseRecorderProjectArchive(file);
-      return recorderProjectStorage.createWithContent(parsed.content);
+      const content = await parseRecorderProjectArchive(file);
+      return recorderProjectStorage.createWithContent(content);
     },
     onSuccess: (projectId) => {
       window.location.href = routes.recorderProject.href({ projectId });

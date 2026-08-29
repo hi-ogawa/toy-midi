@@ -17,7 +17,6 @@ interface RecorderProjectManifest {
   formatVersion: 1;
   projectType: "recorder";
   exportedAt: string;
-  title: string;
 }
 
 interface RecorderProjectFileContent extends Omit<
@@ -57,11 +56,6 @@ interface RecorderProjectPcm {
   channels: string[];
 }
 
-interface ParsedRecorderProjectFile {
-  title: string;
-  content: SerializedRecorderRuntimeState;
-}
-
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
@@ -70,7 +64,6 @@ export async function exportRecorderProjectArchive(
     formatVersion: CURRENT_FORMAT_VERSION,
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
-    title: content.title,
   };
   zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
   zip.file(PROJECT_PATH, JSON.stringify(writeProjectContent(zip, content)));
@@ -79,7 +72,7 @@ export async function exportRecorderProjectArchive(
 
 export async function parseRecorderProjectArchive(
   file: File,
-): Promise<ParsedRecorderProjectFile> {
+): Promise<SerializedRecorderRuntimeState> {
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(file);
@@ -103,10 +96,7 @@ export async function parseRecorderProjectArchive(
     );
   }
   const project = await readJson<RecorderProjectFileContent>(zip, PROJECT_PATH);
-  return {
-    title: manifest.title,
-    content: await readProjectContent(zip, project),
-  };
+  return readProjectContent(zip, project);
 }
 
 function writeProjectContent(
