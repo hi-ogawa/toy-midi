@@ -233,6 +233,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 });
 
 test("exports and imports a recorder project archive", async ({ page }) => {
+  // Build an editable project with backing audio and two retained takes.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
@@ -250,6 +251,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   }
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
 
+  // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
   await page.getByTestId("recorder-project-name").click();
   const downloadPromise = page.waitForEvent("download");
@@ -260,11 +262,13 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   const archivePath = test.info().outputPath("recorder.toymidi.zip");
   await download.saveAs(archivePath);
 
+  // Import from the project list, which opens a newly created local project.
   await page.goto("/recorder");
   const importChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("import-recorder-project").click();
   await (await importChooserPromise).setFiles(archivePath);
 
+  // Verify the imported project preserves its editable audio and comp state.
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Archived recording",
   );
