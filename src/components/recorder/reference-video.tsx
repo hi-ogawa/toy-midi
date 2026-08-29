@@ -25,7 +25,7 @@ export function ReferenceVideoPanel({
   runtime: RecorderRuntime;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState({ width: 480, height: 480 });
+  const [size, setSize] = useState({ width: 640, height: 480 });
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
       const target = event.target;
