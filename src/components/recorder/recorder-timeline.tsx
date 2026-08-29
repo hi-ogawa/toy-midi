@@ -13,6 +13,7 @@ import type {
   RecorderRuntimeState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
+import { formatTimeMinutes } from "../../lib/time-format";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -80,12 +81,12 @@ export function ReferenceTimelineRow({
           <div className="truncate text-xs font-semibold">Reference</div>
           <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
             <span>
-              {formatReferenceTime(
+              {formatTimeMinutes(
                 Math.max(0, position - referenceVideo.timelineStart),
               )}
             </span>
             <span className="text-neutral-600">/</span>
-            <span>{formatReferenceTime(referenceVideo.duration)}</span>
+            <span>{formatTimeMinutes(referenceVideo.duration)}</span>
           </div>
         </div>
         <div className="flex gap-1">
@@ -152,12 +153,6 @@ export function ReferenceTimelineRow({
       </div>
     </div>
   );
-}
-
-function formatReferenceTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remaining = Math.floor(seconds % 60);
-  return `${minutes}:${String(remaining).padStart(2, "0")}`;
 }
 
 export function TimelineHeader({
