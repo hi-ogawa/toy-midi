@@ -11,6 +11,10 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
+import {
+  ReferencePlayback,
+  type ReferencePlayer,
+} from "./reference-playback.ts";
 import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -722,9 +726,9 @@ export class RecorderRuntime {
     this.store.update({ referenceVideo: undefined });
   }
 
-  getTransport(): AudioContextTransport {
+  createReferencePlayback(player: ReferencePlayer): ReferencePlayback {
     this.ensureContext();
-    return this.transport!;
+    return new ReferencePlayback(this.transport!, player);
   }
 
   renderComp(): AudioBuffer | undefined {

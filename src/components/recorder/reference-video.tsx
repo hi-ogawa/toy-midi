@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
-import { ReferencePlayback } from "../../lib/recorder/reference-playback";
+import type { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
   RecorderRuntime,
   type ReferenceVideoState,
@@ -230,7 +230,7 @@ function YouTubeReference({
               if (disposed || !player) {
                 return;
               }
-              playback = new ReferencePlayback(runtime.getTransport(), {
+              playback = runtime.createReferencePlayback({
                 play: (time) => {
                   player!.seekTo(time, true);
                   player!.playVideo();
