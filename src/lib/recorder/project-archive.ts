@@ -16,12 +16,7 @@ interface RecorderProjectFileContent extends Omit<
   "audioTracks" | "recordingTrack"
 > {
   audioTracks: RecorderProjectAudioTrack[];
-  recordingTrack: Omit<
-    SerializedRecorderRuntimeState["recordingTrack"],
-    "takes"
-  > & {
-    takes: RecorderProjectTake[];
-  };
+  recordingTrack: RecorderProjectRecordingTrack;
 }
 
 interface RecorderProjectPcm {
@@ -44,6 +39,13 @@ interface RecorderProjectTake extends Omit<
   "pcm"
 > {
   pcm: RecorderProjectPcm;
+}
+
+interface RecorderProjectRecordingTrack extends Omit<
+  SerializedRecorderRuntimeState["recordingTrack"],
+  "takes"
+> {
+  takes: RecorderProjectTake[];
 }
 
 export interface ParsedRecorderProjectFile {
