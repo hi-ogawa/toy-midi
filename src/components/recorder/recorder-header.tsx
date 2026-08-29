@@ -343,7 +343,7 @@ function RecorderSaveButton({
       <span
         id="recorder-save-tooltip"
         role="tooltip"
-        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity delay-0 duration-100 group-focus-within/save:opacity-100 group-hover/save:delay-200 group-hover/save:opacity-100"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
       >
         {label}
       </span>
