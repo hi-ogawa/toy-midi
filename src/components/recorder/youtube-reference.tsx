@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
+import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
 import { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
@@ -155,21 +156,15 @@ function YouTubeReferencePanel({
   runtime: RecorderRuntime;
 }) {
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
-  const previewRef = useCallback((element: HTMLDivElement | null) => {
-    if (!element) {
-      return;
-    }
-    const updateSize = () => {
-      const availableWidth = element.clientWidth;
-      const availableHeight = element.clientHeight;
-      const width = Math.min(availableWidth, (availableHeight * 16) / 9);
+  const previewRef = useResizeObserver(
+    useCallback((element: HTMLElement) => {
+      const width = Math.min(
+        element.clientWidth,
+        (element.clientHeight * 16) / 9,
+      );
       setPreviewSize({ width, height: (width * 9) / 16 });
-    };
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(element);
-    updateSize();
-    return () => observer.disconnect();
-  }, []);
+    }, []),
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
