@@ -165,8 +165,7 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  // TODO: Replace variant and presentation flags with explicit clip concerns.
-  variant: "audio" | "comp" | "take";
+  testId: "audio" | "comp" | "recording" | "take";
   audioView?: AudioView;
 };
 
@@ -263,7 +262,7 @@ export function TakeTimelineLane({
                 offset: region.timelineStart,
                 audioDuration: take.duration,
                 audioOffset,
-                variant: "comp",
+                testId: isPendingRecording ? "recording" : "comp",
                 audioView: take.audioView,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -284,7 +283,7 @@ export function TakeTimelineLane({
             label: `Take ${take.number}`,
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
-            variant: "take",
+            testId: "take",
           }}
           pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
@@ -296,6 +295,7 @@ export function TakeTimelineLane({
           onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
           onTrimMove={onTakeTrimMove}
           selected={isTakeSelected(take.id)}
+          hidePresentation
         />
       ))}
     </div>
@@ -391,6 +391,7 @@ function TimelineClip({
   joinsNext = false,
   recording = false,
   selected = false,
+  hidePresentation = false,
 }: {
   clip: RecorderTimelineClip;
   pixelsPerBeat: number;
@@ -406,6 +407,7 @@ function TimelineClip({
   joinsNext?: boolean;
   recording?: boolean;
   selected?: boolean;
+  hidePresentation?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerGesture({
@@ -471,7 +473,6 @@ function TimelineClip({
       onTrimMove!(drag.snapshot, delta);
     },
   });
-  const hidePresentation = clip.variant === "take";
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
     : "bg-emerald-400/20 text-emerald-100";
@@ -498,7 +499,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${recording ? "recording" : clip.variant}`}
+      data-testid={`recorder-clip-${clip.testId}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
