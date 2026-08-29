@@ -35,7 +35,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [takesExpanded, setTakesExpanded] = useState(true);
+  const [takesExpanded, setTakesExpanded] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,

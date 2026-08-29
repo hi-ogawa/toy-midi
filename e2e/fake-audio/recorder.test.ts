@@ -147,6 +147,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
+  const takesToggle = page.getByTestId("recorder-takes-toggle");
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
+  await takesToggle.click();
   await expect(take).toHaveCount(1);
   await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
@@ -220,7 +224,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   ).toBeCloseTo(320, -2);
 
   // The source lanes can be folded without changing the resolved comp.
-  const takesToggle = page.getByTestId("recorder-takes-toggle");
   await takesToggle.click();
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takeRows).toHaveCount(0);
