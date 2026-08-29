@@ -1,5 +1,39 @@
-// AudioView - a view into audio data at some resolution
-// Decouples query interface from storage/computation strategy
+// Waveform data uses two source-aligned max-pooling levels:
+//
+// 1. AudioViewBuilder maps PCM frames into fixed peak buckets. With
+//    samplesPerPoint = 4:
+//
+//      PCM frames:    0 1 2 3 | 4 5 6 7 | 8 9 10 11
+//      view points:   point 0 | point 1 |  point 2
+//
+// 2. queryAudioView groups those points for the display scale. With
+//    alignmentStep = 2:
+//
+//      view points:   0 1 | 2 3 | 4 5
+//      output:         0  |  1  |  2
+//
+// Both levels are anchored at source frame/index 0, so a viewport selects
+// globally aligned buckets instead of starting a new pooling grid at its
+// visible edge. Each output point represents:
+//
+//   samplesPerPoint * alignmentStep frames
+//   (samplesPerPoint * alignmentStep) / sampleRate seconds
+//
+// In practice, samplesPerPoint is the mostly fixed base resolution of an
+// AudioView. The recorder targets 800 base points per second, so 44.1 kHz audio
+// uses floor(44100 / 800) = 55 samples per point, or about 1.25 ms. This target
+// is chosen to cover the finest useful timeline scale based on viewport width,
+// maximum zoom, tempo, and the visible bar range.
+//
+// alignmentStep is the query-time display resolution. At maximum zoom it is
+// intended to be 1, which returns base AudioView points without further
+// downsampling. As the viewport zooms out, alignmentStep increases roughly in
+// proportion to seconds per pixel and max-pools more base points into each
+// rendered point.
+//
+// AudioViewSlice returns the source coordinates of its first and last query
+// points so rendering preserves this lattice without stretching it to bucket
+// coverage boundaries.
 
 export interface AudioView {
   data: number[]; // amplitude values (0-1)
@@ -16,8 +50,8 @@ export const EMPTY_AUDIO_VIEW: AudioView = {
 // Result of querying AudioView - includes geometry info for renderer positioning
 export interface AudioViewSlice {
   data: number[]; // culled and downsampled peaks
-  actualStart: number; // actual start time in seconds (aligned to data boundaries)
-  actualEnd: number; // actual end time in seconds (aligned to data boundaries)
+  actualStart: number; // source time of data[0]
+  actualEnd: number; // source time of data.at(-1)
 }
 
 export class AudioViewBuilder {
@@ -36,9 +70,15 @@ export class AudioViewBuilder {
       return;
     }
     const { data, samplesPerPoint } = this.view;
+    const endPoint = Math.ceil(
+      (frameOffset + samples.length) / samplesPerPoint,
+    );
+    while (data.length < endPoint) {
+      data.push(0);
+    }
     for (let i = 0; i < samples.length; i++) {
       const point = Math.floor((frameOffset + i) / samplesPerPoint);
-      data[point] = Math.max(data[point] ?? 0, Math.abs(samples[i]));
+      data[point] = Math.max(data[point], Math.abs(samples[i]));
     }
   }
 
@@ -94,23 +134,21 @@ export function queryAudioView(
     return emptySlice;
   }
 
-  // Align boundaries to coarser grid to prevent jiggling during scroll.
-  // Compute alignment step from TIME (constant during scroll), not indices (which shift).
-  // Use Math.round (not ceil) for floating-point stability.
+  // Choose the second-stage pooling factor for the current viewport scale.
   const viewportDuration = endTime - startTime;
   const pointsPerSec = sampleRate / samplesPerPoint;
   const alignmentStep = Math.max(
     1,
     Math.round((viewportDuration * pointsPerSec) / targetPoints),
   );
+  // Anchor pooling buckets at source index 0 rather than the moving startIdx.
+  // Scrolling then selects and clips the same global buckets instead of
+  // shifting every max-pooling window with the viewport.
   const alignedStartIdx = Math.max(
     0,
     Math.floor(startIdx / alignmentStep) * alignmentStep,
   );
-  const alignedEndIdx = Math.min(
-    data.length,
-    Math.ceil(endIdx / alignmentStep) * alignmentStep,
-  );
+  const alignedEndIdx = Math.ceil(endIdx / alignmentStep) * alignmentStep;
 
   if (alignedEndIdx <= alignedStartIdx) {
     return emptySlice;
@@ -136,11 +174,11 @@ export function queryAudioView(
   // and windows are aligned to global multiples of alignmentStep.
   const result: number[] = [];
   for (let idx = alignedStartIdx; idx < alignedEndIdx; idx += alignmentStep) {
-    const windowEnd = Math.min(idx + alignmentStep, alignedEndIdx);
     let max = 0;
-    for (let j = idx; j < windowEnd; j++) {
-      if (data[j] > max) {
-        max = data[j];
+    for (let j = idx; j < idx + alignmentStep; j++) {
+      const value = data[j] ?? 0;
+      if (value > max) {
+        max = value;
       }
     }
     result.push(max);
