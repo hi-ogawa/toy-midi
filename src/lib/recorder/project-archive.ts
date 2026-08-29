@@ -73,7 +73,7 @@ export async function exportRecorderProjectArchive(
     title: content.title,
   };
   zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
-  zip.file(PROJECT_PATH, JSON.stringify(writeProjectContent({ zip, content })));
+  zip.file(PROJECT_PATH, JSON.stringify(writeProjectContent(zip, content)));
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
@@ -114,17 +114,14 @@ export async function parseRecorderProjectArchive(
   });
   return {
     title: manifest.title,
-    content: await readProjectContent({ zip, content: project }),
+    content: await readProjectContent(zip, project),
   };
 }
 
-function writeProjectContent({
-  zip,
-  content,
-}: {
-  zip: JSZip;
-  content: SerializedRecorderRuntimeState;
-}): RecorderProjectFileContent {
+function writeProjectContent(
+  zip: JSZip,
+  content: SerializedRecorderRuntimeState,
+): RecorderProjectFileContent {
   return {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
@@ -132,11 +129,11 @@ function writeProjectContent({
       clip: track.clip
         ? {
             ...track.clip,
-            pcm: writeProjectPcm({
+            pcm: writeProjectPcm(
               zip,
-              pcm: track.clip.pcm,
-              path: `audio/tracks/${trackIndex}`,
-            }),
+              track.clip.pcm,
+              `audio/tracks/${trackIndex}`,
+            ),
           }
         : undefined,
     })),
@@ -144,23 +141,16 @@ function writeProjectContent({
       ...content.recordingTrack,
       takes: content.recordingTrack.takes.map((take, takeIndex) => ({
         ...take,
-        pcm: writeProjectPcm({
-          zip,
-          pcm: take.pcm,
-          path: `audio/takes/${takeIndex}`,
-        }),
+        pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${takeIndex}`),
       })),
     },
   };
 }
 
-async function readProjectContent({
-  zip,
-  content,
-}: {
-  zip: JSZip;
-  content: RecorderProjectFileContent;
-}): Promise<SerializedRecorderRuntimeState> {
+async function readProjectContent(
+  zip: JSZip,
+  content: RecorderProjectFileContent,
+): Promise<SerializedRecorderRuntimeState> {
   if (
     !Array.isArray(content.audioTracks) ||
     !Array.isArray(content.recordingTrack?.takes)
@@ -175,7 +165,7 @@ async function readProjectContent({
         clip: track.clip
           ? {
               ...track.clip,
-              pcm: await readProjectPcm({ zip, pcm: track.clip.pcm }),
+              pcm: await readProjectPcm(zip, track.clip.pcm),
             }
           : undefined,
       })),
@@ -185,22 +175,18 @@ async function readProjectContent({
       takes: await Promise.all(
         content.recordingTrack.takes.map(async (take) => ({
           ...take,
-          pcm: await readProjectPcm({ zip, pcm: take.pcm }),
+          pcm: await readProjectPcm(zip, take.pcm),
         })),
       ),
     },
   };
 }
 
-function writeProjectPcm({
-  zip,
-  pcm,
-  path,
-}: {
-  zip: JSZip;
-  pcm: { sampleRate: number; channels: Float32Array[] };
-  path: string;
-}): RecorderProjectPcm {
+function writeProjectPcm(
+  zip: JSZip,
+  pcm: { sampleRate: number; channels: Float32Array[] },
+  path: string,
+): RecorderProjectPcm {
   return {
     sampleRate: pcm.sampleRate,
     channels: pcm.channels.map((channel, channelIndex) => {
@@ -215,13 +201,10 @@ function writeProjectPcm({
   };
 }
 
-async function readProjectPcm({
-  zip,
-  pcm,
-}: {
-  zip: JSZip;
-  pcm: RecorderProjectPcm;
-}): Promise<{ sampleRate: number; channels: Float32Array[] }> {
+async function readProjectPcm(
+  zip: JSZip,
+  pcm: RecorderProjectPcm,
+): Promise<{ sampleRate: number; channels: Float32Array[] }> {
   if (
     !Number.isFinite(pcm?.sampleRate) ||
     pcm.sampleRate <= 0 ||
