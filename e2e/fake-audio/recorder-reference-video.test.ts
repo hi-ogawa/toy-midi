@@ -3,6 +3,8 @@ import { createRecorderProject } from "../helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
   await createRecorderProject(page);
+
+  // The musician opens the reference panel and resizes it around their workspace.
   const toggle = page.getByTestId("recorder-reference-video-button");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -28,6 +30,8 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     16 / 9,
     2,
   );
+
+  // Invalid input stays editable before a valid YouTube URL creates the player.
   await setup.getByTestId("recorder-youtube-input").fill("not a video");
   await setup.getByRole("button", { name: "Add video" }).click();
   await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");
@@ -37,6 +41,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await setup.getByRole("button", { name: "Add video" }).click();
 
+  // The panel shows an immediate thumbnail while YouTube initializes underneath.
   const reference = setup;
   await expect(
     reference
@@ -50,10 +55,14 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     "src",
     /youtube(?:-nocookie)?\.com\/embed\/knp40WxQgOI/,
   );
+
+  // Reference audio can be muted independently from the recorder transport.
   const mute = page.getByTestId("recorder-reference-video-mute");
   await expect(mute).toHaveAttribute("aria-pressed", "false");
   await mute.click();
   await expect(mute).toHaveAttribute("aria-pressed", "true");
+
+  // The configured video appears as a timeline clip that can be aligned by dragging.
   const referenceTrack = page.getByTestId("recorder-reference-track");
   await expect(referenceTrack).toContainText("Reference");
   await expect(referenceTrack).toContainText("0:00");
@@ -65,6 +74,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await dragBy(page, referenceClip, 80, 0, "start");
   await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 
+  // The reference can be opened at its source or removed from its track actions.
   const openOnYouTube = reference.getByRole("link", {
     name: "Open on YouTube",
   });
@@ -77,6 +87,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(reference.locator("iframe")).toHaveCount(0);
   await expect(referenceTrack).toHaveCount(0);
 
+  // Closing the panel releases the header toggle.
   await reference
     .getByRole("button", { name: "Close Reference Video" })
     .click();
