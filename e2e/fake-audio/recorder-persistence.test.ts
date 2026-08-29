@@ -8,6 +8,16 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "All changes saved" }),
   ).toHaveAttribute("aria-disabled", "true");
+  const saveButton = page.getByRole("button", { name: "All changes saved" });
+  const saveTooltip = page.getByRole("tooltip");
+  await expect(saveButton).not.toHaveAttribute("title");
+  await expect(saveTooltip).toHaveCSS("opacity", "0");
+  await saveButton.hover();
+  await expect(saveTooltip).toHaveCSS("opacity", "1");
+  await page.mouse.move(0, 0);
+  await expect(saveTooltip).toHaveCSS("opacity", "0");
+  await saveButton.focus();
+  await expect(saveTooltip).toHaveCSS("opacity", "1");
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
@@ -64,6 +74,15 @@ test("saves and restores a recorder project", async ({ page }) => {
     .textContent();
   expect(referenceOffset).not.toBeNull();
   await page.getByTestId("recorder-reference-video-mute").click();
+  await page.getByTestId("recorder-mixer-button").click();
+  const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
+  const metronomeLevel = page.getByRole("textbox", {
+    name: "Metronome level in dB",
+  });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await metronomeLevel.fill("-9");
+  await metronomeLevel.press("Enter");
   await expect(
     page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -92,6 +111,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(
     page.getByTestId("recorder-reference-video-mute"),
   ).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("recorder-mixer-button").click();
+  await expect(
+    page.getByRole("textbox", { name: "Master level in dB" }),
+  ).toHaveValue("-6.0");
+  await expect(
+    page.getByRole("textbox", { name: "Metronome level in dB" }),
+  ).toHaveValue("-9.0");
 
   // The metadata index finds the saved project and reopens the same route.
   await page.goto("/recorder");

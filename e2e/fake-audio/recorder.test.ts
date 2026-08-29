@@ -210,6 +210,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
   const position = page.getByTestId("recorder-position");
+  const takesToggle = page.getByTestId("recorder-takes-toggle");
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takesToggle).toContainText("0");
   const captureActions = page.getByRole("button", { name: "Capture actions" });
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
@@ -227,8 +230,18 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
   const take = page.getByTestId("recorder-clip-take");
+  const takeLane = page
+    .getByTestId("recorder-take-row")
+    .getByTestId("recorder-clip-take-lane");
+  const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(takeLane).toHaveCount(1);
+  await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   await captureActions.click();
@@ -292,11 +305,39 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
+  await expect(takeLane).toHaveCount(2);
+  await expect(takeRows).toHaveCount(2);
   expect(
     Number.parseFloat(
       await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(320, -2);
+
+  // Muting removes a take from Capture without deleting its source lane.
+  const muteTake = page.getByTestId("recorder-take-mute");
+  await muteTake.nth(1).click();
+  await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(takeLane).toHaveCount(2);
+  await expect(take).toHaveCount(1);
+  await expect(compRegion).not.toContainText("Take 2");
+
+  // Solo derives Capture from soloed, unmuted take lanes.
+  const soloTake = page.getByTestId("recorder-take-solo");
+  await soloTake.nth(1).click();
+  await expect(soloTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(take).toHaveCount(0);
+  await muteTake.nth(1).click();
+  await expect(take).toHaveCount(1);
+  await soloTake.nth(1).click();
+  await expect(take).toHaveCount(2);
+
+  // The source lanes can be folded without changing the resolved comp.
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takeRows).toHaveCount(0);
+  await expect(compRegion).not.toHaveCount(0);
+  await takesToggle.click();
+  await expect(takeRows).toHaveCount(2);
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
@@ -308,10 +349,44 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Delete removes every selected source take together.
   await take.nth(0).click();
-  await take.nth(1).click({ modifiers: ["Control"] });
+  await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();
+});
+
+test("mixes recorder outputs in a floating panel", async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+
+  await page.getByTestId("recorder-mixer-button").click();
+  const panel = page.getByTestId("recorder-mixer-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-master")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-audio-1")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-capture")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
+
+  const masterLevel = panel.getByRole("textbox", {
+    name: "Master level in dB",
+  });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await expect(masterLevel).toHaveValue("-6.0");
+
+  const audio = panel.getByTestId("recorder-mixer-audio-1");
+  await audio.getByRole("button", { name: "Toggle Audio 1 mute" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 mute" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await audio.getByRole("button", { name: "Toggle Audio 1 solo" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 solo" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await panel.getByRole("button", { name: "Close Mixer" }).click();
+  await expect(panel).toBeHidden();
 });
 
 test("exports and imports a recorder project archive", async ({ page }) => {
@@ -333,6 +408,11 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   }
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   const clipGeometry = await getRecorderClipGeometry(page);
+  await page.getByTestId("recorder-mixer-button").click();
+  const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await page.getByRole("button", { name: "Close Mixer" }).click();
 
   // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
@@ -361,6 +441,10 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
+  await page.getByTestId("recorder-mixer-button").click();
+  await expect(
+    page.getByRole("textbox", { name: "Master level in dB" }),
+  ).toHaveValue("-6.0");
 });
 
 async function getRecorderClipGeometry(page: Page) {

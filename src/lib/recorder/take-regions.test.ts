@@ -69,6 +69,8 @@ function take(id: string, timelineOffset: number, duration: number): TakeState {
   return {
     id,
     number: 1,
+    muted: false,
+    soloed: false,
     timelineOffset,
     duration,
     trimStart: 0,

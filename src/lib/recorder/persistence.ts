@@ -18,6 +18,9 @@ export interface SerializedRecorderRuntimeState {
     nextTakeNumber?: number;
   };
   latencyCompensation: number;
+  // Optional for recorder projects saved before mixer support.
+  masterGain?: number;
+  metronomeGain?: number;
   tempo: number;
   timeSignature: {
     numerator: number;
@@ -52,6 +55,8 @@ interface SerializedTakeState {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  muted?: boolean;
+  soloed?: boolean;
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
@@ -97,6 +102,8 @@ export function serializeRecorderRuntimeState(
         return {
           id: take.id,
           number: take.number,
+          muted: take.muted,
+          soloed: take.soloed,
           timelineOffset: take.timelineOffset,
           trimStart: take.trimStart,
           trimEnd: take.trimEnd,
@@ -105,6 +112,8 @@ export function serializeRecorderRuntimeState(
       }),
     },
     latencyCompensation: state.latencyCompensation,
+    masterGain: state.masterGain,
+    metronomeGain: state.metronomeGain,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
@@ -160,6 +169,8 @@ export function deserializeRecorderRuntimeState({
         return {
           id: take.id ?? crypto.randomUUID(),
           number: take.number ?? index + 1,
+          muted: take.muted ?? false,
+          soloed: take.soloed ?? false,
           duration: buffer.duration,
           timelineOffset: take.timelineOffset,
           trimStart: take.trimStart ?? 0,
@@ -174,6 +185,8 @@ export function deserializeRecorderRuntimeState({
       }),
     },
     latencyCompensation: project.latencyCompensation,
+    masterGain: project.masterGain ?? 1,
+    metronomeGain: project.metronomeGain ?? 0.5,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo

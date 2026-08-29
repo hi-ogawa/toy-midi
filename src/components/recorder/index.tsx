@@ -19,6 +19,7 @@ import { Dialog } from "../ui/dialog";
 import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderMixer } from "./recorder-mixer";
 import {
   TakeTimelineLane,
   ReferenceTimelineRow,
@@ -28,6 +29,8 @@ import {
 import {
   AudioTrackActions,
   CaptureTrackRow,
+  TakesDisclosureRow,
+  TakeTrackRow,
   TrackRow,
 } from "./recorder-tracks";
 import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
@@ -44,6 +47,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     width: 480,
     height: 480,
   });
+  const [takesExpanded, setTakesExpanded] = useState(false);
+  const [isMixerOpen, setIsMixerOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -242,6 +247,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
+        mixerOpen={isMixerOpen}
+        onMixerToggle={() => setIsMixerOpen((open) => !open)}
       />
 
       <div className="min-h-0 flex-1">
@@ -336,7 +343,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                           duration: track.trimEnd - track.trimStart,
                           label: track.clip.name,
                           offset: track.timelineOffset + track.trimStart,
-                          variant: "audio",
+                          testId: "audio",
                           audioView: track.clip.audioView,
                           audioDuration: track.clip.buffer.duration,
                           audioOffset: track.trimStart,
@@ -471,6 +478,76 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
+            <TakesDisclosureRow
+              expanded={takesExpanded}
+              takeCount={takes.length}
+              onExpandedChange={setTakesExpanded}
+            />
+            {takesExpanded &&
+              takes.map((take) => (
+                <TakeTrackRow
+                  key={take.id}
+                  number={take.number}
+                  muted={take.muted}
+                  soloed={take.soloed}
+                  onMutedChange={(muted) =>
+                    runtime.setTakeMuted(take.id, muted)
+                  }
+                  onSoloedChange={(soloed) =>
+                    runtime.setTakeSoloed(take.id, soloed)
+                  }
+                  onDelete={() =>
+                    runtime.removeClips([{ type: "take", id: take.id }])
+                  }
+                >
+                  <TimelineLane
+                    clip={{
+                      label: `Take ${take.number}`,
+                      duration: take.trimEnd - take.trimStart,
+                      offset: take.timelineOffset + take.trimStart,
+                      testId: "take-lane",
+                      audioView: take.audioView,
+                      audioDuration: take.duration,
+                      audioOffset: take.trimStart,
+                    }}
+                    pixelsPerBeat={timeline.pixelsPerBeat}
+                    beatsPerBar={timeline.beatsPerBar}
+                    subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                    viewportStartBeat={timeline.viewportStartBeat}
+                    tempo={timeline.tempo}
+                    viewportWidth={timeline.viewportWidth}
+                    emptyLabel=""
+                    selected={clipInteraction.isSelected({
+                      type: "take",
+                      id: take.id,
+                    })}
+                    onClipClick={(additive) =>
+                      clipInteraction.select(
+                        { type: "take", id: take.id },
+                        additive,
+                      )
+                    }
+                    onTrimStart={(edge) =>
+                      clipInteraction.startTrim({
+                        clip: { type: "take", id: take.id },
+                        edge,
+                      })
+                    }
+                    onTrimMove={clipInteraction.trim}
+                    onClipDragStart={(additive) =>
+                      clipInteraction.startMove({
+                        clip: { type: "take", id: take.id },
+                        additive,
+                      })
+                    }
+                    onClipDragMove={clipInteraction.move}
+                    onSeek={(position) => {
+                      clipInteraction.clear();
+                      runtime.seek(position);
+                    }}
+                  />
+                </TakeTrackRow>
+              ))}
           </div>
         </section>
 
@@ -547,6 +624,17 @@ export function Recorder({ projectId }: { projectId: string }) {
             referenceVideo={state.referenceVideo}
             runtime={runtime}
           />
+        </FloatingPanel>
+      )}
+      {isMixerOpen && (
+        <FloatingPanel
+          closeLabel="Close Mixer"
+          onClose={() => setIsMixerOpen(false)}
+          title="Mixer"
+          testId="recorder-mixer-panel"
+          className="max-w-[calc(100vw-2rem)]"
+        >
+          <RecorderMixer runtime={runtime} state={state} />
         </FloatingPanel>
       )}
     </main>

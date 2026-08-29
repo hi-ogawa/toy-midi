@@ -1,4 +1,6 @@
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   DownloadIcon,
   MoreVerticalIcon,
   Trash2Icon,
@@ -23,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderMixToggle } from "./recorder-mix-toggle";
 
 export function AudioTrackActions({
   label,
@@ -98,10 +101,6 @@ export function TrackRow({
       onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
     },
   });
-  const toggleClass = (active: boolean) =>
-    active
-      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
-      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
@@ -116,20 +115,20 @@ export function TrackRow({
         </div>
         <div className="flex gap-1">
           {action}
-          <Button
+          <RecorderMixToggle
+            active={muted}
+            kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className={toggleClass(muted)}
+            className="size-7"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
-          >
-            M
-          </Button>
-          <Button
+          />
+          <RecorderMixToggle
+            active={soloed}
+            kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className={toggleClass(soloed)}
+            className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          >
-            S
-          </Button>
+          />
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
@@ -213,10 +212,6 @@ export function CaptureTrackRow({
       onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
     },
   });
-  const mixToggleClass = (active: boolean) =>
-    active
-      ? "size-7 border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600"
-      : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700";
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1rem_0.75rem_1fr] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
@@ -254,29 +249,29 @@ export function CaptureTrackRow({
             onClick={onInputToggle}
             className={
               inputActive
-                ? "size-7 border-red-600 bg-red-700 text-white hover:bg-red-600"
+                ? "size-7 border-red-500/60 bg-red-500/25 text-red-300 hover:bg-red-500/35"
                 : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
             }
-            title={inputActive ? "Disable input" : "Enable input"}
-            aria-label={inputActive ? "Disable input" : "Enable input"}
+            title={inputActive ? "Disarm capture" : "Arm capture"}
+            aria-label={inputActive ? "Disarm capture" : "Arm capture"}
             aria-pressed={inputActive}
           >
             R
           </Button>
-          <Button
+          <RecorderMixToggle
+            active={muted}
+            kind="mute"
             onClick={() => onMutedChange(!muted)}
-            className={mixToggleClass(muted)}
+            className="size-7"
             title={muted ? "Unmute Capture" : "Mute Capture"}
-          >
-            M
-          </Button>
-          <Button
+          />
+          <RecorderMixToggle
+            active={soloed}
+            kind="solo"
             onClick={() => onSoloedChange(!soloed)}
-            className={mixToggleClass(soloed)}
+            className="size-7"
             title={soloed ? "Disable Capture solo" : "Solo Capture"}
-          >
-            S
-          </Button>
+          />
         </div>
         <button
           type="button"
@@ -321,6 +316,100 @@ export function CaptureTrackRow({
         className="absolute inset-x-0 bottom-0 z-30 h-px cursor-ns-resize border-b border-neutral-700 after:absolute after:inset-x-0 after:-top-1 after:h-2"
         title="Resize Capture"
       />
+    </div>
+  );
+}
+
+export function TakesDisclosureRow({
+  expanded,
+  takeCount,
+  onExpandedChange,
+}: {
+  expanded: boolean;
+  takeCount: number;
+  onExpandedChange: (expanded: boolean) => void;
+}) {
+  return (
+    <div className="grid h-9 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-900">
+      <button
+        type="button"
+        data-testid="recorder-takes-toggle"
+        aria-expanded={expanded}
+        onClick={() => onExpandedChange(!expanded)}
+        className="sticky left-0 z-20 flex items-center gap-2 border-r border-neutral-700 bg-neutral-900 px-3 text-xs font-semibold text-neutral-300 hover:bg-neutral-800"
+      >
+        {expanded ? (
+          <ChevronDownIcon className="size-3.5 text-neutral-400" />
+        ) : (
+          <ChevronRightIcon className="size-3.5 text-neutral-400" />
+        )}
+        Takes
+        <span className="text-[10px] font-normal text-neutral-500">
+          {takeCount}
+        </span>
+      </button>
+      <div />
+    </div>
+  );
+}
+
+export function TakeTrackRow({
+  number,
+  muted,
+  soloed,
+  onMutedChange,
+  onSoloedChange,
+  onDelete,
+  children,
+}: {
+  number: number;
+  muted: boolean;
+  soloed: boolean;
+  onMutedChange: (muted: boolean) => void;
+  onSoloedChange: (soloed: boolean) => void;
+  onDelete: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      data-testid="recorder-take-row"
+      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+    >
+      <div className="sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
+        <span className="mr-auto px-4">Take {number}</span>
+        <RecorderMixToggle
+          data-testid="recorder-take-mute"
+          aria-label={`Mute Take ${number}`}
+          active={muted}
+          kind="mute"
+          onClick={() => onMutedChange(!muted)}
+          className="size-7"
+          title="Mute take"
+        />
+        <RecorderMixToggle
+          data-testid="recorder-take-solo"
+          aria-label={`Solo Take ${number}`}
+          active={soloed}
+          kind="solo"
+          onClick={() => onSoloedChange(!soloed)}
+          className="size-7"
+          title="Solo take"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Take ${number} actions`} className="size-7">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      {children}
     </div>
   );
 }
