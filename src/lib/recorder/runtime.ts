@@ -604,10 +604,10 @@ export class RecorderRuntime {
     }
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
-      this.transport!.playbackAnchor!.contextTime * context.sampleRate;
+      this.transport!.getActiveStartContextTime() * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
-      this.transport!.getPlaybackPositionByContextTime(
+      this.transport!.getPositionAtContextTime(
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();

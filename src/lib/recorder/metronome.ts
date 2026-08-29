@@ -2,6 +2,8 @@ import type { TimeSignature } from "../../types.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import type {
   AudioContextTransport,
+  PlaybackAnchor,
+  TransportSeekEvent,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -15,6 +17,7 @@ export class RecorderMetronome implements TransportParticipant {
   private tempo = 60;
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
+  private playbackAnchor?: PlaybackAnchor;
 
   constructor(
     private readonly transport: AudioContextTransport,
@@ -44,13 +47,21 @@ export class RecorderMetronome implements TransportParticipant {
     this.secondsPerClick =
       (60 / this.tempo) * (4 / this.timeSignature.denominator);
     if (this.transport.store.get().isPlaying) {
-      this.onPlay();
+      this.restartScheduling();
     }
   }
 
-  onPlay(): void {
+  onPlay(anchor: PlaybackAnchor): void {
+    this.playbackAnchor = anchor;
+    this.restartScheduling();
+  }
+
+  private restartScheduling(): void {
     this.onPause();
-    const anchor = this.transport.playbackAnchor!;
+    const anchor = this.playbackAnchor;
+    if (!anchor) {
+      return;
+    }
     this.nextClickIndex = Math.ceil(
       anchor.position / this.secondsPerClick - 1e-9,
     );
@@ -66,10 +77,10 @@ export class RecorderMetronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  onSeek(_position: number, isPlaying: boolean): void {
+  onSeek(event: TransportSeekEvent): void {
     this.onPause();
-    if (isPlaying) {
-      this.onPlay();
+    if (event.isPlaying) {
+      this.onPlay(event.anchor);
     }
   }
 
@@ -77,7 +88,10 @@ export class RecorderMetronome implements TransportParticipant {
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.
-      const anchor = this.transport.playbackAnchor!;
+      const anchor = this.playbackAnchor;
+      if (!anchor) {
+        return;
+      }
       const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
       const nextClickTime =
         anchor.contextTime + nextClickPosition - anchor.position;

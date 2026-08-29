@@ -8,7 +8,7 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
 export interface TransportParticipant {
   onPlay(anchor: PlaybackAnchor): void;
   onPause(position: number): void;
-  onSeek(position: number, isPlaying: boolean): void;
+  onSeek(event: TransportSeekEvent): void;
 }
 
 type TransportState = {
@@ -21,6 +21,10 @@ export type PlaybackAnchor = {
   position: number;
 };
 
+export type TransportSeekEvent =
+  | { position: number; isPlaying: false }
+  | { position: number; isPlaying: true; anchor: PlaybackAnchor };
+
 /**
  * Owns recorder position and synchronizes registered playback objects to one
  * AudioContext timeline.
@@ -32,11 +36,7 @@ export class AudioContextTransport {
     isPlaying: false,
   }));
 
-  /**
-   * Maps an absolute AudioContext time to the recorder position at which the
-   * current playback run begins. It is available to participants during start.
-   */
-  playbackAnchor?: PlaybackAnchor;
+  private playbackAnchor?: PlaybackAnchor;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
 
@@ -47,7 +47,7 @@ export class AudioContextTransport {
     this.participants.add(participant);
     const state = this.store.get();
     if (state.isPlaying) {
-      participant.onPlay(this.playbackAnchor!);
+      participant.onPlay(this.getActivePlaybackAnchor());
     } else {
       participant.onPause(state.position);
     }
@@ -62,12 +62,13 @@ export class AudioContextTransport {
     if (this.store.get().isPlaying) {
       return;
     }
-    this.playbackAnchor = {
+    const anchor: PlaybackAnchor = {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position: this.store.get().position,
     };
+    this.playbackAnchor = anchor;
     for (const participant of this.participants) {
-      participant.onPlay(this.playbackAnchor);
+      participant.onPlay(anchor);
     }
     this.store.update({ isPlaying: true });
     this.startTicking();
@@ -91,14 +92,20 @@ export class AudioContextTransport {
   seek(position: number): void {
     const wasPlaying = this.store.get().isPlaying;
     const nextPosition = Math.max(0, position);
+    let event: TransportSeekEvent = {
+      position: nextPosition,
+      isPlaying: false,
+    };
     if (wasPlaying) {
-      this.playbackAnchor = {
+      const anchor: PlaybackAnchor = {
         contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
         position: nextPosition,
       };
+      this.playbackAnchor = anchor;
+      event = { position: nextPosition, isPlaying: true, anchor };
     }
     for (const participant of this.participants) {
-      participant.onSeek(nextPosition, wasPlaying);
+      participant.onSeek(event);
     }
     this.store.update({ position: nextPosition });
   }
@@ -108,10 +115,10 @@ export class AudioContextTransport {
    * excluding the scheduling lead before the playback anchor.
    */
   private getPublishedPlaybackPosition(): number {
-    const playbackAnchor = this.playbackAnchor!;
+    const playbackAnchor = this.getActivePlaybackAnchor();
     return Math.max(
       playbackAnchor.position,
-      this.getPlaybackPositionByContextTime(this.context.currentTime),
+      this.getPositionAtContextTime(this.context.currentTime),
     );
   }
 
@@ -119,9 +126,20 @@ export class AudioContextTransport {
    * Converts an absolute AudioContext time to its exact position relative to the
    * active playback anchor. This intentionally includes playback warmup lead time.
    */
-  getPlaybackPositionByContextTime(contextTime: number): number {
-    const playbackAnchor = this.playbackAnchor!;
+  getPositionAtContextTime(contextTime: number): number {
+    const playbackAnchor = this.getActivePlaybackAnchor();
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
+  }
+
+  getActiveStartContextTime(): number {
+    return this.getActivePlaybackAnchor().contextTime;
+  }
+
+  private getActivePlaybackAnchor(): PlaybackAnchor {
+    if (!this.playbackAnchor) {
+      throw new Error("Recorder transport is not playing.");
+    }
+    return this.playbackAnchor;
   }
 
   /** Publishes audio-clock position on animation frames while playing. */

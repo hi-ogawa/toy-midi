@@ -1,5 +1,7 @@
 import type {
   AudioContextTransport,
+  PlaybackAnchor,
+  TransportSeekEvent,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -53,12 +55,11 @@ export class AudioBufferPlayback implements TransportParticipant {
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  onPlay(): void {
+  onPlay(playbackAnchor: PlaybackAnchor): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
     }
-    const playbackAnchor = this.transport.playbackAnchor!;
     const timelineStart =
       this.timelineRange?.start ?? this.bufferTimelineOffset;
     const timelineEnd =
@@ -95,10 +96,10 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.gain.disconnect();
   }
 
-  onSeek(_position: number, isPlaying: boolean): void {
+  onSeek(event: TransportSeekEvent): void {
     this.onPause();
-    if (isPlaying) {
-      this.onPlay();
+    if (event.isPlaying) {
+      this.onPlay(event.anchor);
     }
   }
 }

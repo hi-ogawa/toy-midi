@@ -25,7 +25,11 @@ describe("ReferencePlayback", () => {
     expect(player.play).toHaveBeenLastCalledWith(15);
     participant.onPause(8);
     expect(player.pause).toHaveBeenLastCalledWith(18);
-    participant.onSeek(50, true);
+    participant.onSeek({
+      position: 50,
+      isPlaying: true,
+      anchor: { contextTime: 0, position: 50 },
+    });
     expect(player.pause).toHaveBeenLastCalledWith(30);
   });
 
