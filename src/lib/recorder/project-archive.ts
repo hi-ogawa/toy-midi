@@ -1,13 +1,14 @@
 import JSZip from "jszip";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 
-// .toymidi (ZIP)
+// .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
 // ├── project.json   { audioTracks: [{ clip: { pcm: { channels:
 // │                    ["audio/tracks/0/channel-0.f32"] } } }], ... }
 // └── audio/
 //     ├── tracks/0/channel-0.f32
 //     └── takes/0/channel-0.f32
+
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
 const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
