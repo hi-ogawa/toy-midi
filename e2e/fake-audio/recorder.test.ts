@@ -6,6 +6,36 @@ test.beforeEach(async ({ page }) => {
   await createRecorderProject(page);
 });
 
+test("configures an ephemeral YouTube reference", async ({ page }) => {
+  await page.getByRole("button", { name: "More" }).click();
+  await page.getByRole("menuitem", { name: "Add reference video" }).click();
+
+  const setup = page.getByTestId("recorder-youtube-setup");
+  await setup.getByTestId("recorder-youtube-input").fill("not a video");
+  await setup.getByRole("button", { name: "Add video" }).click();
+  await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");
+
+  await setup
+    .getByTestId("recorder-youtube-input")
+    .fill("https://youtu.be/dQw4w9WgXcQ?t=42");
+  await setup.getByRole("button", { name: "Add video" }).click();
+
+  const reference = page.getByTestId("recorder-youtube-reference");
+  await expect(reference).toContainText("dQw4w9WgXcQ");
+  await expect(reference.locator("iframe")).toHaveAttribute(
+    "src",
+    /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/,
+  );
+
+  await reference.getByRole("button", { name: "Replace" }).click();
+  await setup.getByTestId("recorder-youtube-input").fill("M7lc1UVf-VE");
+  await setup.getByRole("button", { name: "Replace" }).click();
+  await expect(reference).toContainText("M7lc1UVf-VE");
+
+  await reference.getByRole("button", { name: "Remove" }).click();
+  await expect(reference).toHaveCount(0);
+});
+
 test("uploads and plays a backing track", async ({ page }) => {
   // The musician loads a backing track through the recorder's file picker.
   const fileChooserPromise = page.waitForEvent("filechooser");

@@ -29,10 +29,13 @@ import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
+import { YouTubeReference, YouTubeReferenceSetup } from "./youtube-reference";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
+  const [referenceVideoId, setReferenceVideoId] = useState<string>();
+  const [isReferenceSetupOpen, setIsReferenceSetupOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -195,10 +198,18 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
+        onAddReferenceVideo={() => setIsReferenceSetupOpen(true)}
       />
 
       <div className="min-h-0 flex-1">
         <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
+          {referenceVideoId && (
+            <YouTubeReference
+              videoId={referenceVideoId}
+              onReplace={() => setIsReferenceSetupOpen(true)}
+              onRemove={() => setReferenceVideoId(undefined)}
+            />
+          )}
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
@@ -399,6 +410,23 @@ export function Recorder({ projectId }: { projectId: string }) {
             </CaptureTrackRow>
           </div>
         </section>
+
+        <Dialog
+          isOpen={isReferenceSetupOpen}
+          onClose={() => setIsReferenceSetupOpen(false)}
+          title={
+            referenceVideoId ? "Replace Reference Video" : "Add Reference Video"
+          }
+          testId="recorder-youtube-setup"
+        >
+          <YouTubeReferenceSetup
+            initialVideoId={referenceVideoId}
+            onSubmit={(videoId) => {
+              setReferenceVideoId(videoId);
+              setIsReferenceSetupOpen(false);
+            }}
+          />
+        </Dialog>
 
         <Dialog
           isOpen={isInputSetupOpen}

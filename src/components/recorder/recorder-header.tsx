@@ -13,6 +13,7 @@ import {
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
+  VideoIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -61,6 +62,7 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onAddReferenceVideo,
 }: {
   title: string;
   saveStatus: SaveStatus;
@@ -85,6 +87,7 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onAddReferenceVideo: () => void;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -267,6 +270,10 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onAddReferenceVideo}>
+            <VideoIcon />
+            Add reference video
+          </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
             disabled={isRecording || isProcessing || isExporting}
