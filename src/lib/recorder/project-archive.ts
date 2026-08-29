@@ -114,7 +114,7 @@ export async function parseRecorderProjectArchive(
   });
   return {
     title: manifest.title,
-    content: await fromProjectFileContent({ zip, content: project }),
+    content: await readProjectContent({ zip, content: project }),
   };
 }
 
@@ -154,7 +154,7 @@ function writeProjectContent({
   };
 }
 
-async function fromProjectFileContent({
+async function readProjectContent({
   zip,
   content,
 }: {
@@ -175,7 +175,7 @@ async function fromProjectFileContent({
         clip: track.clip
           ? {
               ...track.clip,
-              pcm: await fromProjectPcm({ zip, pcm: track.clip.pcm }),
+              pcm: await readProjectPcm({ zip, pcm: track.clip.pcm }),
             }
           : undefined,
       })),
@@ -185,7 +185,7 @@ async function fromProjectFileContent({
       takes: await Promise.all(
         content.recordingTrack.takes.map(async (take) => ({
           ...take,
-          pcm: await fromProjectPcm({ zip, pcm: take.pcm }),
+          pcm: await readProjectPcm({ zip, pcm: take.pcm }),
         })),
       ),
     },
@@ -215,7 +215,7 @@ function writeProjectPcm({
   };
 }
 
-async function fromProjectPcm({
+async function readProjectPcm({
   zip,
   pcm,
 }: {
