@@ -165,7 +165,7 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  testId: "audio" | "comp" | "recording" | "take";
+  testId: "audio" | "comp" | "recording" | "take" | "take-lane";
   audioView?: AudioView;
 };
 
