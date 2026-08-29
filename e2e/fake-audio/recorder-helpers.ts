@@ -19,13 +19,14 @@ export async function dragBy(
   page: Page,
   locator: Locator,
   deltaX: number,
-  deltaY = 0,
-  horizontalAnchor: "center" | "start" = "center",
+  {
+    deltaY = 0,
+    anchorXOffset,
+  }: { deltaY?: number; anchorXOffset?: number } = {},
 ) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
-  const startX =
-    horizontalAnchor === "start" ? box!.x + 20 : box!.x + box!.width / 2;
+  const startX = box!.x + (anchorXOffset ?? box!.width / 2);
   await page.mouse.move(startX, box!.y + box!.height / 2);
   await page.mouse.down();
   await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {

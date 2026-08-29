@@ -17,7 +17,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     page,
     setup.getByTestId("recorder-reference-video-resize-handle"),
     -80,
-    -60,
+    { deltaY: -60 },
   );
   const resizedPanelBox = await setup.boundingBox();
   expect(resizedPanelBox).not.toBeNull();
@@ -72,7 +72,9 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(referenceTrack).toContainText(/\d+:\d{2}/);
   const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
   await expect(referenceClip).toContainText(/\S+/);
-  await dragBy(page, referenceClip, 80, 0, "start");
+  await dragBy(page, referenceClip, 80, {
+    anchorXOffset: 20,
+  });
   await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 
   // The reference can be removed from its track actions.
