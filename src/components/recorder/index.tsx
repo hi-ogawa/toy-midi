@@ -444,7 +444,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
-                    dimmed={take.muted}
                     selected={clipInteraction.isSelected({
                       type: "take",
                       id: take.id,

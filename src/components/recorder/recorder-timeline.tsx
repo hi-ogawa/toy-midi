@@ -321,7 +321,6 @@ export function TimelineLane({
   onTrimMove,
   subdivisionsPerBeat,
   onSeek,
-  dimmed = false,
 }: {
   beatsPerBar: number;
   clip?: RecorderTimelineClip;
@@ -338,14 +337,10 @@ export function TimelineLane({
   onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
-  dimmed?: boolean;
 }) {
   return (
     <div
-      className={cn(
-        "relative overflow-hidden bg-neutral-900",
-        dimmed && "opacity-50",
-      )}
+      className="relative overflow-hidden bg-neutral-900"
       style={getTimelineGridStyle({
         beatsPerBar,
         pixelsPerBeat,
