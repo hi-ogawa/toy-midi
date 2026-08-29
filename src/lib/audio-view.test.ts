@@ -182,14 +182,15 @@ describe("queryAudioView", () => {
   });
 
   it("preserves the aligned end when live data ends inside a bucket", () => {
-    // 23 base points at 10 points/sec cover [0, 2.3). The 3-second query over
-    // 6 pixels chooses alignmentStep = 5, so the final live bucket is padded:
+    // A 2.3-second live recording has 23 base points at 10 points/sec. Querying
+    // its synchronized duration over 5 pixels chooses alignmentStep = 5, so
+    // the final live bucket is padded to the next lattice boundary:
     //
     //   base points:  [0..5) [5..10) [10..15) [15..20) [20..23) + [23..25)
     //   result:          0       1        2        3        4
     //   aligned time: [0 ----------------------------------------------- 2.5)
     const view = createTestView(23);
-    const result = queryAudioView(view, 0, 3, 6);
+    const result = queryAudioView(view, 0, 2.3, 5);
 
     expect(result.data).toHaveLength(5);
     expect(result.actualStart).toBe(0);
