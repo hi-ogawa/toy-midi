@@ -103,8 +103,6 @@ export type RecorderClipTrim = RecorderClipId & {
   value: number;
 };
 
-const DEFAULT_METRONOME_GAIN = 0.5;
-
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled recording",
@@ -114,7 +112,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
     masterGain: 1,
-    metronomeGain: DEFAULT_METRONOME_GAIN,
+    metronomeGain: 0.5,
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
     takeRegions: [],
@@ -607,11 +605,6 @@ export class RecorderRuntime {
     this.metronome?.setTempo(tempo);
   }
 
-  setMetronomeEnabled(metronomeEnabled: boolean): void {
-    this.store.update({ metronomeEnabled });
-    this.syncMetronomeGain();
-  }
-
   setMasterGain(masterGain: number): void {
     this.store.update({ masterGain });
     this.masterOutput?.gain.setTargetAtTime(
@@ -619,6 +612,11 @@ export class RecorderRuntime {
       this.context!.currentTime,
       0.01,
     );
+  }
+
+  setMetronomeEnabled(metronomeEnabled: boolean): void {
+    this.store.update({ metronomeEnabled });
+    this.syncMetronomeGain();
   }
 
   setMetronomeGain(metronomeGain: number): void {
