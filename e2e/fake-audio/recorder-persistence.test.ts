@@ -11,10 +11,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   const saveButton = page.getByRole("button", { name: "All changes saved" });
   const saveTooltip = page.getByRole("tooltip");
   await expect(saveButton).not.toHaveAttribute("title");
+  await expect(saveTooltip).toHaveCSS("opacity", "0");
   await saveButton.hover();
-  await expect(saveTooltip).toBeVisible();
+  await expect(saveTooltip).toHaveCSS("opacity", "1");
+  await page.mouse.move(0, 0);
+  await expect(saveTooltip).toHaveCSS("opacity", "0");
   await saveButton.focus();
-  await expect(saveTooltip).toBeVisible();
+  await expect(saveTooltip).toHaveCSS("opacity", "1");
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
