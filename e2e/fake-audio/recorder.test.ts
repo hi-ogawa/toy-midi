@@ -12,6 +12,18 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
   const setup = page.getByTestId("recorder-youtube-reference");
+  const initialPanelBox = await setup.boundingBox();
+  expect(initialPanelBox).not.toBeNull();
+  await dragBy(
+    page,
+    setup.getByTestId("recorder-reference-video-resize-handle"),
+    -80,
+    -60,
+  );
+  const resizedPanelBox = await setup.boundingBox();
+  expect(resizedPanelBox).not.toBeNull();
+  expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
+  expect(resizedPanelBox!.height).toBeCloseTo(initialPanelBox!.height + 60, -1);
   await setup.getByTestId("recorder-youtube-input").fill("not a video");
   await setup.getByRole("button", { name: "Add video" }).click();
   await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");
@@ -359,14 +371,19 @@ async function seekRecorderByPixels(page: Page, pixels: number) {
   await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
 }
 
-async function dragBy(page: Page, locator: Locator, deltaX: number) {
+async function dragBy(
+  page: Page,
+  locator: Locator,
+  deltaX: number,
+  deltaY = 0,
+) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.down();
   await page.mouse.move(
     box!.x + box!.width / 2 + deltaX,
-    box!.y + box!.height / 2,
+    box!.y + box!.height / 2 + deltaY,
     { steps: 4 },
   );
   await page.mouse.up();
