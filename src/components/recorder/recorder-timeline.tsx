@@ -172,7 +172,7 @@ type RecorderTimelineClip = {
 
 const TIMELINE_EPSILON = 1e-6;
 
-export function CaptureTimelineLane({
+export function TakeTimelineLane({
   takes,
   regions,
   pendingRecording,
@@ -518,39 +518,37 @@ function TimelineClip({
         width: clipWidth,
       }}
     >
-      <div
-        className={cn(
-          "absolute inset-0 overflow-hidden rounded-[inherit]",
-          hidePresentation && "invisible",
-        )}
-      >
-        {clip.audioView && visibleEnd > visibleStart && (
-          <AudioWaveformView
-            audioView={clip.audioView}
-            audioDuration={clip.audioDuration ?? clip.duration}
-            rangeStart={clip.audioOffset ?? 0}
-            rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
-            visibleStart={visibleStart}
-            visibleEnd={visibleEnd}
-            pixelWidth={clipWidth}
+      {!hidePresentation && (
+        <>
+          <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+            {clip.audioView && visibleEnd > visibleStart && (
+              <AudioWaveformView
+                audioView={clip.audioView}
+                audioDuration={clip.audioDuration ?? clip.duration}
+                rangeStart={clip.audioOffset ?? 0}
+                rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
+                visibleStart={visibleStart}
+                visibleEnd={visibleEnd}
+                pixelWidth={clipWidth}
+              />
+            )}
+            <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
+              <span className="mr-1.5">{clip.label}</span>
+              {onClipDragMove && clip.offset > 0 && (
+                <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
+              )}
+            </div>
+          </div>
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 rounded-[inherit] border",
+              clipBorderClass,
+              joinsNext && "border-r-0",
+            )}
           />
-        )}
-        <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">
-          <span className="mr-1.5">{clip.label}</span>
-          {onClipDragMove && clip.offset > 0 && (
-            <span className="opacity-75">+{clip.offset.toFixed(3)}s</span>
-          )}
-        </div>
-      </div>
-      <div
-        className={cn(
-          "pointer-events-none absolute inset-0 rounded-[inherit] border",
-          clipBorderClass,
-          joinsNext && "border-r-0",
-          hidePresentation && "invisible",
-        )}
-      />
-      {(selected || isDragging) && !hidePresentation && (
+        </>
+      )}
+      {(selected || (hidePresentation && isDragging)) && (
         <div
           data-testid="recorder-clip-selection"
           className="pointer-events-none absolute inset-0 rounded-[inherit] border border-sky-300 ring-1 ring-inset ring-sky-300"

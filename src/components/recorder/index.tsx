@@ -16,7 +16,7 @@ import { Dialog } from "../ui/dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import {
-  CaptureTimelineLane,
+  TakeTimelineLane,
   TimelineHeader,
   TimelineLane,
 } from "./recorder-timeline";
@@ -363,7 +363,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 );
               }}
             >
-              <CaptureTimelineLane
+              <TakeTimelineLane
                 takes={takes}
                 regions={state.previewTakeRegions ?? state.takeRegions}
                 pendingRecording={state.pendingRecording}
