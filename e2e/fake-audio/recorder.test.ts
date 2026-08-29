@@ -24,6 +24,14 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(resizedPanelBox).not.toBeNull();
   expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
   expect(resizedPanelBox!.height).toBeCloseTo(initialPanelBox!.height + 60, -1);
+  const preview = setup.getByTestId("recorder-reference-video-preview");
+  const containedPlayer = preview.locator(":scope > div");
+  const containedPlayerBox = await containedPlayer.boundingBox();
+  expect(containedPlayerBox).not.toBeNull();
+  expect(containedPlayerBox!.width / containedPlayerBox!.height).toBeCloseTo(
+    16 / 9,
+    2,
+  );
   await setup.getByTestId("recorder-youtube-input").fill("not a video");
   await setup.getByRole("button", { name: "Add video" }).click();
   await expect(setup).toContainText("Enter a valid YouTube URL or video ID.");

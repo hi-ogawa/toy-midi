@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
   RecorderRuntime,
@@ -58,7 +64,7 @@ function loadYouTubeApi(): Promise<YouTubeApi> {
   return youtubeApiPromise;
 }
 
-export function YouTubeReferenceSetup({
+function YouTubeReferenceSetup({
   initialVideoId,
   onSubmit,
 }: {
@@ -109,14 +115,67 @@ export function YouTubeReferenceSetup({
   );
 }
 
-export function YouTubeReference({
+export function YouTubeReferencePanel({
   referenceVideo,
   runtime,
-  onSubmit,
+}: {
+  referenceVideo?: ReferenceVideoState;
+  runtime: RecorderRuntime;
+}) {
+  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+  const previewRef = useCallback((element: HTMLDivElement | null) => {
+    if (!element) {
+      return;
+    }
+    const updateSize = () => {
+      const availableWidth = element.clientWidth;
+      const availableHeight = element.clientHeight;
+      const width = Math.min(availableWidth, (availableHeight * 16) / 9);
+      setPreviewSize({ width, height: (width * 9) / 16 });
+    };
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    updateSize();
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div
+        ref={previewRef}
+        data-testid="recorder-reference-video-preview"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
+      >
+        <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
+          {referenceVideo ? (
+            <YouTubeReference
+              referenceVideo={referenceVideo}
+              runtime={runtime}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-xs text-neutral-600">
+              Add a YouTube video
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
+        <YouTubeReferenceSetup
+          key={referenceVideo?.videoId}
+          initialVideoId={referenceVideo?.videoId}
+          onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function YouTubeReference({
+  referenceVideo,
+  runtime,
 }: {
   referenceVideo: ReferenceVideoState;
   runtime: RecorderRuntime;
-  onSubmit: (videoId: string) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playbackRef = useRef<ReferencePlayback>(undefined);
@@ -210,22 +269,14 @@ export function YouTubeReference({
     }
   }, [referenceVideo.muted]);
 
-  const videoId = referenceVideo.videoId;
   return (
-    <div>
-      <div className="aspect-video bg-black">
-        <div ref={mountRef} className="h-full w-full pointer-events-none" />
-      </div>
+    <div className="relative h-full w-full">
+      <div ref={mountRef} className="h-full w-full pointer-events-none" />
       {error && (
-        <div className="px-4 pt-3 text-xs text-orange-300">{error}</div>
+        <div className="absolute inset-x-0 bottom-0 bg-black/80 px-3 py-2 text-xs text-orange-300">
+          {error}
+        </div>
       )}
-      <div className="space-y-3 border-t border-neutral-700 p-4">
-        <YouTubeReferenceSetup
-          key={videoId}
-          initialVideoId={videoId}
-          onSubmit={onSubmit}
-        />
-      </div>
     </div>
   );
 }

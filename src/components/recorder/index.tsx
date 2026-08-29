@@ -34,7 +34,7 @@ import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
-import { YouTubeReference, YouTubeReferenceSetup } from "./youtube-reference";
+import { YouTubeReferencePanel } from "./youtube-reference";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -531,7 +531,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           onClose={() => setIsReferenceVideoOpen(false)}
           testId="recorder-youtube-reference"
           className="flex flex-col overflow-hidden"
-          contentClassName="min-h-0 flex-1 overflow-y-auto p-0"
+          contentClassName="min-h-0 flex-1 p-0"
           style={referenceVideoSize}
         >
           <button
@@ -543,19 +543,10 @@ export function Recorder({ projectId }: { projectId: string }) {
           >
             <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
           </button>
-          {state.referenceVideo ? (
-            <YouTubeReference
-              referenceVideo={state.referenceVideo}
-              runtime={runtime}
-              onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
-            />
-          ) : (
-            <div className="p-4">
-              <YouTubeReferenceSetup
-                onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
-              />
-            </div>
-          )}
+          <YouTubeReferencePanel
+            referenceVideo={state.referenceVideo}
+            runtime={runtime}
+          />
         </FloatingPanel>
       )}
     </main>
