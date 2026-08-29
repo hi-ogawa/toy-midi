@@ -15,10 +15,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
-  // The musician connects the browser input before recording is available.
+  // Connect the browser input before recording is available.
   await enableInput(page);
 
-  // They place the playhead away from zero so take placement is exercised too.
+  // Place the playhead away from zero to exercise take placement.
   await seekRecorderByPixels(page, 160);
 
   // Recording starts capture and rolls the stopped transport.
@@ -110,7 +110,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await playButton.click();
 
-  // They move later in the song and record another attempt.
+  // Move later in the song and record another attempt.
   await seekRecorderByPixels(page, 320);
   await recordButton.click();
   const secondRecording = page.getByTestId("recorder-clip-recording");

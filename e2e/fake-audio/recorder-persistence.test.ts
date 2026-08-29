@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("saves and restores a recorder project", async ({ page }) => {
-  // The musician creates a project and gives it a recognizable name.
+  // Create a project and give it a recognizable name.
   await page.goto("/recorder");
   await page.getByTestId("new-recorder-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
@@ -37,7 +37,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     "Practice take",
   );
 
-  // They load a backing track, including its decoded waveform.
+  // Load a backing track, including its decoded waveform.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   const fileChooser = await fileChooserPromise;
