@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, LoaderCircleIcon } from "lucide-react";
+import { LoaderCircleIcon } from "lucide-react";
 import { useCallback, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
@@ -58,19 +58,6 @@ export function ReferenceVideoPanel({
   return (
     <FloatingPanel
       title="Reference video"
-      headerActions={
-        referenceVideo && (
-          <a
-            href={`https://www.youtube.com/watch?v=${referenceVideo.videoId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 text-xs font-normal text-neutral-400 hover:text-neutral-200"
-          >
-            Open on YouTube
-            <ExternalLinkIcon className="size-3" />
-          </a>
-        )
-      }
       closeLabel="Close Reference Video"
       onClose={onClose}
       testId="recorder-youtube-reference"
@@ -224,7 +211,7 @@ function YouTubeReference({
 
   return (
     <div className="relative h-full w-full">
-      <div ref={mountPlayer} className="h-full w-full pointer-events-none" />
+      <div ref={mountPlayer} className="h-full w-full" />
       {!hasRenderedVideo && (
         <div
           data-testid="recorder-reference-video-placeholder"
@@ -303,7 +290,6 @@ function mountYouTubeReference({
       player = new YT.Player(element, {
         videoId,
         host: "https://www.youtube-nocookie.com",
-        playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
         events: {
           onReady: () => {
             if (disposed || !player) {

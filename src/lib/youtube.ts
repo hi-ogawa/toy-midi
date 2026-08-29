@@ -15,7 +15,7 @@ export interface YouTubeApi {
     options: {
       videoId: string;
       host?: string;
-      playerVars: Record<string, number>;
+      playerVars?: Record<string, number>;
       events: {
         onReady: () => void;
         onError: () => void;

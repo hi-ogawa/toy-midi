@@ -77,14 +77,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await dragBy(page, referenceClip, 80, 0, "start");
   await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 
-  // The reference can be opened at its source or removed from its track actions.
-  const openOnYouTube = reference.getByRole("link", {
-    name: "Open on YouTube",
-  });
-  await expect(openOnYouTube).toHaveAttribute(
-    "href",
-    "https://www.youtube.com/watch?v=knp40WxQgOI",
-  );
+  // The reference can be removed from its track actions.
   await page.getByRole("button", { name: "Reference actions" }).click();
   await page.getByRole("menuitem", { name: "Remove reference video" }).click();
   await expect(reference.locator("iframe")).toHaveCount(0);
