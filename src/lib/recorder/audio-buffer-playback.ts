@@ -53,7 +53,7 @@ export class AudioBufferPlayback implements TransportParticipant {
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  start(): void {
+  onPlay(): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
@@ -80,14 +80,25 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.source = source;
   }
 
-  stop(): void {
+  onPause(): void {
     this.source?.stop();
     this.source?.disconnect();
     this.source = undefined;
   }
 
+  stop(): void {
+    this.onPause();
+  }
+
   dispose(): void {
     this.unregister();
     this.gain.disconnect();
+  }
+
+  onSeek(_position: number, isPlaying: boolean): void {
+    this.onPause();
+    if (isPlaying) {
+      this.onPlay();
+    }
   }
 }

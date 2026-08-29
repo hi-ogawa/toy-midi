@@ -27,7 +27,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
-    /youtube-nocookie\.com\/embed\/dQw4w9WgXcQ/,
+    /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,
   );
   const referenceTrack = page.getByTestId("recorder-reference-track");
   await expect(referenceTrack).toContainText("Reference");
@@ -36,6 +36,12 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(
     referenceTrack.getByTestId("recorder-clip-reference"),
   ).toContainText("YouTube reference");
+  await reference
+    .getByTestId("recorder-reference-timeline-start")
+    .fill("-1.25");
+  await expect(
+    reference.getByTestId("recorder-reference-timeline-start"),
+  ).toHaveValue("-1.25");
 
   await setup.getByTestId("recorder-youtube-input").fill("M7lc1UVf-VE");
   await setup.getByRole("button", { name: "Replace" }).click();

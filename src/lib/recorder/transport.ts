@@ -6,8 +6,9 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
 
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
-  start(): void;
-  stop(): void;
+  onPlay(anchor: PlaybackAnchor): void;
+  onPause(position: number): void;
+  onSeek(position: number, isPlaying: boolean): void;
 }
 
 type TransportState = {
@@ -15,7 +16,7 @@ type TransportState = {
   isPlaying: boolean;
 };
 
-type PlaybackAnchor = {
+export type PlaybackAnchor = {
   contextTime: number;
   position: number;
 };
@@ -44,8 +45,14 @@ export class AudioContextTransport {
   /** Joins a participant to future transport starts and returns its disposer. */
   register(participant: TransportParticipant): () => void {
     this.participants.add(participant);
+    const state = this.store.get();
+    if (state.isPlaying) {
+      participant.onPlay(this.playbackAnchor!);
+    } else {
+      participant.onPause(state.position);
+    }
     return () => {
-      participant.stop();
+      participant.onPause(this.store.get().position);
       this.participants.delete(participant);
     };
   }
@@ -60,7 +67,7 @@ export class AudioContextTransport {
       position: this.store.get().position,
     };
     for (const participant of this.participants) {
-      participant.start();
+      participant.onPlay(this.playbackAnchor);
     }
     this.store.update({ isPlaying: true });
     this.startTicking();
@@ -71,10 +78,10 @@ export class AudioContextTransport {
     if (!this.store.get().isPlaying) {
       return;
     }
-    for (const participant of this.participants) {
-      participant.stop();
-    }
     const finalPosition = this.getPublishedPlaybackPosition();
+    for (const participant of this.participants) {
+      participant.onPause(finalPosition);
+    }
     this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
@@ -83,14 +90,17 @@ export class AudioContextTransport {
   /** Moves the playhead, restarting participants when playback is running. */
   seek(position: number): void {
     const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
     const nextPosition = Math.max(0, position);
-    this.store.update({ position: nextPosition });
     if (wasPlaying) {
-      this.play();
+      this.playbackAnchor = {
+        contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
+        position: nextPosition,
+      };
     }
+    for (const participant of this.participants) {
+      participant.onSeek(nextPosition, wasPlaying);
+    }
+    this.store.update({ position: nextPosition });
   }
 
   /**

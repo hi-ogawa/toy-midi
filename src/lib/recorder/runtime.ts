@@ -59,6 +59,13 @@ interface PendingRecordingState extends Pick<
   recording: ActiveRecording;
 }
 
+export interface ReferenceVideoState {
+  videoId: string;
+  timelineStart: number;
+  title?: string;
+  duration?: number;
+}
+
 export interface RecorderRuntimeState {
   title: string;
   // Transport
@@ -67,6 +74,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  referenceVideo?: ReferenceVideoState;
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
@@ -88,13 +96,18 @@ export type PersistableRecorderRuntimeState = Pick<
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
+  | "referenceVideo"
 >;
 
-export type RecorderClipId = { type: "audio" | "take"; id: string };
+export type RecorderClipId =
+  | { type: "audio" | "take"; id: string }
+  | { type: "reference" };
 
-export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
+export type RecorderClipMove =
+  | { type: "audio" | "take"; id: string; timelineOffset: number }
+  | { type: "reference"; timelineOffset: number };
 
-export type RecorderClipTrim = RecorderClipId & {
+export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
   edge: "start" | "end";
   value: number;
 };
@@ -243,15 +256,22 @@ export class RecorderRuntime {
     }
     const state = this.store.get();
     const audioOffsets = new Map(
-      updates
-        .filter((update) => update.type === "audio")
-        .map((update) => [update.id, update.timelineOffset]),
+      updates.flatMap((update) =>
+        update.type === "audio"
+          ? [[update.id, update.timelineOffset] as const]
+          : [],
+      ),
     );
     const takeOffsets = new Map(
-      updates
-        .filter((update) => update.type === "take")
-        .map((update) => [update.id, update.timelineOffset]),
+      updates.flatMap((update) =>
+        update.type === "take"
+          ? [[update.id, update.timelineOffset] as const]
+          : [],
+      ),
     );
+    const referenceOffset = updates.find(
+      (update) => update.type === "reference",
+    )?.timelineOffset;
     if (
       [...audioOffsets.keys()].some(
         (id) => !state.audioTracks.some((track) => track.id === id),
@@ -277,10 +297,23 @@ export class RecorderRuntime {
         timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
       })),
     };
+    const referenceVideo = state.referenceVideo
+      ? {
+          ...state.referenceVideo,
+          timelineStart: referenceOffset ?? state.referenceVideo.timelineStart,
+        }
+      : undefined;
+    if (referenceOffset !== undefined && !referenceVideo) {
+      throw new Error("Recorder clip state is missing.");
+    }
     if (takeOffsets.size > 0) {
-      this.updateRecordingTrack({ recordingTrack, audioTracks });
+      this.updateRecordingTrack({
+        recordingTrack,
+        audioTracks,
+        referenceVideo,
+      });
     } else {
-      this.store.update({ audioTracks });
+      this.store.update({ audioTracks, referenceVideo });
     }
     for (const id of audioOffsets.keys()) {
       this.syncAudioTrackPlayback(
@@ -339,11 +372,12 @@ export class RecorderRuntime {
     }
     const state = this.store.get();
     const audioIds = new Set(
-      clips.filter((clip) => clip.type === "audio").map((clip) => clip.id),
+      clips.flatMap((clip) => (clip.type === "audio" ? [clip.id] : [])),
     );
     const takeIds = new Set(
-      clips.filter((clip) => clip.type === "take").map((clip) => clip.id),
+      clips.flatMap((clip) => (clip.type === "take" ? [clip.id] : [])),
     );
+    const removeReference = clips.some((clip) => clip.type === "reference");
     if (
       [...audioIds].some(
         (id) => !state.audioTracks.some((track) => track.id === id),
@@ -368,9 +402,11 @@ export class RecorderRuntime {
         ? { ...track, clip: undefined, trimStart: 0, trimEnd: 0 }
         : track,
     );
+    const referenceVideo = removeReference ? undefined : state.referenceVideo;
     if (takeIds.size > 0) {
       this.updateRecordingTrack({
         audioTracks,
+        referenceVideo,
         recordingTrack: {
           ...state.recordingTrack,
           takes: state.recordingTrack.takes.filter(
@@ -379,7 +415,7 @@ export class RecorderRuntime {
         },
       });
     } else {
-      this.store.update({ audioTracks });
+      this.store.update({ audioTracks, referenceVideo });
     }
     if (wasPlaying) {
       this.transport!.play();
@@ -614,6 +650,46 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
+  setReferenceVideo(videoId: string): void {
+    const timelineStart = this.store.get().referenceVideo?.timelineStart ?? 0;
+    this.store.update({
+      referenceVideo: { videoId, timelineStart },
+    });
+  }
+
+  setReferenceVideoMetadata({
+    title,
+    duration,
+  }: {
+    title?: string;
+    duration?: number;
+  }): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({
+      referenceVideo: { ...referenceVideo, title, duration },
+    });
+  }
+
+  setReferenceVideoTimelineStart(timelineStart: number): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
+  }
+
+  removeReferenceVideo(): void {
+    this.store.update({ referenceVideo: undefined });
+  }
+
+  getTransport(): AudioContextTransport {
+    this.ensureContext();
+    return this.transport!;
+  }
+
   renderComp(): AudioBuffer | undefined {
     return renderTakeComp({
       context: this.ensureContext(),
@@ -692,6 +768,7 @@ export class RecorderRuntime {
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
+          referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
       equals: shallowEqual,

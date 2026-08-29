@@ -36,7 +36,6 @@ import { YouTubeReference, YouTubeReferenceSetup } from "./youtube-reference";
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
-  const [referenceVideoId, setReferenceVideoId] = useState<string>();
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
@@ -231,8 +230,9 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
             />
-            {referenceVideoId && (
+            {state.referenceVideo && (
               <ReferenceTimelineRow
+                referenceVideo={state.referenceVideo}
                 position={state.position}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}
@@ -241,6 +241,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => runtime.seek(position)}
+                selected={clipInteraction.isSelected({ type: "reference" })}
+                onClipClick={(additive) =>
+                  clipInteraction.select({ type: "reference" }, additive)
+                }
+                onClipDragStart={(additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "reference" },
+                    additive,
+                  })
+                }
+                onClipDragMove={clipInteraction.move}
               />
             )}
             {state.audioTracks.map((track, index) => (
@@ -467,15 +478,18 @@ export function Recorder({ projectId }: { projectId: string }) {
           className="w-[30rem] overflow-hidden"
           contentClassName="p-0"
         >
-          {referenceVideoId ? (
+          {state.referenceVideo ? (
             <YouTubeReference
-              videoId={referenceVideoId}
-              onRemove={() => setReferenceVideoId(undefined)}
-              onSubmit={setReferenceVideoId}
+              referenceVideo={state.referenceVideo}
+              runtime={runtime}
+              onRemove={() => runtime.removeReferenceVideo()}
+              onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
             />
           ) : (
             <div className="p-4">
-              <YouTubeReferenceSetup onSubmit={setReferenceVideoId} />
+              <YouTubeReferenceSetup
+                onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
+              />
             </div>
           )}
         </FloatingPanel>

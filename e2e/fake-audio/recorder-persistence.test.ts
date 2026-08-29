@@ -37,6 +37,15 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
+  await page.getByTestId("recorder-reference-video-button").click();
+  const referencePanel = page.getByTestId("recorder-youtube-reference");
+  await referencePanel
+    .getByTestId("recorder-youtube-input")
+    .fill("dQw4w9WgXcQ");
+  await referencePanel.getByRole("button", { name: "Add video" }).click();
+  await referencePanel
+    .getByTestId("recorder-reference-timeline-start")
+    .fill("-2.5");
   await expect(
     page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -58,6 +67,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
+  await expect(page.getByTestId("recorder-reference-track")).toBeVisible();
+  await page.getByTestId("recorder-reference-video-button").click();
+  await expect(
+    page
+      .getByTestId("recorder-youtube-reference")
+      .getByTestId("recorder-reference-timeline-start"),
+  ).toHaveValue("-2.5");
 
   // The metadata index finds the saved project and reopens the same route.
   await page.goto("/recorder");

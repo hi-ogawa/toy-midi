@@ -23,6 +23,12 @@ export interface SerializedRecorderRuntimeState {
     numerator: number;
     denominator: number;
   };
+  referenceVideo?: {
+    videoId: string;
+    timelineStart: number;
+    title?: string;
+    duration?: number;
+  };
 }
 
 interface SerializedAudioTrackState {
@@ -100,6 +106,7 @@ export function serializeRecorderRuntimeState(
     latencyCompensation: state.latencyCompensation,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
+    referenceVideo: state.referenceVideo,
   };
 }
 
@@ -168,6 +175,7 @@ export function deserializeRecorderRuntimeState({
     latencyCompensation: project.latencyCompensation,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
+    referenceVideo: project.referenceVideo,
   };
 }
 

@@ -8,7 +8,10 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
-import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import type {
+  RecorderRuntimeState,
+  ReferenceVideoState,
+} from "../../lib/recorder/runtime";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -24,9 +27,10 @@ import type {
   RecorderClipTrimSnapshot,
 } from "./use-recorder-clip-interaction";
 
-const REFERENCE_VIDEO_MOCK_DURATION = 3 * 60 + 32;
+const REFERENCE_VIDEO_FALLBACK_DURATION = 3 * 60 + 32;
 
 export function ReferenceTimelineRow({
+  referenceVideo,
   position,
   beatsPerBar,
   subdivisionsPerBeat,
@@ -35,7 +39,12 @@ export function ReferenceTimelineRow({
   viewportStartBeat,
   viewportWidth,
   onSeek,
+  selected,
+  onClipClick,
+  onClipDragStart,
+  onClipDragMove,
 }: {
+  referenceVideo: ReferenceVideoState;
   position: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -44,6 +53,10 @@ export function ReferenceTimelineRow({
   viewportStartBeat: number;
   viewportWidth: number;
   onSeek: (position: number) => void;
+  selected: boolean;
+  onClipClick: (additive: boolean) => void;
+  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
 }) {
   return (
     <div
@@ -59,11 +72,15 @@ export function ReferenceTimelineRow({
           <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
             <span>
               {formatReferenceTime(
-                Math.min(position, REFERENCE_VIDEO_MOCK_DURATION),
+                Math.max(0, position - referenceVideo.timelineStart),
               )}
             </span>
             <span className="text-neutral-600">/</span>
-            <span>{formatReferenceTime(REFERENCE_VIDEO_MOCK_DURATION)}</span>
+            <span>
+              {formatReferenceTime(
+                referenceVideo.duration ?? REFERENCE_VIDEO_FALLBACK_DURATION,
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -85,11 +102,19 @@ export function ReferenceTimelineRow({
         }}
       >
         <ReferenceTimelineClip
-          duration={REFERENCE_VIDEO_MOCK_DURATION}
+          label={referenceVideo.title ?? "YouTube reference"}
+          offset={referenceVideo.timelineStart}
+          duration={
+            referenceVideo.duration ?? REFERENCE_VIDEO_FALLBACK_DURATION
+          }
           pixelsPerBeat={pixelsPerBeat}
           tempo={tempo}
           viewportStartBeat={viewportStartBeat}
           viewportWidth={viewportWidth}
+          selected={selected}
+          onClipClick={onClipClick}
+          onClipDragStart={onClipDragStart}
+          onClipDragMove={onClipDragMove}
         />
       </div>
     </div>
@@ -97,36 +122,81 @@ export function ReferenceTimelineRow({
 }
 
 function ReferenceTimelineClip({
+  label,
+  offset,
   duration,
   pixelsPerBeat,
   tempo,
   viewportStartBeat,
   viewportWidth,
+  selected,
+  onClipClick,
+  onClipDragStart,
+  onClipDragMove,
 }: {
+  label: string;
+  offset: number;
   duration: number;
   pixelsPerBeat: number;
   tempo: number;
   viewportStartBeat: number;
   viewportWidth: number;
+  selected: boolean;
+  onClipClick: (additive: boolean) => void;
+  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
 }) {
-  const left = -viewportStartBeat * pixelsPerBeat;
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = usePointerGesture({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      return {
+        additive: event.ctrlKey || event.metaKey,
+        snapshot: undefined as RecorderClipMoveSnapshot | undefined,
+      };
+    },
+    onClick: (_event, { data }) => onClipClick(data.additive),
+    onDragStart: (_event, { data }) => {
+      setIsDragging(true);
+      data.snapshot = onClipDragStart(data.additive);
+    },
+    onDragMove: (_event, { data, deltaX }) => {
+      onClipDragMove(
+        data.snapshot!,
+        beatsToSeconds(deltaX / pixelsPerBeat, tempo),
+      );
+    },
+    onDragEnd: () => setIsDragging(false),
+    onCancel: () => setIsDragging(false),
+  });
+  const left =
+    (secondsToBeats(offset, tempo) - viewportStartBeat) * pixelsPerBeat;
   const width = secondsToBeats(duration, tempo) * pixelsPerBeat;
   const visibleLabelLeft = Math.max(0, -left) + 8;
   return (
     <div
       data-testid="recorder-clip-reference"
-      className="absolute inset-y-1 overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50"
+      data-selected={selected ? "true" : undefined}
+      ref={dragRef}
+      className={cn(
+        "absolute inset-y-1 cursor-ew-resize select-none overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50",
+        isDragging && "brightness-125",
+      )}
       style={{ left, width }}
     >
       <div
         className="absolute top-0.5 flex max-w-[calc(100vw-17rem)] items-center whitespace-nowrap text-[11px]"
         style={{ left: Math.min(visibleLabelLeft, viewportWidth - 8) }}
       >
-        <span className="mr-1.5 truncate">YouTube reference</span>
+        <span className="mr-1.5 truncate">{label}</span>
         <span className="font-mono opacity-75">
           {formatReferenceTime(duration)}
         </span>
       </div>
+      {selected && (
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-white/90" />
+      )}
     </div>
   );
 }

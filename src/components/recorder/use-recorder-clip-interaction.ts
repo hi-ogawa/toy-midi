@@ -27,7 +27,7 @@ export function useRecorderClipInteraction({
   const [keys, setKeys] = useState(() => new Set<string>());
 
   function getKey(clip: RecorderClipId): string {
-    return `${clip.type}:${clip.id}`;
+    return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
   }
 
   function getSelectedClips(selectedKeys: ReadonlySet<string>) {
@@ -38,6 +38,9 @@ export function useRecorderClipInteraction({
       takes: state.recordingTrack.takes.filter((take) =>
         selectedKeys.has(getKey({ type: "take", id: take.id })),
       ),
+      referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
+        ? state.referenceVideo
+        : undefined,
     };
   }
 
@@ -49,12 +52,13 @@ export function useRecorderClipInteraction({
       ...state.recordingTrack.takes.map((take) =>
         getKey({ type: "take", id: take.id }),
       ),
+      ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
     ]);
     setKeys((current) => {
       const next = new Set([...current].filter((key) => available.has(key)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.takes]);
+  }, [state.audioTracks, state.recordingTrack.takes, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
     const key = getKey(clip);
@@ -100,6 +104,14 @@ export function useRecorderClipInteraction({
         id: take.id,
         timelineOffset: take.timelineOffset,
       })),
+      ...(selected.referenceVideo
+        ? [
+            {
+              type: "reference" as const,
+              timelineOffset: selected.referenceVideo.timelineStart,
+            },
+          ]
+        : []),
     ];
     return {
       clips,
@@ -108,18 +120,32 @@ export function useRecorderClipInteraction({
           (track) => track.timelineOffset + track.trimStart,
         ),
         ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
+        ...(selected.referenceVideo
+          ? [selected.referenceVideo.timelineStart]
+          : []),
       ),
     };
   }
 
   function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
-    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
+    const clampedDelta = snapshot.clips.some(
+      (clip) => clip.type === "reference",
+    )
+      ? delta
+      : Math.max(delta, -snapshot.minimumVisibleStart);
     runtime.moveClips(
-      snapshot.clips.map((clip) => ({
-        type: clip.type,
-        id: clip.id,
-        timelineOffset: clip.timelineOffset + clampedDelta,
-      })),
+      snapshot.clips.map((clip) =>
+        clip.type === "reference"
+          ? {
+              type: "reference" as const,
+              timelineOffset: clip.timelineOffset + clampedDelta,
+            }
+          : {
+              type: clip.type,
+              id: clip.id,
+              timelineOffset: clip.timelineOffset + clampedDelta,
+            },
+      ),
     );
   }
 
@@ -133,7 +159,9 @@ export function useRecorderClipInteraction({
     const selected =
       clip.type === "audio"
         ? state.audioTracks.find((track) => track.id === clip.id)
-        : state.recordingTrack.takes.find((take) => take.id === clip.id);
+        : clip.type === "take"
+          ? state.recordingTrack.takes.find((take) => take.id === clip.id)
+          : undefined;
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
     }
@@ -145,6 +173,9 @@ export function useRecorderClipInteraction({
   }
 
   function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
+    if (snapshot.clip.type === "reference") {
+      throw new Error("Reference clips cannot be trimmed.");
+    }
     runtime.trimClip({
       ...snapshot.clip,
       edge: snapshot.edge,
@@ -163,6 +194,7 @@ export function useRecorderClipInteraction({
         type: "take" as const,
         id: take.id,
       })),
+      ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
     ]);
     setKeys(new Set());
   }

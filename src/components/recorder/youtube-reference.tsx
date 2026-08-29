@@ -1,6 +1,61 @@
 import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { ReferencePlayback } from "../../lib/recorder/reference-playback";
+import {
+  RecorderRuntime,
+  type ReferenceVideoState,
+} from "../../lib/recorder/runtime";
 import { Button } from "../ui/button";
+
+interface YouTubePlayerApi {
+  playVideo(): void;
+  pauseVideo(): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
+  getDuration(): number;
+  getVideoData(): { title?: string };
+  destroy(): void;
+}
+
+interface YouTubeApi {
+  Player: new (
+    element: HTMLElement,
+    options: {
+      videoId: string;
+      host?: string;
+      playerVars: Record<string, number>;
+      events: {
+        onReady: () => void;
+        onError: () => void;
+      };
+    },
+  ) => YouTubePlayerApi;
+}
+
+declare global {
+  interface Window {
+    YT?: YouTubeApi;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+let youtubeApiPromise: Promise<YouTubeApi> | undefined;
+
+function loadYouTubeApi(): Promise<YouTubeApi> {
+  if (window.YT) {
+    return Promise.resolve(window.YT);
+  }
+  if (!youtubeApiPromise) {
+    youtubeApiPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.onerror = () =>
+        reject(new Error("Could not load YouTube player."));
+      window.onYouTubeIframeAPIReady = () => resolve(window.YT!);
+      document.head.appendChild(script);
+    });
+  }
+  return youtubeApiPromise;
+}
 
 export function YouTubeReferenceSetup({
   initialVideoId,
@@ -54,31 +109,123 @@ export function YouTubeReferenceSetup({
 }
 
 export function YouTubeReference({
-  videoId,
+  referenceVideo,
+  runtime,
   onRemove,
   onSubmit,
 }: {
-  videoId: string;
+  referenceVideo: ReferenceVideoState;
+  runtime: RecorderRuntime;
   onRemove: () => void;
   onSubmit: (videoId: string) => void;
 }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const playbackRef = useRef<ReferencePlayback>(undefined);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    const element = mountRef.current;
+    if (!element) {
+      return;
+    }
+    let disposed = false;
+    let player: YouTubePlayerApi | undefined;
+    let playback: ReferencePlayback | undefined;
+    void loadYouTubeApi()
+      .then((YT) => {
+        if (disposed) {
+          return;
+        }
+        player = new YT.Player(element, {
+          videoId: referenceVideo.videoId,
+          host: "https://www.youtube-nocookie.com",
+          playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
+          events: {
+            onReady: () => {
+              if (disposed || !player) {
+                return;
+              }
+              playback = new ReferencePlayback(runtime.getTransport(), {
+                play: (time) => {
+                  player!.seekTo(time, true);
+                  player!.playVideo();
+                },
+                pause: (time) => {
+                  player!.pauseVideo();
+                  player!.seekTo(time, true);
+                },
+              });
+              playbackRef.current = playback;
+              const duration = player.getDuration();
+              const title = player.getVideoData().title;
+              runtime.setReferenceVideoMetadata({
+                duration: duration > 0 ? duration : undefined,
+                title,
+              });
+              playback.setState({
+                timelineStart: referenceVideo.timelineStart,
+                duration: duration > 0 ? duration : undefined,
+              });
+            },
+            onError: () => setError("YouTube could not load this video."),
+          },
+        });
+      })
+      .catch((reason: unknown) => {
+        if (!disposed) {
+          setError(reason instanceof Error ? reason.message : "Unknown error");
+        }
+      });
+    return () => {
+      disposed = true;
+      playback?.dispose();
+      if (playbackRef.current === playback) {
+        playbackRef.current = undefined;
+      }
+      player?.destroy();
+    };
+  }, [referenceVideo.videoId, runtime]);
+
+  useEffect(() => {
+    playbackRef.current?.setState({
+      timelineStart: referenceVideo.timelineStart,
+      duration: referenceVideo.duration,
+    });
+  }, [referenceVideo.duration, referenceVideo.timelineStart]);
+
+  const videoId = referenceVideo.videoId;
   return (
     <div>
       <div className="aspect-video bg-black">
-        <iframe
-          title="YouTube reference video"
-          src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&disablekb=1&playsinline=1&rel=0`}
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          referrerPolicy="strict-origin-when-cross-origin"
-          className="h-full w-full pointer-events-none"
-        />
+        <div ref={mountRef} className="h-full w-full pointer-events-none" />
       </div>
+      {error && (
+        <div className="px-4 pt-3 text-xs text-orange-300">{error}</div>
+      )}
       <div className="space-y-3 border-t border-neutral-700 p-4">
         <YouTubeReferenceSetup
           key={videoId}
           initialVideoId={videoId}
           onSubmit={onSubmit}
         />
+        <label className="block text-[11px] font-medium text-neutral-400">
+          Timeline start
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              data-testid="recorder-reference-timeline-start"
+              type="number"
+              step="0.001"
+              value={referenceVideo.timelineStart}
+              onChange={(event) =>
+                runtime.setReferenceVideoTimelineStart(
+                  event.currentTarget.valueAsNumber,
+                )
+              }
+              className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
+            />
+            <span className="text-xs text-neutral-500">seconds</span>
+          </div>
+        </label>
         <div className="flex items-center">
           <Button
             onClick={onRemove}

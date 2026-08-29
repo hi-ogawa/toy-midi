@@ -41,12 +41,12 @@ export class RecorderMetronome implements TransportParticipant {
     this.secondsPerClick =
       (60 / this.tempo) * (4 / this.timeSignature.denominator);
     if (this.transport.store.get().isPlaying) {
-      this.start();
+      this.onPlay();
     }
   }
 
-  start(): void {
-    this.stop();
+  onPlay(): void {
+    this.onPause();
     const anchor = this.transport.playbackAnchor!;
     this.nextClickIndex = Math.ceil(
       anchor.position / this.secondsPerClick - 1e-9,
@@ -58,9 +58,16 @@ export class RecorderMetronome implements TransportParticipant {
     );
   }
 
-  stop(): void {
+  onPause(): void {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
+  }
+
+  onSeek(_position: number, isPlaying: boolean): void {
+    this.onPause();
+    if (isPlaying) {
+      this.onPlay();
+    }
   }
 
   private schedule(): void {
