@@ -3,12 +3,12 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
-export interface ReferencePlayer {
+interface ReferencePlayer {
   play(time: number): void;
   pause(time: number): void;
 }
 
-export interface ReferencePlaybackState {
+interface ReferencePlaybackState {
   timelineStart: number;
   duration?: number;
 }
