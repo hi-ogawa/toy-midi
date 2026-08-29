@@ -18,8 +18,6 @@ import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 
-const formatDb = (value: number) => value.toFixed(1);
-
 export function RecorderMixer({
   runtime,
   state,
@@ -145,6 +143,8 @@ function RecorderTrackChannel({
     />
   );
 }
+
+const formatDb = (value: number) => value.toFixed(1);
 
 function useGainInput(gain: number, onGainChange: (gain: number) => void) {
   return useDraftInput({
