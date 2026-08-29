@@ -6,6 +6,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { clamp } from "../../lib/music";
 import { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
@@ -13,7 +14,6 @@ import {
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { loadYouTubeApi, type YouTubePlayerApi } from "../../lib/youtube";
-import { listenPointerDrag } from "../../utils/pointer-drag";
 import { Button } from "../ui/button";
 import { FloatingPanel } from "../ui/floating-panel";
 
@@ -27,37 +27,34 @@ export function ReferenceVideoPanel({
   onClose: () => void;
 }) {
   const [size, setSize] = useState({ width: 480, height: 480 });
-  const resizeHandleRef = useCallback((handle: HTMLButtonElement | null) => {
-    if (!handle) {
-      return;
-    }
-    const panel = handle.offsetParent;
-    if (!(panel instanceof HTMLElement)) {
-      return;
-    }
-    return listenPointerDrag({
-      element: handle,
-      onStart: (event) => ({
+  const resizeHandleRef = usePointerDrag({
+    onStart: (event) => {
+      const target = event.target;
+      const panel = target instanceof HTMLElement ? target.offsetParent : null;
+      if (!(panel instanceof HTMLElement)) {
+        throw new Error("Reference video panel is missing.");
+      }
+      return {
         x: event.clientX,
         y: event.clientY,
         panelRect: panel.getBoundingClientRect(),
-      }),
-      onMove: (event, drag) => {
-        setSize({
-          width: clamp(
-            drag.panelRect.width + drag.x - event.clientX,
-            360,
-            window.innerWidth - 32,
-          ),
-          height: clamp(
-            drag.panelRect.height + drag.y - event.clientY,
-            300,
-            window.innerHeight - 32,
-          ),
-        });
-      },
-    });
-  }, []);
+      };
+    },
+    onMove: (event, drag) => {
+      setSize({
+        width: clamp(
+          drag.panelRect.width + drag.x - event.clientX,
+          360,
+          window.innerWidth - 32,
+        ),
+        height: clamp(
+          drag.panelRect.height + drag.y - event.clientY,
+          300,
+          window.innerHeight - 32,
+        ),
+      });
+    },
+  });
 
   return (
     <FloatingPanel
