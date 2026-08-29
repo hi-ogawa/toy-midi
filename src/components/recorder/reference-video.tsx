@@ -1,5 +1,5 @@
 import { ExternalLinkIcon, LoaderCircleIcon } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
@@ -200,37 +200,28 @@ function YouTubeReference({
   referenceVideo: ReferenceVideoState;
   runtime: RecorderRuntime;
 }) {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef<MountedYouTubeReference>(undefined);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
   const [error, setError] = useState<string>();
 
-  useEffect(() => {
-    const element = mountRef.current;
-    if (!element) {
-      return;
-    }
-    setHasRenderedVideo(false);
-    setError(undefined);
-    const mounted = mountYouTubeReference({
-      element,
-      videoId: referenceVideo.videoId,
-      runtime,
-      onPlaying: () => setHasRenderedVideo(true),
-      onError: (nextError) => setError(nextError.message),
-    });
-    mountedRef.current = mounted;
-    return () => {
-      if (mountedRef.current === mounted) {
-        mountedRef.current = undefined;
-      }
-      mounted.dispose();
-    };
-  }, [referenceVideo.videoId, runtime]);
+  const mountPlayer = useCallback(
+    (element: HTMLDivElement) => {
+      setHasRenderedVideo(false);
+      setError(undefined);
+      const mounted = mountYouTubeReference({
+        element,
+        videoId: referenceVideo.videoId,
+        runtime,
+        onPlaying: () => setHasRenderedVideo(true),
+        onError: (nextError) => setError(nextError.message),
+      });
+      return () => mounted.dispose();
+    },
+    [referenceVideo.videoId, runtime],
+  );
 
   return (
     <div className="relative h-full w-full">
-      <div ref={mountRef} className="h-full w-full pointer-events-none" />
+      <div ref={mountPlayer} className="h-full w-full pointer-events-none" />
       {!hasRenderedVideo && (
         <div
           data-testid="recorder-reference-video-placeholder"
