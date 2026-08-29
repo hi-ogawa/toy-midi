@@ -46,7 +46,10 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     reference
       .getByTestId("recorder-reference-video-placeholder")
       .locator("img"),
-  ).toHaveAttribute("src", /i\.ytimg\.com\/vi\/dQw4w9WgXcQ\/mqdefault\.jpg/);
+  ).toHaveAttribute(
+    "src",
+    /i\.ytimg\.com\/vi\/dQw4w9WgXcQ\/(?:maxres|hq)default\.jpg/,
+  );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
     /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,

@@ -183,6 +183,9 @@ function YouTubeReference({
   const playbackRef = useRef<ReferencePlayback>(undefined);
   const playerRef = useRef<YouTubePlayerApi>(undefined);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
+  const [thumbnailQuality, setThumbnailQuality] = useState<"maxres" | "hq">(
+    "maxres",
+  );
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -192,6 +195,7 @@ function YouTubeReference({
     }
     let disposed = false;
     setHasRenderedVideo(false);
+    setThumbnailQuality("maxres");
     setError(undefined);
     let player: YouTubePlayerApi | undefined;
     let playback: ReferencePlayback | undefined;
@@ -291,7 +295,8 @@ function YouTubeReference({
           className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
         >
           <img
-            src={`https://i.ytimg.com/vi/${referenceVideo.videoId}/mqdefault.jpg`}
+            src={`https://i.ytimg.com/vi/${referenceVideo.videoId}/${thumbnailQuality === "maxres" ? "maxresdefault" : "hqdefault"}.jpg`}
+            onError={() => setThumbnailQuality("hq")}
             alt=""
             className="h-full w-full object-cover"
           />
