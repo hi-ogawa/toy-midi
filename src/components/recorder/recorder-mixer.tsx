@@ -17,6 +17,7 @@ import type {
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { Toggle } from "../ui/toggle";
+import { RecorderMixToggle } from "./recorder-mix-toggle";
 
 export function RecorderMixer({
   runtime,
@@ -132,23 +133,24 @@ function RecorderTrackChannel({
       testId={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
-          <Toggle
-            value={muted}
-            onChange={onMutedChange}
+          <RecorderMixToggle
+            active={muted}
+            kind="mute"
+            onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           >
             M
-          </Toggle>
-          <Toggle
-            value={soloed}
-            variant="primary"
-            onChange={onSoloedChange}
+          </RecorderMixToggle>
+          <RecorderMixToggle
+            active={soloed}
+            kind="solo"
+            onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           >
             S
-          </Toggle>
+          </RecorderMixToggle>
         </div>
       }
     />
