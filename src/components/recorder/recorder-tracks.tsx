@@ -249,11 +249,11 @@ export function CaptureTrackRow({
             onClick={onInputToggle}
             className={
               inputActive
-                ? "size-7 border-red-600 bg-red-700 text-white hover:bg-red-600"
+                ? "size-7 border-red-500/60 bg-red-500/25 text-red-300 hover:bg-red-500/35"
                 : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
             }
-            title={inputActive ? "Disable input" : "Enable input"}
-            aria-label={inputActive ? "Disable input" : "Enable input"}
+            title={inputActive ? "Disarm capture" : "Arm capture"}
+            aria-label={inputActive ? "Disarm capture" : "Arm capture"}
             aria-pressed={inputActive}
           >
             R
