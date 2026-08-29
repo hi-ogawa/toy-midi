@@ -49,8 +49,6 @@ interface SerializedTakeState {
   id?: string;
   number?: number;
   enabled?: boolean;
-  // Used by development builds before take disabling was renamed.
-  includedInComp?: boolean;
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
@@ -161,7 +159,7 @@ export function deserializeRecorderRuntimeState({
         return {
           id: take.id ?? crypto.randomUUID(),
           number: take.number ?? index + 1,
-          enabled: take.enabled ?? take.includedInComp ?? true,
+          enabled: take.enabled ?? true,
           duration: buffer.duration,
           timelineOffset: take.timelineOffset,
           trimStart: take.trimStart ?? 0,
