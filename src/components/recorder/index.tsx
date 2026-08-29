@@ -233,7 +233,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             />
             {referenceVideoId && (
               <ReferenceTimelineRow
-                videoId={referenceVideoId}
                 position={state.position}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 beatsPerBar={timeline.beatsPerBar}

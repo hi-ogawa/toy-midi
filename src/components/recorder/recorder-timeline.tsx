@@ -1,6 +1,5 @@
 import {
   LoaderCircleIcon,
-  PlayIcon,
   PlusIcon,
   UploadIcon,
   VideoIcon,
@@ -28,7 +27,6 @@ import type {
 const REFERENCE_VIDEO_MOCK_DURATION = 3 * 60 + 32;
 
 export function ReferenceTimelineRow({
-  videoId,
   position,
   beatsPerBar,
   subdivisionsPerBeat,
@@ -38,7 +36,6 @@ export function ReferenceTimelineRow({
   viewportWidth,
   onSeek,
 }: {
-  videoId: string;
   position: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -88,7 +85,6 @@ export function ReferenceTimelineRow({
         }}
       >
         <ReferenceTimelineClip
-          videoId={videoId}
           duration={REFERENCE_VIDEO_MOCK_DURATION}
           pixelsPerBeat={pixelsPerBeat}
           tempo={tempo}
@@ -101,14 +97,12 @@ export function ReferenceTimelineRow({
 }
 
 function ReferenceTimelineClip({
-  videoId,
   duration,
   pixelsPerBeat,
   tempo,
   viewportStartBeat,
   viewportWidth,
 }: {
-  videoId: string;
   duration: number;
   pixelsPerBeat: number;
   tempo: number;
@@ -121,23 +115,15 @@ function ReferenceTimelineClip({
   return (
     <div
       data-testid="recorder-clip-reference"
-      className="absolute inset-y-2 overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50"
+      className="absolute inset-y-1 overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50"
       style={{ left, width }}
     >
-      <img
-        src={`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`}
-        alt=""
-        className="absolute inset-y-0 left-0 w-24 object-cover opacity-35"
-      />
       <div
-        className="absolute inset-y-0 flex max-w-[calc(100vw-17rem)] items-center gap-2 whitespace-nowrap"
+        className="absolute top-0.5 flex max-w-[calc(100vw-17rem)] items-center whitespace-nowrap text-[11px]"
         style={{ left: Math.min(visibleLabelLeft, viewportWidth - 8) }}
       >
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-black/45">
-          <PlayIcon className="ml-0.5 size-3 fill-current" />
-        </span>
-        <span className="truncate text-xs font-medium">YouTube reference</span>
-        <span className="font-mono text-[10px] text-amber-200/70">
+        <span className="mr-1.5 truncate">YouTube reference</span>
+        <span className="font-mono opacity-75">
           {formatReferenceTime(duration)}
         </span>
       </div>
