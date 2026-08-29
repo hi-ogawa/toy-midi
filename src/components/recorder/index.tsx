@@ -380,66 +380,62 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }}
               />
             </CaptureTrackRow>
-            {takes.length > 0 && (
-              <>
-                <TakesDisclosureRow
-                  expanded={takesExpanded}
-                  takeCount={takes.length}
-                  onExpandedChange={setTakesExpanded}
-                />
-                {takesExpanded &&
-                  takes.map((take) => (
-                    <TakeTrackRow key={take.id} number={take.number}>
-                      <TimelineLane
-                        clip={{
-                          label: `Take ${take.number}`,
-                          duration: take.trimEnd - take.trimStart,
-                          offset: take.timelineOffset + take.trimStart,
-                          variant: "take",
-                          audioView: take.audioView,
-                          audioDuration: take.duration,
-                          audioOffset: take.trimStart,
-                        }}
-                        pixelsPerBeat={timeline.pixelsPerBeat}
-                        beatsPerBar={timeline.beatsPerBar}
-                        subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                        viewportStartBeat={timeline.viewportStartBeat}
-                        tempo={timeline.tempo}
-                        viewportWidth={timeline.viewportWidth}
-                        emptyLabel=""
-                        selected={clipInteraction.isSelected({
-                          type: "take",
-                          id: take.id,
-                        })}
-                        onClipClick={(additive) =>
-                          clipInteraction.select(
-                            { type: "take", id: take.id },
-                            additive,
-                          )
-                        }
-                        onTrimStart={(edge) =>
-                          clipInteraction.startTrim({
-                            clip: { type: "take", id: take.id },
-                            edge,
-                          })
-                        }
-                        onTrimMove={clipInteraction.trim}
-                        onClipDragStart={(additive) =>
-                          clipInteraction.startMove({
-                            clip: { type: "take", id: take.id },
-                            additive,
-                          })
-                        }
-                        onClipDragMove={clipInteraction.move}
-                        onSeek={(position) => {
-                          clipInteraction.clear();
-                          runtime.seek(position);
-                        }}
-                      />
-                    </TakeTrackRow>
-                  ))}
-              </>
-            )}
+            <TakesDisclosureRow
+              expanded={takesExpanded}
+              takeCount={takes.length}
+              onExpandedChange={setTakesExpanded}
+            />
+            {takesExpanded &&
+              takes.map((take) => (
+                <TakeTrackRow key={take.id} number={take.number}>
+                  <TimelineLane
+                    clip={{
+                      label: `Take ${take.number}`,
+                      duration: take.trimEnd - take.trimStart,
+                      offset: take.timelineOffset + take.trimStart,
+                      variant: "take",
+                      audioView: take.audioView,
+                      audioDuration: take.duration,
+                      audioOffset: take.trimStart,
+                    }}
+                    pixelsPerBeat={timeline.pixelsPerBeat}
+                    beatsPerBar={timeline.beatsPerBar}
+                    subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                    viewportStartBeat={timeline.viewportStartBeat}
+                    tempo={timeline.tempo}
+                    viewportWidth={timeline.viewportWidth}
+                    emptyLabel=""
+                    selected={clipInteraction.isSelected({
+                      type: "take",
+                      id: take.id,
+                    })}
+                    onClipClick={(additive) =>
+                      clipInteraction.select(
+                        { type: "take", id: take.id },
+                        additive,
+                      )
+                    }
+                    onTrimStart={(edge) =>
+                      clipInteraction.startTrim({
+                        clip: { type: "take", id: take.id },
+                        edge,
+                      })
+                    }
+                    onTrimMove={clipInteraction.trim}
+                    onClipDragStart={(additive) =>
+                      clipInteraction.startMove({
+                        clip: { type: "take", id: take.id },
+                        additive,
+                      })
+                    }
+                    onClipDragMove={clipInteraction.move}
+                    onSeek={(position) => {
+                      clipInteraction.clear();
+                      runtime.seek(position);
+                    }}
+                  />
+                </TakeTrackRow>
+              ))}
           </div>
         </section>
 

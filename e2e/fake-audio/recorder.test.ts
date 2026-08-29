@@ -128,6 +128,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
   const position = page.getByTestId("recorder-position");
+  const takesToggle = page.getByTestId("recorder-takes-toggle");
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takesToggle).toContainText("0");
   const captureActions = page.getByRole("button", { name: "Capture actions" });
   await captureActions.click();
   await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
@@ -147,7 +150,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const take = page.getByTestId("recorder-clip-take");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
-  const takesToggle = page.getByTestId("recorder-takes-toggle");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takeRows).toHaveCount(0);
   await takesToggle.click();
