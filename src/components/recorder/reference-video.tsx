@@ -89,6 +89,7 @@ function YouTubeReferencePanel({
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
 }) {
+  const [candidateVideoId, setCandidateVideoId] = useState<string>();
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
   const previewRef = useResizeObserver((element) => {
     const width = Math.min(
@@ -97,6 +98,10 @@ function YouTubeReferencePanel({
     );
     setPreviewSize({ width, height: (width * 9) / 16 });
   });
+  const handleEstablished = useCallback(
+    () => setCandidateVideoId(undefined),
+    [],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -106,10 +111,11 @@ function YouTubeReferencePanel({
         className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
       >
         <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
-          {referenceVideo ? (
+          {candidateVideoId || referenceVideo ? (
             <YouTubeReference
-              referenceVideo={referenceVideo}
+              videoId={candidateVideoId ?? referenceVideo!.videoId}
               runtime={runtime}
+              onEstablished={handleEstablished}
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-xs text-neutral-600">
@@ -118,11 +124,9 @@ function YouTubeReferencePanel({
           )}
         </div>
       </div>
-      {!referenceVideo && (
+      {!referenceVideo && !candidateVideoId && (
         <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
-          <YouTubeReferenceSetup
-            onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
-          />
+          <YouTubeReferenceSetup onSubmit={setCandidateVideoId} />
         </div>
       )}
     </div>
@@ -181,11 +185,13 @@ function YouTubeReferenceSetup({
 }
 
 function YouTubeReference({
-  referenceVideo,
+  videoId,
   runtime,
+  onEstablished,
 }: {
-  referenceVideo: ReferenceVideoState;
+  videoId: string;
   runtime: RecorderRuntime;
+  onEstablished: () => void;
 }) {
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
@@ -198,15 +204,18 @@ function YouTubeReference({
       setError(undefined);
       const mounted = mountYouTubeReference({
         element,
-        videoId: referenceVideo.videoId,
+        videoId,
         runtime,
-        onReady: () => setIsPlayerReady(true),
+        onReady: () => {
+          setIsPlayerReady(true);
+          onEstablished();
+        },
         onPlaying: () => setHasRenderedVideo(true),
         onError: (nextError) => setError(nextError.message),
       });
       return () => mounted.dispose();
     },
-    [referenceVideo.videoId, runtime],
+    [onEstablished, runtime, videoId],
   );
 
   return (
@@ -218,7 +227,7 @@ function YouTubeReference({
           className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
         >
           <img
-            src={`https://i.ytimg.com/vi/${referenceVideo.videoId}/maxresdefault.jpg`}
+            src={`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`}
             alt=""
             className="h-full w-full object-cover"
           />

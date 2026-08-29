@@ -690,15 +690,6 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  setReferenceVideo(videoId: string): void {
-    const timelineStart = this.store.get().referenceVideo?.timelineStart ?? 0;
-    const muted = this.store.get().referenceVideo?.muted ?? false;
-    this.store.update({
-      referenceVideo: { videoId, timelineStart, muted },
-    });
-    this.syncYouTubePlayer();
-  }
-
   setReferenceVideoMetadata({
     title,
     duration,
@@ -761,13 +752,19 @@ export class RecorderRuntime {
     } satisfies ReferencePlayer);
     const attachment = { videoId, player, playback };
     this.attachedYouTubePlayer = attachment;
-    this.syncYouTubePlayer();
 
     const duration = player.getDuration();
-    this.setReferenceVideoMetadata({
-      title: player.getVideoData().title,
-      duration: duration > 0 ? duration : undefined,
+    const currentReference = this.store.get().referenceVideo;
+    this.store.update({
+      referenceVideo: {
+        videoId,
+        timelineStart: currentReference?.timelineStart ?? 0,
+        muted: currentReference?.muted ?? false,
+        title: player.getVideoData().title,
+        duration: duration > 0 ? duration : undefined,
+      },
     });
+    this.syncYouTubePlayer();
 
     return () => {
       if (this.attachedYouTubePlayer !== attachment) {
