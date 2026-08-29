@@ -1,7 +1,5 @@
 import type {
   AudioContextTransport,
-  PlaybackAnchor,
-  TransportSeekEvent,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -33,16 +31,16 @@ export class ReferencePlayback implements TransportParticipant {
     this.reconcile(transport.position, transport.isPlaying);
   }
 
-  onPlay(anchor: PlaybackAnchor): void {
-    this.reconcile(anchor.position, true);
+  start(): void {
+    this.reconcile(this.transport.store.get().position, true);
   }
 
-  onPause(position: number): void {
-    this.reconcile(position, false);
+  stop(): void {
+    this.reconcile(this.transport.store.get().position, false);
   }
 
-  onSeek(event: TransportSeekEvent): void {
-    this.reconcile(event.position, event.isPlaying);
+  seek(): void {
+    this.reconcile(this.transport.store.get().position, false);
   }
 
   dispose(): void {

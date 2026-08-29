@@ -6,9 +6,9 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
 
 /** A playback object whose lifecycle follows this transport. */
 export interface TransportParticipant {
-  onPlay(anchor: PlaybackAnchor): void;
-  onPause(position: number): void;
-  onSeek(event: TransportSeekEvent): void;
+  start(): void;
+  stop(): void;
+  seek(): void;
 }
 
 type TransportState = {
@@ -16,18 +16,10 @@ type TransportState = {
   isPlaying: boolean;
 };
 
-/**
- * Snapshot that maps a recorder position to the AudioContext time when a
- * playback run starts. Participants schedule that run from this event data.
- */
-export type PlaybackAnchor = {
+type PlaybackAnchor = {
   contextTime: number;
   position: number;
 };
-
-export type TransportSeekEvent =
-  | { position: number; isPlaying: false }
-  | { position: number; isPlaying: true; anchor: PlaybackAnchor };
 
 /**
  * Owns recorder position and synchronizes registered playback objects to one
@@ -40,7 +32,11 @@ export class AudioContextTransport {
     isPlaying: false,
   }));
 
-  private playbackAnchor?: PlaybackAnchor;
+  /**
+   * Maps an absolute AudioContext time to the recorder position at which the
+   * current playback run begins. It is available to participants during start.
+   */
+  playbackAnchor?: PlaybackAnchor;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
 
@@ -49,14 +45,8 @@ export class AudioContextTransport {
   /** Joins a participant to future transport starts and returns its disposer. */
   register(participant: TransportParticipant): () => void {
     this.participants.add(participant);
-    const state = this.store.get();
-    if (state.isPlaying) {
-      participant.onPlay(this.getActivePlaybackAnchor());
-    } else {
-      participant.onPause(state.position);
-    }
     return () => {
-      participant.onPause(this.store.get().position);
+      participant.stop();
       this.participants.delete(participant);
     };
   }
@@ -66,13 +56,12 @@ export class AudioContextTransport {
     if (this.store.get().isPlaying) {
       return;
     }
-    const anchor: PlaybackAnchor = {
+    this.playbackAnchor = {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position: this.store.get().position,
     };
-    this.playbackAnchor = anchor;
     for (const participant of this.participants) {
-      participant.onPlay(anchor);
+      participant.start();
     }
     this.store.update({ isPlaying: true });
     this.startTicking();
@@ -83,10 +72,10 @@ export class AudioContextTransport {
     if (!this.store.get().isPlaying) {
       return;
     }
-    const finalPosition = this.getPublishedPlaybackPosition();
     for (const participant of this.participants) {
-      participant.onPause(finalPosition);
+      participant.stop();
     }
+    const finalPosition = this.getPublishedPlaybackPosition();
     this.playbackAnchor = undefined;
     this.stopTicking();
     this.store.update({ isPlaying: false, position: finalPosition });
@@ -95,23 +84,18 @@ export class AudioContextTransport {
   /** Moves the playhead, restarting participants when playback is running. */
   seek(position: number): void {
     const wasPlaying = this.store.get().isPlaying;
-    const nextPosition = Math.max(0, position);
-    let event: TransportSeekEvent = {
-      position: nextPosition,
-      isPlaying: false,
-    };
     if (wasPlaying) {
-      const anchor: PlaybackAnchor = {
-        contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
-        position: nextPosition,
-      };
-      this.playbackAnchor = anchor;
-      event = { position: nextPosition, isPlaying: true, anchor };
+      this.pause();
     }
-    for (const participant of this.participants) {
-      participant.onSeek(event);
-    }
+    const nextPosition = Math.max(0, position);
     this.store.update({ position: nextPosition });
+    if (wasPlaying) {
+      this.play();
+    } else {
+      for (const participant of this.participants) {
+        participant.seek();
+      }
+    }
   }
 
   /**
@@ -119,10 +103,10 @@ export class AudioContextTransport {
    * excluding the scheduling lead before the playback anchor.
    */
   private getPublishedPlaybackPosition(): number {
-    const playbackAnchor = this.getActivePlaybackAnchor();
+    const playbackAnchor = this.playbackAnchor!;
     return Math.max(
       playbackAnchor.position,
-      this.getPositionAtContextTime(this.context.currentTime),
+      this.getPlaybackPositionByContextTime(this.context.currentTime),
     );
   }
 
@@ -130,20 +114,9 @@ export class AudioContextTransport {
    * Converts an absolute AudioContext time to its exact position relative to the
    * active playback anchor. This intentionally includes playback warmup lead time.
    */
-  getPositionAtContextTime(contextTime: number): number {
-    const playbackAnchor = this.getActivePlaybackAnchor();
+  getPlaybackPositionByContextTime(contextTime: number): number {
+    const playbackAnchor = this.playbackAnchor!;
     return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
-  }
-
-  getActiveStartContextTime(): number {
-    return this.getActivePlaybackAnchor().contextTime;
-  }
-
-  private getActivePlaybackAnchor(): PlaybackAnchor {
-    if (!this.playbackAnchor) {
-      throw new Error("Recorder transport is not playing.");
-    }
-    return this.playbackAnchor;
   }
 
   /** Publishes audio-clock position on animation frames while playing. */

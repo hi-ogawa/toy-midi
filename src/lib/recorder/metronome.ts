@@ -2,8 +2,6 @@ import type { TimeSignature } from "../../types.ts";
 import { midiToHz, parseMidiPitch } from "../music.ts";
 import type {
   AudioContextTransport,
-  PlaybackAnchor,
-  TransportSeekEvent,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -17,7 +15,6 @@ export class RecorderMetronome implements TransportParticipant {
   private tempo = 60;
   private timeSignature: TimeSignature = { numerator: 4, denominator: 4 };
   private secondsPerClick = 1;
-  private playbackAnchor?: PlaybackAnchor;
 
   constructor(
     private readonly transport: AudioContextTransport,
@@ -51,14 +48,13 @@ export class RecorderMetronome implements TransportParticipant {
     }
   }
 
-  onPlay(anchor: PlaybackAnchor): void {
-    this.playbackAnchor = anchor;
+  start(): void {
     this.restartScheduling();
   }
 
   private restartScheduling(): void {
-    this.onPause();
-    const anchor = this.playbackAnchor;
+    this.stop();
+    const anchor = this.transport.playbackAnchor;
     if (!anchor) {
       return;
     }
@@ -72,23 +68,18 @@ export class RecorderMetronome implements TransportParticipant {
     );
   }
 
-  onPause(): void {
+  stop(): void {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
   }
 
-  onSeek(event: TransportSeekEvent): void {
-    this.onPause();
-    if (event.isPlaying) {
-      this.onPlay(event.anchor);
-    }
-  }
+  seek(): void {}
 
   private schedule(): void {
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.
-      const anchor = this.playbackAnchor;
+      const anchor = this.transport.playbackAnchor;
       if (!anchor) {
         return;
       }

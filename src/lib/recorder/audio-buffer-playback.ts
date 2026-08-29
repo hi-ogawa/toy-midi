@@ -1,7 +1,5 @@
 import type {
   AudioContextTransport,
-  PlaybackAnchor,
-  TransportSeekEvent,
   TransportParticipant,
 } from "./transport.ts";
 
@@ -55,7 +53,7 @@ export class AudioBufferPlayback implements TransportParticipant {
    * timeline. If that point has passed, playback seeks into the buffer. If it is
    * ahead, playback delays the buffer start.
    */
-  onPlay(playbackAnchor: PlaybackAnchor): void {
+  start(): void {
     const buffer = this.buffer;
     if (!buffer) {
       return;
@@ -64,7 +62,10 @@ export class AudioBufferPlayback implements TransportParticipant {
       this.timelineRange?.start ?? this.bufferTimelineOffset;
     const timelineEnd =
       this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
-    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
+    const elapsed = Math.max(
+      0,
+      this.transport.playbackAnchor!.position - timelineStart,
+    );
     const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
       return;
@@ -73,22 +74,18 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      playbackAnchor.contextTime +
-        Math.max(0, timelineStart - playbackAnchor.position),
+      this.transport.playbackAnchor!.contextTime +
+        Math.max(0, timelineStart - this.transport.playbackAnchor!.position),
       timelineStart - this.bufferTimelineOffset + elapsed,
       duration - elapsed,
     );
     this.source = source;
   }
 
-  onPause(): void {
+  stop(): void {
     this.source?.stop();
     this.source?.disconnect();
     this.source = undefined;
-  }
-
-  stop(): void {
-    this.onPause();
   }
 
   dispose(): void {
@@ -96,10 +93,5 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.gain.disconnect();
   }
 
-  onSeek(event: TransportSeekEvent): void {
-    this.onPause();
-    if (event.isPlaying) {
-      this.onPlay(event.anchor);
-    }
-  }
+  seek(): void {}
 }
