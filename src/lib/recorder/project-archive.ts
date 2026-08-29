@@ -87,10 +87,7 @@ export async function parseRecorderProjectArchive(
     throw new Error("Could not read project archive.");
   }
 
-  const manifest = await readJson<Partial<RecorderProjectManifest>>({
-    zip,
-    path: MANIFEST_PATH,
-  });
+  const manifest = await readJson<RecorderProjectManifest>(zip, MANIFEST_PATH);
   if (manifest.projectType !== "recorder") {
     throw new Error("This is not a recorder project archive.");
   }
@@ -105,13 +102,7 @@ export async function parseRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  if (typeof manifest.title !== "string") {
-    throw new Error("Recorder project archive has an invalid manifest.");
-  }
-  const project = await readJson<RecorderProjectFileContent>({
-    zip,
-    path: PROJECT_PATH,
-  });
+  const project = await readJson<RecorderProjectFileContent>(zip, PROJECT_PATH);
   return {
     title: manifest.title,
     content: await readProjectContent(zip, project),
@@ -151,12 +142,6 @@ async function readProjectContent(
   zip: JSZip,
   content: RecorderProjectFileContent,
 ): Promise<SerializedRecorderRuntimeState> {
-  if (
-    !Array.isArray(content.audioTracks) ||
-    !Array.isArray(content.recordingTrack?.takes)
-  ) {
-    throw new Error("Recorder project archive has invalid project data.");
-  }
   return {
     ...content,
     audioTracks: await Promise.all(
@@ -205,18 +190,6 @@ async function readProjectPcm(
   zip: JSZip,
   pcm: RecorderProjectPcm,
 ): Promise<{ sampleRate: number; channels: Float32Array[] }> {
-  if (
-    !Number.isFinite(pcm?.sampleRate) ||
-    pcm.sampleRate <= 0 ||
-    !Array.isArray(pcm.channels) ||
-    pcm.channels.length === 0 ||
-    pcm.channels.some(
-      (path) => typeof path !== "string" || !path.startsWith("audio/"),
-    ) ||
-    new Set(pcm.channels).size !== pcm.channels.length
-  ) {
-    throw new Error("Recorder project archive has invalid audio data.");
-  }
   const channels = await Promise.all(
     pcm.channels.map(async (path) => {
       const entry = zip.file(path);
@@ -239,13 +212,7 @@ async function readProjectPcm(
   };
 }
 
-async function readJson<T>({
-  zip,
-  path,
-}: {
-  zip: JSZip;
-  path: string;
-}): Promise<T> {
+async function readJson<T>(zip: JSZip, path: string): Promise<T> {
   const entry = zip.file(path);
   if (!entry) {
     throw new Error(`Recorder project archive is missing ${path}.`);
