@@ -368,15 +368,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 regions={state.previewTakeRegions ?? state.takeRegions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
+                isTakeSelected={(id) =>
+                  clipInteraction.isSelected({ type: "take", id })
+                }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 pixelsPerBeat={timeline.pixelsPerBeat}
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
-                isTakeSelected={(id) =>
-                  clipInteraction.isSelected({ type: "take", id })
-                }
                 onSeek={(position) => {
                   clipInteraction.clear();
                   runtime.seek(position);
