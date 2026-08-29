@@ -9,6 +9,7 @@ import {
   type ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import {
+  createYouTubePlayer,
   loadYouTubeApi,
   parseYouTubeVideoId,
   type YouTubePlayerApi,
@@ -287,42 +288,39 @@ function mountYouTubeReference({
       if (disposed) {
         return;
       }
-      player = new YT.Player(element, {
+      player = await createYouTubePlayer({
+        YT,
+        element,
         videoId,
-        host: "https://www.youtube-nocookie.com",
-        events: {
-          onReady: () => {
-            if (disposed || !player) {
-              return;
-            }
-            const duration = player.getDuration();
-            const metadata = {
-              title: player.getVideoData().title,
-              duration: duration > 0 ? duration : undefined,
-            };
-            playback = runtime.createReferencePlayback({
-              play: (time) => {
-                player!.seekTo(time, true);
-                player!.playVideo();
-              },
-              pause: (time) => {
-                player!.pauseVideo();
-                player!.seekTo(time, true);
-              },
-            });
-            runtime.setReferenceVideoMetadata(metadata);
-            syncReferenceVideo();
-            onReady();
-          },
-          onError: () =>
-            onError(new Error("YouTube could not load this video.")),
-          onStateChange: (event) => {
-            if (event.data === 1) {
-              onPlaying();
-            }
-          },
+        onStateChange: (event) => {
+          if (event.data === 1) {
+            onPlaying();
+          }
         },
       });
+      if (disposed) {
+        player.destroy();
+        player = undefined;
+        return;
+      }
+      const duration = player.getDuration();
+      const metadata = {
+        title: player.getVideoData().title,
+        duration: duration > 0 ? duration : undefined,
+      };
+      playback = runtime.createReferencePlayback({
+        play: (time) => {
+          player!.seekTo(time, true);
+          player!.playVideo();
+        },
+        pause: (time) => {
+          player!.pauseVideo();
+          player!.seekTo(time, true);
+        },
+      });
+      runtime.setReferenceVideoMetadata(metadata);
+      syncReferenceVideo();
+      onReady();
     } catch (error) {
       if (!disposed) {
         onError(error instanceof Error ? error : new Error("Unknown error"));

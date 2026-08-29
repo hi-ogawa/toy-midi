@@ -51,6 +51,30 @@ export function loadYouTubeApi(): Promise<YouTubeApi> {
   return youtubeApiPromise;
 }
 
+export function createYouTubePlayer({
+  YT,
+  element,
+  videoId,
+  onStateChange,
+}: {
+  YT: YouTubeApi;
+  element: HTMLElement;
+  videoId: string;
+  onStateChange: (event: { data: number }) => void;
+}): Promise<YouTubePlayerApi> {
+  return new Promise((resolve, reject) => {
+    const player = new YT.Player(element, {
+      videoId,
+      host: "https://www.youtube-nocookie.com",
+      events: {
+        onReady: () => resolve(player),
+        onError: () => reject(new Error("YouTube could not load this video.")),
+        onStateChange,
+      },
+    });
+  });
+}
+
 export function parseYouTubeVideoId(value: string): string | undefined {
   const input = value.trim();
   if (/^[\w-]{11}$/.test(input)) {
