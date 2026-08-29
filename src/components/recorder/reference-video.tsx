@@ -200,17 +200,20 @@ function YouTubeReference({
   referenceVideo: ReferenceVideoState;
   runtime: RecorderRuntime;
 }) {
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [hasRenderedVideo, setHasRenderedVideo] = useState(false);
   const [error, setError] = useState<string>();
 
   const mountPlayer = useCallback(
     (element: HTMLDivElement) => {
+      setIsPlayerReady(false);
       setHasRenderedVideo(false);
       setError(undefined);
       const mounted = mountYouTubeReference({
         element,
         videoId: referenceVideo.videoId,
         runtime,
+        onReady: () => setIsPlayerReady(true),
         onPlaying: () => setHasRenderedVideo(true),
         onError: (nextError) => setError(nextError.message),
       });
@@ -233,7 +236,7 @@ function YouTubeReference({
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-black/20" />
-          {!error && (
+          {!isPlayerReady && !error && (
             <LoaderCircleIcon className="absolute top-3 right-3 size-4 animate-spin text-white/70" />
           )}
         </div>
@@ -255,12 +258,14 @@ function mountYouTubeReference({
   element,
   videoId,
   runtime,
+  onReady,
   onPlaying,
   onError,
 }: {
   element: HTMLElement;
   videoId: string;
   runtime: RecorderRuntime;
+  onReady: () => void;
   onPlaying: () => void;
   onError: (error: Error) => void;
 }): MountedYouTubeReference {
@@ -321,6 +326,7 @@ function mountYouTubeReference({
             });
             runtime.setReferenceVideoMetadata(metadata);
             syncReferenceVideo();
+            onReady();
           },
           onError: () =>
             onError(new Error("YouTube could not load this video.")),
