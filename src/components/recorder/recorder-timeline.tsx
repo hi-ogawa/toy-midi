@@ -165,8 +165,7 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  // TODO: Replace variant and presentation flags with explicit clip concerns.
-  variant: "audio" | "comp" | "take";
+  testId: "audio" | "comp" | "take";
   audioView?: AudioView;
 };
 
@@ -264,7 +263,7 @@ export function TakeTimelineLane({
                 offset: region.timelineStart,
                 audioDuration: take.duration,
                 audioOffset,
-                variant: "comp",
+                testId: "comp",
                 audioView: take.audioView,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -285,7 +284,7 @@ export function TakeTimelineLane({
             label: `Take ${take.number}`,
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
-            variant: "take",
+            testId: "take",
           }}
           pixelsPerBeat={pixelsPerBeat}
           viewportStartBeat={viewportStartBeat}
@@ -501,7 +500,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${recording ? "recording" : clip.variant}`}
+      data-testid={`recorder-clip-${recording ? "recording" : clip.testId}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
