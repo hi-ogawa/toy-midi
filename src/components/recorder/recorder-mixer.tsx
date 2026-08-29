@@ -18,6 +18,8 @@ import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 
+const formatDb = (value: number) => value.toFixed(1);
+
 export function RecorderMixer({
   runtime,
   state,
@@ -152,7 +154,7 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
     max: MAX_DB,
     step: 0.5,
     parse: "float",
-    format: (value) => value.toFixed(1),
+    format: formatDb,
   });
 }
 
