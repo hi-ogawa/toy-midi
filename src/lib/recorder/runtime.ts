@@ -133,7 +133,6 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
-  private auditionPlayback?: AudioBufferPlayback;
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -492,8 +491,7 @@ export class RecorderRuntime {
       throw new Error("Recording take state is missing.");
     }
     this.store.update({ auditionedTakeId: id });
-    this.syncAuditionPlayback();
-    this.syncTrackMix();
+    this.syncTakePlayback(this.store.get().takeRegions);
   }
 
   private setTakeTrimStart(id: string, trimStart: number): void {
@@ -552,7 +550,7 @@ export class RecorderRuntime {
     ) {
       this.store.update({ auditionedTakeId: undefined });
     }
-    this.syncAuditionPlayback();
+    this.syncTakePlayback(this.store.get().takeRegions);
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -586,7 +584,6 @@ export class RecorderRuntime {
     for (const playback of this.recordingTrackPlaybacks) {
       playback.setGain(0);
     }
-    this.auditionPlayback?.setGain(0);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
@@ -698,8 +695,6 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTrackPlaybacks.clear();
-    this.auditionPlayback?.dispose();
-    this.auditionPlayback = undefined;
     this.store.update({ auditionedTakeId: undefined });
     for (const track of project.audioTracks) {
       const buffer = track.clip?.buffer;
@@ -789,11 +784,8 @@ export class RecorderRuntime {
         ? 0
         : recordingTrack.gain;
     for (const playback of this.recordingTrackPlaybacks) {
-      playback.setGain(
-        this.store.get().auditionedTakeId === undefined ? recordingGain : 0,
-      );
+      playback.setGain(recordingGain);
     }
-    this.auditionPlayback?.setGain(recordingGain);
   }
 
   private syncMetronomeGain(): void {
@@ -880,7 +872,22 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.recordingTrackPlaybacks = [];
-    for (const region of takeRegions) {
+    const auditionedTake = this.store
+      .get()
+      .recordingTrack.takes.find(
+        (take) => take.id === this.store.get().auditionedTakeId,
+      );
+    const playbackRegions = auditionedTake
+      ? [
+          {
+            take: auditionedTake,
+            timelineStart:
+              auditionedTake.timelineOffset + auditionedTake.trimStart,
+            timelineEnd: auditionedTake.timelineOffset + auditionedTake.trimEnd,
+          },
+        ]
+      : takeRegions;
+    for (const region of playbackRegions) {
       const { take } = region;
       if (!take.buffer) {
         continue;
@@ -898,30 +905,6 @@ export class RecorderRuntime {
       this.recordingTrackPlaybacks.push(playback);
     }
     this.syncTrackMix();
-  }
-
-  private syncAuditionPlayback(): void {
-    this.auditionPlayback?.dispose();
-    this.auditionPlayback = undefined;
-    const state = this.store.get();
-    const take = state.recordingTrack.takes.find(
-      (entry) => entry.id === state.auditionedTakeId,
-    );
-    if (!take?.buffer) {
-      return;
-    }
-    this.ensureContext();
-    const playback = new AudioBufferPlayback({
-      transport: this.transport!,
-      output: this.masterOutput!,
-    });
-    playback.setBuffer(take.buffer);
-    playback.setBufferTimelineOffset(take.timelineOffset);
-    playback.setTimelineRange({
-      start: take.timelineOffset + take.trimStart,
-      end: take.timelineOffset + take.trimEnd,
-    });
-    this.auditionPlayback = playback;
   }
 }
 
