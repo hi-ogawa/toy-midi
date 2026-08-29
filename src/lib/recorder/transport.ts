@@ -16,6 +16,10 @@ type TransportState = {
   isPlaying: boolean;
 };
 
+/**
+ * Snapshot that maps a recorder position to the AudioContext time when a
+ * playback run starts. Participants schedule that run from this event data.
+ */
 export type PlaybackAnchor = {
   contextTime: number;
   position: number;
