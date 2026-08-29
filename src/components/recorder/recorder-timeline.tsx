@@ -212,6 +212,7 @@ export function TakeTimelineLane({
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
   const activeTakeIds = new Set(regions.map(({ take }) => take.id));
+  const activeTakes = takes.filter((take) => activeTakeIds.has(take.id));
 
   return (
     <div
@@ -278,30 +279,28 @@ export function TakeTimelineLane({
           );
         })}
       </div>
-      {takes
-        .filter((take) => activeTakeIds.has(take.id))
-        .map((take) => (
-          <TimelineClip
-            key={take.id}
-            clip={{
-              label: `Take ${take.number}`,
-              duration: take.trimEnd - take.trimStart,
-              offset: take.timelineOffset + take.trimStart,
-              testId: "take",
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
-            onClipClick={(additive) => onTakeClick(take.id, additive)}
-            onClipDragMove={onTakeDragMove}
-            onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
-            onTrimMove={onTakeTrimMove}
-            selected={isTakeSelected(take.id)}
-            hidePresentation
-          />
-        ))}
+      {activeTakes.map((take) => (
+        <TimelineClip
+          key={take.id}
+          clip={{
+            label: `Take ${take.number}`,
+            duration: take.trimEnd - take.trimStart,
+            offset: take.timelineOffset + take.trimStart,
+            testId: "take",
+          }}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+          onClipClick={(additive) => onTakeClick(take.id, additive)}
+          onClipDragMove={onTakeDragMove}
+          onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
+          onTrimMove={onTakeTrimMove}
+          selected={isTakeSelected(take.id)}
+          hidePresentation
+        />
+      ))}
     </div>
   );
 }
