@@ -173,7 +173,6 @@ const TIMELINE_EPSILON = 1e-6;
 
 export function TakeTimelineLane({
   takes,
-  activeTakeIds,
   regions,
   pendingRecording,
   captureStatus,
@@ -192,7 +191,6 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
-  activeTakeIds: RecorderRuntimeState["activeTakeIds"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
@@ -236,7 +234,7 @@ export function TakeTimelineLane({
           Enable input, place the playhead, then record
         </div>
       )}
-      <div className="pointer-events-none absolute inset-0">
+      <div className="absolute inset-0">
         {regions.map((region, index) => {
           const { take } = region;
           const isPendingRecording = take.id === pendingRecording?.id;
@@ -274,34 +272,28 @@ export function TakeTimelineLane({
               joinsPrevious={joinsPrevious}
               joinsNext={joinsNext}
               recording={isPendingRecording}
+              onClipDragStart={
+                isPendingRecording
+                  ? undefined
+                  : (additive) => onTakeDragStart(take.id, additive)
+              }
+              onClipClick={
+                isPendingRecording
+                  ? undefined
+                  : (additive) => onTakeClick(take.id, additive)
+              }
+              onClipDragMove={isPendingRecording ? undefined : onTakeDragMove}
+              onTrimStart={
+                isPendingRecording
+                  ? undefined
+                  : (edge) => onTakeTrimStart(take.id, edge)
+              }
+              onTrimMove={isPendingRecording ? undefined : onTakeTrimMove}
+              selected={!isPendingRecording && isTakeSelected(take.id)}
             />
           );
         })}
       </div>
-      {takes
-        .filter((take) => activeTakeIds.includes(take.id))
-        .map((take) => (
-          <TimelineClip
-            key={take.id}
-            clip={{
-              label: `Take ${take.number}`,
-              duration: take.trimEnd - take.trimStart,
-              offset: take.timelineOffset + take.trimStart,
-              testId: "take",
-            }}
-            pixelsPerBeat={pixelsPerBeat}
-            viewportStartBeat={viewportStartBeat}
-            tempo={tempo}
-            viewportWidth={viewportWidth}
-            onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
-            onClipClick={(additive) => onTakeClick(take.id, additive)}
-            onClipDragMove={onTakeDragMove}
-            onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
-            onTrimMove={onTakeTrimMove}
-            selected={isTakeSelected(take.id)}
-            hidePresentation
-          />
-        ))}
     </div>
   );
 }

@@ -72,7 +72,6 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
-  activeTakeIds: string[];
   takeRegions: TakeRegion[];
   previewTakeRegions?: TakeRegion[];
   pendingRecording?: PendingRecordingState;
@@ -116,7 +115,6 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     metronomeGain: 0.5,
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
-    activeTakeIds: [],
     takeRegions: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
@@ -838,7 +836,6 @@ export class RecorderRuntime {
     const takeRegions = deriveTakeRegions(activeTakes);
     this.store.update({
       ...update,
-      activeTakeIds: activeTakes.map((take) => take.id),
       takeRegions,
     });
     this.syncTakePlayback(takeRegions);

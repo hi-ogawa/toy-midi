@@ -370,7 +370,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                activeTakeIds={state.activeTakeIds}
                 regions={state.previewTakeRegions ?? state.takeRegions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}

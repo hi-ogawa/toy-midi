@@ -80,7 +80,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await recordButton.click();
   await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
   await recordButton.click();
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp");
   await expect(take).toBeVisible();
 
   // Ctrl-click adds the take to the selected backing track.
@@ -147,7 +147,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  const take = page.getByTestId("recorder-clip-comp");
   const takeLane = page
     .getByTestId("recorder-take-row")
     .getByTestId("recorder-clip-take-lane");
@@ -324,7 +324,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();
   }
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+  await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   const clipGeometry = await getRecorderClipGeometry(page);
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
@@ -356,7 +356,6 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await expect(
     page.getByTestId("recorder-clip-audio").locator("svg"),
   ).toBeVisible();
-  await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
   await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
   await page.getByTestId("recorder-mixer-button").click();
@@ -367,7 +366,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
 
 async function getRecorderClipGeometry(page: Page) {
   const geometry = await Promise.all(
-    (["audio", "take", "comp"] as const).map(async (variant) => ({
+    (["audio", "comp"] as const).map(async (variant) => ({
       variant,
       clips: await page
         .getByTestId(`recorder-clip-${variant}`)
