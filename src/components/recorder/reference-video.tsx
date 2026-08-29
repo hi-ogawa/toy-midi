@@ -134,13 +134,11 @@ function YouTubeReferencePanel({
 }
 
 function YouTubeReferenceSetup({
-  initialVideoId,
   onSubmit,
 }: {
-  initialVideoId?: string;
   onSubmit: (videoId: string) => void;
 }) {
-  const [input, setInput] = useState(initialVideoId ?? "");
+  const [input, setInput] = useState("");
   const [error, setError] = useState<string>();
 
   function submit(event: FormEvent) {
@@ -178,7 +176,7 @@ function YouTubeReferenceSetup({
         type="submit"
         className="mt-[19px] h-9 border-emerald-700 bg-emerald-700 px-4 text-sm text-white hover:bg-emerald-600"
       >
-        {initialVideoId ? "Replace" : "Add video"}
+        Add video
       </Button>
     </form>
   );
