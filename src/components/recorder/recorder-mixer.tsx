@@ -1,5 +1,5 @@
 import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
-import { type ComponentProps, type ReactNode, useCallback } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import {
   MAX_DB,
@@ -25,16 +25,13 @@ export function RecorderMixer({
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
 }) {
-  const formatDb = useCallback((value: number) => value.toFixed(1), []);
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
-    formatDb,
   );
   const metronomeInput = useGainInput(
     state.metronomeGain,
     runtime.setMetronomeGain.bind(runtime),
-    formatDb,
   );
   return (
     <div className="flex min-w-max justify-center gap-8 py-1">
@@ -54,7 +51,6 @@ export function RecorderMixer({
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
-          formatDb={formatDb}
           onGainChange={(gain) => runtime.setAudioTrackMix(track.id, { gain })}
           onMutedChange={(muted) =>
             runtime.setAudioTrackMix(track.id, { muted })
@@ -69,7 +65,6 @@ export function RecorderMixer({
         gain={state.recordingTrack.gain}
         muted={state.recordingTrack.muted}
         soloed={state.recordingTrack.soloed}
-        formatDb={formatDb}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
         onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
         onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
@@ -102,7 +97,6 @@ function RecorderTrackChannel({
   gain,
   muted,
   soloed,
-  formatDb,
   icon = <Volume2Icon className="size-4 text-muted-foreground" />,
   onGainChange,
   onMutedChange,
@@ -113,13 +107,12 @@ function RecorderTrackChannel({
   gain: number;
   muted: boolean;
   soloed: boolean;
-  formatDb: (value: number) => string;
   icon?: ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
 }) {
-  const input = useGainInput(gain, onGainChange, formatDb);
+  const input = useGainInput(gain, onGainChange);
   return (
     <MixerChannel
       icon={icon}
@@ -151,11 +144,7 @@ function RecorderTrackChannel({
   );
 }
 
-function useGainInput(
-  gain: number,
-  onGainChange: (gain: number) => void,
-  format: (value: number) => string,
-) {
+function useGainInput(gain: number, onGainChange: (gain: number) => void) {
   return useDraftInput({
     value: gainToDb(gain),
     onCommit: (db) => onGainChange(dbToGain(db)),
@@ -163,7 +152,7 @@ function useGainInput(
     max: MAX_DB,
     step: 0.5,
     parse: "float",
-    format,
+    format: (value) => value.toFixed(1),
   });
 }
 
