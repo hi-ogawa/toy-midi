@@ -881,7 +881,7 @@ export class RecorderRuntime {
   }
 }
 
-export function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
+function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
   const anyTakeSoloed = takes.some((take) => take.soloed);
   return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
 }
