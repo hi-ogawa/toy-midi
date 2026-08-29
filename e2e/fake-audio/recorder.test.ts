@@ -237,6 +237,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await disableTake.nth(1).click();
   await expect(disableTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(takeLane).toHaveCount(2);
+  await expect(take).toHaveCount(1);
   await expect(compRegion).not.toContainText("Take 2");
 
   // Audition selects one source without changing its comp inclusion.
@@ -267,7 +268,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Delete removes every selected source take together.
   await take.nth(0).click();
-  await take.nth(1).click({ modifiers: ["Control"] });
+  await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();
