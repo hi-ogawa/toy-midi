@@ -90,7 +90,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         blob,
         buildExportFileName({
           baseName: state.title,
-          extension: ".toymidi",
+          extension: ".toymidi.zip",
         }),
       );
     },

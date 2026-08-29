@@ -106,7 +106,7 @@ export function RecorderProjectList() {
                     : "Create Your First Recording"}
                 </Button>
                 <FileDropInput
-                  accept=".toymidi"
+                  accept=".toymidi.zip"
                   onFile={(file) => importProject.mutate(file)}
                   data-testid="import-recorder-project"
                   disabled={createProject.isPending || importProject.isPending}

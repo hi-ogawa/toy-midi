@@ -256,8 +256,8 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await page.getByRole("button", { name: "More" }).click();
   await page.getByTestId("recorder-export-project").click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/\.toymidi$/);
-  const archivePath = test.info().outputPath("recorder.toymidi");
+  expect(download.suggestedFilename()).toMatch(/\.toymidi\.zip$/);
+  const archivePath = test.info().outputPath("recorder.toymidi.zip");
   await download.saveAs(archivePath);
 
   await page.goto("/recorder");
