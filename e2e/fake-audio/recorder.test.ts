@@ -147,9 +147,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const captureTake = page
-    .getByTestId("recorder-capture-timeline")
-    .getByTestId("recorder-clip-take");
+  const captureTake = page.getByTestId("recorder-clip-take");
   const take = page
     .getByTestId("recorder-take-row")
     .getByTestId("recorder-clip-take-lane");

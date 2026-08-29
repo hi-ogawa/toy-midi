@@ -213,7 +213,6 @@ export function TakeTimelineLane({
 }) {
   return (
     <div
-      data-testid="recorder-capture-timeline"
       className="relative overflow-hidden bg-neutral-900"
       style={getTimelineGridStyle({
         beatsPerBar,
