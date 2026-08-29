@@ -40,7 +40,7 @@ interface RecorderProjectFileContent extends Omit<
 
 interface RecorderProjectPcm {
   sampleRate: number;
-  channels: number[][];
+  channels: string[];
 }
 
 export interface ParsedRecorderProjectFile {
@@ -62,7 +62,10 @@ export async function exportRecorderProjectFile(
     files: { project: "project.json" },
   };
   zip.file("manifest.json", JSON.stringify(manifest, undefined, 2));
-  zip.file("project.json", JSON.stringify(toProjectFileContent(content)));
+  zip.file(
+    "project.json",
+    JSON.stringify(toProjectFileContent({ zip, content })),
+  );
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
@@ -103,34 +106,53 @@ export async function parseRecorderProjectFile(
   });
   return {
     title: manifest.title,
-    content: fromProjectFileContent(project),
+    content: await fromProjectFileContent({ zip, content: project }),
   };
 }
 
-function toProjectFileContent(
-  content: SerializedRecorderRuntimeState,
-): RecorderProjectFileContent {
+function toProjectFileContent({
+  zip,
+  content,
+}: {
+  zip: JSZip;
+  content: SerializedRecorderRuntimeState;
+}): RecorderProjectFileContent {
   return {
     ...content,
-    audioTracks: content.audioTracks.map((track) => ({
+    audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
       clip: track.clip
-        ? { ...track.clip, pcm: toProjectPcm(track.clip.pcm) }
+        ? {
+            ...track.clip,
+            pcm: toProjectPcm({
+              zip,
+              pcm: track.clip.pcm,
+              path: `audio/tracks/${trackIndex}`,
+            }),
+          }
         : undefined,
     })),
     recordingTrack: {
       ...content.recordingTrack,
-      takes: content.recordingTrack.takes.map((take) => ({
+      takes: content.recordingTrack.takes.map((take, takeIndex) => ({
         ...take,
-        pcm: toProjectPcm(take.pcm),
+        pcm: toProjectPcm({
+          zip,
+          pcm: take.pcm,
+          path: `audio/takes/${takeIndex}`,
+        }),
       })),
     },
   };
 }
 
-function fromProjectFileContent(
-  content: RecorderProjectFileContent,
-): SerializedRecorderRuntimeState {
+async function fromProjectFileContent({
+  zip,
+  content,
+}: {
+  zip: JSZip;
+  content: RecorderProjectFileContent;
+}): Promise<SerializedRecorderRuntimeState> {
   if (
     !Array.isArray(content.audioTracks) ||
     !Array.isArray(content.recordingTrack?.takes)
@@ -139,48 +161,90 @@ function fromProjectFileContent(
   }
   return {
     ...content,
-    audioTracks: content.audioTracks.map((track) => ({
-      ...track,
-      clip: track.clip
-        ? { ...track.clip, pcm: fromProjectPcm(track.clip.pcm) }
-        : undefined,
-    })),
+    audioTracks: await Promise.all(
+      content.audioTracks.map(async (track) => ({
+        ...track,
+        clip: track.clip
+          ? {
+              ...track.clip,
+              pcm: await fromProjectPcm({ zip, pcm: track.clip.pcm }),
+            }
+          : undefined,
+      })),
+    ),
     recordingTrack: {
       ...content.recordingTrack,
-      takes: content.recordingTrack.takes.map((take) => ({
-        ...take,
-        pcm: fromProjectPcm(take.pcm),
-      })),
+      takes: await Promise.all(
+        content.recordingTrack.takes.map(async (take) => ({
+          ...take,
+          pcm: await fromProjectPcm({ zip, pcm: take.pcm }),
+        })),
+      ),
     },
   };
 }
 
-function toProjectPcm(pcm: {
-  sampleRate: number;
-  channels: Float32Array[];
+function toProjectPcm({
+  zip,
+  pcm,
+  path,
+}: {
+  zip: JSZip;
+  pcm: { sampleRate: number; channels: Float32Array[] };
+  path: string;
 }): RecorderProjectPcm {
   return {
     sampleRate: pcm.sampleRate,
-    channels: pcm.channels.map((channel) => Array.from(channel)),
+    channels: pcm.channels.map((channel, channelIndex) => {
+      const channelPath = `${path}/channel-${channelIndex}.f32`;
+      const bytes = new Uint8Array(channel.byteLength);
+      bytes.set(
+        new Uint8Array(channel.buffer, channel.byteOffset, channel.byteLength),
+      );
+      zip.file(channelPath, bytes);
+      return channelPath;
+    }),
   };
 }
 
-function fromProjectPcm(pcm: RecorderProjectPcm): {
-  sampleRate: number;
-  channels: Float32Array[];
-} {
+async function fromProjectPcm({
+  zip,
+  pcm,
+}: {
+  zip: JSZip;
+  pcm: RecorderProjectPcm;
+}): Promise<{ sampleRate: number; channels: Float32Array[] }> {
   if (
     !Number.isFinite(pcm?.sampleRate) ||
     pcm.sampleRate <= 0 ||
     !Array.isArray(pcm.channels) ||
     pcm.channels.length === 0 ||
-    pcm.channels.some((channel) => !Array.isArray(channel))
+    pcm.channels.some(
+      (path) => typeof path !== "string" || !path.startsWith("audio/"),
+    ) ||
+    new Set(pcm.channels).size !== pcm.channels.length
   ) {
+    throw new Error("Recorder project archive has invalid audio data.");
+  }
+  const channels = await Promise.all(
+    pcm.channels.map(async (path) => {
+      const entry = zip.file(path);
+      if (!entry) {
+        throw new Error(`Recorder project archive is missing ${path}.`);
+      }
+      const buffer = await entry.async("arraybuffer");
+      if (buffer.byteLength % Float32Array.BYTES_PER_ELEMENT !== 0) {
+        throw new Error("Recorder project archive has invalid audio data.");
+      }
+      return new Float32Array(buffer);
+    }),
+  );
+  if (channels.some((channel) => channel.length !== channels[0]?.length)) {
     throw new Error("Recorder project archive has invalid audio data.");
   }
   return {
     sampleRate: pcm.sampleRate,
-    channels: pcm.channels.map((channel) => Float32Array.from(channel)),
+    channels,
   };
 }
 
