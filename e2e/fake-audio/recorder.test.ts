@@ -152,7 +152,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     .getByTestId("recorder-clip-take");
   const take = page
     .getByTestId("recorder-take-row")
-    .getByTestId("recorder-clip-take");
+    .getByTestId("recorder-clip-take-lane");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");

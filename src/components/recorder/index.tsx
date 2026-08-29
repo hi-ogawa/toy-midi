@@ -413,7 +413,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       label: `Take ${take.number}`,
                       duration: take.trimEnd - take.trimStart,
                       offset: take.timelineOffset + take.trimStart,
-                      testId: "take",
+                      testId: "take-lane",
                       audioView: take.audioView,
                       audioDuration: take.duration,
                       audioOffset: take.trimStart,
