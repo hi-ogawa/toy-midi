@@ -1,11 +1,13 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, Trash2Icon } from "lucide-react";
+import { parseRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
 } from "../../lib/recorder/project-storage";
 import { routes } from "../../lib/routes";
 import { toResult } from "../../utils/result";
+import { FileDropInput } from "../file-drop-input";
 import { Button } from "../ui/button";
 
 export function RecorderProjectList() {
@@ -22,6 +24,15 @@ export function RecorderProjectList() {
   const deleteProject = useMutation({
     mutationFn: (projectId: string) => recorderProjectStorage.delete(projectId),
     onSuccess: () => projects.refetch(),
+  });
+  const importProject = useMutation({
+    mutationFn: async (file: File) => {
+      const content = await parseRecorderProjectArchive(file);
+      return recorderProjectStorage.createWithContent(content);
+    },
+    onSuccess: (projectId) => {
+      window.location.href = routes.recorderProject.href({ projectId });
+    },
   });
 
   return (
@@ -75,20 +86,40 @@ export function RecorderProjectList() {
                   : ""
               }
             >
-              <Button
-                data-testid="new-recorder-project-button"
-                onClick={() => createProject.mutate()}
-                disabled={createProject.isPending}
-                className={
-                  projects.data.value.length > 0
-                    ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
-                    : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-                }
-              >
-                {projects.data.value.length > 0
-                  ? "New Recording"
-                  : "Create Your First Recording"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  data-testid="new-recorder-project-button"
+                  onClick={() => createProject.mutate()}
+                  disabled={createProject.isPending || importProject.isPending}
+                  className={
+                    projects.data.value.length > 0
+                      ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+                      : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+                  }
+                >
+                  {projects.data.value.length > 0
+                    ? "New Recording"
+                    : "Create Your First Recording"}
+                </Button>
+                <FileDropInput
+                  accept=".toymidi.zip"
+                  onFile={(file) => importProject.mutate(file)}
+                  data-testid="import-recorder-project"
+                  disabled={createProject.isPending || importProject.isPending}
+                  className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+                >
+                  <span className="grid">
+                    <span className="invisible col-start-1 row-start-1">
+                      Import Project
+                    </span>
+                    <span className="col-start-1 row-start-1">
+                      {importProject.isPending
+                        ? "Importing..."
+                        : "Import Project"}
+                    </span>
+                  </span>
+                </FileDropInput>
+              </div>
             </div>
           )}
         </div>

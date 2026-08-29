@@ -7,6 +7,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
@@ -85,6 +86,20 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
     },
   });
+  const exportProjectMutation = useMutation({
+    mutationFn: async () => {
+      const blob = await exportRecorderProjectArchive(
+        runtime.serializeProject(),
+      );
+      downloadBlob(
+        blob,
+        buildExportFileName({
+          baseName: state.title,
+          extension: ".toymidi.zip",
+        }),
+      );
+    },
+  });
 
   const takes = state.recordingTrack.takes;
   const isRecording = state.captureStatus === "recording";
@@ -161,6 +176,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
+        isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
         position={state.position}
@@ -181,6 +197,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
         onGridDivisionChange={timeline.setGridDivision}
+        onExportProject={() => exportProjectMutation.mutate()}
       />
 
       <div className="min-h-0 flex-1">
