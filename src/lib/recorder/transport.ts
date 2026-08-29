@@ -8,7 +8,7 @@ const PLAYBACK_LEAD_SECONDS = 0.03;
 export interface TransportParticipant {
   start(): void;
   stop(): void;
-  seek(): void;
+  seek?(): void;
 }
 
 type TransportState = {
@@ -93,7 +93,7 @@ export class AudioContextTransport {
       this.play();
     } else {
       for (const participant of this.participants) {
-        participant.seek();
+        participant.seek?.();
       }
     }
   }

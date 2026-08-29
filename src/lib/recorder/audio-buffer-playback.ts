@@ -58,14 +58,12 @@ export class AudioBufferPlayback implements TransportParticipant {
     if (!buffer) {
       return;
     }
+    const playbackAnchor = this.transport.playbackAnchor!;
     const timelineStart =
       this.timelineRange?.start ?? this.bufferTimelineOffset;
     const timelineEnd =
       this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
-    const elapsed = Math.max(
-      0,
-      this.transport.playbackAnchor!.position - timelineStart,
-    );
+    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
     const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
       return;
@@ -74,8 +72,8 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.buffer = buffer;
     source.connect(this.gain);
     source.start(
-      this.transport.playbackAnchor!.contextTime +
-        Math.max(0, timelineStart - this.transport.playbackAnchor!.position),
+      playbackAnchor.contextTime +
+        Math.max(0, timelineStart - playbackAnchor.position),
       timelineStart - this.bufferTimelineOffset + elapsed,
       duration - elapsed,
     );
@@ -92,6 +90,4 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.unregister();
     this.gain.disconnect();
   }
-
-  seek(): void {}
 }

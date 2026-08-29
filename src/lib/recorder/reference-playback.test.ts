@@ -29,7 +29,7 @@ describe("ReferencePlayback", () => {
     participant.stop();
     expect(player.pause).toHaveBeenLastCalledWith(18);
     transportState.position = 50;
-    participant.seek();
+    participant.seek!();
     expect(player.pause).toHaveBeenLastCalledWith(30);
   });
 

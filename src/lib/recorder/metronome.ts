@@ -44,20 +44,13 @@ export class RecorderMetronome implements TransportParticipant {
     this.secondsPerClick =
       (60 / this.tempo) * (4 / this.timeSignature.denominator);
     if (this.transport.store.get().isPlaying) {
-      this.restartScheduling();
+      this.start();
     }
   }
 
   start(): void {
-    this.restartScheduling();
-  }
-
-  private restartScheduling(): void {
     this.stop();
-    const anchor = this.transport.playbackAnchor;
-    if (!anchor) {
-      return;
-    }
+    const anchor = this.transport.playbackAnchor!;
     this.nextClickIndex = Math.ceil(
       anchor.position / this.secondsPerClick - 1e-9,
     );
@@ -73,16 +66,11 @@ export class RecorderMetronome implements TransportParticipant {
     this.disposeScheduling = undefined;
   }
 
-  seek(): void {}
-
   private schedule(): void {
     while (true) {
       // Convert this click's timeline position through the transport playback
       // anchor: contextTime = anchor context + click position - anchor position.
-      const anchor = this.transport.playbackAnchor;
-      if (!anchor) {
-        return;
-      }
+      const anchor = this.transport.playbackAnchor!;
       const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
       const nextClickTime =
         anchor.contextTime + nextClickPosition - anchor.position;
