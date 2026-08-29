@@ -15,32 +15,35 @@ interface RecorderProjectFileContent extends Omit<
   SerializedRecorderRuntimeState,
   "audioTracks" | "recordingTrack"
 > {
-  audioTracks: Array<
-    Omit<SerializedRecorderRuntimeState["audioTracks"][number], "clip"> & {
-      clip?: {
-        name: string;
-        pcm: RecorderProjectPcm;
-      };
-    }
-  >;
+  audioTracks: RecorderProjectAudioTrack[];
   recordingTrack: Omit<
     SerializedRecorderRuntimeState["recordingTrack"],
     "takes"
   > & {
-    takes: Array<
-      Omit<
-        SerializedRecorderRuntimeState["recordingTrack"]["takes"][number],
-        "pcm"
-      > & {
-        pcm: RecorderProjectPcm;
-      }
-    >;
+    takes: RecorderProjectTake[];
   };
 }
 
 interface RecorderProjectPcm {
   sampleRate: number;
   channels: string[];
+}
+
+interface RecorderProjectAudioTrack extends Omit<
+  SerializedRecorderRuntimeState["audioTracks"][number],
+  "clip"
+> {
+  clip?: {
+    name: string;
+    pcm: RecorderProjectPcm;
+  };
+}
+
+interface RecorderProjectTake extends Omit<
+  SerializedRecorderRuntimeState["recordingTrack"]["takes"][number],
+  "pcm"
+> {
+  pcm: RecorderProjectPcm;
 }
 
 export interface ParsedRecorderProjectFile {
