@@ -755,15 +755,16 @@ export class RecorderRuntime {
 
     const duration = player.getDuration();
     const currentReference = this.store.get().referenceVideo;
-    this.store.update({
-      referenceVideo: {
-        videoId,
-        timelineStart: currentReference?.timelineStart ?? 0,
-        muted: currentReference?.muted ?? false,
-        title: player.getVideoData().title,
-        duration: duration > 0 ? duration : undefined,
-      },
-    });
+    const referenceVideo = {
+      videoId,
+      timelineStart: currentReference?.timelineStart ?? 0,
+      muted: currentReference?.muted ?? false,
+      title: player.getVideoData().title,
+      duration: duration > 0 ? duration : undefined,
+    };
+    if (!currentReference || !shallowEqual(currentReference, referenceVideo)) {
+      this.store.update({ referenceVideo });
+    }
     this.syncYouTubePlayer();
 
     return () => {
