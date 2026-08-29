@@ -216,8 +216,9 @@ function YouTubeReference({
     setError(undefined);
     let player: YouTubePlayerApi | undefined;
     let playback: ReferencePlayback | undefined;
-    void loadYouTubeApi()
-      .then((YT) => {
+    void (async () => {
+      try {
+        const YT = await loadYouTubeApi();
         if (disposed) {
           return;
         }
@@ -269,12 +270,12 @@ function YouTubeReference({
             },
           },
         });
-      })
-      .catch((reason: unknown) => {
+      } catch (error) {
         if (!disposed) {
-          setError(reason instanceof Error ? reason.message : "Unknown error");
+          setError(error instanceof Error ? error.message : "Unknown error");
         }
-      });
+      }
+    })();
     return () => {
       disposed = true;
       playback?.dispose();
