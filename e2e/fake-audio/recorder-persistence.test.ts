@@ -8,6 +8,13 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "All changes saved" }),
   ).toHaveAttribute("aria-disabled", "true");
+  const saveButton = page.getByRole("button", { name: "All changes saved" });
+  const saveTooltip = page.getByRole("tooltip");
+  await expect(saveButton).not.toHaveAttribute("title");
+  await saveButton.hover();
+  await expect(saveTooltip).toBeVisible();
+  await saveButton.focus();
+  await expect(saveTooltip).toBeVisible();
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
