@@ -245,18 +245,6 @@ export function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
-      <Button
-        data-testid="recorder-mixer-button"
-        onClick={onMixerToggle}
-        aria-pressed={mixerOpen}
-        title="Mixer"
-        className={cn(
-          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          mixerOpen && "bg-primary text-primary-foreground hover:bg-primary/90",
-        )}
-      >
-        <SlidersVerticalIcon className="size-5" />
-      </Button>
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
@@ -273,6 +261,18 @@ export function RecorderHeader({
         {title}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
+      <Button
+        data-testid="recorder-mixer-button"
+        onClick={onMixerToggle}
+        aria-pressed={mixerOpen}
+        title="Mixer"
+        className={cn(
+          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          mixerOpen && "bg-primary text-primary-foreground hover:bg-primary/90",
+        )}
+      >
+        <SlidersVerticalIcon className="size-5" />
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
