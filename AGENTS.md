@@ -31,5 +31,5 @@ Planned work and known bugs live in GitHub issues, minor code-level nits as inli
 - Prefer `undefined` over `null`
 - Prefer optional properties (`{ x?: T }`) over explicit undefined (`{ x: T | undefined }`)
 - Make props/params required when all call sites always pass them
-- Prefer a single options object over multiple primitive arguments (for example, `fn({ a, b })` rather than `fn(a, b)`)
+- Prefer a single options object over multiple primitive arguments (for example, `fn({ a, b })` rather than `fn(a: number, b: number)`)
 - Use braces for every `switch` case body (`case "x": { ... }`, `default: { ... }`)
