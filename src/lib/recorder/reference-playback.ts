@@ -9,6 +9,9 @@ interface ReferencePlayer {
 }
 
 export class ReferencePlayback implements TransportParticipant {
+  private readonly transport: AudioContextTransport;
+  private readonly player: ReferencePlayer;
+  private readonly duration: number;
   private timelineStart = 0;
   private boundaryTimer?: ReturnType<typeof setTimeout>;
   private readonly unregister: () => void;
@@ -27,10 +30,6 @@ export class ReferencePlayback implements TransportParticipant {
     this.duration = duration;
     this.unregister = transport.register(this);
   }
-
-  private readonly transport: AudioContextTransport;
-  private readonly player: ReferencePlayer;
-  private readonly duration: number;
 
   setTimelineStart(timelineStart: number): void {
     this.timelineStart = timelineStart;
