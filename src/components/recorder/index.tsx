@@ -415,13 +415,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                 <TakeTrackRow
                   key={take.id}
                   number={take.number}
-                  enabled={take.enabled}
-                  auditioned={state.auditionedTakeId === take.id}
-                  onEnabledChange={(enabled) =>
-                    runtime.setTakeEnabled(take.id, enabled)
+                  muted={take.muted}
+                  soloed={take.soloed}
+                  onMutedChange={(muted) =>
+                    runtime.setTakeMuted(take.id, muted)
                   }
-                  onAuditionedChange={(auditioned) =>
-                    runtime.setAuditionedTake(auditioned ? take.id : undefined)
+                  onSoloedChange={(soloed) =>
+                    runtime.setTakeSoloed(take.id, soloed)
                   }
                   onDelete={() =>
                     runtime.removeClips([{ type: "take", id: take.id }])
@@ -444,7 +444,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
-                    dimmed={!take.enabled}
+                    dimmed={take.muted}
                     selected={clipInteraction.isSelected({
                       type: "take",
                       id: take.id,

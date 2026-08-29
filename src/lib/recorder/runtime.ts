@@ -73,7 +73,6 @@ export interface RecorderRuntimeState {
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
   takeRegions: TakeRegion[];
-  auditionedTakeId?: string;
   previewTakeRegions?: TakeRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -479,19 +478,12 @@ export class RecorderRuntime {
     });
   }
 
-  setTakeEnabled(id: string, enabled: boolean): void {
-    this.updateTake(id, (take) => ({ ...take, enabled }));
+  setTakeMuted(id: string, muted: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, muted }));
   }
 
-  setAuditionedTake(id?: string): void {
-    if (
-      id !== undefined &&
-      !this.store.get().recordingTrack.takes.some((take) => take.id === id)
-    ) {
-      throw new Error("Recording take state is missing.");
-    }
-    this.store.update({ auditionedTakeId: id });
-    this.syncActiveTakePlayback();
+  setTakeSoloed(id: string, soloed: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, soloed }));
   }
 
   private setTakeTrimStart(id: string, trimStart: number): void {
@@ -816,7 +808,8 @@ export class RecorderRuntime {
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
-            enabled: true,
+            muted: false,
+            soloed: false,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
             trimStart: 0,
@@ -840,17 +833,11 @@ export class RecorderRuntime {
   ): void {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
-    // Automatically clear audition when the associated take is deleted.
-    let auditionedTakeId = this.store.get().auditionedTakeId;
-    if (!recordingTrack.takes.some((take) => take.id === auditionedTakeId)) {
-      auditionedTakeId = undefined;
-    }
     this.store.update({
       ...update,
       takeRegions,
-      auditionedTakeId,
     });
-    this.syncActiveTakePlayback();
+    this.syncTakePlayback(takeRegions);
   }
 
   private updatePendingRecording(
@@ -861,25 +848,6 @@ export class RecorderRuntime {
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewTakeRegions });
-  }
-
-  private syncActiveTakePlayback(): void {
-    const state = this.store.get();
-    const auditionedTake = state.recordingTrack.takes.find(
-      (take) => take.id === state.auditionedTakeId,
-    );
-    if (auditionedTake) {
-      this.syncTakePlayback([
-        {
-          take: auditionedTake,
-          timelineStart:
-            auditionedTake.timelineOffset + auditionedTake.trimStart,
-          timelineEnd: auditionedTake.timelineOffset + auditionedTake.trimEnd,
-        },
-      ]);
-    } else {
-      this.syncTakePlayback(state.takeRegions);
-    }
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
@@ -915,7 +883,8 @@ function pendingRecordingToTake(
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
-    enabled: true,
+    muted: false,
+    soloed: false,
     duration: pendingRecording.duration,
     trimStart: 0,
     trimEnd: pendingRecording.duration,

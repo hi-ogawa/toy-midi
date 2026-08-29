@@ -231,24 +231,23 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(320, -2);
 
-  // A take can be disabled without deleting its editable source lane.
-  const disableTake = page.getByTestId("recorder-take-disable");
-  await expect(disableTake.nth(1)).toHaveAttribute("aria-pressed", "false");
-  await disableTake.nth(1).click();
-  await expect(disableTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  // Muting removes a take from Capture without deleting its source lane.
+  const muteTake = page.getByTestId("recorder-take-mute");
+  await muteTake.nth(1).click();
+  await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(take).toHaveCount(1);
   await expect(compRegion).not.toContainText("Take 2");
 
-  // Audition selects one source without changing its comp inclusion.
-  const auditionTake = page.getByTestId("recorder-take-audition");
-  await auditionTake.nth(0).click();
-  await expect(auditionTake.nth(0)).toHaveAttribute("aria-pressed", "true");
-  await auditionTake.nth(1).click();
-  await expect(auditionTake.nth(0)).toHaveAttribute("aria-pressed", "false");
-  await expect(auditionTake.nth(1)).toHaveAttribute("aria-pressed", "true");
-  await expect(disableTake.nth(1)).toHaveAttribute("aria-pressed", "true");
-  await auditionTake.nth(1).click();
+  // Solo derives Capture from soloed, unmuted take lanes.
+  const soloTake = page.getByTestId("recorder-take-solo");
+  await soloTake.nth(1).click();
+  await expect(soloTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(take).toHaveCount(0);
+  await muteTake.nth(1).click();
+  await expect(take).toHaveCount(1);
+  await soloTake.nth(1).click();
+  await expect(take).toHaveCount(2);
 
   // The source lanes can be folded without changing the resolved comp.
   await takesToggle.click();

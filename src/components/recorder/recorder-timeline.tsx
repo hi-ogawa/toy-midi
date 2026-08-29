@@ -277,7 +277,7 @@ export function TakeTimelineLane({
         })}
       </div>
       {takes
-        .filter((take) => take.enabled)
+        .filter((take) => regions.some((region) => region.take.id === take.id))
         .map((take) => (
           <TimelineClip
             key={take.id}

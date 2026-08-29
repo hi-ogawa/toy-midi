@@ -3,11 +3,16 @@ import type { TakeRegion, TakeState } from "./take.ts";
 /** Resolves overlapping takes so later array entries win their timeline range. */
 export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
   let regions: TakeRegion[] = [];
+  const anyTakeSoloed = takes.some((take) => take.soloed);
 
   // Apply takes oldest to newest. Each new take subtracts its interval from
   // every existing region before being inserted as the winning region.
   for (const take of takes) {
-    if (!take.enabled || take.trimEnd <= take.trimStart) {
+    if (
+      take.muted ||
+      (anyTakeSoloed && !take.soloed) ||
+      take.trimEnd <= take.trimStart
+    ) {
       continue;
     }
     const takeStart = take.timelineOffset + take.trimStart;
