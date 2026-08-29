@@ -19,8 +19,8 @@ export function RecorderMixToggle({
         "border-neutral-600 text-neutral-300 hover:bg-neutral-700",
         active &&
           (kind === "mute"
-            ? "border-amber-500/60 bg-amber-500/15 text-amber-300 hover:!bg-amber-500/20 hover:!text-amber-300"
-            : "border-emerald-500/60 bg-emerald-500/15 text-emerald-300 hover:!bg-emerald-500/20 hover:!text-emerald-300"),
+            ? "border-amber-500/60 bg-amber-500/25 text-amber-300 hover:!bg-amber-500/30 hover:!text-amber-300"
+            : "border-emerald-500/60 bg-emerald-500/25 text-emerald-300 hover:!bg-emerald-500/30 hover:!text-emerald-300"),
         className,
       )}
     />
