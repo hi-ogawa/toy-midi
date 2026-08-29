@@ -1,11 +1,5 @@
 import { ExternalLinkIcon, LoaderCircleIcon } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
@@ -156,15 +150,13 @@ function YouTubeReferencePanel({
   runtime: RecorderRuntime;
 }) {
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
-  const previewRef = useResizeObserver(
-    useCallback((element: HTMLElement) => {
-      const width = Math.min(
-        element.clientWidth,
-        (element.clientHeight * 16) / 9,
-      );
-      setPreviewSize({ width, height: (width * 9) / 16 });
-    }, []),
-  );
+  const previewRef = useResizeObserver((element) => {
+    const width = Math.min(
+      element.clientWidth,
+      (element.clientHeight * 16) / 9,
+    );
+    setPreviewSize({ width, height: (width * 9) / 16 });
+  });
 
   return (
     <div className="flex h-full min-h-0 flex-col">
