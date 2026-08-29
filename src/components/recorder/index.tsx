@@ -18,6 +18,7 @@ import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import {
   TakeTimelineLane,
+  ReferenceTimelineRow,
   TimelineHeader,
   TimelineLane,
 } from "./recorder-timeline";
@@ -230,6 +231,19 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
             />
+            {referenceVideoId && (
+              <ReferenceTimelineRow
+                videoId={referenceVideoId}
+                position={state.position}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
+                onSeek={(position) => runtime.seek(position)}
+              />
+            )}
             {state.audioTracks.map((track, index) => (
               <TrackRow
                 key={track.id}

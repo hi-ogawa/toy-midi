@@ -1,4 +1,10 @@
-import { LoaderCircleIcon, PlusIcon, UploadIcon } from "lucide-react";
+import {
+  LoaderCircleIcon,
+  PlayIcon,
+  PlusIcon,
+  UploadIcon,
+  VideoIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
@@ -18,6 +24,132 @@ import type {
   RecorderClipMoveSnapshot,
   RecorderClipTrimSnapshot,
 } from "./use-recorder-clip-interaction";
+
+const REFERENCE_VIDEO_MOCK_DURATION = 3 * 60 + 32;
+
+export function ReferenceTimelineRow({
+  videoId,
+  position,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  pixelsPerBeat,
+  tempo,
+  viewportStartBeat,
+  viewportWidth,
+  onSeek,
+}: {
+  videoId: string;
+  position: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+  onSeek: (position: number) => void;
+}) {
+  return (
+    <div
+      data-testid="recorder-reference-track"
+      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+    >
+      <div className="sticky left-0 z-20 flex items-center gap-3 border-r border-neutral-700 bg-neutral-800 px-3">
+        <div className="grid size-9 shrink-0 place-items-center rounded bg-red-950 text-red-300">
+          <VideoIcon className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-xs font-semibold">Reference</div>
+          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
+            <span>
+              {formatReferenceTime(
+                Math.min(position, REFERENCE_VIDEO_MOCK_DURATION),
+              )}
+            </span>
+            <span className="text-neutral-600">/</span>
+            <span>{formatReferenceTime(REFERENCE_VIDEO_MOCK_DURATION)}</span>
+          </div>
+        </div>
+      </div>
+      <div
+        className="relative overflow-hidden bg-neutral-900"
+        style={getTimelineGridStyle({
+          beatsPerBar,
+          pixelsPerBeat,
+          viewportStartBeat,
+          subdivisionsPerBeat,
+        })}
+        onPointerDown={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const beat = Math.max(
+            0,
+            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+          );
+          onSeek(beatsToSeconds(beat, tempo));
+        }}
+      >
+        <ReferenceTimelineClip
+          videoId={videoId}
+          duration={REFERENCE_VIDEO_MOCK_DURATION}
+          pixelsPerBeat={pixelsPerBeat}
+          tempo={tempo}
+          viewportStartBeat={viewportStartBeat}
+          viewportWidth={viewportWidth}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ReferenceTimelineClip({
+  videoId,
+  duration,
+  pixelsPerBeat,
+  tempo,
+  viewportStartBeat,
+  viewportWidth,
+}: {
+  videoId: string;
+  duration: number;
+  pixelsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+}) {
+  const left = -viewportStartBeat * pixelsPerBeat;
+  const width = secondsToBeats(duration, tempo) * pixelsPerBeat;
+  const visibleLabelLeft = Math.max(0, -left) + 8;
+  return (
+    <div
+      data-testid="recorder-clip-reference"
+      className="absolute inset-y-2 overflow-hidden rounded-sm border border-amber-400/60 bg-amber-400/15 text-amber-50"
+      style={{ left, width }}
+    >
+      <img
+        src={`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`}
+        alt=""
+        className="absolute inset-y-0 left-0 w-24 object-cover opacity-35"
+      />
+      <div
+        className="absolute inset-y-0 flex max-w-[calc(100vw-17rem)] items-center gap-2 whitespace-nowrap"
+        style={{ left: Math.min(visibleLabelLeft, viewportWidth - 8) }}
+      >
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-black/45">
+          <PlayIcon className="ml-0.5 size-3 fill-current" />
+        </span>
+        <span className="truncate text-xs font-medium">YouTube reference</span>
+        <span className="font-mono text-[10px] text-amber-200/70">
+          {formatReferenceTime(duration)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function formatReferenceTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remaining = Math.floor(seconds % 60);
+  return `${minutes}:${String(remaining).padStart(2, "0")}`;
+}
 
 export function TimelineHeader({
   beatsPerBar,
