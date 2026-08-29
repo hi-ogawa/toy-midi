@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { Volume2Icon, VolumeXIcon } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -293,6 +292,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                   })
                 }
                 onClipDragMove={clipInteraction.move}
+                muted={state.referenceVideo.muted}
+                onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
               />
             )}
             {state.audioTracks.map((track, index) => (
@@ -512,35 +513,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         // TODO: Tighten the configuration/actions so the panel is less text-heavy.
         <FloatingPanel
           title="Reference video"
-          headerActions={
-            state.referenceVideo && (
-              <button
-                type="button"
-                data-testid="recorder-reference-video-mute"
-                aria-pressed={state.referenceVideo.muted}
-                aria-label={
-                  state.referenceVideo.muted
-                    ? "Unmute reference video"
-                    : "Mute reference video"
-                }
-                title={
-                  state.referenceVideo.muted
-                    ? "Unmute reference video"
-                    : "Mute reference video"
-                }
-                onClick={() =>
-                  runtime.setReferenceVideoMuted(!state.referenceVideo!.muted)
-                }
-                className="text-neutral-400 hover:text-neutral-100"
-              >
-                {state.referenceVideo.muted ? (
-                  <VolumeXIcon className="size-4" />
-                ) : (
-                  <Volume2Icon className="size-4" />
-                )}
-              </button>
-            )
-          }
           closeLabel="Close Reference Video"
           onClose={() => setIsReferenceVideoOpen(false)}
           testId="recorder-youtube-reference"

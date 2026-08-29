@@ -43,6 +43,8 @@ export function ReferenceTimelineRow({
   onClipClick,
   onClipDragStart,
   onClipDragMove,
+  muted,
+  onMutedChange,
 }: {
   referenceVideo: ReferenceVideoState;
   position: number;
@@ -57,6 +59,8 @@ export function ReferenceTimelineRow({
   onClipClick: (additive: boolean) => void;
   onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
   onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  muted: boolean;
+  onMutedChange: (muted: boolean) => void;
 }) {
   return (
     <div
@@ -83,6 +87,19 @@ export function ReferenceTimelineRow({
             </span>
           </div>
         </div>
+        <Button
+          data-testid="recorder-reference-video-mute"
+          onClick={() => onMutedChange(!muted)}
+          aria-pressed={muted}
+          title={muted ? "Unmute Reference" : "Mute Reference"}
+          className={cn(
+            "ml-auto size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+            muted &&
+              "border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600",
+          )}
+        >
+          M
+        </Button>
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"

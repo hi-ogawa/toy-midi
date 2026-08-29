@@ -41,7 +41,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     "src",
     /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,
   );
-  const mute = reference.getByTestId("recorder-reference-video-mute");
+  const mute = page.getByTestId("recorder-reference-video-mute");
   await expect(mute).toHaveAttribute("aria-pressed", "false");
   await mute.click();
   await expect(mute).toHaveAttribute("aria-pressed", "true");

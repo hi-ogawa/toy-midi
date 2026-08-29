@@ -46,7 +46,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await referencePanel
     .getByTestId("recorder-reference-timeline-start")
     .fill("-2.5");
-  await referencePanel.getByTestId("recorder-reference-video-mute").click();
+  await page.getByTestId("recorder-reference-video-mute").click();
   await expect(
     page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -76,9 +76,7 @@ test("saves and restores a recorder project", async ({ page }) => {
       .getByTestId("recorder-reference-timeline-start"),
   ).toHaveValue("-2.5");
   await expect(
-    page
-      .getByTestId("recorder-youtube-reference")
-      .getByTestId("recorder-reference-video-mute"),
+    page.getByTestId("recorder-reference-video-mute"),
   ).toHaveAttribute("aria-pressed", "true");
 
   // The metadata index finds the saved project and reopens the same route.
