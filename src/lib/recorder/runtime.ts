@@ -792,6 +792,12 @@ export class RecorderRuntime {
     };
   }
 
+  private detachYouTubePlayer(): void {
+    this.attachedYouTubePlayer?.unsubscribe();
+    this.attachedYouTubePlayer?.playback.dispose();
+    this.attachedYouTubePlayer = undefined;
+  }
+
   renderComp(): AudioBuffer | undefined {
     return renderTakeComp({
       context: this.ensureContext(),
@@ -898,12 +904,6 @@ export class RecorderRuntime {
       });
     }
     return this.context;
-  }
-
-  private detachYouTubePlayer(): void {
-    this.attachedYouTubePlayer?.unsubscribe();
-    this.attachedYouTubePlayer?.playback.dispose();
-    this.attachedYouTubePlayer = undefined;
   }
 
   private syncTrackMix(): void {
