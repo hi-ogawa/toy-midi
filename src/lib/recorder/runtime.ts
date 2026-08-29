@@ -840,10 +840,12 @@ export class RecorderRuntime {
   ): void {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
+    const currentAuditionedTakeId = this.store.get().auditionedTakeId;
+    // Keep transient audition only while its take survives this track update.
     const auditionedTakeId = recordingTrack.takes.some(
-      (take) => take.id === this.store.get().auditionedTakeId,
+      (take) => take.id === currentAuditionedTakeId,
     )
-      ? this.store.get().auditionedTakeId
+      ? currentAuditionedTakeId
       : undefined;
     this.store.update({ ...update, takeRegions, auditionedTakeId });
     this.syncActiveTakePlayback();
