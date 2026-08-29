@@ -91,6 +91,53 @@ export function ReferenceVideoPanel({
   );
 }
 
+function YouTubeReferencePanel({
+  referenceVideo,
+  runtime,
+}: {
+  referenceVideo?: ReferenceVideoState;
+  runtime: RecorderRuntime;
+}) {
+  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+  const previewRef = useResizeObserver((element) => {
+    const width = Math.min(
+      element.clientWidth,
+      (element.clientHeight * 16) / 9,
+    );
+    setPreviewSize({ width, height: (width * 9) / 16 });
+  });
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div
+        ref={previewRef}
+        data-testid="recorder-reference-video-preview"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
+      >
+        <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
+          {referenceVideo ? (
+            <YouTubeReference
+              referenceVideo={referenceVideo}
+              runtime={runtime}
+            />
+          ) : (
+            <div className="grid h-full w-full place-items-center text-xs text-neutral-600">
+              Add a YouTube video
+            </div>
+          )}
+        </div>
+      </div>
+      {!referenceVideo && (
+        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
+          <YouTubeReferenceSetup
+            onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function YouTubeReferenceSetup({
   initialVideoId,
   onSubmit,
@@ -139,53 +186,6 @@ function YouTubeReferenceSetup({
         {initialVideoId ? "Replace" : "Add video"}
       </Button>
     </form>
-  );
-}
-
-function YouTubeReferencePanel({
-  referenceVideo,
-  runtime,
-}: {
-  referenceVideo?: ReferenceVideoState;
-  runtime: RecorderRuntime;
-}) {
-  const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
-  const previewRef = useResizeObserver((element) => {
-    const width = Math.min(
-      element.clientWidth,
-      (element.clientHeight * 16) / 9,
-    );
-    setPreviewSize({ width, height: (width * 9) / 16 });
-  });
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div
-        ref={previewRef}
-        data-testid="recorder-reference-video-preview"
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-neutral-950 p-3"
-      >
-        <div className="shrink-0 overflow-hidden bg-black" style={previewSize}>
-          {referenceVideo ? (
-            <YouTubeReference
-              referenceVideo={referenceVideo}
-              runtime={runtime}
-            />
-          ) : (
-            <div className="grid h-full w-full place-items-center text-xs text-neutral-600">
-              Add a YouTube video
-            </div>
-          )}
-        </div>
-      </div>
-      {!referenceVideo && (
-        <div className="shrink-0 border-t border-neutral-700 bg-neutral-800 p-4">
-          <YouTubeReferenceSetup
-            onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
-          />
-        </div>
-      )}
-    </div>
   );
 }
 
