@@ -276,7 +276,14 @@ export function RecorderHeader({
             }}
           >
             <DownloadIcon />
-            {isExporting ? "Exporting..." : "Export Project Archive"}
+            <span className="grid">
+              <span className="invisible col-start-1 row-start-1">
+                Export Project
+              </span>
+              <span className="col-start-1 row-start-1">
+                {isExporting ? "Exporting..." : "Export Project"}
+              </span>
+            </span>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>

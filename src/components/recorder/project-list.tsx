@@ -108,7 +108,16 @@ export function RecorderProjectList() {
                   disabled={createProject.isPending || importProject.isPending}
                   className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
                 >
-                  {importProject.isPending ? "Importing..." : "Import Project"}
+                  <span className="grid">
+                    <span className="invisible col-start-1 row-start-1">
+                      Import Project
+                    </span>
+                    <span className="col-start-1 row-start-1">
+                      {importProject.isPending
+                        ? "Importing..."
+                        : "Import Project"}
+                    </span>
+                  </span>
                 </FileDropInput>
               </div>
             </div>
