@@ -250,6 +250,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
     await recordButton.click();
   }
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
+  const clipGeometry = await getRecorderClipGeometry(page);
 
   // Export the open project and retain the downloaded archive for import.
   page.once("dialog", (dialog) => dialog.accept("Archived recording"));
@@ -277,7 +278,25 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByTestId("recorder-clip-take")).toHaveCount(2);
   await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(2);
+  await expect.poll(() => getRecorderClipGeometry(page)).toEqual(clipGeometry);
 });
+
+async function getRecorderClipGeometry(page: Page) {
+  const geometry = await Promise.all(
+    (["audio", "take", "comp"] as const).map(async (variant) => ({
+      variant,
+      clips: await page
+        .getByTestId(`recorder-clip-${variant}`)
+        .evaluateAll((elements) =>
+          elements.map((element) => ({
+            left: (element as HTMLElement).style.left,
+            width: (element as HTMLElement).style.width,
+          })),
+        ),
+    })),
+  );
+  return geometry;
+}
 
 async function seekRecorderByPixels(page: Page, pixels: number) {
   const ruler = page.getByTestId("recorder-timeline-ruler");
