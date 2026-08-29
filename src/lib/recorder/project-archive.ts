@@ -50,7 +50,7 @@ export interface ParsedRecorderProjectFile {
 
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
 
-export async function exportRecorderProjectFile(
+export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
   const zip = new JSZip();
@@ -69,7 +69,7 @@ export async function exportRecorderProjectFile(
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-export async function parseRecorderProjectFile(
+export async function parseRecorderProjectArchive(
   file: File,
 ): Promise<ParsedRecorderProjectFile> {
   let zip: JSZip;

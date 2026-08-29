@@ -7,7 +7,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import { exportRecorderProjectFile } from "../../lib/recorder/project-file";
+import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
@@ -85,7 +85,9 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
-      const blob = await exportRecorderProjectFile(runtime.serializeProject());
+      const blob = await exportRecorderProjectArchive(
+        runtime.serializeProject(),
+      );
       downloadBlob(
         blob,
         buildExportFileName({

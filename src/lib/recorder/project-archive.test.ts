@@ -2,14 +2,14 @@ import JSZip from "jszip";
 import { describe, expect, test } from "vitest";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 import {
-  exportRecorderProjectFile,
-  parseRecorderProjectFile,
-} from "./project-file.ts";
+  exportRecorderProjectArchive,
+  parseRecorderProjectArchive,
+} from "./project-archive.ts";
 
 describe("recorder project file", () => {
   test("stores PCM as binary entries and restores typed arrays", async () => {
     const content = createProjectContent();
-    const blob = await exportRecorderProjectFile(content);
+    const blob = await exportRecorderProjectArchive(content);
     const zip = await JSZip.loadAsync(await blob.arrayBuffer());
     const project = JSON.parse(
       await zip.file("project.json")!.async("text"),
@@ -25,7 +25,7 @@ describe("recorder project file", () => {
       await zip.file("audio/tracks/0/channel-0.f32")!.async("uint8array"),
     ).toHaveLength(3 * Float32Array.BYTES_PER_ELEMENT);
 
-    const parsed = await parseRecorderProjectFile(
+    const parsed = await parseRecorderProjectArchive(
       createTestFile(await blob.arrayBuffer()),
     );
     expect(parsed.content.audioTracks[0]!.clip!.pcm.channels).toEqual([
@@ -44,7 +44,7 @@ describe("recorder project file", () => {
       zip.file("project.json", JSON.stringify(project));
     });
 
-    await expect(parseRecorderProjectFile(file)).rejects.toThrow(
+    await expect(parseRecorderProjectArchive(file)).rejects.toThrow(
       "Recorder project archive is missing audio/tracks/0/missing.f32.",
     );
   });
@@ -55,7 +55,7 @@ describe("recorder project file", () => {
       zip.file(path, new Uint8Array([1, 2, 3]));
     });
 
-    await expect(parseRecorderProjectFile(file)).rejects.toThrow(
+    await expect(parseRecorderProjectArchive(file)).rejects.toThrow(
       "Recorder project archive has invalid audio data.",
     );
   });
@@ -66,7 +66,7 @@ describe("recorder project file", () => {
       zip.file(path, new Uint8Array(new Float32Array([1, 2]).buffer));
     });
 
-    await expect(parseRecorderProjectFile(file)).rejects.toThrow(
+    await expect(parseRecorderProjectArchive(file)).rejects.toThrow(
       "Recorder project archive has invalid audio data.",
     );
   });
@@ -77,7 +77,7 @@ async function modifyArchive(
 ): Promise<File> {
   const zip = await JSZip.loadAsync(
     await (
-      await exportRecorderProjectFile(createProjectContent())
+      await exportRecorderProjectArchive(createProjectContent())
     ).arrayBuffer(),
   );
   const project = JSON.parse(await zip.file("project.json")!.async("text"));

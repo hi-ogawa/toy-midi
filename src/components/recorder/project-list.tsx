@@ -1,6 +1,6 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { HouseIcon, Mic2Icon, Trash2Icon } from "lucide-react";
-import { parseRecorderProjectFile } from "../../lib/recorder/project-file";
+import { parseRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import {
   type RecorderProjectMetadata,
   recorderProjectStorage,
@@ -27,7 +27,7 @@ export function RecorderProjectList() {
   });
   const importProject = useMutation({
     mutationFn: async (file: File) => {
-      const parsed = await parseRecorderProjectFile(file);
+      const parsed = await parseRecorderProjectArchive(file);
       return recorderProjectStorage.createWithContent(parsed.content);
     },
     onSuccess: (projectId) => {
