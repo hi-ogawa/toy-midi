@@ -3,7 +3,6 @@ import { useCallback, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
 import { clamp } from "../../lib/music";
-import type { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
   RecorderRuntime,
   type ReferenceVideoState,
@@ -259,29 +258,7 @@ function mountYouTubeReference({
 }): MountedYouTubeReference {
   let disposed = false;
   let player: YouTubePlayerApi | undefined;
-  let playback: ReferencePlayback | undefined;
-
-  const syncReferenceVideo = () => {
-    const referenceVideo = runtime.store.get().referenceVideo;
-    if (referenceVideo?.videoId !== videoId) {
-      return;
-    }
-    if (referenceVideo.muted) {
-      player?.mute();
-    } else {
-      player?.unMute();
-    }
-    playback?.setState({
-      timelineStart: referenceVideo.timelineStart,
-      duration: referenceVideo.duration,
-    });
-  };
-
-  const unsubscribe = runtime.store.subscribeWithSelector({
-    selector: (state) => state.referenceVideo,
-    listener: syncReferenceVideo,
-    equals: Object.is,
-  });
+  let detachPlayer: (() => void) | undefined;
 
   const initialize = async () => {
     const YT = await loadYouTubeApi();
@@ -303,23 +280,7 @@ function mountYouTubeReference({
       player = undefined;
       return;
     }
-    const duration = player.getDuration();
-    const metadata = {
-      title: player.getVideoData().title,
-      duration: duration > 0 ? duration : undefined,
-    };
-    playback = runtime.createReferencePlayback({
-      play: (time) => {
-        player!.seekTo(time, true);
-        player!.playVideo();
-      },
-      pause: (time) => {
-        player!.pauseVideo();
-        player!.seekTo(time, true);
-      },
-    });
-    runtime.setReferenceVideoMetadata(metadata);
-    syncReferenceVideo();
+    detachPlayer = runtime.attachYouTubePlayer({ videoId, player });
     onReady();
   };
 
@@ -332,9 +293,8 @@ function mountYouTubeReference({
   return {
     dispose() {
       disposed = true;
-      unsubscribe();
-      playback?.dispose();
-      playback = undefined;
+      detachPlayer?.();
+      detachPlayer = undefined;
       player?.destroy();
       player = undefined;
     },

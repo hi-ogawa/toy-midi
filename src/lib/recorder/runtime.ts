@@ -2,6 +2,7 @@ import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { clamp } from "../music.ts";
+import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -150,6 +151,10 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private attachedYouTubePlayer?: {
+    playback: ReferencePlayback;
+    unsubscribe: () => void;
+  };
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -726,9 +731,65 @@ export class RecorderRuntime {
     this.store.update({ referenceVideo: undefined });
   }
 
-  createReferencePlayback(player: ReferencePlayer): ReferencePlayback {
+  attachYouTubePlayer({
+    videoId,
+    player,
+  }: {
+    videoId: string;
+    player: YouTubePlayerApi;
+  }): () => void {
     this.ensureContext();
-    return new ReferencePlayback(this.transport!, player);
+    this.detachYouTubePlayer();
+
+    const playback = new ReferencePlayback(this.transport!, {
+      play: (time) => {
+        player.seekTo(time, true);
+        player.playVideo();
+      },
+      pause: (time) => {
+        player.pauseVideo();
+        player.seekTo(time, true);
+      },
+    } satisfies ReferencePlayer);
+    const sync = () => {
+      const referenceVideo = this.store.get().referenceVideo;
+      if (referenceVideo?.videoId !== videoId) {
+        playback.setState(undefined);
+        return;
+      }
+      if (referenceVideo.muted) {
+        player.mute();
+      } else {
+        player.unMute();
+      }
+      playback.setState({
+        timelineStart: referenceVideo.timelineStart,
+        duration: referenceVideo.duration,
+      });
+    };
+    const attachment = {
+      playback,
+      unsubscribe: this.store.subscribeWithSelector({
+        selector: (state) => state.referenceVideo,
+        listener: sync,
+        equals: Object.is,
+      }),
+    };
+    this.attachedYouTubePlayer = attachment;
+    sync();
+
+    const duration = player.getDuration();
+    this.setReferenceVideoMetadata({
+      title: player.getVideoData().title,
+      duration: duration > 0 ? duration : undefined,
+    });
+
+    return () => {
+      if (this.attachedYouTubePlayer !== attachment) {
+        return;
+      }
+      this.detachYouTubePlayer();
+    };
   }
 
   renderComp(): AudioBuffer | undefined {
@@ -837,6 +898,12 @@ export class RecorderRuntime {
       });
     }
     return this.context;
+  }
+
+  private detachYouTubePlayer(): void {
+    this.attachedYouTubePlayer?.unsubscribe();
+    this.attachedYouTubePlayer?.playback.dispose();
+    this.attachedYouTubePlayer = undefined;
   }
 
   private syncTrackMix(): void {
