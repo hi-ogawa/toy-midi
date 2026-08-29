@@ -12,10 +12,7 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import {
-  ReferencePlayback,
-  type ReferencePlayer,
-} from "./reference-playback.ts";
+import { ReferencePlayback } from "./reference-playback.ts";
 import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -774,7 +771,7 @@ export class RecorderRuntime {
     }
     const referenceVideo = this.store.get().referenceVideo;
     if (referenceVideo?.videoId !== attachment.videoId) {
-      attachment.playback.setState(undefined);
+      this.detachYouTubePlayer();
       return;
     }
     if (referenceVideo.muted) {
