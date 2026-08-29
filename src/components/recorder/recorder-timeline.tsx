@@ -177,6 +177,7 @@ export function CaptureTimelineLane({
   regions,
   pendingRecording,
   captureStatus,
+  isTakeSelected,
   beatsPerBar,
   subdivisionsPerBeat,
   pixelsPerBeat,
@@ -184,11 +185,17 @@ export function CaptureTimelineLane({
   viewportStartBeat,
   viewportWidth,
   onSeek,
+  onTakeDragStart,
+  onTakeClick,
+  onTakeDragMove,
+  onTakeTrimStart,
+  onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
+  isTakeSelected: (id: string) => boolean;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
   pixelsPerBeat: number;
@@ -196,9 +203,18 @@ export function CaptureTimelineLane({
   viewportStartBeat: number;
   viewportWidth: number;
   onSeek: (position: number) => void;
+  onTakeDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onTakeClick: (id: string, additive: boolean) => void;
+  onTakeDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  onTakeTrimStart: (
+    id: string,
+    edge: "start" | "end",
+  ) => RecorderClipTrimSnapshot;
+  onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
   return (
     <div
+      data-testid="recorder-capture-timeline"
       className="relative overflow-hidden bg-neutral-900"
       style={getTimelineGridStyle({
         beatsPerBar,
@@ -262,6 +278,28 @@ export function CaptureTimelineLane({
           );
         })}
       </div>
+      {takes.map((take) => (
+        <TimelineClip
+          key={take.id}
+          clip={{
+            label: `Take ${take.number}`,
+            duration: take.trimEnd - take.trimStart,
+            offset: take.timelineOffset + take.trimStart,
+            variant: "take",
+          }}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          onClipDragStart={(additive) => onTakeDragStart(take.id, additive)}
+          onClipClick={(additive) => onTakeClick(take.id, additive)}
+          onClipDragMove={onTakeDragMove}
+          onTrimStart={(edge) => onTakeTrimStart(take.id, edge)}
+          onTrimMove={onTakeTrimMove}
+          selected={isTakeSelected(take.id)}
+          hidePresentation
+        />
+      ))}
     </div>
   );
 }
@@ -355,6 +393,7 @@ function TimelineClip({
   joinsNext = false,
   recording = false,
   selected = false,
+  hidePresentation = false,
 }: {
   clip: RecorderTimelineClip;
   pixelsPerBeat: number;
@@ -370,6 +409,7 @@ function TimelineClip({
   joinsNext?: boolean;
   recording?: boolean;
   selected?: boolean;
+  hidePresentation?: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = usePointerGesture({
@@ -466,19 +506,24 @@ function TimelineClip({
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
         "absolute inset-y-1 rounded-sm text-[11px]",
-        clipClass,
+        hidePresentation ? "bg-transparent text-transparent" : clipClass,
         onClipDragMove && "cursor-ew-resize select-none",
         onClipDragStart && "cursor-pointer",
         joinsPrevious && "rounded-l-none",
         joinsNext && "rounded-r-none",
-        isDragging && "brightness-125",
+        isDragging && !hidePresentation && "brightness-125",
       )}
       style={{
         left: (clipStartBeat - viewportStartBeat) * pixelsPerBeat,
         width: clipWidth,
       }}
     >
-      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+      <div
+        className={cn(
+          "absolute inset-0 overflow-hidden rounded-[inherit]",
+          hidePresentation && "invisible",
+        )}
+      >
         {clip.audioView && visibleEnd > visibleStart && (
           <AudioWaveformView
             audioView={clip.audioView}
@@ -502,9 +547,10 @@ function TimelineClip({
           "pointer-events-none absolute inset-0 rounded-[inherit] border",
           clipBorderClass,
           joinsNext && "border-r-0",
+          hidePresentation && "invisible",
         )}
       />
-      {(selected || isDragging) && (
+      {(selected || isDragging) && !hidePresentation && (
         <div
           data-testid="recorder-clip-selection"
           className="pointer-events-none absolute inset-0 rounded-[inherit] border border-sky-300 ring-1 ring-inset ring-sky-300"

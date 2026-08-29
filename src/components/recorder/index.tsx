@@ -374,10 +374,30 @@ export function Recorder({ projectId }: { projectId: string }) {
                 tempo={timeline.tempo}
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
+                isTakeSelected={(id) =>
+                  clipInteraction.isSelected({ type: "take", id })
+                }
                 onSeek={(position) => {
                   clipInteraction.clear();
                   runtime.seek(position);
                 }}
+                onTakeDragStart={(id, additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "take", id },
+                    additive,
+                  })
+                }
+                onTakeClick={(id, additive) =>
+                  clipInteraction.select({ type: "take", id }, additive)
+                }
+                onTakeDragMove={clipInteraction.move}
+                onTakeTrimStart={(id, edge) =>
+                  clipInteraction.startTrim({
+                    clip: { type: "take", id },
+                    edge,
+                  })
+                }
+                onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
             <TakesDisclosureRow

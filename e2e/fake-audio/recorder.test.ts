@@ -147,11 +147,17 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "false");
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
-  const take = page.getByTestId("recorder-clip-take");
+  const captureTake = page
+    .getByTestId("recorder-capture-timeline")
+    .getByTestId("recorder-clip-take");
+  const take = page
+    .getByTestId("recorder-take-row")
+    .getByTestId("recorder-clip-take");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takeRows).toHaveCount(0);
+  await expect(captureTake).toHaveCount(1);
   await takesToggle.click();
   await expect(take).toHaveCount(1);
   await expect(takeRows).toHaveCount(1);
@@ -165,14 +171,14 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   ).toBeCloseTo(160, -2);
 
   // The take can be moved and trimmed without changing its source audio.
-  const beforeEdit = await take.boundingBox();
+  const beforeEdit = await captureTake.boundingBox();
   expect(beforeEdit).not.toBeNull();
-  await dragBy(page, take, 80);
+  await dragBy(page, captureTake, 80);
   const afterMove = await take.boundingBox();
   expect(afterMove).not.toBeNull();
   expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
 
-  const trimStart = take.getByTestId("recorder-take-trim-start");
+  const trimStart = captureTake.getByTestId("recorder-take-trim-start");
   const trimPixels = Math.max(2, afterMove!.width / 4);
   await dragBy(page, trimStart, trimPixels);
   const afterStartTrim = await take.boundingBox();
@@ -183,7 +189,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     -1,
   );
 
-  const trimEnd = take.getByTestId("recorder-take-trim-end");
+  const trimEnd = captureTake.getByTestId("recorder-take-trim-end");
   await dragBy(page, trimEnd, -trimPixels);
   const afterEndTrim = await take.boundingBox();
   expect(afterEndTrim).not.toBeNull();
