@@ -741,15 +741,21 @@ export class RecorderRuntime {
     this.attachedYouTubePlayer = attachment;
 
     const currentReference = this.store.get().referenceVideo;
-    const referenceVideo = {
-      videoId,
-      timelineStart: currentReference?.timelineStart ?? 0,
-      muted: currentReference?.muted ?? false,
-      title: player.getVideoData().title,
-      duration,
-    };
-    if (!currentReference || !shallowEqual(currentReference, referenceVideo)) {
-      this.store.update({ referenceVideo });
+    const title = player.getVideoData().title;
+    if (
+      currentReference?.videoId !== videoId ||
+      currentReference.title !== title ||
+      currentReference.duration !== duration
+    ) {
+      this.store.update({
+        referenceVideo: {
+          videoId,
+          timelineStart: currentReference?.timelineStart ?? 0,
+          muted: currentReference?.muted ?? false,
+          title,
+          duration,
+        },
+      });
     }
     this.syncYouTubePlayer();
 
