@@ -182,6 +182,12 @@ describe("queryAudioView", () => {
   });
 
   it("preserves the aligned end when live data ends inside a bucket", () => {
+    // 23 base points at 10 points/sec cover [0, 2.3). The 3-second query over
+    // 6 pixels chooses alignmentStep = 5, so the final live bucket is padded:
+    //
+    //   base points:  [0..5) [5..10) [10..15) [15..20) [20..23) + [23..25)
+    //   result:          0       1        2        3        4
+    //   aligned time: [0 ----------------------------------------------- 2.5)
     const view = createTestView(23);
     const result = queryAudioView(view, 0, 3, 6);
 
@@ -191,6 +197,9 @@ describe("queryAudioView", () => {
   });
 
   it("does not add wholly future buckets beyond available data", () => {
+    // The requested end is 10 seconds, but endIdx is first clamped to the 23
+    // available base points. Alignment therefore completes only [20..25), not
+    // the future buckets [25..30), [30..35), ... through the requested end.
     const view = createTestView(23);
     const result = queryAudioView(view, 0, 10, 20);
 
