@@ -115,6 +115,16 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await expect(take).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
   await expect(page.getByText("No file loaded")).toBeVisible();
+
+  // One history operation restores both source clips and their playback state.
+  await page.keyboard.press("Control+z");
+  await expect(audio).toBeVisible();
+  await expect(audio.locator("svg")).toBeVisible();
+  await expect(take).toBeVisible();
+
+  await page.keyboard.press("Control+Shift+z");
+  await expect(audio).toHaveCount(0);
+  await expect(take).toHaveCount(0);
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {

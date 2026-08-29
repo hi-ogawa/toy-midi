@@ -146,7 +146,22 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
+    if (matchKeyboardEvent(event, "Ctrl+Shift+Z")) {
+      event.preventDefault();
+      clipInteraction.clear();
+      runtime.redo();
+    } else if (matchKeyboardEvent(event, "Ctrl+Y")) {
+      event.preventDefault();
+      clipInteraction.clear();
+      runtime.redo();
+    } else if (matchKeyboardEvent(event, "Ctrl+Z")) {
+      event.preventDefault();
+      clipInteraction.clear();
+      runtime.undo();
+    } else if (
+      matchKeyboardEvent(event, "Escape") &&
+      clipInteraction.hasSelection
+    ) {
       event.preventDefault();
       clipInteraction.clear();
     } else if (
