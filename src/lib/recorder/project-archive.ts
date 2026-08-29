@@ -2,15 +2,13 @@ import JSZip from "jszip";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
+const PROJECT_PATH = "project.json";
 
 interface RecorderProjectManifest {
   formatVersion: 1;
   projectType: "recorder";
   exportedAt: string;
   title: string;
-  files: {
-    project: "project.json";
-  };
 }
 
 interface RecorderProjectFileContent extends Omit<
@@ -64,11 +62,10 @@ export async function exportRecorderProjectArchive(
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
     title: content.title,
-    files: { project: "project.json" },
   };
   zip.file("manifest.json", JSON.stringify(manifest, undefined, 2));
   zip.file(
-    "project.json",
+    PROJECT_PATH,
     JSON.stringify(toProjectFileContent({ zip, content })),
   );
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
@@ -102,12 +99,12 @@ export async function parseRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  if (!manifest.files?.project || typeof manifest.title !== "string") {
+  if (typeof manifest.title !== "string") {
     throw new Error("Recorder project archive has an invalid manifest.");
   }
   const project = await readJson<RecorderProjectFileContent>({
     zip,
-    path: manifest.files.project,
+    path: PROJECT_PATH,
   });
   return {
     title: manifest.title,
