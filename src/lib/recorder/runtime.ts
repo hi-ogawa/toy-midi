@@ -690,29 +690,6 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
-  setReferenceVideoTimelineStart(timelineStart: number): void {
-    const referenceVideo = this.store.get().referenceVideo;
-    if (!referenceVideo) {
-      return;
-    }
-    this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
-    this.syncYouTubePlayer();
-  }
-
-  setReferenceVideoMuted(muted: boolean): void {
-    const referenceVideo = this.store.get().referenceVideo;
-    if (!referenceVideo) {
-      return;
-    }
-    this.store.update({ referenceVideo: { ...referenceVideo, muted } });
-    this.syncYouTubePlayer();
-  }
-
-  removeReferenceVideo(): void {
-    this.store.update({ referenceVideo: undefined });
-    this.syncYouTubePlayer();
-  }
-
   attachYouTubePlayer({
     videoId,
     player,
@@ -765,6 +742,50 @@ export class RecorderRuntime {
       }
       this.detachYouTubePlayer();
     };
+  }
+
+  setReferenceVideoTimelineStart(timelineStart: number): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
+    this.syncYouTubePlayer();
+  }
+
+  setReferenceVideoMuted(muted: boolean): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, muted } });
+    this.syncYouTubePlayer();
+  }
+
+  removeReferenceVideo(): void {
+    this.store.update({ referenceVideo: undefined });
+    this.syncYouTubePlayer();
+  }
+
+  private syncYouTubePlayer(): void {
+    const attachment = this.attachedYouTubePlayer;
+    if (!attachment) {
+      return;
+    }
+    const referenceVideo = this.store.get().referenceVideo;
+    if (referenceVideo?.videoId !== attachment.videoId) {
+      attachment.playback.setState(undefined);
+      return;
+    }
+    if (referenceVideo.muted) {
+      attachment.player.mute();
+    } else {
+      attachment.player.unMute();
+    }
+    attachment.playback.setState({
+      timelineStart: referenceVideo.timelineStart,
+      duration: referenceVideo.duration,
+    });
   }
 
   private detachYouTubePlayer(): void {
@@ -879,27 +900,6 @@ export class RecorderRuntime {
       });
     }
     return this.context;
-  }
-
-  private syncYouTubePlayer(): void {
-    const attachment = this.attachedYouTubePlayer;
-    if (!attachment) {
-      return;
-    }
-    const referenceVideo = this.store.get().referenceVideo;
-    if (referenceVideo?.videoId !== attachment.videoId) {
-      attachment.playback.setState(undefined);
-      return;
-    }
-    if (referenceVideo.muted) {
-      attachment.player.mute();
-    } else {
-      attachment.player.unMute();
-    }
-    attachment.playback.setState({
-      timelineStart: referenceVideo.timelineStart,
-      duration: referenceVideo.duration,
-    });
   }
 
   private syncTrackMix(): void {
