@@ -165,7 +165,7 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  testId: "audio" | "comp" | "take";
+  testId: "audio" | "comp" | "recording" | "take";
   audioView?: AudioView;
 };
 
@@ -263,7 +263,7 @@ export function TakeTimelineLane({
                 offset: region.timelineStart,
                 audioDuration: take.duration,
                 audioOffset,
-                testId: "comp",
+                testId: isPendingRecording ? "recording" : "comp",
                 audioView: take.audioView,
               }}
               pixelsPerBeat={pixelsPerBeat}
@@ -500,7 +500,7 @@ function TimelineClip({
   );
   return (
     <div
-      data-testid={`recorder-clip-${recording ? "recording" : clip.testId}`}
+      data-testid={`recorder-clip-${clip.testId}`}
       data-selected={selected ? "true" : undefined}
       ref={onClipDragMove ? dragRef : undefined}
       className={cn(
