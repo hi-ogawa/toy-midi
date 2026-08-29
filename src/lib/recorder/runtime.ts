@@ -491,7 +491,7 @@ export class RecorderRuntime {
       throw new Error("Recording take state is missing.");
     }
     this.store.update({ auditionedTakeId: id });
-    this.syncTakePlayback(this.store.get().takeRegions);
+    this.syncActiveTakePlayback();
   }
 
   private setTakeTrimStart(id: string, trimStart: number): void {
@@ -550,7 +550,7 @@ export class RecorderRuntime {
     ) {
       this.store.update({ auditionedTakeId: undefined });
     }
-    this.syncTakePlayback(this.store.get().takeRegions);
+    this.syncActiveTakePlayback();
     if (wasPlaying) {
       this.transport!.play();
     }
@@ -853,7 +853,7 @@ export class RecorderRuntime {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
     this.store.update({ ...update, takeRegions });
-    this.syncTakePlayback(takeRegions);
+    this.syncActiveTakePlayback();
   }
 
   private updatePendingRecording(
@@ -866,28 +866,34 @@ export class RecorderRuntime {
     this.store.update({ pendingRecording, previewTakeRegions });
   }
 
+  private syncActiveTakePlayback(): void {
+    const auditionedTake = this.store
+      .get()
+      .recordingTrack.takes.find(
+        (take) => take.id === this.store.get().auditionedTakeId,
+      );
+    this.syncTakePlayback(
+      auditionedTake
+        ? [
+            {
+              take: auditionedTake,
+              timelineStart:
+                auditionedTake.timelineOffset + auditionedTake.trimStart,
+              timelineEnd:
+                auditionedTake.timelineOffset + auditionedTake.trimEnd,
+            },
+          ]
+        : this.store.get().takeRegions,
+    );
+  }
+
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
     this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
     this.recordingTrackPlaybacks = [];
-    const auditionedTake = this.store
-      .get()
-      .recordingTrack.takes.find(
-        (take) => take.id === this.store.get().auditionedTakeId,
-      );
-    const playbackRegions = auditionedTake
-      ? [
-          {
-            take: auditionedTake,
-            timelineStart:
-              auditionedTake.timelineOffset + auditionedTake.trimStart,
-            timelineEnd: auditionedTake.timelineOffset + auditionedTake.trimEnd,
-          },
-        ]
-      : takeRegions;
-    for (const region of playbackRegions) {
+    for (const region of takeRegions) {
       const { take } = region;
       if (!take.buffer) {
         continue;
