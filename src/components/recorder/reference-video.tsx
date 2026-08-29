@@ -276,6 +276,7 @@ function mountYouTubeReference({
       duration: referenceVideo.duration,
     });
   };
+
   const unsubscribe = runtime.store.subscribeWithSelector({
     selector: (state) => state.referenceVideo,
     listener: syncReferenceVideo,
