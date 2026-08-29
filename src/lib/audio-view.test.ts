@@ -3,6 +3,7 @@ import { range } from "../utils/array";
 import {
   type AudioView,
   type AudioViewSlice,
+  AudioViewBuilder,
   createAudioView,
   EMPTY_AUDIO_VIEW,
   queryAudioView,
@@ -74,6 +75,23 @@ describe("createAudioView", () => {
 
     expect(view.data).toHaveLength(3);
     expect(view.data[2]).toBeCloseTo(0.9);
+  });
+
+  it("fills missing frame ranges with silent points", () => {
+    const builder = new AudioViewBuilder(100, 10);
+
+    builder.append(new Float32Array([0.5]), 25);
+
+    expect(builder.view.data).toEqual([0, 0, 0.5]);
+    expect(Object.keys(builder.view.data)).toEqual(["0", "1", "2"]);
+  });
+
+  it("extends through the partial final point", () => {
+    const builder = new AudioViewBuilder(100, 10);
+
+    builder.append(new Float32Array(11).fill(0.5), 0);
+
+    expect(builder.view.data).toEqual([0.5, 0.5]);
   });
 
   it("produces correct number of points for typical audio", () => {
@@ -155,7 +173,7 @@ describe("queryAudioView", () => {
     // Should get points from index 80 to 99
     expect(result.data.length).toBe(20);
     expect(result.data[result.data.length - 1]).toBeCloseTo(view.data[99], 1);
-    expect(result.actualEnd).toBe(10); // Clamped to audio duration
+    expect(result.actualEnd).toBe(10);
   });
 
   it("returns points as-is when fewer than target", () => {
@@ -178,6 +196,42 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 0, 100, 100);
 
     expect(result.data).toHaveLength(100);
+    expect(result.actualEnd - result.actualStart).toBe(100);
+  });
+
+  it("preserves the aligned end when live data ends inside a bucket", () => {
+    // A 2.3-second live recording has 23 base points at 10 points/sec. Querying
+    // its synchronized duration over 5 pixels chooses alignmentStep = 5, so
+    // the final live bucket is padded to the next lattice boundary:
+    //
+    //   base points:  [0..5) [5..10) [10..15) [15..20) [20..23) + [23..25)
+    //   result:          0       1        2        3        4
+    //   aligned time: [0 ----------------------------------------------- 2.5)
+    const before = queryAudioView(createTestView(23), 0, 2.3, 5);
+    expect(before.data).toHaveLength(5);
+    expect(before.actualStart).toBe(0);
+    expect(before.actualEnd).toBe(2.5);
+
+    // Once the recording crosses the next bucket boundary, data and aligned
+    // duration grow together: 5 points / 2.5s becomes 6 points / 3s.
+    const after = queryAudioView(createTestView(26), 0, 2.6, 5);
+    expect(after.data).toHaveLength(6);
+    expect(after.actualStart).toBe(0);
+    expect(after.actualEnd).toBe(3);
+    expect(before.actualEnd / before.data.length).toBe(
+      after.actualEnd / after.data.length,
+    );
+  });
+
+  it("does not add wholly future buckets beyond available data", () => {
+    // The requested end is 10 seconds, but endIdx is first clamped to the 23
+    // available base points. Alignment therefore completes only [20..25), not
+    // the future buckets [25..30), [30..35), ... through the requested end.
+    const view = createTestView(23);
+    const result = queryAudioView(view, 0, 10, 20);
+
+    expect(result.data).toHaveLength(5);
+    expect(result.actualEnd).toBe(2.5);
   });
 
   it("preserves max values when downsampling", () => {
