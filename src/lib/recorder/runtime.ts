@@ -62,6 +62,7 @@ interface PendingRecordingState extends Pick<
 export interface ReferenceVideoState {
   videoId: string;
   timelineStart: number;
+  muted: boolean;
   title?: string;
   duration?: number;
 }
@@ -652,8 +653,9 @@ export class RecorderRuntime {
 
   setReferenceVideo(videoId: string): void {
     const timelineStart = this.store.get().referenceVideo?.timelineStart ?? 0;
+    const muted = this.store.get().referenceVideo?.muted ?? false;
     this.store.update({
-      referenceVideo: { videoId, timelineStart },
+      referenceVideo: { videoId, timelineStart, muted },
     });
   }
 
@@ -679,6 +681,14 @@ export class RecorderRuntime {
       return;
     }
     this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
+  }
+
+  setReferenceVideoMuted(muted: boolean): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, muted } });
   }
 
   removeReferenceVideo(): void {

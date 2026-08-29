@@ -26,6 +26,7 @@ export interface SerializedRecorderRuntimeState {
   referenceVideo?: {
     videoId: string;
     timelineStart: number;
+    muted?: boolean;
     title?: string;
     duration?: number;
   };
@@ -175,7 +176,12 @@ export function deserializeRecorderRuntimeState({
     latencyCompensation: project.latencyCompensation,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
-    referenceVideo: project.referenceVideo,
+    referenceVideo: project.referenceVideo
+      ? {
+          ...project.referenceVideo,
+          muted: project.referenceVideo.muted ?? false,
+        }
+      : undefined,
   };
 }
 

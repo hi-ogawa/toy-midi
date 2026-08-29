@@ -10,6 +10,8 @@ import { Button } from "../ui/button";
 interface YouTubePlayerApi {
   playVideo(): void;
   pauseVideo(): void;
+  mute(): void;
+  unMute(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getDuration(): number;
   getVideoData(): { title?: string };
@@ -121,6 +123,7 @@ export function YouTubeReference({
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const playbackRef = useRef<ReferencePlayback>(undefined);
+  const playerRef = useRef<YouTubePlayerApi>(undefined);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -156,6 +159,12 @@ export function YouTubeReference({
                 },
               });
               playbackRef.current = playback;
+              playerRef.current = player;
+              if (referenceVideo.muted) {
+                player.mute();
+              } else {
+                player.unMute();
+              }
               const duration = player.getDuration();
               const title = player.getVideoData().title;
               runtime.setReferenceVideoMetadata({
@@ -182,6 +191,9 @@ export function YouTubeReference({
       if (playbackRef.current === playback) {
         playbackRef.current = undefined;
       }
+      if (playerRef.current === player) {
+        playerRef.current = undefined;
+      }
       player?.destroy();
     };
   }, [referenceVideo.videoId, runtime]);
@@ -192,6 +204,14 @@ export function YouTubeReference({
       duration: referenceVideo.duration,
     });
   }, [referenceVideo.duration, referenceVideo.timelineStart]);
+
+  useEffect(() => {
+    if (referenceVideo.muted) {
+      playerRef.current?.mute();
+    } else {
+      playerRef.current?.unMute();
+    }
+  }, [referenceVideo.muted]);
 
   const videoId = referenceVideo.videoId;
   return (
