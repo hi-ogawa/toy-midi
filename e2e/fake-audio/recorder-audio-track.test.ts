@@ -68,10 +68,12 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
+  // The musician loads backing audio so its channel appears in the mixer.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
 
+  // Opening the floating mixer exposes every recorder output channel.
   await page.getByTestId("recorder-mixer-button").click();
   const panel = page.getByTestId("recorder-mixer-panel");
   await expect(panel).toBeVisible();
@@ -80,6 +82,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await expect(panel.getByTestId("recorder-mixer-capture")).toBeVisible();
   await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
 
+  // They set the master output to an exact decibel level.
   const masterLevel = panel.getByRole("textbox", {
     name: "Master level in dB",
   });
@@ -87,6 +90,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await masterLevel.press("Enter");
   await expect(masterLevel).toHaveValue("-6.0");
 
+  // Backing audio can be muted and soloed independently.
   const audio = panel.getByTestId("recorder-mixer-audio-1");
   await audio.getByRole("button", { name: "Toggle Audio 1 mute" }).click();
   await expect(
@@ -97,6 +101,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
     audio.getByRole("button", { name: "Toggle Audio 1 solo" }),
   ).toHaveAttribute("aria-pressed", "true");
 
+  // Closing the panel returns to the recorder without dismissing the project.
   await panel.getByRole("button", { name: "Close Mixer" }).click();
   await expect(panel).toBeHidden();
 });
