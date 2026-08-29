@@ -166,7 +166,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
   await page.keyboard.press("Escape");
   expect(
-    Number.parseFloat(await takeLane.evaluate((element) => element.style.left)),
+    Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(160, -2);
 
   // The take can be moved and trimmed without changing its source audio.
@@ -222,11 +222,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await recordButton.click();
 
   // The second recording is retained as a new source take.
+  await expect(take).toHaveCount(2);
   await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
   expect(
     Number.parseFloat(
-      await takeLane.nth(1).evaluate((element) => element.style.left),
+      await take.nth(1).evaluate((element) => element.style.left),
     ),
   ).toBeCloseTo(320, -2);
 
@@ -240,17 +241,17 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Selecting a source take does not seek, and Escape clears the selection.
   const positionBeforeSelection = await position.textContent();
-  await takeLane.nth(0).click();
+  await take.nth(0).click();
   await expect(position).toHaveText(positionBeforeSelection!);
-  await expect(takeLane.nth(0)).toHaveAttribute("data-selected", "true");
+  await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
-  await expect(takeLane.nth(0)).not.toHaveAttribute("data-selected", "true");
+  await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");
 
   // Delete removes every selected source take together.
-  await takeLane.nth(0).click();
-  await takeLane.nth(1).click({ modifiers: ["Control"] });
+  await take.nth(0).click();
+  await take.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
-  await expect(takeLane).toHaveCount(0);
+  await expect(take).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();
 });
 
