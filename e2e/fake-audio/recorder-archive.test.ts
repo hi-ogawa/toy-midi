@@ -1,13 +1,15 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
-  createRecorderProject,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
 
 test.beforeEach(async ({ page }) => {
-  await createRecorderProject(page);
+  await page.goto("/recorder");
+  await page.getByTestId("new-recorder-project-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 });
 
 test("exports and imports a recorder project archive", async ({ page }) => {

@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import { dragBy } from "./recorder-helpers";
 
 test.beforeEach(async ({ page }) => {
-  await createRecorderProject(page);
+  await page.goto("/recorder");
+  await page.getByTestId("new-recorder-project-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 });
 
 test("uploads and plays a backing track", async ({ page }) => {

@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import {
-  createRecorderProject,
   dragBy,
   enableInput,
   seekRecorderByPixels,
@@ -9,7 +8,10 @@ import {
 } from "./recorder-helpers";
 
 test.beforeEach(async ({ page }) => {
-  await createRecorderProject(page);
+  await page.goto("/recorder");
+  await page.getByTestId("new-recorder-project-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 });
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
