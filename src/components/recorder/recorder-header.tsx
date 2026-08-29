@@ -13,6 +13,7 @@ import {
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
+  SlidersVerticalIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -61,6 +62,8 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onMixerToggle,
+  mixerOpen,
 }: {
   title: string;
   saveStatus: SaveStatus;
@@ -85,6 +88,8 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onMixerToggle: () => void;
+  mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -240,6 +245,18 @@ export function RecorderHeader({
         </DropdownMenuContent>
       </DropdownMenu>
       <div className="flex-1" />
+      <Button
+        data-testid="recorder-mixer-button"
+        onClick={onMixerToggle}
+        aria-pressed={mixerOpen}
+        title="Mixer"
+        className={cn(
+          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          mixerOpen && "bg-primary text-primary-foreground hover:bg-primary/90",
+        )}
+      >
+        <SlidersVerticalIcon className="size-5" />
+      </Button>
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"

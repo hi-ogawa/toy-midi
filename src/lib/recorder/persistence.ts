@@ -18,6 +18,8 @@ export interface SerializedRecorderRuntimeState {
     nextTakeNumber?: number;
   };
   latencyCompensation: number;
+  masterGain: number;
+  metronomeGain: number;
   tempo: number;
   timeSignature: {
     numerator: number;
@@ -98,6 +100,8 @@ export function serializeRecorderRuntimeState(
       }),
     },
     latencyCompensation: state.latencyCompensation,
+    masterGain: state.masterGain,
+    metronomeGain: state.metronomeGain,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   };
@@ -166,6 +170,8 @@ export function deserializeRecorderRuntimeState({
       }),
     },
     latencyCompensation: project.latencyCompensation,
+    masterGain: project.masterGain,
+    metronomeGain: project.metronomeGain,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
   };
