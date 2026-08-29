@@ -262,7 +262,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                           duration: track.trimEnd - track.trimStart,
                           label: track.clip.name,
                           offset: track.timelineOffset + track.trimStart,
-                          variant: "audio",
+                          testId: "audio",
                           audioView: track.clip.audioView,
                           audioDuration: track.clip.buffer.duration,
                           audioOffset: track.trimStart,
