@@ -7,7 +7,7 @@ export function RecorderMixToggle({
   kind,
   className,
   ...props
-}: Omit<ComponentProps<typeof Button>, "aria-pressed"> & {
+}: Omit<ComponentProps<typeof Button>, "aria-pressed" | "children"> & {
   active: boolean;
   kind: "mute" | "solo";
 }) {
@@ -23,6 +23,8 @@ export function RecorderMixToggle({
             : "border-emerald-500/60 bg-emerald-500/35 text-emerald-300 hover:!bg-emerald-500/40 hover:!text-emerald-300"),
         className,
       )}
-    />
+    >
+      {kind === "mute" ? "M" : "S"}
+    </Button>
   );
 }

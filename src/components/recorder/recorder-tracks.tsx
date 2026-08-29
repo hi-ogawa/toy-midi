@@ -121,18 +121,14 @@ export function TrackRow({
             onClick={() => onMutedChange(!muted)}
             className="size-7"
             title={muted ? `Unmute ${title}` : `Mute ${title}`}
-          >
-            M
-          </RecorderMixToggle>
+          />
           <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
-          >
-            S
-          </RecorderMixToggle>
+          />
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <div className="relative">
@@ -268,18 +264,14 @@ export function CaptureTrackRow({
             onClick={() => onMutedChange(!muted)}
             className="size-7"
             title={muted ? "Unmute Capture" : "Mute Capture"}
-          >
-            M
-          </RecorderMixToggle>
+          />
           <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             className="size-7"
             title={soloed ? "Disable Capture solo" : "Solo Capture"}
-          >
-            S
-          </RecorderMixToggle>
+          />
         </div>
         <button
           type="button"

@@ -89,9 +89,7 @@ export function RecorderMixer({
             onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
-          >
-            M
-          </RecorderMixToggle>
+          />
         }
       />
     </div>
@@ -139,18 +137,14 @@ function RecorderTrackChannel({
             onClick={() => onMutedChange(!muted)}
             aria-label={`Toggle ${label} mute`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
-          >
-            M
-          </RecorderMixToggle>
+          />
           <RecorderMixToggle
             active={soloed}
             kind="solo"
             onClick={() => onSoloedChange(!soloed)}
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
-          >
-            S
-          </RecorderMixToggle>
+          />
         </div>
       }
     />
