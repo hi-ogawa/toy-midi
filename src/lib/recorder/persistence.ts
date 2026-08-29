@@ -25,7 +25,7 @@ export interface SerializedRecorderRuntimeState {
   };
 }
 
-export interface SerializedAudioTrackState {
+interface SerializedAudioTrackState {
   id: string;
   height: number;
   clip?: {
@@ -41,7 +41,7 @@ export interface SerializedAudioTrackState {
   trimEnd?: number;
 }
 
-export interface SerializedTakeState {
+interface SerializedTakeState {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -51,7 +51,7 @@ export interface SerializedTakeState {
   pcm: RecorderPcm;
 }
 
-export interface RecorderPcm {
+interface RecorderPcm {
   sampleRate: number;
   channels: Float32Array[];
 }
