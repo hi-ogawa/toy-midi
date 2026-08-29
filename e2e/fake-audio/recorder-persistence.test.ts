@@ -37,15 +37,6 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
-  await page.getByTestId("recorder-mixer-button").click();
-  const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
-  const metronomeLevel = page.getByRole("textbox", {
-    name: "Metronome level in dB",
-  });
-  await masterLevel.fill("-6");
-  await masterLevel.press("Enter");
-  await metronomeLevel.fill("-9");
-  await metronomeLevel.press("Enter");
   await expect(
     page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -57,6 +48,15 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "All changes saved" }),
   ).toHaveAttribute("aria-disabled", "true");
+  await page.getByTestId("recorder-mixer-button").click();
+  const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
+  const metronomeLevel = page.getByRole("textbox", {
+    name: "Metronome level in dB",
+  });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await metronomeLevel.fill("-9");
+  await metronomeLevel.press("Enter");
 
   // Reload restores document fields and PCM-backed waveform data.
   await page.reload();
@@ -65,6 +65,8 @@ test("saves and restores a recorder project", async ({ page }) => {
     "Practice take",
   );
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
+  await expect(clip).toContainText("test-audio.wav");
+  await expect(clip.locator("svg")).toBeVisible();
   await page.getByTestId("recorder-mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),
@@ -72,8 +74,6 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(
     page.getByRole("textbox", { name: "Metronome level in dB" }),
   ).toHaveValue("-9.0");
-  await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
 
   // The metadata index finds the saved project and reopens the same route.
   await page.goto("/recorder");

@@ -6,40 +6,6 @@ test.beforeEach(async ({ page }) => {
   await createRecorderProject(page);
 });
 
-test("mixes recorder outputs in a floating panel", async ({ page }) => {
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
-
-  await page.getByTestId("recorder-mixer-button").click();
-  const panel = page.getByTestId("recorder-mixer-panel");
-  await expect(panel).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-master")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-audio-1")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-capture")).toBeVisible();
-  await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
-
-  const masterLevel = panel.getByRole("textbox", {
-    name: "Master level in dB",
-  });
-  await masterLevel.fill("-6");
-  await masterLevel.press("Enter");
-  await expect(masterLevel).toHaveValue("-6.0");
-
-  const audio = panel.getByTestId("recorder-mixer-audio-1");
-  await audio.getByRole("button", { name: "Toggle Audio 1 mute" }).click();
-  await expect(
-    audio.getByRole("button", { name: "Toggle Audio 1 mute" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await audio.getByRole("button", { name: "Toggle Audio 1 solo" }).click();
-  await expect(
-    audio.getByRole("button", { name: "Toggle Audio 1 solo" }),
-  ).toHaveAttribute("aria-pressed", "true");
-
-  await panel.getByRole("button", { name: "Close Mixer" }).click();
-  await expect(panel).toBeHidden();
-});
-
 test("uploads and plays a backing track", async ({ page }) => {
   // The musician loads a backing track through the recorder's file picker.
   const fileChooserPromise = page.waitForEvent("filechooser");
@@ -287,6 +253,40 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();
+});
+
+test("mixes recorder outputs in a floating panel", async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+
+  await page.getByTestId("recorder-mixer-button").click();
+  const panel = page.getByTestId("recorder-mixer-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-master")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-audio-1")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-capture")).toBeVisible();
+  await expect(panel.getByTestId("recorder-mixer-metro")).toBeVisible();
+
+  const masterLevel = panel.getByRole("textbox", {
+    name: "Master level in dB",
+  });
+  await masterLevel.fill("-6");
+  await masterLevel.press("Enter");
+  await expect(masterLevel).toHaveValue("-6.0");
+
+  const audio = panel.getByTestId("recorder-mixer-audio-1");
+  await audio.getByRole("button", { name: "Toggle Audio 1 mute" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 mute" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await audio.getByRole("button", { name: "Toggle Audio 1 solo" }).click();
+  await expect(
+    audio.getByRole("button", { name: "Toggle Audio 1 solo" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await panel.getByRole("button", { name: "Close Mixer" }).click();
+  await expect(panel).toBeHidden();
 });
 
 test("exports and imports a recorder project archive", async ({ page }) => {
