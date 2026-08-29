@@ -190,8 +190,8 @@ describe("queryAudioView", () => {
     //   result:          0       1        2        3        4
     //   aligned time: [0 ----------------------------------------------- 2.5)
     const view = createTestView(23);
-    const before = queryAudioView(view, 0, 2.3, 5);
 
+    const before = queryAudioView(view, 0, 2.3, 5);
     expect(before.data).toHaveLength(5);
     expect(before.actualStart).toBe(0);
     expect(before.actualEnd).toBe(2.5);
