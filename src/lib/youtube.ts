@@ -50,3 +50,25 @@ export function loadYouTubeApi(): Promise<YouTubeApi> {
   }
   return youtubeApiPromise;
 }
+
+export function parseYouTubeVideoId(value: string): string | undefined {
+  const input = value.trim();
+  if (/^[\w-]{11}$/.test(input)) {
+    return input;
+  }
+  try {
+    const url = new URL(input);
+    const host = url.hostname.replace(/^www\./, "");
+    let videoId: string | undefined;
+    if (host === "youtu.be") {
+      videoId = url.pathname.split("/")[1];
+    } else if (host === "youtube.com" || host === "m.youtube.com") {
+      videoId =
+        url.searchParams.get("v") ??
+        url.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1];
+    }
+    return videoId && /^[\w-]{11}$/.test(videoId) ? videoId : undefined;
+  } catch {
+    return undefined;
+  }
+}
