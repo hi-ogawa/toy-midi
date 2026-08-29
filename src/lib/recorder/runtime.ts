@@ -910,10 +910,10 @@ export class RecorderRuntime {
     if (!take?.buffer) {
       return;
     }
-    const context = this.ensureContext();
+    this.ensureContext();
     const playback = new AudioBufferPlayback({
       transport: this.transport!,
-      output: context.destination,
+      output: this.masterOutput!,
     });
     playback.setBuffer(take.buffer);
     playback.setBufferTimelineOffset(take.timelineOffset);
