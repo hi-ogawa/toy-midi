@@ -412,7 +412,21 @@ export function Recorder({ projectId }: { projectId: string }) {
             />
             {takesExpanded &&
               takes.map((take) => (
-                <TakeTrackRow key={take.id} number={take.number}>
+                <TakeTrackRow
+                  key={take.id}
+                  number={take.number}
+                  muted={take.muted}
+                  soloed={take.soloed}
+                  onMutedChange={(muted) =>
+                    runtime.setTakeMuted(take.id, muted)
+                  }
+                  onSoloedChange={(soloed) =>
+                    runtime.setTakeSoloed(take.id, soloed)
+                  }
+                  onDelete={() =>
+                    runtime.removeClips([{ type: "take", id: take.id }])
+                  }
+                >
                   <TimelineLane
                     clip={{
                       label: `Take ${take.number}`,

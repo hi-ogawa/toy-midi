@@ -355,9 +355,19 @@ export function TakesDisclosureRow({
 
 export function TakeTrackRow({
   number,
+  muted,
+  soloed,
+  onMutedChange,
+  onSoloedChange,
+  onDelete,
   children,
 }: {
   number: number;
+  muted: boolean;
+  soloed: boolean;
+  onMutedChange: (muted: boolean) => void;
+  onSoloedChange: (soloed: boolean) => void;
+  onDelete: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -365,8 +375,39 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-start border-r border-neutral-700 bg-neutral-900 px-7 py-3 text-xs font-semibold text-neutral-300">
-        Take {number}
+      <div className="sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
+        <span className="mr-auto px-4">Take {number}</span>
+        <RecorderMixToggle
+          data-testid="recorder-take-mute"
+          aria-label={`Mute Take ${number}`}
+          active={muted}
+          kind="mute"
+          onClick={() => onMutedChange(!muted)}
+          className="size-7"
+          title="Mute take"
+        />
+        <RecorderMixToggle
+          data-testid="recorder-take-solo"
+          aria-label={`Solo Take ${number}`}
+          active={soloed}
+          kind="solo"
+          onClick={() => onSoloedChange(!soloed)}
+          className="size-7"
+          title="Solo take"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Take ${number} actions`} className="size-7">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       {children}
     </div>

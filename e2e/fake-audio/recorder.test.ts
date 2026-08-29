@@ -231,6 +231,24 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     ),
   ).toBeCloseTo(320, -2);
 
+  // Muting removes a take from Capture without deleting its source lane.
+  const muteTake = page.getByTestId("recorder-take-mute");
+  await muteTake.nth(1).click();
+  await expect(muteTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(takeLane).toHaveCount(2);
+  await expect(take).toHaveCount(1);
+  await expect(compRegion).not.toContainText("Take 2");
+
+  // Solo derives Capture from soloed, unmuted take lanes.
+  const soloTake = page.getByTestId("recorder-take-solo");
+  await soloTake.nth(1).click();
+  await expect(soloTake.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(take).toHaveCount(0);
+  await muteTake.nth(1).click();
+  await expect(take).toHaveCount(1);
+  await soloTake.nth(1).click();
+  await expect(take).toHaveCount(2);
+
   // The source lanes can be folded without changing the resolved comp.
   await takesToggle.click();
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
@@ -249,7 +267,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   // Delete removes every selected source take together.
   await take.nth(0).click();
-  await take.nth(1).click({ modifiers: ["Control"] });
+  await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(0);
   await expect(page.getByText("No takes")).toBeVisible();

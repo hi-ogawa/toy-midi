@@ -211,6 +211,9 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
+  const activeTakeIds = new Set(regions.map(({ take }) => take.id));
+  const activeTakes = takes.filter((take) => activeTakeIds.has(take.id));
+
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
@@ -276,7 +279,7 @@ export function TakeTimelineLane({
           );
         })}
       </div>
-      {takes.map((take) => (
+      {activeTakes.map((take) => (
         <TimelineClip
           key={take.id}
           clip={{

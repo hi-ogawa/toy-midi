@@ -478,6 +478,14 @@ export class RecorderRuntime {
     });
   }
 
+  setTakeMuted(id: string, muted: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, muted }));
+  }
+
+  setTakeSoloed(id: string, soloed: boolean): void {
+    this.updateTake(id, (take) => ({ ...take, soloed }));
+  }
+
   private setTakeTrimStart(id: string, trimStart: number): void {
     this.updateTake(id, (take) => ({
       ...take,
@@ -800,6 +808,8 @@ export class RecorderRuntime {
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
+            muted: false,
+            soloed: false,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
             trimStart: 0,
@@ -822,7 +832,9 @@ export class RecorderRuntime {
       Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     const { recordingTrack } = update;
-    const takeRegions = deriveTakeRegions(recordingTrack.takes);
+    const takeRegions = deriveTakeRegions(
+      deriveActiveTakes(recordingTrack.takes),
+    );
     this.store.update({ ...update, takeRegions });
     this.syncTakePlayback(takeRegions);
   }
@@ -831,7 +843,7 @@ export class RecorderRuntime {
     pendingRecording: PendingRecordingState,
   ): void {
     const previewTakeRegions = deriveTakeRegions([
-      ...this.store.get().recordingTrack.takes,
+      ...deriveActiveTakes(this.store.get().recordingTrack.takes),
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewTakeRegions });
@@ -864,12 +876,19 @@ export class RecorderRuntime {
   }
 }
 
+function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
+  const anyTakeSoloed = takes.some((take) => take.soloed);
+  return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
+}
+
 function pendingRecordingToTake(
   pendingRecording: PendingRecordingState,
 ): TakeState {
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
+    muted: false,
+    soloed: false,
     duration: pendingRecording.duration,
     trimStart: 0,
     trimEnd: pendingRecording.duration,
