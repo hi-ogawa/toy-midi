@@ -157,6 +157,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows).toHaveCount(0);
   await expect(captureTake).toHaveCount(1);
   await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
   await expect(take).toHaveCount(1);
   await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
