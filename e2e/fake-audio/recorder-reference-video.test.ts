@@ -10,6 +10,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
   const setup = page.getByTestId("recorder-youtube-reference");
+  // Dragging the top-left handle up and left grows the bottom-right-anchored panel.
   const initialPanelBox = await setup.boundingBox();
   expect(initialPanelBox).not.toBeNull();
   await dragBy(
@@ -22,6 +23,8 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(resizedPanelBox).not.toBeNull();
   expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
   expect(resizedPanelBox!.height).toBeCloseTo(initialPanelBox!.height + 60, -1);
+
+  // The preview fits the resized space while preserving the player's 16:9 frame.
   const preview = setup.getByTestId("recorder-reference-video-preview");
   const containedPlayer = preview.locator(":scope > div");
   const containedPlayerBox = await containedPlayer.boundingBox();
