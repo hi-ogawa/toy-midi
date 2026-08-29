@@ -51,7 +51,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   const referencePanel = page.getByTestId("recorder-youtube-reference");
   await referencePanel
     .getByTestId("recorder-youtube-input")
-    .fill("dQw4w9WgXcQ");
+    .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await referencePanel.getByRole("button", { name: "Add video" }).click();
   const referenceClip = page.getByTestId("recorder-clip-reference");
   const referenceClipBox = await referenceClip.boundingBox();

@@ -38,7 +38,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
 
   await setup
     .getByTestId("recorder-youtube-input")
-    .fill("https://youtu.be/dQw4w9WgXcQ?t=42");
+    .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await setup.getByRole("button", { name: "Add video" }).click();
 
   const reference = setup;
@@ -48,11 +48,11 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
       .locator("img"),
   ).toHaveAttribute(
     "src",
-    /i\.ytimg\.com\/vi\/dQw4w9WgXcQ\/(?:maxres|hq)default\.jpg/,
+    /i\.ytimg\.com\/vi\/knp40WxQgOI\/(?:maxres|hq)default\.jpg/,
   );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
-    /youtube(?:-nocookie)?\.com\/embed\/dQw4w9WgXcQ/,
+    /youtube(?:-nocookie)?\.com\/embed\/knp40WxQgOI/,
   );
   const mute = page.getByTestId("recorder-reference-video-mute");
   await expect(mute).toHaveAttribute("aria-pressed", "false");
@@ -74,7 +74,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   });
   await expect(openOnYouTube).toHaveAttribute(
     "href",
-    "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "https://www.youtube.com/watch?v=knp40WxQgOI",
   );
   await page.getByRole("button", { name: "Reference actions" }).click();
   await page.getByRole("menuitem", { name: "Remove reference video" }).click();
