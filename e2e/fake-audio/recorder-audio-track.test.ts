@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "../helpers";
-import { dragBy } from "./recorder-helpers";
+import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test.beforeEach(async ({ page }) => {
   await createRecorderProject(page);

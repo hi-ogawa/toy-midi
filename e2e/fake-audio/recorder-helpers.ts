@@ -1,5 +1,13 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
+/** Create a recorder project from its index and wait for the recorder app. */
+export async function createRecorderProject(page: Page): Promise<void> {
+  await page.goto("/recorder");
+  await page.getByTestId("new-recorder-project-button").click();
+  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+}
+
 export async function seekRecorderByPixels(page: Page, pixels: number) {
   const ruler = page.getByTestId("recorder-timeline-ruler");
   const box = await ruler.boundingBox();

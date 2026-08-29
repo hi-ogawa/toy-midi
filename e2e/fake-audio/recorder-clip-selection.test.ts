@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "../helpers";
 import {
+  createRecorderProject,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,

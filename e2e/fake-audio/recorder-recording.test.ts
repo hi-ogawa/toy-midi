@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "../helpers";
 import {
+  createRecorderProject,
   dragBy,
   enableInput,
   seekRecorderByPixels,
