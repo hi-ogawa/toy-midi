@@ -8,25 +8,32 @@ interface ReferencePlayer {
   pause(time: number): void;
 }
 
-interface ReferencePlaybackState {
-  timelineStart: number;
-  duration?: number;
-}
-
 export class ReferencePlayback implements TransportParticipant {
-  private state?: ReferencePlaybackState;
+  private timelineStart = 0;
   private boundaryTimer?: ReturnType<typeof setTimeout>;
   private readonly unregister: () => void;
 
-  constructor(
-    private readonly transport: AudioContextTransport,
-    private readonly player: ReferencePlayer,
-  ) {
+  constructor({
+    transport,
+    player,
+    duration,
+  }: {
+    transport: AudioContextTransport;
+    player: ReferencePlayer;
+    duration: number;
+  }) {
+    this.transport = transport;
+    this.player = player;
+    this.duration = duration;
     this.unregister = transport.register(this);
   }
 
-  setState(state?: ReferencePlaybackState): void {
-    this.state = state;
+  private readonly transport: AudioContextTransport;
+  private readonly player: ReferencePlayer;
+  private readonly duration: number;
+
+  setTimelineStart(timelineStart: number): void {
+    this.timelineStart = timelineStart;
     const transport = this.transport.store.get();
     this.reconcile(transport.position, transport.isPlaying);
   }
@@ -50,12 +57,7 @@ export class ReferencePlayback implements TransportParticipant {
 
   private reconcile(position: number, isPlaying: boolean): void {
     this.clearBoundaryTimer();
-    const state = this.state;
-    if (!state) {
-      this.player.pause(0);
-      return;
-    }
-    const videoTime = position - state.timelineStart;
+    const videoTime = position - this.timelineStart;
     if (videoTime < 0) {
       this.player.pause(0);
       if (isPlaying) {
@@ -66,8 +68,8 @@ export class ReferencePlayback implements TransportParticipant {
       }
       return;
     }
-    if (state.duration !== undefined && videoTime >= state.duration) {
-      this.player.pause(state.duration);
+    if (videoTime >= this.duration) {
+      this.player.pause(this.duration);
       return;
     }
     if (isPlaying) {

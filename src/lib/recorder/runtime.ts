@@ -705,14 +705,18 @@ export class RecorderRuntime {
     }
 
     this.detachYouTubePlayer();
-    const playback = new ReferencePlayback(this.transport!, {
-      play: (time) => {
-        player.seekTo(time, true);
-        player.playVideo();
-      },
-      pause: (time) => {
-        player.pauseVideo();
-        player.seekTo(time, true);
+    const playback = new ReferencePlayback({
+      transport: this.transport!,
+      duration,
+      player: {
+        play: (time) => {
+          player.seekTo(time, true);
+          player.playVideo();
+        },
+        pause: (time) => {
+          player.pauseVideo();
+          player.seekTo(time, true);
+        },
       },
     });
     const attachment = { videoId, player, playback };
@@ -783,10 +787,7 @@ export class RecorderRuntime {
     } else {
       attachment.player.unMute();
     }
-    attachment.playback.setState({
-      timelineStart: referenceVideo.timelineStart,
-      duration: referenceVideo.duration,
-    });
+    attachment.playback.setTimelineStart(referenceVideo.timelineStart);
   }
 
   private detachYouTubePlayer(): void {
