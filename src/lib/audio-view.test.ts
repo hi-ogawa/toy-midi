@@ -3,6 +3,7 @@ import { range } from "../utils/array";
 import {
   type AudioView,
   type AudioViewSlice,
+  AudioViewBuilder,
   createAudioView,
   EMPTY_AUDIO_VIEW,
   queryAudioView,
@@ -74,6 +75,23 @@ describe("createAudioView", () => {
 
     expect(view.data).toHaveLength(3);
     expect(view.data[2]).toBeCloseTo(0.9);
+  });
+
+  it("fills missing frame ranges with silent points", () => {
+    const builder = new AudioViewBuilder(100, 10);
+
+    builder.append(new Float32Array([0.5]), 25);
+
+    expect(builder.view.data).toEqual([0, 0, 0.5]);
+    expect(Object.keys(builder.view.data)).toEqual(["0", "1", "2"]);
+  });
+
+  it("extends through the partial final point", () => {
+    const builder = new AudioViewBuilder(100, 10);
+
+    builder.append(new Float32Array(11).fill(0.5), 0);
+
+    expect(builder.view.data).toEqual([0.5, 0.5]);
   });
 
   it("produces correct number of points for typical audio", () => {
