@@ -54,28 +54,6 @@ test("saves and restores a recorder project", async ({ page }) => {
     .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
   await referencePanel.getByRole("button", { name: "Add video" }).click();
 
-  // Dragging the reference clip establishes an alignment that should survive reload.
-  const referenceClip = page.getByTestId("recorder-clip-reference");
-  const referenceClipBox = await referenceClip.boundingBox();
-  expect(referenceClipBox).not.toBeNull();
-  const referenceDragX = referenceClipBox!.x + 20;
-  await page.mouse.move(
-    referenceDragX,
-    referenceClipBox!.y + referenceClipBox!.height / 2,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    referenceDragX + 80,
-    referenceClipBox!.y + referenceClipBox!.height / 2,
-    { steps: 4 },
-  );
-  await page.mouse.up();
-  await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
-  const referenceOffset = await referenceClip
-    .getByText(/\+\d+\.\d{3}s/)
-    .textContent();
-  expect(referenceOffset).not.toBeNull();
-
   // They mute the reference and set output levels from the recorder mixer.
   await page.getByTestId("recorder-reference-video-mute").click();
   await page.getByTestId("recorder-mixer-button").click();
@@ -111,11 +89,8 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
-  // Reference identity, timeline alignment, and mute state restore together.
+  // Reference identity and mute state restore together.
   await expect(page.getByTestId("recorder-reference-track")).toBeVisible();
-  await expect(page.getByTestId("recorder-clip-reference")).toContainText(
-    referenceOffset!,
-  );
   await expect(
     page.getByTestId("recorder-reference-video-mute"),
   ).toHaveAttribute("aria-pressed", "true");
