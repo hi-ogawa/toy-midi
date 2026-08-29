@@ -841,16 +841,14 @@ export class RecorderRuntime {
     const { recordingTrack } = update;
     const takeRegions = deriveTakeRegions(recordingTrack.takes);
     // Automatically clear audition when the associated take is deleted.
-    const auditionedTakeId = this.store.get().auditionedTakeId;
-    const nextAuditionedTakeId =
-      auditionedTakeId &&
-      recordingTrack.takes.some((take) => take.id === auditionedTakeId)
-        ? auditionedTakeId
-        : undefined;
+    let auditionedTakeId = this.store.get().auditionedTakeId;
+    if (!recordingTrack.takes.some((take) => take.id === auditionedTakeId)) {
+      auditionedTakeId = undefined;
+    }
     this.store.update({
       ...update,
       takeRegions,
-      auditionedTakeId: nextAuditionedTakeId,
+      auditionedTakeId,
     });
     this.syncActiveTakePlayback();
   }
