@@ -99,6 +99,8 @@ export function createAudioView(
   return builder.view;
 }
 
+// Query visible range, downsample to pixel width
+// Returns data plus actual time bounds (aligned to data boundaries) for renderer positioning
 export function queryAudioView(
   view: AudioView,
   startTime: number, // seconds
@@ -107,11 +109,7 @@ export function queryAudioView(
 ): AudioViewSlice {
   const { data, samplesPerPoint, sampleRate } = view;
 
-  const emptySlice: AudioViewSlice = {
-    data: [],
-    actualStart: 0,
-    actualEnd: 0,
-  };
+  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
 
   if (data.length === 0 || targetPoints <= 0 || samplesPerPoint <= 0) {
     return emptySlice;
@@ -157,9 +155,8 @@ export function queryAudioView(
 
   // If fewer points than target, return as-is
   if (visibleLength <= targetPoints) {
-    const result = data.slice(alignedStartIdx, alignedEndIdx);
     return {
-      data: result,
+      data: data.slice(alignedStartIdx, alignedEndIdx),
       actualStart,
       actualEnd: ((alignedEndIdx - 1) * samplesPerPoint) / sampleRate,
     };
