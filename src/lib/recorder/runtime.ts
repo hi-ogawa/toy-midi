@@ -328,7 +328,9 @@ export class RecorderRuntime {
     } else {
       this.store.update({ audioTracks, referenceVideo });
     }
-    this.syncYouTubePlayer();
+    if (referenceOffset !== undefined) {
+      this.syncYouTubePlayer();
+    }
     for (const id of audioOffsets.keys()) {
       this.syncAudioTrackPlayback(
         audioTracks.find((track) => track.id === id)!,
@@ -431,7 +433,9 @@ export class RecorderRuntime {
     } else {
       this.store.update({ audioTracks, referenceVideo });
     }
-    this.syncYouTubePlayer();
+    if (removeReference) {
+      this.syncYouTubePlayer();
+    }
     if (wasPlaying) {
       this.transport!.play();
     }
