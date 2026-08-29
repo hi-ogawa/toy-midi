@@ -444,6 +444,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         </Dialog>
       </div>
       {isReferenceVideoOpen && (
+        // TODO: Make this resizable like the score preview and tighten the
+        // configuration/actions so the panel is less text-heavy.
         <FloatingPanel
           title="Reference video"
           closeLabel="Close Reference Video"
