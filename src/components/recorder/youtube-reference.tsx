@@ -1,4 +1,3 @@
-import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReferencePlayback } from "../../lib/recorder/reference-playback";
 import {
@@ -113,12 +112,10 @@ export function YouTubeReferenceSetup({
 export function YouTubeReference({
   referenceVideo,
   runtime,
-  onRemove,
   onSubmit,
 }: {
   referenceVideo: ReferenceVideoState;
   runtime: RecorderRuntime;
-  onRemove: () => void;
   onSubmit: (videoId: string) => void;
 }) {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -228,24 +225,6 @@ export function YouTubeReference({
           initialVideoId={videoId}
           onSubmit={onSubmit}
         />
-        <div className="flex items-center">
-          <Button
-            onClick={onRemove}
-            className="h-8 gap-1.5 border-neutral-700 bg-neutral-900 px-3 text-xs text-neutral-400 hover:border-red-900 hover:bg-red-950 hover:text-red-300"
-          >
-            <Trash2Icon className="size-3.5" />
-            Remove
-          </Button>
-          <a
-            href={`https://www.youtube.com/watch?v=${videoId}`}
-            target="_blank"
-            rel="noreferrer"
-            className="ml-auto inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-300"
-          >
-            Open on YouTube
-            <ExternalLinkIcon className="size-3" />
-          </a>
-        </div>
       </div>
     </div>
   );

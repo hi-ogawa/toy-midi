@@ -1,8 +1,10 @@
 import {
   LoaderCircleIcon,
+  MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
   VideoIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
@@ -21,6 +23,12 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import type {
   RecorderClipMoveSnapshot,
@@ -45,6 +53,7 @@ export function ReferenceTimelineRow({
   onClipDragMove,
   muted,
   onMutedChange,
+  onRemove,
 }: {
   referenceVideo: ReferenceVideoState;
   position: number;
@@ -61,6 +70,7 @@ export function ReferenceTimelineRow({
   onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
   muted: boolean;
   onMutedChange: (muted: boolean) => void;
+  onRemove: () => void;
 }) {
   return (
     <div
@@ -87,13 +97,29 @@ export function ReferenceTimelineRow({
             </span>
           </div>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              title="Reference actions"
+              className="ml-auto size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+            >
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+              <Trash2Icon />
+              Remove reference video
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           data-testid="recorder-reference-video-mute"
           onClick={() => onMutedChange(!muted)}
           aria-pressed={muted}
           title={muted ? "Unmute Reference" : "Mute Reference"}
           className={cn(
-            "ml-auto size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
+            "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
             muted &&
               "border-emerald-600 bg-emerald-700 text-white hover:bg-emerald-600",
           )}

@@ -62,7 +62,15 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
     "M7lc1UVf-VE",
   );
 
-  await reference.getByRole("button", { name: "Remove" }).click();
+  const openOnYouTube = reference.getByRole("link", {
+    name: "Open on YouTube",
+  });
+  await expect(openOnYouTube).toHaveAttribute(
+    "href",
+    "https://www.youtube.com/watch?v=M7lc1UVf-VE",
+  );
+  await page.getByRole("button", { name: "Reference actions" }).click();
+  await page.getByRole("menuitem", { name: "Remove reference video" }).click();
   await expect(reference.locator("iframe")).toHaveCount(0);
   await expect(referenceTrack).toHaveCount(0);
 

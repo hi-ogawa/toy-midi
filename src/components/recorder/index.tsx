@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { ExternalLinkIcon } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -294,6 +295,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onClipDragMove={clipInteraction.move}
                 muted={state.referenceVideo.muted}
                 onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
+                onRemove={() => runtime.removeReferenceVideo()}
               />
             )}
             {state.audioTracks.map((track, index) => (
@@ -510,9 +512,21 @@ export function Recorder({ projectId }: { projectId: string }) {
         </Dialog>
       </div>
       {isReferenceVideoOpen && (
-        // TODO: Tighten the configuration/actions so the panel is less text-heavy.
         <FloatingPanel
           title="Reference video"
+          headerActions={
+            state.referenceVideo && (
+              <a
+                href={`https://www.youtube.com/watch?v=${state.referenceVideo.videoId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-xs font-normal text-neutral-400 hover:text-neutral-200"
+              >
+                Open on YouTube
+                <ExternalLinkIcon className="size-3" />
+              </a>
+            )
+          }
           closeLabel="Close Reference Video"
           onClose={() => setIsReferenceVideoOpen(false)}
           testId="recorder-youtube-reference"
@@ -533,7 +547,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             <YouTubeReference
               referenceVideo={state.referenceVideo}
               runtime={runtime}
-              onRemove={() => runtime.removeReferenceVideo()}
               onSubmit={(videoId) => runtime.setReferenceVideo(videoId)}
             />
           ) : (
