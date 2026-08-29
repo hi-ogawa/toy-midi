@@ -1,6 +1,8 @@
 import JSZip from "jszip";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 
+const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
+
 interface RecorderProjectManifest {
   formatVersion: 1;
   projectType: "recorder";
@@ -52,8 +54,6 @@ interface ParsedRecorderProjectFile {
   title: string;
   content: SerializedRecorderRuntimeState;
 }
-
-const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
 
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
