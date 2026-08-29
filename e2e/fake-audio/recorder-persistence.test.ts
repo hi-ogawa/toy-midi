@@ -43,9 +43,26 @@ test("saves and restores a recorder project", async ({ page }) => {
     .getByTestId("recorder-youtube-input")
     .fill("dQw4w9WgXcQ");
   await referencePanel.getByRole("button", { name: "Add video" }).click();
-  await referencePanel
-    .getByTestId("recorder-reference-timeline-start")
-    .fill("-2.5");
+  const referenceClip = page.getByTestId("recorder-clip-reference");
+  const referenceClipBox = await referenceClip.boundingBox();
+  expect(referenceClipBox).not.toBeNull();
+  const referenceDragX = referenceClipBox!.x + 20;
+  await page.mouse.move(
+    referenceDragX,
+    referenceClipBox!.y + referenceClipBox!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    referenceDragX + 80,
+    referenceClipBox!.y + referenceClipBox!.height / 2,
+    { steps: 4 },
+  );
+  await page.mouse.up();
+  await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
+  const referenceOffset = await referenceClip
+    .getByText(/\+\d+\.\d{3}s/)
+    .textContent();
+  expect(referenceOffset).not.toBeNull();
   await page.getByTestId("recorder-reference-video-mute").click();
   await expect(
     page.getByRole("button", {
@@ -69,12 +86,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
   await expect(page.getByTestId("recorder-reference-track")).toBeVisible();
-  await page.getByTestId("recorder-reference-video-button").click();
-  await expect(
-    page
-      .getByTestId("recorder-youtube-reference")
-      .getByTestId("recorder-reference-timeline-start"),
-  ).toHaveValue("-2.5");
+  await expect(page.getByTestId("recorder-clip-reference")).toContainText(
+    referenceOffset!,
+  );
   await expect(
     page.getByTestId("recorder-reference-video-mute"),
   ).toHaveAttribute("aria-pressed", "true");

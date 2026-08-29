@@ -52,12 +52,9 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   await expect(
     referenceTrack.getByTestId("recorder-clip-reference"),
   ).toContainText("YouTube reference");
-  await reference
-    .getByTestId("recorder-reference-timeline-start")
-    .fill("-1.25");
-  await expect(
-    reference.getByTestId("recorder-reference-timeline-start"),
-  ).toHaveValue("-1.25");
+  const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
+  await dragBy(page, referenceClip, 80, 0, "start");
+  await expect(referenceClip).toContainText(/\+\d+\.\d{3}s/);
 
   await setup.getByTestId("recorder-youtube-input").fill("M7lc1UVf-VE");
   await setup.getByRole("button", { name: "Replace" }).click();
@@ -380,16 +377,17 @@ async function dragBy(
   locator: Locator,
   deltaX: number,
   deltaY = 0,
+  horizontalAnchor: "center" | "start" = "center",
 ) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  const startX =
+    horizontalAnchor === "start" ? box!.x + 20 : box!.x + box!.width / 2;
+  await page.mouse.move(startX, box!.y + box!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(
-    box!.x + box!.width / 2 + deltaX,
-    box!.y + box!.height / 2 + deltaY,
-    { steps: 4 },
-  );
+  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {
+    steps: 4,
+  });
   await page.mouse.up();
 }
 

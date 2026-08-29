@@ -228,24 +228,6 @@ export function YouTubeReference({
           initialVideoId={videoId}
           onSubmit={onSubmit}
         />
-        <label className="block text-[11px] font-medium text-neutral-400">
-          Timeline start
-          <div className="mt-1 flex items-center gap-2">
-            <input
-              data-testid="recorder-reference-timeline-start"
-              type="number"
-              step="0.001"
-              value={referenceVideo.timelineStart}
-              onChange={(event) =>
-                runtime.setReferenceVideoTimelineStart(
-                  event.currentTarget.valueAsNumber,
-                )
-              }
-              className="h-8 min-w-0 flex-1 rounded border border-neutral-600 bg-neutral-900 px-2 font-mono text-xs text-neutral-100"
-            />
-            <span className="text-xs text-neutral-500">seconds</span>
-          </div>
-        </label>
         <div className="flex items-center">
           <Button
             onClick={onRemove}

@@ -207,6 +207,12 @@ function ReferenceTimelineClip({
         style={{ left: Math.min(visibleLabelLeft, viewportWidth - 8) }}
       >
         <span className="mr-1.5 truncate">{label}</span>
+        {offset !== 0 && (
+          <span className="mr-1.5 font-mono opacity-75">
+            {offset > 0 ? "+" : ""}
+            {offset.toFixed(3)}s
+          </span>
+        )}
         <span className="font-mono opacity-75">
           {formatReferenceTime(duration)}
         </span>
