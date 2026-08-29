@@ -190,11 +190,21 @@ describe("queryAudioView", () => {
     //   result:          0       1        2        3        4
     //   aligned time: [0 ----------------------------------------------- 2.5)
     const view = createTestView(23);
-    const result = queryAudioView(view, 0, 2.3, 5);
+    const before = queryAudioView(view, 0, 2.3, 5);
 
-    expect(result.data).toHaveLength(5);
-    expect(result.actualStart).toBe(0);
-    expect(result.actualEnd).toBe(2.5);
+    expect(before.data).toHaveLength(5);
+    expect(before.actualStart).toBe(0);
+    expect(before.actualEnd).toBe(2.5);
+
+    // Once the recording crosses the next bucket boundary, data and aligned
+    // duration grow together: 5 points / 2.5s becomes 6 points / 3s.
+    const after = queryAudioView(createTestView(26), 0, 2.6, 5);
+    expect(after.data).toHaveLength(6);
+    expect(after.actualStart).toBe(0);
+    expect(after.actualEnd).toBe(3);
+    expect(before.actualEnd / before.data.length).toBe(
+      after.actualEnd / after.data.length,
+    );
   });
 
   it("does not add wholly future buckets beyond available data", () => {
