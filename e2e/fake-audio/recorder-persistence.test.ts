@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { createRecorderProject } from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
-  await page.goto("/recorder");
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await createRecorderProject(page);
   const projectUrl = page.url();
   await expect(
     page.getByRole("button", { name: "All changes saved" }),

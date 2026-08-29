@@ -1,20 +1,16 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import {
+  createRecorderProject,
   dragBy,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
 
-test.beforeEach(async ({ page }) => {
-  await page.goto("/recorder");
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
-});
-
 test("records, plays, and manages multiple takes", async ({ page }) => {
+  await createRecorderProject(page);
+
   // Connect the browser input before recording is available.
   await enableInput(page);
 

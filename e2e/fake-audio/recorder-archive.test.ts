@@ -1,18 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
+  createRecorderProject,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
 
-test.beforeEach(async ({ page }) => {
-  await page.goto("/recorder");
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
-});
-
 test("exports and imports a recorder project archive", async ({ page }) => {
+  await createRecorderProject(page);
+
   // Build an editable project with backing audio and two retained takes.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();

@@ -1,14 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { dragBy } from "./recorder-helpers";
-
-test.beforeEach(async ({ page }) => {
-  await page.goto("/recorder");
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
-});
+import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
+  await createRecorderProject(page);
+
   // Load a backing track through the recorder's file picker.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
@@ -68,6 +63,8 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
+  await createRecorderProject(page);
+
   // Load backing audio so its channel appears in the mixer.
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
