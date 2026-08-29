@@ -52,7 +52,7 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
       .locator("img"),
   ).toHaveAttribute(
     "src",
-    /i\.ytimg\.com\/vi\/knp40WxQgOI\/(?:maxres|hq)default\.jpg/,
+    /i\.ytimg\.com\/vi\/knp40WxQgOI\/maxresdefault\.jpg/,
   );
   await expect(reference.locator("iframe")).toHaveAttribute(
     "src",
