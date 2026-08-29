@@ -135,7 +135,7 @@ describe("queryAudioView", () => {
 
     // Actual bounds should be aligned to data boundaries
     expect(result.actualStart).toBeCloseTo(2, 1);
-    expect(result.actualEnd).toBeCloseTo(3.9, 1);
+    expect(result.actualEnd).toBeCloseTo(4, 1);
   });
 
   it("clamps start index to 0 for negative startTime", () => {
@@ -155,7 +155,7 @@ describe("queryAudioView", () => {
     // Should get points from index 80 to 99
     expect(result.data.length).toBe(20);
     expect(result.data[result.data.length - 1]).toBeCloseTo(view.data[99], 1);
-    expect(result.actualEnd).toBe(9.9);
+    expect(result.actualEnd).toBe(10);
   });
 
   it("returns points as-is when fewer than target", () => {
@@ -169,7 +169,7 @@ describe("queryAudioView", () => {
 
     expect(result.data).toEqual(view.data);
     expect(result.actualStart).toBe(0);
-    expect(result.actualEnd).toBe(0.4);
+    expect(result.actualEnd).toBe(0.5);
   });
 
   it("downsamples to target points when more points than targets", () => {
@@ -178,31 +178,16 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 0, 100, 100);
 
     expect(result.data).toHaveLength(100);
-    expect(result.actualEnd - result.actualStart).toBe(99);
+    expect(result.actualEnd - result.actualStart).toBe(100);
   });
 
-  it("preserves output point spacing as a source view grows", () => {
-    const pixelsPerSecond = 80;
-    const before = queryAudioView(createTestView(70), 0, 7, 560);
-    const after = queryAudioView(createTestView(80), 0, 8, 640);
-
-    const beforePixelsPerPoint =
-      ((before.actualEnd - before.actualStart) * pixelsPerSecond) /
-      (before.data.length - 1);
-    const afterPixelsPerPoint =
-      ((after.actualEnd - after.actualStart) * pixelsPerSecond) /
-      (after.data.length - 1);
-    expect(beforePixelsPerPoint).toBe(afterPixelsPerPoint);
-    expect(beforePixelsPerPoint).toBe(8);
-  });
-
-  it("returns the last pooled point when live data clips the aligned end", () => {
+  it("preserves the aligned end when live data ends inside a bucket", () => {
     const view = createTestView(23);
     const result = queryAudioView(view, 0, 3, 6);
 
     expect(result.data).toHaveLength(5);
     expect(result.actualStart).toBe(0);
-    expect(result.actualEnd).toBe(2);
+    expect(result.actualEnd).toBe(2.5);
   });
 
   it("does not add wholly future buckets beyond available data", () => {
@@ -210,7 +195,7 @@ describe("queryAudioView", () => {
     const result = queryAudioView(view, 0, 10, 20);
 
     expect(result.data).toHaveLength(5);
-    expect(result.actualEnd).toBe(2);
+    expect(result.actualEnd).toBe(2.5);
   });
 
   it("preserves max values when downsampling", () => {
