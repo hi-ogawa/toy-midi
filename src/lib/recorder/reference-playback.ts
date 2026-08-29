@@ -57,25 +57,25 @@ export class ReferencePlayback implements TransportParticipant {
 
   private reconcile(position: number, isPlaying: boolean): void {
     this.clearBoundaryTimer();
-    const videoTime = position - this.timelineStart;
-    if (videoTime < 0) {
+    const referencePosition = position - this.timelineStart;
+    if (referencePosition < 0) {
       this.player.pause(0);
       if (isPlaying) {
         this.boundaryTimer = setTimeout(() => {
           this.boundaryTimer = undefined;
           this.player.play(0);
-        }, -videoTime * 1000);
+        }, -referencePosition * 1000);
       }
       return;
     }
-    if (videoTime >= this.duration) {
+    if (referencePosition >= this.duration) {
       this.player.pause(this.duration);
       return;
     }
     if (isPlaying) {
-      this.player.play(videoTime);
+      this.player.play(referencePosition);
     } else {
-      this.player.pause(videoTime);
+      this.player.pause(referencePosition);
     }
   }
 
