@@ -127,13 +127,6 @@ export function deserializeRecorderRuntimeState({
   context: AudioContext;
   project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
-  if (
-    project.referenceVideo &&
-    (!Number.isFinite(project.referenceVideo.duration) ||
-      project.referenceVideo.duration <= 0)
-  ) {
-    throw new Error("Recorder reference video has an invalid duration.");
-  }
   return {
     title: project.title,
     audioTracks: project.audioTracks.map((track) => {
