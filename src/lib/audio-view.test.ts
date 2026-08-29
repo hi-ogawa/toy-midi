@@ -101,11 +101,7 @@ describe("queryAudioView", () => {
     sampleRate: 1000,
   });
 
-  const emptySlice: AudioViewSlice = {
-    data: [],
-    actualStart: 0,
-    actualEnd: 0,
-  };
+  const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
 
   it("returns empty slice for empty data", () => {
     const result = queryAudioView(EMPTY_AUDIO_VIEW, 0, 5, 500);
