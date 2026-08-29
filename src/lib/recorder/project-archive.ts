@@ -73,10 +73,7 @@ export async function exportRecorderProjectArchive(
     title: content.title,
   };
   zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
-  zip.file(
-    PROJECT_PATH,
-    JSON.stringify(toProjectFileContent({ zip, content })),
-  );
+  zip.file(PROJECT_PATH, JSON.stringify(writeProjectContent({ zip, content })));
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
@@ -121,7 +118,7 @@ export async function parseRecorderProjectArchive(
   };
 }
 
-function toProjectFileContent({
+function writeProjectContent({
   zip,
   content,
 }: {
@@ -135,7 +132,7 @@ function toProjectFileContent({
       clip: track.clip
         ? {
             ...track.clip,
-            pcm: toProjectPcm({
+            pcm: writeProjectPcm({
               zip,
               pcm: track.clip.pcm,
               path: `audio/tracks/${trackIndex}`,
@@ -147,7 +144,7 @@ function toProjectFileContent({
       ...content.recordingTrack,
       takes: content.recordingTrack.takes.map((take, takeIndex) => ({
         ...take,
-        pcm: toProjectPcm({
+        pcm: writeProjectPcm({
           zip,
           pcm: take.pcm,
           path: `audio/takes/${takeIndex}`,
@@ -195,7 +192,7 @@ async function fromProjectFileContent({
   };
 }
 
-function toProjectPcm({
+function writeProjectPcm({
   zip,
   pcm,
   path,
