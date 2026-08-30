@@ -20,16 +20,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 export function ReferenceVideoPanel({
   referenceVideo,
   runtime,
-  size,
-  onSizeChange,
   onClose,
 }: {
   referenceVideo?: ReferenceVideoState;
   runtime: RecorderRuntime;
-  size: { width: number; height: number };
-  onSizeChange: (size: { width: number; height: number }) => void;
   onClose: () => void;
 }) {
+  const [size, setSize] = useState({ width: 640, height: 480 });
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => {
       const target = event.target;
@@ -44,7 +41,7 @@ export function ReferenceVideoPanel({
       };
     },
     onMove: (event, drag) => {
-      onSizeChange({
+      setSize({
         width: clamp(
           drag.panelRect.width + drag.x - event.clientX,
           360,
@@ -98,7 +95,7 @@ export function ReferenceVideoPanel({
       closeLabel="Close Reference Video"
       onClose={onClose}
       testId="recorder-youtube-reference"
-      className="flex flex-col overflow-hidden"
+      className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >

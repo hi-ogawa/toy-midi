@@ -36,17 +36,10 @@ import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
-const FLOATING_PANEL_MARGIN = 16;
-const FLOATING_PANEL_GAP = 16;
-
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
-  const [referenceVideoSize, setReferenceVideoSize] = useState({
-    width: 640,
-    height: 480,
-  });
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -554,37 +547,26 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
-      {isReferenceVideoOpen && (
-        <ReferenceVideoPanel
-          referenceVideo={state.referenceVideo}
-          runtime={runtime}
-          size={referenceVideoSize}
-          onSizeChange={setReferenceVideoSize}
-          onClose={() => setIsReferenceVideoOpen(false)}
-        />
-      )}
-      {isMixerOpen && (
-        <FloatingPanel
-          closeLabel="Close Mixer"
-          onClose={() => setIsMixerOpen(false)}
-          title="Mixer"
-          testId="recorder-mixer-panel"
-          className="max-w-[calc(100vw-2rem)]"
-          style={
-            isReferenceVideoOpen
-              ? {
-                  right:
-                    referenceVideoSize.width +
-                    FLOATING_PANEL_MARGIN +
-                    FLOATING_PANEL_GAP,
-                  maxWidth: `calc(100vw - ${referenceVideoSize.width + FLOATING_PANEL_MARGIN * 2 + FLOATING_PANEL_GAP}px)`,
-                }
-              : undefined
-          }
-        >
-          <RecorderMixer runtime={runtime} state={state} />
-        </FloatingPanel>
-      )}
+      <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {isMixerOpen && (
+          <FloatingPanel
+            closeLabel="Close Mixer"
+            onClose={() => setIsMixerOpen(false)}
+            title="Mixer"
+            testId="recorder-mixer-panel"
+            className="pointer-events-auto relative min-w-0 flex-1"
+          >
+            <RecorderMixer runtime={runtime} state={state} />
+          </FloatingPanel>
+        )}
+        {isReferenceVideoOpen && (
+          <ReferenceVideoPanel
+            referenceVideo={state.referenceVideo}
+            runtime={runtime}
+            onClose={() => setIsReferenceVideoOpen(false)}
+          />
+        )}
+      </div>
     </main>
   );
 }
