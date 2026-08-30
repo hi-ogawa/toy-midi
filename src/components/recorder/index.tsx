@@ -158,7 +158,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       event.preventDefault();
       const position = Math.max(0, state.position + seekDirection * 5);
       runtime.seek(position);
-      timeline.revealPosition(position);
       return;
     }
     if (event.repeat) {
