@@ -149,6 +149,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
+      ? -1
+      : matchKeyboardEvent(event, "ArrowRight")
+        ? 1
+        : 0;
+    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+      event.preventDefault();
+      const position = Math.max(0, state.position + seekDirection * 5);
+      runtime.seek(position);
+      return;
+    }
     if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
       event.preventDefault();
       clipInteraction.clear();
