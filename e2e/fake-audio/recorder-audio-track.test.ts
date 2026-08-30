@@ -63,22 +63,16 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 400 });
   await createRecorderProject(page);
 
   const addTrack = page.getByTitle("Add empty audio track");
-  for (let index = 0; index < 8; index++) {
+  for (let index = 0; index < 4; index++) {
     await addTrack.click();
   }
 
-  const trackScroll = page.getByTestId("recorder-track-scroll");
-  await expect
-    .poll(() =>
-      trackScroll.evaluate(
-        (element) => element.scrollHeight > element.clientHeight,
-      ),
-    )
-    .toBe(true);
-
+  const lastTrack = page.getByText("Capture", { exact: true });
+  await expect(lastTrack).not.toBeInViewport();
   const ruler = page.getByTestId("recorder-timeline-ruler");
   const initialRulerBox = await ruler.boundingBox();
   expect(initialRulerBox).not.toBeNull();
@@ -88,9 +82,7 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.wheel(0, 500);
 
-  await expect
-    .poll(() => trackScroll.evaluate((element) => element.scrollTop))
-    .toBeGreaterThan(0);
+  await expect(lastTrack).toBeInViewport();
   await expect
     .poll(() => ruler.evaluate((element) => element.getBoundingClientRect().y))
     .toBeCloseTo(initialRulerBox!.y, 0);
