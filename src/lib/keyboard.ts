@@ -21,6 +21,8 @@ const SPECIAL_KEYS: Record<string, { code: string; key: string }> = {
   Space: { code: "Space", key: " " },
   Escape: { code: "Escape", key: "Escape" },
   Enter: { code: "Enter", key: "Enter" },
+  ArrowLeft: { code: "ArrowLeft", key: "ArrowLeft" },
+  ArrowRight: { code: "ArrowRight", key: "ArrowRight" },
   ArrowUp: { code: "ArrowUp", key: "ArrowUp" },
   ArrowDown: { code: "ArrowDown", key: "ArrowDown" },
   Delete: { code: "Delete", key: "Delete" },

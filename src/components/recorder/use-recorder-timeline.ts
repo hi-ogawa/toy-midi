@@ -65,6 +65,16 @@ export function useRecorderTimeline({
     );
   }
 
+  function revealPosition(position: number) {
+    const playheadBeat = secondsToBeats(position, tempo);
+    const visibleBeats = viewportWidth / pixelsPerBeat;
+    if (playheadBeat < viewportStartBeat) {
+      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.1));
+    } else if (viewportStartBeat + visibleBeats < playheadBeat) {
+      setViewportStartBeat(Math.max(0, playheadBeat - visibleBeats * 0.9));
+    }
+  }
+
   const viewportRef = useCallback(
     (viewport: HTMLDivElement | null) => {
       if (!viewport) {
@@ -111,6 +121,7 @@ export function useRecorderTimeline({
     gridDivision,
     pixelsPerBeat,
     playheadX,
+    revealPosition,
     viewportStartBeat,
     setGridDivision,
     subdivisionsPerBeat,

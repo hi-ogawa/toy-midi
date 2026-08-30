@@ -78,6 +78,28 @@ describe("parseShortcut", () => {
         },
       }
     `);
+    expect(parseShortcut("ArrowLeft")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowLeft",
+        "key": "ArrowLeft",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
+    expect(parseShortcut("ArrowRight")).toMatchInlineSnapshot(`
+      {
+        "code": "ArrowRight",
+        "key": "ArrowRight",
+        "modifiers": {
+          "alt": false,
+          "ctrl": false,
+          "shift": false,
+        },
+      }
+    `);
   });
 
   it("invalid", () => {

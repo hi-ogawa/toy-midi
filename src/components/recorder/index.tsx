@@ -146,7 +146,22 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       return;
     }
-    if (isShortcutTextInputTarget(event.target) || event.repeat) {
+    if (isShortcutTextInputTarget(event.target)) {
+      return;
+    }
+    const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
+      ? -1
+      : matchKeyboardEvent(event, "ArrowRight")
+        ? 1
+        : 0;
+    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+      event.preventDefault();
+      const position = Math.max(0, state.position + seekDirection * 5);
+      runtime.seek(position);
+      timeline.revealPosition(position);
+      return;
+    }
+    if (event.repeat) {
       return;
     }
     if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
