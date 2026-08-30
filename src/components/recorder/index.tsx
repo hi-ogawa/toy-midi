@@ -146,7 +146,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       return;
     }
-    if (isShortcutTextInputTarget(event.target)) {
+    if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
@@ -158,9 +158,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       event.preventDefault();
       const position = Math.max(0, state.position + seekDirection * 5);
       runtime.seek(position);
-      return;
-    }
-    if (event.repeat) {
       return;
     }
     if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
