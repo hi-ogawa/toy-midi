@@ -80,8 +80,8 @@ export class YouTubePlayerPlayback implements TransportParticipant {
   }
 
   private pause(position: number): void {
-    this.player.pauseVideo();
     this.player.seekTo(position, true);
+    this.player.pauseVideo();
   }
 
   private clearBoundaryTimer(): void {
