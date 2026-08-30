@@ -1,3 +1,4 @@
+import { clamp } from "../music.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
@@ -41,7 +42,7 @@ export class YouTubePlayerPlayback {
     const expectedTime = transport.position - this.timelineStart;
     if (!transport.isPlaying) {
       this.mode = "paused";
-      this.pause(Math.min(this.duration, Math.max(0, expectedTime)));
+      this.pause(clamp(expectedTime, 0, this.duration));
       return;
     }
 
