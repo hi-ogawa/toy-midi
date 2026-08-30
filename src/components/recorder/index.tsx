@@ -36,10 +36,17 @@ import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
+const FLOATING_PANEL_MARGIN = 16;
+const FLOATING_PANEL_GAP = 16;
+
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
+  const [referenceVideoSize, setReferenceVideoSize] = useState({
+    width: 640,
+    height: 480,
+  });
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -551,6 +558,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         <ReferenceVideoPanel
           referenceVideo={state.referenceVideo}
           runtime={runtime}
+          size={referenceVideoSize}
+          onSizeChange={setReferenceVideoSize}
           onClose={() => setIsReferenceVideoOpen(false)}
         />
       )}
@@ -561,6 +570,17 @@ export function Recorder({ projectId }: { projectId: string }) {
           title="Mixer"
           testId="recorder-mixer-panel"
           className="max-w-[calc(100vw-2rem)]"
+          style={
+            isReferenceVideoOpen
+              ? {
+                  right:
+                    referenceVideoSize.width +
+                    FLOATING_PANEL_MARGIN +
+                    FLOATING_PANEL_GAP,
+                  maxWidth: `calc(100vw - ${referenceVideoSize.width + FLOATING_PANEL_MARGIN * 2 + FLOATING_PANEL_GAP}px)`,
+                }
+              : undefined
+          }
         >
           <RecorderMixer runtime={runtime} state={state} />
         </FloatingPanel>
