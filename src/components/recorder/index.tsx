@@ -222,7 +222,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       />
 
       <div className="min-h-0 flex-1">
-        <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
+        <section
+          data-testid="recorder-track-scroll"
+          className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto"
+        >
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"

@@ -60,7 +60,7 @@ export function TimelineHeader({
   onSeek: (position: number) => void;
 }) {
   return (
-    <div className="sticky top-0 z-10 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
+    <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="sticky left-0 z-20 flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold">
         <span>Tracks</span>
         <div className="flex-1" />
@@ -140,7 +140,7 @@ function TimelineRuler({
   return (
     <div
       data-testid="recorder-timeline-ruler"
-      className="relative cursor-pointer font-mono text-[10px] text-neutral-400"
+      className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
       style={getTimelineGridStyle({
         beatsPerBar,
         pixelsPerBeat,

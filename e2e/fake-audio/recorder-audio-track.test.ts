@@ -62,6 +62,30 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(page.getByText("No file loaded")).toBeVisible();
 });
 
+test("scrolls overflowing tracks from the track list", async ({ page }) => {
+  // Fill a short desktop viewport until the capture track sits below the fold.
+  await page.setViewportSize({ width: 1280, height: 400 });
+  await createRecorderProject(page);
+
+  const addTrack = page.getByTitle("Add empty audio track");
+  for (let index = 0; index < 4; index++) {
+    await addTrack.click();
+  }
+
+  const lastTrack = page.getByText("Capture", { exact: true });
+  await expect(lastTrack).not.toBeInViewport();
+
+  // Scroll from the track list rather than panning the adjacent timeline.
+  const tracksLabel = page.getByText("Tracks", { exact: true });
+  const box = await tracksLabel.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, 500);
+
+  // The final track becomes reachable.
+  await expect(lastTrack).toBeInViewport();
+});
+
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await createRecorderProject(page);
 
