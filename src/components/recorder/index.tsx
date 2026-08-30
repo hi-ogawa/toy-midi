@@ -13,10 +13,10 @@ import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
-import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderMixer } from "./recorder-mixer";
+import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
   ReferenceTimelineRow,
@@ -561,24 +561,26 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
-      {isReferenceVideoOpen && (
-        <ReferenceVideoPanel
-          referenceVideo={state.referenceVideo}
-          runtime={runtime}
-          onClose={() => setIsReferenceVideoOpen(false)}
-        />
-      )}
-      {isMixerOpen && (
-        <FloatingPanel
-          closeLabel="Close Mixer"
-          onClose={() => setIsMixerOpen(false)}
-          title="Mixer"
-          testId="recorder-mixer-panel"
-          className="max-w-[calc(100vw-2rem)]"
-        >
-          <RecorderMixer runtime={runtime} state={state} />
-        </FloatingPanel>
-      )}
+      <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {isMixerOpen && (
+          <RecorderPanel
+            closeLabel="Close Mixer"
+            onClose={() => setIsMixerOpen(false)}
+            title="Mixer"
+            testId="recorder-mixer-panel"
+            className="pointer-events-auto min-w-0 flex-1"
+          >
+            <RecorderMixer runtime={runtime} state={state} />
+          </RecorderPanel>
+        )}
+        {isReferenceVideoOpen && (
+          <ReferenceVideoPanel
+            referenceVideo={state.referenceVideo}
+            runtime={runtime}
+            onClose={() => setIsReferenceVideoOpen(false)}
+          />
+        )}
+      </div>
     </main>
   );
 }
