@@ -29,9 +29,9 @@ test("keeps playing after seeking and ignores arrows while recording", async ({
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("ArrowRight");
-  await expect(position).not.toHaveText("01|01 - 00:00.000");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await playButton.click();
+  await expect(position).toContainText(/00:0[5-9]\.|00:[1-5]\d\./);
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
