@@ -3,6 +3,7 @@ import {
   CircleAlertIcon,
   CircleIcon,
   CircleStopIcon,
+  DownloadIcon,
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
@@ -12,6 +13,8 @@ import {
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
+  VideoIcon,
+  SlidersVerticalIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
@@ -39,9 +42,11 @@ import type { SaveStatus } from "./use-recorder-project";
 export function RecorderHeader({
   title,
   saveStatus,
+  referenceVideoOpen,
   isPlaying,
   isProcessing,
   isRecording,
+  isExporting,
   metronomeEnabled,
   position,
   tempo,
@@ -58,12 +63,18 @@ export function RecorderHeader({
   onMetronomeChange,
   onTimeSignatureChange,
   onGridDivisionChange,
+  onExportProject,
+  onReferenceVideoOpenChange,
+  onMixerToggle,
+  mixerOpen,
 }: {
   title: string;
   saveStatus: SaveStatus;
+  referenceVideoOpen: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
+  isExporting: boolean;
   metronomeEnabled: boolean;
   position: number;
   tempo: number;
@@ -80,6 +91,10 @@ export function RecorderHeader({
   onMetronomeChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
+  onExportProject: () => void;
+  onReferenceVideoOpenChange: (open: boolean) => void;
+  onMixerToggle: () => void;
+  mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
@@ -251,6 +266,33 @@ export function RecorderHeader({
         {title}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
+      <Button
+        data-testid="recorder-reference-video-button"
+        onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
+        aria-pressed={referenceVideoOpen}
+        title="Reference video"
+        className={cn(
+          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          referenceVideoOpen &&
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+        )}
+      >
+        <VideoIcon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-mixer-button"
+        onClick={onMixerToggle}
+        aria-pressed={mixerOpen}
+        title="Mixer"
+        className={cn(
+          "size-9",
+          mixerOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+        )}
+      >
+        <SlidersVerticalIcon className="size-5" />
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -262,6 +304,24 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            data-testid="recorder-export-project"
+            disabled={isRecording || isProcessing || isExporting}
+            onSelect={(event) => {
+              event.preventDefault();
+              onExportProject();
+            }}
+          >
+            <DownloadIcon />
+            <span className="grid">
+              <span className="invisible col-start-1 row-start-1">
+                Export Project
+              </span>
+              <span className="col-start-1 row-start-1">
+                {isExporting ? "Exporting..." : "Export Project"}
+              </span>
+            </span>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
@@ -301,20 +361,29 @@ function RecorderSaveButton({
     error: <CircleAlertIcon className="size-3.5" />,
   }[status];
   return (
-    <Button
-      aria-label={label}
-      title={label}
-      aria-disabled={!canSave}
-      onClick={canSave ? onSave : undefined}
-      className={cn(
-        "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        status === "saved" && "text-neutral-500",
-        status === "unsaved" && "text-neutral-300",
-        status === "saving" && "text-neutral-400",
-        status === "error" && "text-red-400 hover:text-red-300",
-      )}
-    >
-      {icon}
-    </Button>
+    <div className="group/save relative">
+      <Button
+        aria-label={label}
+        aria-describedby="recorder-save-tooltip"
+        aria-disabled={!canSave}
+        onClick={canSave ? onSave : undefined}
+        className={cn(
+          "size-8 border-transparent bg-transparent hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          status === "saved" && "text-neutral-500",
+          status === "unsaved" && "text-neutral-300",
+          status === "saving" && "text-neutral-400",
+          status === "error" && "text-red-400 hover:text-red-300",
+        )}
+      >
+        {icon}
+      </Button>
+      <span
+        id="recorder-save-tooltip"
+        role="tooltip"
+        className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs font-normal whitespace-nowrap text-neutral-100 opacity-0 shadow-lg transition-opacity duration-200 group-focus-within/save:opacity-100 group-hover/save:opacity-100"
+      >
+        {label}
+      </span>
+    </div>
   );
 }

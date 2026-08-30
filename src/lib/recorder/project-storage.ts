@@ -39,13 +39,19 @@ export const recorderProjectStorage = {
   },
 
   async create(): Promise<string> {
+    return this.createWithContent(
+      serializeRecorderRuntimeState(createDefaultRecorderRuntimeState()),
+    );
+  },
+
+  async createWithContent(
+    content: SerializedRecorderRuntimeState,
+  ): Promise<string> {
     const id = crypto.randomUUID();
     const project: StoredRecorderProject = {
       id,
       updatedAt: Date.now(),
-      content: serializeRecorderRuntimeState(
-        createDefaultRecorderRuntimeState(),
-      ),
+      content,
     };
     await projects.put(project);
     await metadata.put(toMetadata(project));
