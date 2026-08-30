@@ -554,7 +554,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             testId="recorder-mixer-panel"
-            className="min-w-0 flex-1"
+            className="pointer-events-auto min-w-0 flex-1"
           >
             <RecorderMixer runtime={runtime} state={state} />
           </RecorderPanel>

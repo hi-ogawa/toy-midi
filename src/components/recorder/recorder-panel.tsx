@@ -26,7 +26,7 @@ export function RecorderPanel({
       data-testid={testId}
       style={style}
       className={cn(
-        "pointer-events-auto relative rounded-lg border border-neutral-700 bg-neutral-800 shadow-2xl",
+        "rounded-lg border border-neutral-700 bg-neutral-800 shadow-2xl",
         className,
       )}
     >
