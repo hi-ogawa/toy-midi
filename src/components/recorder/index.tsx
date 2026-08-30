@@ -149,6 +149,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
+      ? -1
+      : matchKeyboardEvent(event, "ArrowRight")
+        ? 1
+        : 0;
+    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+      event.preventDefault();
+      const position = Math.max(0, state.position + seekDirection * 5);
+      runtime.seek(position);
+      return;
+    }
     if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
       event.preventDefault();
       clipInteraction.clear();
@@ -211,7 +222,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       />
 
       <div className="min-h-0 flex-1">
-        <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
+        <section
+          data-testid="recorder-track-scroll"
+          className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto"
+        >
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
