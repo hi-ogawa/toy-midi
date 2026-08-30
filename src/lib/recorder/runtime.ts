@@ -12,11 +12,11 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import { ReferencePlayback } from "./reference-playback.ts";
 import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
+import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 const MIN_TAKE_DURATION = 0.01;
@@ -151,7 +151,7 @@ export class RecorderRuntime {
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
-    playback: ReferencePlayback;
+    playback: YouTubePlayerPlayback;
   };
   private metronome?: RecorderMetronome;
 
@@ -705,19 +705,10 @@ export class RecorderRuntime {
     }
 
     this.detachYouTubePlayer();
-    const playback = new ReferencePlayback({
+    const playback = new YouTubePlayerPlayback({
       transport: this.transport!,
       duration,
-      player: {
-        play: (time) => {
-          player.seekTo(time, true);
-          player.playVideo();
-        },
-        pause: (time) => {
-          player.pauseVideo();
-          player.seekTo(time, true);
-        },
-      },
+      player,
     });
     const attachment = { videoId, player, playback };
     this.attachedYouTubePlayer = attachment;

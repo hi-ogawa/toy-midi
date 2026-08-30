@@ -1,16 +1,12 @@
+import type { YouTubePlayerApi } from "../youtube.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
 } from "./transport.ts";
 
-interface ReferencePlayer {
-  play(time: number): void;
-  pause(time: number): void;
-}
-
-export class ReferencePlayback implements TransportParticipant {
+export class YouTubePlayerPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
-  private readonly player: ReferencePlayer;
+  private readonly player: YouTubePlayerApi;
   private readonly duration: number;
   private timelineStart = 0;
   private boundaryTimer?: ReturnType<typeof setTimeout>;
@@ -22,7 +18,7 @@ export class ReferencePlayback implements TransportParticipant {
     duration,
   }: {
     transport: AudioContextTransport;
-    player: ReferencePlayer;
+    player: YouTubePlayerApi;
     duration: number;
   }) {
     this.transport = transport;
@@ -58,24 +54,34 @@ export class ReferencePlayback implements TransportParticipant {
     this.clearBoundaryTimer();
     const referencePosition = position - this.timelineStart;
     if (referencePosition < 0) {
-      this.player.pause(0);
+      this.pause(0);
       if (isPlaying) {
         this.boundaryTimer = setTimeout(() => {
           this.boundaryTimer = undefined;
-          this.player.play(0);
+          this.play(0);
         }, -referencePosition * 1000);
       }
       return;
     }
     if (referencePosition >= this.duration) {
-      this.player.pause(this.duration);
+      this.pause(this.duration);
       return;
     }
     if (isPlaying) {
-      this.player.play(referencePosition);
+      this.play(referencePosition);
     } else {
-      this.player.pause(referencePosition);
+      this.pause(referencePosition);
     }
+  }
+
+  private play(position: number): void {
+    this.player.seekTo(position, true);
+    this.player.playVideo();
+  }
+
+  private pause(position: number): void {
+    this.player.pauseVideo();
+    this.player.seekTo(position, true);
   }
 
   private clearBoundaryTimer(): void {
