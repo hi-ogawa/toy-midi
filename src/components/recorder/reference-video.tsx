@@ -1,4 +1,4 @@
-import { LoaderCircleIcon } from "lucide-react";
+import { CircleHelpIcon, LoaderCircleIcon } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useResizeObserver } from "../../hooks/use-resize-observer";
@@ -15,6 +15,7 @@ import {
 } from "../../lib/youtube";
 import { Button } from "../ui/button";
 import { FloatingPanel } from "../ui/floating-panel";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 export function ReferenceVideoPanel({
   referenceVideo,
@@ -57,7 +58,40 @@ export function ReferenceVideoPanel({
 
   return (
     <FloatingPanel
-      title="Reference video"
+      title={
+        <span className="flex items-center gap-1.5">
+          Reference video
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="About reference video"
+                className="text-neutral-500 hover:text-neutral-200"
+              >
+                <CircleHelpIcon className="size-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              className="w-72 space-y-2 p-3 text-xs"
+            >
+              <p>
+                For tighter recording sync, generate and download backing stems
+                with Stem Mixer for YouTube, then import them as an audio track
+                here. Keep this video muted as a visual reference.
+              </p>
+              <a
+                href="https://github.com/hi-ogawa/youtube-audio-replacement"
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-400 hover:underline"
+              >
+                Open Stem Mixer for YouTube
+              </a>
+            </PopoverContent>
+          </Popover>
+        </span>
+      }
       closeLabel="Close Reference Video"
       onClose={onClose}
       testId="recorder-youtube-reference"
