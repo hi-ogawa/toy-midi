@@ -14,8 +14,8 @@ import {
   type YouTubePlayerApi,
 } from "../../lib/youtube";
 import { Button } from "../ui/button";
-import { FloatingPanel } from "../ui/floating-panel";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { RecorderPanel } from "./recorder-panel";
 
 export function ReferenceVideoPanel({
   referenceVideo,
@@ -57,7 +57,7 @@ export function ReferenceVideoPanel({
   });
 
   return (
-    <FloatingPanel
+    <RecorderPanel
       title={
         <span className="flex items-center gap-2">
           Reference video
@@ -95,7 +95,7 @@ export function ReferenceVideoPanel({
       closeLabel="Close Reference Video"
       onClose={onClose}
       testId="recorder-youtube-reference"
-      className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
+      className="flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}
     >
@@ -112,7 +112,7 @@ export function ReferenceVideoPanel({
         referenceVideo={referenceVideo}
         runtime={runtime}
       />
-    </FloatingPanel>
+    </RecorderPanel>
   );
 }
 

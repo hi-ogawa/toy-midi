@@ -13,10 +13,10 @@ import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
-import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderMixer } from "./recorder-mixer";
+import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
   ReferenceTimelineRow,
@@ -549,15 +549,15 @@ export function Recorder({ projectId }: { projectId: string }) {
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {isMixerOpen && (
-          <FloatingPanel
+          <RecorderPanel
             closeLabel="Close Mixer"
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             testId="recorder-mixer-panel"
-            className="pointer-events-auto relative min-w-0 flex-1"
+            className="min-w-0 flex-1"
           >
             <RecorderMixer runtime={runtime} state={state} />
-          </FloatingPanel>
+          </RecorderPanel>
         )}
         {isReferenceVideoOpen && (
           <ReferenceVideoPanel
