@@ -160,7 +160,7 @@ export function RecorderHeader({
           "size-9",
           metronomeEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <MetronomeIcon className="size-5" />
@@ -173,7 +173,7 @@ export function RecorderHeader({
           "size-9",
           autoScrollEnabled
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <LocateFixedIcon className="size-5" />
@@ -272,9 +272,10 @@ export function RecorderHeader({
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          referenceVideoOpen &&
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+          "size-9",
+          referenceVideoOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <VideoIcon className="size-5" />
@@ -288,7 +289,7 @@ export function RecorderHeader({
           "size-9",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
       >
         <SlidersVerticalIcon className="size-5" />
