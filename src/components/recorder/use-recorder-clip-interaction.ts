@@ -128,11 +128,7 @@ export function useRecorderClipInteraction({
   }
 
   function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
-    const clampedDelta = snapshot.clips.some(
-      (clip) => clip.type === "reference",
-    )
-      ? delta
-      : Math.max(delta, -snapshot.minimumVisibleStart);
+    const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
     runtime.moveClips(
       snapshot.clips.map((clip) =>
         clip.type === "reference"
