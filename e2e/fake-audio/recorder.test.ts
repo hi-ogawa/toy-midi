@@ -169,7 +169,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
 
   const trimStart = take.getByTestId("recorder-take-trim-start");
   const trimPixels = Math.max(2, afterMove!.width / 4);
-  await dragBy(page, trimStart, trimPixels);
+  await previewDragBy(page, trimStart, trimPixels);
+  const startPreview = await take.boundingBox();
+  expect(startPreview!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
+  await page.mouse.up();
   const afterStartTrim = await take.boundingBox();
   expect(afterStartTrim).not.toBeNull();
   expect(afterStartTrim!.x).toBeCloseTo(afterMove!.x + trimPixels, -1);
@@ -179,7 +182,10 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   );
 
   const trimEnd = take.getByTestId("recorder-take-trim-end");
-  await dragBy(page, trimEnd, -trimPixels);
+  await previewDragBy(page, trimEnd, -trimPixels);
+  const endPreview = await take.boundingBox();
+  expect(endPreview!.width).toBeCloseTo(afterStartTrim!.width - trimPixels, -1);
+  await page.mouse.up();
   const afterEndTrim = await take.boundingBox();
   expect(afterEndTrim).not.toBeNull();
   expect(afterEndTrim!.x).toBeCloseTo(afterStartTrim!.x, -1);

@@ -279,7 +279,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                       edge,
                     })
                   }
-                  onTrimMove={clipInteraction.trim}
+                  onTrimMove={clipInteraction.previewTrim}
+                  onTrimEnd={clipInteraction.commitTrim}
+                  onTrimCancel={clipInteraction.cancelTrim}
                   onClipDragStart={(additive) =>
                     clipInteraction.startMove({
                       clip: { type: "audio", id: track.id },
@@ -388,7 +390,12 @@ export function Recorder({ projectId }: { projectId: string }) {
                     edge,
                   })
                 }
-                onTakeTrimMove={clipInteraction.trim}
+                getTakeTrimPreview={(id) =>
+                  clipInteraction.getTrimPreview({ type: "take", id })
+                }
+                onTakeTrimMove={clipInteraction.previewTrim}
+                onTakeTrimEnd={clipInteraction.commitTrim}
+                onTakeTrimCancel={clipInteraction.cancelTrim}
               />
             </CaptureTrackRow>
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   type RecorderClipId,
   type RecorderClipMove,
+  type RecorderClipTrim,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -27,6 +28,8 @@ export function useRecorderClipInteraction({
   const [keys, setKeys] = useState(() => new Set<string>());
   const [movePreview, setMovePreview] = useState<RecorderClipMove[]>();
   const movePreviewRef = useRef<RecorderClipMove[] | undefined>(undefined);
+  const [trimPreview, setTrimPreview] = useState<RecorderClipTrim>();
+  const trimPreviewRef = useRef<RecorderClipTrim | undefined>(undefined);
 
   function getKey(clip: RecorderClipId): string {
     return `${clip.type}:${clip.id}`;
@@ -163,12 +166,31 @@ export function useRecorderClipInteraction({
     };
   }
 
-  function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
-    runtime.trimClip({
+  function previewTrim(
+    snapshot: RecorderClipTrimSnapshot,
+    delta: number,
+  ): void {
+    const preview = {
       ...snapshot.clip,
       edge: snapshot.edge,
       value: snapshot.initialValue + delta,
-    });
+    };
+    trimPreviewRef.current = preview;
+    setTrimPreview(preview);
+  }
+
+  function commitTrim(): void {
+    const preview = trimPreviewRef.current;
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
+    if (preview) {
+      runtime.trimClip(preview);
+    }
+  }
+
+  function cancelTrim(): void {
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
   }
 
   function removeSelected(): void {
@@ -194,13 +216,19 @@ export function useRecorderClipInteraction({
       movePreview?.find(
         (preview) => preview.type === clip.type && preview.id === clip.id,
       )?.timelineOffset,
+    getTrimPreview: (clip: RecorderClipId) =>
+      trimPreview?.type === clip.type && trimPreview.id === clip.id
+        ? trimPreview
+        : undefined,
     select,
     startMove,
     previewMove,
     commitMove,
     cancelMove,
     startTrim,
-    trim,
+    previewTrim,
+    commitTrim,
+    cancelTrim,
     removeSelected,
   };
 }
