@@ -13,10 +13,10 @@ import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
-import { FloatingPanel } from "../ui/floating-panel";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderMixer } from "./recorder-mixer";
+import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
   ReferenceTimelineRow,
@@ -149,6 +149,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
+      ? -1
+      : matchKeyboardEvent(event, "ArrowRight")
+        ? 1
+        : 0;
+    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+      event.preventDefault();
+      const position = Math.max(0, state.position + seekDirection * 5);
+      runtime.seek(position);
+      return;
+    }
     if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
       event.preventDefault();
       clipInteraction.clear();
@@ -211,7 +222,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       />
 
       <div className="min-h-0 flex-1">
-        <section className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto">
+        <section
+          data-testid="recorder-track-scroll"
+          className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto"
+        >
           <div
             ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
@@ -547,24 +561,26 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
-      {isReferenceVideoOpen && (
-        <ReferenceVideoPanel
-          referenceVideo={state.referenceVideo}
-          runtime={runtime}
-          onClose={() => setIsReferenceVideoOpen(false)}
-        />
-      )}
-      {isMixerOpen && (
-        <FloatingPanel
-          closeLabel="Close Mixer"
-          onClose={() => setIsMixerOpen(false)}
-          title="Mixer"
-          testId="recorder-mixer-panel"
-          className="max-w-[calc(100vw-2rem)]"
-        >
-          <RecorderMixer runtime={runtime} state={state} />
-        </FloatingPanel>
-      )}
+      <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {isMixerOpen && (
+          <RecorderPanel
+            closeLabel="Close Mixer"
+            onClose={() => setIsMixerOpen(false)}
+            title="Mixer"
+            testId="recorder-mixer-panel"
+            className="pointer-events-auto min-w-0 flex-1"
+          >
+            <RecorderMixer runtime={runtime} state={state} />
+          </RecorderPanel>
+        )}
+        {isReferenceVideoOpen && (
+          <ReferenceVideoPanel
+            referenceVideo={state.referenceVideo}
+            runtime={runtime}
+            onClose={() => setIsReferenceVideoOpen(false)}
+          />
+        )}
+      </div>
     </main>
   );
 }

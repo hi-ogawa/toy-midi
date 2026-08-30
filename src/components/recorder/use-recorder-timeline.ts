@@ -76,6 +76,10 @@ export function useRecorderTimeline({
       observer.observe(viewport);
       const wheelTarget = viewport.parentElement;
       const handleWheel = (event: WheelEvent) => {
+        const rect = viewport.getBoundingClientRect();
+        if (event.clientX < rect.left) {
+          return;
+        }
         event.preventDefault();
         if (!event.ctrlKey) {
           const delta = event.deltaX || event.deltaY;
@@ -87,7 +91,6 @@ export function useRecorderTimeline({
         if (event.deltaY === 0) {
           return;
         }
-        const rect = viewport.getBoundingClientRect();
         const nextPixelsPerBeat = Math.max(
           MIN_PIXELS_PER_BEAT,
           Math.min(
