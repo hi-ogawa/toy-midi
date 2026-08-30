@@ -2,6 +2,7 @@ import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { clamp } from "../music.ts";
+import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -15,6 +16,7 @@ import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
+import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 const MIN_TAKE_DURATION = 0.01;
@@ -59,6 +61,14 @@ interface PendingRecordingState extends Pick<
   recording: ActiveRecording;
 }
 
+export interface ReferenceVideoState {
+  videoId: string;
+  timelineStart: number;
+  muted: boolean;
+  title?: string;
+  duration: number;
+}
+
 export interface RecorderRuntimeState {
   title: string;
   // Transport
@@ -67,6 +77,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
   // Tracks
@@ -92,13 +103,18 @@ export type PersistableRecorderRuntimeState = Pick<
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
+  | "referenceVideo"
 >;
 
-export type RecorderClipId = { type: "audio" | "take"; id: string };
+export type RecorderClipId =
+  | { type: "audio" | "take"; id: string }
+  | { type: "reference" };
 
-export type RecorderClipMove = RecorderClipId & { timelineOffset: number };
+export type RecorderClipMove =
+  | { type: "audio" | "take"; id: string; timelineOffset: number }
+  | { type: "reference"; timelineOffset: number };
 
-export type RecorderClipTrim = RecorderClipId & {
+export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
   edge: "start" | "end";
   value: number;
 };
@@ -132,6 +148,11 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private attachedYouTubePlayer?: {
+    videoId: string;
+    player: YouTubePlayerApi;
+    playback: YouTubePlayerPlayback;
+  };
   private metronome?: RecorderMetronome;
 
   async startInput({
@@ -248,15 +269,22 @@ export class RecorderRuntime {
     }
     const state = this.store.get();
     const audioOffsets = new Map(
-      updates
-        .filter((update) => update.type === "audio")
-        .map((update) => [update.id, update.timelineOffset]),
+      updates.flatMap((update) =>
+        update.type === "audio"
+          ? [[update.id, update.timelineOffset] as const]
+          : [],
+      ),
     );
     const takeOffsets = new Map(
-      updates
-        .filter((update) => update.type === "take")
-        .map((update) => [update.id, update.timelineOffset]),
+      updates.flatMap((update) =>
+        update.type === "take"
+          ? [[update.id, update.timelineOffset] as const]
+          : [],
+      ),
     );
+    const referenceOffset = updates.find(
+      (update) => update.type === "reference",
+    )?.timelineOffset;
     if (
       [...audioOffsets.keys()].some(
         (id) => !state.audioTracks.some((track) => track.id === id),
@@ -282,10 +310,26 @@ export class RecorderRuntime {
         timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
       })),
     };
+    const referenceVideo = state.referenceVideo
+      ? {
+          ...state.referenceVideo,
+          timelineStart: referenceOffset ?? state.referenceVideo.timelineStart,
+        }
+      : undefined;
+    if (referenceOffset !== undefined && !referenceVideo) {
+      throw new Error("Recorder clip state is missing.");
+    }
     if (takeOffsets.size > 0) {
-      this.updateRecordingTrack({ recordingTrack, audioTracks });
+      this.updateRecordingTrack({
+        recordingTrack,
+        audioTracks,
+        referenceVideo,
+      });
     } else {
-      this.store.update({ audioTracks });
+      this.store.update({ audioTracks, referenceVideo });
+    }
+    if (referenceOffset !== undefined) {
+      this.syncYouTubePlayer();
     }
     for (const id of audioOffsets.keys()) {
       this.syncAudioTrackPlayback(
@@ -344,11 +388,12 @@ export class RecorderRuntime {
     }
     const state = this.store.get();
     const audioIds = new Set(
-      clips.filter((clip) => clip.type === "audio").map((clip) => clip.id),
+      clips.flatMap((clip) => (clip.type === "audio" ? [clip.id] : [])),
     );
     const takeIds = new Set(
-      clips.filter((clip) => clip.type === "take").map((clip) => clip.id),
+      clips.flatMap((clip) => (clip.type === "take" ? [clip.id] : [])),
     );
+    const removeReference = clips.some((clip) => clip.type === "reference");
     if (
       [...audioIds].some(
         (id) => !state.audioTracks.some((track) => track.id === id),
@@ -373,9 +418,11 @@ export class RecorderRuntime {
         ? { ...track, clip: undefined, trimStart: 0, trimEnd: 0 }
         : track,
     );
+    const referenceVideo = removeReference ? undefined : state.referenceVideo;
     if (takeIds.size > 0) {
       this.updateRecordingTrack({
         audioTracks,
+        referenceVideo,
         recordingTrack: {
           ...state.recordingTrack,
           takes: state.recordingTrack.takes.filter(
@@ -384,7 +431,10 @@ export class RecorderRuntime {
         },
       });
     } else {
-      this.store.update({ audioTracks });
+      this.store.update({ audioTracks, referenceVideo });
+    }
+    if (removeReference) {
+      this.syncYouTubePlayer();
     }
     if (wasPlaying) {
       this.transport!.play();
@@ -641,6 +691,101 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
+  attachYouTubePlayer({
+    videoId,
+    player,
+  }: {
+    videoId: string;
+    player: YouTubePlayerApi;
+  }): () => void {
+    this.ensureContext();
+    const duration = player.getDuration();
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error("YouTube player returned an invalid duration.");
+    }
+
+    this.detachYouTubePlayer();
+    const playback = new YouTubePlayerPlayback({
+      transport: this.transport!,
+      duration,
+      player,
+    });
+    const attachment = { videoId, player, playback };
+    this.attachedYouTubePlayer = attachment;
+
+    const currentReference = this.store.get().referenceVideo;
+    const title = player.getVideoData().title;
+    if (
+      currentReference?.videoId !== videoId ||
+      currentReference.title !== title ||
+      currentReference.duration !== duration
+    ) {
+      this.store.update({
+        referenceVideo: {
+          videoId,
+          timelineStart: currentReference?.timelineStart ?? 0,
+          muted: currentReference?.muted ?? false,
+          title,
+          duration,
+        },
+      });
+    }
+    this.syncYouTubePlayer();
+
+    return () => {
+      if (this.attachedYouTubePlayer !== attachment) {
+        return;
+      }
+      this.detachYouTubePlayer();
+    };
+  }
+
+  setReferenceVideoTimelineStart(timelineStart: number): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, timelineStart } });
+    this.syncYouTubePlayer();
+  }
+
+  setReferenceVideoMuted(muted: boolean): void {
+    const referenceVideo = this.store.get().referenceVideo;
+    if (!referenceVideo) {
+      return;
+    }
+    this.store.update({ referenceVideo: { ...referenceVideo, muted } });
+    this.syncYouTubePlayer();
+  }
+
+  removeReferenceVideo(): void {
+    this.store.update({ referenceVideo: undefined });
+    this.syncYouTubePlayer();
+  }
+
+  private syncYouTubePlayer(): void {
+    const attachment = this.attachedYouTubePlayer;
+    if (!attachment) {
+      return;
+    }
+    const referenceVideo = this.store.get().referenceVideo;
+    if (referenceVideo?.videoId !== attachment.videoId) {
+      this.detachYouTubePlayer();
+      return;
+    }
+    if (referenceVideo.muted) {
+      attachment.player.mute();
+    } else {
+      attachment.player.unMute();
+    }
+    attachment.playback.setTimelineStart(referenceVideo.timelineStart);
+  }
+
+  private detachYouTubePlayer(): void {
+    this.attachedYouTubePlayer?.playback.dispose();
+    this.attachedYouTubePlayer = undefined;
+  }
+
   renderComp(): AudioBuffer | undefined {
     return renderTakeComp({
       context: this.ensureContext(),
@@ -703,6 +848,7 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(project.recordingTrack.height),
       },
     });
+    this.syncYouTubePlayer();
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
@@ -723,6 +869,7 @@ export class RecorderRuntime {
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
+          referenceVideo: state.referenceVideo,
         }) satisfies PersistableRecorderRuntimeState,
       listener,
       equals: shallowEqual,

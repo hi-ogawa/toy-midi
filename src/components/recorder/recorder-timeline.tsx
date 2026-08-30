@@ -1,9 +1,19 @@
-import { LoaderCircleIcon, PlusIcon, UploadIcon } from "lucide-react";
+import {
+  LoaderCircleIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  UploadIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
-import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import type {
+  RecorderRuntimeState,
+  ReferenceVideoState,
+} from "../../lib/recorder/runtime";
+import { formatTimeMinutes } from "../../lib/time-format";
 import {
   beatsToSeconds,
   getVisibleBarInterval,
@@ -13,7 +23,14 @@ import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { AudioWaveformView } from "../audio-waveform";
 import { openFilePicker } from "../file-drop-input";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderMixToggle } from "./recorder-mix-toggle";
 import type {
   RecorderClipMoveSnapshot,
   RecorderClipTrimSnapshot,
@@ -165,7 +182,8 @@ type RecorderTimelineClip = {
   audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
-  testId: "audio" | "comp" | "recording" | "take" | "take-lane";
+  testId: "audio" | "comp" | "recording" | "reference" | "take" | "take-lane";
+  variant?: "audio" | "reference";
   audioView?: AudioView;
 };
 
@@ -379,6 +397,125 @@ export function TimelineLane({
   );
 }
 
+export function ReferenceTimelineRow({
+  referenceVideo,
+  position,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  pixelsPerBeat,
+  tempo,
+  viewportStartBeat,
+  viewportWidth,
+  onSeek,
+  selected,
+  onClipClick,
+  onClipDragStart,
+  onClipDragMove,
+  muted,
+  onMutedChange,
+  onRemove,
+}: {
+  referenceVideo: ReferenceVideoState;
+  position: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  pixelsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+  viewportWidth: number;
+  onSeek: (position: number) => void;
+  selected: boolean;
+  onClipClick: (additive: boolean) => void;
+  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  muted: boolean;
+  onMutedChange: (muted: boolean) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      data-testid="recorder-reference-track"
+      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+    >
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
+        <div className="min-w-0">
+          <div className="truncate text-xs font-semibold">Reference</div>
+          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
+            <span>
+              {formatTimeMinutes(
+                Math.max(0, position - referenceVideo.timelineStart),
+              )}
+            </span>
+            <span className="text-neutral-600">/</span>
+            <span>{formatTimeMinutes(referenceVideo.duration)}</span>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                title="Reference actions"
+                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+              >
+                <MoreVerticalIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+                <Trash2Icon />
+                Remove reference video
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <RecorderMixToggle
+            data-testid="recorder-reference-video-mute"
+            active={muted}
+            kind="mute"
+            onClick={() => onMutedChange(!muted)}
+            className="size-7"
+            title={muted ? "Unmute Reference" : "Mute Reference"}
+          />
+        </div>
+      </div>
+      <div
+        className="relative overflow-hidden bg-neutral-900"
+        style={getTimelineGridStyle({
+          beatsPerBar,
+          pixelsPerBeat,
+          viewportStartBeat,
+          subdivisionsPerBeat,
+        })}
+        onPointerDown={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const beat = Math.max(
+            0,
+            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+          );
+          onSeek(beatsToSeconds(beat, tempo));
+        }}
+      >
+        <TimelineClip
+          clip={{
+            label: referenceVideo.title ?? "YouTube reference",
+            offset: referenceVideo.timelineStart,
+            duration: referenceVideo.duration,
+            testId: "reference",
+            variant: "reference",
+          }}
+          pixelsPerBeat={pixelsPerBeat}
+          tempo={tempo}
+          viewportStartBeat={viewportStartBeat}
+          viewportWidth={viewportWidth}
+          selected={selected}
+          onClipClick={onClipClick}
+          onClipDragStart={onClipDragStart}
+          onClipDragMove={onClipDragMove}
+        />
+      </div>
+    </div>
+  );
+}
+
 function TimelineClip({
   clip,
   pixelsPerBeat,
@@ -478,10 +615,14 @@ function TimelineClip({
   });
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
-    : "bg-emerald-400/20 text-emerald-100";
+    : clip.variant === "reference"
+      ? "bg-amber-400/15 text-amber-50"
+      : "bg-emerald-400/20 text-emerald-100";
   const clipBorderClass = recording
     ? "border-red-400/70"
-    : "border-emerald-400/60";
+    : clip.variant === "reference"
+      ? "border-amber-400/60"
+      : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const clipWidth = Math.max(
     2,

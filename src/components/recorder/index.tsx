@@ -19,6 +19,7 @@ import { InputSetup } from "./recorder-input";
 import { RecorderMixer } from "./recorder-mixer";
 import {
   TakeTimelineLane,
+  ReferenceTimelineRow,
   TimelineHeader,
   TimelineLane,
 } from "./recorder-timeline";
@@ -29,6 +30,7 @@ import {
   TakeTrackRow,
   TrackRow,
 } from "./recorder-tracks";
+import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
@@ -37,6 +39,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
+  const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -176,6 +179,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       <RecorderHeader
         title={state.title}
         saveStatus={project.saveStatus}
+        referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
         isProcessing={isProcessing}
         isRecording={isRecording}
@@ -201,6 +205,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
+        onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
       />
@@ -232,6 +237,33 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
             />
+            {state.referenceVideo && (
+              <ReferenceTimelineRow
+                referenceVideo={state.referenceVideo}
+                position={state.position}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
+                onSeek={(position) => runtime.seek(position)}
+                selected={clipInteraction.isSelected({ type: "reference" })}
+                onClipClick={(additive) =>
+                  clipInteraction.select({ type: "reference" }, additive)
+                }
+                onClipDragStart={(additive) =>
+                  clipInteraction.startMove({
+                    clip: { type: "reference" },
+                    additive,
+                  })
+                }
+                onClipDragMove={clipInteraction.move}
+                muted={state.referenceVideo.muted}
+                onMutedChange={(muted) => runtime.setReferenceVideoMuted(muted)}
+                onRemove={() => runtime.removeReferenceVideo()}
+              />
+            )}
             {state.audioTracks.map((track, index) => (
               <TrackRow
                 key={track.id}
@@ -515,6 +547,13 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         </Dialog>
       </div>
+      {isReferenceVideoOpen && (
+        <ReferenceVideoPanel
+          referenceVideo={state.referenceVideo}
+          runtime={runtime}
+          onClose={() => setIsReferenceVideoOpen(false)}
+        />
+      )}
       {isMixerOpen && (
         <FloatingPanel
           closeLabel="Close Mixer"

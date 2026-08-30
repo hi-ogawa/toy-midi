@@ -15,16 +15,23 @@ export async function seekRecorderByPixels(page: Page, pixels: number) {
   await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
 }
 
-export async function dragBy(page: Page, locator: Locator, deltaX: number) {
+export async function dragBy(
+  page: Page,
+  locator: Locator,
+  deltaX: number,
+  {
+    deltaY = 0,
+    anchorXOffset,
+  }: { deltaY?: number; anchorXOffset?: number } = {},
+) {
   const box = await locator.boundingBox();
   expect(box).not.toBeNull();
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  const startX = box!.x + (anchorXOffset ?? box!.width / 2);
+  await page.mouse.move(startX, box!.y + box!.height / 2);
   await page.mouse.down();
-  await page.mouse.move(
-    box!.x + box!.width / 2 + deltaX,
-    box!.y + box!.height / 2,
-    { steps: 4 },
-  );
+  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {
+    steps: 4,
+  });
   await page.mouse.up();
 }
 

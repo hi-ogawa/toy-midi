@@ -26,6 +26,13 @@ export interface SerializedRecorderRuntimeState {
     numerator: number;
     denominator: number;
   };
+  referenceVideo?: {
+    videoId: string;
+    timelineStart: number;
+    muted: boolean;
+    title?: string;
+    duration: number;
+  };
 }
 
 interface SerializedAudioTrackState {
@@ -109,6 +116,7 @@ export function serializeRecorderRuntimeState(
     metronomeGain: state.metronomeGain,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
+    referenceVideo: state.referenceVideo,
   };
 }
 
@@ -181,6 +189,7 @@ export function deserializeRecorderRuntimeState({
     metronomeGain: project.metronomeGain ?? 0.5,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
+    referenceVideo: project.referenceVideo,
   };
 }
 

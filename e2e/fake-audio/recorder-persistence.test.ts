@@ -44,9 +44,20 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
 
-  // Editing marks the project dirty, and Ctrl+S saves it without browser UI.
+  // They change the session tempo.
   await page.getByTestId("recorder-tempo-input").fill("140");
   await page.getByTestId("recorder-tempo-input").press("Enter");
+
+  // They add a reference video and mute its audio.
+  await page.getByTestId("recorder-reference-video-button").click();
+  const referencePanel = page.getByTestId("recorder-youtube-reference");
+  await referencePanel
+    .getByTestId("recorder-youtube-input")
+    .fill("https://www.youtube.com/watch?v=knp40WxQgOI");
+  await referencePanel.getByRole("button", { name: "Add video" }).click();
+  await page.getByTestId("recorder-reference-video-mute").click();
+
+  // They set output levels from the recorder mixer.
   await page.getByTestId("recorder-mixer-button").click();
   const masterLevel = page.getByRole("textbox", { name: "Master level in dB" });
   const metronomeLevel = page.getByRole("textbox", {
@@ -56,6 +67,8 @@ test("saves and restores a recorder project", async ({ page }) => {
   await masterLevel.press("Enter");
   await metronomeLevel.fill("-9");
   await metronomeLevel.press("Enter");
+
+  // The accumulated project edits are unsaved until explicitly saved.
   await expect(
     page.getByRole("button", {
       name: "Unsaved changes (Ctrl/Cmd+S to save)",
@@ -68,7 +81,7 @@ test("saves and restores a recorder project", async ({ page }) => {
     page.getByRole("button", { name: "All changes saved" }),
   ).toHaveAttribute("aria-disabled", "true");
 
-  // Reload restores document fields and PCM-backed waveform data.
+  // Reload restores project identity, tempo, and PCM-backed waveform data.
   await page.reload();
   await expect(page).toHaveURL(projectUrl);
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
@@ -77,6 +90,14 @@ test("saves and restores a recorder project", async ({ page }) => {
   await expect(page.getByTestId("recorder-tempo-input")).toHaveValue("140");
   await expect(clip).toContainText("test-audio.wav");
   await expect(clip.locator("svg")).toBeVisible();
+
+  // Reference identity and mute state restore together.
+  await expect(page.getByTestId("recorder-reference-track")).toBeVisible();
+  await expect(
+    page.getByTestId("recorder-reference-video-mute"),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  // Mixer levels restore independently from whether the mixer panel was open.
   await page.getByTestId("recorder-mixer-button").click();
   await expect(
     page.getByRole("textbox", { name: "Master level in dB" }),

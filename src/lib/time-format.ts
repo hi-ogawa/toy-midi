@@ -6,6 +6,13 @@ export function formatTimeCompact(seconds: number): string {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(hundredths).padStart(2, "0")}`;
 }
 
+/** Formats seconds as `M:SS`, for example `62.3456` as `1:02`. */
+export function formatTimeMinutes(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remaining = Math.floor(seconds % 60);
+  return `${minutes}:${String(remaining).padStart(2, "0")}`;
+}
+
 /** Formats seconds as `MM:SS.mmm`, for example `62.3456` as `01:02.346`. */
 export function formatTimeWithMilliseconds(seconds: number): string {
   const safeSeconds = Math.max(0, seconds);

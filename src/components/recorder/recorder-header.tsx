@@ -13,6 +13,7 @@ import {
   PlayIcon,
   SaveCheckIcon,
   SaveIcon,
+  VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
@@ -41,6 +42,7 @@ import type { SaveStatus } from "./use-recorder-project";
 export function RecorderHeader({
   title,
   saveStatus,
+  referenceVideoOpen,
   isPlaying,
   isProcessing,
   isRecording,
@@ -62,11 +64,13 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onReferenceVideoOpenChange,
   onMixerToggle,
   mixerOpen,
 }: {
   title: string;
   saveStatus: SaveStatus;
+  referenceVideoOpen: boolean;
   isPlaying: boolean;
   isProcessing: boolean;
   isRecording: boolean;
@@ -88,6 +92,7 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   mixerOpen: boolean;
 }) {
@@ -261,6 +266,19 @@ export function RecorderHeader({
         {title}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
+      <Button
+        data-testid="recorder-reference-video-button"
+        onClick={() => onReferenceVideoOpenChange(!referenceVideoOpen)}
+        aria-pressed={referenceVideoOpen}
+        title="Reference video"
+        className={cn(
+          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          referenceVideoOpen &&
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+        )}
+      >
+        <VideoIcon className="size-5" />
+      </Button>
       <Button
         data-testid="recorder-mixer-button"
         onClick={onMixerToggle}
