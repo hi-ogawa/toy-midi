@@ -275,7 +275,7 @@ export function RecorderHeader({
           "size-9",
           referenceVideoOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100",
         )}
       >
         <VideoIcon className="size-5" />
@@ -289,7 +289,7 @@ export function RecorderHeader({
           "size-9",
           mixerOpen
             ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
-            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+            : "text-neutral-300 hover:bg-neutral-700 hover:text-neutral-100",
         )}
       >
         <SlidersVerticalIcon className="size-5" />
