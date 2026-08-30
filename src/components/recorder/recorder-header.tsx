@@ -272,9 +272,10 @@ export function RecorderHeader({
         aria-pressed={referenceVideoOpen}
         title="Reference video"
         className={cn(
-          "size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-          referenceVideoOpen &&
-            "bg-primary text-primary-foreground hover:bg-primary/90",
+          "size-9",
+          referenceVideoOpen
+            ? "bg-neutral-700 text-neutral-100 hover:bg-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
         )}
       >
         <VideoIcon className="size-5" />
