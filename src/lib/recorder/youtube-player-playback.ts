@@ -38,17 +38,17 @@ export class YouTubePlayerPlayback {
 
   private sync(): void {
     const transport = this.transport.store.get();
-    const referencePosition = transport.position - this.timelineStart;
+    const expectedTime = transport.position - this.timelineStart;
     if (!transport.isPlaying) {
       this.mode = "paused";
-      this.pause(Math.min(this.duration, Math.max(0, referencePosition)));
+      this.pause(Math.min(this.duration, Math.max(0, expectedTime)));
       return;
     }
 
     const mode: PlaybackMode =
-      referencePosition < 0
+      expectedTime < 0
         ? "before"
-        : referencePosition >= this.duration
+        : expectedTime >= this.duration
           ? "after"
           : "playing";
     if (mode === this.mode) {
@@ -61,7 +61,7 @@ export class YouTubePlayerPlayback {
         break;
       }
       case "playing": {
-        this.play(referencePosition);
+        this.play(expectedTime);
         break;
       }
       case "after": {
