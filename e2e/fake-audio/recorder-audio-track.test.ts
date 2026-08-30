@@ -62,6 +62,34 @@ test("uploads and plays a backing track", async ({ page }) => {
   await expect(page.getByText("No file loaded")).toBeVisible();
 });
 
+test("scrolls overflowing tracks from the track list", async ({ page }) => {
+  await createRecorderProject(page);
+
+  const addTrack = page.getByTitle("Add empty audio track");
+  for (let index = 0; index < 8; index++) {
+    await addTrack.click();
+  }
+
+  const trackScroll = page.getByTestId("recorder-track-scroll");
+  await expect
+    .poll(() =>
+      trackScroll.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
+    )
+    .toBe(true);
+
+  const tracksLabel = page.getByText("Tracks", { exact: true });
+  const box = await tracksLabel.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.wheel(0, 500);
+
+  await expect
+    .poll(() => trackScroll.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+});
+
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await createRecorderProject(page);
 
