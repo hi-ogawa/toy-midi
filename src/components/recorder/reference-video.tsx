@@ -59,7 +59,7 @@ export function ReferenceVideoPanel({
   return (
     <FloatingPanel
       title={
-        <span className="flex items-center gap-1.5">
+        <span className="flex items-center gap-2">
           Reference video
           <Popover>
             <PopoverTrigger asChild>
