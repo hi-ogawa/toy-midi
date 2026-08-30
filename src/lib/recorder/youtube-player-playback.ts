@@ -1,16 +1,15 @@
 import type { YouTubePlayerApi } from "../youtube.ts";
-import type {
-  AudioContextTransport,
-  TransportParticipant,
-} from "./transport.ts";
+import type { AudioContextTransport } from "./transport.ts";
 
-export class YouTubePlayerPlayback implements TransportParticipant {
+type PlaybackMode = "paused" | "before" | "playing" | "after";
+
+export class YouTubePlayerPlayback {
   private readonly transport: AudioContextTransport;
   private readonly player: YouTubePlayerApi;
   private readonly duration: number;
   private timelineStart = 0;
-  private boundaryTimer?: ReturnType<typeof setTimeout>;
-  private readonly unregister: () => void;
+  private mode?: PlaybackMode;
+  private readonly unsubscribe: () => void;
 
   constructor({
     transport,
@@ -24,53 +23,51 @@ export class YouTubePlayerPlayback implements TransportParticipant {
     this.transport = transport;
     this.player = player;
     this.duration = duration;
-    this.unregister = transport.register(this);
+    this.unsubscribe = transport.store.subscribe(() => this.sync());
   }
 
   setTimelineStart(timelineStart: number): void {
     this.timelineStart = timelineStart;
-    const transport = this.transport.store.get();
-    this.reconcile(transport.position, transport.isPlaying);
-  }
-
-  start(): void {
-    this.reconcile(this.transport.store.get().position, true);
-  }
-
-  stop(): void {
-    this.reconcile(this.transport.store.get().position, false);
-  }
-
-  seek(): void {
-    this.reconcile(this.transport.store.get().position, false);
+    this.sync();
   }
 
   dispose(): void {
-    this.clearBoundaryTimer();
-    this.unregister();
+    this.unsubscribe();
+    this.player.pauseVideo();
   }
 
-  private reconcile(position: number, isPlaying: boolean): void {
-    this.clearBoundaryTimer();
-    const referencePosition = position - this.timelineStart;
-    if (referencePosition < 0) {
-      this.pause(0);
-      if (isPlaying) {
-        this.boundaryTimer = setTimeout(() => {
-          this.boundaryTimer = undefined;
-          this.play(0);
-        }, -referencePosition * 1000);
+  private sync(): void {
+    const transport = this.transport.store.get();
+    const referencePosition = transport.position - this.timelineStart;
+    if (!transport.isPlaying) {
+      this.mode = "paused";
+      this.pause(Math.min(this.duration, Math.max(0, referencePosition)));
+      return;
+    }
+
+    const mode: PlaybackMode =
+      referencePosition < 0
+        ? "before"
+        : referencePosition >= this.duration
+          ? "after"
+          : "playing";
+    if (mode === this.mode) {
+      return;
+    }
+    this.mode = mode;
+    switch (mode) {
+      case "before": {
+        this.pause(0);
+        break;
       }
-      return;
-    }
-    if (referencePosition >= this.duration) {
-      this.pause(this.duration);
-      return;
-    }
-    if (isPlaying) {
-      this.play(referencePosition);
-    } else {
-      this.pause(referencePosition);
+      case "playing": {
+        this.play(referencePosition);
+        break;
+      }
+      case "after": {
+        this.pause(this.duration);
+        break;
+      }
     }
   }
 
@@ -82,12 +79,5 @@ export class YouTubePlayerPlayback implements TransportParticipant {
   private pause(position: number): void {
     this.player.seekTo(position, true);
     this.player.pauseVideo();
-  }
-
-  private clearBoundaryTimer(): void {
-    if (this.boundaryTimer !== undefined) {
-      clearTimeout(this.boundaryTimer);
-      this.boundaryTimer = undefined;
-    }
   }
 }
