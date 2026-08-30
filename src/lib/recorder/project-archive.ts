@@ -170,7 +170,7 @@ function writeProjectPcm(
       bytes.set(
         new Uint8Array(channel.buffer, channel.byteOffset, channel.byteLength),
       );
-      zip.file(channelPath, bytes);
+      zip.file(channelPath, bytes, { compression: "STORE" });
       return channelPath;
     }),
   };
