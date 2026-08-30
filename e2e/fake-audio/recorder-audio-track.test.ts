@@ -79,6 +79,9 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
     )
     .toBe(true);
 
+  const ruler = page.getByTestId("recorder-timeline-ruler");
+  const initialRulerBox = await ruler.boundingBox();
+  expect(initialRulerBox).not.toBeNull();
   const tracksLabel = page.getByText("Tracks", { exact: true });
   const box = await tracksLabel.boundingBox();
   expect(box).not.toBeNull();
@@ -88,6 +91,22 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
   await expect
     .poll(() => trackScroll.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
+  await expect
+    .poll(() => ruler.evaluate((element) => element.getBoundingClientRect().y))
+    .toBeCloseTo(initialRulerBox!.y, 0);
+  await expect
+    .poll(() =>
+      ruler.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          document.elementFromPoint(
+            rect.x + rect.width / 2,
+            rect.y + rect.height / 2,
+          ) === element
+        );
+      }),
+    )
+    .toBe(true);
 });
 
 test("mixes recorder outputs in a floating panel", async ({ page }) => {
