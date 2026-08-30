@@ -63,6 +63,7 @@ test("uploads and plays a backing track", async ({ page }) => {
 });
 
 test("scrolls overflowing tracks from the track list", async ({ page }) => {
+  // Fill a short desktop viewport until the capture track sits below the fold.
   await page.setViewportSize({ width: 1280, height: 400 });
   await createRecorderProject(page);
 
@@ -73,6 +74,8 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
 
   const lastTrack = page.getByText("Capture", { exact: true });
   await expect(lastTrack).not.toBeInViewport();
+
+  // Scroll from the track list rather than panning the adjacent timeline.
   const ruler = page.getByTestId("recorder-timeline-ruler");
   const initialRulerBox = await ruler.boundingBox();
   expect(initialRulerBox).not.toBeNull();
@@ -82,6 +85,7 @@ test("scrolls overflowing tracks from the track list", async ({ page }) => {
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.wheel(0, 500);
 
+  // The final track becomes reachable while the timeline header stays on top.
   await expect(lastTrack).toBeInViewport();
   await expect
     .poll(() => ruler.evaluate((element) => element.getBoundingClientRect().y))
