@@ -14,11 +14,11 @@ export class YouTubePlayerPlayback {
   private readonly duration: number;
   private timelineStart = 0;
   private mode?: PlaybackMode;
+  private readonly unsubscribe: () => void;
   private readonly correctDriftThrottled = throttle(
     (expectedTime: number) => this.correctDrift(expectedTime),
     DRIFT_CHECK_INTERVAL_MS,
   );
-  private readonly unsubscribe: () => void;
 
   constructor({
     transport,
