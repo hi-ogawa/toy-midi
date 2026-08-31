@@ -1,8 +1,14 @@
 import { z } from "zod";
+import { MAX_PIXELS_PER_BEAT, MIN_PIXELS_PER_BEAT } from "../timeline.ts";
 
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
 const recorderPreferencesSchema = z.object({
+  timelinePixelsPerBeat: z
+    .number()
+    .min(MIN_PIXELS_PER_BEAT)
+    .max(MAX_PIXELS_PER_BEAT)
+    .optional(),
   input: z
     .object({
       deviceId: z.string(),
@@ -31,6 +37,10 @@ class RecorderStorage {
     } catch {
       // Storage can be disabled without preventing recording.
     }
+  }
+
+  updatePreferences(updates: Partial<RecorderPreferences>): void {
+    this.writePreferences({ ...this.readPreferences(), ...updates });
   }
 }
 
