@@ -4,6 +4,7 @@ export interface YouTubePlayerApi {
   mute(): void;
   unMute(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
+  getCurrentTime(): number;
   getDuration(): number;
   getVideoData(): { title?: string };
   destroy(): void;

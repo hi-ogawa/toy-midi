@@ -1,8 +1,12 @@
+import { throttle } from "../../utils/timing.ts";
 import { clamp } from "../music.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
 type PlaybackMode = "paused" | "before" | "playing" | "after";
+
+const DRIFT_CHECK_INTERVAL_SECONDS = 1;
+const DRIFT_TOLERANCE_SECONDS = 0.25;
 
 export class YouTubePlayerPlayback {
   private readonly transport: AudioContextTransport;
@@ -11,6 +15,10 @@ export class YouTubePlayerPlayback {
   private timelineStart = 0;
   private mode?: PlaybackMode;
   private readonly unsubscribe: () => void;
+  private readonly correctDriftThrottled = throttle(
+    (expectedTime: number) => this.correctDrift(expectedTime),
+    DRIFT_CHECK_INTERVAL_SECONDS * 1_000,
+  );
 
   constructor({
     transport,
@@ -29,6 +37,7 @@ export class YouTubePlayerPlayback {
 
   setTimelineStart(timelineStart: number): void {
     this.timelineStart = timelineStart;
+    this.mode = undefined;
     this.sync();
   }
 
@@ -53,6 +62,9 @@ export class YouTubePlayerPlayback {
           ? "after"
           : "playing";
     if (mode === this.mode) {
+      if (mode === "playing") {
+        this.correctDriftThrottled.run(expectedTime);
+      }
       return;
     }
     this.mode = mode;
@@ -72,12 +84,23 @@ export class YouTubePlayerPlayback {
     }
   }
 
+  private correctDrift(expectedTime: number): void {
+    if (
+      Math.abs(this.player.getCurrentTime() - expectedTime) >
+      DRIFT_TOLERANCE_SECONDS
+    ) {
+      this.player.seekTo(expectedTime, true);
+    }
+  }
+
   private play(position: number): void {
+    this.correctDriftThrottled.reset();
     this.player.seekTo(position, true);
     this.player.playVideo();
   }
 
   private pause(position: number): void {
+    this.correctDriftThrottled.reset();
     this.player.seekTo(position, true);
     this.player.pauseVideo();
   }
