@@ -5,7 +5,7 @@ import type { AudioContextTransport } from "./transport.ts";
 
 type PlaybackMode = "paused" | "before" | "playing" | "after";
 
-const DRIFT_CHECK_INTERVAL_MS = 1_000;
+const DRIFT_CHECK_INTERVAL_SECONDS = 1;
 const DRIFT_TOLERANCE_SECONDS = 0.25;
 
 export class YouTubePlayerPlayback {
@@ -17,7 +17,7 @@ export class YouTubePlayerPlayback {
   private readonly unsubscribe: () => void;
   private readonly correctDriftThrottled = throttle(
     (expectedTime: number) => this.correctDrift(expectedTime),
-    DRIFT_CHECK_INTERVAL_MS,
+    DRIFT_CHECK_INTERVAL_SECONDS * 1_000,
   );
 
   constructor({
