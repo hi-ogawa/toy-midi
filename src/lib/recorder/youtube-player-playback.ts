@@ -1,10 +1,11 @@
+import { throttle } from "../../utils/timing.ts";
 import { clamp } from "../music.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
 type PlaybackMode = "paused" | "before" | "playing" | "after";
 
-const DRIFT_CHECK_INTERVAL_SECONDS = 1;
+const DRIFT_CHECK_INTERVAL_MS = 1_000;
 const DRIFT_TOLERANCE_SECONDS = 0.25;
 
 export class YouTubePlayerPlayback {
@@ -13,7 +14,10 @@ export class YouTubePlayerPlayback {
   private readonly duration: number;
   private timelineStart = 0;
   private mode?: PlaybackMode;
-  private lastDriftCheckPosition?: number;
+  private readonly correctDriftThrottled = throttle(
+    (expectedTime: number) => this.correctDrift(expectedTime),
+    DRIFT_CHECK_INTERVAL_MS,
+  );
   private readonly unsubscribe: () => void;
 
   constructor({
@@ -33,7 +37,7 @@ export class YouTubePlayerPlayback {
 
   setTimelineStart(timelineStart: number): void {
     this.timelineStart = timelineStart;
-    this.lastDriftCheckPosition = this.transport.store.get().position;
+    this.mode = undefined;
     this.sync();
   }
 
@@ -47,7 +51,6 @@ export class YouTubePlayerPlayback {
     const expectedTime = transport.position - this.timelineStart;
     if (!transport.isPlaying) {
       this.mode = "paused";
-      this.lastDriftCheckPosition = transport.position;
       this.pause(clamp(expectedTime, 0, this.duration));
       return;
     }
@@ -60,15 +63,11 @@ export class YouTubePlayerPlayback {
           : "playing";
     if (mode === this.mode) {
       if (mode === "playing") {
-        this.correctDrift({
-          expectedTime,
-          transportPosition: transport.position,
-        });
+        this.correctDriftThrottled.run(expectedTime);
       }
       return;
     }
     this.mode = mode;
-    this.lastDriftCheckPosition = transport.position;
     switch (mode) {
       case "before": {
         this.pause(0);
@@ -85,21 +84,7 @@ export class YouTubePlayerPlayback {
     }
   }
 
-  private correctDrift({
-    expectedTime,
-    transportPosition,
-  }: {
-    expectedTime: number;
-    transportPosition: number;
-  }): void {
-    if (
-      this.lastDriftCheckPosition !== undefined &&
-      transportPosition - this.lastDriftCheckPosition <
-        DRIFT_CHECK_INTERVAL_SECONDS
-    ) {
-      return;
-    }
-    this.lastDriftCheckPosition = transportPosition;
+  private correctDrift(expectedTime: number): void {
     if (
       Math.abs(this.player.getCurrentTime() - expectedTime) >
       DRIFT_TOLERANCE_SECONDS
@@ -109,11 +94,13 @@ export class YouTubePlayerPlayback {
   }
 
   private play(position: number): void {
+    this.correctDriftThrottled.reset();
     this.player.seekTo(position, true);
     this.player.playVideo();
   }
 
   private pause(position: number): void {
+    this.correctDriftThrottled.reset();
     this.player.seekTo(position, true);
     this.player.pauseVideo();
   }
