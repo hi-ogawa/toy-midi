@@ -4,12 +4,16 @@ import type { AudioContextTransport } from "./transport.ts";
 
 type PlaybackMode = "paused" | "before" | "playing" | "after";
 
+const DRIFT_CHECK_INTERVAL_SECONDS = 1;
+const DRIFT_TOLERANCE_SECONDS = 0.25;
+
 export class YouTubePlayerPlayback {
   private readonly transport: AudioContextTransport;
   private readonly player: YouTubePlayerApi;
   private readonly duration: number;
   private timelineStart = 0;
   private mode?: PlaybackMode;
+  private lastDriftCheckPosition?: number;
   private readonly unsubscribe: () => void;
 
   constructor({
@@ -29,6 +33,7 @@ export class YouTubePlayerPlayback {
 
   setTimelineStart(timelineStart: number): void {
     this.timelineStart = timelineStart;
+    this.lastDriftCheckPosition = this.transport.store.get().position;
     this.sync();
   }
 
@@ -42,6 +47,7 @@ export class YouTubePlayerPlayback {
     const expectedTime = transport.position - this.timelineStart;
     if (!transport.isPlaying) {
       this.mode = "paused";
+      this.lastDriftCheckPosition = transport.position;
       this.pause(clamp(expectedTime, 0, this.duration));
       return;
     }
@@ -53,9 +59,16 @@ export class YouTubePlayerPlayback {
           ? "after"
           : "playing";
     if (mode === this.mode) {
+      if (mode === "playing") {
+        this.correctDrift({
+          expectedTime,
+          transportPosition: transport.position,
+        });
+      }
       return;
     }
     this.mode = mode;
+    this.lastDriftCheckPosition = transport.position;
     switch (mode) {
       case "before": {
         this.pause(0);
@@ -69,6 +82,29 @@ export class YouTubePlayerPlayback {
         this.pause(this.duration);
         break;
       }
+    }
+  }
+
+  private correctDrift({
+    expectedTime,
+    transportPosition,
+  }: {
+    expectedTime: number;
+    transportPosition: number;
+  }): void {
+    if (
+      this.lastDriftCheckPosition !== undefined &&
+      transportPosition - this.lastDriftCheckPosition <
+        DRIFT_CHECK_INTERVAL_SECONDS
+    ) {
+      return;
+    }
+    this.lastDriftCheckPosition = transportPosition;
+    if (
+      Math.abs(this.player.getCurrentTime() - expectedTime) >
+      DRIFT_TOLERANCE_SECONDS
+    ) {
+      this.player.seekTo(expectedTime, true);
     }
   }
 
