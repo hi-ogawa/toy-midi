@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { recorderStorage } from "../../lib/recorder/storage";
 import {
   DEFAULT_GRID_DIVISION,
-  DEFAULT_PIXELS_PER_BEAT,
   getBeatsPerBar,
   getSubdivisionsPerBeat,
   type GridDivision,
@@ -28,9 +27,7 @@ export function useRecorderTimeline({
   );
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [pixelsPerBeat, setPixelsPerBeat] = useState(
-    () =>
-      recorderStorage.readPreferences().timelinePixelsPerBeat ??
-      DEFAULT_PIXELS_PER_BEAT,
+    () => recorderStorage.readPreferences().timelinePixelsPerBeat,
   );
   const [viewportStartBeat, setViewportStartBeat] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);

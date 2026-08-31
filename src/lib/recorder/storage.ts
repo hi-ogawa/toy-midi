@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { MAX_PIXELS_PER_BEAT, MIN_PIXELS_PER_BEAT } from "../timeline.ts";
+import {
+  DEFAULT_PIXELS_PER_BEAT,
+  MAX_PIXELS_PER_BEAT,
+  MIN_PIXELS_PER_BEAT,
+} from "../timeline.ts";
 
 const PREFERENCES_KEY = "toy-midi:recorder-preferences";
 
@@ -7,8 +11,7 @@ const recorderPreferencesSchema = z.object({
   timelinePixelsPerBeat: z
     .number()
     .min(MIN_PIXELS_PER_BEAT)
-    .max(MAX_PIXELS_PER_BEAT)
-    .optional(),
+    .max(MAX_PIXELS_PER_BEAT),
   input: z
     .object({
       deviceId: z.string(),
@@ -19,13 +22,18 @@ const recorderPreferencesSchema = z.object({
 });
 type RecorderPreferences = z.infer<typeof recorderPreferencesSchema>;
 
-const DEFAULT_PREFERENCES: RecorderPreferences = {};
+const DEFAULT_PREFERENCES: RecorderPreferences = {
+  timelinePixelsPerBeat: DEFAULT_PIXELS_PER_BEAT,
+};
 
 class RecorderStorage {
   readPreferences(): RecorderPreferences {
     try {
       const stored = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? "{}");
-      return recorderPreferencesSchema.parse(stored);
+      return recorderPreferencesSchema.parse({
+        ...DEFAULT_PREFERENCES,
+        ...stored,
+      });
     } catch {
       return DEFAULT_PREFERENCES;
     }
