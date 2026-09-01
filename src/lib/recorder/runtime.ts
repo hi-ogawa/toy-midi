@@ -80,6 +80,7 @@ interface PendingRecordingState extends Pick<
   "id" | "number" | "duration" | "timelineOffset"
 > {
   recording: ActiveRecording;
+  punchRange?: { start: number; end: number };
 }
 
 export interface ReferenceVideoState {
@@ -651,12 +652,21 @@ export class RecorderRuntime {
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
-    const number = this.store.get().recordingTrack.nextTakeNumber;
+    const state = this.store.get();
+    const number = state.recordingTrack.nextTakeNumber;
+    const punchRange =
+      state.punch.enabled && state.punch.range
+        ? {
+            start: beatsToSeconds(state.punch.range.startBeat, state.tempo),
+            end: beatsToSeconds(state.punch.range.endBeat, state.tempo),
+          }
+        : undefined;
     const pendingRecording: PendingRecordingState = {
       id,
       number,
       duration: 0,
       timelineOffset,
+      punchRange,
       recording: new ActiveRecording({
         startFrame,
         sampleRate: context.sampleRate,
@@ -985,7 +995,21 @@ export class RecorderRuntime {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
-    if (!samples) {
+    const slice = samples
+      ? sliceRecordingSamples({
+          samples,
+          sampleRate: context.sampleRate,
+          trim: deriveRecordingTrim({
+            duration: samples.length / context.sampleRate,
+            timelineOffset: pendingRecording.timelineOffset,
+            punchRange: pendingRecording.punchRange,
+          }),
+        })
+      : undefined;
+    if (
+      !slice ||
+      slice.samples.length < MIN_TAKE_DURATION * context.sampleRate
+    ) {
       this.store.update({
         captureStatus: "ready",
         pendingRecording: undefined,
@@ -996,10 +1020,11 @@ export class RecorderRuntime {
     }
     const takeBuffer = context.createBuffer(
       1,
-      samples.length,
+      slice.samples.length,
       context.sampleRate,
     );
-    takeBuffer.getChannelData(0).set(samples);
+    takeBuffer.getChannelData(0).set(slice.samples);
+    const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -1019,8 +1044,12 @@ export class RecorderRuntime {
             duration: takeBuffer.duration,
             trimStart: 0,
             trimEnd: takeBuffer.duration,
-            timelineOffset: pendingRecording.timelineOffset,
-            audioView: pendingRecording.recording.getAudioView(),
+            timelineOffset,
+            audioView: createAudioView(
+              slice.samples,
+              context.sampleRate,
+              WAVEFORM_POINTS_PER_SECOND,
+            ),
           },
         ],
       },
@@ -1089,16 +1118,55 @@ function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
 function pendingRecordingToTake(
   pendingRecording: PendingRecordingState,
 ): TakeState {
+  const trim = deriveRecordingTrim({
+    duration: pendingRecording.duration,
+    timelineOffset: pendingRecording.timelineOffset,
+    punchRange: pendingRecording.punchRange,
+  });
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
     muted: false,
     soloed: false,
     duration: pendingRecording.duration,
-    trimStart: 0,
-    trimEnd: pendingRecording.duration,
+    ...trim,
     timelineOffset: pendingRecording.timelineOffset,
     audioView: pendingRecording.recording.getAudioView(),
+  };
+}
+
+function deriveRecordingTrim({
+  duration,
+  timelineOffset,
+  punchRange,
+}: {
+  duration: number;
+  timelineOffset: number;
+  punchRange?: { start: number; end: number };
+}): { trimStart: number; trimEnd: number } {
+  if (!punchRange) {
+    return { trimStart: 0, trimEnd: duration };
+  }
+  return {
+    trimStart: Math.max(0, punchRange.start - timelineOffset),
+    trimEnd: Math.min(duration, punchRange.end - timelineOffset),
+  };
+}
+
+function sliceRecordingSamples({
+  samples,
+  sampleRate,
+  trim,
+}: {
+  samples: Float32Array;
+  sampleRate: number;
+  trim: { trimStart: number; trimEnd: number };
+}): { samples: Float32Array; startOffset: number } {
+  const sampleStart = Math.round(trim.trimStart * sampleRate);
+  const sampleEnd = Math.round(trim.trimEnd * sampleRate);
+  return {
+    samples: samples.slice(sampleStart, sampleEnd),
+    startOffset: sampleStart / sampleRate,
   };
 }
 

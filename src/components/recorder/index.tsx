@@ -238,6 +238,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-30 overflow-hidden">
                 <div
+                  data-testid="recorder-playhead"
                   className="absolute inset-y-0 w-px bg-sky-400"
                   style={{ left: timeline.playheadX }}
                 />
