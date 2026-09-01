@@ -234,8 +234,6 @@ function LoopRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
       const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       const startBeat = Math.max(0, data.startBeat + delta);
@@ -251,8 +249,6 @@ function LoopRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
       const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
@@ -271,8 +267,6 @@ function LoopRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
       const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
