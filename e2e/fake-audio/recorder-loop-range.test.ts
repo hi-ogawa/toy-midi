@@ -23,11 +23,17 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect
-    .poll(async () => position.textContent())
-    .toMatch(/^01\|0[1-4] - 00:0[0-2]\./);
+    .poll(async () => position.textContent(), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toMatch(/^01\|0[34] /);
   await expect
-    .poll(async () => position.textContent())
-    .toMatch(/^01\|01 - 00:00\./);
+    .poll(async () => position.textContent(), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toMatch(/^01\|0[12] /);
   await playButton.click();
 
   // The range can be repositioned directly on the timeline ruler.
