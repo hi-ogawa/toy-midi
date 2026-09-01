@@ -10,13 +10,19 @@ test("snaps recorder timeline seeking to the selected grid", async ({
 }) => {
   await createRecorderProject(page);
 
+  const pixelsPerBeat = 80;
   const position = page.getByTestId("recorder-position");
-  await seekRecorderByPixels(page, 75);
+
+  // The default 1/16 grid has four subdivisions per beat. Clicking at 0.9375
+  // beats is closer to beat 1 than its adjacent 0.75-beat grid point.
+  await seekRecorderByPixels(page, pixelsPerBeat * 0.9375);
   await expect(position).toHaveText("01|02 - 00:00.500");
 
+  // On the 1/4 grid, the same kind of click before the half-beat threshold
+  // rounds back to beat 0 rather than seeking to the raw pointer position.
   await page.getByRole("button", { name: "1/16" }).click();
   await page.getByRole("menuitemradio", { name: "1/4" }).click();
-  await seekRecorderByPixels(page, 35);
+  await seekRecorderByPixels(page, pixelsPerBeat * 0.4375);
   await expect(position).toHaveText("01|01 - 00:00.000");
 });
 
