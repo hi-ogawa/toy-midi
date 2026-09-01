@@ -52,7 +52,6 @@ export function TimelineHeader({
   onAddAudioFile,
   onSeek,
   loop,
-  loopEditingDisabled,
   onLoopRangeChange,
   onLoopRangeClear,
 }: {
@@ -67,7 +66,6 @@ export function TimelineHeader({
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
-  loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
 }) {
@@ -116,7 +114,6 @@ export function TimelineHeader({
         timelineWidth={timelineWidth}
         onSeek={onSeek}
         loop={loop}
-        loopEditingDisabled={loopEditingDisabled}
         onLoopRangeChange={onLoopRangeChange}
         onLoopRangeClear={onLoopRangeClear}
       />
@@ -133,7 +130,6 @@ function TimelineRuler({
   timelineWidth,
   onSeek,
   loop,
-  loopEditingDisabled,
   onLoopRangeChange,
   onLoopRangeClear,
 }: {
@@ -145,7 +141,6 @@ function TimelineRuler({
   timelineWidth: number;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
-  loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
 }) {
@@ -184,7 +179,6 @@ function TimelineRuler({
         <LoopRange
           range={loop.range}
           enabled={loop.enabled}
-          disabled={loopEditingDisabled}
           pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
           viewportStartBeat={viewportStartBeat}
@@ -211,7 +205,6 @@ function TimelineRuler({
 function LoopRange({
   range,
   enabled,
-  disabled,
   pixelsPerBeat,
   subdivisionsPerBeat,
   viewportStartBeat,
@@ -220,7 +213,6 @@ function LoopRange({
 }: {
   range: RecorderLoopRange;
   enabled: boolean;
-  disabled: boolean;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
@@ -283,9 +275,7 @@ function LoopRange({
         enabled
           ? "border-violet-300 bg-violet-400/20 text-violet-100"
           : "border-violet-400/70 bg-violet-400/10 text-violet-300",
-        disabled
-          ? "cursor-default opacity-60"
-          : "cursor-grab active:cursor-grabbing",
+        "cursor-grab active:cursor-grabbing",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
@@ -295,31 +285,27 @@ function LoopRange({
       <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
         Loop
       </span>
-      {!disabled && (
-        <>
-          <div ref={dragRef} className="absolute inset-0" />
-          <div
-            ref={startRef}
-            className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
-          />
-          <div
-            ref={endRef}
-            className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
-          />
-          <button
-            type="button"
-            title="Clear loop range"
-            data-testid="recorder-loop-clear"
-            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
-            onClick={(event) => {
-              event.stopPropagation();
-              onClear();
-            }}
-          >
-            <XIcon className="size-3" />
-          </button>
-        </>
-      )}
+      <div ref={dragRef} className="absolute inset-0" />
+      <div
+        ref={startRef}
+        className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+      />
+      <div
+        ref={endRef}
+        className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+      />
+      <button
+        type="button"
+        title="Clear loop range"
+        data-testid="recorder-loop-clear"
+        className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClear();
+        }}
+      >
+        <XIcon className="size-3" />
+      </button>
     </div>
   );
 }

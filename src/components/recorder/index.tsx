@@ -273,7 +273,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
               loop={state.loop}
-              loopEditingDisabled={isRecording || isProcessing}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
               onLoopRangeClear={() =>
                 runtime.setLoop({ range: undefined, enabled: false })
