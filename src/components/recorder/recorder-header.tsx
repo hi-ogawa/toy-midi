@@ -105,8 +105,6 @@ export function RecorderHeader({
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
-  const { enabled: loopEnabled, range: loopRange } = loop;
-  const beatsPerBar = getBeatsPerBar(timeSignature);
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -165,26 +163,25 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-loop-toggle"
         onClick={() => {
-          const enabled = !loopEnabled;
-          const startBeat = Math.max(
-            0,
+          const enabled = !loop.enabled;
+          const beatsPerBar = getBeatsPerBar(timeSignature);
+          const startBeat =
             Math.floor(secondsToBeats(position, tempo) / beatsPerBar) *
-              beatsPerBar,
-          );
+            beatsPerBar;
           onLoopChange({
             enabled,
             range:
-              loopRange ??
+              loop.range ??
               (enabled
                 ? { startBeat, endBeat: startBeat + beatsPerBar }
                 : undefined),
           });
         }}
-        aria-pressed={loopEnabled}
-        title={loopRange ? "Toggle loop playback" : "Create loop range"}
+        aria-pressed={loop.enabled}
+        title={loop.range ? "Toggle loop playback" : "Create loop range"}
         className={cn(
           "size-9",
-          loopEnabled
+          loop.enabled
             ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
