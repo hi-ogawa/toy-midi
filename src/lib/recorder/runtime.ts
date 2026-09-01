@@ -54,6 +54,11 @@ interface RecordingTrackState {
   nextTakeNumber: number;
 }
 
+export interface PunchRange {
+  startBeat: number;
+  endBeat: number;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -77,6 +82,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  punchRange?: PunchRange;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -100,6 +106,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
+  | "punchRange"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -677,6 +684,22 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
+  setPunchRange(punchRange: PunchRange): void {
+    if (
+      !Number.isFinite(punchRange.startBeat) ||
+      !Number.isFinite(punchRange.endBeat) ||
+      punchRange.startBeat < 0 ||
+      punchRange.endBeat <= punchRange.startBeat
+    ) {
+      throw new Error("Punch range is invalid.");
+    }
+    this.store.update({ punchRange });
+  }
+
+  clearPunchRange(): void {
+    this.store.update({ punchRange: undefined });
+  }
+
   setMetronomeGain(metronomeGain: number): void {
     this.store.update({ metronomeGain });
     this.syncMetronomeGain();
@@ -866,6 +889,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
+          punchRange: state.punchRange,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,

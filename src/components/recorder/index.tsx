@@ -10,6 +10,7 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
+import { secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -197,6 +198,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
+        punchEnabled={state.punchRange !== undefined}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -211,6 +213,20 @@ export function Recorder({ projectId }: { projectId: string }) {
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
+        onPunchEnabledChange={(enabled) => {
+          if (!enabled) {
+            runtime.clearPunchRange();
+            return;
+          }
+          const positionBeat = secondsToBeats(state.position, state.tempo);
+          const startBeat =
+            Math.floor(positionBeat / timeline.beatsPerBar) *
+            timeline.beatsPerBar;
+          runtime.setPunchRange({
+            startBeat,
+            endBeat: startBeat + timeline.beatsPerBar,
+          });
+        }}
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
@@ -246,10 +262,14 @@ export function Recorder({ projectId }: { projectId: string }) {
               viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
+              punchRange={state.punchRange}
               isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
+              onPunchRangeChange={(punchRange) =>
+                runtime.setPunchRange(punchRange)
+              }
             />
             {state.referenceVideo && (
               <ReferenceTimelineRow

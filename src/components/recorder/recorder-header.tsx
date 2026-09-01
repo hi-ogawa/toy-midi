@@ -11,6 +11,7 @@ import {
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
+  Repeat2Icon,
   SaveCheckIcon,
   SaveIcon,
   VideoIcon,
@@ -48,6 +49,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
+  punchEnabled,
   position,
   tempo,
   timeSignature,
@@ -61,6 +63,7 @@ export function RecorderHeader({
   onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
+  onPunchEnabledChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -76,6 +79,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
+  punchEnabled: boolean;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -89,6 +93,7 @@ export function RecorderHeader({
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
+  onPunchEnabledChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -177,6 +182,21 @@ export function RecorderHeader({
         )}
       >
         <LocateFixedIcon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-punch-toggle"
+        onClick={() => onPunchEnabledChange(!punchEnabled)}
+        aria-pressed={punchEnabled}
+        title="Toggle punch range"
+        className={cn(
+          "h-9 gap-1.5 px-2.5 text-xs font-medium",
+          punchEnabled
+            ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/25"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <Repeat2Icon className="size-4" />
+        Punch
       </Button>
       <output
         data-testid="recorder-position"

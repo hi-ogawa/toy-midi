@@ -10,6 +10,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import type {
+  PunchRange,
   RecorderRuntimeState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
@@ -47,6 +48,8 @@ export function TimelineHeader({
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
+  punchRange,
+  onPunchRangeChange,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -58,6 +61,8 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
+  punchRange?: PunchRange;
+  onPunchRangeChange: (range: PunchRange) => void;
 }) {
   return (
     <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -103,6 +108,8 @@ export function TimelineHeader({
         subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
+        punchRange={punchRange}
+        onPunchRangeChange={onPunchRangeChange}
       />
     </div>
   );
@@ -116,6 +123,8 @@ function TimelineRuler({
   subdivisionsPerBeat,
   timelineWidth,
   onSeek,
+  punchRange,
+  onPunchRangeChange,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -124,6 +133,8 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
+  punchRange?: PunchRange;
+  onPunchRangeChange: (range: PunchRange) => void;
 }) {
   const labelEveryBars = getVisibleBarInterval({
     barWidth: beatsPerBar * pixelsPerBeat,
@@ -137,6 +148,62 @@ function TimelineRuler({
     Math.ceil(
       (viewportStartBeat + visibleBeats - firstLabelBeat) / labelEveryBeats,
     ) + 1;
+  const snapBeat = (beat: number) =>
+    Math.round(beat * subdivisionsPerBeat) / subdivisionsPerBeat;
+  const rangeRef = usePointerDrag({
+    onStart: (event) => ({
+      startX: event.clientX,
+      range: punchRange!,
+    }),
+    onMove: (event, drag) => {
+      const duration = drag.range.endBeat - drag.range.startBeat;
+      const startBeat = Math.max(
+        0,
+        snapBeat(
+          drag.range.startBeat + (event.clientX - drag.startX) / pixelsPerBeat,
+        ),
+      );
+      onPunchRangeChange({ startBeat, endBeat: startBeat + duration });
+    },
+  });
+  const startRef = usePointerDrag({
+    onStart: (event) => ({
+      range: punchRange!,
+      ruler: (event.currentTarget as HTMLElement).parentElement!,
+    }),
+    onMove: (event, drag) => {
+      const rect = drag.ruler.getBoundingClientRect();
+      const startBeat = Math.max(
+        0,
+        snapBeat(
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        ),
+      );
+      onPunchRangeChange({
+        startBeat: Math.min(
+          startBeat,
+          drag.range.endBeat - 1 / subdivisionsPerBeat,
+        ),
+        endBeat: drag.range.endBeat,
+      });
+    },
+  });
+  const endRef = usePointerDrag({
+    onStart: (event) => ({
+      range: punchRange!,
+      ruler: (event.currentTarget as HTMLElement).parentElement!,
+    }),
+    onMove: (event, drag) => {
+      const rect = drag.ruler.getBoundingClientRect();
+      const endBeat = Math.max(
+        drag.range.startBeat + 1 / subdivisionsPerBeat,
+        snapBeat(
+          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        ),
+      );
+      onPunchRangeChange({ startBeat: drag.range.startBeat, endBeat });
+    },
+  });
   return (
     <div
       data-testid="recorder-timeline-ruler"
@@ -156,6 +223,34 @@ function TimelineRuler({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
+      {punchRange && (
+        <div
+          data-testid="recorder-punch-range"
+          ref={rangeRef}
+          className="absolute inset-y-0 cursor-grab border-x border-amber-400 bg-amber-400/20 text-amber-200 active:cursor-grabbing"
+          style={{
+            left: (punchRange.startBeat - viewportStartBeat) * pixelsPerBeat,
+            width: (punchRange.endBeat - punchRange.startBeat) * pixelsPerBeat,
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div
+            ref={startRef}
+            data-testid="recorder-punch-start"
+            className="absolute inset-y-0 left-0 w-2 -translate-x-1/2 cursor-ew-resize bg-amber-400"
+          />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="rounded bg-neutral-900/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+              Punch
+            </span>
+          </div>
+          <div
+            ref={endRef}
+            data-testid="recorder-punch-end"
+            className="absolute inset-y-0 right-0 w-2 translate-x-1/2 cursor-ew-resize bg-amber-400"
+          />
+        </div>
+      )}
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
         const beat = firstLabelBeat + index * labelEveryBeats;
         return (
