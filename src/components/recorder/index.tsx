@@ -10,7 +10,6 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
-import { secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -198,6 +197,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
+        loop={state.loop}
         punch={state.punch}
         position={state.position}
         tempo={timeline.tempo}
@@ -213,23 +213,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onPunchEnabledChange={(enabled) => {
-          const positionBeat = secondsToBeats(state.position, state.tempo);
-          const startBeat =
-            Math.floor(positionBeat / timeline.beatsPerBar) *
-            timeline.beatsPerBar;
-          runtime.setPunch({
-            enabled,
-            range:
-              state.punch.range ??
-              (enabled
-                ? {
-                    startBeat,
-                    endBeat: startBeat + timeline.beatsPerBar,
-                  }
-                : undefined),
-          });
-        }}
+        onLoopChange={(update) => runtime.setLoop(update)}
+        onPunchChange={(update) => runtime.setPunch(update)}
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
@@ -265,12 +250,16 @@ export function Recorder({ projectId }: { projectId: string }) {
               viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
-              punch={state.punch}
-              punchEditingDisabled={isRecording || isProcessing}
               isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
+              loop={state.loop}
+              punch={state.punch}
+              onLoopRangeChange={(range) => runtime.setLoop({ range })}
+              onLoopRangeClear={() =>
+                runtime.setLoop({ range: undefined, enabled: false })
+              }
               onPunchRangeChange={(range) => runtime.setPunch({ range })}
               onPunchRangeClear={() =>
                 runtime.setPunch({ range: undefined, enabled: false })

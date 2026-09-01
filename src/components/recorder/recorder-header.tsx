@@ -7,11 +7,11 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
+  Repeat2Icon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
   PlayIcon,
-  Repeat2Icon,
   SaveCheckIcon,
   SaveIcon,
   VideoIcon,
@@ -19,11 +19,17 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
-import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import { snapToGrid } from "../../lib/music";
+import type {
+  RecorderLoopState,
+  RecorderPunchState,
+} from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   formatBarBeatAtTime,
+  getBeatsPerBar,
+  secondsToBeats,
   type GridDivision,
   GRID_DIVISIONS,
 } from "../../lib/timeline";
@@ -50,6 +56,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
+  loop,
   punch,
   position,
   tempo,
@@ -64,7 +71,8 @@ export function RecorderHeader({
   onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
-  onPunchEnabledChange,
+  onLoopChange,
+  onPunchChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -80,7 +88,8 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
-  punch: RecorderRuntimeState["punch"];
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -94,7 +103,8 @@ export function RecorderHeader({
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
-  onPunchEnabledChange: (enabled: boolean) => void;
+  onLoopChange: (update: Partial<RecorderLoopState>) => void;
+  onPunchChange: (update: Partial<RecorderPunchState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -103,7 +113,6 @@ export function RecorderHeader({
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
-  const { enabled: punchEnabled, range: punchRange } = punch;
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -160,6 +169,66 @@ export function RecorderHeader({
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
       <Button
+        data-testid="recorder-loop-toggle"
+        onClick={() => {
+          const enabled = !loop.enabled;
+          const beatsPerBar = getBeatsPerBar(timeSignature);
+          const startBeat = snapToGrid(
+            secondsToBeats(position, tempo),
+            beatsPerBar,
+            { floor: true },
+          );
+          onLoopChange({
+            enabled,
+            range:
+              loop.range ??
+              (enabled
+                ? { startBeat, endBeat: startBeat + beatsPerBar }
+                : undefined),
+          });
+        }}
+        aria-pressed={loop.enabled}
+        title={loop.range ? "Toggle loop playback" : "Create loop range"}
+        className={cn(
+          "size-9",
+          loop.enabled
+            ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <Repeat2Icon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-punch-toggle"
+        onClick={() => {
+          const enabled = !punch.enabled;
+          const beatsPerBar = getBeatsPerBar(timeSignature);
+          const startBeat = snapToGrid(
+            secondsToBeats(position, tempo),
+            beatsPerBar,
+            { floor: true },
+          );
+          onPunchChange({
+            enabled,
+            range:
+              punch.range ??
+              (enabled
+                ? { startBeat, endBeat: startBeat + beatsPerBar }
+                : undefined),
+          });
+        }}
+        aria-pressed={punch.enabled}
+        title={punch.range ? "Toggle punch recording" : "Create punch range"}
+        className={cn(
+          "h-9 gap-1.5 px-2.5 text-xs font-medium",
+          punch.enabled
+            ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/25"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        Punch
+      </Button>
+      <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
         title="Toggle metronome (M)"
@@ -184,21 +253,6 @@ export function RecorderHeader({
         )}
       >
         <LocateFixedIcon className="size-5" />
-      </Button>
-      <Button
-        data-testid="recorder-punch-toggle"
-        onClick={() => onPunchEnabledChange(!punchEnabled)}
-        aria-pressed={punchEnabled}
-        title={punchRange ? "Toggle punch recording" : "Create punch range"}
-        className={cn(
-          "h-9 gap-1.5 px-2.5 text-xs font-medium",
-          punchEnabled
-            ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/25"
-            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
-        )}
-      >
-        <Repeat2Icon className="size-4" />
-        Punch
       </Button>
       <output
         data-testid="recorder-position"
