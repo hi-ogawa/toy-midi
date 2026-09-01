@@ -995,7 +995,7 @@ export class RecorderRuntime {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
-    const take = samples
+    const slice = samples
       ? sliceRecordingSamples({
           samples,
           sampleRate: context.sampleRate,
@@ -1006,7 +1006,10 @@ export class RecorderRuntime {
           }),
         })
       : undefined;
-    if (!take || take.samples.length < MIN_TAKE_DURATION * context.sampleRate) {
+    if (
+      !slice ||
+      slice.samples.length < MIN_TAKE_DURATION * context.sampleRate
+    ) {
       this.store.update({
         captureStatus: "ready",
         pendingRecording: undefined,
@@ -1017,11 +1020,11 @@ export class RecorderRuntime {
     }
     const takeBuffer = context.createBuffer(
       1,
-      take.samples.length,
+      slice.samples.length,
       context.sampleRate,
     );
-    takeBuffer.getChannelData(0).set(take.samples);
-    const timelineOffset = pendingRecording.timelineOffset + take.startOffset;
+    takeBuffer.getChannelData(0).set(slice.samples);
+    const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -1043,7 +1046,7 @@ export class RecorderRuntime {
             trimEnd: takeBuffer.duration,
             timelineOffset,
             audioView: createAudioView(
-              take.samples,
+              slice.samples,
               context.sampleRate,
               WAVEFORM_POINTS_PER_SECOND,
             ),
