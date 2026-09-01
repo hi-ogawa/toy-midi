@@ -1,24 +1,6 @@
 import { AudioViewBuilder, type AudioView } from "../audio-view.ts";
 import type { CaptureChunk } from "./capture-worklet.ts";
 
-export function deriveRecordingTrim({
-  duration,
-  timelineOffset,
-  punchRange,
-}: {
-  duration: number;
-  timelineOffset: number;
-  punchRange?: { start: number; end: number };
-}): { trimStart: number; trimEnd: number } {
-  if (!punchRange) {
-    return { trimStart: 0, trimEnd: duration };
-  }
-  return {
-    trimStart: Math.max(0, punchRange.start - timelineOffset),
-    trimEnd: Math.min(duration, punchRange.end - timelineOffset),
-  };
-}
-
 export class ActiveRecording {
   private readonly chunks: CaptureChunk[] = [];
   private readonly audioViewBuilder: AudioViewBuilder;

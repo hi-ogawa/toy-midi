@@ -12,7 +12,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { ActiveRecording, deriveRecordingTrim } from "./recording.ts";
+import { ActiveRecording } from "./recording.ts";
 import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -1126,6 +1126,24 @@ function pendingRecordingToTake(
     ...trim,
     timelineOffset: pendingRecording.timelineOffset,
     audioView: pendingRecording.recording.getAudioView(),
+  };
+}
+
+function deriveRecordingTrim({
+  duration,
+  timelineOffset,
+  punchRange,
+}: {
+  duration: number;
+  timelineOffset: number;
+  punchRange?: { start: number; end: number };
+}): { trimStart: number; trimEnd: number } {
+  if (!punchRange) {
+    return { trimStart: 0, trimEnd: duration };
+  }
+  return {
+    trimStart: Math.max(0, punchRange.start - timelineOffset),
+    trimEnd: Math.min(duration, punchRange.end - timelineOffset),
   };
 }
 
