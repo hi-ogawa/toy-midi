@@ -9,6 +9,7 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
+import { snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntimeState,
   ReferenceVideoState,
@@ -741,11 +742,11 @@ function getTimelineSurfaceProps({
     }),
     onPointerDown: (event) => {
       const rect = event.currentTarget.getBoundingClientRect();
-      const beat = Math.max(
-        0,
+      const beat = snapToGrid(
         (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        1 / subdivisionsPerBeat,
       );
-      onSeek(beatsToSeconds(beat, tempo));
+      onSeek(beatsToSeconds(Math.max(0, beat), tempo));
     },
   };
 }
