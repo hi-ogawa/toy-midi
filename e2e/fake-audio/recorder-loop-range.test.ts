@@ -15,6 +15,18 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   const initialBox = await range.boundingBox();
   expect(initialBox).not.toBeNull();
 
+  const playButton = page.getByTestId("recorder-play-button");
+  const position = page.getByTestId("recorder-position");
+  await playButton.click();
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(async () => position.textContent())
+    .toMatch(/^01\|0[1-4] - 00:0[0-2]\./);
+  await expect
+    .poll(async () => position.textContent())
+    .toMatch(/^01\|01 - 00:00\./);
+  await playButton.click();
+
   await dragBy(page, range, 80, { anchorXOffset: initialBox!.width / 2 });
   const movedBox = await range.boundingBox();
   expect(movedBox).not.toBeNull();

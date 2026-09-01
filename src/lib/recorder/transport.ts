@@ -20,6 +20,11 @@ type PlaybackAnchor = {
   position: number;
 };
 
+type LoopRange = {
+  start: number;
+  end: number;
+};
+
 /**
  * Owns recorder position and synchronizes registered playback objects to one
  * AudioContext timeline.
@@ -38,6 +43,7 @@ export class AudioContextTransport {
   playbackAnchor?: PlaybackAnchor;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
+  private loopRange?: LoopRange;
 
   constructor(readonly context: AudioContext) {}
 
@@ -55,13 +61,9 @@ export class AudioContextTransport {
     if (this.store.get().isPlaying) {
       return;
     }
-    this.playbackAnchor = {
-      contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
-      position: this.store.get().position,
-    };
-    for (const participant of this.participants) {
-      participant.start();
-    }
+    const position = this.normalizeLoopPosition(this.store.get().position);
+    this.store.update({ position });
+    this.startParticipants(position);
     this.store.update({ isPlaying: true });
     this.startTicking();
   }
@@ -93,6 +95,17 @@ export class AudioContextTransport {
     }
   }
 
+  setLoopRange(loopRange?: LoopRange): void {
+    this.loopRange = loopRange;
+    if (
+      loopRange &&
+      this.store.get().isPlaying &&
+      this.getPublishedPlaybackPosition() >= loopRange.end
+    ) {
+      this.restartParticipants(loopRange.start);
+    }
+  }
+
   /**
    * Converts an absolute AudioContext time to published playback position while
    * excluding the scheduling lead before the playback anchor.
@@ -120,10 +133,40 @@ export class AudioContextTransport {
       return;
     }
     this.disposeTicking = startAnimationFrameLoop(() => {
+      const position = this.getPublishedPlaybackPosition();
+      if (this.loopRange && position >= this.loopRange.end) {
+        this.restartParticipants(this.loopRange.start);
+        return;
+      }
       this.store.update({
-        position: this.getPublishedPlaybackPosition(),
+        position,
       });
     });
+  }
+
+  private normalizeLoopPosition(position: number): number {
+    if (this.loopRange && position >= this.loopRange.end) {
+      return this.loopRange.start;
+    }
+    return position;
+  }
+
+  private restartParticipants(position: number): void {
+    for (const participant of this.participants) {
+      participant.stop();
+    }
+    this.startParticipants(position);
+    this.store.update({ position });
+  }
+
+  private startParticipants(position: number): void {
+    this.playbackAnchor = {
+      contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
+      position,
+    };
+    for (const participant of this.participants) {
+      participant.start();
+    }
   }
 
   /** Stops publishing position updates. */
