@@ -995,7 +995,18 @@ export class RecorderRuntime {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
-    if (!samples) {
+    const take = samples
+      ? sliceRecordingSamples({
+          samples,
+          sampleRate: context.sampleRate,
+          trim: deriveRecordingTrim({
+            duration: samples.length / context.sampleRate,
+            timelineOffset: pendingRecording.timelineOffset,
+            punchRange: pendingRecording.punchRange,
+          }),
+        })
+      : undefined;
+    if (!take || take.samples.length < MIN_TAKE_DURATION * context.sampleRate) {
       this.store.update({
         captureStatus: "ready",
         pendingRecording: undefined,
@@ -1004,25 +1015,7 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const trim = deriveRecordingTrim({
-      duration: samples.length / context.sampleRate,
-      timelineOffset: pendingRecording.timelineOffset,
-      punchRange: pendingRecording.punchRange,
-    });
-    if (trim.trimEnd - trim.trimStart < MIN_TAKE_DURATION) {
-      this.store.update({
-        captureStatus: "ready",
-        pendingRecording: undefined,
-        previewTakeRegions: undefined,
-      });
-      this.syncTrackMix();
-      return;
-    }
-    const { samples: takeSamples, startOffset } = sliceRecordingSamples({
-      samples,
-      sampleRate: context.sampleRate,
-      trim,
-    });
+    const { samples: takeSamples, startOffset } = take;
     const takeBuffer = context.createBuffer(
       1,
       takeSamples.length,
