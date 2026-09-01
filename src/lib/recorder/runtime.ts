@@ -2,6 +2,7 @@ import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { clamp } from "../music.ts";
+import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -674,6 +675,7 @@ export class RecorderRuntime {
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome?.setTempo(tempo);
+    this.syncLoopRange();
   }
 
   setMasterGain(masterGain: number): void {
@@ -699,6 +701,7 @@ export class RecorderRuntime {
     this.store.update({
       loop: { ...this.store.get().loop, ...update },
     });
+    this.syncLoopRange();
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
@@ -871,6 +874,7 @@ export class RecorderRuntime {
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
+    this.syncLoopRange();
     this.masterOutput!.gain.value = project.masterGain;
     this.syncMetronomeGain();
     this.syncTrackMix();
@@ -907,6 +911,7 @@ export class RecorderRuntime {
       this.syncMetronomeGain();
       this.metronome.setTempo(this.store.get().tempo);
       this.metronome.setTimeSignature(this.store.get().timeSignature);
+      this.syncLoopRange();
       this.transport.store.subscribe(() => {
         const { position, isPlaying } = this.transport!.store.get();
         this.store.update({ isPlaying, position });
@@ -938,6 +943,19 @@ export class RecorderRuntime {
   private syncMetronomeGain(): void {
     const state = this.store.get();
     this.metronome?.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
+  }
+
+  private syncLoopRange(): void {
+    const state = this.store.get();
+    const loopRange = state.loop.enabled ? state.loop.range : undefined;
+    this.transport?.setLoopRange(
+      loopRange
+        ? {
+            start: beatsToSeconds(loopRange.startBeat, state.tempo),
+            end: beatsToSeconds(loopRange.endBeat, state.tempo),
+          }
+        : undefined,
+    );
   }
 
   private finishRecording(stopFrame: number): void {

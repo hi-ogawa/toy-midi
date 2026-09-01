@@ -17,6 +17,25 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   const initialBox = await range.boundingBox();
   assert(initialBox);
 
+  // Enabled playback returns to loop-in after reaching the end of the range.
+  const playButton = page.getByTestId("recorder-play-button");
+  const position = page.getByTestId("recorder-position");
+  await playButton.click();
+  await expect(playButton).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(async () => position.textContent(), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toMatch(/^01\|0[34] /);
+  await expect
+    .poll(async () => position.textContent(), {
+      intervals: [50],
+      timeout: 1_500,
+    })
+    .toMatch(/^01\|0[12] /);
+  await playButton.click();
+
   // The range can be repositioned directly on the timeline ruler.
   await dragBy(page, range, 80);
   const movedBox = await range.boundingBox();
