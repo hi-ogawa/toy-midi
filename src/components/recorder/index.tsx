@@ -10,7 +10,6 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
-import { secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -198,8 +197,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
-        loopEnabled={state.loopEnabled}
-        loopAvailable={Boolean(state.loopRange)}
+        loop={state.loop}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -214,22 +212,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onLoopEnabledChange={(enabled) => {
-          if (enabled && !state.loopRange) {
-            const startBeat = Math.max(
-              0,
-              Math.floor(
-                secondsToBeats(state.position, state.tempo) /
-                  timeline.beatsPerBar,
-              ) * timeline.beatsPerBar,
-            );
-            runtime.setLoopRange({
-              startBeat,
-              endBeat: startBeat + timeline.beatsPerBar,
-            });
-          }
-          runtime.setLoopEnabled(enabled);
-        }}
+        onLoopChange={(update) => runtime.setLoop(update)}
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
@@ -269,11 +252,11 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
-              loopRange={state.loopRange}
-              loopEnabled={state.loopEnabled}
-              loopEditingDisabled={isRecording || isProcessing}
-              onLoopRangeChange={(range) => runtime.setLoopRange(range)}
-              onLoopRangeClear={() => runtime.clearLoopRange()}
+              loop={state.loop}
+              onLoopRangeChange={(range) => runtime.setLoop({ range })}
+              onLoopRangeClear={() =>
+                runtime.setLoop({ range: undefined, enabled: false })
+              }
             />
             {state.referenceVideo && (
               <ReferenceTimelineRow

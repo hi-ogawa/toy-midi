@@ -10,9 +10,11 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
+import { clamp, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
+  RecorderLoopState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { formatTimeMinutes } from "../../lib/time-format";
@@ -49,9 +51,7 @@ export function TimelineHeader({
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
-  loopRange,
-  loopEnabled,
-  loopEditingDisabled,
+  loop,
   onLoopRangeChange,
   onLoopRangeClear,
 }: {
@@ -65,9 +65,7 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
-  loopEditingDisabled: boolean;
+  loop: RecorderLoopState;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
 }) {
@@ -115,9 +113,7 @@ export function TimelineHeader({
         subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
-        loopRange={loopRange}
-        loopEnabled={loopEnabled}
-        loopEditingDisabled={loopEditingDisabled}
+        loop={loop}
         onLoopRangeChange={onLoopRangeChange}
         onLoopRangeClear={onLoopRangeClear}
       />
@@ -133,9 +129,7 @@ function TimelineRuler({
   subdivisionsPerBeat,
   timelineWidth,
   onSeek,
-  loopRange,
-  loopEnabled,
-  loopEditingDisabled,
+  loop,
   onLoopRangeChange,
   onLoopRangeClear,
 }: {
@@ -146,9 +140,7 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
-  loopEditingDisabled: boolean;
+  loop: RecorderLoopState;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
 }) {
@@ -168,26 +160,19 @@ function TimelineRuler({
     <div
       data-testid="recorder-timeline-ruler"
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
-      {loopRange && (
+      {loop.range && (
         <LoopRange
-          range={loopRange}
-          enabled={loopEnabled}
-          disabled={loopEditingDisabled}
+          range={loop.range}
+          enabled={loop.enabled}
           pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
           viewportStartBeat={viewportStartBeat}
@@ -214,7 +199,6 @@ function TimelineRuler({
 function LoopRange({
   range,
   enabled,
-  disabled,
   pixelsPerBeat,
   subdivisionsPerBeat,
   viewportStartBeat,
@@ -223,7 +207,6 @@ function LoopRange({
 }: {
   range: RecorderLoopRange;
   enabled: boolean;
-  disabled: boolean;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
@@ -231,70 +214,50 @@ function LoopRange({
   onClear: () => void;
 }) {
   const minimumLength = 1 / subdivisionsPerBeat;
-  const dragRef = usePointerDrag({
+  const dragRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      if ((event.target as HTMLElement).closest("button")) {
-        return { startClientX: event.clientX, range, ignore: true };
-      }
-      return { startClientX: event.clientX, range, ignore: false };
+      return range;
     },
-    onMove: (event, drag) => {
-      if (drag.ignore) {
-        return;
-      }
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
-      const startBeat = Math.max(0, drag.range.startBeat + delta);
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
+      const startBeat = Math.max(0, data.startBeat + delta);
       onChange({
         startBeat,
-        endBeat: startBeat + drag.range.endBeat - drag.range.startBeat,
+        endBeat: startBeat + data.endBeat - data.startBeat,
       });
     },
   });
-  const startRef = usePointerDrag({
+  const startRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      return { startClientX: event.clientX, range };
+      return range;
     },
-    onMove: (event, drag) => {
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
-        ...drag.range,
-        startBeat: Math.max(
+        ...data,
+        startBeat: clamp(
+          data.startBeat + delta,
           0,
-          Math.min(
-            drag.range.endBeat - minimumLength,
-            drag.range.startBeat + delta,
-          ),
+          data.endBeat - minimumLength,
         ),
       });
     },
   });
-  const endRef = usePointerDrag({
+  const endRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      return { startClientX: event.clientX, range };
+      return range;
     },
-    onMove: (event, drag) => {
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
-        ...drag.range,
-        endBeat: Math.max(
-          drag.range.startBeat + minimumLength,
-          drag.range.endBeat + delta,
-        ),
+        ...data,
+        endBeat: Math.max(data.startBeat + minimumLength, data.endBeat + delta),
       });
     },
   });
@@ -306,9 +269,7 @@ function LoopRange({
         enabled
           ? "border-violet-300 bg-violet-400/20 text-violet-100"
           : "border-violet-400/70 bg-violet-400/10 text-violet-300",
-        disabled
-          ? "cursor-default opacity-60"
-          : "cursor-grab active:cursor-grabbing",
+        "cursor-grab active:cursor-grabbing",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
@@ -318,37 +279,29 @@ function LoopRange({
       <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
         Loop
       </span>
-      {!disabled && (
-        <>
-          <div ref={dragRef} className="absolute inset-0" />
-          <div
-            ref={startRef}
-            className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
-          />
-          <div
-            ref={endRef}
-            className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
-          />
-          <button
-            type="button"
-            title="Clear loop range"
-            data-testid="recorder-loop-clear"
-            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
-            onClick={(event) => {
-              event.stopPropagation();
-              onClear();
-            }}
-          >
-            <XIcon className="size-3" />
-          </button>
-        </>
-      )}
+      <div ref={dragRef} className="absolute inset-0" />
+      <div
+        ref={startRef}
+        className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+      />
+      <div
+        ref={endRef}
+        className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+      />
+      <button
+        type="button"
+        title="Clear loop range"
+        data-testid="recorder-loop-clear"
+        className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClear();
+        }}
+      >
+        <XIcon className="size-3" />
+      </button>
     </div>
   );
-}
-
-function snapBeat(beat: number, subdivisionsPerBeat: number): number {
-  return Math.round(beat * subdivisionsPerBeat) / subdivisionsPerBeat;
 }
 
 type RecorderTimelineClip = {
@@ -414,20 +367,14 @@ export function TakeTimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -538,20 +485,14 @@ export function TimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {clip ? (
         <TimelineClip
@@ -658,20 +599,14 @@ export function ReferenceTimelineRow({
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"
-        style={getTimelineGridStyle({
+        {...getTimelineSurfaceProps({
           beatsPerBar,
+          onSeek,
           pixelsPerBeat,
+          tempo,
           viewportStartBeat,
           subdivisionsPerBeat,
         })}
-        onPointerDown={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const beat = Math.max(
-            0,
-            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-          );
-          onSeek(beatsToSeconds(beat, tempo));
-        }}
       >
         <TimelineClip
           clip={{
@@ -918,4 +853,37 @@ function getTimelineGridStyle({
     viewportStartBeat,
     subdivisionsPerBeat,
   });
+}
+
+function getTimelineSurfaceProps({
+  beatsPerBar,
+  onSeek,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  tempo,
+  viewportStartBeat,
+}: {
+  beatsPerBar: number;
+  onSeek: (position: number) => void;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+}): React.HTMLAttributes<HTMLElement> {
+  return {
+    style: getTimelineGridStyle({
+      beatsPerBar,
+      pixelsPerBeat,
+      subdivisionsPerBeat,
+      viewportStartBeat,
+    }),
+    onPointerDown: (event) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const beat = snapToGrid(
+        (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        1 / subdivisionsPerBeat,
+      );
+      onSeek(beatsToSeconds(Math.max(0, beat), tempo));
+    },
+  };
 }

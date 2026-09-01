@@ -60,6 +60,11 @@ export interface RecorderLoopRange {
   endBeat: number;
 }
 
+export interface RecorderLoopState {
+  range?: RecorderLoopRange;
+  enabled: boolean;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -83,8 +88,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
+  loop: RecorderLoopState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -108,8 +112,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
-  | "loopRange"
-  | "loopEnabled"
+  | "loop"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -137,7 +140,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
-    loopEnabled: false,
+    loop: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -694,29 +697,10 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setLoopRange(loopRange: RecorderLoopRange): void {
-    if (
-      !Number.isFinite(loopRange.startBeat) ||
-      !Number.isFinite(loopRange.endBeat) ||
-      loopRange.startBeat < 0 ||
-      loopRange.endBeat <= loopRange.startBeat
-    ) {
-      throw new Error("Recorder loop range is invalid.");
-    }
-    this.store.update({ loopRange });
-    this.syncLoopRange();
-  }
-
-  clearLoopRange(): void {
-    this.store.update({ loopRange: undefined, loopEnabled: false });
-    this.syncLoopRange();
-  }
-
-  setLoopEnabled(loopEnabled: boolean): void {
-    if (loopEnabled && !this.store.get().loopRange) {
-      throw new Error("Set a recorder loop range before enabling it.");
-    }
-    this.store.update({ loopEnabled });
+  setLoop(update: Partial<RecorderLoopState>): void {
+    this.store.update({
+      loop: { ...this.store.get().loop, ...update },
+    });
     this.syncLoopRange();
   }
 
@@ -905,8 +889,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
-          loopRange: state.loopRange,
-          loopEnabled: state.loopEnabled,
+          loop: state.loop,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
@@ -964,7 +947,7 @@ export class RecorderRuntime {
 
   private syncLoopRange(): void {
     const state = this.store.get();
-    const loopRange = state.loopEnabled ? state.loopRange : undefined;
+    const loopRange = state.loop.enabled ? state.loop.range : undefined;
     this.transport?.setLoopRange(
       loopRange
         ? {

@@ -19,10 +19,14 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
+import { snapToGrid } from "../../lib/music";
+import type { RecorderLoopState } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   formatBarBeatAtTime,
+  getBeatsPerBar,
+  secondsToBeats,
   type GridDivision,
   GRID_DIVISIONS,
 } from "../../lib/timeline";
@@ -49,8 +53,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
-  loopEnabled,
-  loopAvailable,
+  loop,
   position,
   tempo,
   timeSignature,
@@ -64,7 +67,7 @@ export function RecorderHeader({
   onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
-  onLoopEnabledChange,
+  onLoopChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -80,8 +83,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
-  loopEnabled: boolean;
-  loopAvailable: boolean;
+  loop: RecorderLoopState;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -95,7 +97,7 @@ export function RecorderHeader({
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
-  onLoopEnabledChange: (enabled: boolean) => void;
+  onLoopChange: (update: Partial<RecorderLoopState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -161,12 +163,28 @@ export function RecorderHeader({
       <div className="mx-1 h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-loop-toggle"
-        onClick={() => onLoopEnabledChange(!loopEnabled)}
-        aria-pressed={loopEnabled}
-        title={loopAvailable ? "Toggle loop playback" : "Create loop range"}
+        onClick={() => {
+          const enabled = !loop.enabled;
+          const beatsPerBar = getBeatsPerBar(timeSignature);
+          const startBeat = snapToGrid(
+            secondsToBeats(position, tempo),
+            beatsPerBar,
+            { floor: true },
+          );
+          onLoopChange({
+            enabled,
+            range:
+              loop.range ??
+              (enabled
+                ? { startBeat, endBeat: startBeat + beatsPerBar }
+                : undefined),
+          });
+        }}
+        aria-pressed={loop.enabled}
+        title={loop.range ? "Toggle loop playback" : "Create loop range"}
         className={cn(
           "size-9",
-          loopEnabled
+          loop.enabled
             ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
             : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
         )}
