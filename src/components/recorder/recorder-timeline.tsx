@@ -9,6 +9,7 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
+import { snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntimeState,
   ReferenceVideoState,
@@ -149,10 +150,13 @@ function TimelineRuler({
       })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
+        const beat = getSnappedPointerBeat({
+          clientX: event.clientX,
+          rect,
+          pixelsPerBeat,
+          subdivisionsPerBeat,
+          viewportStartBeat,
+        });
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
@@ -243,10 +247,13 @@ export function TakeTimelineLane({
       })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
+        const beat = getSnappedPointerBeat({
+          clientX: event.clientX,
+          rect,
+          pixelsPerBeat,
+          subdivisionsPerBeat,
+          viewportStartBeat,
+        });
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
@@ -367,10 +374,13 @@ export function TimelineLane({
       })}
       onPointerDown={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
+        const beat = getSnappedPointerBeat({
+          clientX: event.clientX,
+          rect,
+          pixelsPerBeat,
+          subdivisionsPerBeat,
+          viewportStartBeat,
+        });
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
@@ -487,10 +497,13 @@ export function ReferenceTimelineRow({
         })}
         onPointerDown={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
-          const beat = Math.max(
-            0,
-            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-          );
+          const beat = getSnappedPointerBeat({
+            clientX: event.clientX,
+            rect,
+            pixelsPerBeat,
+            subdivisionsPerBeat,
+            viewportStartBeat,
+          });
           onSeek(beatsToSeconds(beat, tempo));
         }}
       >
@@ -739,4 +752,21 @@ function getTimelineGridStyle({
     viewportStartBeat,
     subdivisionsPerBeat,
   });
+}
+
+function getSnappedPointerBeat({
+  clientX,
+  rect,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  viewportStartBeat,
+}: {
+  clientX: number;
+  rect: DOMRect;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  viewportStartBeat: number;
+}): number {
+  const beat = (clientX - rect.left) / pixelsPerBeat + viewportStartBeat;
+  return Math.max(0, snapToGrid(beat, 1 / subdivisionsPerBeat));
 }

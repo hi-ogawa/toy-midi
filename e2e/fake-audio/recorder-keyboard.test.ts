@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, enableInput } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  enableInput,
+  seekRecorderByPixels,
+} from "./recorder-helpers";
+
+test("snaps recorder timeline seeking to the selected grid", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+
+  const position = page.getByTestId("recorder-position");
+  await seekRecorderByPixels(page, 75);
+  await expect(position).toHaveText("01|02 - 00:00.500");
+
+  await page.getByRole("button", { name: "1/16" }).click();
+  await page.getByRole("menuitemradio", { name: "1/4" }).click();
+  await seekRecorderByPixels(page, 35);
+  await expect(position).toHaveText("01|01 - 00:00.000");
+});
 
 test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await createRecorderProject(page);
