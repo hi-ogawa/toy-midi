@@ -7,6 +7,7 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
+  Repeat2Icon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -48,6 +49,8 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
+  loopEnabled,
+  loopAvailable,
   position,
   tempo,
   timeSignature,
@@ -61,6 +64,7 @@ export function RecorderHeader({
   onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
+  onLoopEnabledChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -76,6 +80,8 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
+  loopEnabled: boolean;
+  loopAvailable: boolean;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -89,6 +95,7 @@ export function RecorderHeader({
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
+  onLoopEnabledChange: (enabled: boolean) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -152,6 +159,20 @@ export function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
+      <Button
+        data-testid="recorder-loop-toggle"
+        onClick={() => onLoopEnabledChange(!loopEnabled)}
+        aria-pressed={loopEnabled}
+        title={loopAvailable ? "Toggle loop playback" : "Create loop range"}
+        className={cn(
+          "size-9",
+          loopEnabled
+            ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        <Repeat2Icon className="size-5" />
+      </Button>
       <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}

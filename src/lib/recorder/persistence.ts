@@ -21,6 +21,11 @@ export interface SerializedRecorderRuntimeState {
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
+  loopRange?: {
+    startBeat: number;
+    endBeat: number;
+  };
+  loopEnabled?: boolean;
   tempo: number;
   timeSignature: {
     numerator: number;
@@ -114,6 +119,8 @@ export function serializeRecorderRuntimeState(
     latencyCompensation: state.latencyCompensation,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
+    loopRange: state.loopRange,
+    loopEnabled: state.loopEnabled,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
@@ -187,10 +194,29 @@ export function deserializeRecorderRuntimeState({
     latencyCompensation: project.latencyCompensation,
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
+    loopRange: deserializeLoopRange(project.loopRange),
+    loopEnabled: project.loopEnabled ?? false,
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
   };
+}
+
+function deserializeLoopRange(
+  loopRange: SerializedRecorderRuntimeState["loopRange"],
+): SerializedRecorderRuntimeState["loopRange"] {
+  if (!loopRange) {
+    return undefined;
+  }
+  if (
+    !Number.isFinite(loopRange.startBeat) ||
+    !Number.isFinite(loopRange.endBeat) ||
+    loopRange.startBeat < 0 ||
+    loopRange.endBeat <= loopRange.startBeat
+  ) {
+    throw new Error("Recorder project has an invalid loop range.");
+  }
+  return loopRange;
 }
 
 function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {

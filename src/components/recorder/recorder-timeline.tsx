@@ -4,6 +4,7 @@ import {
   PlusIcon,
   UploadIcon,
   Trash2Icon,
+  XIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
@@ -11,6 +12,7 @@ import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import type {
   RecorderRuntimeState,
+  RecorderLoopRange,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { formatTimeMinutes } from "../../lib/time-format";
@@ -47,6 +49,11 @@ export function TimelineHeader({
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
+  loopRange,
+  loopEnabled,
+  loopEditingDisabled,
+  onLoopRangeChange,
+  onLoopRangeClear,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -58,6 +65,11 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
+  loopRange?: RecorderLoopRange;
+  loopEnabled: boolean;
+  loopEditingDisabled: boolean;
+  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  onLoopRangeClear: () => void;
 }) {
   return (
     <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -103,6 +115,11 @@ export function TimelineHeader({
         subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
+        loopRange={loopRange}
+        loopEnabled={loopEnabled}
+        loopEditingDisabled={loopEditingDisabled}
+        onLoopRangeChange={onLoopRangeChange}
+        onLoopRangeClear={onLoopRangeClear}
       />
     </div>
   );
@@ -116,6 +133,11 @@ function TimelineRuler({
   subdivisionsPerBeat,
   timelineWidth,
   onSeek,
+  loopRange,
+  loopEnabled,
+  loopEditingDisabled,
+  onLoopRangeChange,
+  onLoopRangeClear,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -124,6 +146,11 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
+  loopRange?: RecorderLoopRange;
+  loopEnabled: boolean;
+  loopEditingDisabled: boolean;
+  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  onLoopRangeClear: () => void;
 }) {
   const labelEveryBars = getVisibleBarInterval({
     barWidth: beatsPerBar * pixelsPerBeat,
@@ -156,6 +183,18 @@ function TimelineRuler({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
+      {loopRange && (
+        <LoopRange
+          range={loopRange}
+          enabled={loopEnabled}
+          disabled={loopEditingDisabled}
+          pixelsPerBeat={pixelsPerBeat}
+          subdivisionsPerBeat={subdivisionsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          onChange={onLoopRangeChange}
+          onClear={onLoopRangeClear}
+        />
+      )}
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
         const beat = firstLabelBeat + index * labelEveryBeats;
         return (
@@ -170,6 +209,146 @@ function TimelineRuler({
       })}
     </div>
   );
+}
+
+function LoopRange({
+  range,
+  enabled,
+  disabled,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  viewportStartBeat,
+  onChange,
+  onClear,
+}: {
+  range: RecorderLoopRange;
+  enabled: boolean;
+  disabled: boolean;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  viewportStartBeat: number;
+  onChange: (range: RecorderLoopRange) => void;
+  onClear: () => void;
+}) {
+  const minimumLength = 1 / subdivisionsPerBeat;
+  const dragRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if ((event.target as HTMLElement).closest("button")) {
+        return { startClientX: event.clientX, range, ignore: true };
+      }
+      return { startClientX: event.clientX, range, ignore: false };
+    },
+    onMove: (event, drag) => {
+      if (drag.ignore) {
+        return;
+      }
+      const delta = snapBeat(
+        (event.clientX - drag.startClientX) / pixelsPerBeat,
+        subdivisionsPerBeat,
+      );
+      const startBeat = Math.max(0, drag.range.startBeat + delta);
+      onChange({
+        startBeat,
+        endBeat: startBeat + drag.range.endBeat - drag.range.startBeat,
+      });
+    },
+  });
+  const startRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      return { startClientX: event.clientX, range };
+    },
+    onMove: (event, drag) => {
+      const delta = snapBeat(
+        (event.clientX - drag.startClientX) / pixelsPerBeat,
+        subdivisionsPerBeat,
+      );
+      onChange({
+        ...drag.range,
+        startBeat: Math.max(
+          0,
+          Math.min(
+            drag.range.endBeat - minimumLength,
+            drag.range.startBeat + delta,
+          ),
+        ),
+      });
+    },
+  });
+  const endRef = usePointerDrag({
+    onStart: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      return { startClientX: event.clientX, range };
+    },
+    onMove: (event, drag) => {
+      const delta = snapBeat(
+        (event.clientX - drag.startClientX) / pixelsPerBeat,
+        subdivisionsPerBeat,
+      );
+      onChange({
+        ...drag.range,
+        endBeat: Math.max(
+          drag.range.startBeat + minimumLength,
+          drag.range.endBeat + delta,
+        ),
+      });
+    },
+  });
+  return (
+    <div
+      data-testid="recorder-loop-range"
+      className={cn(
+        "absolute inset-y-0 z-10 border-x select-none",
+        enabled
+          ? "border-violet-300 bg-violet-400/20 text-violet-100"
+          : "border-violet-400/70 bg-violet-400/10 text-violet-300",
+        disabled
+          ? "cursor-default opacity-60"
+          : "cursor-grab active:cursor-grabbing",
+      )}
+      style={{
+        left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
+        width: (range.endBeat - range.startBeat) * pixelsPerBeat,
+      }}
+    >
+      <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
+        Loop
+      </span>
+      {!disabled && (
+        <>
+          <div ref={dragRef} className="absolute inset-0" />
+          <div
+            ref={startRef}
+            className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+          />
+          <div
+            ref={endRef}
+            className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+          />
+          <button
+            type="button"
+            title="Clear loop range"
+            data-testid="recorder-loop-clear"
+            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
+            onClick={(event) => {
+              event.stopPropagation();
+              onClear();
+            }}
+          >
+            <XIcon className="size-3" />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function snapBeat(beat: number, subdivisionsPerBeat: number): number {
+  return Math.round(beat * subdivisionsPerBeat) / subdivisionsPerBeat;
 }
 
 type RecorderTimelineClip = {

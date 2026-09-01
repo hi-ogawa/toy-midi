@@ -54,6 +54,11 @@ interface RecordingTrackState {
   nextTakeNumber: number;
 }
 
+export interface RecorderLoopRange {
+  startBeat: number;
+  endBeat: number;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -77,6 +82,8 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  loopRange?: RecorderLoopRange;
+  loopEnabled: boolean;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -100,6 +107,8 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
+  | "loopRange"
+  | "loopEnabled"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -127,6 +136,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
+    loopEnabled: false,
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -682,6 +692,29 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
+  setLoopRange(loopRange: RecorderLoopRange): void {
+    if (
+      !Number.isFinite(loopRange.startBeat) ||
+      !Number.isFinite(loopRange.endBeat) ||
+      loopRange.startBeat < 0 ||
+      loopRange.endBeat <= loopRange.startBeat
+    ) {
+      throw new Error("Recorder loop range is invalid.");
+    }
+    this.store.update({ loopRange });
+  }
+
+  clearLoopRange(): void {
+    this.store.update({ loopRange: undefined, loopEnabled: false });
+  }
+
+  setLoopEnabled(loopEnabled: boolean): void {
+    if (loopEnabled && !this.store.get().loopRange) {
+      throw new Error("Set a recorder loop range before enabling it.");
+    }
+    this.store.update({ loopEnabled });
+  }
+
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
     this.metronome?.setTimeSignature(timeSignature);
@@ -866,6 +899,8 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
+          loopRange: state.loopRange,
+          loopEnabled: state.loopEnabled,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,
