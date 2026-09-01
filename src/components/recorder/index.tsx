@@ -198,6 +198,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
         loop={state.loop}
+        punch={state.punch}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -213,6 +214,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onLoopChange={(update) => runtime.setLoop(update)}
+        onPunchChange={(update) => runtime.setPunch(update)}
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
@@ -253,9 +255,14 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
               loop={state.loop}
+              punch={state.punch}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
               onLoopRangeClear={() =>
                 runtime.setLoop({ range: undefined, enabled: false })
+              }
+              onPunchRangeChange={(range) => runtime.setPunch({ range })}
+              onPunchRangeClear={() =>
+                runtime.setPunch({ range: undefined, enabled: false })
               }
             />
             {state.referenceVideo && (

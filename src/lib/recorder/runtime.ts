@@ -65,6 +65,16 @@ export interface RecorderLoopState {
   enabled: boolean;
 }
 
+export interface RecorderPunchRange {
+  startBeat: number;
+  endBeat: number;
+}
+
+export interface RecorderPunchState {
+  range?: RecorderPunchRange;
+  enabled: boolean;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -89,6 +99,7 @@ export interface RecorderRuntimeState {
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
   loop: RecorderLoopState;
+  punch: RecorderPunchState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -113,6 +124,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "masterGain"
   | "metronomeGain"
   | "loop"
+  | "punch"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -141,6 +153,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
     loop: { enabled: false },
+    punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -704,6 +717,12 @@ export class RecorderRuntime {
     this.syncLoopRange();
   }
 
+  setPunch(update: Partial<RecorderPunchState>): void {
+    this.store.update({
+      punch: { ...this.store.get().punch, ...update },
+    });
+  }
+
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
     this.metronome?.setTimeSignature(timeSignature);
@@ -890,6 +909,7 @@ export class RecorderRuntime {
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
           loop: state.loop,
+          punch: state.punch,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,

@@ -20,7 +20,10 @@ import {
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { snapToGrid } from "../../lib/music";
-import type { RecorderLoopState } from "../../lib/recorder/runtime";
+import type {
+  RecorderLoopState,
+  RecorderPunchState,
+} from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
@@ -54,6 +57,7 @@ export function RecorderHeader({
   isExporting,
   metronomeEnabled,
   loop,
+  punch,
   position,
   tempo,
   timeSignature,
@@ -68,6 +72,7 @@ export function RecorderHeader({
   onTempoChange,
   onMetronomeChange,
   onLoopChange,
+  onPunchChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -84,6 +89,7 @@ export function RecorderHeader({
   isExporting: boolean;
   metronomeEnabled: boolean;
   loop: RecorderLoopState;
+  punch: RecorderPunchState;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -98,6 +104,7 @@ export function RecorderHeader({
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onLoopChange: (update: Partial<RecorderLoopState>) => void;
+  onPunchChange: (update: Partial<RecorderPunchState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -190,6 +197,36 @@ export function RecorderHeader({
         )}
       >
         <Repeat2Icon className="size-5" />
+      </Button>
+      <Button
+        data-testid="recorder-punch-toggle"
+        onClick={() => {
+          const enabled = !punch.enabled;
+          const beatsPerBar = getBeatsPerBar(timeSignature);
+          const startBeat = snapToGrid(
+            secondsToBeats(position, tempo),
+            beatsPerBar,
+            { floor: true },
+          );
+          onPunchChange({
+            enabled,
+            range:
+              punch.range ??
+              (enabled
+                ? { startBeat, endBeat: startBeat + beatsPerBar }
+                : undefined),
+          });
+        }}
+        aria-pressed={punch.enabled}
+        title={punch.range ? "Toggle punch recording" : "Create punch range"}
+        className={cn(
+          "h-9 gap-1.5 px-2.5 text-xs font-medium",
+          punch.enabled
+            ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/25"
+            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
+        )}
+      >
+        Punch
       </Button>
       <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}

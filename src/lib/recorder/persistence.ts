@@ -28,6 +28,13 @@ export interface SerializedRecorderRuntimeState {
     };
     enabled: boolean;
   };
+  punch?: {
+    range?: {
+      startBeat: number;
+      endBeat: number;
+    };
+    enabled: boolean;
+  };
   tempo: number;
   timeSignature: {
     numerator: number;
@@ -122,6 +129,7 @@ export function serializeRecorderRuntimeState(
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
     loop: state.loop,
+    punch: state.punch,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
@@ -196,6 +204,7 @@ export function deserializeRecorderRuntimeState({
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
     loop: project.loop ?? { enabled: false },
+    punch: project.punch ?? { enabled: false },
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,

@@ -15,6 +15,8 @@ import type {
   RecorderRuntimeState,
   RecorderLoopRange,
   RecorderLoopState,
+  RecorderPunchRange,
+  RecorderPunchState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { formatTimeMinutes } from "../../lib/time-format";
@@ -52,8 +54,11 @@ export function TimelineHeader({
   onAddAudioFile,
   onSeek,
   loop,
+  punch,
   onLoopRangeChange,
   onLoopRangeClear,
+  onPunchRangeChange,
+  onPunchRangeClear,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -66,8 +71,11 @@ export function TimelineHeader({
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
+  punch: RecorderPunchState;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
+  onPunchRangeChange: (range: RecorderPunchRange) => void;
+  onPunchRangeClear: () => void;
 }) {
   return (
     <div className="sticky top-0 z-40 grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -114,8 +122,11 @@ export function TimelineHeader({
         timelineWidth={timelineWidth}
         onSeek={onSeek}
         loop={loop}
+        punch={punch}
         onLoopRangeChange={onLoopRangeChange}
         onLoopRangeClear={onLoopRangeClear}
+        onPunchRangeChange={onPunchRangeChange}
+        onPunchRangeClear={onPunchRangeClear}
       />
     </div>
   );
@@ -130,8 +141,11 @@ function TimelineRuler({
   timelineWidth,
   onSeek,
   loop,
+  punch,
   onLoopRangeChange,
   onLoopRangeClear,
+  onPunchRangeChange,
+  onPunchRangeClear,
 }: {
   beatsPerBar: number;
   pixelsPerBeat: number;
@@ -141,8 +155,11 @@ function TimelineRuler({
   timelineWidth: number;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
+  punch: RecorderPunchState;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
+  onPunchRangeChange: (range: RecorderPunchRange) => void;
+  onPunchRangeClear: () => void;
 }) {
   const labelEveryBars = getVisibleBarInterval({
     barWidth: beatsPerBar * pixelsPerBeat,
@@ -180,6 +197,22 @@ function TimelineRuler({
           onClear={onLoopRangeClear}
         />
       )}
+      {punch.range && (
+        <TimelineRange
+          range={punch.range}
+          enabled={punch.enabled}
+          label="Punch"
+          testId="recorder-punch"
+          activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
+          inactiveClassName="border-amber-400/70 bg-amber-400/10 text-amber-300"
+          clearHoverClassName="hover:bg-amber-200/20"
+          pixelsPerBeat={pixelsPerBeat}
+          subdivisionsPerBeat={subdivisionsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          onChange={onPunchRangeChange}
+          onClear={onPunchRangeClear}
+        />
+      )}
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
         const beat = firstLabelBeat + index * labelEveryBeats;
         return (
@@ -207,6 +240,51 @@ function LoopRange({
 }: {
   range: RecorderLoopRange;
   enabled: boolean;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  viewportStartBeat: number;
+  onChange: (range: RecorderLoopRange) => void;
+  onClear: () => void;
+}) {
+  return (
+    <TimelineRange
+      range={range}
+      enabled={enabled}
+      label="Loop"
+      testId="recorder-loop"
+      activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
+      inactiveClassName="border-violet-400/70 bg-violet-400/10 text-violet-300"
+      clearHoverClassName="hover:bg-violet-200/20"
+      pixelsPerBeat={pixelsPerBeat}
+      subdivisionsPerBeat={subdivisionsPerBeat}
+      viewportStartBeat={viewportStartBeat}
+      onChange={onChange}
+      onClear={onClear}
+    />
+  );
+}
+
+function TimelineRange({
+  range,
+  enabled,
+  label,
+  testId,
+  activeClassName,
+  inactiveClassName,
+  clearHoverClassName,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  viewportStartBeat,
+  onChange,
+  onClear,
+}: {
+  range: RecorderLoopRange | RecorderPunchRange;
+  enabled: boolean;
+  label: string;
+  testId: "recorder-loop" | "recorder-punch";
+  activeClassName: string;
+  inactiveClassName: string;
+  clearHoverClassName: string;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
@@ -263,23 +341,23 @@ function LoopRange({
   });
   return (
     <div
-      data-testid="recorder-loop-range"
+      data-testid={`${testId}-range`}
       className={cn(
         "absolute inset-y-0 z-10 border-x select-none",
-        enabled
-          ? "border-violet-300 bg-violet-400/20 text-violet-100"
-          : "border-violet-400/70 bg-violet-400/10 text-violet-300",
-        "cursor-grab active:cursor-grabbing",
+        enabled ? activeClassName : inactiveClassName,
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
         width: (range.endBeat - range.startBeat) * pixelsPerBeat,
       }}
     >
-      <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
-        Loop
+      <span
+        ref={dragRef}
+        className="absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
+        title={`Move ${label.toLowerCase()} range`}
+      >
+        {label}
       </span>
-      <div ref={dragRef} className="absolute inset-0" />
       <div
         ref={startRef}
         className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
@@ -290,9 +368,12 @@ function LoopRange({
       />
       <button
         type="button"
-        title="Clear loop range"
-        data-testid="recorder-loop-clear"
-        className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-violet-200/20"
+        title={`Clear ${label.toLowerCase()} range`}
+        data-testid={`${testId}-clear`}
+        className={cn(
+          "absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
+          clearHoverClassName,
+        )}
         onClick={(event) => {
           event.stopPropagation();
           onClear();

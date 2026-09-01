@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  dragBy,
+  seekRecorderByPixels,
+} from "./recorder-helpers";
 
 test("creates and edits a persisted loop range", async ({ page }) => {
   await createRecorderProject(page);
@@ -36,11 +40,13 @@ test("creates and edits a persisted loop range", async ({ page }) => {
     .toMatch(/^01\|0[12] /);
   await playButton.click();
 
-  // The range can be repositioned directly on the timeline ruler.
-  await dragBy(page, range, 80);
+  // The range label moves it while the range body remains available to seek.
+  await dragBy(page, range.getByText("Loop"), 80);
   const movedBox = await range.boundingBox();
   assert(movedBox);
   expect(movedBox.x).toBeCloseTo(initialBox.x + 80, -1);
+  await seekRecorderByPixels(page, 320);
+  await expect(position).toHaveText(/^02\|01 /);
 
   // Disabling playback keeps the edited range available for later use.
   await toggle.click();
