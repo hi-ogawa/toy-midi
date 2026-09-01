@@ -54,6 +54,16 @@ interface RecordingTrackState {
   nextTakeNumber: number;
 }
 
+export interface RecorderLoopRange {
+  startBeat: number;
+  endBeat: number;
+}
+
+export interface RecorderLoopState {
+  range?: RecorderLoopRange;
+  enabled: boolean;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -77,6 +87,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
+  loop: RecorderLoopState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -100,6 +111,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
+  | "loop"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -127,6 +139,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
+    loop: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -682,6 +695,12 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
+  setLoop(update: Partial<RecorderLoopState>): void {
+    this.store.update({
+      loop: { ...this.store.get().loop, ...update },
+    });
+  }
+
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
     this.metronome?.setTimeSignature(timeSignature);
@@ -866,6 +885,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
+          loop: state.loop,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,

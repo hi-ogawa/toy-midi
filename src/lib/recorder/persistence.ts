@@ -21,6 +21,13 @@ export interface SerializedRecorderRuntimeState {
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
+  loop?: {
+    range?: {
+      startBeat: number;
+      endBeat: number;
+    };
+    enabled: boolean;
+  };
   tempo: number;
   timeSignature: {
     numerator: number;
@@ -114,6 +121,7 @@ export function serializeRecorderRuntimeState(
     latencyCompensation: state.latencyCompensation,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
+    loop: state.loop,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
@@ -187,6 +195,7 @@ export function deserializeRecorderRuntimeState({
     latencyCompensation: project.latencyCompensation,
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
+    loop: project.loop ?? { enabled: false },
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
