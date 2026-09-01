@@ -345,17 +345,19 @@ function TimelineRange({
       className={cn(
         "absolute inset-y-0 z-10 border-x select-none",
         enabled ? activeClassName : inactiveClassName,
-        "cursor-grab active:cursor-grabbing",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
         width: (range.endBeat - range.startBeat) * pixelsPerBeat,
       }}
     >
-      <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
+      <span
+        ref={dragRef}
+        className="absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
+        title={`Move ${label.toLowerCase()} range`}
+      >
         {label}
       </span>
-      <div ref={dragRef} className="absolute inset-0" />
       <div
         ref={startRef}
         className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
