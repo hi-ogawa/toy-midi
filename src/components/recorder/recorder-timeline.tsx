@@ -10,7 +10,7 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
-import { snapToGrid } from "../../lib/music";
+import { clamp, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -257,9 +257,10 @@ function LoopRange({
       const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
         ...data,
-        startBeat: Math.max(
+        startBeat: clamp(
+          data.startBeat + delta,
           0,
-          Math.min(data.endBeat - minimumLength, data.startBeat + delta),
+          data.endBeat - minimumLength,
         ),
       });
     },
