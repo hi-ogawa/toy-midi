@@ -139,6 +139,10 @@ export class AudioContextTransport {
     this.disposeTicking = startAnimationFrameLoop(() => {
       const position = this.getPublishedPlaybackPosition();
       if (this.loopRange && position >= this.loopRange.end) {
+        // Looping currently follows the UI tick and restarts participants with
+        // fresh scheduling lead, so it is not a gapless audio-clock boundary.
+        // Gapless Web Audio playback would schedule each participant's next
+        // segment ahead of loop-out and use animation frames only for position.
         this.restartParticipants(this.loopRange.start);
         return;
       }
