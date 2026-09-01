@@ -1004,14 +1004,8 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const takeBuffer = context.createBuffer(
-      1,
-      samples.length,
-      context.sampleRate,
-    );
-    takeBuffer.getChannelData(0).set(samples);
     const trim = deriveRecordingTrim({
-      duration: takeBuffer.duration,
+      duration: samples.length / context.sampleRate,
       timelineOffset: pendingRecording.timelineOffset,
       punchRange: pendingRecording.punchRange,
     });
@@ -1024,6 +1018,17 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
+    const sampleStart = Math.round(trim.trimStart * context.sampleRate);
+    const sampleEnd = Math.round(trim.trimEnd * context.sampleRate);
+    const takeSamples = samples.slice(sampleStart, sampleEnd);
+    const takeBuffer = context.createBuffer(
+      1,
+      takeSamples.length,
+      context.sampleRate,
+    );
+    takeBuffer.getChannelData(0).set(takeSamples);
+    const timelineOffset =
+      pendingRecording.timelineOffset + sampleStart / context.sampleRate;
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -1041,9 +1046,14 @@ export class RecorderRuntime {
             soloed: false,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
-            ...trim,
-            timelineOffset: pendingRecording.timelineOffset,
-            audioView: pendingRecording.recording.getAudioView(),
+            trimStart: 0,
+            trimEnd: takeBuffer.duration,
+            timelineOffset,
+            audioView: createAudioView(
+              takeSamples,
+              context.sampleRate,
+              WAVEFORM_POINTS_PER_SECOND,
+            ),
           },
         ],
       },
