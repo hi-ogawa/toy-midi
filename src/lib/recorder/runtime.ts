@@ -1018,17 +1018,16 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const sampleStart = Math.round(trim.trimStart * context.sampleRate);
-    const sampleEnd = Math.round(trim.trimEnd * context.sampleRate);
-    const takeSamples = samples.slice(sampleStart, sampleEnd);
-    const takeBuffer = context.createBuffer(
-      1,
-      takeSamples.length,
-      context.sampleRate,
-    );
-    takeBuffer.getChannelData(0).set(takeSamples);
-    const timelineOffset =
-      pendingRecording.timelineOffset + sampleStart / context.sampleRate;
+    const {
+      buffer: takeBuffer,
+      samples: takeSamples,
+      timelineOffset,
+    } = cropRecording({
+      context,
+      samples,
+      timelineOffset: pendingRecording.timelineOffset,
+      trim,
+    });
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -1154,6 +1153,33 @@ function deriveRecordingTrim({
   return {
     trimStart: Math.max(0, punchRange.start - timelineOffset),
     trimEnd: Math.min(duration, punchRange.end - timelineOffset),
+  };
+}
+
+function cropRecording({
+  context,
+  samples,
+  timelineOffset,
+  trim,
+}: {
+  context: AudioContext;
+  samples: Float32Array;
+  timelineOffset: number;
+  trim: { trimStart: number; trimEnd: number };
+}): { buffer: AudioBuffer; samples: Float32Array; timelineOffset: number } {
+  const sampleStart = Math.round(trim.trimStart * context.sampleRate);
+  const sampleEnd = Math.round(trim.trimEnd * context.sampleRate);
+  const croppedSamples = samples.slice(sampleStart, sampleEnd);
+  const buffer = context.createBuffer(
+    1,
+    croppedSamples.length,
+    context.sampleRate,
+  );
+  buffer.getChannelData(0).set(croppedSamples);
+  return {
+    buffer,
+    samples: croppedSamples,
+    timelineOffset: timelineOffset + sampleStart / context.sampleRate,
   };
 }
 
