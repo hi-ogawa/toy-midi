@@ -141,20 +141,14 @@ function TimelineRuler({
     <div
       data-testid="recorder-timeline-ruler"
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {Array.from({ length: Math.max(0, labelCount) }, (_, index) => {
         const beat = firstLabelBeat + index * labelEveryBeats;
@@ -235,20 +229,14 @@ export function TakeTimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -359,20 +347,14 @@ export function TimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {clip ? (
         <TimelineClip
@@ -479,20 +461,14 @@ export function ReferenceTimelineRow({
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"
-        style={getTimelineGridStyle({
+        {...getTimelineSurfaceProps({
           beatsPerBar,
+          onSeek,
           pixelsPerBeat,
+          tempo,
           viewportStartBeat,
           subdivisionsPerBeat,
         })}
-        onPointerDown={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const beat = Math.max(
-            0,
-            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-          );
-          onSeek(beatsToSeconds(beat, tempo));
-        }}
       >
         <TimelineClip
           clip={{
@@ -739,4 +715,37 @@ function getTimelineGridStyle({
     viewportStartBeat,
     subdivisionsPerBeat,
   });
+}
+
+function getTimelineSurfaceProps({
+  beatsPerBar,
+  onSeek,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  tempo,
+  viewportStartBeat,
+}: {
+  beatsPerBar: number;
+  onSeek: (position: number) => void;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+}): React.HTMLAttributes<HTMLElement> {
+  return {
+    style: getTimelineGridStyle({
+      beatsPerBar,
+      pixelsPerBeat,
+      subdivisionsPerBeat,
+      viewportStartBeat,
+    }),
+    onPointerDown: (event) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const beat = Math.max(
+        0,
+        (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+      );
+      onSeek(beatsToSeconds(beat, tempo));
+    },
+  };
 }
