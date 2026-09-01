@@ -17,7 +17,7 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   expect(initialBox).not.toBeNull();
 
   // The range can be repositioned directly on the timeline ruler.
-  await dragBy(page, range, 80, { anchorXOffset: initialBox!.width / 2 });
+  await dragBy(page, range, 80);
   const movedBox = await range.boundingBox();
   expect(movedBox).not.toBeNull();
   expect(movedBox!.x).toBeCloseTo(initialBox!.x + 80, -1);
