@@ -61,7 +61,13 @@ export class AudioContextTransport {
     if (this.store.get().isPlaying) {
       return;
     }
-    const position = this.normalizeLoopPosition(this.store.get().position);
+    const currentPosition = this.store.get().position;
+    // Allow preroll before loop-in and starts within the loop, but a playhead at
+    // or after loop-out begins again from loop-in.
+    const position =
+      this.loopRange && currentPosition >= this.loopRange.end
+        ? this.loopRange.start
+        : currentPosition;
     this.store.update({ position });
     this.startParticipants(position);
     this.store.update({ isPlaying: true });
@@ -142,15 +148,6 @@ export class AudioContextTransport {
         position,
       });
     });
-  }
-
-  private normalizeLoopPosition(position: number): number {
-    // Allow preroll before loop-in and starts within the loop, but a playhead at
-    // or after loop-out begins again from loop-in.
-    if (this.loopRange && position >= this.loopRange.end) {
-      return this.loopRange.start;
-    }
-    return position;
   }
 
   private restartParticipants(position: number): void {
