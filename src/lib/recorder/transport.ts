@@ -68,9 +68,7 @@ export class AudioContextTransport {
       this.loopRange && currentPosition >= this.loopRange.end
         ? this.loopRange.start
         : currentPosition;
-    this.store.update({ position });
     this.startParticipants(position);
-    this.store.update({ isPlaying: true });
     this.startTicking();
   }
 
@@ -155,7 +153,6 @@ export class AudioContextTransport {
       participant.stop();
     }
     this.startParticipants(position);
-    this.store.update({ position });
   }
 
   private startParticipants(position: number): void {
@@ -163,6 +160,7 @@ export class AudioContextTransport {
       contextTime: this.context.currentTime + PLAYBACK_LEAD_SECONDS,
       position,
     };
+    this.store.update({ position, isPlaying: true });
     for (const participant of this.participants) {
       participant.start();
     }
