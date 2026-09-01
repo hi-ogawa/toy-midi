@@ -1015,14 +1015,13 @@ export class RecorderRuntime {
       this.syncTrackMix();
       return;
     }
-    const { samples: takeSamples, startOffset } = take;
     const takeBuffer = context.createBuffer(
       1,
-      takeSamples.length,
+      take.samples.length,
       context.sampleRate,
     );
-    takeBuffer.getChannelData(0).set(takeSamples);
-    const timelineOffset = pendingRecording.timelineOffset + startOffset;
+    takeBuffer.getChannelData(0).set(take.samples);
+    const timelineOffset = pendingRecording.timelineOffset + take.startOffset;
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -1044,7 +1043,7 @@ export class RecorderRuntime {
             trimEnd: takeBuffer.duration,
             timelineOffset,
             audioView: createAudioView(
-              takeSamples,
+              take.samples,
               context.sampleRate,
               WAVEFORM_POINTS_PER_SECOND,
             ),
