@@ -13,6 +13,7 @@ import { AudioView } from "../../lib/audio-view";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
+  RecorderLoopState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { formatTimeMinutes } from "../../lib/time-format";
@@ -64,7 +65,7 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  loop: RecorderRuntimeState["loop"];
+  loop: RecorderLoopState;
   loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
@@ -142,7 +143,7 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
-  loop: RecorderRuntimeState["loop"];
+  loop: RecorderLoopState;
   loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;

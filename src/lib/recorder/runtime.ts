@@ -59,6 +59,11 @@ export interface RecorderLoopRange {
   endBeat: number;
 }
 
+export interface RecorderLoopState {
+  range?: RecorderLoopRange;
+  enabled: boolean;
+}
+
 interface PendingRecordingState extends Pick<
   TakeState,
   "id" | "number" | "duration" | "timelineOffset"
@@ -82,10 +87,7 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  loop: {
-    range?: RecorderLoopRange;
-    enabled: boolean;
-  };
+  loop: RecorderLoopState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -693,7 +695,7 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setLoop(update: Partial<RecorderRuntimeState["loop"]>): void {
+  setLoop(update: Partial<RecorderLoopState>): void {
     this.store.update({
       loop: { ...this.store.get().loop, ...update },
     });

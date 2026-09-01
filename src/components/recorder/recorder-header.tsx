@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
-import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import type { RecorderLoopState } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
@@ -80,7 +80,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
-  loop: RecorderRuntimeState["loop"];
+  loop: RecorderLoopState;
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
