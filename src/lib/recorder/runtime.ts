@@ -2,6 +2,7 @@ import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
 import { clamp } from "../music.ts";
+import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -11,7 +12,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { ActiveRecording } from "./recording.ts";
+import { ActiveRecording, deriveRecordingTrim } from "./recording.ts";
 import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -64,6 +65,7 @@ interface PendingRecordingState extends Pick<
   "id" | "number" | "duration" | "timelineOffset"
 > {
   recording: ActiveRecording;
+  punchRange?: { start: number; end: number };
 }
 
 export interface ReferenceVideoState {
@@ -635,12 +637,21 @@ export class RecorderRuntime {
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
-    const number = this.store.get().recordingTrack.nextTakeNumber;
+    const state = this.store.get();
+    const number = state.recordingTrack.nextTakeNumber;
+    const punchRange =
+      state.punch.enabled && state.punch.range
+        ? {
+            start: beatsToSeconds(state.punch.range.startBeat, state.tempo),
+            end: beatsToSeconds(state.punch.range.endBeat, state.tempo),
+          }
+        : undefined;
     const pendingRecording: PendingRecordingState = {
       id,
       number,
       duration: 0,
       timelineOffset,
+      punchRange,
       recording: new ActiveRecording({
         startFrame,
         sampleRate: context.sampleRate,
@@ -960,6 +971,20 @@ export class RecorderRuntime {
       context.sampleRate,
     );
     takeBuffer.getChannelData(0).set(samples);
+    const trim = deriveRecordingTrim({
+      duration: takeBuffer.duration,
+      timelineOffset: pendingRecording.timelineOffset,
+      punchRange: pendingRecording.punchRange,
+    });
+    if (trim.trimEnd - trim.trimStart < MIN_TAKE_DURATION) {
+      this.store.update({
+        captureStatus: "ready",
+        pendingRecording: undefined,
+        previewTakeRegions: undefined,
+      });
+      this.syncTrackMix();
+      return;
+    }
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
       captureStatus: "ready",
@@ -977,8 +1002,7 @@ export class RecorderRuntime {
             soloed: false,
             buffer: takeBuffer,
             duration: takeBuffer.duration,
-            trimStart: 0,
-            trimEnd: takeBuffer.duration,
+            ...trim,
             timelineOffset: pendingRecording.timelineOffset,
             audioView: pendingRecording.recording.getAudioView(),
           },
@@ -1049,14 +1073,18 @@ function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
 function pendingRecordingToTake(
   pendingRecording: PendingRecordingState,
 ): TakeState {
+  const trim = deriveRecordingTrim({
+    duration: pendingRecording.duration,
+    timelineOffset: pendingRecording.timelineOffset,
+    punchRange: pendingRecording.punchRange,
+  });
   return {
     id: pendingRecording.id,
     number: pendingRecording.number,
     muted: false,
     soloed: false,
     duration: pendingRecording.duration,
-    trimStart: 0,
-    trimEnd: pendingRecording.duration,
+    ...trim,
     timelineOffset: pendingRecording.timelineOffset,
     audioView: pendingRecording.recording.getAudioView(),
   };
