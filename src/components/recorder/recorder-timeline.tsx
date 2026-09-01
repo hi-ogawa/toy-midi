@@ -358,10 +358,12 @@ function TimelineRange({
       <div ref={dragRef} className="absolute inset-0" />
       <div
         ref={startRef}
+        data-testid={`${testId}-start`}
         className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
       />
       <div
         ref={endRef}
+        data-testid={`${testId}-end`}
         className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
       />
       <button
