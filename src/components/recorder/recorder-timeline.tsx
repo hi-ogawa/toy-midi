@@ -10,6 +10,7 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
+import { snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -236,7 +237,7 @@ function LoopRange({
     onClick: () => {},
     onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       const startBeat = Math.max(0, data.startBeat + delta);
       onChange({
         startBeat,
@@ -253,7 +254,7 @@ function LoopRange({
     onClick: () => {},
     onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
         ...data,
         startBeat: Math.max(
@@ -272,7 +273,7 @@ function LoopRange({
     onClick: () => {},
     onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
         ...data,
         endBeat: Math.max(data.startBeat + minimumLength, data.endBeat + delta),
@@ -326,10 +327,6 @@ function LoopRange({
       )}
     </div>
   );
-}
-
-function snapBeat(beat: number, subdivisionsPerBeat: number): number {
-  return Math.round(beat * subdivisionsPerBeat) / subdivisionsPerBeat;
 }
 
 type RecorderTimelineClip = {
