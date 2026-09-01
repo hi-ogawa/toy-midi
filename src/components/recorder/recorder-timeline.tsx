@@ -269,17 +269,19 @@ function LoopRange({
         enabled
           ? "border-violet-300 bg-violet-400/20 text-violet-100"
           : "border-violet-400/70 bg-violet-400/10 text-violet-300",
-        "cursor-grab active:cursor-grabbing",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
         width: (range.endBeat - range.startBeat) * pixelsPerBeat,
       }}
     >
-      <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
+      <span
+        ref={dragRef}
+        className="absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
+        title="Move loop range"
+      >
         Loop
       </span>
-      <div ref={dragRef} className="absolute inset-0" />
       <div
         ref={startRef}
         className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
