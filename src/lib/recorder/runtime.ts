@@ -693,14 +693,6 @@ export class RecorderRuntime {
   }
 
   setLoopRange(loopRange: RecorderLoopRange): void {
-    if (
-      !Number.isFinite(loopRange.startBeat) ||
-      !Number.isFinite(loopRange.endBeat) ||
-      loopRange.startBeat < 0 ||
-      loopRange.endBeat <= loopRange.startBeat
-    ) {
-      throw new Error("Recorder loop range is invalid.");
-    }
     this.store.update({ loopRange });
   }
 
