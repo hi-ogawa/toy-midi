@@ -49,8 +49,7 @@ export function TimelineHeader({
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
-  loopRange,
-  loopEnabled,
+  loop,
   loopEditingDisabled,
   onLoopRangeChange,
   onLoopRangeClear,
@@ -65,8 +64,7 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
+  loop: RecorderRuntimeState["loop"];
   loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
@@ -115,8 +113,7 @@ export function TimelineHeader({
         subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
-        loopRange={loopRange}
-        loopEnabled={loopEnabled}
+        loop={loop}
         loopEditingDisabled={loopEditingDisabled}
         onLoopRangeChange={onLoopRangeChange}
         onLoopRangeClear={onLoopRangeClear}
@@ -133,8 +130,7 @@ function TimelineRuler({
   subdivisionsPerBeat,
   timelineWidth,
   onSeek,
-  loopRange,
-  loopEnabled,
+  loop,
   loopEditingDisabled,
   onLoopRangeChange,
   onLoopRangeClear,
@@ -146,8 +142,7 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
+  loop: RecorderRuntimeState["loop"];
   loopEditingDisabled: boolean;
   onLoopRangeChange: (range: RecorderLoopRange) => void;
   onLoopRangeClear: () => void;
@@ -183,10 +178,10 @@ function TimelineRuler({
         onSeek(beatsToSeconds(beat, tempo));
       }}
     >
-      {loopRange && (
+      {loop.range && (
         <LoopRange
-          range={loopRange}
-          enabled={loopEnabled}
+          range={loop.range}
+          enabled={loop.enabled}
           disabled={loopEditingDisabled}
           pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}

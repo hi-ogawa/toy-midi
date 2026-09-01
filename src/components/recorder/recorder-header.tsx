@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
+import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
@@ -49,8 +50,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
-  loopEnabled,
-  loopAvailable,
+  loop,
   position,
   tempo,
   timeSignature,
@@ -80,8 +80,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
-  loopEnabled: boolean;
-  loopAvailable: boolean;
+  loop: RecorderRuntimeState["loop"];
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -104,6 +103,7 @@ export function RecorderHeader({
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
+  const { enabled: loopEnabled, range: loopRange } = loop;
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -163,7 +163,7 @@ export function RecorderHeader({
         data-testid="recorder-loop-toggle"
         onClick={() => onLoopEnabledChange(!loopEnabled)}
         aria-pressed={loopEnabled}
-        title={loopAvailable ? "Toggle loop playback" : "Create loop range"}
+        title={loopRange ? "Toggle loop playback" : "Create loop range"}
         className={cn(
           "size-9",
           loopEnabled

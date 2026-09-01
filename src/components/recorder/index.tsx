@@ -198,8 +198,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
-        loopEnabled={state.loop.enabled}
-        loopAvailable={Boolean(state.loop.range)}
+        loop={state.loop}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -273,8 +272,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
-              loopRange={state.loop.range}
-              loopEnabled={state.loop.enabled}
+              loop={state.loop}
               loopEditingDisabled={isRecording || isProcessing}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
               onLoopRangeClear={() =>
