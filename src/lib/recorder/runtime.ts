@@ -82,8 +82,10 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  loopRange?: RecorderLoopRange;
-  loopEnabled: boolean;
+  loop: {
+    range?: RecorderLoopRange;
+    enabled: boolean;
+  };
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -107,8 +109,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
-  | "loopRange"
-  | "loopEnabled"
+  | "loop"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -136,7 +137,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
-    loopEnabled: false,
+    loop: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -693,18 +694,21 @@ export class RecorderRuntime {
   }
 
   setLoopRange(loopRange: RecorderLoopRange): void {
-    this.store.update({ loopRange });
+    this.store.update({
+      loop: { ...this.store.get().loop, range: loopRange },
+    });
   }
 
   clearLoopRange(): void {
-    this.store.update({ loopRange: undefined, loopEnabled: false });
+    this.store.update({ loop: { enabled: false } });
   }
 
   setLoopEnabled(loopEnabled: boolean): void {
-    if (loopEnabled && !this.store.get().loopRange) {
+    const loop = this.store.get().loop;
+    if (loopEnabled && !loop.range) {
       throw new Error("Set a recorder loop range before enabling it.");
     }
-    this.store.update({ loopEnabled });
+    this.store.update({ loop: { ...loop, enabled: loopEnabled } });
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
@@ -891,8 +895,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
-          loopRange: state.loopRange,
-          loopEnabled: state.loopEnabled,
+          loop: state.loop,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,

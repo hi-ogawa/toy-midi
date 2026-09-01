@@ -198,8 +198,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
-        loopEnabled={state.loopEnabled}
-        loopAvailable={Boolean(state.loopRange)}
+        loopEnabled={state.loop.enabled}
+        loopAvailable={Boolean(state.loop.range)}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -215,7 +215,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onLoopEnabledChange={(enabled) => {
-          if (enabled && !state.loopRange) {
+          if (enabled && !state.loop.range) {
             const startBeat = Math.max(
               0,
               Math.floor(
@@ -269,8 +269,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
-              loopRange={state.loopRange}
-              loopEnabled={state.loopEnabled}
+              loopRange={state.loop.range}
+              loopEnabled={state.loop.enabled}
               loopEditingDisabled={isRecording || isProcessing}
               onLoopRangeChange={(range) => runtime.setLoopRange(range)}
               onLoopRangeClear={() => runtime.clearLoopRange()}
