@@ -693,22 +693,10 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setLoopRange(loopRange: RecorderLoopRange): void {
+  setLoop(update: Partial<RecorderRuntimeState["loop"]>): void {
     this.store.update({
-      loop: { ...this.store.get().loop, range: loopRange },
+      loop: { ...this.store.get().loop, ...update },
     });
-  }
-
-  clearLoopRange(): void {
-    this.store.update({ loop: { enabled: false } });
-  }
-
-  setLoopEnabled(loopEnabled: boolean): void {
-    const loop = this.store.get().loop;
-    if (loopEnabled && !loop.range) {
-      throw new Error("Set a recorder loop range before enabling it.");
-    }
-    this.store.update({ loop: { ...loop, enabled: loopEnabled } });
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
