@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
+import { snapToGrid } from "../../lib/music";
 import type { RecorderLoopState } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
@@ -165,9 +166,11 @@ export function RecorderHeader({
         onClick={() => {
           const enabled = !loop.enabled;
           const beatsPerBar = getBeatsPerBar(timeSignature);
-          const startBeat =
-            Math.floor(secondsToBeats(position, tempo) / beatsPerBar) *
-            beatsPerBar;
+          const startBeat = snapToGrid(
+            secondsToBeats(position, tempo),
+            beatsPerBar,
+            { floor: true },
+          );
           onLoopChange({
             enabled,
             range:
