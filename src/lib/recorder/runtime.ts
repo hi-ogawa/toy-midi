@@ -54,7 +54,7 @@ interface RecordingTrackState {
   nextTakeNumber: number;
 }
 
-export interface PunchRange {
+export interface RecorderPunchRange {
   startBeat: number;
   endBeat: number;
 }
@@ -82,7 +82,10 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  punchRange?: PunchRange;
+  punch: {
+    range?: RecorderPunchRange;
+    enabled: boolean;
+  };
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -106,7 +109,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
-  | "punchRange"
+  | "punch"
   | "audioTracks"
   | "recordingTrack"
   | "latencyCompensation"
@@ -134,6 +137,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
+    punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
     audioTracks: [],
@@ -684,20 +688,10 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setPunchRange(punchRange: PunchRange): void {
-    if (
-      !Number.isFinite(punchRange.startBeat) ||
-      !Number.isFinite(punchRange.endBeat) ||
-      punchRange.startBeat < 0 ||
-      punchRange.endBeat <= punchRange.startBeat
-    ) {
-      throw new Error("Punch range is invalid.");
-    }
-    this.store.update({ punchRange });
-  }
-
-  clearPunchRange(): void {
-    this.store.update({ punchRange: undefined });
+  setPunch(update: Partial<RecorderRuntimeState["punch"]>): void {
+    this.store.update({
+      punch: { ...this.store.get().punch, ...update },
+    });
   }
 
   setMetronomeGain(metronomeGain: number): void {
@@ -889,7 +883,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
-          punchRange: state.punchRange,
+          punch: state.punch,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
           latencyCompensation: state.latencyCompensation,

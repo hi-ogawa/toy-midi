@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
+import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
@@ -49,7 +50,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
-  punchEnabled,
+  punch,
   position,
   tempo,
   timeSignature,
@@ -79,7 +80,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
-  punchEnabled: boolean;
+  punch: RecorderRuntimeState["punch"];
   position: number;
   tempo: number;
   timeSignature: TimeSignature;
@@ -102,6 +103,7 @@ export function RecorderHeader({
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
+  const { enabled: punchEnabled, range: punchRange } = punch;
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -187,7 +189,7 @@ export function RecorderHeader({
         data-testid="recorder-punch-toggle"
         onClick={() => onPunchEnabledChange(!punchEnabled)}
         aria-pressed={punchEnabled}
-        title="Toggle punch range"
+        title={punchRange ? "Toggle punch recording" : "Create punch range"}
         className={cn(
           "h-9 gap-1.5 px-2.5 text-xs font-medium",
           punchEnabled

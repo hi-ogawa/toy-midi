@@ -198,7 +198,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
-        punchEnabled={state.punchRange !== undefined}
+        punch={state.punch}
         position={state.position}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
@@ -214,17 +214,20 @@ export function Recorder({ projectId }: { projectId: string }) {
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onPunchEnabledChange={(enabled) => {
-          if (!enabled) {
-            runtime.clearPunchRange();
-            return;
-          }
           const positionBeat = secondsToBeats(state.position, state.tempo);
           const startBeat =
             Math.floor(positionBeat / timeline.beatsPerBar) *
             timeline.beatsPerBar;
-          runtime.setPunchRange({
-            startBeat,
-            endBeat: startBeat + timeline.beatsPerBar,
+          runtime.setPunch({
+            enabled,
+            range:
+              state.punch.range ??
+              (enabled
+                ? {
+                    startBeat,
+                    endBeat: startBeat + timeline.beatsPerBar,
+                  }
+                : undefined),
           });
         }}
         onTimeSignatureChange={(timeSignature) =>
@@ -262,13 +265,15 @@ export function Recorder({ projectId }: { projectId: string }) {
               viewportStartBeat={timeline.viewportStartBeat}
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
-              punchRange={state.punchRange}
+              punch={state.punch}
+              punchEditingDisabled={isRecording || isProcessing}
               isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => runtime.seek(position)}
-              onPunchRangeChange={(punchRange) =>
-                runtime.setPunchRange(punchRange)
+              onPunchRangeChange={(range) => runtime.setPunch({ range })}
+              onPunchRangeClear={() =>
+                runtime.setPunch({ range: undefined, enabled: false })
               }
             />
             {state.referenceVideo && (

@@ -21,9 +21,12 @@ export interface SerializedRecorderRuntimeState {
   // Optional for recorder projects saved before mixer support.
   masterGain?: number;
   metronomeGain?: number;
-  punchRange?: {
-    startBeat: number;
-    endBeat: number;
+  punch?: {
+    range?: {
+      startBeat: number;
+      endBeat: number;
+    };
+    enabled: boolean;
   };
   tempo: number;
   timeSignature: {
@@ -118,7 +121,7 @@ export function serializeRecorderRuntimeState(
     latencyCompensation: state.latencyCompensation,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
-    punchRange: state.punchRange,
+    punch: state.punch,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
     referenceVideo: state.referenceVideo,
@@ -192,28 +195,11 @@ export function deserializeRecorderRuntimeState({
     latencyCompensation: project.latencyCompensation,
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
-    punchRange: parsePunchRange(project.punchRange),
+    punch: project.punch ?? { enabled: false },
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
   };
-}
-
-function parsePunchRange(
-  range: SerializedRecorderRuntimeState["punchRange"],
-): SerializedRecorderRuntimeState["punchRange"] {
-  if (!range) {
-    return undefined;
-  }
-  if (
-    !Number.isFinite(range.startBeat) ||
-    !Number.isFinite(range.endBeat) ||
-    range.startBeat < 0 ||
-    range.endBeat <= range.startBeat
-  ) {
-    throw new Error("Recorder project has an invalid punch range.");
-  }
-  return range;
 }
 
 function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {
