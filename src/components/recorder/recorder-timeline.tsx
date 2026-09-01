@@ -231,70 +231,55 @@ function LoopRange({
   onClear: () => void;
 }) {
   const minimumLength = 1 / subdivisionsPerBeat;
-  const dragRef = usePointerDrag({
+  const dragRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      if ((event.target as HTMLElement).closest("button")) {
-        return { startClientX: event.clientX, range, ignore: true };
-      }
-      return { startClientX: event.clientX, range, ignore: false };
+      return range;
     },
-    onMove: (event, drag) => {
-      if (drag.ignore) {
-        return;
-      }
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
-      const startBeat = Math.max(0, drag.range.startBeat + delta);
+    onClick: () => {},
+    onDragStart: () => {},
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const startBeat = Math.max(0, data.startBeat + delta);
       onChange({
         startBeat,
-        endBeat: startBeat + drag.range.endBeat - drag.range.startBeat,
+        endBeat: startBeat + data.endBeat - data.startBeat,
       });
     },
   });
-  const startRef = usePointerDrag({
+  const startRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      return { startClientX: event.clientX, range };
+      return range;
     },
-    onMove: (event, drag) => {
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
+    onClick: () => {},
+    onDragStart: () => {},
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
       onChange({
-        ...drag.range,
+        ...data,
         startBeat: Math.max(
           0,
-          Math.min(
-            drag.range.endBeat - minimumLength,
-            drag.range.startBeat + delta,
-          ),
+          Math.min(data.endBeat - minimumLength, data.startBeat + delta),
         ),
       });
     },
   });
-  const endRef = usePointerDrag({
+  const endRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
       event.stopPropagation();
-      return { startClientX: event.clientX, range };
+      return range;
     },
-    onMove: (event, drag) => {
-      const delta = snapBeat(
-        (event.clientX - drag.startClientX) / pixelsPerBeat,
-        subdivisionsPerBeat,
-      );
+    onClick: () => {},
+    onDragStart: () => {},
+    onDragMove: (_event, { data, deltaX }) => {
+      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
       onChange({
-        ...drag.range,
-        endBeat: Math.max(
-          drag.range.startBeat + minimumLength,
-          drag.range.endBeat + delta,
-        ),
+        ...data,
+        endBeat: Math.max(data.startBeat + minimumLength, data.endBeat + delta),
       });
     },
   });
