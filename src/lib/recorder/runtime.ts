@@ -55,9 +55,24 @@ interface RecordingTrackState {
   nextTakeNumber: number;
 }
 
+export interface RecorderLoopRange {
+  startBeat: number;
+  endBeat: number;
+}
+
+export interface RecorderLoopState {
+  range?: RecorderLoopRange;
+  enabled: boolean;
+}
+
 export interface RecorderPunchRange {
   startBeat: number;
   endBeat: number;
+}
+
+export interface RecorderPunchState {
+  range?: RecorderPunchRange;
+  enabled: boolean;
 }
 
 interface PendingRecordingState extends Pick<
@@ -84,10 +99,8 @@ export interface RecorderRuntimeState {
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
-  punch: {
-    range?: RecorderPunchRange;
-    enabled: boolean;
-  };
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
   referenceVideo?: ReferenceVideoState;
   masterGain: number;
   metronomeGain: number;
@@ -111,6 +124,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "timeSignature"
   | "masterGain"
   | "metronomeGain"
+  | "loop"
   | "punch"
   | "audioTracks"
   | "recordingTrack"
@@ -139,6 +153,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
+    loop: { enabled: false },
     punch: { enabled: false },
     masterGain: 1,
     metronomeGain: 0.5,
@@ -683,6 +698,7 @@ export class RecorderRuntime {
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome?.setTempo(tempo);
+    this.syncLoopRange();
   }
 
   setMasterGain(masterGain: number): void {
@@ -699,15 +715,22 @@ export class RecorderRuntime {
     this.syncMetronomeGain();
   }
 
-  setPunch(update: Partial<RecorderRuntimeState["punch"]>): void {
-    this.store.update({
-      punch: { ...this.store.get().punch, ...update },
-    });
-  }
-
   setMetronomeGain(metronomeGain: number): void {
     this.store.update({ metronomeGain });
     this.syncMetronomeGain();
+  }
+
+  setLoop(update: Partial<RecorderLoopState>): void {
+    this.store.update({
+      loop: { ...this.store.get().loop, ...update },
+    });
+    this.syncLoopRange();
+  }
+
+  setPunch(update: Partial<RecorderPunchState>): void {
+    this.store.update({
+      punch: { ...this.store.get().punch, ...update },
+    });
   }
 
   setTimeSignature(timeSignature: TimeSignature): void {
@@ -880,6 +903,7 @@ export class RecorderRuntime {
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
     this.metronome!.setTimeSignature(project.timeSignature);
+    this.syncLoopRange();
     this.masterOutput!.gain.value = project.masterGain;
     this.syncMetronomeGain();
     this.syncTrackMix();
@@ -894,6 +918,7 @@ export class RecorderRuntime {
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,
           metronomeGain: state.metronomeGain,
+          loop: state.loop,
           punch: state.punch,
           audioTracks: state.audioTracks,
           recordingTrack: state.recordingTrack,
@@ -916,6 +941,7 @@ export class RecorderRuntime {
       this.syncMetronomeGain();
       this.metronome.setTempo(this.store.get().tempo);
       this.metronome.setTimeSignature(this.store.get().timeSignature);
+      this.syncLoopRange();
       this.transport.store.subscribe(() => {
         const { position, isPlaying } = this.transport!.store.get();
         this.store.update({ isPlaying, position });
@@ -947,6 +973,19 @@ export class RecorderRuntime {
   private syncMetronomeGain(): void {
     const state = this.store.get();
     this.metronome?.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
+  }
+
+  private syncLoopRange(): void {
+    const state = this.store.get();
+    const loopRange = state.loop.enabled ? state.loop.range : undefined;
+    this.transport?.setLoopRange(
+      loopRange
+        ? {
+            start: beatsToSeconds(loopRange.startBeat, state.tempo),
+            end: beatsToSeconds(loopRange.endBeat, state.tempo),
+          }
+        : undefined,
+    );
   }
 
   private finishRecording(stopFrame: number): void {

@@ -10,9 +10,13 @@ import { useState } from "react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
+import { clamp, snapToGrid } from "../../lib/music";
 import type {
-  RecorderPunchRange,
   RecorderRuntimeState,
+  RecorderLoopRange,
+  RecorderLoopState,
+  RecorderPunchRange,
+  RecorderPunchState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
 import { formatTimeMinutes } from "../../lib/time-format";
@@ -49,8 +53,10 @@ export function TimelineHeader({
   onAddAudioTrack,
   onAddAudioFile,
   onSeek,
+  loop,
   punch,
-  punchEditingDisabled,
+  onLoopRangeChange,
+  onLoopRangeClear,
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
@@ -64,8 +70,10 @@ export function TimelineHeader({
   onAddAudioTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
-  punch: RecorderRuntimeState["punch"];
-  punchEditingDisabled: boolean;
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
+  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  onLoopRangeClear: () => void;
   onPunchRangeChange: (range: RecorderPunchRange) => void;
   onPunchRangeClear: () => void;
 }) {
@@ -113,8 +121,10 @@ export function TimelineHeader({
         subdivisionsPerBeat={subdivisionsPerBeat}
         timelineWidth={timelineWidth}
         onSeek={onSeek}
+        loop={loop}
         punch={punch}
-        punchEditingDisabled={punchEditingDisabled}
+        onLoopRangeChange={onLoopRangeChange}
+        onLoopRangeClear={onLoopRangeClear}
         onPunchRangeChange={onPunchRangeChange}
         onPunchRangeClear={onPunchRangeClear}
       />
@@ -130,8 +140,10 @@ function TimelineRuler({
   subdivisionsPerBeat,
   timelineWidth,
   onSeek,
+  loop,
   punch,
-  punchEditingDisabled,
+  onLoopRangeChange,
+  onLoopRangeClear,
   onPunchRangeChange,
   onPunchRangeClear,
 }: {
@@ -142,8 +154,10 @@ function TimelineRuler({
   subdivisionsPerBeat: number;
   timelineWidth: number;
   onSeek: (position: number) => void;
-  punch: RecorderRuntimeState["punch"];
-  punchEditingDisabled: boolean;
+  loop: RecorderLoopState;
+  punch: RecorderPunchState;
+  onLoopRangeChange: (range: RecorderLoopRange) => void;
+  onLoopRangeClear: () => void;
   onPunchRangeChange: (range: RecorderPunchRange) => void;
   onPunchRangeClear: () => void;
 }) {
@@ -163,26 +177,35 @@ function TimelineRuler({
     <div
       data-testid="recorder-timeline-ruler"
       className="relative cursor-pointer bg-neutral-800 font-mono text-[10px] text-neutral-400"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
+      {loop.range && (
+        <LoopRange
+          range={loop.range}
+          enabled={loop.enabled}
+          pixelsPerBeat={pixelsPerBeat}
+          subdivisionsPerBeat={subdivisionsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          onChange={onLoopRangeChange}
+          onClear={onLoopRangeClear}
+        />
+      )}
       {punch.range && (
-        <PunchRange
+        <TimelineRange
           range={punch.range}
           enabled={punch.enabled}
-          disabled={punchEditingDisabled}
+          label="Punch"
+          testId="recorder-punch"
+          activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
+          inactiveClassName="border-amber-400/70 bg-amber-400/10 text-amber-300"
+          clearHoverClassName="hover:bg-amber-200/20"
           pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
           viewportStartBeat={viewportStartBeat}
@@ -206,23 +229,66 @@ function TimelineRuler({
   );
 }
 
-function PunchRange({
+function LoopRange({
   range,
   enabled,
-  disabled,
   pixelsPerBeat,
   subdivisionsPerBeat,
   viewportStartBeat,
   onChange,
   onClear,
 }: {
-  range: RecorderPunchRange;
+  range: RecorderLoopRange;
   enabled: boolean;
-  disabled: boolean;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
-  onChange: (range: RecorderPunchRange) => void;
+  onChange: (range: RecorderLoopRange) => void;
+  onClear: () => void;
+}) {
+  return (
+    <TimelineRange
+      range={range}
+      enabled={enabled}
+      label="Loop"
+      testId="recorder-loop"
+      activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
+      inactiveClassName="border-violet-400/70 bg-violet-400/10 text-violet-300"
+      clearHoverClassName="hover:bg-violet-200/20"
+      pixelsPerBeat={pixelsPerBeat}
+      subdivisionsPerBeat={subdivisionsPerBeat}
+      viewportStartBeat={viewportStartBeat}
+      onChange={onChange}
+      onClear={onClear}
+    />
+  );
+}
+
+function TimelineRange({
+  range,
+  enabled,
+  label,
+  testId,
+  activeClassName,
+  inactiveClassName,
+  clearHoverClassName,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  viewportStartBeat,
+  onChange,
+  onClear,
+}: {
+  range: RecorderLoopRange | RecorderPunchRange;
+  enabled: boolean;
+  label: string;
+  testId: "recorder-loop" | "recorder-punch";
+  activeClassName: string;
+  inactiveClassName: string;
+  clearHoverClassName: string;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  viewportStartBeat: number;
+  onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
 }) {
   const minimumLength = 1 / subdivisionsPerBeat;
@@ -232,10 +298,8 @@ function PunchRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       const startBeat = Math.max(0, data.startBeat + delta);
       onChange({
         startBeat,
@@ -249,15 +313,14 @@ function PunchRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
         ...data,
-        startBeat: Math.max(
+        startBeat: clamp(
+          data.startBeat + delta,
           0,
-          Math.min(data.endBeat - minimumLength, data.startBeat + delta),
+          data.endBeat - minimumLength,
         ),
       });
     },
@@ -268,10 +331,8 @@ function PunchRange({
       event.stopPropagation();
       return range;
     },
-    onClick: () => {},
-    onDragStart: () => {},
     onDragMove: (_event, { data, deltaX }) => {
-      const delta = snapBeat(deltaX / pixelsPerBeat, subdivisionsPerBeat);
+      const delta = snapToGrid(deltaX / pixelsPerBeat, 1 / subdivisionsPerBeat);
       onChange({
         ...data,
         endBeat: Math.max(data.startBeat + minimumLength, data.endBeat + delta),
@@ -280,15 +341,11 @@ function PunchRange({
   });
   return (
     <div
-      data-testid="recorder-punch-range"
+      data-testid={`${testId}-range`}
       className={cn(
         "absolute inset-y-0 z-10 border-x select-none",
-        enabled
-          ? "border-amber-300 bg-amber-400/20 text-amber-100"
-          : "border-amber-400/70 bg-amber-400/10 text-amber-300",
-        disabled
-          ? "cursor-default opacity-60"
-          : "cursor-grab active:cursor-grabbing",
+        enabled ? activeClassName : inactiveClassName,
+        "cursor-grab active:cursor-grabbing",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
@@ -296,41 +353,34 @@ function PunchRange({
       }}
     >
       <span className="absolute left-1 top-1 font-sans text-[9px] font-semibold uppercase tracking-wide">
-        Punch
+        {label}
       </span>
-      {!disabled && (
-        <>
-          <div ref={dragRef} className="absolute inset-0" />
-          <div
-            ref={startRef}
-            data-testid="recorder-punch-start"
-            className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
-          />
-          <div
-            ref={endRef}
-            data-testid="recorder-punch-end"
-            className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
-          />
-          <button
-            type="button"
-            title="Clear punch range"
-            data-testid="recorder-punch-clear"
-            className="absolute right-0.5 top-0.5 grid size-4 place-items-center rounded hover:bg-amber-200/20"
-            onClick={(event) => {
-              event.stopPropagation();
-              onClear();
-            }}
-          >
-            <XIcon className="size-3" />
-          </button>
-        </>
-      )}
+      <div ref={dragRef} className="absolute inset-0" />
+      <div
+        ref={startRef}
+        className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+      />
+      <div
+        ref={endRef}
+        className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+      />
+      <button
+        type="button"
+        title={`Clear ${label.toLowerCase()} range`}
+        data-testid={`${testId}-clear`}
+        className={cn(
+          "absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
+          clearHoverClassName,
+        )}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClear();
+        }}
+      >
+        <XIcon className="size-3" />
+      </button>
     </div>
   );
-}
-
-function snapBeat(beat: number, subdivisionsPerBeat: number): number {
-  return Math.round(beat * subdivisionsPerBeat) / subdivisionsPerBeat;
 }
 
 type RecorderTimelineClip = {
@@ -396,20 +446,14 @@ export function TakeTimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
@@ -520,20 +564,14 @@ export function TimelineLane({
   return (
     <div
       className="relative overflow-hidden bg-neutral-900"
-      style={getTimelineGridStyle({
+      {...getTimelineSurfaceProps({
         beatsPerBar,
+        onSeek,
         pixelsPerBeat,
+        tempo,
         viewportStartBeat,
         subdivisionsPerBeat,
       })}
-      onPointerDown={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const beat = Math.max(
-          0,
-          (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-        );
-        onSeek(beatsToSeconds(beat, tempo));
-      }}
     >
       {clip ? (
         <TimelineClip
@@ -640,20 +678,14 @@ export function ReferenceTimelineRow({
       </div>
       <div
         className="relative overflow-hidden bg-neutral-900"
-        style={getTimelineGridStyle({
+        {...getTimelineSurfaceProps({
           beatsPerBar,
+          onSeek,
           pixelsPerBeat,
+          tempo,
           viewportStartBeat,
           subdivisionsPerBeat,
         })}
-        onPointerDown={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const beat = Math.max(
-            0,
-            (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
-          );
-          onSeek(beatsToSeconds(beat, tempo));
-        }}
       >
         <TimelineClip
           clip={{
@@ -900,4 +932,37 @@ function getTimelineGridStyle({
     viewportStartBeat,
     subdivisionsPerBeat,
   });
+}
+
+function getTimelineSurfaceProps({
+  beatsPerBar,
+  onSeek,
+  pixelsPerBeat,
+  subdivisionsPerBeat,
+  tempo,
+  viewportStartBeat,
+}: {
+  beatsPerBar: number;
+  onSeek: (position: number) => void;
+  pixelsPerBeat: number;
+  subdivisionsPerBeat: number;
+  tempo: number;
+  viewportStartBeat: number;
+}): React.HTMLAttributes<HTMLElement> {
+  return {
+    style: getTimelineGridStyle({
+      beatsPerBar,
+      pixelsPerBeat,
+      subdivisionsPerBeat,
+      viewportStartBeat,
+    }),
+    onPointerDown: (event) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const beat = snapToGrid(
+        (event.clientX - rect.left) / pixelsPerBeat + viewportStartBeat,
+        1 / subdivisionsPerBeat,
+      );
+      onSeek(beatsToSeconds(Math.max(0, beat), tempo));
+    },
+  };
 }
