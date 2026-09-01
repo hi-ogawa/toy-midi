@@ -28,13 +28,18 @@ test("records only the punched interval into the comp", async ({ page }) => {
   // Capture surrounding audio, while only its overlap with Punch joins Capture.
   await seekRecorderByPixels(page, 0);
   await recordButton.click();
-  const recording = page.getByTestId("recorder-clip-recording");
-  await waitForRecordingSamples(recording);
+  const pendingComp = page.getByTestId("recorder-clip-recording");
+  await waitForRecordingSamples(pendingComp);
   await expect
-    .poll(() =>
-      recording.evaluate((element) => element.getBoundingClientRect().width),
+    .poll(
+      async () =>
+        (await page.getByTestId("recorder-playhead").boundingBox())?.x,
     )
-    .toBeGreaterThanOrEqual(punchBox.width);
+    .toBeGreaterThanOrEqual(punchBox.x + punchBox.width);
+  const pendingCompBox = await pendingComp.boundingBox();
+  assert(pendingCompBox);
+  expect(pendingCompBox.x).toBeCloseTo(punchBox.x, -1);
+  expect(pendingCompBox.width).toBeCloseTo(punchBox.width, -1);
   await recordButton.click();
   await expect(take).toHaveCount(1);
   await expect(comp).toHaveCount(1);
