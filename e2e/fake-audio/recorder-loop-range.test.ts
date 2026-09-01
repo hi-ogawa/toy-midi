@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  dragBy,
+  seekRecorderByPixels,
+} from "./recorder-helpers";
 
 test("creates and edits a persisted loop range", async ({ page }) => {
   await createRecorderProject(page);
@@ -41,9 +45,7 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   const movedBox = await range.boundingBox();
   assert(movedBox);
   expect(movedBox.x).toBeCloseTo(initialBox.x + 80, -1);
-  await range.click({
-    position: { x: movedBox.width * 0.75, y: movedBox.height - 4 },
-  });
+  await seekRecorderByPixels(page, 320);
   await expect(position).toHaveText(/^02\|01 /);
 
   // Disabling playback keeps the edited range available for later use.
