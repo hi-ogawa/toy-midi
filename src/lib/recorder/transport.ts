@@ -145,6 +145,8 @@ export class AudioContextTransport {
   }
 
   private normalizeLoopPosition(position: number): number {
+    // Allow preroll before loop-in and starts within the loop, but a playhead at
+    // or after loop-out begins again from loop-in.
     if (this.loopRange && position >= this.loopRange.end) {
       return this.loopRange.start;
     }
