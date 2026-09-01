@@ -10,7 +10,6 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
-import { secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -213,26 +212,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
-        onLoopEnabledChange={(enabled) => {
-          const startBeat = Math.max(
-            0,
-            Math.floor(
-              secondsToBeats(state.position, state.tempo) /
-                timeline.beatsPerBar,
-            ) * timeline.beatsPerBar,
-          );
-          runtime.setLoop({
-            enabled,
-            range:
-              state.loop.range ??
-              (enabled
-                ? {
-                    startBeat,
-                    endBeat: startBeat + timeline.beatsPerBar,
-                  }
-                : undefined),
-          });
-        }}
+        onLoopChange={(update) => runtime.setLoop(update)}
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }

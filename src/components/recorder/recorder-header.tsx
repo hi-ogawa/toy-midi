@@ -24,6 +24,8 @@ import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   formatBarBeatAtTime,
+  getBeatsPerBar,
+  secondsToBeats,
   type GridDivision,
   GRID_DIVISIONS,
 } from "../../lib/timeline";
@@ -64,7 +66,7 @@ export function RecorderHeader({
   onAutoScrollChange,
   onTempoChange,
   onMetronomeChange,
-  onLoopEnabledChange,
+  onLoopChange,
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
@@ -94,7 +96,7 @@ export function RecorderHeader({
   onAutoScrollChange: (enabled: boolean) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
-  onLoopEnabledChange: (enabled: boolean) => void;
+  onLoopChange: (update: Partial<RecorderLoopState>) => void;
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
@@ -104,6 +106,7 @@ export function RecorderHeader({
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const { enabled: loopEnabled, range: loopRange } = loop;
+  const beatsPerBar = getBeatsPerBar(timeSignature);
   const tempoInput = useDraftInput({
     value: tempo,
     onCommit: onTempoChange,
@@ -161,7 +164,22 @@ export function RecorderHeader({
       <div className="mx-1 h-5 w-px bg-neutral-600" />
       <Button
         data-testid="recorder-loop-toggle"
-        onClick={() => onLoopEnabledChange(!loopEnabled)}
+        onClick={() => {
+          const enabled = !loopEnabled;
+          const startBeat = Math.max(
+            0,
+            Math.floor(secondsToBeats(position, tempo) / beatsPerBar) *
+              beatsPerBar,
+          );
+          onLoopChange({
+            enabled,
+            range:
+              loopRange ??
+              (enabled
+                ? { startBeat, endBeat: startBeat + beatsPerBar }
+                : undefined),
+          });
+        }}
         aria-pressed={loopEnabled}
         title={loopRange ? "Toggle loop playback" : "Create loop range"}
         className={cn(
