@@ -219,7 +219,7 @@ export function CaptureTrackRow({
   });
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1rem_0.75rem_1fr] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1.5rem_0.75rem_1fr] gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
           <div className="truncate text-xs font-semibold">Capture</div>
           <div className="mt-0.5 truncate text-[11px] text-neutral-400">
