@@ -2,6 +2,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
+  HeadphonesIcon,
   MoreVerticalIcon,
   Trash2Icon,
   UploadIcon,
@@ -170,12 +171,15 @@ export function CaptureTrackRow({
   gain,
   inputActive,
   inputAnalyser,
+  inputListening,
+  inputListeningDisabled,
   inputToggleDisabled,
   muted,
   soloed,
   takeDownloadDisabled,
   onGainChange,
   onInputSetup,
+  onInputListeningChange,
   onInputToggle,
   onMutedChange,
   onSoloedChange,
@@ -190,12 +194,15 @@ export function CaptureTrackRow({
   gain: number;
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
+  inputListening: boolean;
+  inputListeningDisabled: boolean;
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
   takeDownloadDisabled: boolean;
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
+  onInputListeningChange: (listening: boolean) => void;
   onInputToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -273,18 +280,44 @@ export function CaptureTrackRow({
             title={soloed ? "Disable Capture solo" : "Solo Capture"}
           />
         </div>
-        <button
-          type="button"
-          onClick={onInputSetup}
-          className={cn(
-            "col-span-2 min-w-0 truncate text-left text-[11px] hover:underline",
-            routeNeedsSetup
-              ? "font-medium text-orange-300 hover:text-orange-200"
-              : "text-neutral-400 hover:text-neutral-100",
-          )}
-        >
-          {route}
-        </button>
+        <div className="col-span-2 flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={onInputSetup}
+            className={cn(
+              "min-w-0 flex-1 truncate text-left text-[11px] hover:underline",
+              routeNeedsSetup
+                ? "font-medium text-orange-300 hover:text-orange-200"
+                : "text-neutral-400 hover:text-neutral-100",
+            )}
+          >
+            {route}
+          </button>
+          <button
+            type="button"
+            data-testid="recorder-input-listen"
+            disabled={!inputActive || inputListeningDisabled}
+            aria-label={inputListening ? "Stop listening" : "Listen to input"}
+            aria-pressed={inputListening}
+            title={
+              inputListeningDisabled
+                ? "Input listening is unavailable while recording"
+                : inputActive
+                  ? inputListening
+                    ? "Stop listening"
+                    : "Listen to input (use headphones to avoid feedback)"
+                  : "Enable input first to listen"
+            }
+            onClick={() => onInputListeningChange(!inputListening)}
+            className={cn(
+              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
+              inputListening &&
+                "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+            )}
+          >
+            <HeadphonesIcon className="size-3.5" />
+          </button>
+        </div>
         <div className="col-span-2">
           <InputMeter active={inputActive} analyser={inputAnalyser} compact />
         </div>
