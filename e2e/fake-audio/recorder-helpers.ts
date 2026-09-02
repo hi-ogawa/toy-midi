@@ -35,6 +35,21 @@ export async function dragBy(
   await page.mouse.up();
 }
 
+export async function previewDragBy(
+  page: Page,
+  locator: Locator,
+  deltaX: number,
+) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  const startX = box!.x + box!.width / 2;
+  await page.mouse.move(startX, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2, {
+    steps: 4,
+  });
+}
+
 export async function waitForRecordingSamples(recording: Locator) {
   const initialWidth = await recording.evaluate(
     (element) => element.getBoundingClientRect().width,

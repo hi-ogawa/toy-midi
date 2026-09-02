@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type RecorderClipId,
   type RecorderClipMove,
+  type RecorderClipTrim,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
@@ -25,6 +26,10 @@ export function useRecorderClipInteraction({
   state: RecorderRuntimeState;
 }) {
   const [keys, setKeys] = useState(() => new Set<string>());
+  const [movePreview, setMovePreview] = useState<RecorderClipMove[]>();
+  const movePreviewRef = useRef<RecorderClipMove[] | undefined>(undefined);
+  const [trimPreview, setTrimPreview] = useState<RecorderClipTrim>();
+  const trimPreviewRef = useRef<RecorderClipTrim | undefined>(undefined);
 
   function getKey(clip: RecorderClipId): string {
     return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
@@ -127,22 +132,39 @@ export function useRecorderClipInteraction({
     };
   }
 
-  function move(snapshot: RecorderClipMoveSnapshot, delta: number): void {
+  function previewMove(
+    snapshot: RecorderClipMoveSnapshot,
+    delta: number,
+  ): void {
     const clampedDelta = Math.max(delta, -snapshot.minimumVisibleStart);
-    runtime.moveClips(
-      snapshot.clips.map((clip) =>
-        clip.type === "reference"
-          ? {
-              type: "reference" as const,
-              timelineOffset: clip.timelineOffset + clampedDelta,
-            }
-          : {
-              type: clip.type,
-              id: clip.id,
-              timelineOffset: clip.timelineOffset + clampedDelta,
-            },
-      ),
+    const preview = snapshot.clips.map((clip) =>
+      clip.type === "reference"
+        ? {
+            type: "reference" as const,
+            timelineOffset: clip.timelineOffset + clampedDelta,
+          }
+        : {
+            type: clip.type,
+            id: clip.id,
+            timelineOffset: clip.timelineOffset + clampedDelta,
+          },
     );
+    movePreviewRef.current = preview;
+    setMovePreview(preview);
+  }
+
+  function commitMove(): void {
+    const preview = movePreviewRef.current;
+    movePreviewRef.current = undefined;
+    setMovePreview(undefined);
+    if (preview) {
+      runtime.moveClips(preview);
+    }
+  }
+
+  function cancelMove(): void {
+    movePreviewRef.current = undefined;
+    setMovePreview(undefined);
   }
 
   function startTrim({
@@ -168,15 +190,34 @@ export function useRecorderClipInteraction({
     };
   }
 
-  function trim(snapshot: RecorderClipTrimSnapshot, delta: number): void {
+  function previewTrim(
+    snapshot: RecorderClipTrimSnapshot,
+    delta: number,
+  ): void {
     if (snapshot.clip.type === "reference") {
       throw new Error("Reference clips cannot be trimmed.");
     }
-    runtime.trimClip({
+    const preview = {
       ...snapshot.clip,
       edge: snapshot.edge,
       value: snapshot.initialValue + delta,
-    });
+    };
+    trimPreviewRef.current = preview;
+    setTrimPreview(preview);
+  }
+
+  function commitTrim(): void {
+    const preview = trimPreviewRef.current;
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
+    if (preview) {
+      runtime.trimClip(preview);
+    }
+  }
+
+  function cancelTrim(): void {
+    trimPreviewRef.current = undefined;
+    setTrimPreview(undefined);
   }
 
   function removeSelected(): void {
@@ -199,11 +240,26 @@ export function useRecorderClipInteraction({
     clear: () => setKeys(new Set()),
     hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
+    getPreviewOffset: (clip: RecorderClipId) =>
+      movePreview?.find(
+        (preview) =>
+          preview.type === clip.type &&
+          (preview.type === "reference" ||
+            (clip.type !== "reference" && preview.id === clip.id)),
+      )?.timelineOffset,
+    getTrimPreview: (clip: RecorderClipId) =>
+      trimPreview?.type === clip.type && trimPreview.id === clip.id
+        ? trimPreview
+        : undefined,
     select,
     startMove,
-    move,
+    previewMove,
+    commitMove,
+    cancelMove,
     startTrim,
-    trim,
+    previewTrim,
+    commitTrim,
+    cancelTrim,
     removeSelected,
   };
 }
