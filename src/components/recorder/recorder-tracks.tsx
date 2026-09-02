@@ -7,7 +7,7 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
-import type { AudioAnalyser } from "../../lib/audio-analyser";
+import type { AudioAnalyserSource } from "../../lib/audio-analyser";
 import {
   dbToPercent,
   formatGainDb,
@@ -189,7 +189,7 @@ export function CaptureTrackRow({
   height: number;
   gain: number;
   inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
+  inputAnalyser?: AudioAnalyserSource;
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;

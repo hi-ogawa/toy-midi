@@ -1,11 +1,14 @@
-import { AudioAnalyser } from "../audio-analyser.ts";
+import faustWorkletUrl from "@hiogawa/toy-midi-faust/worklet?url";
+import type { AudioAnalyserSource } from "../audio-analyser.ts";
 import {
   CaptureWorkletClient,
   type CaptureWorkletNotification,
   createCaptureWorkletSource,
 } from "./capture-worklet.ts";
+import { FaustCaptureAnalyser } from "./faust-capture-analyser.ts";
 
 const workletRegistrations = new WeakMap<AudioContext, Promise<void>>();
+const faustWorkletRegistrations = new WeakMap<AudioContext, Promise<void>>();
 
 export async function requestCaptureAccess(): Promise<void> {
   const stream =
@@ -23,7 +26,7 @@ export class CaptureInput {
   private readonly stream: MediaStream;
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
-  readonly analyser: AudioAnalyser;
+  readonly analyser: AudioAnalyserSource;
   private readonly silentGain: GainNode;
 
   static async open({
@@ -35,7 +38,10 @@ export class CaptureInput {
     deviceId: string;
     onNotification: (message: CaptureWorkletNotification) => void;
   }) {
-    await ensureCaptureWorklet(context);
+    await Promise.all([
+      ensureCaptureWorklet(context),
+      ensureFaustWorklet(context),
+    ]);
     const stream = await navigator.mediaDevices.getUserMedia(
       captureConstraints(deviceId),
     );
@@ -84,7 +90,7 @@ export class CaptureInput {
       context,
       onNotification,
     });
-    this.analyser = new AudioAnalyser(context);
+    this.analyser = new FaustCaptureAnalyser(context);
     this.silentGain = context.createGain();
     this.silentGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
@@ -144,6 +150,20 @@ async function registerCaptureWorklet(context: AudioContext): Promise<void> {
     await context.audioWorklet.addModule(url);
   } finally {
     URL.revokeObjectURL(url);
+  }
+}
+
+async function ensureFaustWorklet(context: AudioContext): Promise<void> {
+  let registration = faustWorkletRegistrations.get(context);
+  if (!registration) {
+    registration = context.audioWorklet.addModule(faustWorkletUrl);
+    faustWorkletRegistrations.set(context, registration);
+  }
+  try {
+    await registration;
+  } catch (error) {
+    faustWorkletRegistrations.delete(context);
+    throw error;
   }
 }
 

@@ -11,6 +11,9 @@ importers:
       '@hiogawa/bass-pitch-wasm':
         specifier: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
         version: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732
+      '@hiogawa/toy-midi-faust':
+        specifier: workspace:*
+        version: link:crates/faust
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.16
         version: 2.1.24(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -108,6 +111,8 @@ importers:
       wasm-pack:
         specifier: 0.15.0
         version: 0.15.0
+
+  crates/faust: {}
 
 packages:
 

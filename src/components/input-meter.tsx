@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AudioAnalyser } from "../lib/audio-analyser";
+import type { AudioAnalyserSource } from "../lib/audio-analyser";
 import { gainToDb, MAX_DB, MIN_DB } from "../lib/music";
 
 export function InputMeter({
@@ -8,7 +8,7 @@ export function InputMeter({
   compact = false,
 }: {
   active: boolean;
-  analyser?: AudioAnalyser;
+  analyser?: AudioAnalyserSource;
   compact?: boolean;
 }) {
   const sampledPeak = useAnalyserPeak({ active, analyser });
@@ -73,7 +73,7 @@ function useAnalyserPeak({
   analyser,
 }: {
   active: boolean;
-  analyser?: AudioAnalyser;
+  analyser?: AudioAnalyserSource;
 }): number {
   const [peak, setPeak] = useState(0);
 

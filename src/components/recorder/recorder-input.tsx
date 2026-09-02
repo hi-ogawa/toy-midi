@@ -1,6 +1,6 @@
 import { CircleHelpIcon, Mic2Icon } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { AudioAnalyser } from "../../lib/audio-analyser";
+import type { AudioAnalyserSource } from "../../lib/audio-analyser";
 import { routes } from "../../lib/routes";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
@@ -30,7 +30,7 @@ export function InputSetup({
   error?: Error | null;
   hasAccess: boolean;
   inputActive: boolean;
-  inputAnalyser?: AudioAnalyser;
+  inputAnalyser?: AudioAnalyserSource;
   inputsInitialized: boolean;
   isProcessing: boolean;
   isRecording: boolean;
