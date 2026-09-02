@@ -34,3 +34,7 @@ jobs:
       - run: pnpm build-wasm
 
       - run: pnpm exec pkg-pr-new publish --no-compact ./crates/bass-pitch-wasm
+
+      - run: pnpm -C crates/faust build
+
+      - run: pnpm exec pkg-pr-new publish --no-compact ./crates/faust

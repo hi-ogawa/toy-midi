@@ -7,3 +7,5 @@ dist/
 test-results/
 target/
 crates/bass-pitch-wasm/pkg/
+crates/faust/pkg/
+crates/faust/generated/

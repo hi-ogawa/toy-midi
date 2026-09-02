@@ -1,0 +1,15 @@
+{
+  "name": "@hiogawa/faust",
+  "version": "0.0.0",
+  "files": [
+    "pkg"
+  ],
+  "type": "module",
+  "exports": "./pkg/faust.js",
+  "scripts": {
+    "build": "wasm-pack build . --target web --no-pack --release --out-name faust && rm -f pkg/.gitignore"
+  },
+  "devDependencies": {
+    "wasm-pack": "0.15.0"
+  }
+}

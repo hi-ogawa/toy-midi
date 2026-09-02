@@ -11,6 +11,7 @@
     "preview": "vite preview --config vite.app.config.ts",
     "override-wasm": "yq -i '.overrides.\"@hiogawa/bass-pitch-wasm\" = \"workspace:*\"' pnpm-workspace.yaml",
     "build-wasm": "bash tools/build-wasm.sh",
+    "build-faust": "bash tools/build-faust.sh",
     "typecheck": "tsc -b",
     "lint": "cargo fmt && vp check --fix && pnpm lint-dead-code && pnpm typecheck",
     "lint-check": "cargo fmt -- --check && vp check && pnpm lint-dead-code && pnpm typecheck",
