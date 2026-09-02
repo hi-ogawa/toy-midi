@@ -14,6 +14,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Connect the browser input before recording is available.
   await enableInput(page);
 
+  // Input monitoring can be enabled before recording starts.
   const monitorButton = page.getByTestId("recorder-input-monitor");
   await expect(monitorButton).toBeEnabled();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
