@@ -1,5 +1,5 @@
 {
-  "name": "@hiogawa/faust",
+  "name": "@hiogawa/toy-midi-faust",
   "version": "0.0.0",
   "files": [
     "pkg"
