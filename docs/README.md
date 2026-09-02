@@ -4,6 +4,10 @@
 
 - [Architecture overview](architecture.md): application ownership, data flow, persistence, and runtime structure.
 
+## Product
+
+- [Recorder](recorder.md): use case, features, monitoring assumptions, and separation from the MIDI editor.
+
 ## Concepts
 
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
