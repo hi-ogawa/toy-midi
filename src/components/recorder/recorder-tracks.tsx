@@ -4,6 +4,7 @@ import {
   DownloadIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
+  Settings2Icon,
   Trash2Icon,
   UploadIcon,
 } from "lucide-react";
@@ -279,17 +280,27 @@ export function CaptureTrackRow({
           />
         </div>
         <div className="col-span-2 flex min-w-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={onInputSetup}
+          <span
             className={cn(
-              "min-w-0 flex-1 truncate text-left text-[11px] hover:underline",
+              "min-w-0 flex-1 truncate text-[11px]",
               routeNeedsSetup
-                ? "font-medium text-orange-300 hover:text-orange-200"
-                : "text-neutral-400 hover:text-neutral-100",
+                ? "font-medium text-orange-300"
+                : "text-neutral-400",
             )}
           >
             {route}
+          </span>
+          <button
+            type="button"
+            aria-label="Configure audio input"
+            title="Configure audio input"
+            onClick={onInputSetup}
+            className={cn(
+              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+              routeNeedsSetup && "text-orange-300 hover:text-orange-200",
+            )}
+          >
+            <Settings2Icon className="size-3.5" />
           </button>
           <button
             type="button"
