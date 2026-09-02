@@ -332,7 +332,7 @@ export function CaptureTrackRow({
         <div className="col-span-2">
           <InputMeter active={inputActive} analyser={inputAnalyser} compact />
         </div>
-        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center self-start gap-2 text-[10px] text-neutral-400">
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
