@@ -35,7 +35,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
   await page.keyboard.press("Escape");
   await recordButton.click();
-  await expect(listenButton).toHaveAttribute("aria-pressed", "false");
+  await expect(listenButton).toHaveAttribute("aria-pressed", "true");
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   const recording = page.getByTestId("recorder-clip-recording");

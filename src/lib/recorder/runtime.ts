@@ -649,7 +649,6 @@ export class RecorderRuntime {
     }
     const context = this.ensureContext();
     await context.resume();
-    this.setInputListening(false);
     const captureStartFrame = await this.captureInput.startCapture();
     if (!this.store.get().isPlaying) {
       await this.play();

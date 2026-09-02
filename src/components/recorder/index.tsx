@@ -394,7 +394,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputActive={input.active}
               inputAnalyser={runtime.captureInput?.analyser}
               inputListening={state.inputListening}
-              inputListeningDisabled={isRecording || isProcessing}
               inputToggleDisabled={
                 input.mutationPending ||
                 !input.initialized ||

@@ -172,7 +172,6 @@ export function CaptureTrackRow({
   inputActive,
   inputAnalyser,
   inputListening,
-  inputListeningDisabled,
   inputToggleDisabled,
   muted,
   soloed,
@@ -195,7 +194,6 @@ export function CaptureTrackRow({
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
   inputListening: boolean;
-  inputListeningDisabled: boolean;
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
@@ -296,17 +294,15 @@ export function CaptureTrackRow({
           <button
             type="button"
             data-testid="recorder-input-listen"
-            disabled={!inputActive || inputListeningDisabled}
+            disabled={!inputActive}
             aria-label={inputListening ? "Stop listening" : "Listen to input"}
             aria-pressed={inputListening}
             title={
-              inputListeningDisabled
-                ? "Input listening is unavailable while recording"
-                : inputActive
-                  ? inputListening
-                    ? "Stop listening"
-                    : "Listen to input (use headphones to avoid feedback)"
-                  : "Enable input first to listen"
+              inputActive
+                ? inputListening
+                  ? "Stop listening"
+                  : "Listen to input (use headphones to avoid feedback)"
+                : "Enable input first to listen"
             }
             onClick={() => onInputListeningChange(!inputListening)}
             className={cn(
