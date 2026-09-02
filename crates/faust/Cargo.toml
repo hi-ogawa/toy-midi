@@ -8,4 +8,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
+libm = "0.2.16"
 wasm-bindgen = "0.2.114"

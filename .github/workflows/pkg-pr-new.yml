@@ -35,6 +35,8 @@ jobs:
 
       - run: pnpm exec pkg-pr-new publish --no-compact ./crates/bass-pitch-wasm
 
-      - run: pnpm -C crates/faust build
+      - run: sudo apt-get update && sudo apt-get install -y faust
+
+      - run: pnpm build-faust
 
       - run: pnpm exec pkg-pr-new publish --no-compact ./crates/faust
