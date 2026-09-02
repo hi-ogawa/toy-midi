@@ -5,11 +5,10 @@
     "pkg"
   ],
   "type": "module",
-  "exports": "./pkg/faust.js",
-  "scripts": {
-    "build": "wasm-pack build . --target web --no-pack --release --out-name faust && rm -f pkg/.gitignore"
+  "exports": {
+    "./worklet": "./pkg/worklet.js"
   },
-  "devDependencies": {
-    "wasm-pack": "0.15.0"
+  "scripts": {
+    "build": "bash build.sh"
   }
 }

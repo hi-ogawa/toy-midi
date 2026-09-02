@@ -196,7 +196,6 @@ name = "faust"
 version = "0.0.0"
 dependencies = [
  "libm",
- "wasm-bindgen",
 ]
 
 [[package]]

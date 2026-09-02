@@ -4,7 +4,13 @@ export type AudioAnalysis = {
   peak: number;
 };
 
-export class AudioAnalyser {
+export interface AudioAnalyserSource {
+  readonly node: AudioNode;
+  subscribe(onAnalysis: (analysis: AudioAnalysis) => void): () => void;
+  dispose(): void;
+}
+
+export class AudioAnalyser implements AudioAnalyserSource {
   readonly node: AnalyserNode;
 
   private readonly samples: Float32Array<ArrayBuffer>;

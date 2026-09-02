@@ -1,7 +1,7 @@
 mod runtime;
 
 #[allow(dead_code, non_snake_case, unused_variables)]
-pub mod capture_meter {
+mod capture_meter {
     use crate::runtime::*;
 
     // Faust emits a source fragment that expects its host traits in scope.
@@ -9,14 +9,63 @@ pub mod capture_meter {
 }
 
 use capture_meter::CaptureMeter;
-use wasm_bindgen::prelude::*;
+use std::cell::RefCell;
 
-#[wasm_bindgen]
-pub fn process_capture_meter(input: &[f32], output: &mut [f32], sample_rate: i32) {
-    assert_eq!(input.len(), output.len());
+const RENDER_QUANTUM: usize = 128;
+
+thread_local! {
+    static PROCESSOR: RefCell<Option<Processor>> = const { RefCell::new(None) };
+}
+
+struct Processor {
+    dsp: CaptureMeter,
+    input: [f32; RENDER_QUANTUM],
+    output: [f32; RENDER_QUANTUM],
+}
+
+#[no_mangle]
+pub extern "C" fn initialize_capture_meter(sample_rate: i32) {
     let mut dsp = CaptureMeter::new();
     dsp.init(sample_rate);
-    dsp.compute(input.len(), &[input], &mut [output]);
+    PROCESSOR.set(Some(Processor {
+        dsp,
+        input: [0.0; RENDER_QUANTUM],
+        output: [0.0; RENDER_QUANTUM],
+    }));
+}
+
+#[no_mangle]
+pub extern "C" fn capture_meter_input() -> *mut f32 {
+    PROCESSOR.with_borrow_mut(|processor| {
+        processor
+            .as_mut()
+            .expect("capture meter is initialized")
+            .input
+            .as_mut_ptr()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn capture_meter_output() -> *const f32 {
+    PROCESSOR.with_borrow(|processor| {
+        processor
+            .as_ref()
+            .expect("capture meter is initialized")
+            .output
+            .as_ptr()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn process_capture_meter() {
+    PROCESSOR.with_borrow_mut(|processor| {
+        let processor = processor.as_mut().expect("capture meter is initialized");
+        processor.dsp.compute(
+            RENDER_QUANTUM,
+            &[&processor.input],
+            &mut [&mut processor.output],
+        );
+    });
 }
 
 #[cfg(test)]
@@ -25,10 +74,12 @@ mod tests {
 
     #[test]
     fn capture_meter_passes_samples_through() {
+        let mut dsp = CaptureMeter::new();
+        dsp.init(48_000);
         let input = [-1.0, -0.25, 0.0, 0.5, 1.0];
         let mut output = [0.0; 5];
 
-        process_capture_meter(&input, &mut output, 48_000);
+        dsp.compute(input.len(), &[&input], &mut [&mut output]);
 
         assert_eq!(output, input);
     }
