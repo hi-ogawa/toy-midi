@@ -171,14 +171,14 @@ export function CaptureTrackRow({
   gain,
   inputActive,
   inputAnalyser,
-  inputListening,
+  inputMonitoring,
   inputToggleDisabled,
   muted,
   soloed,
   takeDownloadDisabled,
   onGainChange,
   onInputSetup,
-  onInputListeningChange,
+  onInputMonitoringChange,
   onInputToggle,
   onMutedChange,
   onSoloedChange,
@@ -193,14 +193,14 @@ export function CaptureTrackRow({
   gain: number;
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
-  inputListening: boolean;
+  inputMonitoring: boolean;
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
   takeDownloadDisabled: boolean;
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
-  onInputListeningChange: (listening: boolean) => void;
+  onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -293,21 +293,25 @@ export function CaptureTrackRow({
           </button>
           <button
             type="button"
-            data-testid="recorder-input-listen"
+            data-testid="recorder-input-monitor"
             disabled={!inputActive}
-            aria-label={inputListening ? "Stop listening" : "Listen to input"}
-            aria-pressed={inputListening}
+            aria-label={
+              inputMonitoring
+                ? "Disable input monitoring"
+                : "Enable input monitoring"
+            }
+            aria-pressed={inputMonitoring}
             title={
               inputActive
-                ? inputListening
-                  ? "Stop listening"
-                  : "Listen to input (use headphones to avoid feedback)"
-                : "Enable input first to listen"
+                ? inputMonitoring
+                  ? "Disable input monitoring"
+                  : "Enable input monitoring (use headphones to avoid feedback)"
+                : "Enable input first to monitor"
             }
-            onClick={() => onInputListeningChange(!inputListening)}
+            onClick={() => onInputMonitoringChange(!inputMonitoring)}
             className={cn(
               "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
-              inputListening &&
+              inputMonitoring &&
                 "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
             )}
           >

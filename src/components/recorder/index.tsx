@@ -393,7 +393,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               height={state.recordingTrack.height}
               inputActive={input.active}
               inputAnalyser={runtime.captureInput?.analyser}
-              inputListening={state.inputListening}
+              inputMonitoring={state.inputMonitoring}
               inputToggleDisabled={
                 input.mutationPending ||
                 !input.initialized ||
@@ -408,8 +408,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               }
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onInputSetup={() => setIsInputSetupOpen(true)}
-              onInputListeningChange={(listening) =>
-                runtime.setInputListening(listening)
+              onInputMonitoringChange={(monitoring) =>
+                runtime.setInputMonitoring(monitoring)
               }
               onInputToggle={input.toggle}
               onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}

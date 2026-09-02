@@ -14,11 +14,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Connect the browser input before recording is available.
   await enableInput(page);
 
-  const listenButton = page.getByTestId("recorder-input-listen");
-  await expect(listenButton).toBeEnabled();
-  await expect(listenButton).toHaveAttribute("aria-pressed", "false");
-  await listenButton.click();
-  await expect(listenButton).toHaveAttribute("aria-pressed", "true");
+  const monitorButton = page.getByTestId("recorder-input-monitor");
+  await expect(monitorButton).toBeEnabled();
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "false");
+  await monitorButton.click();
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
 
   // Place the playhead away from zero to exercise take placement.
   await seekRecorderByPixels(page, 160);
@@ -35,7 +35,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
   await page.keyboard.press("Escape");
   await recordButton.click();
-  await expect(listenButton).toHaveAttribute("aria-pressed", "true");
+  await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   const recording = page.getByTestId("recorder-clip-recording");

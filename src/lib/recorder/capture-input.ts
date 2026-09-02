@@ -24,7 +24,7 @@ export class CaptureInput {
   private readonly source: MediaStreamAudioSourceNode;
   private readonly worklet: CaptureWorkletClient;
   readonly analyser: AudioAnalyser;
-  private readonly listeningGain: GainNode;
+  private readonly monitorGain: GainNode;
 
   static async open({
     context,
@@ -90,14 +90,14 @@ export class CaptureInput {
       onNotification,
     });
     this.analyser = new AudioAnalyser(context);
-    this.listeningGain = context.createGain();
-    this.listeningGain.gain.value = 0;
+    this.monitorGain = context.createGain();
+    this.monitorGain.gain.value = 0;
     // Keep the worklet connected so browsers continue rendering it. Zero gain
-    // prevents input playback and feedback until listening is explicitly enabled.
+    // prevents input monitoring and feedback until it is explicitly enabled.
     this.source
       .connect(this.worklet.node)
       .connect(this.analyser.node)
-      .connect(this.listeningGain)
+      .connect(this.monitorGain)
       .connect(output);
   }
 
@@ -105,10 +105,10 @@ export class CaptureInput {
     this.worklet.setChannel(channel);
   }
 
-  setListening(enabled: boolean): void {
-    this.listeningGain.gain.setTargetAtTime(
+  setMonitoring(enabled: boolean): void {
+    this.monitorGain.gain.setTargetAtTime(
       enabled ? 1 : 0,
-      this.listeningGain.context.currentTime,
+      this.monitorGain.context.currentTime,
       0.01,
     );
   }
@@ -125,7 +125,7 @@ export class CaptureInput {
     this.source.disconnect();
     this.worklet.dispose();
     this.analyser.dispose();
-    this.listeningGain.disconnect();
+    this.monitorGain.disconnect();
     for (const track of this.stream.getTracks()) {
       track.stop();
     }
