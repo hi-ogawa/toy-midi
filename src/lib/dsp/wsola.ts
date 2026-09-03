@@ -242,7 +242,7 @@ export class StreamingWsola {
     this.hopOutput = createChannels(channelCount, this.hopFrames);
   }
 
-  get writableFrames(): number {
+  getWritableFrames(): number {
     return this.input[0].length - this.inputLength;
   }
 
@@ -251,7 +251,7 @@ export class StreamingWsola {
       throw new Error("Cannot push WSOLA input after finish().");
     }
     const frames = input[0]?.length ?? 0;
-    if (this.writableFrames < frames) {
+    if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
     for (let channel = 0; channel < this.input.length; channel++) {

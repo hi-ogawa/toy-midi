@@ -49,8 +49,8 @@ export class StreamingPitchShifter {
     this.latencyFrames = this.wsola.latencyFrames;
   }
 
-  get writableFrames(): number {
-    return this.wsola.writableFrames;
+  getWritableFrames(): number {
+    return this.wsola.getWritableFrames();
   }
 
   push(input: readonly Float32Array[]): void {
@@ -98,7 +98,7 @@ export class StreamingPitchShifter {
   }
 
   private pump(): void {
-    while (PUMP_FRAMES <= this.resampler.writableFrames) {
+    while (PUMP_FRAMES <= this.resampler.getWritableFrames()) {
       const written = this.wsola.pull(this.pumpBuffer);
       if (written === 0) {
         break;
@@ -138,7 +138,7 @@ class LinearResampler {
     );
   }
 
-  get writableFrames(): number {
+  getWritableFrames(): number {
     return this.input[0].length - this.inputLength;
   }
 
