@@ -1,6 +1,7 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
@@ -174,6 +175,7 @@ export class RecorderRuntime {
 
   private context?: AudioContext;
   private masterOutput?: GainNode;
+  private pitchShifterOutput?: AudioWorkletNode;
   private transport?: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
@@ -630,6 +632,16 @@ export class RecorderRuntime {
 
   async play(): Promise<void> {
     const context = this.ensureContext();
+    if (!this.pitchShifterOutput) {
+      this.pitchShifterOutput = await createPitchShifterNode({
+        context,
+        channelCount: 2,
+        pitchRatio: 0.75,
+      });
+      this.masterOutput!.disconnect();
+      this.masterOutput!.connect(this.pitchShifterOutput);
+      this.pitchShifterOutput.connect(context.destination);
+    }
     await context.resume();
     this.transport!.play();
   }
