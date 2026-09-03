@@ -105,7 +105,7 @@ async function main() {
   // Pull processed blocks until the source is exhausted. WSOLA performs
   // its window matching and overlap-add internally; this loop only converts
   // each planar block back to interleaved PCM.
-  while (!processor.finished()) {
+  while (!processor.isFinished()) {
     const written = processor.render(block);
     for (let frame = 0; frame < written; frame++) {
       for (let channel = 0; channel < CHANNELS; channel++) {

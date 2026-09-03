@@ -62,7 +62,7 @@ export class WsolaProcessor {
     this.hopOutputOffset = this.hopFrames;
   }
 
-  finished(): boolean {
+  isFinished(): boolean {
     return this.outputPosition >= this.outputFrames;
   }
 
