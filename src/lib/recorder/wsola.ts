@@ -33,6 +33,8 @@ export class WsolaProcessor {
     searchedContinuations: 0,
   };
 
+  // Immutable source audio and the frame distances that define the algorithm:
+  // each output hop searches near its rate-scaled source position for a window.
   private readonly channelData: readonly Float32Array[];
   private readonly playbackRate: number;
   private readonly windowFrames: number;
@@ -40,12 +42,21 @@ export class WsolaProcessor {
   private readonly searchFrames: number;
   private readonly searchDecimation = 5;
   private readonly excludeFrames: number;
+
+  // Precomputed crossfade weights. overlapWindow joins adjacent half-window
+  // hops; transitionWindow smooths a searched window against its natural path.
   private readonly overlapWindow: Float32Array;
   private readonly transitionWindow: Float32Array;
+
+  // Reused planar scratch buffers for one WSOLA step: expected continuation,
+  // chosen source window, carried second half, and ready-to-consume first half.
   private readonly target: Float32Array[];
   private readonly selected: Float32Array[];
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
+
+  // Output cursors track consumed versus generated frames. Source cursors track
+  // the expected continuation and last selected window for the next search.
   private outputPosition = 0;
   private generatedOutputPosition = 0;
   private targetSourcePosition = 0;
