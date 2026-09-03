@@ -50,9 +50,8 @@ export class WsolaProcessor {
   // hops at 50% overlap.
   private readonly overlapWindow: Float32Array;
 
-  // Reused planar scratch buffers for one WSOLA step: chosen source window,
-  // carried second half, and ready-to-consume first half.
-  private readonly selected: Float32Array[];
+  // Reused planar scratch buffers for one WSOLA step: carried second half,
+  // and ready-to-consume first half.
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
 
@@ -87,7 +86,6 @@ export class WsolaProcessor {
     this.excludeFrames = Math.max(1, Math.round(sampleRate / 300));
     this.outputFrames = Math.ceil(sourceFrames / playbackRate);
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
-    this.selected = createChannels(channelData.length, this.windowFrames);
     this.pendingOverlap = createChannels(channelData.length, this.hopFrames);
     this.hopOutput = createChannels(channelData.length, this.hopFrames);
     this.hopOutputOffset = this.hopFrames;
@@ -166,19 +164,15 @@ export class WsolaProcessor {
       });
       this.stats.searchedContinuations++;
     }
-    copyPlanarWithZeroFill({
-      source: this.channelData,
-      sourceOffset: selectedSourcePosition,
-      destination: this.selected,
-    });
 
     // Emit the first half-window by overlap-adding it with the second half of
     // the previous window. For a periodic Hann window at 50% overlap,
     // w[n] + w[n + hop] = 1, so the two contributions preserve amplitude.
     overlapAddPlanar({
+      source: this.channelData,
+      sourceOffset: selectedSourcePosition,
       destination: this.hopOutput,
       carry: this.pendingOverlap,
-      input: this.selected,
       window: this.overlapWindow,
     });
 
@@ -289,44 +283,37 @@ function calculateSimilarity({
   return dotProduct / Math.sqrt(firstEnergy * secondEnergy);
 }
 
-function copyPlanarWithZeroFill({
+function overlapAddPlanar({
   source,
   sourceOffset,
   destination,
+  carry,
+  window,
 }: {
   source: readonly Float32Array[];
   sourceOffset: number;
   destination: Float32Array[];
-}): void {
-  for (let channel = 0; channel < source.length; channel++) {
-    const sourceChannel = source[channel];
-    const sourceFrames = sourceChannel.length;
-    for (let frame = 0; frame < destination[channel].length; frame++) {
-      const i = sourceOffset + frame;
-      destination[channel][frame] =
-        0 <= i && i < sourceFrames ? sourceChannel[i] : 0;
-    }
-  }
-}
-
-function overlapAddPlanar({
-  destination,
-  carry,
-  input,
-  window,
-}: {
-  destination: Float32Array[];
   carry: Float32Array[];
-  input: Float32Array[];
   window: Float32Array;
 }): void {
   const frames = destination[0].length;
   for (let channel = 0; channel < destination.length; channel++) {
+    const sourceChannel = source[channel];
+    const sourceFrames = sourceChannel.length;
     for (let frame = 0; frame < frames; frame++) {
+      const inputIndex = sourceOffset + frame;
+      const inputValue =
+        0 <= inputIndex && inputIndex < sourceFrames
+          ? sourceChannel[inputIndex]
+          : 0;
       destination[channel][frame] =
         carry[channel][frame] * window[frames + frame] +
-        input[channel][frame] * window[frame];
-      carry[channel][frame] = input[channel][frames + frame];
+        inputValue * window[frame];
+      const carryIndex = sourceOffset + frames + frame;
+      carry[channel][frame] =
+        0 <= carryIndex && carryIndex < sourceFrames
+          ? sourceChannel[carryIndex]
+          : 0;
     }
   }
 }
