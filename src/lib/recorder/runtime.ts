@@ -636,7 +636,7 @@ export class RecorderRuntime {
       this.pitchShifterOutput = await createPitchShifterNode({
         context,
         channelCount: 2,
-        pitchRatio: 0.75,
+        pitchRatio: 1 / 0.75,
       });
       this.masterOutput!.disconnect();
       this.masterOutput!.connect(this.pitchShifterOutput);
