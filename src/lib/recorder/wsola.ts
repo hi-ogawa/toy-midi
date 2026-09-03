@@ -95,7 +95,7 @@ export class WsolaProcessor {
   }
 
   isFinished(): boolean {
-    return this.outputPosition >= this.outputFrames;
+    return this.outputFrames <= this.outputPosition;
   }
 
   // Fill equal-sized planar channel buffers with the next output frames and
@@ -145,7 +145,7 @@ export class WsolaProcessor {
       nominalSourcePosition - Math.floor(this.searchFrames / 2);
     const searchEnd = searchStart + this.searchFrames;
     const targetInsideSearch =
-      this.targetSourcePosition >= searchStart &&
+      searchStart <= this.targetSourcePosition &&
       this.targetSourcePosition < searchEnd;
     copyPlanarWithZeroFill({
       source: this.channelData,
@@ -221,7 +221,7 @@ export class WsolaProcessor {
         sourceOffset: position,
         reference: this.target,
       });
-      if (score > bestScore) {
+      if (bestScore < score) {
         bestPosition = position;
         bestScore = score;
       }
@@ -244,7 +244,7 @@ export class WsolaProcessor {
         sourceOffset: position,
         reference: this.target,
       });
-      if (score > bestScore) {
+      if (bestScore < score) {
         bestPosition = position;
         bestScore = score;
       }
