@@ -25,9 +25,8 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
-    const { channelCount, pitchRatio } = (options?.processorOptions as
-      | ProcessorOptions
-      | undefined) ?? { channelCount: 1, pitchRatio: 1 };
+    const { channelCount, pitchRatio } = options!
+      .processorOptions as ProcessorOptions;
     this.shifter = new StreamingPitchShifter({
       channelCount,
       sampleRate,
