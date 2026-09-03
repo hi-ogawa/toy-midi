@@ -180,16 +180,12 @@ export class WsolaProcessor {
     // Emit the first half-window by overlap-adding it with the second half of
     // the previous window. For a periodic Hann window at 50% overlap,
     // w[n] + w[n + hop] = 1, so the two contributions preserve amplitude.
-    for (let channel = 0; channel < this.selected.length; channel++) {
-      for (let frame = 0; frame < this.hopFrames; frame++) {
-        this.hopOutput[channel][frame] =
-          this.pendingOverlap[channel][frame] *
-            this.overlapWindow[this.hopFrames + frame] +
-          this.selected[channel][frame] * this.overlapWindow[frame];
-        this.pendingOverlap[channel][frame] =
-          this.selected[channel][this.hopFrames + frame];
-      }
-    }
+    overlapAddPlanar({
+      destination: this.hopOutput,
+      carry: this.pendingOverlap,
+      input: this.selected,
+      window: this.overlapWindow,
+    });
 
     this.previousSelectedSourcePosition = selectedSourcePosition;
     this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
@@ -347,6 +343,28 @@ function crossfadePlanarWithOffsetSource({
       destination[channel][frame] =
         destination[channel][frame] * window[frame] +
         sourceValue * window[frames + frame];
+    }
+  }
+}
+
+function overlapAddPlanar({
+  destination,
+  carry,
+  input,
+  window,
+}: {
+  destination: Float32Array[];
+  carry: Float32Array[];
+  input: Float32Array[];
+  window: Float32Array;
+}): void {
+  const frames = destination[0].length;
+  for (let channel = 0; channel < destination.length; channel++) {
+    for (let frame = 0; frame < frames; frame++) {
+      destination[channel][frame] =
+        carry[channel][frame] * window[frames + frame] +
+        input[channel][frame] * window[frame];
+      carry[channel][frame] = input[channel][frames + frame];
     }
   }
 }
