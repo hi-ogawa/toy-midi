@@ -147,7 +147,11 @@ export class WsolaProcessor {
     const targetInsideSearch =
       this.targetSourcePosition >= searchStart &&
       this.targetSourcePosition < searchEnd;
-    this.readSource(this.targetSourcePosition, this.target);
+    readSourceWindow({
+      channelData: this.channelData,
+      position: this.targetSourcePosition,
+      output: this.target,
+    });
 
     // The natural continuation starts one hop after the previously selected
     // window. Reuse it when possible; otherwise search around the nominal
@@ -160,7 +164,11 @@ export class WsolaProcessor {
       selectedSourcePosition = this.findBestCandidate(searchStart, searchEnd);
       this.stats.searchedContinuations++;
     }
-    this.readSource(selectedSourcePosition, this.selected);
+    readSourceWindow({
+      channelData: this.channelData,
+      position: selectedSourcePosition,
+      output: this.selected,
+    });
 
     // A searched window can differ from the natural continuation. Crossfade
     // target -> selected across the full window so the alignment correction
@@ -208,7 +216,11 @@ export class WsolaProcessor {
       if (this.isExcluded(position)) {
         continue;
       }
-      const score = this.calculateSimilarity(position);
+      const score = calculateSimilarity({
+        channelData: this.channelData,
+        target: this.target,
+        candidatePosition: position,
+      });
       if (score > bestScore) {
         bestPosition = position;
         bestScore = score;
@@ -227,7 +239,11 @@ export class WsolaProcessor {
       if (this.isExcluded(position)) {
         continue;
       }
-      const score = this.calculateSimilarity(position);
+      const score = calculateSimilarity({
+        channelData: this.channelData,
+        target: this.target,
+        candidatePosition: position,
+      });
       if (score > bestScore) {
         bestPosition = position;
         bestScore = score;
@@ -245,46 +261,62 @@ export class WsolaProcessor {
       this.excludeFrames / 2
     );
   }
+}
 
-  private calculateSimilarity(candidatePosition: number): number {
-    // Treat all channels as one concatenated vector and calculate cosine
-    // similarity: dot(target, candidate) / (|target| * |candidate|). Summing
-    // each channel into the same dot product gives one offset shared by every
-    // channel, which preserves their relative timing and stereo image.
-    let dotProduct = 0;
-    let targetEnergy = 0;
-    let candidateEnergy = 0;
-    for (let channel = 0; channel < this.channelData.length; channel++) {
-      const source = this.channelData[channel];
-      const target = this.target[channel];
-      for (let frame = 0; frame < this.windowFrames; frame++) {
-        const sourcePosition = candidatePosition + frame;
-        const candidate =
-          sourcePosition >= 0 && sourcePosition < source.length
-            ? source[sourcePosition]
-            : 0;
-        const targetValue = target[frame];
-        dotProduct += targetValue * candidate;
-        targetEnergy += targetValue * targetValue;
-        candidateEnergy += candidate * candidate;
-      }
+function calculateSimilarity({
+  channelData,
+  target,
+  candidatePosition,
+}: {
+  channelData: readonly Float32Array[];
+  target: readonly Float32Array[];
+  candidatePosition: number;
+}): number {
+  // Treat all channels as one concatenated vector and calculate cosine
+  // similarity: dot(target, candidate) / (|target| * |candidate|). Summing
+  // each channel into the same dot product gives one offset shared by every
+  // channel, which preserves their relative timing and stereo image.
+  let dotProduct = 0;
+  let targetEnergy = 0;
+  let candidateEnergy = 0;
+  for (let channel = 0; channel < channelData.length; channel++) {
+    const source = channelData[channel];
+    const targetChannel = target[channel];
+    for (let frame = 0; frame < targetChannel.length; frame++) {
+      const sourcePosition = candidatePosition + frame;
+      const candidate =
+        sourcePosition >= 0 && sourcePosition < source.length
+          ? source[sourcePosition]
+          : 0;
+      const targetValue = targetChannel[frame];
+      dotProduct += targetValue * candidate;
+      targetEnergy += targetValue * targetValue;
+      candidateEnergy += candidate * candidate;
     }
-    if (targetEnergy === 0 || candidateEnergy === 0) {
-      return 0;
-    }
-    return dotProduct / Math.sqrt(targetEnergy * candidateEnergy);
   }
+  if (targetEnergy === 0 || candidateEnergy === 0) {
+    return 0;
+  }
+  return dotProduct / Math.sqrt(targetEnergy * candidateEnergy);
+}
 
-  private readSource(position: number, output: Float32Array[]): void {
-    for (let channel = 0; channel < this.channelData.length; channel++) {
-      const source = this.channelData[channel];
-      for (let frame = 0; frame < this.windowFrames; frame++) {
-        const sourcePosition = position + frame;
-        output[channel][frame] =
-          sourcePosition >= 0 && sourcePosition < source.length
-            ? source[sourcePosition]
-            : 0;
-      }
+function readSourceWindow({
+  channelData,
+  position,
+  output,
+}: {
+  channelData: readonly Float32Array[];
+  position: number;
+  output: Float32Array[];
+}): void {
+  for (let channel = 0; channel < channelData.length; channel++) {
+    const source = channelData[channel];
+    for (let frame = 0; frame < output[channel].length; frame++) {
+      const sourcePosition = position + frame;
+      output[channel][frame] =
+        sourcePosition >= 0 && sourcePosition < source.length
+          ? source[sourcePosition]
+          : 0;
     }
   }
 }
