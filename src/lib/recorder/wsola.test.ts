@@ -5,6 +5,9 @@ const SAMPLE_RATE = 1_000;
 const SOURCE_FRAMES = 400;
 
 describe(WsolaProcessor, () => {
+  // Different periods and envelopes per channel exercise linked stereo search.
+  // Pulling in 7- and 64-frame blocks crosses the 10-frame internal hop at
+  // different boundaries, so exact equality also checks pull-size independence.
   it.each([0.75, 1.5])(
     "renders deterministic finite output at %sx",
     (playbackRate) => {
