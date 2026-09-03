@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WsolaProcessor } from "./wsola.ts";
+import { StreamingWsola, WsolaProcessor } from "./wsola.ts";
 
 const SAMPLE_RATE = 1_000;
 const SOURCE_FRAMES = 400;
@@ -22,6 +22,19 @@ describe(WsolaProcessor, () => {
       ),
     ).toBe(true);
   });
+});
+
+describe(StreamingWsola, () => {
+  it.each([0.75, 1.5])(
+    "matches finite-source rendering at %sx",
+    (playbackRate) => {
+      const source = createSource();
+
+      expect(renderStreaming({ source, playbackRate })).toEqual(
+        render({ source, playbackRate }),
+      );
+    },
+  );
 });
 
 function render({
@@ -66,4 +79,40 @@ function createSource(): Float32Array[] {
         (0.5 + 0.2 * Math.sin((2 * Math.PI * frame) / 113)),
     ),
   ];
+}
+
+function renderStreaming({
+  source,
+  playbackRate,
+}: {
+  source: readonly Float32Array[];
+  playbackRate: number;
+}): Float32Array[] {
+  const processor = new StreamingWsola({
+    channelCount: source.length,
+    sampleRate: SAMPLE_RATE,
+    playbackRate,
+    windowSeconds: 0.02,
+    searchSeconds: 0.03,
+  });
+  const output = source.map(() => [] as number[]);
+  const block = source.map(() => new Float32Array(17));
+  const drain = () => {
+    const written = processor.pull(block);
+    for (let channel = 0; channel < output.length; channel++) {
+      output[channel].push(...block[channel].subarray(0, written));
+    }
+    return written;
+  };
+  for (let offset = 0; offset < SOURCE_FRAMES; offset += 13) {
+    processor.push(
+      source.map((channel) => channel.subarray(offset, offset + 13)),
+    );
+    while (drain() > 0) {}
+  }
+  processor.finish();
+  while (!processor.isFinished()) {
+    expect(drain()).toBeGreaterThan(0);
+  }
+  return output.map((channel) => Float32Array.from(channel));
 }

@@ -186,16 +186,236 @@ export class WsolaProcessor {
   }
 }
 
+/** Incremental WSOLA processor for realtime planar PCM streams. */
+export class StreamingWsola {
+  readonly latencyFrames: number;
+  readonly stats = {
+    naturalContinuations: 0,
+    searchedContinuations: 0,
+  };
+
+  private readonly playbackRate: number;
+  private readonly windowFrames: number;
+  private readonly hopFrames: number;
+  private readonly searchFrames: number;
+  private readonly input: Float32Array[];
+  private readonly overlapWindow: Float32Array;
+  private readonly pendingOverlap: Float32Array[];
+  private readonly hopOutput: Float32Array[];
+  private inputBase = 0;
+  private inputLength = 0;
+  private inputFrames = 0;
+  private inputFinished = false;
+  private generatedOutputFrames = 0;
+  private generatedOutputPosition = 0;
+  private naturalSourcePosition = 0;
+  private hopOutputOffset = 0;
+  private hopOutputLength = 0;
+  private targetOutputFrames?: number;
+
+  constructor({
+    channelCount,
+    sampleRate,
+    playbackRate,
+    windowSeconds,
+    searchSeconds,
+  }: {
+    channelCount: number;
+    sampleRate: number;
+    playbackRate: number;
+    windowSeconds: number;
+    searchSeconds: number;
+  }) {
+    this.playbackRate = playbackRate;
+    this.windowFrames = Math.max(2, Math.round(sampleRate * windowSeconds));
+    this.windowFrames += this.windowFrames % 2;
+    this.hopFrames = this.windowFrames / 2;
+    this.searchFrames = Math.max(1, Math.round(sampleRate * searchSeconds));
+    this.latencyFrames = this.windowFrames;
+    const capacity = Math.max(
+      sampleRate,
+      4 * (this.windowFrames + this.searchFrames),
+    );
+    this.input = createChannels(channelCount, capacity);
+    this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
+    this.pendingOverlap = createChannels(channelCount, this.hopFrames);
+    this.hopOutput = createChannels(channelCount, this.hopFrames);
+  }
+
+  get writableFrames(): number {
+    return this.input[0].length - this.inputLength;
+  }
+
+  push(input: readonly Float32Array[]): void {
+    if (this.inputFinished) {
+      throw new Error("Cannot push WSOLA input after finish().");
+    }
+    const frames = input[0]?.length ?? 0;
+    if (this.writableFrames < frames) {
+      throw new Error("Streaming WSOLA input buffer is full.");
+    }
+    for (let channel = 0; channel < this.input.length; channel++) {
+      this.input[channel].set(input[channel], this.inputLength);
+    }
+    this.inputLength += frames;
+    this.inputFrames += frames;
+  }
+
+  finish(): void {
+    if (this.inputFinished) {
+      return;
+    }
+    this.inputFinished = true;
+    this.targetOutputFrames = Math.ceil(this.inputFrames / this.playbackRate);
+  }
+
+  isFinished(): boolean {
+    return (
+      this.inputFinished &&
+      this.generatedOutputFrames === this.targetOutputFrames &&
+      this.hopOutputOffset === this.hopOutputLength
+    );
+  }
+
+  pull(output: Float32Array[]): number {
+    const requestedFrames = output[0]?.length ?? 0;
+    let written = 0;
+    while (written < requestedFrames) {
+      if (this.hopOutputOffset === this.hopOutputLength) {
+        if (!this.canGenerateHop()) {
+          break;
+        }
+        this.generateHop();
+      }
+      const count = Math.min(
+        requestedFrames - written,
+        this.hopOutputLength - this.hopOutputOffset,
+      );
+      for (let channel = 0; channel < output.length; channel++) {
+        output[channel].set(
+          this.hopOutput[channel].subarray(
+            this.hopOutputOffset,
+            this.hopOutputOffset + count,
+          ),
+          written,
+        );
+      }
+      this.hopOutputOffset += count;
+      written += count;
+    }
+    return written;
+  }
+
+  private canGenerateHop(): boolean {
+    if (
+      this.inputFinished &&
+      this.generatedOutputFrames === this.targetOutputFrames
+    ) {
+      return false;
+    }
+    if (this.inputFinished) {
+      return true;
+    }
+    const nominalSourcePosition = Math.round(
+      this.generatedOutputPosition * this.playbackRate,
+    );
+    const searchStart =
+      nominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const searchEnd = searchStart + this.searchFrames;
+    const requiredEnd =
+      searchStart <= this.naturalSourcePosition &&
+      this.naturalSourcePosition < searchEnd
+        ? this.naturalSourcePosition + this.windowFrames
+        : Math.max(
+            this.naturalSourcePosition + this.windowFrames,
+            searchEnd - 1 + this.windowFrames,
+          );
+    return requiredEnd <= this.inputBase + this.inputLength;
+  }
+
+  private generateHop(): void {
+    const nominalSourcePosition = Math.round(
+      this.generatedOutputPosition * this.playbackRate,
+    );
+    const searchStart =
+      nominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const searchEnd = searchStart + this.searchFrames;
+    let selectedSourcePosition: number;
+    if (
+      searchStart <= this.naturalSourcePosition &&
+      this.naturalSourcePosition < searchEnd
+    ) {
+      selectedSourcePosition = this.naturalSourcePosition;
+      this.stats.naturalContinuations++;
+    } else {
+      selectedSourcePosition =
+        findBestCandidate({
+          source: this.input,
+          sourceFrames: this.inputLength,
+          referenceOffset: this.naturalSourcePosition - this.inputBase,
+          frames: this.windowFrames,
+          searchStart: searchStart - this.inputBase,
+          searchEnd: searchEnd - this.inputBase,
+        }) + this.inputBase;
+      this.stats.searchedContinuations++;
+    }
+
+    overlapAddPlanar({
+      source: this.input,
+      sourceFrames: this.inputLength,
+      sourceOffset: selectedSourcePosition - this.inputBase,
+      destination: this.hopOutput,
+      carry: this.pendingOverlap,
+      window: this.overlapWindow,
+    });
+    const remaining = this.inputFinished
+      ? this.targetOutputFrames! - this.generatedOutputFrames
+      : this.hopFrames;
+    this.hopOutputLength = Math.min(this.hopFrames, remaining);
+    this.hopOutputOffset = 0;
+    this.generatedOutputFrames += this.hopOutputLength;
+    this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
+    this.generatedOutputPosition += this.hopFrames;
+    this.discardUnusedInput();
+  }
+
+  private discardUnusedInput(): void {
+    const nextNominalSourcePosition = Math.round(
+      this.generatedOutputPosition * this.playbackRate,
+    );
+    const nextSearchStart =
+      nextNominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const retainFrom = Math.max(
+      0,
+      Math.min(this.naturalSourcePosition, nextSearchStart),
+    );
+    const discardFrames = Math.min(
+      this.inputLength,
+      Math.max(0, retainFrom - this.inputBase),
+    );
+    if (discardFrames === 0) {
+      return;
+    }
+    for (const channel of this.input) {
+      channel.copyWithin(0, discardFrames, this.inputLength);
+    }
+    this.inputBase += discardFrames;
+    this.inputLength -= discardFrames;
+  }
+}
+
 const SEARCH_DECIMATION = 5;
 
 function findBestCandidate({
   source,
+  sourceFrames = source[0].length,
   referenceOffset,
   frames,
   searchStart,
   searchEnd,
 }: {
   source: readonly Float32Array[];
+  sourceFrames?: number;
   referenceOffset: number;
   frames: number;
   searchStart: number;
@@ -208,6 +428,7 @@ function findBestCandidate({
   const consider = (position: number): void => {
     const score = calculateSimilarity({
       source,
+      sourceFrames,
       firstOffset: referenceOffset,
       secondOffset: position,
       frames,
@@ -235,11 +456,13 @@ function findBestCandidate({
 
 function calculateSimilarity({
   source,
+  sourceFrames = source[0].length,
   firstOffset,
   secondOffset,
   frames,
 }: {
   source: readonly Float32Array[];
+  sourceFrames?: number;
   firstOffset: number;
   secondOffset: number;
   frames: number;
@@ -256,12 +479,12 @@ function calculateSimilarity({
     for (let frame = 0; frame < frames; frame++) {
       const firstIndex = firstOffset + frame;
       const first =
-        0 <= firstIndex && firstIndex < sourceChannel.length
+        0 <= firstIndex && firstIndex < sourceFrames
           ? sourceChannel[firstIndex]
           : 0;
       const secondIndex = secondOffset + frame;
       const second =
-        0 <= secondIndex && secondIndex < sourceChannel.length
+        0 <= secondIndex && secondIndex < sourceFrames
           ? sourceChannel[secondIndex]
           : 0;
       dotProduct += first * second;
@@ -277,12 +500,14 @@ function calculateSimilarity({
 
 function overlapAddPlanar({
   source,
+  sourceFrames = source[0].length,
   sourceOffset,
   destination,
   carry,
   window,
 }: {
   source: readonly Float32Array[];
+  sourceFrames?: number;
   sourceOffset: number;
   destination: Float32Array[];
   carry: Float32Array[];
@@ -291,7 +516,6 @@ function overlapAddPlanar({
   const frames = destination[0].length;
   for (let channel = 0; channel < destination.length; channel++) {
     const sourceChannel = source[channel];
-    const sourceFrames = sourceChannel.length;
     for (let frame = 0; frame < frames; frame++) {
       const inputIndex = sourceOffset + frame;
       const inputValue =
