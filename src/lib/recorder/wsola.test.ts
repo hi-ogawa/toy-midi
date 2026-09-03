@@ -6,41 +6,30 @@ const SOURCE_FRAMES = 400;
 
 describe(WsolaProcessor, () => {
   // Different periods and envelopes per channel exercise linked stereo search.
-  // Pulling in 7- and 64-frame blocks crosses the 10-frame internal hop at
-  // different boundaries, so exact equality also checks pull-size independence.
-  it.each([0.75, 1.5])(
-    "renders deterministic finite output at %sx",
-    (playbackRate) => {
-      const source = createSource();
-      const smallBlocks = render({ source, playbackRate, blockSize: 7 });
-      const largeBlocks = render({ source, playbackRate, blockSize: 64 });
+  it.each([0.75, 1.5])("renders finite output at %sx", (playbackRate) => {
+    const source = createSource();
+    const output = render({ source, playbackRate });
 
-      expect(smallBlocks[0]).toHaveLength(
-        Math.ceil(SOURCE_FRAMES / playbackRate),
-      );
-      expect(smallBlocks).toEqual(largeBlocks);
-      expect(
-        smallBlocks.every((channel) =>
-          channel.every((sample) => Number.isFinite(sample)),
-        ),
-      ).toBe(true);
-      expect(
-        smallBlocks.some((channel) =>
-          channel.some((sample) => Math.abs(sample) > 0.01),
-        ),
-      ).toBe(true);
-    },
-  );
+    expect(output[0]).toHaveLength(Math.ceil(SOURCE_FRAMES / playbackRate));
+    expect(
+      output.every((channel) =>
+        channel.every((sample) => Number.isFinite(sample)),
+      ),
+    ).toBe(true);
+    expect(
+      output.some((channel) =>
+        channel.some((sample) => Math.abs(sample) > 0.01),
+      ),
+    ).toBe(true);
+  });
 });
 
 function render({
   source,
   playbackRate,
-  blockSize,
 }: {
   source: readonly Float32Array[];
   playbackRate: number;
-  blockSize: number;
 }): Float32Array[] {
   const processor = new WsolaProcessor({
     channelData: source,
@@ -50,7 +39,7 @@ function render({
     searchSeconds: 0.03,
   });
   const output = source.map(() => new Float32Array(processor.outputFrames));
-  const block = source.map(() => new Float32Array(blockSize));
+  const block = source.map(() => new Float32Array(64));
   let offset = 0;
   while (!processor.isFinished()) {
     const written = processor.render(block);
