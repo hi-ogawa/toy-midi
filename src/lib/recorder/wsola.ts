@@ -144,9 +144,6 @@ export class WsolaProcessor {
     const searchStart =
       nominalSourcePosition - Math.floor(this.searchFrames / 2);
     const searchEnd = searchStart + this.searchFrames;
-    const targetInsideSearch =
-      searchStart <= this.targetSourcePosition &&
-      this.targetSourcePosition < searchEnd;
     copyPlanarWithZeroFill({
       source: this.channelData,
       sourceOffset: this.targetSourcePosition,
@@ -157,7 +154,10 @@ export class WsolaProcessor {
     // window. Reuse it when possible; otherwise search around the nominal
     // timeline position for the window most similar to that continuation.
     let selectedSourcePosition: number;
-    if (targetInsideSearch) {
+    if (
+      searchStart <= this.targetSourcePosition &&
+      this.targetSourcePosition < searchEnd
+    ) {
       selectedSourcePosition = this.targetSourcePosition;
       this.stats.naturalContinuations++;
     } else {
