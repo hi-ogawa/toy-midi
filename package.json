@@ -16,7 +16,8 @@
     "lint-check": "cargo fmt -- --check && vp check && pnpm lint-dead-code && pnpm typecheck",
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
-    "test-e2e": "playwright test"
+    "test-e2e": "playwright test",
+    "wsola": "node tools/wsola.mjs"
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732",
