@@ -61,10 +61,16 @@ async function main() {
     values.output ?? path.join(TMP_DIR, "wsola-output.wav"),
   );
 
+  // Decode any ffmpeg-supported input into a fixed format: interleaved
+  // stereo float32 PCM at 48 kHz. This keeps codecs and resampling outside the
+  // WSOLA implementation.
   await mkdir(TMP_DIR, { recursive: true });
   const inputPcmPath = path.join(TMP_DIR, "wsola-input.f32le");
   const outputPcmPath = path.join(TMP_DIR, "wsola-output.f32le");
   await decodeAudio({ inputPath, outputPath: inputPcmPath, start, duration });
+
+  // Split the interleaved PCM into one Float32Array per channel, which is
+  // the layout expected by WsolaProcessor.
   const interleavedInput = bufferToFloat32(await readFile(inputPcmPath));
   const channelData = deinterleave(interleavedInput, CHANNELS);
   const inputSeconds = channelData[0].length / SAMPLE_RATE;
@@ -72,6 +78,9 @@ async function main() {
     `input: ${inputPath} (${inputSeconds.toFixed(2)}s, stereo, ${SAMPLE_RATE}Hz)`,
   );
 
+  // Configure WSOLA. It advances through the source at playbackRate times
+  // the output hop, but searches near each expected source position for one
+  // offset whose summed per-channel correlation best matches the prior window.
   const processor = new WsolaProcessor({
     channelData,
     sampleRate: SAMPLE_RATE,
@@ -84,6 +93,8 @@ async function main() {
       `search=${searchMs}ms block=${blockSize}`,
   );
 
+  // Allocate the final interleaved output and a small planar block that
+  // models the fixed-size pulls made by a real-time audio callback.
   const output = new Float32Array(processor.outputFrames * CHANNELS);
   const block = Array.from(
     { length: CHANNELS },
@@ -91,6 +102,9 @@ async function main() {
   );
   let outputFrame = 0;
   const startedAt = performance.now();
+  // Pull processed blocks until the source is exhausted. WSOLA performs
+  // its window matching and overlap-add internally; this loop only converts
+  // each planar block back to interleaved PCM.
   while (!processor.finished) {
     const written = processor.render(block);
     for (let frame = 0; frame < written; frame++) {
@@ -112,6 +126,7 @@ async function main() {
     `picks: natural=${stats.naturalContinuations} searched=${stats.searchedContinuations}`,
   );
 
+  // Persist the raw output, then let ffmpeg wrap it in a standard WAV file.
   await writeFile(
     outputPcmPath,
     Buffer.from(output.buffer, output.byteOffset, output.byteLength),
