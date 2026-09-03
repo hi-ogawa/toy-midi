@@ -147,10 +147,10 @@ export class WsolaProcessor {
     const targetInsideSearch =
       this.targetSourcePosition >= searchStart &&
       this.targetSourcePosition < searchEnd;
-    readSourceWindow({
-      channelData: this.channelData,
-      position: this.targetSourcePosition,
-      output: this.target,
+    copyPlanarWithZeroFill({
+      source: this.channelData,
+      sourceOffset: this.targetSourcePosition,
+      destination: this.target,
     });
 
     // The natural continuation starts one hop after the previously selected
@@ -164,10 +164,10 @@ export class WsolaProcessor {
       selectedSourcePosition = this.findBestCandidate(searchStart, searchEnd);
       this.stats.searchedContinuations++;
     }
-    readSourceWindow({
-      channelData: this.channelData,
-      position: selectedSourcePosition,
-      output: this.selected,
+    copyPlanarWithZeroFill({
+      source: this.channelData,
+      sourceOffset: selectedSourcePosition,
+      destination: this.selected,
     });
 
     // A searched window can differ from the natural continuation. Crossfade
@@ -300,22 +300,22 @@ function calculateSimilarity({
   return dotProduct / Math.sqrt(targetEnergy * candidateEnergy);
 }
 
-function readSourceWindow({
-  channelData,
-  position,
-  output,
+function copyPlanarWithZeroFill({
+  source,
+  sourceOffset,
+  destination,
 }: {
-  channelData: readonly Float32Array[];
-  position: number;
-  output: Float32Array[];
+  source: readonly Float32Array[];
+  sourceOffset: number;
+  destination: Float32Array[];
 }): void {
-  for (let channel = 0; channel < channelData.length; channel++) {
-    const source = channelData[channel];
-    for (let frame = 0; frame < output[channel].length; frame++) {
-      const sourcePosition = position + frame;
-      output[channel][frame] =
-        sourcePosition >= 0 && sourcePosition < source.length
-          ? source[sourcePosition]
+  for (let channel = 0; channel < source.length; channel++) {
+    const sourceChannel = source[channel];
+    for (let frame = 0; frame < destination[channel].length; frame++) {
+      const sourcePosition = sourceOffset + frame;
+      destination[channel][frame] =
+        sourcePosition >= 0 && sourcePosition < sourceChannel.length
+          ? sourceChannel[sourcePosition]
           : 0;
     }
   }
