@@ -56,14 +56,14 @@ export class WsolaProcessor {
     channelData,
     sampleRate,
     playbackRate,
-    windowSeconds = 0.02,
-    searchSeconds = 0.03,
+    windowSeconds,
+    searchSeconds,
   }: {
     channelData: readonly Float32Array[];
     sampleRate: number;
     playbackRate: number;
-    windowSeconds?: number;
-    searchSeconds?: number;
+    windowSeconds: number;
+    searchSeconds: number;
   }) {
     const sourceFrames = channelData[0].length;
     this.channelData = channelData;
