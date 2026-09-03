@@ -5,6 +5,26 @@ export type WsolaStats = {
   searchedContinuations: number;
 };
 
+/**
+ * Pull-based, stateful WSOLA time stretcher over an immutable planar source.
+ *
+ * The consumer repeatedly supplies one equal-sized buffer per channel and uses
+ * the returned frame count. For example:
+ *
+ * ```ts
+ * const block = channelData.map(() => new Float32Array(128));
+ * while (!processor.isFinished()) {
+ *   const written = processor.render(block);
+ *   consume(block, written);
+ * }
+ * ```
+ *
+ * The processor generates fixed half-window hops internally and retains any
+ * unconsumed frames between calls, so the requested block size need not match
+ * its hop size. It advances the source timeline by `playbackRate` for each
+ * output frame without resampling, which changes duration while preserving
+ * pitch. The final call may write fewer frames than requested.
+ */
 export class WsolaProcessor {
   readonly outputFrames: number;
   readonly stats: WsolaStats = {
