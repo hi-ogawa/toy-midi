@@ -1,11 +1,5 @@
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
-const SEARCH_DECIMATION = 5;
-
-export type WsolaStats = {
-  naturalContinuations: number;
-  searchedContinuations: number;
-};
 
 /**
  * Pull-based, stateful WSOLA time stretcher over an immutable planar source.
@@ -30,7 +24,7 @@ export type WsolaStats = {
  */
 export class WsolaProcessor {
   readonly outputFrames: number;
-  readonly stats: WsolaStats = {
+  readonly stats = {
     naturalContinuations: 0,
     searchedContinuations: 0,
   };
@@ -198,6 +192,8 @@ export class WsolaProcessor {
     this.generatedOutputPosition += this.hopFrames;
   }
 }
+
+const SEARCH_DECIMATION = 5;
 
 function findBestCandidate({
   source,
