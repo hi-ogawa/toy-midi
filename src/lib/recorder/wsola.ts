@@ -311,12 +311,11 @@ function copyPlanarWithZeroFill({
 }): void {
   for (let channel = 0; channel < source.length; channel++) {
     const sourceChannel = source[channel];
+    const sourceFrames = sourceChannel.length;
     for (let frame = 0; frame < destination[channel].length; frame++) {
-      const sourcePosition = sourceOffset + frame;
+      const i = sourceOffset + frame;
       destination[channel][frame] =
-        sourcePosition >= 0 && sourcePosition < sourceChannel.length
-          ? sourceChannel[sourcePosition]
-          : 0;
+        0 <= i && i < sourceFrames ? sourceChannel[i] : 0;
     }
   }
 }
