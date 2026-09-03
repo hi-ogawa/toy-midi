@@ -273,29 +273,29 @@ function calculateSimilarity({
   reference: readonly Float32Array[];
 }): number {
   // Treat all channels as one concatenated vector and calculate cosine
-  // similarity: dot(reference, candidate) / (|reference| * |candidate|). Summing
+  // similarity: dot(reference, source) / (|reference| * |source|). Summing
   // each channel into the same dot product gives one offset shared by every
   // channel, which preserves their relative timing and stereo image.
   let dotProduct = 0;
   let referenceEnergy = 0;
-  let candidateEnergy = 0;
+  let sourceEnergy = 0;
   for (let channel = 0; channel < source.length; channel++) {
     const sourceChannel = source[channel];
     const referenceChannel = reference[channel];
     for (let frame = 0; frame < referenceChannel.length; frame++) {
       const i = sourceOffset + frame;
-      const candidate =
+      const sourceValue =
         0 <= i && i < sourceChannel.length ? sourceChannel[i] : 0;
       const referenceValue = referenceChannel[frame];
-      dotProduct += referenceValue * candidate;
+      dotProduct += referenceValue * sourceValue;
       referenceEnergy += referenceValue * referenceValue;
-      candidateEnergy += candidate * candidate;
+      sourceEnergy += sourceValue * sourceValue;
     }
   }
-  if (referenceEnergy === 0 || candidateEnergy === 0) {
+  if (referenceEnergy === 0 || sourceEnergy === 0) {
     return 0;
   }
-  return dotProduct / Math.sqrt(referenceEnergy * candidateEnergy);
+  return dotProduct / Math.sqrt(referenceEnergy * sourceEnergy);
 }
 
 function copyPlanarWithZeroFill({
