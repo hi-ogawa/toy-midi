@@ -1,5 +1,13 @@
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
+//
+// Intentional divergence: Chromium also crossfades natural -> selected across
+// a searched window before overlap-add, a defensive guard for poor matches
+// (sparse, noisy, or silence-adjacent material) that makes the seam exact at
+// frame 0. This port omits that blend and relies on classic WSOLA alone:
+// predict, full-window correlation search, 50% Hann overlap-add. A/B on a
+// dense full-mix render at 0.75x found no audible difference with the blend
+// removed.
 
 /**
  * Pull-based, stateful WSOLA time stretcher over an immutable planar source.
@@ -38,10 +46,9 @@ export class WsolaProcessor {
   private readonly searchFrames: number;
   private readonly excludeFrames: number;
 
-  // Precomputed crossfade weights. overlapWindow joins adjacent half-window
-  // hops; transitionWindow smooths a searched window against its natural path.
+  // Precomputed overlap-add weights. overlapWindow joins adjacent half-window
+  // hops at 50% overlap.
   private readonly overlapWindow: Float32Array;
-  private readonly transitionWindow: Float32Array;
 
   // Reused planar scratch buffers for one WSOLA step: chosen source window,
   // carried second half, and ready-to-consume first half.
@@ -80,7 +87,6 @@ export class WsolaProcessor {
     this.excludeFrames = Math.max(1, Math.round(sampleRate / 300));
     this.outputFrames = Math.ceil(sourceFrames / playbackRate);
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
-    this.transitionWindow = createPeriodicHannWindow(2 * this.windowFrames);
     this.selected = createChannels(channelData.length, this.windowFrames);
     this.pendingOverlap = createChannels(channelData.length, this.hopFrames);
     this.hopOutput = createChannels(channelData.length, this.hopFrames);
@@ -165,18 +171,6 @@ export class WsolaProcessor {
       sourceOffset: selectedSourcePosition,
       destination: this.selected,
     });
-
-    // A searched window can differ from the natural continuation. Crossfade
-    // natural -> selected across the full window so the alignment correction
-    // does not introduce an abrupt waveform jump.
-    if (selectedSourcePosition !== this.naturalSourcePosition) {
-      crossfadePlanarWithOffsetSource({
-        source: this.channelData,
-        sourceOffset: this.naturalSourcePosition,
-        destination: this.selected,
-        window: this.transitionWindow,
-      });
-    }
 
     // Emit the first half-window by overlap-adding it with the second half of
     // the previous window. For a periodic Hann window at 50% overlap,
@@ -311,31 +305,6 @@ function copyPlanarWithZeroFill({
       const i = sourceOffset + frame;
       destination[channel][frame] =
         0 <= i && i < sourceFrames ? sourceChannel[i] : 0;
-    }
-  }
-}
-
-function crossfadePlanarWithOffsetSource({
-  source,
-  sourceOffset,
-  destination,
-  window,
-}: {
-  source: readonly Float32Array[];
-  sourceOffset: number;
-  destination: Float32Array[];
-  window: Float32Array;
-}): void {
-  const frames = destination[0].length;
-  for (let channel = 0; channel < destination.length; channel++) {
-    const sourceChannel = source[channel];
-    for (let frame = 0; frame < frames; frame++) {
-      const i = sourceOffset + frame;
-      const sourceValue =
-        0 <= i && i < sourceChannel.length ? sourceChannel[i] : 0;
-      destination[channel][frame] =
-        destination[channel][frame] * window[frame] +
-        sourceValue * window[frames + frame];
     }
   }
 }
