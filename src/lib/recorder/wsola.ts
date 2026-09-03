@@ -1,5 +1,7 @@
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
+const SEARCH_DECIMATION = 5;
+
 export type WsolaStats = {
   naturalContinuations: number;
   searchedContinuations: number;
@@ -40,7 +42,6 @@ export class WsolaProcessor {
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
-  private readonly searchDecimation = 5;
   private readonly excludeFrames: number;
 
   // Precomputed crossfade weights. overlapWindow joins adjacent half-window
@@ -153,7 +154,12 @@ export class WsolaProcessor {
       selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
-      selectedSourcePosition = this.findBestCandidate({
+      selectedSourcePosition = findBestCandidate({
+        source: this.channelData,
+        referenceOffset: this.naturalSourcePosition,
+        frames: this.windowFrames,
+        excludeCenter: this.previousSelectedSourcePosition,
+        excludeFrames: this.excludeFrames,
         searchStart,
         searchEnd,
       });
@@ -191,73 +197,63 @@ export class WsolaProcessor {
     this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
     this.generatedOutputPosition += this.hopFrames;
   }
+}
 
-  private findBestCandidate({
-    searchStart,
-    searchEnd,
-  }: {
-    searchStart: number;
-    searchEnd: number;
-  }): number {
-    // Search every Nth frame first, then inspect individual frames around the
-    // coarse winner. This approximates a full search with far fewer dot products.
-    let bestPosition = searchStart;
-    let bestScore = -Infinity;
-    for (
-      let position = searchStart;
-      position < searchEnd;
-      position += this.searchDecimation
+function findBestCandidate({
+  source,
+  referenceOffset,
+  frames,
+  excludeCenter,
+  excludeFrames,
+  searchStart,
+  searchEnd,
+}: {
+  source: readonly Float32Array[];
+  referenceOffset: number;
+  frames: number;
+  excludeCenter?: number;
+  excludeFrames: number;
+  searchStart: number;
+  searchEnd: number;
+}): number {
+  // Search every Nth frame first, then inspect individual frames around the
+  // coarse winner. This approximates a full search with far fewer dot products.
+  // Candidates within excludeFrames/2 of excludeCenter (the previous selection)
+  // are skipped so the search cannot trivially re-pick the same window.
+  let bestPosition = searchStart;
+  let bestScore = -Infinity;
+  const consider = (position: number): void => {
+    if (
+      excludeCenter !== undefined &&
+      Math.abs(position - excludeCenter) < excludeFrames / 2
     ) {
-      if (this.isExcluded(position)) {
-        continue;
-      }
-      const score = calculateSimilarity({
-        source: this.channelData,
-        firstOffset: this.naturalSourcePosition,
-        secondOffset: position,
-        frames: this.windowFrames,
-      });
-      if (bestScore < score) {
-        bestPosition = position;
-        bestScore = score;
-      }
+      return;
     }
+    const score = calculateSimilarity({
+      source,
+      firstOffset: referenceOffset,
+      secondOffset: position,
+      frames,
+    });
+    if (bestScore < score) {
+      bestPosition = position;
+      bestScore = score;
+    }
+  };
 
-    const refineStart = Math.max(
-      searchStart,
-      bestPosition - this.searchDecimation,
-    );
-    const refineEnd = Math.min(
-      searchEnd,
-      bestPosition + this.searchDecimation + 1,
-    );
-    for (let position = refineStart; position < refineEnd; position++) {
-      if (this.isExcluded(position)) {
-        continue;
-      }
-      const score = calculateSimilarity({
-        source: this.channelData,
-        firstOffset: this.naturalSourcePosition,
-        secondOffset: position,
-        frames: this.windowFrames,
-      });
-      if (bestScore < score) {
-        bestPosition = position;
-        bestScore = score;
-      }
-    }
-    return bestPosition;
+  for (
+    let position = searchStart;
+    position < searchEnd;
+    position += SEARCH_DECIMATION
+  ) {
+    consider(position);
   }
-
-  private isExcluded(position: number): boolean {
-    if (this.previousSelectedSourcePosition === undefined) {
-      return false;
-    }
-    return (
-      Math.abs(position - this.previousSelectedSourcePosition) <
-      this.excludeFrames / 2
-    );
+  const refineStart = Math.max(searchStart, bestPosition - SEARCH_DECIMATION);
+  const refineEnd = Math.min(searchEnd, bestPosition + SEARCH_DECIMATION + 1);
+  for (let position = refineStart; position < refineEnd; position++) {
+    consider(position);
   }
+  return bestPosition;
 }
 
 function calculateSimilarity({
