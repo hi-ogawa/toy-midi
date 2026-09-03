@@ -66,6 +66,10 @@ export class WsolaProcessor {
     return this.outputPosition >= this.outputFrames;
   }
 
+  // Fill equal-sized planar channel buffers with the next output frames and
+  // return the number written, which can be shorter only at end of stream.
+  // Calls may request any block size: partially consumed WSOLA hops remain in
+  // hopOutput and continue on the next call.
   render(output: Float32Array[]): number {
     const requestedFrames = output[0]?.length ?? 0;
     const framesToWrite = Math.min(
