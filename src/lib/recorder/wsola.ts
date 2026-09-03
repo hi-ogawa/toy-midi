@@ -97,6 +97,9 @@ export class WsolaProcessor {
   }
 
   private generateHop(): void {
+    // Map the next output hop to where it would begin in the source without
+    // waveform alignment: source = output * playbackRate. WSOLA may select a
+    // nearby source window instead, but this nominal position prevents drift.
     const nominalSourcePosition = Math.round(
       this.generatedOutputPosition * this.playbackRate,
     );
@@ -107,6 +110,10 @@ export class WsolaProcessor {
       this.targetSourcePosition >= searchStart &&
       this.targetSourcePosition < searchEnd;
     this.readSource(this.targetSourcePosition, this.target);
+
+    // The natural continuation starts one hop after the previously selected
+    // window. Reuse it when possible; otherwise search around the nominal
+    // timeline position for the window most similar to that continuation.
     let selectedSourcePosition: number;
     if (targetInsideSearch) {
       selectedSourcePosition = this.targetSourcePosition;
@@ -116,6 +123,10 @@ export class WsolaProcessor {
       this.stats.searchedContinuations++;
     }
     this.readSource(selectedSourcePosition, this.selected);
+
+    // A searched window can differ from the natural continuation. Crossfade
+    // target -> selected across the full window so the alignment correction
+    // does not introduce an abrupt waveform jump.
     if (selectedSourcePosition !== this.targetSourcePosition) {
       for (let channel = 0; channel < this.selected.length; channel++) {
         for (let frame = 0; frame < this.windowFrames; frame++) {
@@ -127,6 +138,9 @@ export class WsolaProcessor {
       }
     }
 
+    // Emit the first half-window by overlap-adding it with the second half of
+    // the previous window. For a periodic Hann window at 50% overlap,
+    // w[n] + w[n + hop] = 1, so the two contributions preserve amplitude.
     for (let channel = 0; channel < this.selected.length; channel++) {
       for (let frame = 0; frame < this.hopFrames; frame++) {
         this.hopOutput[channel][frame] =
@@ -144,6 +158,8 @@ export class WsolaProcessor {
   }
 
   private findBestCandidate(searchStart: number, searchEnd: number): number {
+    // Search every Nth frame first, then inspect individual frames around the
+    // coarse winner. This approximates a full search with far fewer dot products.
     let bestPosition = searchStart;
     let bestScore = -Infinity;
     for (
@@ -193,6 +209,10 @@ export class WsolaProcessor {
   }
 
   private calculateSimilarity(candidatePosition: number): number {
+    // Treat all channels as one concatenated vector and calculate cosine
+    // similarity: dot(target, candidate) / (|target| * |candidate|). Summing
+    // each channel into the same dot product gives one offset shared by every
+    // channel, which preserves their relative timing and stereo image.
     let dotProduct = 0;
     let targetEnergy = 0;
     let candidateEnergy = 0;
