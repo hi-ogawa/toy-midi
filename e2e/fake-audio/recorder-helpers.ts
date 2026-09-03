@@ -48,14 +48,14 @@ export async function waitForRecordingSamples(recording: Locator) {
 
 export async function enableInput(page: Page) {
   // Fake audio still exercises permission, device discovery, and channel setup.
-  const route = page.getByRole("button", {
-    name: "Fake Default Audio Input · Input 1",
+  const inputSetupButton = page.getByRole("button", {
+    name: "Configure audio input",
   });
   await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
     "aria-pressed",
     "false",
   );
-  await route.click();
+  await inputSetupButton.click();
   await expect(
     page.getByRole("heading", { name: "Audio Input Setup" }),
   ).toBeVisible();
@@ -70,9 +70,7 @@ export async function enableInput(page: Page) {
   await expect(page.getByLabel("Channel")).toContainText("Channel 1");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(
-    page.getByRole("button", {
-      name: "Fake Default Audio Input · Input 1",
-    }),
+    page.getByText("Fake Default Audio Input · Input 1"),
   ).toBeVisible();
   await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
     "aria-pressed",
