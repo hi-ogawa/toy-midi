@@ -7,6 +7,10 @@ export type WsolaStats = {
 
 export class WsolaProcessor {
   readonly outputFrames: number;
+  readonly stats: WsolaStats = {
+    naturalContinuations: 0,
+    searchedContinuations: 0,
+  };
 
   private readonly channelData: readonly Float32Array[];
   private readonly playbackRate: number;
@@ -21,11 +25,6 @@ export class WsolaProcessor {
   private readonly selected: Float32Array[];
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
-  private readonly stats: WsolaStats = {
-    naturalContinuations: 0,
-    searchedContinuations: 0,
-  };
-
   private outputPosition = 0;
   private generatedOutputPosition = 0;
   private targetSourcePosition = 0;
@@ -65,10 +64,6 @@ export class WsolaProcessor {
 
   get finished(): boolean {
     return this.outputPosition >= this.outputFrames;
-  }
-
-  getStats(): WsolaStats {
-    return { ...this.stats };
   }
 
   render(output: Float32Array[]): number {

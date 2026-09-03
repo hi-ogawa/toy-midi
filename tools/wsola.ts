@@ -117,7 +117,7 @@ async function main() {
   }
   const renderSeconds = (performance.now() - startedAt) / 1000;
   const outputSeconds = outputFrame / SAMPLE_RATE;
-  const stats = processor.getStats();
+  const stats = processor.stats;
   console.log(
     `render: ${outputSeconds.toFixed(2)}s output in ${renderSeconds.toFixed(2)}s ` +
       `(${(outputSeconds / renderSeconds).toFixed(1)}x realtime)`,
