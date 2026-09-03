@@ -217,9 +217,9 @@ export class WsolaProcessor {
         continue;
       }
       const score = calculateSimilarity({
-        channelData: this.channelData,
-        target: this.target,
-        candidatePosition: position,
+        source: this.channelData,
+        sourceOffset: position,
+        reference: this.target,
       });
       if (score > bestScore) {
         bestPosition = position;
@@ -240,9 +240,9 @@ export class WsolaProcessor {
         continue;
       }
       const score = calculateSimilarity({
-        channelData: this.channelData,
-        target: this.target,
-        candidatePosition: position,
+        source: this.channelData,
+        sourceOffset: position,
+        reference: this.target,
       });
       if (score > bestScore) {
         bestPosition = position;
@@ -264,37 +264,38 @@ export class WsolaProcessor {
 }
 
 function calculateSimilarity({
-  channelData,
-  target,
-  candidatePosition,
+  source,
+  sourceOffset,
+  reference,
 }: {
-  channelData: readonly Float32Array[];
-  target: readonly Float32Array[];
-  candidatePosition: number;
+  source: readonly Float32Array[];
+  sourceOffset: number;
+  reference: readonly Float32Array[];
 }): number {
   // Treat all channels as one concatenated vector and calculate cosine
-  // similarity: dot(target, candidate) / (|target| * |candidate|). Summing
+  // similarity: dot(reference, candidate) / (|reference| * |candidate|). Summing
   // each channel into the same dot product gives one offset shared by every
   // channel, which preserves their relative timing and stereo image.
   let dotProduct = 0;
-  let targetEnergy = 0;
+  let referenceEnergy = 0;
   let candidateEnergy = 0;
-  for (let channel = 0; channel < channelData.length; channel++) {
-    const source = channelData[channel];
-    const targetChannel = target[channel];
-    for (let frame = 0; frame < targetChannel.length; frame++) {
-      const i = candidatePosition + frame;
-      const candidate = 0 <= i && i < source.length ? source[i] : 0;
-      const targetValue = targetChannel[frame];
-      dotProduct += targetValue * candidate;
-      targetEnergy += targetValue * targetValue;
+  for (let channel = 0; channel < source.length; channel++) {
+    const sourceChannel = source[channel];
+    const referenceChannel = reference[channel];
+    for (let frame = 0; frame < referenceChannel.length; frame++) {
+      const i = sourceOffset + frame;
+      const candidate =
+        0 <= i && i < sourceChannel.length ? sourceChannel[i] : 0;
+      const referenceValue = referenceChannel[frame];
+      dotProduct += referenceValue * candidate;
+      referenceEnergy += referenceValue * referenceValue;
       candidateEnergy += candidate * candidate;
     }
   }
-  if (targetEnergy === 0 || candidateEnergy === 0) {
+  if (referenceEnergy === 0 || candidateEnergy === 0) {
     return 0;
   }
-  return dotProduct / Math.sqrt(targetEnergy * candidateEnergy);
+  return dotProduct / Math.sqrt(referenceEnergy * candidateEnergy);
 }
 
 function copyPlanarWithZeroFill({
