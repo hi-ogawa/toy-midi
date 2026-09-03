@@ -8,7 +8,7 @@ import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs, promisify } from "node:util";
-import { WsolaProcessor } from "../src/lib/recorder/wsola.ts";
+import { WsolaProcessor } from "../src/lib/dsp/wsola.ts";
 
 const execFileAsync = promisify(execFile);
 const SAMPLE_RATE = 48_000;

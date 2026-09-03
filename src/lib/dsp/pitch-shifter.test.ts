@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { StreamingPitchShifter } from "./streaming-pitch-shifter.ts";
+import { StreamingPitchShifter } from "./pitch-shifter.ts";
 
 const SAMPLE_RATE = 8_000;
 const TARGET_FREQUENCY = 200;
