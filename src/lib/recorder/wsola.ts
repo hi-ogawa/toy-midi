@@ -283,11 +283,8 @@ function calculateSimilarity({
     const source = channelData[channel];
     const targetChannel = target[channel];
     for (let frame = 0; frame < targetChannel.length; frame++) {
-      const sourcePosition = candidatePosition + frame;
-      const candidate =
-        sourcePosition >= 0 && sourcePosition < source.length
-          ? source[sourcePosition]
-          : 0;
+      const i = candidatePosition + frame;
+      const candidate = 0 <= i && i < source.length ? source[i] : 0;
       const targetValue = targetChannel[frame];
       dotProduct += targetValue * candidate;
       targetEnergy += targetValue * targetValue;
