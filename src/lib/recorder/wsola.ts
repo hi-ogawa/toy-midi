@@ -119,11 +119,13 @@ export class WsolaProcessor {
         this.hopFrames - this.hopOutputOffset,
       );
       for (let channel = 0; channel < output.length; channel++) {
-        const source = this.hopOutput[channel];
-        const destination = output[channel];
-        for (let frame = 0; frame < count; frame++) {
-          destination[written + frame] = source[this.hopOutputOffset + frame];
-        }
+        output[channel].set(
+          this.hopOutput[channel].subarray(
+            this.hopOutputOffset,
+            this.hopOutputOffset + count,
+          ),
+          written,
+        );
       }
       this.hopOutputOffset += count;
       this.outputPosition += count;
