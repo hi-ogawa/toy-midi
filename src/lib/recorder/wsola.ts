@@ -137,6 +137,7 @@ export class WsolaProcessor {
     const searchStart =
       nominalSourcePosition - Math.floor(this.searchFrames / 2);
     const searchEnd = searchStart + this.searchFrames;
+
     // The natural continuation starts one hop after the previously selected
     // window. Reuse it when possible; otherwise search around the nominal
     // timeline position for the window most similar to that continuation.
@@ -170,9 +171,9 @@ export class WsolaProcessor {
     // does not introduce an abrupt waveform jump.
     if (selectedSourcePosition !== this.naturalSourcePosition) {
       crossfadePlanarWithOffsetSource({
-        destination: this.selected,
         source: this.channelData,
         sourceOffset: this.naturalSourcePosition,
+        destination: this.selected,
         window: this.transitionWindow,
       });
     }
@@ -315,14 +316,14 @@ function copyPlanarWithZeroFill({
 }
 
 function crossfadePlanarWithOffsetSource({
-  destination,
   source,
   sourceOffset,
+  destination,
   window,
 }: {
-  destination: Float32Array[];
   source: readonly Float32Array[];
   sourceOffset: number;
+  destination: Float32Array[];
   window: Float32Array;
 }): void {
   const frames = destination[0].length;
