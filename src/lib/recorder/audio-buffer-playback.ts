@@ -3,8 +3,6 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
-const TEST_PLAYBACK_RATE = 0.75;
-
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly gain: GainNode;
@@ -72,13 +70,12 @@ export class AudioBufferPlayback implements TransportParticipant {
     }
     const source = this.transport.context.createBufferSource();
     source.buffer = buffer;
-    source.playbackRate.value = TEST_PLAYBACK_RATE;
     source.connect(this.gain);
     source.start(
       playbackAnchor.contextTime +
         Math.max(0, timelineStart - playbackAnchor.position),
-      timelineStart - this.bufferTimelineOffset + elapsed * TEST_PLAYBACK_RATE,
-      (duration - elapsed) * TEST_PLAYBACK_RATE,
+      timelineStart - this.bufferTimelineOffset + elapsed,
+      duration - elapsed,
     );
     this.source = source;
   }
