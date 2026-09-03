@@ -169,18 +169,12 @@ export class WsolaProcessor {
     // natural -> selected across the full window so the alignment correction
     // does not introduce an abrupt waveform jump.
     if (selectedSourcePosition !== this.naturalSourcePosition) {
-      for (let channel = 0; channel < this.selected.length; channel++) {
-        for (let frame = 0; frame < this.windowFrames; frame++) {
-          const i = this.naturalSourcePosition + frame;
-          const natural =
-            0 <= i && i < this.channelData[channel].length
-              ? this.channelData[channel][i]
-              : 0;
-          this.selected[channel][frame] =
-            this.selected[channel][frame] * this.transitionWindow[frame] +
-            natural * this.transitionWindow[this.windowFrames + frame];
-        }
-      }
+      crossfadePlanarWithOffsetSource({
+        destination: this.selected,
+        source: this.channelData,
+        sourceOffset: this.naturalSourcePosition,
+        window: this.transitionWindow,
+      });
     }
 
     // Emit the first half-window by overlap-adding it with the second half of
@@ -328,6 +322,31 @@ function copyPlanarWithZeroFill({
       const i = sourceOffset + frame;
       destination[channel][frame] =
         0 <= i && i < sourceFrames ? sourceChannel[i] : 0;
+    }
+  }
+}
+
+function crossfadePlanarWithOffsetSource({
+  destination,
+  source,
+  sourceOffset,
+  window,
+}: {
+  destination: Float32Array[];
+  source: readonly Float32Array[];
+  sourceOffset: number;
+  window: Float32Array;
+}): void {
+  const frames = destination[0].length;
+  for (let channel = 0; channel < destination.length; channel++) {
+    const sourceChannel = source[channel];
+    for (let frame = 0; frame < frames; frame++) {
+      const i = sourceOffset + frame;
+      const sourceValue =
+        0 <= i && i < sourceChannel.length ? sourceChannel[i] : 0;
+      destination[channel][frame] =
+        destination[channel][frame] * window[frame] +
+        sourceValue * window[frames + frame];
     }
   }
 }
