@@ -115,6 +115,7 @@ export interface RecorderRuntimeState {
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
+  inputMonitoring: boolean;
 }
 
 export type PersistableRecorderRuntimeState = Pick<
@@ -164,6 +165,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     inputChannelCount: 0,
     selectedChannel: 0,
     latencyCompensation: 0,
+    inputMonitoring: false,
   };
 }
 
@@ -194,6 +196,7 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
+      output: this.masterOutput!,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -229,6 +232,7 @@ export class RecorderRuntime {
       captureStatus: "ready",
       inputChannelCount: channelCount,
       selectedChannel: 0,
+      inputMonitoring: false,
     });
     return { channelCount };
   }
@@ -239,12 +243,21 @@ export class RecorderRuntime {
       captureStatus: "disabled",
       inputChannelCount: 0,
       selectedChannel: 0,
+      inputMonitoring: false,
     });
   }
 
   selectChannel(channel: number): void {
     this.captureInput?.setChannel(channel);
     this.store.update({ selectedChannel: channel });
+  }
+
+  setInputMonitoring(inputMonitoring: boolean): void {
+    if (inputMonitoring && !this.captureInput) {
+      return;
+    }
+    this.captureInput?.setMonitoring(inputMonitoring);
+    this.store.update({ inputMonitoring });
   }
 
   addAudioTrack(): string {

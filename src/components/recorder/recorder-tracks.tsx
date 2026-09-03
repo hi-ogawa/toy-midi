@@ -2,6 +2,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   DownloadIcon,
+  HeadphonesIcon,
   MoreVerticalIcon,
   Settings2Icon,
   Trash2Icon,
@@ -171,12 +172,14 @@ export function CaptureTrackRow({
   gain,
   inputActive,
   inputAnalyser,
+  inputMonitoring,
   inputToggleDisabled,
   muted,
   soloed,
   takeDownloadDisabled,
   onGainChange,
   onInputSetup,
+  onInputMonitoringChange,
   onInputToggle,
   onMutedChange,
   onSoloedChange,
@@ -191,12 +194,14 @@ export function CaptureTrackRow({
   gain: number;
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
+  inputMonitoring: boolean;
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
   takeDownloadDisabled: boolean;
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
+  onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
@@ -296,6 +301,32 @@ export function CaptureTrackRow({
             )}
           >
             <Settings2Icon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            data-testid="recorder-input-monitor"
+            disabled={!inputActive}
+            aria-label={
+              inputMonitoring
+                ? "Disable input monitoring"
+                : "Enable input monitoring"
+            }
+            aria-pressed={inputMonitoring}
+            title={
+              inputActive
+                ? inputMonitoring
+                  ? "Disable input monitoring"
+                  : "Enable input monitoring (use headphones to avoid feedback)"
+                : "Enable input first to monitor"
+            }
+            onClick={() => onInputMonitoringChange(!inputMonitoring)}
+            className={cn(
+              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
+              inputMonitoring &&
+                "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+            )}
+          >
+            <HeadphonesIcon className="size-3.5" />
           </button>
         </div>
         <div className="col-span-2">
