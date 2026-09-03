@@ -1,13 +1,23 @@
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
 //
-// Intentional divergence: Chromium also crossfades natural -> selected across
-// a searched window before overlap-add, a defensive guard for poor matches
-// (sparse, noisy, or silence-adjacent material) that makes the seam exact at
-// frame 0. This port omits that blend and relies on classic WSOLA alone:
-// predict, full-window correlation search, 50% Hann overlap-add. A/B on a
-// dense full-mix render at 0.75x found no audible difference with the blend
-// removed.
+// Intentional divergences from Chromium:
+//
+// 1. No natural -> selected crossfade after a search jump. Chromium blends
+//    the searched window toward the natural continuation (a Hann ramp of
+//    2 * window length) before overlap-add, a defensive guard for poor
+//    matches. This port relies on classic WSOLA alone: predict, full-window
+//    correlation search, 50% Hann overlap-add. A/B on a dense full-mix
+//    render at 0.75x found no audible difference.
+//
+// 2. No candidate exclusion zone. Chromium rejects search candidates within
+//    ~3.3ms of the previous selection "to reduce the buzzy sound", a
+//    constant its own comment calls "rather arbitrary and derived
+//    heuristically". The notch only fires on quasi-periodic material (exact
+//    ties evade it at neighbouring periods, so it is not a progress
+//    guarantee), never fires at rates >= 1 where forward period ties are the
+//    desired cycle deletion, and produced no audible difference in 0.75x
+//    A/B renders despite ~900 blocked re-picks over a full song.
 
 /**
  * Pull-based, stateful WSOLA time stretcher over an immutable planar source.
@@ -44,7 +54,6 @@ export class WsolaProcessor {
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
-  private readonly excludeFrames: number;
 
   // Precomputed overlap-add weights. overlapWindow joins adjacent half-window
   // hops at 50% overlap.
@@ -55,12 +64,11 @@ export class WsolaProcessor {
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
 
-  // Output cursors track consumed versus generated frames. Source cursors track
-  // the expected continuation and last selected window for the next search.
+  // Output cursors track consumed versus generated frames. The source cursor
+  // tracks the expected continuation for the next search.
   private outputPosition = 0;
   private generatedOutputPosition = 0;
   private naturalSourcePosition = 0;
-  private previousSelectedSourcePosition?: number;
   private hopOutputOffset: number;
 
   constructor({
@@ -83,7 +91,6 @@ export class WsolaProcessor {
     this.windowFrames += this.windowFrames % 2;
     this.hopFrames = this.windowFrames / 2;
     this.searchFrames = Math.max(1, Math.round(sampleRate * searchSeconds));
-    this.excludeFrames = Math.max(1, Math.round(sampleRate / 300));
     this.outputFrames = Math.ceil(sourceFrames / playbackRate);
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
     this.pendingOverlap = createChannels(channelData.length, this.hopFrames);
@@ -157,8 +164,6 @@ export class WsolaProcessor {
         source: this.channelData,
         referenceOffset: this.naturalSourcePosition,
         frames: this.windowFrames,
-        excludeCenter: this.previousSelectedSourcePosition,
-        excludeFrames: this.excludeFrames,
         searchStart,
         searchEnd,
       });
@@ -176,7 +181,6 @@ export class WsolaProcessor {
       window: this.overlapWindow,
     });
 
-    this.previousSelectedSourcePosition = selectedSourcePosition;
     this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
     this.generatedOutputPosition += this.hopFrames;
   }
@@ -188,32 +192,20 @@ function findBestCandidate({
   source,
   referenceOffset,
   frames,
-  excludeCenter,
-  excludeFrames,
   searchStart,
   searchEnd,
 }: {
   source: readonly Float32Array[];
   referenceOffset: number;
   frames: number;
-  excludeCenter?: number;
-  excludeFrames: number;
   searchStart: number;
   searchEnd: number;
 }): number {
   // Search every Nth frame first, then inspect individual frames around the
   // coarse winner. This approximates a full search with far fewer dot products.
-  // Candidates within excludeFrames/2 of excludeCenter (the previous selection)
-  // are skipped so the search cannot trivially re-pick the same window.
   let bestPosition = searchStart;
   let bestScore = -Infinity;
   const consider = (position: number): void => {
-    if (
-      excludeCenter !== undefined &&
-      Math.abs(position - excludeCenter) < excludeFrames / 2
-    ) {
-      return;
-    }
     const score = calculateSimilarity({
       source,
       firstOffset: referenceOffset,
