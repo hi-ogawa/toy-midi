@@ -45,17 +45,7 @@ export class WsolaProcessor {
     windowSeconds?: number;
     searchSeconds?: number;
   }) {
-    if (channelData.length === 0) {
-      throw new Error("WSOLA requires at least one channel.");
-    }
     const sourceFrames = channelData[0].length;
-    if (channelData.some((channel) => channel.length !== sourceFrames)) {
-      throw new Error("WSOLA channels must have equal lengths.");
-    }
-    if (sampleRate <= 0 || playbackRate <= 0) {
-      throw new Error("WSOLA sample rate and playback rate must be positive.");
-    }
-
     this.channelData = channelData;
     this.playbackRate = playbackRate;
     this.windowFrames = Math.max(2, Math.round(sampleRate * windowSeconds));
@@ -82,16 +72,7 @@ export class WsolaProcessor {
   }
 
   render(output: Float32Array[]): number {
-    if (output.length !== this.channelData.length) {
-      throw new Error("WSOLA output channel count does not match the source.");
-    }
     const requestedFrames = output[0]?.length ?? 0;
-    for (let channel = 0; channel < output.length; channel++) {
-      if (output[channel].length !== requestedFrames) {
-        throw new Error("WSOLA output channels must have equal lengths.");
-      }
-    }
-
     const framesToWrite = Math.min(
       requestedFrames,
       this.outputFrames - this.outputPosition,
