@@ -48,9 +48,8 @@ export class WsolaProcessor {
   private readonly overlapWindow: Float32Array;
   private readonly transitionWindow: Float32Array;
 
-  // Reused planar scratch buffers for one WSOLA step: expected continuation,
-  // chosen source window, carried second half, and ready-to-consume first half.
-  private readonly target: Float32Array[];
+  // Reused planar scratch buffers for one WSOLA step: chosen source window,
+  // carried second half, and ready-to-consume first half.
   private readonly selected: Float32Array[];
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
@@ -59,7 +58,7 @@ export class WsolaProcessor {
   // the expected continuation and last selected window for the next search.
   private outputPosition = 0;
   private generatedOutputPosition = 0;
-  private targetSourcePosition = 0;
+  private naturalSourcePosition = 0;
   private previousSelectedSourcePosition?: number;
   private hopOutputOffset: number;
 
@@ -87,7 +86,6 @@ export class WsolaProcessor {
     this.outputFrames = Math.ceil(sourceFrames / playbackRate);
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
     this.transitionWindow = createPeriodicHannWindow(2 * this.windowFrames);
-    this.target = createChannels(channelData.length, this.windowFrames);
     this.selected = createChannels(channelData.length, this.windowFrames);
     this.pendingOverlap = createChannels(channelData.length, this.hopFrames);
     this.hopOutput = createChannels(channelData.length, this.hopFrames);
@@ -144,24 +142,21 @@ export class WsolaProcessor {
     const searchStart =
       nominalSourcePosition - Math.floor(this.searchFrames / 2);
     const searchEnd = searchStart + this.searchFrames;
-    copyPlanarWithZeroFill({
-      source: this.channelData,
-      sourceOffset: this.targetSourcePosition,
-      destination: this.target,
-    });
-
     // The natural continuation starts one hop after the previously selected
     // window. Reuse it when possible; otherwise search around the nominal
     // timeline position for the window most similar to that continuation.
     let selectedSourcePosition: number;
     if (
-      searchStart <= this.targetSourcePosition &&
-      this.targetSourcePosition < searchEnd
+      searchStart <= this.naturalSourcePosition &&
+      this.naturalSourcePosition < searchEnd
     ) {
-      selectedSourcePosition = this.targetSourcePosition;
+      selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
-      selectedSourcePosition = this.findBestCandidate(searchStart, searchEnd);
+      selectedSourcePosition = this.findBestCandidate({
+        searchStart,
+        searchEnd,
+      });
       this.stats.searchedContinuations++;
     }
     copyPlanarWithZeroFill({
@@ -171,15 +166,19 @@ export class WsolaProcessor {
     });
 
     // A searched window can differ from the natural continuation. Crossfade
-    // target -> selected across the full window so the alignment correction
+    // natural -> selected across the full window so the alignment correction
     // does not introduce an abrupt waveform jump.
-    if (selectedSourcePosition !== this.targetSourcePosition) {
+    if (selectedSourcePosition !== this.naturalSourcePosition) {
       for (let channel = 0; channel < this.selected.length; channel++) {
         for (let frame = 0; frame < this.windowFrames; frame++) {
+          const i = this.naturalSourcePosition + frame;
+          const natural =
+            0 <= i && i < this.channelData[channel].length
+              ? this.channelData[channel][i]
+              : 0;
           this.selected[channel][frame] =
             this.selected[channel][frame] * this.transitionWindow[frame] +
-            this.target[channel][frame] *
-              this.transitionWindow[this.windowFrames + frame];
+            natural * this.transitionWindow[this.windowFrames + frame];
         }
       }
     }
@@ -199,11 +198,17 @@ export class WsolaProcessor {
     }
 
     this.previousSelectedSourcePosition = selectedSourcePosition;
-    this.targetSourcePosition = selectedSourcePosition + this.hopFrames;
+    this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
     this.generatedOutputPosition += this.hopFrames;
   }
 
-  private findBestCandidate(searchStart: number, searchEnd: number): number {
+  private findBestCandidate({
+    searchStart,
+    searchEnd,
+  }: {
+    searchStart: number;
+    searchEnd: number;
+  }): number {
     // Search every Nth frame first, then inspect individual frames around the
     // coarse winner. This approximates a full search with far fewer dot products.
     let bestPosition = searchStart;
@@ -218,8 +223,9 @@ export class WsolaProcessor {
       }
       const score = calculateSimilarity({
         source: this.channelData,
-        sourceOffset: position,
-        reference: this.target,
+        firstOffset: this.naturalSourcePosition,
+        secondOffset: position,
+        frames: this.windowFrames,
       });
       if (bestScore < score) {
         bestPosition = position;
@@ -241,8 +247,9 @@ export class WsolaProcessor {
       }
       const score = calculateSimilarity({
         source: this.channelData,
-        sourceOffset: position,
-        reference: this.target,
+        firstOffset: this.naturalSourcePosition,
+        secondOffset: position,
+        frames: this.windowFrames,
       });
       if (bestScore < score) {
         bestPosition = position;
@@ -265,37 +272,44 @@ export class WsolaProcessor {
 
 function calculateSimilarity({
   source,
-  sourceOffset,
-  reference,
+  firstOffset,
+  secondOffset,
+  frames,
 }: {
   source: readonly Float32Array[];
-  sourceOffset: number;
-  reference: readonly Float32Array[];
+  firstOffset: number;
+  secondOffset: number;
+  frames: number;
 }): number {
   // Treat all channels as one concatenated vector and calculate cosine
-  // similarity: dot(reference, source) / (|reference| * |source|). Summing
-  // each channel into the same dot product gives one offset shared by every
-  // channel, which preserves their relative timing and stereo image.
+  // similarity: dot(first, second) / (|first| * |second|). Summing each channel
+  // into the same dot product gives one offset shared by every channel, which
+  // preserves their relative timing and stereo image.
   let dotProduct = 0;
-  let referenceEnergy = 0;
-  let sourceEnergy = 0;
+  let firstEnergy = 0;
+  let secondEnergy = 0;
   for (let channel = 0; channel < source.length; channel++) {
     const sourceChannel = source[channel];
-    const referenceChannel = reference[channel];
-    for (let frame = 0; frame < referenceChannel.length; frame++) {
-      const i = sourceOffset + frame;
-      const sourceValue =
-        0 <= i && i < sourceChannel.length ? sourceChannel[i] : 0;
-      const referenceValue = referenceChannel[frame];
-      dotProduct += referenceValue * sourceValue;
-      referenceEnergy += referenceValue * referenceValue;
-      sourceEnergy += sourceValue * sourceValue;
+    for (let frame = 0; frame < frames; frame++) {
+      const firstIndex = firstOffset + frame;
+      const first =
+        0 <= firstIndex && firstIndex < sourceChannel.length
+          ? sourceChannel[firstIndex]
+          : 0;
+      const secondIndex = secondOffset + frame;
+      const second =
+        0 <= secondIndex && secondIndex < sourceChannel.length
+          ? sourceChannel[secondIndex]
+          : 0;
+      dotProduct += first * second;
+      firstEnergy += first * first;
+      secondEnergy += second * second;
     }
   }
-  if (referenceEnergy === 0 || sourceEnergy === 0) {
+  if (firstEnergy === 0 || secondEnergy === 0) {
     return 0;
   }
-  return dotProduct / Math.sqrt(referenceEnergy * sourceEnergy);
+  return dotProduct / Math.sqrt(firstEnergy * secondEnergy);
 }
 
 function copyPlanarWithZeroFill({
