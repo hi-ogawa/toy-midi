@@ -38,9 +38,9 @@ export class StreamingPitchShifter {
       windowSeconds,
       searchSeconds,
     });
-    // One output block consumes blockFrames * pitchRatio stretched frames;
-    // linear interpolation needs one additional sample beyond that range.
-    const pumpFrames = Math.ceil(blockFrames * pitchRatio) + 1;
+    // Keep two output blocks of stretched input as headroom for interpolation
+    // and WSOLA's independent hop size.
+    const pumpFrames = 2 * Math.ceil(blockFrames * pitchRatio);
     this.resampler = new LinearResampler({
       channelCount,
       ratio: pitchRatio,
