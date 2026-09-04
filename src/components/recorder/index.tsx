@@ -212,9 +212,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         onSave={project.save}
         onRecordToggle={toggleRecord}
         onAutoScrollChange={timeline.setAutoScrollEnabled}
-        onPlaybackRateChange={(playbackRate) =>
-          runtime.setPlaybackRate(playbackRate)
-        }
+        onPlaybackRateChange={(playbackRate) => {
+          void runtime.setPlaybackRate(playbackRate);
+        }}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onLoopChange={(update) => runtime.setLoop(update)}

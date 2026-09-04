@@ -1,6 +1,7 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
@@ -632,6 +633,7 @@ export class RecorderRuntime {
 
   async play(): Promise<void> {
     const context = this.ensureContext();
+    await ensurePitchShifterWorklet(context);
     await context.resume();
     this.transport!.play();
   }
@@ -716,8 +718,9 @@ export class RecorderRuntime {
     this.syncLoopRange();
   }
 
-  setPlaybackRate(playbackRate: number): void {
-    this.ensureContext();
+  async setPlaybackRate(playbackRate: number): Promise<void> {
+    const context = this.ensureContext();
+    await ensurePitchShifterWorklet(context);
     this.transport!.setPlaybackRate(playbackRate);
     this.store.update({ playbackRate });
   }

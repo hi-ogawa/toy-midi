@@ -1,7 +1,7 @@
 const PROCESSOR_NAME = "pitch-shifter";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
-export async function createPitchShifterNode({
+export function createPitchShifterNode({
   context,
   channelCount,
   pitchRatio,
@@ -9,8 +9,7 @@ export async function createPitchShifterNode({
   context: AudioContext;
   channelCount: number;
   pitchRatio: number;
-}): Promise<AudioWorkletNode> {
-  await ensurePitchShifterWorklet(context);
+}): AudioWorkletNode {
   return new AudioWorkletNode(context, PROCESSOR_NAME, {
     numberOfInputs: 1,
     numberOfOutputs: 1,
@@ -21,7 +20,9 @@ export async function createPitchShifterNode({
   });
 }
 
-async function ensurePitchShifterWorklet(context: AudioContext): Promise<void> {
+export async function ensurePitchShifterWorklet(
+  context: AudioContext,
+): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
     registration = context.audioWorklet.addModule(
