@@ -39,7 +39,6 @@ export class StreamingPitchShifter {
     });
     this.resampler = new LinearResampler({
       channelCount,
-      sampleRate,
       ratio: pitchRatio,
     });
     this.pumpBuffer = Array.from(
@@ -97,17 +96,15 @@ class LinearResampler {
 
   constructor({
     channelCount,
-    sampleRate,
     ratio,
   }: {
     channelCount: number;
-    sampleRate: number;
     ratio: number;
   }) {
     this.ratio = ratio;
     this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
-      capacity: sampleRate,
+      capacity: 2 * PUMP_FRAMES,
     });
   }
 
