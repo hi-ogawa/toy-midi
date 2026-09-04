@@ -1,4 +1,4 @@
-import { PlanarStreamBuffer } from "./planar-stream-buffer.ts";
+import { PlanarStreamBuffer } from "./stream-buffer.ts";
 import { StreamingWsola } from "./wsola.ts";
 
 const PUMP_FRAMES = 128;

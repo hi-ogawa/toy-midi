@@ -1,4 +1,4 @@
-import { PlanarStreamBuffer } from "./planar-stream-buffer.ts";
+import { PlanarStreamBuffer } from "./stream-buffer.ts";
 
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
