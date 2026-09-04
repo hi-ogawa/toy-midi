@@ -12,7 +12,6 @@ describe(StreamingPitchShifter, () => {
         Math.sin((2 * Math.PI * INPUT_FREQUENCY * frame) / SAMPLE_RATE),
       );
       const output = render({ input, pitchRatio });
-
       expect(output).toHaveLength(input.length);
       expect(estimateFrequency(output)).toBeCloseTo(
         INPUT_FREQUENCY * pitchRatio,
