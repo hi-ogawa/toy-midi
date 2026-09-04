@@ -52,17 +52,6 @@ export class PlanarStreamBuffer {
     this.length += length;
   }
 
-  appendZeros(length: number): void {
-    for (const destination of this.planes) {
-      for (let offset = 0; offset < length; offset++) {
-        const index = (this.length + offset) % this.capacity;
-        destination[index] = 0;
-        destination[index + this.capacity] = 0;
-      }
-    }
-    this.length += length;
-  }
-
   subarray(index: number, length: number): Float32Array[] {
     if (
       index < this.retainedStart ||

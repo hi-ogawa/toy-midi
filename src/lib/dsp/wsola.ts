@@ -203,6 +203,8 @@ export class WsolaProcessor {
  */
 export class StreamingWsola {
   readonly latencyFrames: number;
+  /** Future input required beyond a nominal source position to render a hop. */
+  readonly lookaheadFrames: number;
   readonly stats = {
     naturalContinuations: 0,
     searchedContinuations: 0,
@@ -214,9 +216,6 @@ export class StreamingWsola {
   private readonly hopFrames: number;
   private readonly searchFrames: number;
   private readonly input: PlanarStreamBuffer;
-  // Finish appends enough silence to satisfy any final reference and search
-  // range without adding special bounds handling to the WSOLA algorithm.
-  private readonly endPaddingFrames: number;
   private readonly overlapWindow: Float32Array;
 
   // Reused planar buffers for the carried second half-window and the next
@@ -225,14 +224,10 @@ export class StreamingWsola {
   private readonly hopOutput: Float32Array[];
 
   // Output generation advances in fixed hops, while pull may consume each hop
-  // across multiple calls. targetOutputFrames is known only after finish().
-  private inputFinished = false;
-  private generatedOutputFrames = 0;
+  // across multiple calls.
   private generatedOutputPosition = 0;
   private naturalSourcePosition = 0;
-  private hopOutputOffset = 0;
-  private hopOutputLength = 0;
-  private targetOutputFrames?: number;
+  private hopOutputOffset: number;
 
   constructor({
     channelCount,
@@ -253,8 +248,11 @@ export class StreamingWsola {
     this.hopFrames = this.windowFrames / 2;
     this.searchFrames = Math.max(1, Math.round(sampleRate * searchSeconds));
     this.latencyFrames = this.windowFrames;
-    this.endPaddingFrames = this.windowFrames + this.searchFrames;
-    const capacity = Math.max(sampleRate, 4 * this.endPaddingFrames);
+    this.lookaheadFrames = this.windowFrames + this.searchFrames;
+    const capacity = Math.max(
+      sampleRate,
+      4 * (this.windowFrames + this.searchFrames),
+    );
     this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
       capacity,
@@ -262,17 +260,14 @@ export class StreamingWsola {
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
     this.pendingOverlap = createChannels(channelCount, this.hopFrames);
     this.hopOutput = createChannels(channelCount, this.hopFrames);
+    this.hopOutputOffset = this.hopFrames;
   }
 
   getWritableFrames(): number {
-    // Reserve final-padding space so finish() cannot overflow the input buffer.
-    return Math.max(0, this.input.getWritableLength() - this.endPaddingFrames);
+    return this.input.getWritableLength();
   }
 
   push(input: readonly Float32Array[]): void {
-    if (this.inputFinished) {
-      throw new Error("Cannot push WSOLA input after finish().");
-    }
     const frames = input[0]?.length ?? 0;
     // TODO: Define a realtime-safe overflow policy instead of throwing.
     if (this.getWritableFrames() < frames) {
@@ -281,31 +276,13 @@ export class StreamingWsola {
     this.input.push(input, frames);
   }
 
-  finish(): void {
-    if (this.inputFinished) {
-      return;
-    }
-    this.inputFinished = true;
-    // Capture the real input length before appending algorithmic padding.
-    this.targetOutputFrames = Math.ceil(this.input.length / this.playbackRate);
-    this.input.appendZeros(this.endPaddingFrames);
-  }
-
-  isFinished(): boolean {
-    return (
-      this.inputFinished &&
-      this.generatedOutputFrames === this.targetOutputFrames &&
-      this.hopOutputOffset === this.hopOutputLength
-    );
-  }
-
   pull(output: Float32Array[]): number {
     const requestedFrames = output[0]?.length ?? 0;
     let written = 0;
     while (written < requestedFrames) {
       // Generate only when the previous hop has been fully consumed. If the
       // required source range has not arrived, return the available prefix.
-      if (this.hopOutputOffset === this.hopOutputLength) {
+      if (this.hopOutputOffset === this.hopFrames) {
         if (!this.canGenerateHop()) {
           break;
         }
@@ -313,7 +290,7 @@ export class StreamingWsola {
       }
       const count = Math.min(
         requestedFrames - written,
-        this.hopOutputLength - this.hopOutputOffset,
+        this.hopFrames - this.hopOutputOffset,
       );
       for (let channel = 0; channel < output.length; channel++) {
         output[channel].set(
@@ -331,12 +308,6 @@ export class StreamingWsola {
   }
 
   private canGenerateHop(): boolean {
-    if (
-      this.inputFinished &&
-      this.generatedOutputFrames === this.targetOutputFrames
-    ) {
-      return false;
-    }
     const nominalSourcePosition = Math.round(
       this.generatedOutputPosition * this.playbackRate,
     );
@@ -404,14 +375,7 @@ export class StreamingWsola {
       carry: this.pendingOverlap,
       window: this.overlapWindow,
     });
-    // Before finish every generated hop is complete. The last finite-stream
-    // hop may be truncated to produce exactly ceil(input / playbackRate).
-    const remaining = this.inputFinished
-      ? this.targetOutputFrames! - this.generatedOutputFrames
-      : this.hopFrames;
-    this.hopOutputLength = Math.min(this.hopFrames, remaining);
     this.hopOutputOffset = 0;
-    this.generatedOutputFrames += this.hopOutputLength;
     this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
     this.generatedOutputPosition += this.hopFrames;
     this.discardUnusedInput();

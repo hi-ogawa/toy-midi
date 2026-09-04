@@ -3,6 +3,8 @@ import { StreamingWsola, WsolaProcessor } from "./wsola.ts";
 
 const SAMPLE_RATE = 1_000;
 const SOURCE_FRAMES = 400;
+const WINDOW_SECONDS = 0.02;
+const SEARCH_SECONDS = 0.03;
 
 describe(WsolaProcessor, () => {
   // Different periods and envelopes per channel exercise linked stereo search.
@@ -48,8 +50,8 @@ function render({
     channelData: source,
     sampleRate: SAMPLE_RATE,
     playbackRate,
-    windowSeconds: 0.02,
-    searchSeconds: 0.03,
+    windowSeconds: WINDOW_SECONDS,
+    searchSeconds: SEARCH_SECONDS,
   });
   const output = source.map(() => new Float32Array(processor.outputFrames));
   const block = source.map(() => new Float32Array(64));
@@ -88,31 +90,50 @@ function renderStreaming({
   source: readonly Float32Array[];
   playbackRate: number;
 }): Float32Array[] {
+  // StreamingWsola has no finite-source lifecycle. This helper owns the source
+  // boundary so it can compare the endless processor with WsolaProcessor.
   const processor = new StreamingWsola({
     channelCount: source.length,
     sampleRate: SAMPLE_RATE,
     playbackRate,
-    windowSeconds: 0.02,
-    searchSeconds: 0.03,
+    windowSeconds: WINDOW_SECONDS,
+    searchSeconds: SEARCH_SECONDS,
   });
-  const output = source.map(() => [] as number[]);
+
+  let outputOffset = 0;
+  const outputLength = Math.ceil(SOURCE_FRAMES / playbackRate);
+  const output = source.map(() => new Float32Array(outputLength));
   const block = source.map(() => new Float32Array(17));
+
+  // Pull until the processor needs more source input. Input and output block
+  // sizes intentionally differ to exercise partial consumption of WSOLA hops.
   const drain = () => {
     const written = processor.pull(block);
+    const copied = Math.min(written, outputLength - outputOffset);
     for (let channel = 0; channel < output.length; channel++) {
-      output[channel].push(...block[channel].subarray(0, written));
+      output[channel].set(block[channel].subarray(0, copied), outputOffset);
     }
+    outputOffset += copied;
     return written;
   };
+
+  // Model a producer supplying small realtime blocks and a consumer draining
+  // all output currently available after each push.
   for (let offset = 0; offset < SOURCE_FRAMES; offset += 13) {
     processor.push(
       source.map((channel) => channel.subarray(offset, offset + 13)),
     );
     while (drain() > 0) {}
   }
-  processor.finish();
-  while (!processor.isFinished()) {
+
+  // A finite caller supplies silence for the final reference window and
+  // candidate search. WSOLA treats it as ordinary future input and remains
+  // unaware of completion.
+  processor.push(source.map(() => new Float32Array(processor.lookaheadFrames)));
+
+  // Stop at the caller-owned finite boundary.
+  while (outputOffset < outputLength) {
     expect(drain()).toBeGreaterThan(0);
   }
-  return output.map((channel) => Float32Array.from(channel));
+  return output;
 }
