@@ -10,13 +10,12 @@ const PUMP_FRAMES = 128;
  */
 export class StreamingPitchShifter {
   readonly latencyFrames: number;
+  /** Future input required to render through a finite input boundary. */
+  readonly lookaheadFrames: number;
 
   private readonly wsola: StreamingWsola;
   private readonly resampler: LinearResampler;
   private readonly pumpBuffer: Float32Array[];
-  private inputFrames = 0;
-  private outputFrames = 0;
-  private inputFinished = false;
 
   constructor({
     channelCount,
@@ -48,6 +47,8 @@ export class StreamingPitchShifter {
       () => new Float32Array(PUMP_FRAMES),
     );
     this.latencyFrames = this.wsola.latencyFrames;
+    this.lookaheadFrames =
+      this.wsola.lookaheadFrames + Math.ceil(1 / pitchRatio);
   }
 
   getWritableFrames(): number {
@@ -55,32 +56,12 @@ export class StreamingPitchShifter {
   }
 
   push(input: readonly Float32Array[]): void {
-    if (this.inputFinished) {
-      throw new Error("Cannot push pitch-shifter input after finish().");
-    }
     this.wsola.push(input);
-    this.inputFrames += input[0]?.length ?? 0;
     this.pump();
-  }
-
-  finish(): void {
-    if (this.inputFinished) {
-      return;
-    }
-    this.inputFinished = true;
-    this.wsola.finish();
-    this.pump();
-  }
-
-  isFinished(): boolean {
-    return this.inputFinished && this.outputFrames === this.inputFrames;
   }
 
   pull(output: Float32Array[]): number {
-    const requestedFrames = Math.min(
-      output[0]?.length ?? 0,
-      this.inputFrames - this.outputFrames,
-    );
+    const requestedFrames = output[0]?.length ?? 0;
     let written = 0;
     while (written < requestedFrames) {
       this.pump();
@@ -93,7 +74,6 @@ export class StreamingPitchShifter {
         break;
       }
       written += count;
-      this.outputFrames += count;
     }
     return written;
   }
@@ -106,19 +86,13 @@ export class StreamingPitchShifter {
       }
       this.resampler.push({ input: this.pumpBuffer, frames: written });
     }
-    if (this.wsola.isFinished()) {
-      this.resampler.finish();
-    }
   }
 }
 
 class LinearResampler {
   private readonly inputFramesPerOutputFrame: number;
   private readonly input: PlanarStreamBuffer;
-  private outputFrames = 0;
   private nextInputPosition = 0;
-  private inputFinished = false;
-  private targetOutputFrames?: number;
 
   constructor({
     channelCount,
@@ -150,16 +124,6 @@ class LinearResampler {
     this.input.push(input, frames);
   }
 
-  finish(): void {
-    if (this.inputFinished) {
-      return;
-    }
-    this.inputFinished = true;
-    this.targetOutputFrames = Math.ceil(
-      this.input.length / this.inputFramesPerOutputFrame,
-    );
-  }
-
   pull({
     output,
     outputOffset,
@@ -171,12 +135,9 @@ class LinearResampler {
   }): number {
     let written = 0;
     while (written < frames) {
-      if (this.inputFinished && this.targetOutputFrames === this.outputFrames) {
-        break;
-      }
       const firstIndex = Math.floor(this.nextInputPosition);
       const secondIndex = firstIndex + 1;
-      if (!this.inputFinished && this.input.length <= secondIndex) {
+      if (this.input.length <= secondIndex) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
@@ -187,7 +148,6 @@ class LinearResampler {
           first * (1 - fraction) + second * fraction;
       }
       this.nextInputPosition += this.inputFramesPerOutputFrame;
-      this.outputFrames++;
       written++;
     }
     this.discardConsumedInput();

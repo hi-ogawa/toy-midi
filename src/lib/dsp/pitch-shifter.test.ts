@@ -37,22 +37,25 @@ function render({
     windowSeconds: 0.02,
     searchSeconds: 0.03,
   });
-  const output: number[] = [];
+  const output = new Float32Array(input.length);
   const block = [new Float32Array(128)];
+  let outputOffset = 0;
   const drain = () => {
     const written = processor.pull(block);
-    output.push(...block[0].subarray(0, written));
+    const copied = Math.min(written, output.length - outputOffset);
+    output.set(block[0].subarray(0, copied), outputOffset);
+    outputOffset += copied;
     return written;
   };
   for (let offset = 0; offset < input.length; offset += 128) {
     processor.push([input.subarray(offset, offset + 128)]);
     while (drain() > 0) {}
   }
-  processor.finish();
-  while (!processor.isFinished()) {
+  processor.push([new Float32Array(processor.lookaheadFrames)]);
+  while (outputOffset < output.length) {
     expect(drain()).toBeGreaterThan(0);
   }
-  return Float32Array.from(output);
+  return output;
 }
 
 function estimateFrequency(input: Float32Array): number {
