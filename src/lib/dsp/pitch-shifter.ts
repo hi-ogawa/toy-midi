@@ -1,4 +1,4 @@
-import { PlanarRingBuffer } from "./planar-ring-buffer.ts";
+import { PlanarStreamBuffer } from "./planar-stream-buffer.ts";
 import { StreamingWsola } from "./wsola.ts";
 
 const PUMP_FRAMES = 128;
@@ -114,7 +114,7 @@ export class StreamingPitchShifter {
 
 class LinearResampler {
   private readonly inputFramesPerOutputFrame: number;
-  private readonly input: PlanarRingBuffer;
+  private readonly input: PlanarStreamBuffer;
   private inputFrames = 0;
   private outputFrames = 0;
   private nextInputPosition = 0;
@@ -131,7 +131,7 @@ class LinearResampler {
     inputFramesPerOutputFrame: number;
   }) {
     this.inputFramesPerOutputFrame = inputFramesPerOutputFrame;
-    this.input = new PlanarRingBuffer({
+    this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
       capacity: sampleRate,
     });
@@ -148,7 +148,7 @@ class LinearResampler {
     input: readonly Float32Array[];
     frames: number;
   }): void {
-    this.input.write(input, frames);
+    this.input.append(input, frames);
     this.inputFrames += frames;
   }
 
@@ -178,7 +178,7 @@ class LinearResampler {
       }
       const firstIndex = Math.floor(this.nextInputPosition);
       const secondIndex = firstIndex + 1;
-      if (!this.inputFinished && this.input.writePosition <= secondIndex) {
+      if (!this.inputFinished && this.input.getReadableEnd() <= secondIndex) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
@@ -197,7 +197,7 @@ class LinearResampler {
   }
 
   private read(channel: number, position: number): number {
-    return this.input.get(channel, position);
+    return this.input.getOrZero(channel, position);
   }
 
   private discardConsumedInput(): void {

@@ -1,4 +1,4 @@
-import { PlanarRingBuffer } from "./planar-ring-buffer.ts";
+import { PlanarStreamBuffer } from "./planar-stream-buffer.ts";
 
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
@@ -163,7 +163,8 @@ export class WsolaProcessor {
       this.stats.naturalContinuations++;
     } else {
       selectedSourcePosition = findBestCandidate({
-        source: this.channelData,
+        reference: this.channelData,
+        candidates: this.channelData,
         referenceOffset: this.naturalSourcePosition,
         frames: this.windowFrames,
         searchStart,
@@ -200,7 +201,7 @@ export class StreamingWsola {
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
-  private readonly input: PlanarRingBuffer;
+  private readonly input: PlanarStreamBuffer;
   private readonly endPaddingFrames: number;
   private readonly overlapWindow: Float32Array;
   private readonly pendingOverlap: Float32Array[];
@@ -235,7 +236,7 @@ export class StreamingWsola {
     this.latencyFrames = this.windowFrames;
     this.endPaddingFrames = this.windowFrames + this.searchFrames;
     const capacity = Math.max(sampleRate, 4 * this.endPaddingFrames);
-    this.input = new PlanarRingBuffer({
+    this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
       capacity,
     });
@@ -256,7 +257,7 @@ export class StreamingWsola {
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
-    this.input.write(input, frames);
+    this.input.append(input, frames);
     this.inputFrames += frames;
   }
 
@@ -266,7 +267,7 @@ export class StreamingWsola {
     }
     this.inputFinished = true;
     this.targetOutputFrames = Math.ceil(this.inputFrames / this.playbackRate);
-    this.input.writeZeros(this.endPaddingFrames);
+    this.input.appendZeros(this.endPaddingFrames);
   }
 
   isFinished(): boolean {
@@ -327,7 +328,7 @@ export class StreamingWsola {
             this.naturalSourcePosition + this.windowFrames,
             searchEnd - 1 + this.windowFrames,
           );
-    return requiredEnd <= this.input.writePosition;
+    return requiredEnd <= this.input.getReadableEnd();
   }
 
   private generateHop(): void {
@@ -345,32 +346,30 @@ export class StreamingWsola {
       selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
-      const searchOffset = this.input.getContiguousIndex(
+      const reference = this.input.subarray(
+        this.naturalSourcePosition,
+        this.windowFrames,
+      );
+      const candidates = this.input.subarray(
         searchStart,
         this.searchFrames + this.windowFrames - 1,
       );
       selectedSourcePosition =
         searchStart +
         findBestCandidate({
-          source: this.input.planes,
-          referenceOffset: this.input.getContiguousIndex(
-            this.naturalSourcePosition,
-            this.windowFrames,
-          ),
+          reference,
+          candidates,
+          referenceOffset: 0,
           frames: this.windowFrames,
-          searchStart: searchOffset,
-          searchEnd: searchOffset + this.searchFrames,
-        }) -
-        searchOffset;
+          searchStart: 0,
+          searchEnd: this.searchFrames,
+        });
       this.stats.searchedContinuations++;
     }
 
     overlapAddPlanar({
-      source: this.input.planes,
-      sourceOffset: this.input.getContiguousIndex(
-        selectedSourcePosition,
-        this.windowFrames,
-      ),
+      source: this.input.subarray(selectedSourcePosition, this.windowFrames),
+      sourceOffset: 0,
       destination: this.hopOutput,
       carry: this.pendingOverlap,
       window: this.overlapWindow,
@@ -403,15 +402,19 @@ export class StreamingWsola {
 const SEARCH_DECIMATION = 5;
 
 function findBestCandidate({
-  source,
-  sourceFrames = source[0].length,
+  reference,
+  candidates,
+  referenceFrames = reference[0].length,
+  candidateFrames = candidates[0].length,
   referenceOffset,
   frames,
   searchStart,
   searchEnd,
 }: {
-  source: readonly Float32Array[];
-  sourceFrames?: number;
+  reference: readonly Float32Array[];
+  candidates: readonly Float32Array[];
+  referenceFrames?: number;
+  candidateFrames?: number;
   referenceOffset: number;
   frames: number;
   searchStart: number;
@@ -423,8 +426,10 @@ function findBestCandidate({
   let bestScore = -Infinity;
   const consider = (position: number): void => {
     const score = calculateSimilarity({
-      source,
-      sourceFrames,
+      firstSource: reference,
+      secondSource: candidates,
+      firstSourceFrames: referenceFrames,
+      secondSourceFrames: candidateFrames,
       firstOffset: referenceOffset,
       secondOffset: position,
       frames,
@@ -451,14 +456,18 @@ function findBestCandidate({
 }
 
 function calculateSimilarity({
-  source,
-  sourceFrames = source[0].length,
+  firstSource,
+  secondSource,
+  firstSourceFrames = firstSource[0].length,
+  secondSourceFrames = secondSource[0].length,
   firstOffset,
   secondOffset,
   frames,
 }: {
-  source: readonly Float32Array[];
-  sourceFrames?: number;
+  firstSource: readonly Float32Array[];
+  secondSource: readonly Float32Array[];
+  firstSourceFrames?: number;
+  secondSourceFrames?: number;
   firstOffset: number;
   secondOffset: number;
   frames: number;
@@ -470,18 +479,19 @@ function calculateSimilarity({
   let dotProduct = 0;
   let firstEnergy = 0;
   let secondEnergy = 0;
-  for (let channel = 0; channel < source.length; channel++) {
-    const sourceChannel = source[channel];
+  for (let channel = 0; channel < firstSource.length; channel++) {
+    const firstSourceChannel = firstSource[channel];
+    const secondSourceChannel = secondSource[channel];
     for (let frame = 0; frame < frames; frame++) {
       const firstIndex = firstOffset + frame;
       const first =
-        0 <= firstIndex && firstIndex < sourceFrames
-          ? sourceChannel[firstIndex]
+        0 <= firstIndex && firstIndex < firstSourceFrames
+          ? firstSourceChannel[firstIndex]
           : 0;
       const secondIndex = secondOffset + frame;
       const second =
-        0 <= secondIndex && secondIndex < sourceFrames
-          ? sourceChannel[secondIndex]
+        0 <= secondIndex && secondIndex < secondSourceFrames
+          ? secondSourceChannel[secondIndex]
           : 0;
       dotProduct += first * second;
       firstEnergy += first * first;

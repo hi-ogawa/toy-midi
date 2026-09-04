@@ -1,9 +1,9 @@
-/** Absolute-positioned planar ring buffer with contiguous mirrored reads. */
-export class PlanarRingBuffer {
-  readonly planes: Float32Array[];
-  readonly capacity: number;
-  readPosition = 0;
-  writePosition = 0;
+/** Fixed-capacity planar stream whose retained ranges have contiguous views. */
+export class PlanarStreamBuffer {
+  private readonly planes: Float32Array[];
+  private readonly capacity: number;
+  private readPosition = 0;
+  private writePosition = 0;
 
   constructor({
     planeCount,
@@ -27,9 +27,9 @@ export class PlanarRingBuffer {
     return this.capacity - this.getSize();
   }
 
-  write(input: readonly Float32Array[], length: number): void {
+  append(input: readonly Float32Array[], length: number): void {
     if (this.getAvailableWrite() < length) {
-      throw new Error("Planar ring buffer is full.");
+      throw new Error("Planar stream buffer is full.");
     }
     for (let plane = 0; plane < this.planes.length; plane++) {
       const source = input[plane];
@@ -44,9 +44,9 @@ export class PlanarRingBuffer {
     this.writePosition += length;
   }
 
-  writeZeros(length: number): void {
+  appendZeros(length: number): void {
     if (this.getAvailableWrite() < length) {
-      throw new Error("Planar ring buffer is full.");
+      throw new Error("Planar stream buffer is full.");
     }
     for (const destination of this.planes) {
       for (let offset = 0; offset < length; offset++) {
@@ -58,23 +58,27 @@ export class PlanarRingBuffer {
     this.writePosition += length;
   }
 
-  get(plane: number, position: number): number {
+  getOrZero(plane: number, position: number): number {
     if (position < this.readPosition || this.writePosition <= position) {
       return 0;
     }
     return this.planes[plane][position % this.capacity];
   }
 
-  /** Return the physical start of a retained range in the mirrored planes. */
-  getContiguousIndex(position: number, length: number): number {
+  subarray(position: number, length: number): Float32Array[] {
     if (
       position < this.readPosition ||
       this.writePosition < position + length ||
       this.capacity < length
     ) {
-      throw new Error("Requested range is not retained in the ring buffer.");
+      throw new Error("Requested range is not retained in the stream buffer.");
     }
-    return position % this.capacity;
+    const start = position % this.capacity;
+    return this.planes.map((plane) => plane.subarray(start, start + length));
+  }
+
+  getReadableEnd(): number {
+    return this.writePosition;
   }
 
   discardUntil(position: number): void {
