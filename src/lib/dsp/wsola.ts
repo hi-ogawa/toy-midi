@@ -236,8 +236,8 @@ export class StreamingWsola {
     this.endPaddingFrames = this.windowFrames + this.searchFrames;
     const capacity = Math.max(sampleRate, 4 * this.endPaddingFrames);
     this.input = new PlanarRingBuffer({
-      channelCount,
-      capacityFrames: capacity,
+      planeCount: channelCount,
+      capacity,
     });
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
     this.pendingOverlap = createChannels(channelCount, this.hopFrames);
@@ -245,7 +245,7 @@ export class StreamingWsola {
   }
 
   getWritableFrames(): number {
-    return Math.max(0, this.input.writableFrames - this.endPaddingFrames);
+    return Math.max(0, this.input.availableWrite - this.endPaddingFrames);
   }
 
   push(input: readonly Float32Array[]): void {
@@ -256,7 +256,7 @@ export class StreamingWsola {
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
-    this.input.push(input);
+    this.input.write(input);
     this.inputFrames += frames;
   }
 
@@ -266,7 +266,7 @@ export class StreamingWsola {
     }
     this.inputFinished = true;
     this.targetOutputFrames = Math.ceil(this.inputFrames / this.playbackRate);
-    this.input.pushZeros(this.endPaddingFrames);
+    this.input.writeZeros(this.endPaddingFrames);
   }
 
   isFinished(): boolean {
@@ -327,7 +327,7 @@ export class StreamingWsola {
             this.naturalSourcePosition + this.windowFrames,
             searchEnd - 1 + this.windowFrames,
           );
-    return requiredEnd <= this.input.endFrame;
+    return requiredEnd <= this.input.writePosition;
   }
 
   private generateHop(): void {
@@ -345,15 +345,15 @@ export class StreamingWsola {
       selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
-      const searchOffset = this.input.getContiguousOffset(
+      const searchOffset = this.input.getContiguousIndex(
         searchStart,
         this.searchFrames + this.windowFrames - 1,
       );
       selectedSourcePosition =
         searchStart +
         findBestCandidate({
-          source: this.input.channelData,
-          referenceOffset: this.input.getContiguousOffset(
+          source: this.input.planes,
+          referenceOffset: this.input.getContiguousIndex(
             this.naturalSourcePosition,
             this.windowFrames,
           ),
@@ -366,8 +366,8 @@ export class StreamingWsola {
     }
 
     overlapAddPlanar({
-      source: this.input.channelData,
-      sourceOffset: this.input.getContiguousOffset(
+      source: this.input.planes,
+      sourceOffset: this.input.getContiguousIndex(
         selectedSourcePosition,
         this.windowFrames,
       ),
@@ -396,7 +396,7 @@ export class StreamingWsola {
       0,
       Math.min(this.naturalSourcePosition, nextSearchStart),
     );
-    this.input.discardBefore(retainFrom);
+    this.input.discardUntil(retainFrom);
   }
 }
 

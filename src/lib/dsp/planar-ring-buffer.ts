@@ -1,86 +1,86 @@
-/** Absolute-frame-addressed planar PCM ring with contiguous mirrored reads. */
+/** Absolute-positioned planar ring buffer with contiguous mirrored reads. */
 export class PlanarRingBuffer {
-  readonly channelData: Float32Array[];
-  readonly capacityFrames: number;
-  startFrame = 0;
-  endFrame = 0;
+  readonly planes: Float32Array[];
+  readonly capacity: number;
+  readPosition = 0;
+  writePosition = 0;
 
   constructor({
-    channelCount,
-    capacityFrames,
+    planeCount,
+    capacity,
   }: {
-    channelCount: number;
-    capacityFrames: number;
+    planeCount: number;
+    capacity: number;
   }) {
-    this.capacityFrames = capacityFrames;
-    this.channelData = Array.from(
-      { length: channelCount },
-      () => new Float32Array(2 * capacityFrames),
+    this.capacity = capacity;
+    this.planes = Array.from(
+      { length: planeCount },
+      () => new Float32Array(2 * capacity),
     );
   }
 
-  get length(): number {
-    return this.endFrame - this.startFrame;
+  get size(): number {
+    return this.writePosition - this.readPosition;
   }
 
-  get writableFrames(): number {
-    return this.capacityFrames - this.length;
+  get availableWrite(): number {
+    return this.capacity - this.size;
   }
 
-  push(input: readonly Float32Array[], frames = input[0]?.length ?? 0): void {
-    if (this.writableFrames < frames) {
+  write(input: readonly Float32Array[], length = input[0]?.length ?? 0): void {
+    if (this.availableWrite < length) {
       throw new Error("Planar ring buffer is full.");
     }
-    for (let channel = 0; channel < this.channelData.length; channel++) {
-      const source = input[channel];
-      const destination = this.channelData[channel];
-      for (let frame = 0; frame < frames; frame++) {
-        const index = (this.endFrame + frame) % this.capacityFrames;
-        const value = source[frame];
+    for (let plane = 0; plane < this.planes.length; plane++) {
+      const source = input[plane];
+      const destination = this.planes[plane];
+      for (let offset = 0; offset < length; offset++) {
+        const index = (this.writePosition + offset) % this.capacity;
+        const value = source[offset];
         destination[index] = value;
-        destination[index + this.capacityFrames] = value;
+        destination[index + this.capacity] = value;
       }
     }
-    this.endFrame += frames;
+    this.writePosition += length;
   }
 
-  pushZeros(frames: number): void {
-    if (this.writableFrames < frames) {
+  writeZeros(length: number): void {
+    if (this.availableWrite < length) {
       throw new Error("Planar ring buffer is full.");
     }
-    for (let channel = 0; channel < this.channelData.length; channel++) {
-      const destination = this.channelData[channel];
-      for (let frame = 0; frame < frames; frame++) {
-        const index = (this.endFrame + frame) % this.capacityFrames;
+    for (const destination of this.planes) {
+      for (let offset = 0; offset < length; offset++) {
+        const index = (this.writePosition + offset) % this.capacity;
         destination[index] = 0;
-        destination[index + this.capacityFrames] = 0;
+        destination[index + this.capacity] = 0;
       }
     }
-    this.endFrame += frames;
+    this.writePosition += length;
   }
 
-  read(channel: number, frame: number): number {
-    if (frame < this.startFrame || this.endFrame <= frame) {
+  get(plane: number, position: number): number {
+    if (position < this.readPosition || this.writePosition <= position) {
       return 0;
     }
-    return this.channelData[channel][frame % this.capacityFrames];
+    return this.planes[plane][position % this.capacity];
   }
 
-  /** Return the physical start of a retained range in mirrored channelData. */
-  getContiguousOffset(frame: number, frames: number): number {
+  /** Return the physical start of a retained range in the mirrored planes. */
+  getContiguousIndex(position: number, length: number): number {
     if (
-      frame < this.startFrame ||
-      this.endFrame < frame + frames ||
-      this.capacityFrames < frames
+      position < this.readPosition ||
+      this.writePosition < position + length ||
+      this.capacity < length
     ) {
-      throw new Error(
-        "Requested PCM range is not retained in the ring buffer.",
-      );
+      throw new Error("Requested range is not retained in the ring buffer.");
     }
-    return frame % this.capacityFrames;
+    return position % this.capacity;
   }
 
-  discardBefore(frame: number): void {
-    this.startFrame = Math.min(this.endFrame, Math.max(this.startFrame, frame));
+  discardUntil(position: number): void {
+    this.readPosition = Math.min(
+      this.writePosition,
+      Math.max(this.readPosition, position),
+    );
   }
 }

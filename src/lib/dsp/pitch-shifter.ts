@@ -132,13 +132,13 @@ class LinearResampler {
   }) {
     this.inputFramesPerOutputFrame = inputFramesPerOutputFrame;
     this.input = new PlanarRingBuffer({
-      channelCount,
-      capacityFrames: sampleRate,
+      planeCount: channelCount,
+      capacity: sampleRate,
     });
   }
 
   getWritableFrames(): number {
-    return this.input.writableFrames;
+    return this.input.availableWrite;
   }
 
   push({
@@ -148,7 +148,7 @@ class LinearResampler {
     input: readonly Float32Array[];
     frames: number;
   }): void {
-    this.input.push(input, frames);
+    this.input.write(input, frames);
     this.inputFrames += frames;
   }
 
@@ -178,7 +178,7 @@ class LinearResampler {
       }
       const firstIndex = Math.floor(this.nextInputPosition);
       const secondIndex = firstIndex + 1;
-      if (!this.inputFinished && this.input.endFrame <= secondIndex) {
+      if (!this.inputFinished && this.input.writePosition <= secondIndex) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
@@ -197,11 +197,11 @@ class LinearResampler {
   }
 
   private read(channel: number, position: number): number {
-    return this.input.read(channel, position);
+    return this.input.get(channel, position);
   }
 
   private discardConsumedInput(): void {
     const retainFrom = Math.floor(this.nextInputPosition);
-    this.input.discardBefore(retainFrom);
+    this.input.discardUntil(retainFrom);
   }
 }
