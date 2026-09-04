@@ -73,7 +73,8 @@ export class RecorderMetronome implements TransportParticipant {
       const anchor = this.transport.playbackAnchor!;
       const nextClickPosition = this.nextClickIndex * this.secondsPerClick;
       const nextClickTime =
-        anchor.contextTime + nextClickPosition - anchor.position;
+        anchor.contextTime +
+        (nextClickPosition - anchor.position) / this.transport.playbackRate;
       const currentTime = this.transport.context.currentTime;
       // Schedule only the near future, then let the interval extend the window.
       if (nextClickTime <= currentTime + SCHEDULE_AHEAD_SECONDS) {

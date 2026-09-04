@@ -41,6 +41,7 @@ export class AudioContextTransport {
    * current playback run begins. It is available to participants during start.
    */
   playbackAnchor?: PlaybackAnchor;
+  playbackRate = 1;
   private readonly participants = new Set<TransportParticipant>();
   private disposeTicking?: () => void;
   private loopRange?: LoopRange;
@@ -110,6 +111,21 @@ export class AudioContextTransport {
     }
   }
 
+  /** Changes timeline speed and re-anchors active participants at that rate. */
+  setPlaybackRate(playbackRate: number): void {
+    if (playbackRate === this.playbackRate) {
+      return;
+    }
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    this.playbackRate = playbackRate;
+    if (wasPlaying) {
+      this.play();
+    }
+  }
+
   /**
    * Converts an absolute AudioContext time to published playback position while
    * excluding the scheduling lead before the playback anchor.
@@ -128,7 +144,10 @@ export class AudioContextTransport {
    */
   getPlaybackPositionByContextTime(contextTime: number): number {
     const playbackAnchor = this.playbackAnchor!;
-    return playbackAnchor.position + contextTime - playbackAnchor.contextTime;
+    return (
+      playbackAnchor.position +
+      (contextTime - playbackAnchor.contextTime) * this.playbackRate
+    );
   }
 
   /** Publishes audio-clock position on animation frames while playing. */
