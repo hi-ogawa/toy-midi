@@ -34,6 +34,7 @@ function render({
     channelCount: 1,
     sampleRate: SAMPLE_RATE,
     pitchRatio,
+    blockFrames: 128,
     windowSeconds: 0.02,
     searchSeconds: 0.03,
   });

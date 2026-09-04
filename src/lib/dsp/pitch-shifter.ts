@@ -1,8 +1,6 @@
 import { PlanarStreamBuffer } from "./stream-buffer.ts";
 import { StreamingWsola } from "./wsola.ts";
 
-const PUMP_FRAMES = 128;
-
 /**
  * Streaming pitch shift built from WSOLA time stretching followed by
  * resampling. Input and output have the same duration; `pitchRatio` controls
@@ -21,12 +19,14 @@ export class StreamingPitchShifter {
     channelCount,
     sampleRate,
     pitchRatio,
+    blockFrames,
     windowSeconds,
     searchSeconds,
   }: {
     channelCount: number;
     sampleRate: number;
     pitchRatio: number;
+    blockFrames: number;
     windowSeconds: number;
     searchSeconds: number;
   }) {
@@ -40,10 +40,12 @@ export class StreamingPitchShifter {
     this.resampler = new LinearResampler({
       channelCount,
       ratio: pitchRatio,
+      // Hold one pump block plus the partially consumed block being interpolated.
+      capacity: 2 * blockFrames,
     });
     this.pumpBuffer = Array.from(
       { length: channelCount },
-      () => new Float32Array(PUMP_FRAMES),
+      () => new Float32Array(blockFrames),
     );
     this.latencyFrames = this.wsola.latencyFrames;
     this.lookaheadFrames =
@@ -78,7 +80,8 @@ export class StreamingPitchShifter {
   }
 
   private pump(): void {
-    while (PUMP_FRAMES <= this.resampler.getWritableFrames()) {
+    const pumpFrames = this.pumpBuffer[0].length;
+    while (pumpFrames <= this.resampler.getWritableFrames()) {
       const written = this.wsola.pull(this.pumpBuffer);
       if (written === 0) {
         break;
@@ -97,15 +100,16 @@ class LinearResampler {
   constructor({
     channelCount,
     ratio,
+    capacity,
   }: {
     channelCount: number;
     ratio: number;
+    capacity: number;
   }) {
     this.ratio = ratio;
     this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
-      // Hold one pump block plus the partially consumed block being interpolated.
-      capacity: 2 * PUMP_FRAMES,
+      capacity,
     });
   }
 

@@ -1,6 +1,7 @@
 import { StreamingPitchShifter } from "./pitch-shifter.ts";
 
 const PROCESSOR_NAME = "pitch-shifter";
+const BLOCK_FRAMES = 128;
 const WINDOW_SECONDS = 0.02;
 const SEARCH_SECONDS = 0.03;
 
@@ -31,6 +32,7 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
       channelCount,
       sampleRate,
       pitchRatio,
+      blockFrames: BLOCK_FRAMES,
       windowSeconds: WINDOW_SECONDS,
       searchSeconds: SEARCH_SECONDS,
     });
