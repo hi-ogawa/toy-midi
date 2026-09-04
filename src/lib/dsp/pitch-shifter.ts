@@ -138,7 +138,7 @@ class LinearResampler {
   }
 
   getWritableFrames(): number {
-    return this.input.getAvailableWrite();
+    return this.input.getWritableLength();
   }
 
   push({
@@ -178,7 +178,7 @@ class LinearResampler {
       }
       const firstIndex = Math.floor(this.nextInputPosition);
       const secondIndex = firstIndex + 1;
-      if (!this.inputFinished && this.input.getSize() <= secondIndex) {
+      if (!this.inputFinished && this.input.length <= secondIndex) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
@@ -197,7 +197,7 @@ class LinearResampler {
   }
 
   private read(channel: number, position: number): number {
-    return this.input.getOrZero(channel, position);
+    return this.input.get(channel, position);
   }
 
   private discardConsumedInput(): void {

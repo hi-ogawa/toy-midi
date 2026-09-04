@@ -246,7 +246,7 @@ export class StreamingWsola {
   }
 
   getWritableFrames(): number {
-    return Math.max(0, this.input.getAvailableWrite() - this.endPaddingFrames);
+    return Math.max(0, this.input.getWritableLength() - this.endPaddingFrames);
   }
 
   push(input: readonly Float32Array[]): void {
@@ -328,7 +328,7 @@ export class StreamingWsola {
             this.naturalSourcePosition + this.windowFrames,
             searchEnd - 1 + this.windowFrames,
           );
-    return requiredEnd <= this.input.getSize();
+    return requiredEnd <= this.input.length;
   }
 
   private generateHop(): void {
