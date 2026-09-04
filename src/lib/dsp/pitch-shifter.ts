@@ -150,12 +150,7 @@ class LinearResampler {
       this.nextInputPosition += this.inputFramesPerOutputFrame;
       written++;
     }
-    this.discardConsumedInput();
+    this.input.discardUntil(Math.floor(this.nextInputPosition));
     return written;
-  }
-
-  private discardConsumedInput(): void {
-    const retainFrom = Math.floor(this.nextInputPosition);
-    this.input.discardUntil(retainFrom);
   }
 }
