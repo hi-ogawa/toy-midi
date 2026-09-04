@@ -90,8 +90,8 @@ export class StreamingPitchShifter {
 }
 
 class LinearResampler {
-  private readonly inputFramesPerOutputFrame: number;
   private readonly input: PlanarStreamBuffer;
+  private readonly inputFramesPerOutputFrame: number;
   private nextInputPosition = 0;
 
   constructor({
