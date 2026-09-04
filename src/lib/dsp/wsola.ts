@@ -310,15 +310,13 @@ export class StreamingWsola {
   private canGenerateHop(): boolean {
     const searchStart = this.getSearchStart();
     const searchEnd = searchStart + this.searchFrames;
+    const canUseNaturalContinuation =
+      searchStart <= this.naturalSourcePosition &&
+      this.naturalSourcePosition < searchEnd;
     // Natural continuation needs one window. A candidate search additionally
     // needs every candidate window through the exclusive end of its range.
     let requiredEnd = this.naturalSourcePosition + this.windowFrames;
-    if (
-      !(
-        searchStart <= this.naturalSourcePosition &&
-        this.naturalSourcePosition < searchEnd
-      )
-    ) {
+    if (!canUseNaturalContinuation) {
       requiredEnd = Math.max(requiredEnd, searchEnd - 1 + this.windowFrames);
     }
     return requiredEnd <= this.input.length;
@@ -329,11 +327,11 @@ export class StreamingWsola {
     // reuse the natural continuation or search exactly as WsolaProcessor does.
     const searchStart = this.getSearchStart();
     const searchEnd = searchStart + this.searchFrames;
-    let selectedSourcePosition: number;
-    if (
+    const canUseNaturalContinuation =
       searchStart <= this.naturalSourcePosition &&
-      this.naturalSourcePosition < searchEnd
-    ) {
+      this.naturalSourcePosition < searchEnd;
+    let selectedSourcePosition: number;
+    if (canUseNaturalContinuation) {
       selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
