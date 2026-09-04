@@ -37,9 +37,6 @@ export class PlanarStreamBuffer {
   }
 
   append(input: readonly Float32Array[], length: number): void {
-    if (this.getWritableLength() < length) {
-      throw new Error("Planar stream buffer is full.");
-    }
     for (let plane = 0; plane < this.planes.length; plane++) {
       const source = input[plane];
       const destination = this.planes[plane];
@@ -54,9 +51,6 @@ export class PlanarStreamBuffer {
   }
 
   appendZeros(length: number): void {
-    if (this.getWritableLength() < length) {
-      throw new Error("Planar stream buffer is full.");
-    }
     for (const destination of this.planes) {
       for (let offset = 0; offset < length; offset++) {
         const index = (this.length + offset) % this.capacity;

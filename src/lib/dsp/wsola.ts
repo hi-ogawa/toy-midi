@@ -254,6 +254,7 @@ export class StreamingWsola {
       throw new Error("Cannot push WSOLA input after finish().");
     }
     const frames = input[0]?.length ?? 0;
+    // TODO: Define a realtime-safe overflow policy instead of throwing.
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
