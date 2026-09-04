@@ -370,15 +370,12 @@ export class StreamingWsola {
     this.hopOutputOffset = 0;
     this.naturalSourcePosition = selectedSourcePosition + this.hopFrames;
     this.generatedOutputPosition += this.hopFrames;
-    this.discardUnusedInput();
-  }
 
-  private discardUnusedInput(): void {
     // Retain the earliest position that the next natural continuation or
     // candidate search can reference; older samples can be overwritten.
-    const nextSearchStart = this.getSearchStart();
-    const retainFrom = clamp(this.naturalSourcePosition, 0, nextSearchStart);
-    this.input.discardUntil(retainFrom);
+    this.input.discardUntil(
+      clamp(this.naturalSourcePosition, 0, this.getSearchStart()),
+    );
   }
 
   private getSearchStart(): number {
