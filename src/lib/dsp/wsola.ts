@@ -1,3 +1,4 @@
+import { clamp } from "../music.ts";
 import { PlanarStreamBuffer } from "./stream-buffer.ts";
 
 // Algorithm structure and default parameters follow Chromium's media renderer:
@@ -424,10 +425,7 @@ export class StreamingWsola {
     );
     const nextSearchStart =
       nextNominalSourcePosition - Math.floor(this.searchFrames / 2);
-    const retainFrom = Math.max(
-      0,
-      Math.min(this.naturalSourcePosition, nextSearchStart),
-    );
+    const retainFrom = clamp(this.naturalSourcePosition, 0, nextSearchStart);
     this.input.discardUntil(retainFrom);
   }
 }

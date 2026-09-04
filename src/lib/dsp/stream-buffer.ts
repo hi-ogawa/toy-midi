@@ -1,3 +1,5 @@
+import { clamp } from "../music.ts";
+
 /**
  * Fixed storage representing a retained range of an unbounded planar stream.
  * Indices are absolute stream coordinates, not offsets into the storage.
@@ -74,9 +76,6 @@ export class PlanarStreamBuffer {
   }
 
   discardUntil(index: number): void {
-    this.retainedStart = Math.min(
-      this.length,
-      Math.max(this.retainedStart, index),
-    );
+    this.retainedStart = clamp(index, this.retainedStart, this.length);
   }
 }
