@@ -14,9 +14,10 @@ describe(StreamingPitchShifter, () => {
       const output = render({ input, pitchRatio });
 
       expect(output).toHaveLength(input.length);
-      expect(
-        Math.abs(estimateFrequency(output) - INPUT_FREQUENCY * pitchRatio),
-      ).toBeLessThan(2);
+      expect(estimateFrequency(output)).toBeCloseTo(
+        INPUT_FREQUENCY * pitchRatio,
+        0,
+      );
     },
   );
 });
