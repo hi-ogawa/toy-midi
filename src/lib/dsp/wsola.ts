@@ -312,14 +312,15 @@ export class StreamingWsola {
     const searchEnd = searchStart + this.searchFrames;
     // Natural continuation needs one window. A candidate search additionally
     // needs every candidate window through the exclusive end of its range.
-    const requiredEnd =
-      searchStart <= this.naturalSourcePosition &&
-      this.naturalSourcePosition < searchEnd
-        ? this.naturalSourcePosition + this.windowFrames
-        : Math.max(
-            this.naturalSourcePosition + this.windowFrames,
-            searchEnd - 1 + this.windowFrames,
-          );
+    let requiredEnd = this.naturalSourcePosition + this.windowFrames;
+    if (
+      !(
+        searchStart <= this.naturalSourcePosition &&
+        this.naturalSourcePosition < searchEnd
+      )
+    ) {
+      requiredEnd = Math.max(requiredEnd, searchEnd - 1 + this.windowFrames);
+    }
     return requiredEnd <= this.input.length;
   }
 
