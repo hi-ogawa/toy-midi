@@ -308,11 +308,7 @@ export class StreamingWsola {
   }
 
   private canGenerateHop(): boolean {
-    const nominalSourcePosition = Math.round(
-      this.generatedOutputPosition * this.playbackRate,
-    );
-    const searchStart =
-      nominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const searchStart = this.getSearchStart();
     const searchEnd = searchStart + this.searchFrames;
     // Natural continuation needs one window. A candidate search additionally
     // needs every candidate window through the exclusive end of its range.
@@ -330,11 +326,7 @@ export class StreamingWsola {
   private generateHop(): void {
     // Map the next output hop to its nominal rate-scaled source position, then
     // reuse the natural continuation or search exactly as WsolaProcessor does.
-    const nominalSourcePosition = Math.round(
-      this.generatedOutputPosition * this.playbackRate,
-    );
-    const searchStart =
-      nominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const searchStart = this.getSearchStart();
     const searchEnd = searchStart + this.searchFrames;
     let selectedSourcePosition: number;
     if (
@@ -384,13 +376,16 @@ export class StreamingWsola {
   private discardUnusedInput(): void {
     // Retain the earliest position that the next natural continuation or
     // candidate search can reference; older samples can be overwritten.
-    const nextNominalSourcePosition = Math.round(
-      this.generatedOutputPosition * this.playbackRate,
-    );
-    const nextSearchStart =
-      nextNominalSourcePosition - Math.floor(this.searchFrames / 2);
+    const nextSearchStart = this.getSearchStart();
     const retainFrom = clamp(this.naturalSourcePosition, 0, nextSearchStart);
     this.input.discardUntil(retainFrom);
+  }
+
+  private getSearchStart(): number {
+    return (
+      Math.round(this.generatedOutputPosition * this.playbackRate) -
+      Math.floor(this.searchFrames / 2)
+    );
   }
 }
 
