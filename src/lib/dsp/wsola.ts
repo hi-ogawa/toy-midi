@@ -328,7 +328,7 @@ export class StreamingWsola {
             this.naturalSourcePosition + this.windowFrames,
             searchEnd - 1 + this.windowFrames,
           );
-    return requiredEnd <= this.input.getReadableEnd();
+    return requiredEnd <= this.input.getSize();
   }
 
   private generateHop(): void {

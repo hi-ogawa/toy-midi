@@ -20,11 +20,11 @@ export class PlanarStreamBuffer {
   }
 
   getSize(): number {
-    return this.writePosition - this.readPosition;
+    return this.writePosition;
   }
 
   getAvailableWrite(): number {
-    return this.capacity - this.getSize();
+    return this.capacity - (this.writePosition - this.readPosition);
   }
 
   append(input: readonly Float32Array[], length: number): void {
@@ -75,10 +75,6 @@ export class PlanarStreamBuffer {
     }
     const start = position % this.capacity;
     return this.planes.map((plane) => plane.subarray(start, start + length));
-  }
-
-  getReadableEnd(): number {
-    return this.writePosition;
   }
 
   discardUntil(position: number): void {

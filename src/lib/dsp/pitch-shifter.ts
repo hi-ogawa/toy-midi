@@ -178,7 +178,7 @@ class LinearResampler {
       }
       const firstIndex = Math.floor(this.nextInputPosition);
       const secondIndex = firstIndex + 1;
-      if (!this.inputFinished && this.input.getReadableEnd() <= secondIndex) {
+      if (!this.inputFinished && this.input.getSize() <= secondIndex) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
