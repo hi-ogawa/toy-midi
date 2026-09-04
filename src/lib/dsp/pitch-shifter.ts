@@ -61,7 +61,6 @@ export class StreamingPitchShifter {
 
   push(input: readonly Float32Array[]): void {
     this.wsola.push(input);
-    this.pump();
   }
 
   pull(output: Float32Array[]): number {
@@ -74,6 +73,9 @@ export class StreamingPitchShifter {
   }
 
   private pump(): void {
+    if (this.resampler.getWritableFrames() < this.pumpBuffer[0].length) {
+      return;
+    }
     const written = this.wsola.pull(this.pumpBuffer);
     if (written > 0) {
       this.resampler.push(this.pumpBuffer, written);
