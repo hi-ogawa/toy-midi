@@ -104,6 +104,7 @@ class LinearResampler {
     this.ratio = ratio;
     this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
+      // Hold one pump block plus the partially consumed block being interpolated.
       capacity: 2 * PUMP_FRAMES,
     });
   }
