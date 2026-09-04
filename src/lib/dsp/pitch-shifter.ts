@@ -4,7 +4,8 @@ import { StreamingWsola } from "./wsola.ts";
 /**
  * Streaming pitch shift built from WSOLA time stretching followed by
  * resampling. Input and output have the same duration; `pitchRatio` controls
- * output pitch relative to input pitch.
+ * output pitch relative to input pitch. `blockFrames` is the maximum expected
+ * pull size; internal buffers hold enough stretched input for one output block.
  */
 export class StreamingPitchShifter {
   readonly latencyFrames: number;
@@ -37,15 +38,17 @@ export class StreamingPitchShifter {
       windowSeconds,
       searchSeconds,
     });
+    // One output block consumes blockFrames * pitchRatio stretched frames;
+    // linear interpolation needs one additional sample beyond that range.
+    const pumpFrames = Math.ceil(blockFrames * pitchRatio) + 1;
     this.resampler = new LinearResampler({
       channelCount,
       ratio: pitchRatio,
-      // Hold one pump block plus the partially consumed block being interpolated.
-      capacity: 2 * blockFrames,
+      capacity: 2 * pumpFrames,
     });
     this.pumpBuffer = Array.from(
       { length: channelCount },
-      () => new Float32Array(blockFrames),
+      () => new Float32Array(pumpFrames),
     );
     this.latencyFrames = this.wsola.latencyFrames;
     this.lookaheadFrames =
@@ -62,21 +65,12 @@ export class StreamingPitchShifter {
   }
 
   pull(output: Float32Array[]): number {
-    const requestedFrames = output[0]?.length ?? 0;
-    let written = 0;
-    while (written < requestedFrames) {
-      this.pump();
-      const count = this.resampler.pull({
-        output,
-        outputOffset: written,
-        frames: requestedFrames - written,
-      });
-      if (count === 0) {
-        break;
-      }
-      written += count;
-    }
-    return written;
+    this.pump();
+    return this.resampler.pull({
+      output,
+      outputOffset: 0,
+      frames: output[0]?.length ?? 0,
+    });
   }
 
   private pump(): void {
