@@ -165,6 +165,8 @@ export class WsolaProcessor {
       selectedSourcePosition = findBestCandidate({
         reference: this.channelData,
         candidates: this.channelData,
+        referenceFrames: this.channelData[0].length,
+        candidateFrames: this.channelData[0].length,
         referenceOffset: this.naturalSourcePosition,
         frames: this.windowFrames,
         searchStart,
@@ -178,6 +180,7 @@ export class WsolaProcessor {
     // w[n] + w[n + hop] = 1, so the two contributions preserve amplitude.
     overlapAddPlanar({
       source: this.channelData,
+      sourceFrames: this.channelData[0].length,
       sourceOffset: selectedSourcePosition,
       destination: this.hopOutput,
       carry: this.pendingOverlap,
@@ -382,6 +385,8 @@ export class StreamingWsola {
         findBestCandidate({
           reference,
           candidates,
+          referenceFrames: reference[0].length,
+          candidateFrames: candidates[0].length,
           referenceOffset: 0,
           frames: this.windowFrames,
           searchStart: 0,
@@ -392,6 +397,7 @@ export class StreamingWsola {
 
     overlapAddPlanar({
       source: this.input.subarray(selectedSourcePosition, this.windowFrames),
+      sourceFrames: this.windowFrames,
       sourceOffset: 0,
       destination: this.hopOutput,
       carry: this.pendingOverlap,
@@ -431,8 +437,8 @@ const SEARCH_DECIMATION = 5;
 function findBestCandidate({
   reference,
   candidates,
-  referenceFrames = reference[0].length,
-  candidateFrames = candidates[0].length,
+  referenceFrames,
+  candidateFrames,
   referenceOffset,
   frames,
   searchStart,
@@ -440,8 +446,8 @@ function findBestCandidate({
 }: {
   reference: readonly Float32Array[];
   candidates: readonly Float32Array[];
-  referenceFrames?: number;
-  candidateFrames?: number;
+  referenceFrames: number;
+  candidateFrames: number;
   referenceOffset: number;
   frames: number;
   searchStart: number;
@@ -485,16 +491,16 @@ function findBestCandidate({
 function calculateSimilarity({
   firstSource,
   secondSource,
-  firstSourceFrames = firstSource[0].length,
-  secondSourceFrames = secondSource[0].length,
+  firstSourceFrames,
+  secondSourceFrames,
   firstOffset,
   secondOffset,
   frames,
 }: {
   firstSource: readonly Float32Array[];
   secondSource: readonly Float32Array[];
-  firstSourceFrames?: number;
-  secondSourceFrames?: number;
+  firstSourceFrames: number;
+  secondSourceFrames: number;
   firstOffset: number;
   secondOffset: number;
   frames: number;
@@ -533,14 +539,14 @@ function calculateSimilarity({
 
 function overlapAddPlanar({
   source,
-  sourceFrames = source[0].length,
+  sourceFrames,
   sourceOffset,
   destination,
   carry,
   window,
 }: {
   source: readonly Float32Array[];
-  sourceFrames?: number;
+  sourceFrames: number;
   sourceOffset: number;
   destination: Float32Array[];
   carry: Float32Array[];
