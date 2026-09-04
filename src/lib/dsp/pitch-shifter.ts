@@ -134,21 +134,19 @@ class LinearResampler {
     frames: number;
   }): number {
     let written = 0;
-    while (written < frames) {
+    for (; written < frames; written++) {
       const firstIndex = Math.floor(this.nextInputPosition);
-      const secondIndex = firstIndex + 1;
-      if (this.input.length <= secondIndex) {
+      if (this.input.length <= firstIndex + 1) {
         break;
       }
       const fraction = this.nextInputPosition - firstIndex;
       for (let channel = 0; channel < output.length; channel++) {
         const first = this.input.get(channel, firstIndex);
-        const second = this.input.get(channel, secondIndex);
+        const second = this.input.get(channel, firstIndex + 1);
         output[channel][outputOffset + written] =
           first * (1 - fraction) + second * fraction;
       }
       this.nextInputPosition += this.inputFramesPerOutputFrame;
-      written++;
     }
     this.input.discardUntil(Math.floor(this.nextInputPosition));
     return written;
