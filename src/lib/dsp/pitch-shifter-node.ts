@@ -1,3 +1,5 @@
+import pitchShifterWorkletUrl from "./pitch-shifter-worklet.ts?worker&url";
+
 const PROCESSOR_NAME = "pitch-shifter";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
@@ -25,9 +27,7 @@ export async function ensurePitchShifterWorklet(
 ): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
-    registration = context.audioWorklet.addModule(
-      new URL("./pitch-shifter-worklet.ts", import.meta.url),
-    );
+    registration = context.audioWorklet.addModule(pitchShifterWorkletUrl);
     registrations.set(context, registration);
   }
   try {
