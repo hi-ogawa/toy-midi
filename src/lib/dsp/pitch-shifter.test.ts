@@ -2,22 +2,20 @@ import { describe, expect, it } from "vitest";
 import { StreamingPitchShifter } from "./pitch-shifter.ts";
 
 const SAMPLE_RATE = 8_000;
-const TARGET_FREQUENCY = 200;
+const INPUT_FREQUENCY = 150;
 
 describe(StreamingPitchShifter, () => {
   it.each([4 / 3, 2])(
     "shifts pitch by %s while preserving duration",
     (pitchRatio) => {
       const input = Float32Array.from({ length: SAMPLE_RATE }, (_, frame) =>
-        Math.sin(
-          (2 * Math.PI * (TARGET_FREQUENCY / pitchRatio) * frame) / SAMPLE_RATE,
-        ),
+        Math.sin((2 * Math.PI * INPUT_FREQUENCY * frame) / SAMPLE_RATE),
       );
       const output = render({ input, pitchRatio });
 
       expect(output).toHaveLength(input.length);
       expect(
-        Math.abs(estimateFrequency(output) - TARGET_FREQUENCY),
+        Math.abs(estimateFrequency(output) - INPUT_FREQUENCY * pitchRatio),
       ).toBeLessThan(2);
     },
   );
