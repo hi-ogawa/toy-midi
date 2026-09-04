@@ -206,7 +206,6 @@ export class StreamingWsola {
   private readonly overlapWindow: Float32Array;
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
-  private inputFrames = 0;
   private inputFinished = false;
   private generatedOutputFrames = 0;
   private generatedOutputPosition = 0;
@@ -259,7 +258,6 @@ export class StreamingWsola {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
     this.input.push(input, frames);
-    this.inputFrames += frames;
   }
 
   finish(): void {
@@ -267,7 +265,7 @@ export class StreamingWsola {
       return;
     }
     this.inputFinished = true;
-    this.targetOutputFrames = Math.ceil(this.inputFrames / this.playbackRate);
+    this.targetOutputFrames = Math.ceil(this.input.length / this.playbackRate);
     this.input.appendZeros(this.endPaddingFrames);
   }
 

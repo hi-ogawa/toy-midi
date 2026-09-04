@@ -115,7 +115,6 @@ export class StreamingPitchShifter {
 class LinearResampler {
   private readonly inputFramesPerOutputFrame: number;
   private readonly input: PlanarStreamBuffer;
-  private inputFrames = 0;
   private outputFrames = 0;
   private nextInputPosition = 0;
   private inputFinished = false;
@@ -149,7 +148,6 @@ class LinearResampler {
     frames: number;
   }): void {
     this.input.push(input, frames);
-    this.inputFrames += frames;
   }
 
   finish(): void {
@@ -158,7 +156,7 @@ class LinearResampler {
     }
     this.inputFinished = true;
     this.targetOutputFrames = Math.ceil(
-      this.inputFrames / this.inputFramesPerOutputFrame,
+      this.input.length / this.inputFramesPerOutputFrame,
     );
   }
 
