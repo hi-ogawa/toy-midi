@@ -74,12 +74,8 @@ export class StreamingPitchShifter {
   }
 
   private pump(): void {
-    const pumpFrames = this.pumpBuffer[0].length;
-    while (pumpFrames <= this.resampler.getWritableFrames()) {
-      const written = this.wsola.pull(this.pumpBuffer);
-      if (written === 0) {
-        break;
-      }
+    const written = this.wsola.pull(this.pumpBuffer);
+    if (written > 0) {
       this.resampler.push(this.pumpBuffer, written);
     }
   }
