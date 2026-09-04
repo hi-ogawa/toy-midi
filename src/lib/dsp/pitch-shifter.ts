@@ -40,7 +40,7 @@ export class StreamingPitchShifter {
     this.resampler = new LinearResampler({
       channelCount,
       sampleRate,
-      inputFramesPerOutputFrame: pitchRatio,
+      ratio: pitchRatio,
     });
     this.pumpBuffer = Array.from(
       { length: channelCount },
@@ -89,21 +89,22 @@ export class StreamingPitchShifter {
   }
 }
 
+/** Linear resampler whose ratio is input frames consumed per output frame. */
 class LinearResampler {
   private readonly input: PlanarStreamBuffer;
-  private readonly inputFramesPerOutputFrame: number;
-  private nextInputPosition = 0;
+  private readonly ratio: number;
+  private position = 0;
 
   constructor({
     channelCount,
     sampleRate,
-    inputFramesPerOutputFrame,
+    ratio,
   }: {
     channelCount: number;
     sampleRate: number;
-    inputFramesPerOutputFrame: number;
+    ratio: number;
   }) {
-    this.inputFramesPerOutputFrame = inputFramesPerOutputFrame;
+    this.ratio = ratio;
     this.input = new PlanarStreamBuffer({
       planeCount: channelCount,
       capacity: sampleRate,
@@ -135,19 +136,19 @@ class LinearResampler {
   }): number {
     let written = 0;
     for (; written < frames; written++) {
-      const i = Math.floor(this.nextInputPosition);
+      const i = Math.floor(this.position);
       if (this.input.length <= i + 1) {
         break;
       }
-      const t = this.nextInputPosition - i;
+      const t = this.position - i;
       for (let channel = 0; channel < output.length; channel++) {
         const x = this.input.get(channel, i);
         const y = this.input.get(channel, i + 1);
         output[channel][outputOffset + written] = x * (1 - t) + y * t;
       }
-      this.nextInputPosition += this.inputFramesPerOutputFrame;
+      this.position += this.ratio;
     }
-    this.input.discardUntil(Math.floor(this.nextInputPosition));
+    this.input.discardUntil(Math.floor(this.position));
     return written;
   }
 }
