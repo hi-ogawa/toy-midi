@@ -1,3 +1,5 @@
+import { PlanarRingBuffer } from "./planar-ring-buffer.ts";
+
 // Algorithm structure and default parameters follow Chromium's media renderer:
 // https://chromium.googlesource.com/chromium/src/+/main/media/filters/audio_renderer_algorithm.cc
 //
@@ -198,12 +200,11 @@ export class StreamingWsola {
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
-  private readonly input: Float32Array[];
+  private readonly input: PlanarRingBuffer;
+  private readonly endPaddingFrames: number;
   private readonly overlapWindow: Float32Array;
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
-  private inputBase = 0;
-  private inputLength = 0;
   private inputFrames = 0;
   private inputFinished = false;
   private generatedOutputFrames = 0;
@@ -232,18 +233,19 @@ export class StreamingWsola {
     this.hopFrames = this.windowFrames / 2;
     this.searchFrames = Math.max(1, Math.round(sampleRate * searchSeconds));
     this.latencyFrames = this.windowFrames;
-    const capacity = Math.max(
-      sampleRate,
-      4 * (this.windowFrames + this.searchFrames),
-    );
-    this.input = createChannels(channelCount, capacity);
+    this.endPaddingFrames = this.windowFrames + this.searchFrames;
+    const capacity = Math.max(sampleRate, 4 * this.endPaddingFrames);
+    this.input = new PlanarRingBuffer({
+      channelCount,
+      capacityFrames: capacity,
+    });
     this.overlapWindow = createPeriodicHannWindow(this.windowFrames);
     this.pendingOverlap = createChannels(channelCount, this.hopFrames);
     this.hopOutput = createChannels(channelCount, this.hopFrames);
   }
 
   getWritableFrames(): number {
-    return this.input[0].length - this.inputLength;
+    return Math.max(0, this.input.writableFrames - this.endPaddingFrames);
   }
 
   push(input: readonly Float32Array[]): void {
@@ -254,10 +256,7 @@ export class StreamingWsola {
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
-    for (let channel = 0; channel < this.input.length; channel++) {
-      this.input[channel].set(input[channel], this.inputLength);
-    }
-    this.inputLength += frames;
+    this.input.push(input);
     this.inputFrames += frames;
   }
 
@@ -267,6 +266,7 @@ export class StreamingWsola {
     }
     this.inputFinished = true;
     this.targetOutputFrames = Math.ceil(this.inputFrames / this.playbackRate);
+    this.input.pushZeros(this.endPaddingFrames);
   }
 
   isFinished(): boolean {
@@ -313,9 +313,6 @@ export class StreamingWsola {
     ) {
       return false;
     }
-    if (this.inputFinished) {
-      return true;
-    }
     const nominalSourcePosition = Math.round(
       this.generatedOutputPosition * this.playbackRate,
     );
@@ -330,7 +327,7 @@ export class StreamingWsola {
             this.naturalSourcePosition + this.windowFrames,
             searchEnd - 1 + this.windowFrames,
           );
-    return requiredEnd <= this.inputBase + this.inputLength;
+    return requiredEnd <= this.input.endFrame;
   }
 
   private generateHop(): void {
@@ -348,22 +345,32 @@ export class StreamingWsola {
       selectedSourcePosition = this.naturalSourcePosition;
       this.stats.naturalContinuations++;
     } else {
+      const searchOffset = this.input.getContiguousOffset(
+        searchStart,
+        this.searchFrames + this.windowFrames - 1,
+      );
       selectedSourcePosition =
+        searchStart +
         findBestCandidate({
-          source: this.input,
-          sourceFrames: this.inputLength,
-          referenceOffset: this.naturalSourcePosition - this.inputBase,
+          source: this.input.channelData,
+          referenceOffset: this.input.getContiguousOffset(
+            this.naturalSourcePosition,
+            this.windowFrames,
+          ),
           frames: this.windowFrames,
-          searchStart: searchStart - this.inputBase,
-          searchEnd: searchEnd - this.inputBase,
-        }) + this.inputBase;
+          searchStart: searchOffset,
+          searchEnd: searchOffset + this.searchFrames,
+        }) -
+        searchOffset;
       this.stats.searchedContinuations++;
     }
 
     overlapAddPlanar({
-      source: this.input,
-      sourceFrames: this.inputLength,
-      sourceOffset: selectedSourcePosition - this.inputBase,
+      source: this.input.channelData,
+      sourceOffset: this.input.getContiguousOffset(
+        selectedSourcePosition,
+        this.windowFrames,
+      ),
       destination: this.hopOutput,
       carry: this.pendingOverlap,
       window: this.overlapWindow,
@@ -389,18 +396,7 @@ export class StreamingWsola {
       0,
       Math.min(this.naturalSourcePosition, nextSearchStart),
     );
-    const discardFrames = Math.min(
-      this.inputLength,
-      Math.max(0, retainFrom - this.inputBase),
-    );
-    if (discardFrames === 0) {
-      return;
-    }
-    for (const channel of this.input) {
-      channel.copyWithin(0, discardFrames, this.inputLength);
-    }
-    this.inputBase += discardFrames;
-    this.inputLength -= discardFrames;
+    this.input.discardBefore(retainFrom);
   }
 }
 
