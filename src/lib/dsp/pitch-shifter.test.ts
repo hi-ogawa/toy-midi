@@ -59,6 +59,8 @@ function render({
 }
 
 function estimateFrequency(input: Float32Array): number {
+  // Count positive-going zero crossings in the steady middle of the signal;
+  // a sine wave crosses once per period, while trimming avoids DSP edge effects.
   const start = Math.round(SAMPLE_RATE * 0.1);
   const end = input.length - start;
   let crossings = 0;
