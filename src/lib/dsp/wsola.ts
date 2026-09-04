@@ -189,7 +189,14 @@ export class WsolaProcessor {
   }
 }
 
-/** Incremental WSOLA processor for realtime planar PCM streams. */
+/**
+ * Incremental WSOLA processor for realtime planar PCM streams.
+ *
+ * The producer pushes source blocks while the consumer pulls independently
+ * sized output blocks. Complete source windows are retained until they can no
+ * longer participate in the next natural continuation or candidate search.
+ * Pull returns zero when more input is needed, not only at end of stream.
+ */
 export class StreamingWsola {
   readonly latencyFrames: number;
   readonly stats = {
@@ -197,15 +204,24 @@ export class StreamingWsola {
     searchedContinuations: 0,
   };
 
+  // Retained source audio and the frame distances that define the algorithm.
   private readonly playbackRate: number;
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
   private readonly input: PlanarStreamBuffer;
+  // Finish appends enough silence to satisfy any final reference and search
+  // range without adding special bounds handling to the WSOLA algorithm.
   private readonly endPaddingFrames: number;
   private readonly overlapWindow: Float32Array;
+
+  // Reused planar buffers for the carried second half-window and the next
+  // ready-to-consume output hop.
   private readonly pendingOverlap: Float32Array[];
   private readonly hopOutput: Float32Array[];
+
+  // Output generation advances in fixed hops, while pull may consume each hop
+  // across multiple calls. targetOutputFrames is known only after finish().
   private inputFinished = false;
   private generatedOutputFrames = 0;
   private generatedOutputPosition = 0;
@@ -245,6 +261,7 @@ export class StreamingWsola {
   }
 
   getWritableFrames(): number {
+    // Reserve final-padding space so finish() cannot overflow the input buffer.
     return Math.max(0, this.input.getWritableLength() - this.endPaddingFrames);
   }
 
@@ -265,6 +282,7 @@ export class StreamingWsola {
       return;
     }
     this.inputFinished = true;
+    // Capture the real input length before appending algorithmic padding.
     this.targetOutputFrames = Math.ceil(this.input.length / this.playbackRate);
     this.input.appendZeros(this.endPaddingFrames);
   }
@@ -281,6 +299,8 @@ export class StreamingWsola {
     const requestedFrames = output[0]?.length ?? 0;
     let written = 0;
     while (written < requestedFrames) {
+      // Generate only when the previous hop has been fully consumed. If the
+      // required source range has not arrived, return the available prefix.
       if (this.hopOutputOffset === this.hopOutputLength) {
         if (!this.canGenerateHop()) {
           break;
@@ -319,6 +339,8 @@ export class StreamingWsola {
     const searchStart =
       nominalSourcePosition - Math.floor(this.searchFrames / 2);
     const searchEnd = searchStart + this.searchFrames;
+    // Natural continuation needs one window. A candidate search additionally
+    // needs every candidate window through the exclusive end of its range.
     const requiredEnd =
       searchStart <= this.naturalSourcePosition &&
       this.naturalSourcePosition < searchEnd
@@ -331,6 +353,8 @@ export class StreamingWsola {
   }
 
   private generateHop(): void {
+    // Map the next output hop to its nominal rate-scaled source position, then
+    // reuse the natural continuation or search exactly as WsolaProcessor does.
     const nominalSourcePosition = Math.round(
       this.generatedOutputPosition * this.playbackRate,
     );
@@ -373,6 +397,8 @@ export class StreamingWsola {
       carry: this.pendingOverlap,
       window: this.overlapWindow,
     });
+    // Before finish every generated hop is complete. The last finite-stream
+    // hop may be truncated to produce exactly ceil(input / playbackRate).
     const remaining = this.inputFinished
       ? this.targetOutputFrames! - this.generatedOutputFrames
       : this.hopFrames;
@@ -385,6 +411,8 @@ export class StreamingWsola {
   }
 
   private discardUnusedInput(): void {
+    // Retain the earliest position that the next natural continuation or
+    // candidate search can reference; older samples can be overwritten.
     const nextNominalSourcePosition = Math.round(
       this.generatedOutputPosition * this.playbackRate,
     );
