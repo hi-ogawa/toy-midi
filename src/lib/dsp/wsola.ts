@@ -258,7 +258,7 @@ export class StreamingWsola {
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
-    this.input.append(input, frames);
+    this.input.push(input, frames);
     this.inputFrames += frames;
   }
 

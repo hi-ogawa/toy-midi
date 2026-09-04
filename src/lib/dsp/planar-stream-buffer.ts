@@ -36,7 +36,7 @@ export class PlanarStreamBuffer {
     return this.planes[plane][index % this.capacity];
   }
 
-  append(input: readonly Float32Array[], length: number): void {
+  push(input: readonly Float32Array[], length: number): void {
     for (let plane = 0; plane < this.planes.length; plane++) {
       const source = input[plane];
       const destination = this.planes[plane];

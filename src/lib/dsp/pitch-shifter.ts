@@ -148,7 +148,7 @@ class LinearResampler {
     input: readonly Float32Array[];
     frames: number;
   }): void {
-    this.input.append(input, frames);
+    this.input.push(input, frames);
     this.inputFrames += frames;
   }
 
