@@ -96,6 +96,7 @@ export interface RecorderRuntimeState {
   // Transport
   position: number;
   isPlaying: boolean;
+  playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
   metronomeEnabled: boolean;
@@ -151,6 +152,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     title: "Untitled recording",
     position: 0,
     isPlaying: false,
+    playbackRate: 1,
     tempo: 120,
     timeSignature: DEFAULT_TIME_SIGNATURE,
     metronomeEnabled: false,
@@ -712,6 +714,12 @@ export class RecorderRuntime {
     this.store.update({ tempo });
     this.metronome?.setTempo(tempo);
     this.syncLoopRange();
+  }
+
+  setPlaybackRate(playbackRate: number): void {
+    this.ensureContext();
+    this.transport!.setPlaybackRate(playbackRate);
+    this.store.update({ playbackRate });
   }
 
   setMasterGain(masterGain: number): void {
