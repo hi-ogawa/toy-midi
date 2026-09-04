@@ -86,7 +86,7 @@ export class StreamingPitchShifter {
       if (written === 0) {
         break;
       }
-      this.resampler.push({ input: this.pumpBuffer, frames: written });
+      this.resampler.push(this.pumpBuffer, written);
     }
   }
 }
@@ -117,13 +117,7 @@ class LinearResampler {
     return this.input.getWritableLength();
   }
 
-  push({
-    input,
-    frames,
-  }: {
-    input: readonly Float32Array[];
-    frames: number;
-  }): void {
+  push(input: readonly Float32Array[], frames: number): void {
     this.input.push(input, frames);
   }
 
