@@ -5,7 +5,7 @@ const SAMPLE_RATE = 8_000;
 const INPUT_FREQUENCY = 150;
 
 describe(StreamingPitchShifter, () => {
-  it.each([4 / 3, 2])(
+  it.each([0.75, 1.5])(
     "shifts pitch by %s while preserving duration",
     (pitchRatio) => {
       const input = Float32Array.from({ length: SAMPLE_RATE }, (_, frame) =>
