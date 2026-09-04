@@ -382,10 +382,10 @@ export class StreamingWsola {
   }
 
   private getSearchStart(): number {
-    return (
-      Math.round(this.generatedOutputPosition * this.playbackRate) -
-      Math.floor(this.searchFrames / 2)
+    const nominalSourcePosition = Math.round(
+      this.generatedOutputPosition * this.playbackRate,
     );
+    return nominalSourcePosition - Math.floor(this.searchFrames / 2);
   }
 }
 
