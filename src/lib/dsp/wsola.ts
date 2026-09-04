@@ -245,7 +245,7 @@ export class StreamingWsola {
   }
 
   getWritableFrames(): number {
-    return Math.max(0, this.input.availableWrite - this.endPaddingFrames);
+    return Math.max(0, this.input.getAvailableWrite() - this.endPaddingFrames);
   }
 
   push(input: readonly Float32Array[]): void {
@@ -256,7 +256,7 @@ export class StreamingWsola {
     if (this.getWritableFrames() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
-    this.input.write(input);
+    this.input.write(input, frames);
     this.inputFrames += frames;
   }
 

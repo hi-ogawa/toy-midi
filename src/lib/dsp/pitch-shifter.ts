@@ -138,7 +138,7 @@ class LinearResampler {
   }
 
   getWritableFrames(): number {
-    return this.input.availableWrite;
+    return this.input.getAvailableWrite();
   }
 
   push({

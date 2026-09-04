@@ -19,16 +19,16 @@ export class PlanarRingBuffer {
     );
   }
 
-  get size(): number {
+  getSize(): number {
     return this.writePosition - this.readPosition;
   }
 
-  get availableWrite(): number {
-    return this.capacity - this.size;
+  getAvailableWrite(): number {
+    return this.capacity - this.getSize();
   }
 
-  write(input: readonly Float32Array[], length = input[0]?.length ?? 0): void {
-    if (this.availableWrite < length) {
+  write(input: readonly Float32Array[], length: number): void {
+    if (this.getAvailableWrite() < length) {
       throw new Error("Planar ring buffer is full.");
     }
     for (let plane = 0; plane < this.planes.length; plane++) {
@@ -45,7 +45,7 @@ export class PlanarRingBuffer {
   }
 
   writeZeros(length: number): void {
-    if (this.availableWrite < length) {
+    if (this.getAvailableWrite() < length) {
       throw new Error("Planar ring buffer is full.");
     }
     for (const destination of this.planes) {
