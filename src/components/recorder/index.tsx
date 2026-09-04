@@ -200,6 +200,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         loop={state.loop}
         punch={state.punch}
         position={state.position}
+        playbackRate={state.playbackRate}
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
@@ -211,6 +212,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         onSave={project.save}
         onRecordToggle={toggleRecord}
         onAutoScrollChange={timeline.setAutoScrollEnabled}
+        onPlaybackRateChange={(playbackRate) =>
+          runtime.setPlaybackRate(playbackRate)
+        }
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
         onLoopChange={(update) => runtime.setLoop(update)}
