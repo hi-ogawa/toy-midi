@@ -142,8 +142,8 @@ class LinearResampler {
       }
       const fraction = this.nextInputPosition - firstIndex;
       for (let channel = 0; channel < output.length; channel++) {
-        const first = this.read(channel, firstIndex);
-        const second = this.read(channel, secondIndex);
+        const first = this.input.get(channel, firstIndex);
+        const second = this.input.get(channel, secondIndex);
         output[channel][outputOffset + written] =
           first * (1 - fraction) + second * fraction;
       }
@@ -152,10 +152,6 @@ class LinearResampler {
     }
     this.discardConsumedInput();
     return written;
-  }
-
-  private read(channel: number, position: number): number {
-    return this.input.get(channel, position);
   }
 
   private discardConsumedInput(): void {
