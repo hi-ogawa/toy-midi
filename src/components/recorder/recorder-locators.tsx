@@ -97,10 +97,8 @@ export function RecorderLocatorRow({
             )}
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
-            onSelect={() => {
-              onSelect(locator.id);
-              onSeek(locator.beat);
-            }}
+            onSelect={() => onSelect(locator.id)}
+            onSeek={() => onSeek(locator.beat)}
             onUpdate={(changes) => locators.update(locator.id, changes)}
           />
         ))}
@@ -117,6 +115,7 @@ function LocatorMarker({
   pixelsPerBeat,
   subdivisionsPerBeat,
   onSelect,
+  onSeek,
   onUpdate,
 }: {
   locator: Locator;
@@ -126,6 +125,7 @@ function LocatorMarker({
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   onSelect: () => void;
+  onSeek: () => void;
   onUpdate: (changes: Partial<Pick<Locator, "beat" | "label">>) => void;
 }) {
   const [draft, setDraft] = useState<string>();
@@ -138,6 +138,7 @@ function LocatorMarker({
       onSelect();
       return locator.beat;
     },
+    onClick: onSeek,
     onDragStart: () => setDragging(true),
     onDragMove: (_event, { data, deltaX }) => {
       onUpdate({
@@ -178,7 +179,13 @@ function LocatorMarker({
         aria-label={locator.label}
         aria-pressed={selected}
         title={`${locator.label}\nDrag to move · Double-click to rename · Delete to remove`}
-        onClick={onSelect}
+        onClick={(event) => {
+          // Pointer clicks are handled by the gesture; retain keyboard activation.
+          if (event.detail === 0) {
+            onSelect();
+            onSeek();
+          }
+        }}
         onDoubleClick={startRename}
         className={cn(
           "group absolute inset-y-0 -left-1.5 flex w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
