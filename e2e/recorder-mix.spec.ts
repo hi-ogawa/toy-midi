@@ -10,7 +10,12 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
     .click();
   const modal = page.getByTestId("recorder-audio-export");
   const exportButton = modal.getByRole("button", { name: "Export file" });
-  await expect(exportButton).toBeDisabled();
+  await expect(exportButton).toBeEnabled();
+  await exportButton.click();
+  await expect(
+    page.getByText("No audio to export.", { exact: true }),
+  ).toBeVisible();
+  await expect(exportButton).toBeEnabled();
   await expect(
     modal.getByText("WAV, stereo, 16-bit PCM", { exact: true }),
   ).toBeVisible();

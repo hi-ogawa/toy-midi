@@ -64,9 +64,9 @@ export async function renderRecorderMix({
 }: {
   mix: RecorderMix;
   sampleRate: number;
-}): Promise<AudioBuffer | undefined> {
+}): Promise<AudioBuffer> {
   if (mix.duration <= 0) {
-    return;
+    throw new Error("No audio to export.");
   }
   const context = new OfflineAudioContext({
     numberOfChannels: 2,

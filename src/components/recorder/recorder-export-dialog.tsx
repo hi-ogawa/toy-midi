@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
-import { resolveRecorderMix } from "../../lib/recorder/mix";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -31,9 +30,6 @@ export function RecorderExportDialog({
         extension: "wav",
       });
       const buffer = await runtime.renderMix();
-      if (!buffer) {
-        return;
-      }
       downloadBlob(encodeWav(buffer), fileName);
     },
   });
@@ -67,11 +63,7 @@ export function RecorderExportDialog({
       </div>
       <Button
         className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
-        disabled={
-          disabled ||
-          exportMutation.isPending ||
-          (isOpen && resolveRecorderMix(state).duration === 0)
-        }
+        disabled={disabled || exportMutation.isPending}
         onClick={() => exportMutation.mutate()}
       >
         {exportMutation.isPending ? "Exporting..." : "Export file"}

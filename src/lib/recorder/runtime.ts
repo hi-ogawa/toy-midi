@@ -919,7 +919,7 @@ export class RecorderRuntime {
     });
   }
 
-  async renderMix(): Promise<AudioBuffer | undefined> {
+  async renderMix(): Promise<AudioBuffer> {
     const state = this.store.get();
     if (
       state.captureStatus === "recording" ||
