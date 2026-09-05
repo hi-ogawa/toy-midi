@@ -472,6 +472,8 @@ function RecorderSaveButton({
   return (
     <div className="group/save relative">
       <Button
+        data-testid="recorder-save-button"
+        data-status={status}
         aria-label={label}
         aria-describedby="recorder-save-tooltip"
         aria-disabled={!canSave}
