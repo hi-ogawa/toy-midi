@@ -92,8 +92,15 @@ export interface ReferenceVideoState {
   duration: number;
 }
 
+export interface RecorderLocator {
+  id: string;
+  beat: number;
+  label: string;
+}
+
 export interface RecorderRuntimeState {
   title: string;
+  locators: RecorderLocator[];
   // Transport
   position: number;
   isPlaying: boolean;
@@ -123,6 +130,7 @@ export interface RecorderRuntimeState {
 export type PersistableRecorderRuntimeState = Pick<
   RecorderRuntimeState,
   | "title"
+  | "locators"
   | "tempo"
   | "timeSignature"
   | "masterGain"
@@ -151,6 +159,7 @@ export type RecorderClipTrim = Extract<RecorderClipId, { id: string }> & {
 export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
   return {
     title: "Untitled recording",
+    locators: [],
     position: 0,
     isPlaying: false,
     playbackRate: 1,
@@ -766,6 +775,46 @@ export class RecorderRuntime {
     this.store.update({ title });
   }
 
+  addLocator(beat: number): string {
+    const { locators } = this.store.get();
+    let number = locators.length + 1;
+    while (locators.some((locator) => locator.label === `Section ${number}`)) {
+      number += 1;
+    }
+    const locator = {
+      id: crypto.randomUUID(),
+      beat,
+      label: `Section ${number}`,
+    };
+    this.store.update({ locators: [...locators, locator] });
+    return locator.id;
+  }
+
+  updateLocator({
+    id,
+    ...changes
+  }: {
+    id: string;
+    beat?: number;
+    label?: string;
+  }): void {
+    this.store.update({
+      locators: this.store
+        .get()
+        .locators.map((locator) =>
+          locator.id === id ? { ...locator, ...changes } : locator,
+        ),
+    });
+  }
+
+  deleteLocator(id: string): void {
+    this.store.update({
+      locators: this.store
+        .get()
+        .locators.filter((locator) => locator.id !== id),
+    });
+  }
+
   attachYouTubePlayer({
     videoId,
     player,
@@ -938,6 +987,7 @@ export class RecorderRuntime {
       selector: (state) =>
         ({
           title: state.title,
+          locators: state.locators,
           tempo: state.tempo,
           timeSignature: state.timeSignature,
           masterGain: state.masterGain,

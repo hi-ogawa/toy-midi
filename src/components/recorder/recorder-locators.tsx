@@ -1,28 +1,29 @@
 import { PlusIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { snapToGrid } from "../../lib/music";
-import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
+import type {
+  RecorderRuntime,
+  RecorderRuntimeState,
+  RecorderLocator,
+} from "../../lib/recorder/runtime";
 import { secondsToBeats } from "../../lib/timeline";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 
-type Locator = { id: string; beat: number; label: string };
-
-// UI prototype only. Locators are discarded when the editor is unmounted.
 export function useRecorderLocators({
+  runtime,
   state,
   subdivisionsPerBeat,
   onSelect,
 }: {
+  runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
   /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
-  const [items, setItems] = useState<Locator[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
-  const nextNumber = useRef(1);
 
   function add() {
     const beat = Math.max(
@@ -32,13 +33,7 @@ export function useRecorderLocators({
         1 / subdivisionsPerBeat,
       ),
     );
-    const locator = {
-      id: crypto.randomUUID(),
-      beat,
-      label: `Section ${nextNumber.current++}`,
-    };
-    setItems((current) => [...current, locator]);
-    select(locator.id);
+    select(runtime.addLocator(beat));
   }
 
   function select(id: string | undefined) {
@@ -50,19 +45,26 @@ export function useRecorderLocators({
 
   function update(
     id: string,
-    changes: Partial<Pick<Locator, "beat" | "label">>,
+    changes: Partial<Pick<RecorderLocator, "beat" | "label">>,
   ) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, ...changes } : item)),
-    );
+    runtime.updateLocator({ id, ...changes });
   }
 
   function removeSelected() {
-    setItems((current) => current.filter((item) => item.id !== selectedId));
+    if (selectedId !== undefined) {
+      runtime.deleteLocator(selectedId);
+    }
     select(undefined);
   }
 
-  return { items, selectedId, select, add, update, removeSelected };
+  return {
+    items: state.locators,
+    selectedId,
+    select,
+    add,
+    update,
+    removeSelected,
+  };
 }
 
 export function RecorderLocatorRow({
@@ -131,14 +133,14 @@ function LocatorMarker({
   onSeek,
   onUpdate,
 }: {
-  locator: Locator;
+  locator: RecorderLocator;
   selected: boolean;
   left: number;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   onSelect: () => void;
   onSeek: () => void;
-  onUpdate: (changes: Partial<Pick<Locator, "beat" | "label">>) => void;
+  onUpdate: (changes: Partial<Pick<RecorderLocator, "beat" | "label">>) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const dragRef = usePointerGesture({

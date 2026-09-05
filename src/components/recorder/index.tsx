@@ -67,6 +67,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
   const locators = useRecorderLocators({
+    runtime,
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
     onSelect: clipInteraction.clear,
