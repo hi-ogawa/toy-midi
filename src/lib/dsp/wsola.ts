@@ -273,14 +273,10 @@ export class StreamingWsola {
     this.hopOutputOffset = this.hopFrames;
   }
 
-  getWritableFrames(): number {
-    return this.input.getWritableLength();
-  }
-
   push(input: readonly Float32Array[]): void {
     const frames = input[0]?.length ?? 0;
     // TODO: Define a realtime-safe overflow policy instead of throwing.
-    if (this.getWritableFrames() < frames) {
+    if (this.input.getWritableLength() < frames) {
       throw new Error("Streaming WSOLA input buffer is full.");
     }
     this.input.push(input, frames);
