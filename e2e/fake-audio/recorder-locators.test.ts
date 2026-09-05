@@ -61,7 +61,12 @@ test("edits, seeks, selects, and persists recorder locators", async ({
 
   // Dragging snaps the marker to beat 2.5 without moving the playhead.
   await seekRecorderByPixels(page, pixelsPerBeat * 6);
+  const beforeDrag = await verse.boundingBox();
+  expect(beforeDrag).not.toBeNull();
   await dragBy(page, verse, 110);
+  await expect
+    .poll(async () => (await verse.boundingBox())?.x)
+    .toBeCloseTo(beforeDrag!.x + pixelsPerBeat * 1.5, 1);
   await expect(verse).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => getRecorderBeat(page)).toBe(6);
   await verse.click();
