@@ -35,6 +35,7 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await createRecorderProject(page);
 
   // Plain arrows move in five-second steps and clamp at the timeline start.
+  await page.getByTestId("recorder-position").focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => getRecorderPosition(page)).toBe(5);
 
