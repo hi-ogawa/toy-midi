@@ -97,10 +97,9 @@ export function RecorderLocatorRow({
       <div
         className="relative overflow-hidden"
         onPointerDown={(event) => {
-          if (event.button !== 0) {
-            return;
+          if (event.button === 0) {
+            locators.select(undefined);
           }
-          locators.select(undefined);
         }}
       >
         {locators.items.map((locator) => (
