@@ -23,18 +23,20 @@ function createListener({
     onDoubleClick,
     onDragMove: () => {},
   });
-  const click = (detail: number) => {
+  const click = () => {
     const pointerEvent = {
       button: 0,
       clientX: 0,
       clientY: 0,
-      detail,
       pointerId: 1,
     } as PointerEvent;
     listeners.get("pointerdown")?.(pointerEvent);
     listeners.get("pointerup")?.(pointerEvent);
   };
-  return { cleanup, click };
+  const doubleClick = () => {
+    listeners.get("dblclick")?.({} as MouseEvent);
+  };
+  return { cleanup, click, doubleClick };
 }
 
 describe("listenPointerGesture", () => {
@@ -44,7 +46,7 @@ describe("listenPointerGesture", () => {
     const onClick = vi.fn();
     const listener = createListener({ onClick });
 
-    listener.click(1);
+    listener.click();
 
     expect(onClick).toHaveBeenCalledOnce();
     listener.cleanup();
@@ -55,7 +57,7 @@ describe("listenPointerGesture", () => {
     const onClick = vi.fn();
     const listener = createListener({ onClick, onDoubleClick: vi.fn() });
 
-    listener.click(1);
+    listener.click();
     expect(onClick).not.toHaveBeenCalled();
     vi.advanceTimersByTime(250);
 
@@ -69,8 +71,9 @@ describe("listenPointerGesture", () => {
     const onDoubleClick = vi.fn();
     const listener = createListener({ onClick, onDoubleClick });
 
-    listener.click(1);
-    listener.click(2);
+    listener.click();
+    listener.click();
+    listener.doubleClick();
     vi.runAllTimers();
 
     expect(onClick).not.toHaveBeenCalled();
@@ -78,19 +81,18 @@ describe("listenPointerGesture", () => {
     listener.cleanup();
   });
 
-  test("reports separate clicks when the second click is too late", () => {
+  test("reports a late native double-click after the deferred click", () => {
     vi.useFakeTimers();
     const onClick = vi.fn();
     const onDoubleClick = vi.fn();
     const listener = createListener({ onClick, onDoubleClick });
 
-    listener.click(1);
+    listener.click();
     vi.advanceTimersByTime(250);
-    listener.click(1);
-    vi.advanceTimersByTime(250);
+    listener.doubleClick();
 
-    expect(onClick).toHaveBeenCalledTimes(2);
-    expect(onDoubleClick).not.toHaveBeenCalled();
+    expect(onClick).toHaveBeenCalledOnce();
+    expect(onDoubleClick).toHaveBeenCalledOnce();
     listener.cleanup();
   });
 
@@ -99,7 +101,7 @@ describe("listenPointerGesture", () => {
     const onClick = vi.fn();
     const listener = createListener({ onClick, onDoubleClick: vi.fn() });
 
-    listener.click(1);
+    listener.click();
     listener.cleanup();
     vi.runAllTimers();
 

@@ -10,7 +10,7 @@ export type PointerGestureOptions<T> = {
   threshold?: number;
   onStart: (event: PointerEvent) => T;
   onClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
-  onDoubleClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
+  onDoubleClick?: (event: MouseEvent) => void;
   onDragStart?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragMove: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragEnd?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
@@ -20,32 +20,6 @@ export type PointerGestureOptions<T> = {
     dragged: boolean,
   ) => void;
 };
-
-function listenPointerClicks<T>({
-  onClick,
-  onDoubleClick,
-}: Pick<PointerGestureOptions<T>, "onClick" | "onDoubleClick">) {
-  let clickTimeout: ReturnType<typeof setTimeout> | undefined;
-  return {
-    onClick(event: PointerEvent, gesture: PointerGesture<T>) {
-      if (onDoubleClick && event.detail === 2) {
-        clearTimeout(clickTimeout);
-        clickTimeout = undefined;
-        onDoubleClick(event, gesture);
-      } else if (onDoubleClick) {
-        clickTimeout = setTimeout(() => {
-          clickTimeout = undefined;
-          onClick?.(event, gesture);
-        }, 250);
-      } else {
-        onClick?.(event, gesture);
-      }
-    },
-    cleanup() {
-      clearTimeout(clickTimeout);
-    },
-  };
-}
 
 export function listenPointerGesture<T>({
   element,
@@ -58,7 +32,7 @@ export function listenPointerGesture<T>({
   onDragEnd,
   onCancel,
 }: PointerGestureOptions<T> & { element: HTMLElement }) {
-  const clicks = listenPointerClicks({ onClick, onDoubleClick });
+  const clickTimeouts = new Set<ReturnType<typeof setTimeout>>();
   type State = {
     startX: number;
     startY: number;
@@ -73,7 +47,17 @@ export function listenPointerGesture<T>({
     deltaX: event.clientX - state.startX,
     deltaY: event.clientY - state.startY,
   });
+  const handleDoubleClick = (event: MouseEvent) => {
+    for (const timeout of clickTimeouts) {
+      clearTimeout(timeout);
+    }
+    clickTimeouts.clear();
+    onDoubleClick?.(event);
+  };
 
+  if (onDoubleClick) {
+    element.addEventListener("dblclick", handleDoubleClick);
+  }
   const cleanup = listenPointerDrag({
     element,
     onStart: (event): State => ({
@@ -99,8 +83,14 @@ export function listenPointerGesture<T>({
       const gesture = createGesture(event, state);
       if (state.dragged) {
         onDragEnd?.(event, gesture);
+      } else if (onDoubleClick) {
+        const timeout = setTimeout(() => {
+          clickTimeouts.delete(timeout);
+          onClick?.(event, gesture);
+        }, 250);
+        clickTimeouts.add(timeout);
       } else {
-        clicks.onClick(event, gesture);
+        onClick?.(event, gesture);
       }
     },
     onCancel: (event, state) => {
@@ -108,7 +98,10 @@ export function listenPointerGesture<T>({
     },
   });
   return () => {
-    clicks.cleanup();
+    for (const timeout of clickTimeouts) {
+      clearTimeout(timeout);
+    }
+    element.removeEventListener("dblclick", handleDoubleClick);
     cleanup();
   };
 }
