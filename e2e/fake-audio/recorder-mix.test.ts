@@ -20,6 +20,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
 
   // Preview the export settings before adding audio.
   const sampleRate = modal.getByRole("combobox", { name: "Sample rate" });
+  await expect(sampleRate).toHaveValue("48000");
   await sampleRate.selectOption("44100");
   await expect(sampleRate).toHaveValue("44100");
   await modal.getByRole("button", { name: "Close", exact: true }).click();
