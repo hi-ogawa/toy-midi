@@ -173,6 +173,7 @@ function LocatorMarker({
 
   return (
     <div
+      data-testid="recorder-locator"
       className="group/locator absolute inset-y-0"
       style={{ left, zIndex: selected ? 10 : 1 }}
     >
@@ -180,7 +181,6 @@ function LocatorMarker({
         <button
           ref={dragRef}
           type="button"
-          data-testid="recorder-locator"
           aria-label={locator.label}
           aria-pressed={selected}
           title={`${locator.label}\nDrag to move · Delete to remove`}
