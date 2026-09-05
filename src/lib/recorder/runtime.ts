@@ -98,6 +98,12 @@ export interface RecorderLocator {
   label: string;
 }
 
+type RecorderLocatorUpdate = {
+  id: string;
+  beat?: number;
+  label?: string;
+};
+
 export interface RecorderRuntimeState {
   title: string;
   locators: RecorderLocator[];
@@ -790,14 +796,7 @@ export class RecorderRuntime {
     return locator.id;
   }
 
-  updateLocator({
-    id,
-    ...changes
-  }: {
-    id: string;
-    beat?: number;
-    label?: string;
-  }): void {
+  updateLocator({ id, ...changes }: RecorderLocatorUpdate): void {
     this.store.update({
       locators: this.store
         .get()
