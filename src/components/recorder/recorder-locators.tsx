@@ -57,7 +57,6 @@ export function RecorderLocatorRow({
   onSelect: (id: string) => void;
   onSeek: (beat: number) => void;
 }) {
-  const sorted = [...locators.items].sort((a, b) => a.beat - b.beat);
   return (
     <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="flex items-center justify-between border-r border-neutral-700 px-3 text-xs font-semibold text-neutral-400">
@@ -80,21 +79,12 @@ export function RecorderLocatorRow({
           locators.select(undefined);
         }}
       >
-        {sorted.map((locator, index) => (
+        {locators.items.map((locator) => (
           <LocatorMarker
             key={locator.id}
             locator={locator}
             selected={locators.selectedId === locator.id}
             left={(locator.beat - viewportStartBeat) * pixelsPerBeat}
-            labelWidth={Math.min(
-              160,
-              Math.max(
-                0,
-                ((sorted[index + 1]?.beat ?? Infinity) - locator.beat) *
-                  pixelsPerBeat -
-                  14,
-              ),
-            )}
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
             onSelect={() => onSelect(locator.id)}
@@ -111,7 +101,6 @@ function LocatorMarker({
   locator,
   selected,
   left,
-  labelWidth,
   pixelsPerBeat,
   subdivisionsPerBeat,
   onSelect,
@@ -121,7 +110,6 @@ function LocatorMarker({
   locator: Locator;
   selected: boolean;
   left: number;
-  labelWidth: number;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
   onSelect: () => void;
@@ -181,10 +169,9 @@ function LocatorMarker({
         <span className="mt-auto mb-1 size-0 shrink-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
         <span
           className={cn(
-            "truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
+            "max-w-40 truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
             selected && "bg-sky-300/20 text-sky-100",
           )}
-          style={{ maxWidth: labelWidth }}
         >
           {locator.label}
         </span>
