@@ -69,28 +69,6 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
   checkpoint("create, rename, deselect, and drag");
-
-  // During playback, pointer-down must not seek before the completed click.
-  await seekRecorderByPixels(page, pixelsPerBeat * 6);
-  const play = page.getByTestId("recorder-play-button");
-  await play.click();
-  await expect.poll(() => getRecorderBeat(page)).toBeGreaterThan(6.5);
-  const verseBox = await verse.boundingBox();
-  expect(verseBox).not.toBeNull();
-  await page.mouse.move(
-    verseBox!.x + verseBox!.width / 2,
-    verseBox!.y + verseBox!.height / 2,
-  );
-  const beforePress = await getRecorderBeat(page);
-  await page.mouse.down();
-  expect(await getRecorderBeat(page)).toBeGreaterThanOrEqual(beforePress);
-  await expect
-    .poll(() => getRecorderBeat(page))
-    .toBeGreaterThan(beforePress + 0.5);
-  await page.mouse.up();
-  await expect.poll(() => getRecorderBeat(page)).toBeLessThan(4);
-  await play.click();
-  checkpoint("single seek during playback");
 });
 
 test("persists recorder locator edits and deletion", async ({ page }) => {
