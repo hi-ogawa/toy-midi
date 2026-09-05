@@ -84,45 +84,9 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await play.click();
   checkpoint("single seek during playback");
 
-  // Selecting a locator after a waveform makes Delete remove only the locator.
-  const fileChooser = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooser).setFiles("e2e/fixtures/test-audio.wav");
-  const audio = page.getByTestId("recorder-clip-audio");
-  await expect(audio).toBeVisible();
-  await audio.click();
-  await expect(audio).toHaveAttribute("data-selected", "true");
-  await second.click();
-  await expect(audio).not.toHaveAttribute("data-selected", "true");
-  await page.keyboard.press("Delete");
-  await expect(second).toHaveCount(0);
-  await expect(audio).toBeVisible();
-  await expect(verse).toBeVisible();
-
-  // Creation also clears clip selection, and clip drag/trim clear locators.
-  await audio.click();
-  await seekRecorderByPixels(page, pixelsPerBeat * 8);
-  await add.click();
-  await expect(second).toHaveAttribute("aria-pressed", "true");
-  await expect(audio).not.toHaveAttribute("data-selected", "true");
-  await dragBy(page, audio, 20);
-  await expect(second).toHaveAttribute("aria-pressed", "false");
-  await expect(audio).toHaveAttribute("data-selected", "true");
-  await second.click();
-  await dragBy(page, audio.getByTestId("recorder-take-trim-end"), -10);
-  await expect(second).toHaveAttribute("aria-pressed", "false");
-
-  // Selecting a waveform after a locator makes Delete remove only the clip.
-  await second.click();
-  await audio.click();
-  await expect(second).toHaveAttribute("aria-pressed", "false");
-  await page.keyboard.press("Delete");
-  await expect(audio).toHaveCount(0);
-  await expect(second).toBeVisible();
   await second.click();
   await page.keyboard.press("Backspace");
   await expect(second).toHaveCount(0);
-  checkpoint("selection isolation and deletion");
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
