@@ -44,6 +44,13 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await page.keyboard.press("Delete");
   await expect(verse).toBeVisible();
 
+  // Removing the selected locator leaves the other marker intact.
+  await second.click();
+  await page.keyboard.press("Backspace");
+  await expect(second).toHaveCount(0);
+
+  await expect(verse).toBeVisible();
+
   // Empty locator space deselects without seeking.
   await verse.click();
   const lane = page.getByTestId("recorder-locator-lane");
@@ -83,10 +90,6 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await expect.poll(() => getRecorderBeat(page)).toBeLessThan(4);
   await play.click();
   checkpoint("single seek during playback");
-
-  await second.click();
-  await page.keyboard.press("Backspace");
-  await expect(second).toHaveCount(0);
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
