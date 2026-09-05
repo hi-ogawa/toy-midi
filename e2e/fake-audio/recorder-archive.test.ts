@@ -1,6 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
-  addRecorderAudio,
   createRecorderProject,
   enableInput,
   seekRecorderByPixels,
@@ -11,7 +10,12 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
 
   // Build an editable project with backing audio and two retained takes.
-  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  await expect(
+    page.getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");

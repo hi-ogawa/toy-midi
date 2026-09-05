@@ -8,19 +8,6 @@ export async function createRecorderProject(page: Page): Promise<void> {
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 }
 
-export async function addRecorderAudio(
-  page: Page,
-  filePath: string,
-): Promise<void> {
-  const clips = page.getByTestId("recorder-clip-audio");
-  const count = await clips.count();
-  const fileChooser = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooser).setFiles(filePath);
-  await expect(clips).toHaveCount(count + 1);
-  await expect(clips.nth(count).locator("svg")).toBeVisible();
-}
-
 export async function seekRecorderByPixels(page: Page, pixels: number) {
   const ruler = page.getByTestId("recorder-timeline-ruler");
   const box = await ruler.boundingBox();
