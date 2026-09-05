@@ -82,7 +82,7 @@ export class StreamingPitchShifter {
 
   private pump(): void {
     // Preserve backpressure between the independently paced WSOLA and resampler.
-    if (this.resampler.getWritableFrames() < this.pumpBuffer[0].length) {
+    if (this.resampler.input.getWritableLength() < this.pumpBuffer[0].length) {
       return;
     }
     const written = this.wsola.pull(this.pumpBuffer);
@@ -94,7 +94,7 @@ export class StreamingPitchShifter {
 
 /** Linear resampler whose ratio is input frames consumed per output frame. */
 class LinearResampler {
-  private readonly input: PlanarStreamBuffer;
+  readonly input: PlanarStreamBuffer;
   private readonly ratio: number;
   private position = 0;
 
@@ -112,10 +112,6 @@ class LinearResampler {
       planeCount: channelCount,
       capacity,
     });
-  }
-
-  getWritableFrames(): number {
-    return this.input.getWritableLength();
   }
 
   push(input: readonly Float32Array[], frames: number): void {
