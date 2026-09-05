@@ -24,6 +24,7 @@ export function useRecorderClipInteraction({
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
+  /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
   const [keys, setKeys] = useState(() => new Set<string>());

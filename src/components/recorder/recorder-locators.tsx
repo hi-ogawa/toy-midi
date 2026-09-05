@@ -17,6 +17,7 @@ export function useRecorderLocators({
 }: {
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
+  /** Only coordinates selection domains by clearing selection in the other domain. */
   onSelect: () => void;
 }) {
   const [items, setItems] = useState<Locator[]>([]);
