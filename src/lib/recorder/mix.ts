@@ -50,6 +50,12 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   let duration = 0;
   for (const track of tracks) {
     for (const region of track.regions) {
+      // Crop pre-zero audio without shifting the region's timeline end.
+      if (region.start < 0) {
+        region.offset -= region.start;
+        region.duration += region.start;
+        region.start = 0;
+      }
       duration = Math.max(duration, region.start + region.duration);
     }
   }
