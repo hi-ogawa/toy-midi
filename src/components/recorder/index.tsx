@@ -65,8 +65,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const locators = useRecorderLocators({
-    position: state.position,
-    tempo: timeline.tempo,
+    state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
 
