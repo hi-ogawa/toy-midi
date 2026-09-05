@@ -70,13 +70,13 @@ export function RecorderLocatorRow({
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
-  onSeek,
+  onSeekBeat,
 }: {
   locators: ReturnType<typeof useRecorderLocators>;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
-  onSeek: (beat: number) => void;
+  onSeekBeat: (beat: number) => void;
 }) {
   return (
     <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
@@ -109,7 +109,7 @@ export function RecorderLocatorRow({
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
             onSelect={() => locators.select(locator.id)}
-            onSeek={() => onSeek(locator.beat)}
+            onSeek={() => onSeekBeat(locator.beat)}
             onUpdate={(changes) =>
               locators.update({ id: locator.id, ...changes })
             }
