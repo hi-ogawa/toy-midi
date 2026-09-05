@@ -66,28 +66,28 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await recordButton.click();
 });
 
-test("advances recorder position at the selected playback rate", async ({
-  page,
-}) => {
-  const checkpoint = createCheckpoint();
-  await createRecorderProject(page);
+for (const playbackRate of [0.5, 1.5]) {
+  test(`advances recorder position at ${playbackRate}x`, async ({ page }) => {
+    const checkpoint = createCheckpoint();
+    await createRecorderProject(page);
 
-  await page.getByTestId("recorder-playback-rate").click();
-  await page.getByRole("menuitemradio", { name: "0.5x" }).click();
-  const position = page.getByTestId("recorder-position");
-  const sample = () =>
-    position.evaluate((element) => ({
-      wallTime: performance.now() / 1_000,
-      position: Number(element.dataset.position),
-    }));
+    await page.getByTestId("recorder-playback-rate").click();
+    await page.getByRole("menuitemradio", { name: `${playbackRate}x` }).click();
+    const position = page.getByTestId("recorder-position");
+    const sample = () =>
+      position.evaluate((element) => ({
+        wallTime: performance.now() / 1_000,
+        position: Number(element.dataset.position),
+      }));
 
-  await page.getByTestId("recorder-play-button").click();
-  const start = await sample();
-  await page.waitForTimeout(1_000);
-  const end = await sample();
+    await page.getByTestId("recorder-play-button").click();
+    const start = await sample();
+    await page.waitForTimeout(1_000);
+    const end = await sample();
 
-  const observedRate =
-    (end.position - start.position) / (end.wallTime - start.wallTime);
-  checkpoint("sample playback clocks");
-  expect(observedRate).toBeCloseTo(0.5, 1);
-});
+    const observedRate =
+      (end.position - start.position) / (end.wallTime - start.wallTime);
+    checkpoint("sample playback clocks");
+    expect(observedRate).toBeCloseTo(playbackRate, 1);
+  });
+}
