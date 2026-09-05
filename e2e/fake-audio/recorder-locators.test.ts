@@ -66,6 +66,14 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await expect.poll(() => getRecorderBeat(page)).toBe(6);
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
+
+  // Locator beats remain stable when tempo changes.
+  await page.getByTestId("recorder-tempo-input").fill("90");
+  await page.getByTestId("recorder-tempo-input").press("Enter");
+  await seekRecorderByPixels(page, pixelsPerBeat * 4);
+  await expect.poll(() => getRecorderBeat(page)).toBe(4);
+  await verse.click();
+  await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
 });
 
 test("persists recorder locator edits and deletion", async ({ page }) => {
@@ -91,14 +99,6 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await expect(verse).toHaveAttribute("aria-pressed", "false");
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
-
-  // Locator beats remain stable when tempo changes.
-  await page.getByTestId("recorder-tempo-input").fill("90");
-  await page.getByTestId("recorder-tempo-input").press("Enter");
-  await verse.click();
-  await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  await saveProjectButton.click();
   await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
 
   // Renaming dirties the project.
