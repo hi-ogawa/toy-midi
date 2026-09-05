@@ -5,6 +5,70 @@ const SAMPLE_RATE = 8_000;
 const INPUT_FREQUENCY = 150;
 
 describe(StreamingPitchShifter, () => {
+  it.each([0.5, 0.75, 1.25, 1.5, 2])(
+    "keeps realtime output continuous at %sx playback",
+    (playbackRate) => {
+      const sampleRate = 48_000;
+      const blockFrames = 128;
+      const processor = new StreamingPitchShifter({
+        channelCount: 1,
+        sampleRate,
+        pitchRatio: 1 / playbackRate,
+        blockFrames,
+        windowSeconds: 0.02,
+        searchSeconds: 0.03,
+      });
+      const output = [new Float32Array(blockFrames)];
+      let started = false;
+      const underruns: { timeMs: number; missingFrames: number }[] = [];
+
+      // Match the worklet with one fixed input block and one output request
+      // per callback. The source rate changes pitch before this corrects it.
+      for (
+        let callback = 0;
+        callback < Math.ceil(sampleRate / blockFrames);
+        callback++
+      ) {
+        processor.push([
+          Float32Array.from({ length: blockFrames }, (_, frame) =>
+            Math.sin(
+              (2 *
+                Math.PI *
+                440 *
+                playbackRate *
+                (callback * blockFrames + frame)) /
+                sampleRate,
+            ),
+          ),
+        ]);
+        const written = processor.pull(output);
+        started ||= written > 0;
+        if (started && written < blockFrames) {
+          underruns.push({
+            timeMs: (callback * blockFrames * 1000) / sampleRate,
+            missingFrames: blockFrames - written,
+          });
+        }
+      }
+
+      expect(started, "Playback must start within the simulated second").toBe(
+        true,
+      );
+      expect(underruns, "Silence inserted after playback has started").toEqual(
+        [],
+      );
+    },
+  );
+
+  it.each([0.75, 1.5])(
+    "drains a stream shorter than startup buffering at pitch ratio %s",
+    (pitchRatio) => {
+      expect(render({ input: new Float32Array([1]), pitchRatio })).toHaveLength(
+        1,
+      );
+    },
+  );
+
   it.each([0.75, 1.5])(
     "shifts pitch by %s while preserving duration",
     (pitchRatio) => {

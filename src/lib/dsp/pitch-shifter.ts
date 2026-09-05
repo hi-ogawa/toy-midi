@@ -8,6 +8,7 @@ import { StreamingWsola } from "./wsola.ts";
  * pull size; internal buffers hold enough stretched input for one output block.
  */
 export class StreamingPitchShifter {
+  /** Input frames buffered before the first output block can be consumed. */
   readonly latencyFrames: number;
   /** Future input required to render through a finite input boundary. */
   readonly lookaheadFrames: number;
@@ -50,13 +51,17 @@ export class StreamingPitchShifter {
       { length: channelCount },
       () => new Float32Array(pumpFrames),
     );
-    this.latencyFrames = this.wsola.latencyFrames;
-    this.lookaheadFrames =
-      this.wsola.lookaheadFrames + Math.ceil(1 / pitchRatio);
-  }
-
-  getWritableFrames(): number {
-    return this.wsola.getWritableFrames();
+    // The first output callback consumes blockFrames input frames overall.
+    // Keep WSOLA's reserve after that consumption, including one extra
+    // stretched frame for interpolation, converted back to input frames.
+    const interpolationInputFrames = Math.ceil(1 / pitchRatio);
+    this.latencyFrames =
+      this.wsola.latencyFrames + blockFrames + interpolationInputFrames;
+    // Finite callers also need enough padding to start very short streams.
+    this.lookaheadFrames = Math.max(
+      this.latencyFrames,
+      this.wsola.lookaheadFrames + interpolationInputFrames,
+    );
   }
 
   push(input: readonly Float32Array[]): void {
@@ -64,28 +69,27 @@ export class StreamingPitchShifter {
   }
 
   pull(output: Float32Array[]): number {
-    this.pump();
+    if (this.wsola.input.length < this.latencyFrames) {
+      return 0;
+    }
+    // Preserve backpressure between the independently paced WSOLA and resampler.
+    if (this.resampler.input.getWritableLength() >= this.pumpBuffer[0].length) {
+      const written = this.wsola.pull(this.pumpBuffer);
+      if (written > 0) {
+        this.resampler.push(this.pumpBuffer, written);
+      }
+    }
     return this.resampler.pull({
       output,
       outputOffset: 0,
       frames: output[0]?.length ?? 0,
     });
   }
-
-  private pump(): void {
-    if (this.resampler.getWritableFrames() < this.pumpBuffer[0].length) {
-      return;
-    }
-    const written = this.wsola.pull(this.pumpBuffer);
-    if (written > 0) {
-      this.resampler.push(this.pumpBuffer, written);
-    }
-  }
 }
 
 /** Linear resampler whose ratio is input frames consumed per output frame. */
 class LinearResampler {
-  private readonly input: PlanarStreamBuffer;
+  readonly input: PlanarStreamBuffer;
   private readonly ratio: number;
   private position = 0;
 
@@ -103,10 +107,6 @@ class LinearResampler {
       planeCount: channelCount,
       capacity,
     });
-  }
-
-  getWritableFrames(): number {
-    return this.input.getWritableLength();
   }
 
   push(input: readonly Float32Array[], frames: number): void {
