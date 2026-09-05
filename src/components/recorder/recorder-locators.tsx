@@ -176,7 +176,7 @@ function LocatorMarker({
       className="group/locator absolute inset-y-0"
       style={{ left, zIndex: selected ? 10 : 1 }}
     >
-      <div className="absolute inset-y-0 -left-1.5 flex w-max items-center gap-0.5">
+      <div className="absolute inset-y-0 -left-1.5 flex w-max items-center gap-0.5 pl-4">
         <button
           ref={dragRef}
           type="button"
@@ -184,12 +184,12 @@ function LocatorMarker({
           aria-pressed={selected}
           title={`${locator.label}\nDrag to move · Delete to remove`}
           className={cn(
-            "group flex h-full w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
+            "group flex h-full items-center text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
             selected && "text-sky-300",
             dragging ? "cursor-ew-resize" : "cursor-pointer",
           )}
         >
-          <span className="mt-auto mb-1 size-0 shrink-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
+          <span className="absolute bottom-1 left-0 size-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
           <span
             className={cn(
               "max-w-40 truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
