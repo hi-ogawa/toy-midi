@@ -62,11 +62,10 @@ export function Recorder({ projectId }: { projectId: string }) {
   const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
-    onSelect: (): void => {
+    onSelect: () => {
       locators.select(undefined);
     },
   });
-
   const locators = useRecorderLocators({
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
