@@ -12,6 +12,12 @@ const recorderPreferencesSchema = z.object({
     .number()
     .min(MIN_PIXELS_PER_BEAT)
     .max(MAX_PIXELS_PER_BEAT),
+  referenceVideoSize: z
+    .object({
+      width: z.number().positive(),
+      height: z.number().positive(),
+    })
+    .optional(),
   input: z
     .object({
       deviceId: z.string(),
