@@ -120,7 +120,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       );
     },
   });
-
   const exportAudioMutation = useMutation({
     mutationFn: async () => {
       const fileName = buildExportFileName({
@@ -134,6 +133,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       downloadBlob(encodeWav(buffer), fileName);
     },
   });
+
   const takes = state.recordingTrack.takes;
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
