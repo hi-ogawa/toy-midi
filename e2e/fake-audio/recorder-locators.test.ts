@@ -48,7 +48,6 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await second.click();
   await page.keyboard.press("Backspace");
   await expect(second).toHaveCount(0);
-
   await expect(verse).toBeVisible();
 
   // Empty locator space deselects without seeking.
