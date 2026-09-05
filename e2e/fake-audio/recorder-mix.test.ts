@@ -42,6 +42,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^Final_mix-.*\.wav$/);
   const path = test.info().outputPath("mix.wav");
   await download.saveAs(path);
+
   // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
   const wav = await readFile(path);
   expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
