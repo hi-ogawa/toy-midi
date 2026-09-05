@@ -73,7 +73,7 @@ export class StreamingPitchShifter {
       return 0;
     }
     // Preserve backpressure between the independently paced WSOLA and resampler.
-    if (this.pumpBuffer[0].length <= this.resampler.input.getWritableLength()) {
+    if (this.resampler.input.getWritableLength() >= this.pumpBuffer[0].length) {
       const written = this.wsola.pull(this.pumpBuffer);
       if (written > 0) {
         this.resampler.push(this.pumpBuffer, written);
