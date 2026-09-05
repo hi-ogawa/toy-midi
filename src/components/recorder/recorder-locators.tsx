@@ -196,7 +196,7 @@ function LocatorMarker({
               selected && "bg-sky-300/20 text-sky-100",
             )}
           >
-            <span className="translate-y-px">{locator.label}</span>
+            <span className="inline-block translate-y-px">{locator.label}</span>
           </span>
         </button>
         <button
