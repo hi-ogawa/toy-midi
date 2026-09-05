@@ -72,23 +72,18 @@ export class StreamingPitchShifter {
     if (this.wsola.input.length < this.latencyFrames) {
       return 0;
     }
-    this.pump();
+    // Preserve backpressure between the independently paced WSOLA and resampler.
+    if (this.pumpBuffer[0].length <= this.resampler.input.getWritableLength()) {
+      const written = this.wsola.pull(this.pumpBuffer);
+      if (written > 0) {
+        this.resampler.push(this.pumpBuffer, written);
+      }
+    }
     return this.resampler.pull({
       output,
       outputOffset: 0,
       frames: output[0]?.length ?? 0,
     });
-  }
-
-  private pump(): void {
-    // Preserve backpressure between the independently paced WSOLA and resampler.
-    if (this.resampler.input.getWritableLength() < this.pumpBuffer[0].length) {
-      return;
-    }
-    const written = this.wsola.pull(this.pumpBuffer);
-    if (written > 0) {
-      this.resampler.push(this.pumpBuffer, written);
-    }
   }
 }
 
