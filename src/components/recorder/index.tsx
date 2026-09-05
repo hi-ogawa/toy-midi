@@ -69,11 +69,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
 
-  function addLocator() {
-    clipInteraction.clear();
-    locators.add();
-  }
-
   const playMutation = useMutation({
     mutationFn: () => {
       return runtime.play();
@@ -163,7 +158,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "L")) {
       event.preventDefault();
-      addLocator();
+      locators.add();
       return;
     }
     if (
@@ -264,12 +259,9 @@ export function Recorder({ projectId }: { projectId: string }) {
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-          onAdd={addLocator}
+          onAdd={locators.add}
           onSeek={(beat) => runtime.seek(beatsToSeconds(beat, timeline.tempo))}
-          onSelect={(id) => {
-            clipInteraction.clear();
-            locators.select(id);
-          }}
+          onSelect={locators.select}
         />
         <section
           data-testid="recorder-track-scroll"
