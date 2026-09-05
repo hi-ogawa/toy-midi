@@ -8,6 +8,7 @@ import { StreamingWsola } from "./wsola.ts";
  * pull size; internal buffers hold enough stretched input for one output block.
  */
 export class StreamingPitchShifter {
+  /** Input frames buffered before the first output block can be consumed. */
   readonly latencyFrames: number;
   /** Future input required to render through a finite input boundary. */
   readonly lookaheadFrames: number;
@@ -50,9 +51,17 @@ export class StreamingPitchShifter {
       { length: channelCount },
       () => new Float32Array(pumpFrames),
     );
-    this.latencyFrames = this.wsola.latencyFrames;
-    this.lookaheadFrames =
-      this.wsola.lookaheadFrames + Math.ceil(1 / pitchRatio);
+    // The first output callback consumes blockFrames input frames overall.
+    // Keep WSOLA's reserve after that consumption, including one extra
+    // stretched frame for interpolation, converted back to input frames.
+    const interpolationInputFrames = Math.ceil(1 / pitchRatio);
+    this.latencyFrames =
+      this.wsola.latencyFrames + blockFrames + interpolationInputFrames;
+    // Finite callers also need enough padding to start very short streams.
+    this.lookaheadFrames = Math.max(
+      this.latencyFrames,
+      this.wsola.lookaheadFrames + interpolationInputFrames,
+    );
   }
 
   getWritableFrames(): number {
@@ -64,6 +73,9 @@ export class StreamingPitchShifter {
   }
 
   pull(output: Float32Array[]): number {
+    if (this.wsola.input.length < this.latencyFrames) {
+      return 0;
+    }
     this.pump();
     return this.resampler.pull({
       output,

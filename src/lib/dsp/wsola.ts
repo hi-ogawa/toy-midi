@@ -216,7 +216,7 @@ export class StreamingWsola {
   private readonly windowFrames: number;
   private readonly hopFrames: number;
   private readonly searchFrames: number;
-  private readonly input: PlanarStreamBuffer;
+  readonly input: PlanarStreamBuffer;
   private readonly overlapWindow: Float32Array;
 
   // Reused planar buffers for the carried second half-window and the next
