@@ -89,6 +89,9 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.keyboard.press("l");
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   await first.dblclick();
+  await seekRecorderByPixels(page, pixelsPerBeat * 5);
+  await page.keyboard.press("l");
+  const second = page.getByRole("button", { name: "Section 2", exact: true });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
   // Save restores the edited label and beat, but not the selection.
@@ -127,7 +130,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect(chorus).toHaveCount(0);
-  await expect(lane.getByRole("button")).toHaveCount(0);
+  await expect(second).toBeVisible();
+  await expect(lane.getByRole("button")).toHaveCount(1);
 });
