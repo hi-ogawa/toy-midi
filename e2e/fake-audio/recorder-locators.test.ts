@@ -75,11 +75,12 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   const lane = page.getByTestId("recorder-locator-lane");
   const saveProjectButton = page.getByTestId("recorder-save-button");
 
+  // Create and rename a locator at beat 2.5.
   await seekRecorderByPixels(page, 80 * 2.5);
   await page.keyboard.press("l");
-  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   await first.dblclick();
+  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
