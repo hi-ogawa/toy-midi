@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { createCheckpoint } from "../helpers";
 import {
   createRecorderProject,
   dragBy,
@@ -8,7 +7,6 @@ import {
 } from "./recorder-helpers";
 
 test("edits, seeks, and selects recorder locators", async ({ page }) => {
-  const checkpoint = createCheckpoint();
   await createRecorderProject(page);
   const pixelsPerBeat = 80;
   const add = page.getByRole("button", { name: "Add locator at playhead" });
@@ -68,7 +66,6 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await expect.poll(() => getRecorderBeat(page)).toBe(6);
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  checkpoint("create, rename, deselect, and drag");
 });
 
 test("persists recorder locator edits and deletion", async ({ page }) => {
