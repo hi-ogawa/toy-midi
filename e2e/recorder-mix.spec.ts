@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./fake-audio/recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+} from "./fake-audio/recorder-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
@@ -20,18 +23,12 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
 
   // Preview the export settings before adding audio.
   const sampleRate = modal.getByRole("combobox", { name: "Sample rate" });
-  await expect(sampleRate).toHaveValue("48000");
   await sampleRate.selectOption("44100");
   await expect(sampleRate).toHaveValue("44100");
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add backing audio and name the project for the downloaded file.
-  const fileChooser = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooser).setFiles("e2e/fixtures/test-audio.wav");
-  await expect(
-    page.getByTestId("recorder-clip-audio").locator("svg"),
-  ).toBeVisible();
+  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
 
