@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject } from "./recorder-helpers";
+import { createRecorderProject, getRecorderPosition } from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
@@ -21,9 +21,7 @@ test("saves and restores a recorder project", async ({ page }) => {
 
   // Transport updates are session state and do not stale persisted state.
   await page.getByTestId("recorder-play-button").click();
-  await expect(page.getByTestId("recorder-position")).not.toHaveText(
-    "1.1 - 0:00.000",
-  );
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await page.getByTestId("recorder-play-button").click();
   await expect(
     page.getByRole("button", { name: "All changes saved" }),

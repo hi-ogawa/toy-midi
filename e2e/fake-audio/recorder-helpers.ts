@@ -15,6 +15,18 @@ export async function seekRecorderByPixels(page: Page, pixels: number) {
   await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
 }
 
+export async function getRecorderPosition(page: Page): Promise<number> {
+  return page
+    .getByTestId("recorder-position")
+    .evaluate((element) => Number(element.dataset.position));
+}
+
+export async function getRecorderBeat(page: Page): Promise<number> {
+  return page
+    .getByTestId("recorder-position")
+    .evaluate((element) => Number(element.dataset.beat));
+}
+
 export async function dragBy(
   page: Page,
   locator: Locator,

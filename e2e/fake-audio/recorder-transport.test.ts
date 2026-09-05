@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
   enableInput,
+  getRecorderBeat,
+  getRecorderPosition,
   seekRecorderByPixels,
 } from "./recorder-helpers";
 
@@ -16,6 +18,8 @@ test("snaps recorder timeline seeking to the selected grid", async ({
   // The default 1/16 grid has four subdivisions per beat, so 0.9 beats snaps
   // to beat 1 rather than the adjacent 0.75-beat grid point.
   await seekRecorderByPixels(page, pixelsPerBeat * 0.9);
+  await expect.poll(() => getRecorderBeat(page)).toBe(1);
+  // Keep explicit coverage of the combined musical and elapsed-time display.
   await expect(position).toHaveText("01|02 - 00:00.500");
 
   // On the 1/4 grid, 0.4 beats rounds back to beat 0 rather than seeking to
@@ -23,27 +27,26 @@ test("snaps recorder timeline seeking to the selected grid", async ({
   await page.getByRole("button", { name: "1/16" }).click();
   await page.getByRole("menuitemradio", { name: "1/4" }).click();
   await seekRecorderByPixels(page, pixelsPerBeat * 0.4);
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderBeat(page)).toBe(0);
 });
 
 test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await createRecorderProject(page);
 
   // Plain arrows move in five-second steps and clamp at the timeline start.
-  const position = page.getByTestId("recorder-position");
   await page.keyboard.press("ArrowRight");
-  await expect(position).toHaveText("03|03 - 00:05.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(5);
 
   await page.keyboard.press("ArrowLeft");
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
   await page.keyboard.press("ArrowLeft");
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
 
   // Focused text controls retain their native arrow-key behavior.
   const tempoInput = page.getByTestId("recorder-tempo-input");
   await tempoInput.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
 
   // Seeking during playback restarts participants and keeps the transport rolling.
   await tempoInput.blur();
@@ -53,14 +56,17 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await playButton.click();
-  await expect(position).toContainText(/00:0[5-9]\.|00:[1-5]\d\./);
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(5);
 
   // Recording owns transport timing, so arrows cannot seek an active capture.
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
+  const positionBeforeSeek = await getRecorderPosition(page);
   await page.keyboard.press("ArrowRight");
-  await expect(position).not.toContainText("00:05.");
+  await expect
+    .poll(() => getRecorderPosition(page))
+    .toBeLessThan(positionBeforeSeek + 5);
   await recordButton.click();
 });

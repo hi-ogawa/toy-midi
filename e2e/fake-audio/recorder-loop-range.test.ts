@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   createRecorderProject,
   dragBy,
+  getRecorderBeat,
   seekRecorderByPixels,
 } from "./recorder-helpers";
 
@@ -23,21 +24,20 @@ test("creates and edits a persisted loop range", async ({ page }) => {
 
   // Enabled playback returns to loop-in after reaching the end of the range.
   const playButton = page.getByTestId("recorder-play-button");
-  const position = page.getByTestId("recorder-position");
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
   await expect
-    .poll(async () => position.textContent(), {
+    .poll(() => getRecorderBeat(page), {
       intervals: [50],
       timeout: 1_500,
     })
-    .toMatch(/^01\|0[34] /);
+    .toBeGreaterThanOrEqual(2);
   await expect
-    .poll(async () => position.textContent(), {
+    .poll(() => getRecorderBeat(page), {
       intervals: [50],
       timeout: 1_500,
     })
-    .toMatch(/^01\|0[12] /);
+    .toBeLessThan(2);
   await playButton.click();
 
   // The range label moves it while the range body remains available to seek.
@@ -46,7 +46,7 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   assert(movedBox);
   expect(movedBox.x).toBeCloseTo(initialBox.x + 80, -1);
   await seekRecorderByPixels(page, 320);
-  await expect(position).toHaveText(/^02\|01 /);
+  await expect.poll(() => getRecorderBeat(page)).toBe(4);
 
   // Disabling playback keeps the edited range available for later use.
   await toggle.click();
