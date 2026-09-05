@@ -59,7 +59,7 @@ describe("listenPointerGesture", () => {
 
     listener.click();
     expect(onClick).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(250);
+    vi.advanceTimersByTime(150);
 
     expect(onClick).toHaveBeenCalledOnce();
     listener.cleanup();
@@ -88,7 +88,7 @@ describe("listenPointerGesture", () => {
     const listener = createListener({ onClick, onDoubleClick });
 
     listener.click();
-    vi.advanceTimersByTime(250);
+    vi.advanceTimersByTime(150);
     listener.doubleClick();
 
     expect(onClick).toHaveBeenCalledOnce();

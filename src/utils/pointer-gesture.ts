@@ -1,5 +1,9 @@
 import { listenPointerDrag } from "./pointer-drag.ts";
 
+// Keep single clicks responsive while giving fast native double-clicks a chance
+// to supersede them. Slower double-clicks still fire after the single click.
+const deferredClickDelay = 150;
+
 export type PointerGesture<T> = {
   data: T;
   deltaX: number;
@@ -87,7 +91,7 @@ export function listenPointerGesture<T>({
         const timeout = setTimeout(() => {
           clickTimeouts.delete(timeout);
           onClick?.(event, gesture);
-        }, 250);
+        }, deferredClickDelay);
         clickTimeouts.add(timeout);
       } else {
         onClick?.(event, gesture);
