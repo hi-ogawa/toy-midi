@@ -6,9 +6,10 @@ import {
   seekRecorderByPixels,
 } from "./recorder-helpers";
 
+const pixelsPerBeat = 80;
+
 test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await createRecorderProject(page);
-  const pixelsPerBeat = 80;
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
@@ -81,39 +82,39 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const verse = page.getByRole("button", { name: "Verse", exact: true });
   const lane = page.getByTestId("recorder-locator-lane");
-  const saveProjectButton = page.getByTestId("recorder-save-button");
+  const saveButton = page.getByTestId("recorder-save-button");
 
   // Create and rename a locator at beat 2.5.
-  await seekRecorderByPixels(page, 80 * 2.5);
+  await seekRecorderByPixels(page, pixelsPerBeat * 2.5);
   await page.keyboard.press("l");
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   await first.dblclick();
-  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
   await expect(verse).toHaveAttribute("aria-pressed", "true");
-  await saveProjectButton.click();
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(verse).toHaveAttribute("aria-pressed", "false");
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Renaming dirties the project.
   page.once("dialog", (dialog) => dialog.accept("Chorus"));
   await verse.dblclick();
   const chorus = page.getByRole("button", { name: "Chorus", exact: true });
-  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
-  await saveProjectButton.click();
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Moving a locator dirties the project and persists its new beat.
-  await dragBy(page, chorus, 40);
-  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
-  await saveProjectButton.click();
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
+  await dragBy(page, chorus, pixelsPerBeat * 0.5);
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(chorus).toHaveAttribute("aria-pressed", "false");
   await chorus.click();
@@ -122,9 +123,9 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   // Deleting a locator dirties the project and persists its removal.
   await page.keyboard.press("Delete");
   await expect(chorus).toHaveCount(0);
-  await expect(saveProjectButton).toHaveAttribute("data-status", "unsaved");
-  await saveProjectButton.click();
-  await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect(chorus).toHaveCount(0);
