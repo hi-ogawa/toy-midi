@@ -103,31 +103,34 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Renaming dirties the project.
-  page.once("dialog", (dialog) => dialog.accept("Chorus"));
+  page.once("dialog", (dialog) => dialog.accept("Renamed 1"));
   await first.dblclick();
-  const chorus = page.getByRole("button", { name: "Chorus", exact: true });
+  const firstRenamed = page.getByRole("button", {
+    name: "Renamed 1",
+    exact: true,
+  });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Moving a locator dirties the project and persists its new beat.
-  await dragBy(page, chorus, pixelsPerBeat * 0.5);
+  await dragBy(page, firstRenamed, pixelsPerBeat * 0.5);
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(chorus).toHaveAttribute("aria-pressed", "false");
-  await chorus.click();
+  await expect(firstRenamed).toHaveAttribute("aria-pressed", "false");
+  await firstRenamed.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
 
   // Deleting a locator dirties the project and persists its removal.
   await page.keyboard.press("Delete");
-  await expect(chorus).toHaveCount(0);
+  await expect(firstRenamed).toHaveCount(0);
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(chorus).toHaveCount(0);
+  await expect(firstRenamed).toHaveCount(0);
   await expect(second).toBeVisible();
   await expect(lane.getByRole("button")).toHaveCount(1);
 });
