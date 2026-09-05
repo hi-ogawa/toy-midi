@@ -221,17 +221,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   return (
-    <main
-      className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
-      onPointerDownCapture={(event) => {
-        if (
-          event.target instanceof Element &&
-          !event.target.closest("[data-recorder-locators]")
-        ) {
-          locators.select(undefined);
-        }
-      }}
-    >
+    <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
       <RecorderHeader
         title={state.title}
         saveStatus={project.saveStatus}

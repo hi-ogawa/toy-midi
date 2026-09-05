@@ -59,10 +59,7 @@ export function RecorderLocatorRow({
 }) {
   const sorted = [...locators.items].sort((a, b) => a.beat - b.beat);
   return (
-    <div
-      data-recorder-locators
-      className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800"
-    >
+    <div className="grid h-7 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800">
       <div className="flex items-center justify-between border-r border-neutral-700 px-3 text-xs font-semibold text-neutral-400">
         <span>Locators</span>
         <Button
