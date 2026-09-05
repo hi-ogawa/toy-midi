@@ -330,6 +330,16 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.setPunch({ range: undefined, enabled: false })
                 }
               />
+              {/* Continue the track playhead through the sticky header. Locator
+                  markers have a positive z-index so they stay above this line. */}
+              {timeline.showPlayhead && (
+                <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 w-px bg-sky-400"
+                    style={{ left: timeline.playheadX }}
+                  />
+                </div>
+              )}
             </div>
             {state.referenceVideo && (
               <ReferenceTimelineRow
