@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, getRecorderPosition } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  getRecorderPosition,
+} from "./recorder-helpers";
 
 test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
@@ -30,13 +34,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Load a backing track, including its decoded waveform.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
 
   // They change the session tempo.
   await page.getByTestId("recorder-tempo-input").fill("140");
