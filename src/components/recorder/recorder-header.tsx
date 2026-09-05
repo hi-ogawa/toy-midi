@@ -262,6 +262,7 @@ export function RecorderHeader({
       </Button>
       <output
         data-testid="recorder-position"
+        data-position={position}
         className="font-mono text-sm tabular-nums text-neutral-300"
       >
         {formatBarBeatAtTime({ seconds: position, tempo, timeSignature })} -{" "}

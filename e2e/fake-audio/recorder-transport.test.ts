@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createCheckpoint } from "../helpers";
 import {
   createRecorderProject,
   enableInput,
@@ -63,4 +64,31 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(position).not.toContainText("00:05.");
   await recordButton.click();
+});
+
+test("advances recorder position at the selected playback rate", async ({
+  page,
+}) => {
+  const checkpoint = createCheckpoint();
+  await createRecorderProject(page);
+
+  await page.getByTestId("recorder-playback-rate").click();
+  await page.getByRole("menuitemradio", { name: "0.5x" }).click();
+  const position = page.getByTestId("recorder-position");
+  const sample = () =>
+    position.evaluate((element) => ({
+      wallTime: performance.now() / 1_000,
+      position: Number(element.dataset.position),
+    }));
+
+  await page.getByTestId("recorder-play-button").click();
+  const start = await sample();
+  await page.waitForTimeout(1_000);
+  const end = await sample();
+  checkpoint("sample playback clocks");
+
+  const observedRate =
+    (end.position - start.position) / (end.wallTime - start.wallTime);
+  expect(observedRate).toBeGreaterThan(0.4);
+  expect(observedRate).toBeLessThan(0.6);
 });
