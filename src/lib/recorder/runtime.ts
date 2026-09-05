@@ -98,7 +98,7 @@ export interface RecorderLocator {
   label: string;
 }
 
-type RecorderLocatorUpdate = {
+export type RecorderLocatorUpdate = {
   id: string;
   beat?: number;
   label?: string;

@@ -6,6 +6,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
   RecorderLocator,
+  RecorderLocatorUpdate,
 } from "../../lib/recorder/runtime";
 import { secondsToBeats } from "../../lib/timeline";
 import { Button } from "../ui/button";
@@ -43,11 +44,8 @@ export function useRecorderLocators({
     setSelectedId(id);
   }
 
-  function update(
-    id: string,
-    changes: Partial<Pick<RecorderLocator, "beat" | "label">>,
-  ) {
-    runtime.updateLocator({ id, ...changes });
+  function update(update: RecorderLocatorUpdate) {
+    runtime.updateLocator(update);
   }
 
   function removeSelected() {
@@ -115,7 +113,9 @@ export function RecorderLocatorRow({
             subdivisionsPerBeat={subdivisionsPerBeat}
             onSelect={() => onSelect(locator.id)}
             onSeek={() => onSeek(locator.beat)}
-            onUpdate={(changes) => locators.update(locator.id, changes)}
+            onUpdate={(changes) =>
+              locators.update({ id: locator.id, ...changes })
+            }
           />
         ))}
       </div>
@@ -140,7 +140,7 @@ function LocatorMarker({
   subdivisionsPerBeat: number;
   onSelect: () => void;
   onSeek: () => void;
-  onUpdate: (changes: Partial<Pick<RecorderLocator, "beat" | "label">>) => void;
+  onUpdate: (changes: Omit<RecorderLocatorUpdate, "id">) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const dragRef = usePointerGesture({
