@@ -96,6 +96,7 @@ export function RecorderLocatorRow({
         </Button>
       </div>
       <div
+        data-testid="recorder-locator-lane"
         className="relative overflow-hidden"
         onPointerDown={(event) => {
           if (event.button === 0) {
