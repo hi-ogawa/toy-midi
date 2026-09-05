@@ -55,7 +55,9 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   const lane = page.getByTestId("recorder-locator-lane");
   const laneBox = await lane.boundingBox();
   expect(laneBox).not.toBeNull();
-  await lane.click({ position: { x: laneBox!.width - 10, y: 12 } });
+  await lane.click({
+    position: { x: laneBox!.width - 10, y: laneBox!.height / 2 },
+  });
   await expect(verse).toHaveAttribute("aria-pressed", "false");
   await expect.poll(() => getRecorderBeat(page)).toBe(1);
 
