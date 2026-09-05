@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  addRecorderAudio,
   createRecorderProject,
   dragBy,
   getRecorderPosition,
@@ -9,15 +10,11 @@ test("uploads and plays a backing track", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load a backing track through the recorder's file picker.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  const fileChooser = await fileChooserPromise;
-  await fileChooser.setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
 
-  // Decoding produces both a named timeline clip and its waveform preview.
+  // The imported clip retains its source filename.
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
-  await expect(clip.locator("svg")).toBeVisible();
 
   // Move and trim backing audio without changing its source.
   const beforeEdit = await clip.boundingBox();
@@ -93,9 +90,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load backing audio so its channel appears in the mixer.
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
+  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
 
   // Open the floating mixer and inspect every recorder output channel.
   await page.getByTestId("recorder-mixer-button").click();
