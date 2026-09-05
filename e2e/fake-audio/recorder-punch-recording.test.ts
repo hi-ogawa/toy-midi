@@ -36,10 +36,16 @@ test("records only the punched interval into the comp", async ({ page }) => {
         (await page.getByTestId("recorder-playhead").boundingBox())?.x,
     )
     .toBeGreaterThanOrEqual(punchBox.x + punchBox.width);
+  await expect
+    .poll(async () => {
+      const pendingCompBox = await pendingComp.boundingBox();
+      assert(pendingCompBox);
+      return pendingCompBox.width;
+    })
+    .toBeCloseTo(punchBox.width, -1);
   const pendingCompBox = await pendingComp.boundingBox();
   assert(pendingCompBox);
   expect(pendingCompBox.x).toBeCloseTo(punchBox.x, -1);
-  expect(pendingCompBox.width).toBeCloseTo(punchBox.width, -1);
   await recordButton.click();
   await expect(take).toHaveCount(1);
   await expect(comp).toHaveCount(1);

@@ -47,6 +47,8 @@ import {
 import { cn } from "../ui/utils";
 import type { SaveStatus } from "./use-recorder-project";
 
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5];
+
 export function RecorderHeader({
   title,
   saveStatus,
@@ -59,6 +61,7 @@ export function RecorderHeader({
   loop,
   punch,
   position,
+  playbackRate,
   tempo,
   timeSignature,
   gridDivision,
@@ -69,6 +72,7 @@ export function RecorderHeader({
   onSave,
   onRecordToggle,
   onAutoScrollChange,
+  onPlaybackRateChange,
   onTempoChange,
   onMetronomeChange,
   onLoopChange,
@@ -91,6 +95,7 @@ export function RecorderHeader({
   loop: RecorderLoopState;
   punch: RecorderPunchState;
   position: number;
+  playbackRate: number;
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
@@ -101,6 +106,7 @@ export function RecorderHeader({
   onSave: () => void;
   onRecordToggle: () => void;
   onAutoScrollChange: (enabled: boolean) => void;
+  onPlaybackRateChange: (playbackRate: number) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
   onLoopChange: (update: Partial<RecorderLoopState>) => void;
@@ -264,6 +270,30 @@ export function RecorderHeader({
         {formatTimeWithMilliseconds(position)}
       </output>
       <div className="h-5 w-px bg-neutral-600" />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            data-testid="recorder-playback-rate"
+            disabled={isRecording || isProcessing}
+            className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
+          >
+            {playbackRate}x
+            <ChevronDownIcon className="size-3 text-neutral-400" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuRadioGroup
+            value={String(playbackRate)}
+            onValueChange={(value) => onPlaybackRateChange(Number(value))}
+          >
+            {PLAYBACK_RATES.map((value) => (
+              <DropdownMenuRadioItem key={value} value={String(value)}>
+                {value}x
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className="flex items-center gap-1.5 text-xs text-neutral-400">
         <span>BPM</span>
         <input

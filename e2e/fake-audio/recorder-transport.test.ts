@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createCheckpoint } from "../helpers";
 import {
   createRecorderProject,
   enableInput,
@@ -34,6 +35,7 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await createRecorderProject(page);
 
   // Plain arrows move in five-second steps and clamp at the timeline start.
+  await page.getByTestId("recorder-position").focus();
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => getRecorderPosition(page)).toBe(5);
 
@@ -70,3 +72,29 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
     .toBeLessThan(positionBeforeSeek + 5);
   await recordButton.click();
 });
+
+for (const playbackRate of [0.5, 1.5]) {
+  test(`advances recorder position at ${playbackRate}x`, async ({ page }) => {
+    const checkpoint = createCheckpoint();
+    await createRecorderProject(page);
+
+    await page.getByTestId("recorder-playback-rate").click();
+    await page.getByRole("menuitemradio", { name: `${playbackRate}x` }).click();
+    const position = page.getByTestId("recorder-position");
+    const sample = () =>
+      position.evaluate((element) => ({
+        wallTime: performance.now() / 1_000,
+        position: Number(element.dataset.position),
+      }));
+
+    await page.getByTestId("recorder-play-button").click();
+    const start = await sample();
+    await page.waitForTimeout(1_000);
+    const end = await sample();
+
+    const observedRate =
+      (end.position - start.position) / (end.wallTime - start.wallTime);
+    checkpoint("sample playback clocks");
+    expect(observedRate).toBeCloseTo(playbackRate, 1);
+  });
+}
