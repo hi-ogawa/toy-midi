@@ -11,7 +11,7 @@ import { snapToGrid } from "../../lib/music";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
-import { secondsToBeats } from "../../lib/timeline";
+import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -300,6 +300,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
                 onAdd={addLocator}
+                onSeek={(beat) =>
+                  runtime.seek(beatsToSeconds(beat, timeline.tempo))
+                }
                 onSelect={(id) => {
                   clipInteraction.clear();
                   locators.select(id);

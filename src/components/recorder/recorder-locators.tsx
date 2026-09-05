@@ -47,6 +47,7 @@ export function RecorderLocatorRow({
   subdivisionsPerBeat,
   onAdd,
   onSelect,
+  onSeek,
 }: {
   locators: ReturnType<typeof useRecorderLocators>;
   pixelsPerBeat: number;
@@ -54,6 +55,7 @@ export function RecorderLocatorRow({
   subdivisionsPerBeat: number;
   onAdd: () => void;
   onSelect: (id: string) => void;
+  onSeek: (beat: number) => void;
 }) {
   const sorted = [...locators.items].sort((a, b) => a.beat - b.beat);
   return (
@@ -74,7 +76,22 @@ export function RecorderLocatorRow({
       </div>
       <div
         className="relative overflow-hidden"
-        onPointerDown={() => locators.select(undefined)}
+        onPointerDown={(event) => {
+          if (event.button !== 0) {
+            return;
+          }
+          locators.select(undefined);
+          const rect = event.currentTarget.getBoundingClientRect();
+          onSeek(
+            Math.max(
+              0,
+              snapToGrid(
+                viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
+                1 / subdivisionsPerBeat,
+              ),
+            ),
+          );
+        }}
       >
         {sorted.map((locator, index) => (
           <LocatorMarker
@@ -93,7 +110,10 @@ export function RecorderLocatorRow({
             )}
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
-            onSelect={() => onSelect(locator.id)}
+            onSelect={() => {
+              onSelect(locator.id);
+              onSeek(locator.beat);
+            }}
             onUpdate={(changes) => locators.update(locator.id, changes)}
           />
         ))}
