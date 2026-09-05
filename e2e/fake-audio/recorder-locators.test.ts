@@ -17,14 +17,18 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
   const verse = page.getByRole("button", { name: "Verse", exact: true });
-  const unsaved = page.getByRole("button", { name: /Unsaved changes/ });
-  const saved = page.getByRole("button", { name: "All changes saved" });
+  const unsavedProjectButton = page.getByRole("button", {
+    name: /Unsaved changes/,
+  });
+  const savedProjectButton = page.getByRole("button", {
+    name: "All changes saved",
+  });
 
   // Both creation controls use the snapped playhead and select the new marker.
   await seekRecorderByPixels(page, pixelsPerBeat * 0.9);
   await page.keyboard.press("l");
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await expect(unsaved).toBeEnabled();
+  await expect(unsavedProjectButton).toBeEnabled();
   await seekRecorderByPixels(page, pixelsPerBeat * 4);
   await add.click();
   await expect(second).toHaveAttribute("aria-pressed", "true");
@@ -99,40 +103,40 @@ test("edits, seeks, selects, and persists recorder locators", async ({
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
-  await unsaved.click();
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await unsavedProjectButton.click();
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
   await page.reload();
   await expect(verse).toHaveAttribute("aria-pressed", "false");
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
 
   // Musical position survives tempo changes; each locator edit dirties the save.
   await page.getByTestId("recorder-tempo-input").fill("90");
   await page.getByTestId("recorder-tempo-input").press("Enter");
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
-  await unsaved.click();
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await unsavedProjectButton.click();
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
   page.once("dialog", (dialog) => dialog.accept("Chorus"));
   await verse.dblclick();
   const chorus = page.getByRole("button", { name: "Chorus", exact: true });
-  await expect(unsaved).toBeEnabled();
-  await unsaved.click();
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await expect(unsavedProjectButton).toBeEnabled();
+  await unsavedProjectButton.click();
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
   await dragBy(page, chorus, 40);
-  await expect(unsaved).toBeEnabled();
-  await unsaved.click();
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await expect(unsavedProjectButton).toBeEnabled();
+  await unsavedProjectButton.click();
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
   await page.reload();
   await expect(chorus).toHaveAttribute("aria-pressed", "false");
   await chorus.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
   await page.keyboard.press("Delete");
   await expect(chorus).toHaveCount(0);
-  await expect(unsaved).toBeEnabled();
-  await unsaved.click();
-  await expect(saved).toHaveAttribute("aria-disabled", "true");
+  await expect(unsavedProjectButton).toBeEnabled();
+  await unsavedProjectButton.click();
+  await expect(savedProjectButton).toHaveAttribute("aria-disabled", "true");
   await page.reload();
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect(chorus).toHaveCount(0);
