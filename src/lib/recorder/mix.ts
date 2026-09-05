@@ -120,7 +120,6 @@ function cropRegion({
   start: number;
   end: number;
 }): MixRegion {
-  start = Math.max(0, start);
   return {
     buffer,
     start,
