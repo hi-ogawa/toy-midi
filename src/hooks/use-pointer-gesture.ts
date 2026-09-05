@@ -7,6 +7,7 @@ import {
 export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
   const onStart = useEffectEvent(options.onStart);
   const onClick = useEffectEvent(options.onClick ?? (() => {}));
+  const onDoubleClick = useEffectEvent(options.onDoubleClick ?? (() => {}));
   const onDragStart = useEffectEvent(options.onDragStart ?? (() => {}));
   const onDragMove = useEffectEvent(options.onDragMove);
   const onDragEnd = useEffectEvent(options.onDragEnd ?? (() => {}));
@@ -21,6 +22,7 @@ export function usePointerGesture<T>(options: PointerGestureOptions<T>) {
       threshold: options.threshold,
       onStart,
       onClick,
+      onDoubleClick: options.onDoubleClick ? onDoubleClick : undefined,
       onDragStart,
       onDragMove,
       onDragEnd,

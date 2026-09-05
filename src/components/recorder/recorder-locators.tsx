@@ -148,6 +148,7 @@ function LocatorMarker({
       return locator.beat;
     },
     onClick: onSeek,
+    onDoubleClick: rename,
     onDragStart: () => setDragging(true),
     onDragMove: (_event, { data, deltaX }) => {
       onUpdate({
@@ -182,7 +183,6 @@ function LocatorMarker({
         aria-label={locator.label}
         aria-pressed={selected}
         title={`${locator.label}\nDrag to move · Double-click to rename · Delete to remove`}
-        onDoubleClick={rename}
         className={cn(
           "group absolute inset-y-0 -left-1.5 flex w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
           selected && "text-sky-300",
