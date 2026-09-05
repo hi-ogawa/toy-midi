@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import { createRecorderProject } from "./fake-audio/recorder-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
+  // Try exporting an empty project and verify the render error allows retrying.
   await createRecorderProject(page);
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page
@@ -16,6 +17,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
     page.getByText("No audio to export.", { exact: true }),
   ).toBeVisible();
   await expect(exportButton).toBeEnabled();
+  // Preview the export settings before adding audio.
   await expect(
     modal.getByText("WAV, stereo, 16-bit PCM", { exact: true }),
   ).toBeVisible();
@@ -25,6 +27,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await expect(sampleRate).toHaveValue("44100");
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
+  // Add backing audio and name the project for the downloaded file.
   const fileChooser = page.waitForEvent("filechooser");
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooser).setFiles("e2e/fixtures/test-audio.wav");
@@ -34,6 +37,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
 
+  // Reopen the dialog, retain the selected setting, and export the mix.
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page
     .getByRole("menuitem", { name: "Export Audio", exact: true })
@@ -46,6 +50,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^Final_mix-.*\.wav$/);
   const path = test.info().outputPath("mix.wav");
   await download.saveAs(path);
+  // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
   const wav = await readFile(path);
   expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
   expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
