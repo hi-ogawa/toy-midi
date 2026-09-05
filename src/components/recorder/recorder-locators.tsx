@@ -81,16 +81,6 @@ export function RecorderLocatorRow({
             return;
           }
           locators.select(undefined);
-          const rect = event.currentTarget.getBoundingClientRect();
-          onSeek(
-            Math.max(
-              0,
-              snapToGrid(
-                viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
-                1 / subdivisionsPerBeat,
-              ),
-            ),
-          );
         }}
       >
         {sorted.map((locator, index) => (
