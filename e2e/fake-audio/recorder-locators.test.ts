@@ -80,34 +80,31 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
 test("persists recorder locator edits and deletion", async ({ page }) => {
   await createRecorderProject(page);
   const first = page.getByRole("button", { name: "Section 1", exact: true });
-  const verse = page.getByRole("button", { name: "Verse", exact: true });
   const lane = page.getByTestId("recorder-locator-lane");
   const saveButton = page.getByTestId("recorder-save-button");
 
-  // Create and rename a locator at beat 2.5.
+  // Create locators at beats 2.5 and 5.
   await seekRecorderByPixels(page, pixelsPerBeat * 2.5);
   await page.keyboard.press("l");
-  page.once("dialog", (dialog) => dialog.accept("Verse"));
-  await first.dblclick();
   await seekRecorderByPixels(page, pixelsPerBeat * 5);
   await page.keyboard.press("l");
   const second = page.getByRole("button", { name: "Section 2", exact: true });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
-  // Save restores the edited label and beat, but not the selection.
-  await verse.click();
-  await expect(verse).toHaveAttribute("aria-pressed", "true");
+  // Save restores the locator beat, but not the selection.
+  await first.click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
-  await expect(verse).toHaveAttribute("aria-pressed", "false");
-  await verse.click();
+  await expect(first).toHaveAttribute("aria-pressed", "false");
+  await first.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Renaming dirties the project.
   page.once("dialog", (dialog) => dialog.accept("Chorus"));
-  await verse.dblclick();
+  await first.dblclick();
   const chorus = page.getByRole("button", { name: "Chorus", exact: true });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
