@@ -41,11 +41,11 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   await exportButton.click();
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^Final_mix-.*\.wav$/);
-  const path = test.info().outputPath("mix.wav");
-  await download.saveAs(path);
+  const downloadPath = test.info().outputPath("mix.wav");
+  await download.saveAs(downloadPath);
 
   // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
-  const wav = await readFile(path);
+  const wav = await readFile(downloadPath);
   expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
   expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
   expect(wav.readUInt32LE(4)).toBe(wav.length - 8);
