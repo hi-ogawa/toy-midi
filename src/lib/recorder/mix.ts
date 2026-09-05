@@ -14,12 +14,7 @@ interface RecorderMix {
 }
 
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
-export function resolveRecorderMix(
-  state: Pick<
-    RecorderRuntimeState,
-    "audioTracks" | "recordingTrack" | "takeRegions" | "masterGain"
-  >,
-): RecorderMix {
+export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const { audioTrackGains, recordingGain } = deriveTrackMix(state);
   const tracks: RecorderMix["tracks"] = state.audioTracks.map(
     (track, index) => ({
