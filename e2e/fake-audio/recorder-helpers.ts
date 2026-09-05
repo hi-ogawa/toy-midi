@@ -8,13 +8,10 @@ export async function createRecorderProject(page: Page): Promise<void> {
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
 }
 
-export async function addRecorderAudio({
-  page,
-  filePath,
-}: {
-  page: Page;
-  filePath: string;
-}): Promise<void> {
+export async function addRecorderAudio(
+  page: Page,
+  filePath: string,
+): Promise<void> {
   const clips = page.getByTestId("recorder-clip-audio");
   const count = await clips.count();
   const fileChooser = page.waitForEvent("filechooser");

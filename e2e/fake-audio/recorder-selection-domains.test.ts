@@ -17,7 +17,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await add.click();
 
   // Selecting a locator after a waveform makes Delete remove only the locator.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio");
   await audio.click();
   await expect(audio).toHaveAttribute("data-selected", "true");

@@ -11,7 +11,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
 
   // Build an editable project with backing audio and two retained takes.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");

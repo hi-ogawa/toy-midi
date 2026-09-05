@@ -34,7 +34,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Load a backing track, including its decoded waveform.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const clip = page.getByTestId("recorder-clip-audio");
   await expect(clip).toContainText("test-audio.wav");
 

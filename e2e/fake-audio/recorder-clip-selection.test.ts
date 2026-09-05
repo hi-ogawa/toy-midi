@@ -11,7 +11,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await createRecorderProject(page);
 
   // Import a backing track.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   const audio = page.getByTestId("recorder-clip-audio");
 
   // Record a take away from zero.

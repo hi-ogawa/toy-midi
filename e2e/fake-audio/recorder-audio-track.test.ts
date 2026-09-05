@@ -10,7 +10,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load a backing track through the recorder's file picker.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   // The imported clip retains its source filename.
   const clip = page.getByTestId("recorder-clip-audio");
@@ -90,7 +90,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await createRecorderProject(page);
 
   // Load backing audio so its channel appears in the mixer.
-  await addRecorderAudio({ page, filePath: "e2e/fixtures/test-audio.wav" });
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
   // Open the floating mixer and inspect every recorder output channel.
   await page.getByTestId("recorder-mixer-button").click();
