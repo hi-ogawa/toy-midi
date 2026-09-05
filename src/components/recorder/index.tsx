@@ -287,7 +287,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
           <div className="relative">
             {timeline.showPlayhead && (
-              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-30 overflow-hidden">
+              <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
                 <div
                   data-testid="recorder-playhead"
                   className="absolute inset-y-0 w-px bg-sky-400"
