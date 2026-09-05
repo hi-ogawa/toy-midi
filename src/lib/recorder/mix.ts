@@ -25,12 +25,14 @@ export function resolveRecorderMix(
     (track, index) => ({
       gain: audioTrackGains[index]!,
       regions: track.clip
-        ? cropRegion({
-            buffer: track.clip.buffer,
-            timelineOffset: track.timelineOffset,
-            start: track.timelineOffset + track.trimStart,
-            end: track.timelineOffset + track.trimEnd,
-          })
+        ? [
+            cropRegion({
+              buffer: track.clip.buffer,
+              timelineOffset: track.timelineOffset,
+              start: track.timelineOffset + track.trimStart,
+              end: track.timelineOffset + track.trimEnd,
+            }),
+          ]
         : [],
     }),
   );
@@ -38,12 +40,14 @@ export function resolveRecorderMix(
     gain: recordingGain,
     regions: state.takeRegions.flatMap((region) =>
       region.take.buffer
-        ? cropRegion({
-            buffer: region.take.buffer,
-            timelineOffset: region.take.timelineOffset,
-            start: region.timelineStart,
-            end: region.timelineEnd,
-          })
+        ? [
+            cropRegion({
+              buffer: region.take.buffer,
+              timelineOffset: region.take.timelineOffset,
+              start: region.timelineStart,
+              end: region.timelineEnd,
+            }),
+          ]
         : [],
     ),
   });
@@ -115,12 +119,12 @@ function cropRegion({
   timelineOffset: number;
   start: number;
   end: number;
-}): MixRegion[] {
-  if (end <= 0) {
-    return [];
-  }
+}): MixRegion {
   start = Math.max(0, start);
-  return [
-    { buffer, start, offset: start - timelineOffset, duration: end - start },
-  ];
+  return {
+    buffer,
+    start,
+    offset: start - timelineOffset,
+    duration: end - start,
+  };
 }
