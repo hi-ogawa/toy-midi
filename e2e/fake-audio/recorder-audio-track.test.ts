@@ -97,6 +97,20 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   await page.getByTestId("recorder-add-audio-file").click();
   await (await fileChooserPromise).setFiles("e2e/fixtures/test-audio.wav");
 
+  // Master gain stays available without opening the mixer and steps by 0.5 dB.
+  const masterGain = page.getByRole("slider", { name: "Master gain" });
+  await expect(masterGain).toHaveValue("0");
+  await masterGain.press("ArrowDown");
+  await expect(masterGain).toHaveValue("-0.5");
+
+  // Track gain uses the same dB keyboard step without seeking the timeline.
+  const position = page.getByTestId("recorder-position");
+  const initialPosition = await position.getAttribute("data-position");
+  const audioGain = page.getByRole("slider", { name: "Audio 1 gain" });
+  await audioGain.press("ArrowDown");
+  await expect(audioGain).toHaveValue("-0.5");
+  await expect(position).toHaveAttribute("data-position", initialPosition!);
+
   // Open the floating mixer and inspect every recorder output channel.
   await page.getByTestId("recorder-mixer-button").click();
   const panel = page.getByTestId("recorder-mixer-panel");
@@ -110,6 +124,7 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   const masterLevel = panel.getByRole("textbox", {
     name: "Master level in dB",
   });
+  await expect(masterLevel).toHaveValue("-0.5");
   await masterLevel.fill("-6");
   await masterLevel.press("Enter");
   await expect(masterLevel).toHaveValue("-6.0");

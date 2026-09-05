@@ -115,7 +115,7 @@ export function matchKeyboardEvent(
 
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
   return (
-    (target instanceof HTMLInputElement && target.type !== "range") ||
+    target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
     (target instanceof HTMLElement && target.isContentEditable)

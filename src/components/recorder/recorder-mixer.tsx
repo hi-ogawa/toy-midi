@@ -6,9 +6,8 @@ import {
   MIN_DB,
   dbToGain,
   dbToPercent,
+  formatGainDb,
   gainToDb,
-  gainToPercent,
-  percentToGain,
 } from "../../lib/music";
 import type {
   RecorderRuntime,
@@ -17,6 +16,36 @@ import type {
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
+
+export function RecorderGainControl({
+  label,
+  gain,
+  onGainChange,
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-[10px] text-neutral-400">
+      <span className="font-medium uppercase tracking-wide">{label}</span>
+      <input
+        data-testid={`recorder-${label.toLowerCase()}-gain`}
+        aria-label={`${label} gain`}
+        type="range"
+        min={MIN_DB}
+        max={MAX_DB}
+        step={0.5}
+        value={gainToDb(gain)}
+        onChange={(event) =>
+          onGainChange(dbToGain(event.currentTarget.valueAsNumber))
+        }
+        className="w-24 accent-emerald-600"
+      />
+      <span className="w-12 text-right font-mono">{formatGainDb(gain)}</span>
+    </label>
+  );
+}
 
 export function RecorderMixer({
   runtime,
@@ -197,11 +226,13 @@ function MixerChannel({
           style={{ bottom: `${dbToPercent(0)}%` }}
         />
         <Slider
-          value={[gainToPercent(gain)]}
-          onValueChange={([value]) => onGainChange(percentToGain(value))}
-          max={100}
-          step={1}
+          value={[gainToDb(gain)]}
+          onValueChange={([value]) => onGainChange(dbToGain(value))}
+          min={MIN_DB}
+          max={MAX_DB}
+          step={0.5}
           orientation="vertical"
+          aria-label={`${label === "Metro" ? "Metronome" : label} gain`}
           className="h-48"
         />
       </div>

@@ -11,10 +11,12 @@ import {
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
 import {
+  MAX_DB,
+  MIN_DB,
+  dbToGain,
   dbToPercent,
   formatGainDb,
-  gainToPercent,
-  percentToGain,
+  gainToDb,
 } from "../../lib/music";
 import { openFilePicker } from "../file-drop-input";
 import { InputMeter } from "../input-meter";
@@ -141,12 +143,12 @@ export function TrackRow({
             <input
               aria-label={`${title} gain`}
               type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={gainToPercent(gain)}
+              min={MIN_DB}
+              max={MAX_DB}
+              step={0.5}
+              value={gainToDb(gain)}
               onChange={(event) =>
-                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
+                onGainChange(dbToGain(event.currentTarget.valueAsNumber))
               }
               className="w-full accent-emerald-600"
             />
@@ -341,12 +343,12 @@ export function CaptureTrackRow({
             <input
               aria-label="Capture gain"
               type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={gainToPercent(gain)}
+              min={MIN_DB}
+              max={MAX_DB}
+              step={0.5}
+              value={gainToDb(gain)}
               onChange={(event) =>
-                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
+                onGainChange(dbToGain(event.currentTarget.valueAsNumber))
               }
               className="block w-full accent-emerald-600"
             />
