@@ -116,8 +116,11 @@ function cropRegion({
   start: number;
   end: number;
 }): MixRegion[] {
+  if (end <= 0) {
+    return [];
+  }
   start = Math.max(0, start);
-  return end > start
-    ? [{ buffer, start, offset: start - timelineOffset, duration: end - start }]
-    : [];
+  return [
+    { buffer, start, offset: start - timelineOffset, duration: end - start },
+  ];
 }
