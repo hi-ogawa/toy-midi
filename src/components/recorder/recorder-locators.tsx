@@ -13,12 +13,14 @@ type Locator = { id: string; beat: number; label: string };
 export function useRecorderLocators({
   state,
   subdivisionsPerBeat,
+  onSelect,
 }: {
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
+  onSelect: () => void;
 }) {
   const [items, setItems] = useState<Locator[]>([]);
-  const [selectedId, select] = useState<string>();
+  const [selectedId, setSelectedId] = useState<string>();
   const nextNumber = useRef(1);
 
   function add() {
@@ -36,6 +38,13 @@ export function useRecorderLocators({
     };
     setItems((current) => [...current, locator]);
     select(locator.id);
+  }
+
+  function select(id: string | undefined) {
+    if (id !== undefined) {
+      onSelect();
+    }
+    setSelectedId(id);
   }
 
   function update(
