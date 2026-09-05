@@ -171,13 +171,6 @@ function LocatorMarker({
         aria-label={locator.label}
         aria-pressed={selected}
         title={`${locator.label}\nDrag to move · Double-click to rename · Delete to remove`}
-        onClick={(event) => {
-          // Pointer clicks are handled by the gesture; retain keyboard activation.
-          if (event.detail === 0) {
-            onSelect();
-            onSeek();
-          }
-        }}
         onDoubleClick={rename}
         className={cn(
           "group absolute inset-y-0 -left-1.5 flex w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
