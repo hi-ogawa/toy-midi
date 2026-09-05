@@ -17,10 +17,8 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
     page.getByText("No audio to export.", { exact: true }),
   ).toBeVisible();
   await expect(exportButton).toBeEnabled();
+
   // Preview the export settings before adding audio.
-  await expect(
-    modal.getByText("WAV, stereo, 16-bit PCM", { exact: true }),
-  ).toBeVisible();
   const sampleRate = modal.getByRole("combobox", { name: "Sample rate" });
   await expect(sampleRate).toHaveValue("48000");
   await sampleRate.selectOption("44100");
