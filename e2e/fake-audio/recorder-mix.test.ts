@@ -18,11 +18,10 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   ).toBeVisible();
   await expect(exportButton).toBeEnabled();
 
-  // Preview the export settings before adding audio.
-  const sampleRate = modal.getByRole("combobox", { name: "Sample rate" });
-  await expect(sampleRate).toHaveValue("48000");
-  await sampleRate.selectOption("44100");
-  await expect(sampleRate).toHaveValue("44100");
+  // Check the fixed export format before adding audio.
+  await expect(
+    modal.getByText("WAV, stereo, 48 kHz, 16-bit PCM", { exact: true }),
+  ).toBeVisible();
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
   // Add backing audio and name the project for the downloaded file.
@@ -35,13 +34,12 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
 
-  // Reopen the dialog, retain the selected setting, and export the mix.
+  // Reopen the dialog and export the mix.
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page
     .getByRole("menuitem", { name: "Export Audio", exact: true })
     .click();
   await expect(exportButton).toBeEnabled();
-  await expect(sampleRate).toHaveValue("44100");
   const downloadPromise = page.waitForEvent("download");
   await exportButton.click();
   const download = await downloadPromise;
@@ -53,5 +51,6 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   const wav = await readFile(downloadPath);
   expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
   expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
+  expect(wav.readUInt32LE(24)).toBe(48000);
   await expect(exportButton).toBeEnabled();
 });

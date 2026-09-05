@@ -929,7 +929,7 @@ export class RecorderRuntime {
     }
     return renderRecorderMix({
       mix: resolveRecorderMix(state),
-      sampleRate: this.ensureContext().sampleRate,
+      sampleRate: 48000,
     });
   }
 
