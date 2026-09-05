@@ -95,6 +95,7 @@ export class YouTubePlayerPlayback {
 
   private play(position: number): void {
     this.correctDriftThrottled.reset();
+    this.player.setPlaybackRate(this.transport.playbackRate);
     this.player.seekTo(position, true);
     this.player.playVideo();
   }
