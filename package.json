@@ -16,7 +16,8 @@
     "lint-check": "cargo fmt -- --check && vp check && pnpm lint-dead-code && pnpm typecheck",
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
-    "test-e2e": "playwright test"
+    "test-e2e": "playwright test",
+    "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
     "@hiogawa/bass-pitch-wasm": "https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732",
@@ -48,6 +49,7 @@
     "fallow": "^2.50.0",
     "pkg-pr-new": "0.0.75",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
     "vite": "^8.2.2",
     "vite-plus": "^0.1.16",
