@@ -47,6 +47,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
+  const [exportSampleRate, setExportSampleRate] = useState(48000);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -610,6 +611,26 @@ export function Recorder({ projectId }: { projectId: string }) {
           title="Export Audio"
           testId="recorder-audio-export"
         >
+          <div className="mb-6 space-y-4">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+              <dt className="text-neutral-400">Format</dt>
+              <dd>WAV, stereo, 16-bit PCM</dd>
+            </dl>
+            <label className="block text-[11px] font-medium text-neutral-400">
+              Sample rate
+              <select
+                value={exportSampleRate}
+                onChange={(event) =>
+                  setExportSampleRate(Number(event.currentTarget.value))
+                }
+                disabled={exportAudioMutation.isPending}
+                className="mt-1 h-8 w-full rounded border border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-100 disabled:text-neutral-500"
+              >
+                <option value={44100}>44.1 kHz</option>
+                <option value={48000}>48 kHz</option>
+              </select>
+            </label>
+          </div>
           <Button
             className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
             disabled={

@@ -11,7 +11,13 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   const modal = page.getByTestId("recorder-audio-export");
   const exportButton = modal.getByRole("button", { name: "Export file" });
   await expect(exportButton).toBeDisabled();
-  await expect(modal.locator("input, select")).toHaveCount(0);
+  await expect(
+    modal.getByText("WAV, stereo, 16-bit PCM", { exact: true }),
+  ).toBeVisible();
+  const sampleRate = modal.getByRole("combobox", { name: "Sample rate" });
+  await expect(sampleRate).toHaveValue("48000");
+  await sampleRate.selectOption("44100");
+  await expect(sampleRate).toHaveValue("44100");
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
   const fileChooser = page.waitForEvent("filechooser");
@@ -28,6 +34,7 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
     .getByRole("menuitem", { name: "Export Audio", exact: true })
     .click();
   await expect(exportButton).toBeEnabled();
+  await expect(sampleRate).toHaveValue("44100");
   const downloadPromise = page.waitForEvent("download");
   await exportButton.click();
   const download = await downloadPromise;
