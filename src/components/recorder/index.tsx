@@ -10,11 +10,13 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
+import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -60,6 +62,15 @@ export function Recorder({ projectId }: { projectId: string }) {
   const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
+    onSelect: () => {
+      locators.select(undefined);
+    },
+  });
+  const locators = useRecorderLocators({
+    runtime,
+    state,
+    subdivisionsPerBeat: timeline.subdivisionsPerBeat,
+    onSelect: clipInteraction.clear,
   });
 
   const playMutation = useMutation({
@@ -149,6 +160,23 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    if (matchKeyboardEvent(event, "L")) {
+      event.preventDefault();
+      locators.add();
+      return;
+    }
+    if (
+      locators.selectedId &&
+      (matchKeyboardEvent(event, "Delete") ||
+        matchKeyboardEvent(event, "Backspace"))
+    ) {
+      event.preventDefault();
+      locators.removeSelected();
+      return;
+    }
+    if (matchKeyboardEvent(event, "Escape")) {
+      locators.select(undefined);
+    }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
       ? -1
       : matchKeyboardEvent(event, "ArrowRight")
@@ -229,10 +257,19 @@ export function Recorder({ projectId }: { projectId: string }) {
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
       />
 
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <RecorderLocatorRow
+          locators={locators}
+          pixelsPerBeat={timeline.pixelsPerBeat}
+          viewportStartBeat={timeline.viewportStartBeat}
+          subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+          onSeekBeat={(beat) =>
+            runtime.seek(beatsToSeconds(beat, timeline.tempo))
+          }
+        />
         <section
           data-testid="recorder-track-scroll"
-          className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto"
+          className="relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
         >
           <div
             ref={timeline.viewportRef}

@@ -48,3 +48,5 @@ An active project session coordinates hydration, audio synchronization, autosave
 Project score routes read persisted documents directly and generate MusicXML in memory. They do not establish an active project session or mutate editor state; the editor flushes pending autosave before opening a score snapshot.
 
 Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.
+
+The standalone recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.

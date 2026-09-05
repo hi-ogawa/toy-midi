@@ -3,10 +3,13 @@ import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
+  type RecorderLocator,
 } from "./runtime.ts";
 
 export interface SerializedRecorderRuntimeState {
   title: string;
+  // Optional for recorder projects saved before locator support.
+  locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     height: number;
@@ -87,6 +90,7 @@ export function serializeRecorderRuntimeState(
 ): SerializedRecorderRuntimeState {
   return {
     title: state.title,
+    locators: state.locators,
     audioTracks: state.audioTracks.map((track) => ({
       id: track.id,
       height: track.height,
@@ -145,6 +149,7 @@ export function deserializeRecorderRuntimeState({
 }): PersistableRecorderRuntimeState {
   return {
     title: project.title,
+    locators: project.locators ?? [],
     audioTracks: project.audioTracks.map((track) => {
       const buffer = track.clip
         ? deserializeAudioBuffer(context, track.clip.pcm)
