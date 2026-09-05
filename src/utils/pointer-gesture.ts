@@ -44,6 +44,7 @@ export function listenPointerGesture<T>({
     deltaX: event.clientX - state.startX,
     deltaY: event.clientY - state.startY,
   });
+
   return listenPointerDrag({
     element,
     onStart: (event): State => ({
