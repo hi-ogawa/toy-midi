@@ -173,43 +173,45 @@ function LocatorMarker({
 
   return (
     <div
-      className="group/locator absolute inset-y-0 -left-1.5 flex w-max items-center gap-0.5"
+      className="group/locator absolute inset-y-0"
       style={{ left, zIndex: selected ? 10 : 1 }}
     >
-      <button
-        ref={dragRef}
-        type="button"
-        aria-label={locator.label}
-        aria-pressed={selected}
-        title={`${locator.label}\nDrag to move · Delete to remove`}
-        className={cn(
-          "group flex h-full w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
-          selected && "text-sky-300",
-          dragging ? "cursor-ew-resize" : "cursor-pointer",
-        )}
-      >
-        <span className="mt-auto mb-1 size-0 shrink-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
-        <span
+      <div className="absolute inset-y-0 -left-1.5 flex w-max items-center gap-0.5">
+        <button
+          ref={dragRef}
+          type="button"
+          aria-label={locator.label}
+          aria-pressed={selected}
+          title={`${locator.label}\nDrag to move · Delete to remove`}
           className={cn(
-            "max-w-40 truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
-            selected && "bg-sky-300/20 text-sky-100",
+            "group flex h-full w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
+            selected && "text-sky-300",
+            dragging ? "cursor-ew-resize" : "cursor-pointer",
           )}
         >
-          {locator.label}
-        </span>
-      </button>
-      <button
-        type="button"
-        aria-label={`Rename ${locator.label}`}
-        title="Rename locator"
-        onClick={rename}
-        className={cn(
-          "rounded p-0.5 text-neutral-500 opacity-0 outline-none hover:bg-neutral-700 hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300 focus-visible:opacity-100 group-hover/locator:opacity-100",
-          selected && "opacity-100",
-        )}
-      >
-        <PencilIcon className="size-3" />
-      </button>
+          <span className="mt-auto mb-1 size-0 shrink-0 border-x-[6px] border-t-[8px] border-x-transparent border-t-current" />
+          <span
+            className={cn(
+              "max-w-40 truncate rounded px-1 text-[11px] select-none group-hover:bg-neutral-700",
+              selected && "bg-sky-300/20 text-sky-100",
+            )}
+          >
+            {locator.label}
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-label={`Rename ${locator.label}`}
+          title="Rename locator"
+          onClick={rename}
+          className={cn(
+            "rounded p-0.5 text-neutral-500 opacity-0 outline-none hover:bg-neutral-700 hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300 focus-visible:opacity-100 group-hover/locator:opacity-100",
+            selected && "opacity-100",
+          )}
+        >
+          <PencilIcon className="size-3" />
+        </button>
+      </div>
     </div>
   );
 }
