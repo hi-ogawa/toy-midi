@@ -7,14 +7,17 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { snapToGrid } from "../../lib/music";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
+import { secondsToBeats } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
+import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -61,6 +64,21 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime,
     state,
   });
+
+  const locators = useRecorderLocators();
+
+  function addLocator() {
+    clipInteraction.clear();
+    locators.add(
+      Math.max(
+        0,
+        snapToGrid(
+          secondsToBeats(state.position, timeline.tempo),
+          1 / timeline.subdivisionsPerBeat,
+        ),
+      ),
+    );
+  }
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -149,6 +167,23 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
+    if (matchKeyboardEvent(event, "L")) {
+      event.preventDefault();
+      addLocator();
+      return;
+    }
+    if (
+      locators.selectedId &&
+      (matchKeyboardEvent(event, "Delete") ||
+        matchKeyboardEvent(event, "Backspace"))
+    ) {
+      event.preventDefault();
+      locators.removeSelected();
+      return;
+    }
+    if (matchKeyboardEvent(event, "Escape")) {
+      locators.select(undefined);
+    }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
       ? -1
       : matchKeyboardEvent(event, "ArrowRight")
@@ -186,7 +221,17 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
+    <main
+      className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
+      onPointerDownCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest("[data-recorder-locators]")
+        ) {
+          locators.select(undefined);
+        }
+      }}
+    >
       <RecorderHeader
         title={state.title}
         saveStatus={project.saveStatus}
@@ -248,28 +293,41 @@ export function Recorder({ projectId }: { projectId: string }) {
                 />
               </div>
             )}
-            <TimelineHeader
-              pixelsPerBeat={timeline.pixelsPerBeat}
-              beatsPerBar={timeline.beatsPerBar}
-              subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-              viewportStartBeat={timeline.viewportStartBeat}
-              tempo={timeline.tempo}
-              timelineWidth={timeline.viewportWidth}
-              isAddingAudio={addAudioMutation.isPending}
-              onAddAudioTrack={() => runtime.addAudioTrack()}
-              onAddAudioFile={(file) => addAudioMutation.mutate(file)}
-              onSeek={(position) => runtime.seek(position)}
-              loop={state.loop}
-              punch={state.punch}
-              onLoopRangeChange={(range) => runtime.setLoop({ range })}
-              onLoopRangeClear={() =>
-                runtime.setLoop({ range: undefined, enabled: false })
-              }
-              onPunchRangeChange={(range) => runtime.setPunch({ range })}
-              onPunchRangeClear={() =>
-                runtime.setPunch({ range: undefined, enabled: false })
-              }
-            />
+            <div className="sticky top-0 z-40">
+              <RecorderLocatorRow
+                locators={locators}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                onAdd={addLocator}
+                onSelect={(id) => {
+                  clipInteraction.clear();
+                  locators.select(id);
+                }}
+              />
+              <TimelineHeader
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                tempo={timeline.tempo}
+                timelineWidth={timeline.viewportWidth}
+                isAddingAudio={addAudioMutation.isPending}
+                onAddAudioTrack={() => runtime.addAudioTrack()}
+                onAddAudioFile={(file) => addAudioMutation.mutate(file)}
+                onSeek={(position) => runtime.seek(position)}
+                loop={state.loop}
+                punch={state.punch}
+                onLoopRangeChange={(range) => runtime.setLoop({ range })}
+                onLoopRangeClear={() =>
+                  runtime.setLoop({ range: undefined, enabled: false })
+                }
+                onPunchRangeChange={(range) => runtime.setPunch({ range })}
+                onPunchRangeClear={() =>
+                  runtime.setPunch({ range: undefined, enabled: false })
+                }
+              />
+            </div>
             {state.referenceVideo && (
               <ReferenceTimelineRow
                 referenceVideo={state.referenceVideo}
