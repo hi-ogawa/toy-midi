@@ -54,10 +54,10 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   await expect(range).toBeVisible();
 
   // The disabled range and its timeline placement persist with the project.
-  await page.getByRole("button", { name: /Unsaved changes/ }).click();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toBeVisible();
+  const saveButton = page.getByTestId("recorder-save-button");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await expect(range).toBeVisible();
