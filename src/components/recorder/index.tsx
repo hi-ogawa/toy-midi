@@ -287,7 +287,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             locators.select(id);
           }}
         />
-        <div className="relative min-h-0 flex-1">
+        <div className="min-h-0 flex-1">
           <section
             data-testid="recorder-track-scroll"
             className="relative h-full min-w-0 overflow-x-hidden overflow-y-auto"
@@ -297,6 +297,15 @@ export function Recorder({ projectId }: { projectId: string }) {
               className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
             />
             <div className="relative">
+              {timeline.showPlayhead && (
+                <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
+                  <div
+                    data-testid="recorder-playhead"
+                    className="absolute inset-y-0 w-px bg-sky-400"
+                    style={{ left: timeline.playheadX }}
+                  />
+                </div>
+              )}
               <div className="sticky top-0 z-40">
                 <TimelineHeader
                   pixelsPerBeat={timeline.pixelsPerBeat}
@@ -601,15 +610,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 ))}
             </div>
           </section>
-          {timeline.showPlayhead && (
-            <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
-              <div
-                data-testid="recorder-playhead"
-                className="absolute inset-y-0 w-px bg-sky-400"
-                style={{ left: timeline.playheadX }}
-              />
-            </div>
-          )}
         </div>
 
         <Dialog
