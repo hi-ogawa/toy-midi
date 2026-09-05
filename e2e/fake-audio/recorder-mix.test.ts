@@ -1,9 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import {
-  addRecorderAudio,
-  createRecorderProject,
-} from "./fake-audio/recorder-helpers";
+import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
 
 test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   // Try exporting an empty project and verify the render error allows retrying.
