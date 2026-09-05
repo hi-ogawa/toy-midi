@@ -80,6 +80,11 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
 test("persists recorder locator edits and deletion", async ({ page }) => {
   await createRecorderProject(page);
   const first = page.getByRole("button", { name: "Section 1", exact: true });
+  const firstRenamed = page.getByRole("button", {
+    name: "Renamed 1",
+    exact: true,
+  });
+  const second = page.getByRole("button", { name: "Section 2", exact: true });
   const lane = page.getByTestId("recorder-locator-lane");
   const saveButton = page.getByTestId("recorder-save-button");
 
@@ -88,7 +93,6 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.keyboard.press("l");
   await seekRecorderByPixels(page, pixelsPerBeat * 5);
   await page.keyboard.press("l");
-  const second = page.getByRole("button", { name: "Section 2", exact: true });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
   // Save restores the locator beat, but not the selection.
@@ -105,10 +109,6 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   // Renaming dirties the project.
   page.once("dialog", (dialog) => dialog.accept("Renamed 1"));
   await first.dblclick();
-  const firstRenamed = page.getByRole("button", {
-    name: "Renamed 1",
-    exact: true,
-  });
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
