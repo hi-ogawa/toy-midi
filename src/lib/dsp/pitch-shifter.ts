@@ -64,10 +64,6 @@ export class StreamingPitchShifter {
     );
   }
 
-  getWritableFrames(): number {
-    return this.wsola.getWritableFrames();
-  }
-
   push(input: readonly Float32Array[]): void {
     this.wsola.push(input);
   }
