@@ -2,18 +2,31 @@ import { PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { snapToGrid } from "../../lib/music";
+import { secondsToBeats } from "../../lib/timeline";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 
 type Locator = { id: string; beat: number; label: string };
 
 // UI prototype only. Locators are discarded when the editor is unmounted.
-export function useRecorderLocators() {
+export function useRecorderLocators({
+  position,
+  tempo,
+  subdivisionsPerBeat,
+}: {
+  position: number;
+  tempo: number;
+  subdivisionsPerBeat: number;
+}) {
   const [items, setItems] = useState<Locator[]>([]);
   const [selectedId, select] = useState<string>();
   const nextNumber = useRef(1);
 
-  function add(beat: number) {
+  function add() {
+    const beat = Math.max(
+      0,
+      snapToGrid(secondsToBeats(position, tempo), 1 / subdivisionsPerBeat),
+    );
     const locator = {
       id: crypto.randomUUID(),
       beat,

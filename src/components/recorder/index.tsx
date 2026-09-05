@@ -7,11 +7,10 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import { snapToGrid } from "../../lib/music";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
-import { beatsToSeconds, secondsToBeats } from "../../lib/timeline";
+import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -65,19 +64,15 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
   });
 
-  const locators = useRecorderLocators();
+  const locators = useRecorderLocators({
+    position: state.position,
+    tempo: timeline.tempo,
+    subdivisionsPerBeat: timeline.subdivisionsPerBeat,
+  });
 
   function addLocator() {
     clipInteraction.clear();
-    locators.add(
-      Math.max(
-        0,
-        snapToGrid(
-          secondsToBeats(state.position, timeline.tempo),
-          1 / timeline.subdivisionsPerBeat,
-        ),
-      ),
-    );
+    locators.add();
   }
 
   const playMutation = useMutation({
