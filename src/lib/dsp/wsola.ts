@@ -202,6 +202,7 @@ export class WsolaProcessor {
  * Pull returns zero when more input is needed, not only at end of stream.
  */
 export class StreamingWsola {
+  /** Input frames buffered before output starts to cover future hop lookahead. */
   readonly latencyFrames: number;
   /** Future input required beyond a nominal source position to render a hop. */
   readonly lookaheadFrames: number;
@@ -247,7 +248,16 @@ export class StreamingWsola {
     this.windowFrames += this.windowFrames % 2;
     this.hopFrames = this.windowFrames / 2;
     this.searchFrames = Math.max(1, Math.round(sampleRate * searchSeconds));
-    this.latencyFrames = this.windowFrames;
+    // A search needs W + S/2 frames beyond the nominal input position.
+    // The natural continuation can reach another (1 - rate) * H ahead,
+    // because it advances by H from the previous rate-scaled search range.
+    // Reserve both before starting output, plus one frame for rounding of
+    // nominal positions. Readiness of the first window alone is insufficient.
+    this.latencyFrames =
+      this.windowFrames +
+      Math.ceil(this.searchFrames / 2) +
+      Math.ceil(Math.max(0, (1 - playbackRate) * this.hopFrames)) +
+      1;
     this.lookaheadFrames = this.windowFrames + this.searchFrames;
     const capacity = Math.max(
       sampleRate,
@@ -277,6 +287,11 @@ export class StreamingWsola {
   }
 
   pull(output: Float32Array[]): number {
+    // length is the total input received, so this only gates startup even
+    // after older input has been discarded from the retained stream buffer.
+    if (this.input.length < this.latencyFrames) {
+      return 0;
+    }
     const requestedFrames = output[0]?.length ?? 0;
     let written = 0;
     while (written < requestedFrames) {

@@ -27,6 +27,56 @@ describe(WsolaProcessor, () => {
 });
 
 describe(StreamingWsola, () => {
+  it.each([0.5, 0.75, 1, 1.5, 2])(
+    "keeps realtime output continuous after startup at %sx",
+    (playbackRate) => {
+      const sampleRate = 48_000;
+      const inputFrames = 128;
+      const outputFrames = Math.round(inputFrames / playbackRate);
+      const processor = new StreamingWsola({
+        channelCount: 1,
+        sampleRate,
+        playbackRate,
+        windowSeconds: WINDOW_SECONDS,
+        searchSeconds: SEARCH_SECONDS,
+      });
+      const output = [new Float32Array(outputFrames)];
+      let started = false;
+      const underruns: { timeMs: number; missingFrames: number }[] = [];
+
+      // Feed fixed input chunks and request approximately the stretched output
+      // due each callback. Rounding is sufficient for this short startup repro.
+      // Unlike renderStreaming, do not concatenate short reads or retry the pull.
+      for (let callback = 0; callback < 100; callback++) {
+        processor.push([
+          Float32Array.from({ length: inputFrames }, (_, frame) =>
+            Math.sin(
+              (2 * Math.PI * 440 * (callback * inputFrames + frame)) /
+                sampleRate,
+            ),
+          ),
+        ]);
+        const written = processor.pull(output);
+        started ||= written > 0;
+        // Initial buffering is allowed, but shortages after audio starts
+        // become inserted silence in realtime playback and can sound glitchy.
+        if (started && written < outputFrames) {
+          underruns.push({
+            timeMs: (callback * inputFrames * 1000) / sampleRate,
+            missingFrames: outputFrames - written,
+          });
+        }
+      }
+
+      expect(started, "Playback must start within the simulated 267 ms").toBe(
+        true,
+      );
+      expect(underruns, "Silence inserted after playback has started").toEqual(
+        [],
+      );
+    },
+  );
+
   it.each([0.75, 1.5])(
     "matches finite-source rendering at %sx",
     (playbackRate) => {
