@@ -70,16 +70,12 @@ export function RecorderLocatorRow({
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
-  onAdd,
-  onSelect,
   onSeek,
 }: {
   locators: ReturnType<typeof useRecorderLocators>;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
-  onAdd: () => void;
-  onSelect: (id: string) => void;
   onSeek: (beat: number) => void;
 }) {
   return (
@@ -90,7 +86,7 @@ export function RecorderLocatorRow({
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
           className="size-6 hover:bg-neutral-700"
-          onClick={onAdd}
+          onClick={locators.add}
         >
           <PlusIcon className="size-3.5" />
         </Button>
@@ -112,7 +108,7 @@ export function RecorderLocatorRow({
             left={(locator.beat - viewportStartBeat) * pixelsPerBeat}
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
-            onSelect={() => onSelect(locator.id)}
+            onSelect={() => locators.select(locator.id)}
             onSeek={() => onSeek(locator.beat)}
             onUpdate={(changes) =>
               locators.update({ id: locator.id, ...changes })

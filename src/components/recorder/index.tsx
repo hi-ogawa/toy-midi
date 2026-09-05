@@ -263,9 +263,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-          onAdd={locators.add}
           onSeek={(beat) => runtime.seek(beatsToSeconds(beat, timeline.tempo))}
-          onSelect={locators.select}
         />
         <section
           data-testid="recorder-track-scroll"
