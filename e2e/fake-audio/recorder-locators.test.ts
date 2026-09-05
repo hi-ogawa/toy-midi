@@ -7,9 +7,7 @@ import {
   seekRecorderByPixels,
 } from "./recorder-helpers";
 
-test("edits, seeks, selects, and persists recorder locators", async ({
-  page,
-}) => {
+test("edits, seeks, and selects recorder locators", async ({ page }) => {
   const checkpoint = createCheckpoint();
   await createRecorderProject(page);
   const pixelsPerBeat = 80;
@@ -17,18 +15,11 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   const first = page.getByRole("button", { name: "Section 1", exact: true });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
   const verse = page.getByRole("button", { name: "Verse", exact: true });
-  const unsavedProjectButton = page.getByRole("button", {
-    name: /Unsaved changes/,
-  });
-  const savedProjectButton = page.getByRole("button", {
-    name: "All changes saved",
-  });
 
   // Both creation controls use the snapped playhead and select the new marker.
   await seekRecorderByPixels(page, pixelsPerBeat * 0.9);
   await page.keyboard.press("l");
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await expect(unsavedProjectButton).toBeEnabled();
   await seekRecorderByPixels(page, pixelsPerBeat * 4);
   await add.click();
   await expect(second).toHaveAttribute("aria-pressed", "true");
@@ -100,6 +91,25 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await expect.poll(() => getRecorderBeat(page)).toBeLessThan(4);
   await play.click();
   checkpoint("single seek during playback");
+});
+
+test("persists recorder locator edits and deletion", async ({ page }) => {
+  await createRecorderProject(page);
+  const first = page.getByRole("button", { name: "Section 1", exact: true });
+  const verse = page.getByRole("button", { name: "Verse", exact: true });
+  const lane = page.getByTestId("recorder-locator-lane");
+  const unsavedProjectButton = page.getByRole("button", {
+    name: /Unsaved changes/,
+  });
+  const savedProjectButton = page.getByRole("button", {
+    name: "All changes saved",
+  });
+
+  await seekRecorderByPixels(page, 80 * 2.5);
+  await page.keyboard.press("l");
+  await expect(unsavedProjectButton).toBeEnabled();
+  page.once("dialog", (dialog) => dialog.accept("Verse"));
+  await first.dblclick();
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
@@ -141,5 +151,4 @@ test("edits, seeks, selects, and persists recorder locators", async ({
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();
   await expect(chorus).toHaveCount(0);
   await expect(lane.getByRole("button")).toHaveCount(0);
-  checkpoint("save and reload");
 });
