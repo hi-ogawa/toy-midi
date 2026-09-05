@@ -1,4 +1,51 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { createRecorderProject } from "./fake-audio/recorder-helpers";
+
+test("exports a stereo WAV from the audio export modal", async ({ page }) => {
+  await createRecorderProject(page);
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Export Audio", exact: true })
+    .click();
+  const modal = page.getByTestId("recorder-audio-export");
+  const exportButton = modal.getByRole("button", { name: "Export file" });
+  await expect(exportButton).toBeDisabled();
+  await expect(modal.locator("input, select")).toHaveCount(0);
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+
+  const fileChooser = page.waitForEvent("filechooser");
+  await page.getByTestId("recorder-add-audio-file").click();
+  await (await fileChooser).setFiles("e2e/fixtures/test-audio.wav");
+  await expect(
+    page.getByTestId("recorder-clip-audio").locator("svg"),
+  ).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept("Final mix"));
+  await page.getByTestId("recorder-project-name").click();
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Export Audio", exact: true })
+    .click();
+  await expect(exportButton).toBeEnabled();
+  const downloadPromise = page.waitForEvent("download");
+  await exportButton.click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^Final_mix-.*\.wav$/);
+  const path = test.info().outputPath("mix.wav");
+  await download.saveAs(path);
+  const wav = await readFile(path);
+  expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
+  expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
+  expect(wav.readUInt32LE(4)).toBe(wav.length - 8);
+  expect(wav.readUInt16LE(20)).toBe(1);
+  expect(wav.readUInt16LE(22)).toBe(2);
+  expect(wav.readUInt32LE(24)).toBeGreaterThan(0);
+  expect(wav.readUInt16LE(34)).toBe(16);
+  expect(wav.readUInt32LE(40)).toBe(wav.length - 44);
+  expect(wav.length).toBeGreaterThan(44);
+  await expect(exportButton).toBeEnabled();
+});
 
 test("offline mix preserves stereo, resamples mono regions, and applies track/master gains", async ({
   page,

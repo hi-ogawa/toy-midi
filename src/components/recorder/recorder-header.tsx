@@ -80,6 +80,7 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
+  onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
   mixerOpen,
@@ -114,6 +115,7 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
+  onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   mixerOpen: boolean;
@@ -413,6 +415,13 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            disabled={isRecording || isProcessing}
+            onSelect={onExportAudio}
+          >
+            <DownloadIcon />
+            Export Audio
+          </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
             disabled={isRecording || isProcessing || isExporting}

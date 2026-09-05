@@ -7,12 +7,14 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { resolveRecorderMix } from "../../lib/recorder/mix";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
+import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
@@ -44,6 +46,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -118,6 +121,19 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
+  const exportAudioMutation = useMutation({
+    mutationFn: async () => {
+      const fileName = buildExportFileName({
+        baseName: state.title,
+        extension: "wav",
+      });
+      const buffer = await runtime.renderMix();
+      if (!buffer) {
+        return;
+      }
+      downloadBlob(encodeWav(buffer), fileName);
+    },
+  });
   const takes = state.recordingTrack.takes;
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
@@ -150,6 +166,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     isProcessing;
 
   useWindowEvent("keydown", (event) => {
+    if (isAudioExportOpen) {
+      return;
+    }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
       if (!saveDisabled) {
@@ -252,6 +271,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
+        onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
@@ -584,6 +604,26 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
+        <Dialog
+          isOpen={isAudioExportOpen}
+          onClose={() => setIsAudioExportOpen(false)}
+          title="Export Audio"
+          testId="recorder-audio-export"
+        >
+          <Button
+            className="w-full px-4 py-2 text-sm hover:bg-neutral-700"
+            disabled={
+              !project.ready ||
+              isRecording ||
+              isProcessing ||
+              exportAudioMutation.isPending ||
+              (isAudioExportOpen && resolveRecorderMix(state).duration === 0)
+            }
+            onClick={() => exportAudioMutation.mutate()}
+          >
+            {exportAudioMutation.isPending ? "Exporting..." : "Export file"}
+          </Button>
+        </Dialog>
         <Dialog
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
