@@ -128,9 +128,7 @@ function LocatorMarker({
   onSeek: () => void;
   onUpdate: (changes: Partial<Pick<Locator, "beat" | "label">>) => void;
 }) {
-  const [draft, setDraft] = useState<string>();
   const [dragging, setDragging] = useState(false);
-  const cancelled = useRef(false);
   const dragRef = usePointerGesture({
     onStart: (event) => {
       event.preventDefault();
@@ -155,23 +153,17 @@ function LocatorMarker({
     },
   });
 
-  function startRename() {
-    cancelled.current = false;
-    setDraft(locator.label);
-    onSelect();
-  }
-
-  function finishRename() {
-    if (!cancelled.current && draft?.trim()) {
-      onUpdate({ label: draft.trim() });
+  function rename() {
+    const label = window.prompt("Rename locator:", locator.label)?.trim();
+    if (label) {
+      onUpdate({ label });
     }
-    setDraft(undefined);
   }
 
   return (
     <div
       className="absolute inset-y-0"
-      style={{ left, zIndex: draft !== undefined ? 20 : selected ? 10 : 1 }}
+      style={{ left, zIndex: selected ? 10 : 1 }}
     >
       <button
         ref={dragRef}
@@ -186,7 +178,7 @@ function LocatorMarker({
             onSeek();
           }
         }}
-        onDoubleClick={startRename}
+        onDoubleClick={rename}
         className={cn(
           "group absolute inset-y-0 -left-1.5 flex w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
           selected && "text-sky-300",
@@ -204,33 +196,6 @@ function LocatorMarker({
           {locator.label}
         </span>
       </button>
-      {draft !== undefined && (
-        <input
-          ref={focusRenameInput}
-          aria-label="Locator name"
-          className="absolute top-0.5 left-2 h-6 w-40 rounded border border-sky-300 bg-neutral-900 px-1 text-[11px] text-neutral-100 outline-none"
-          value={draft}
-          onPointerDown={(event) => event.stopPropagation()}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={finishRename}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === "Enter") {
-              event.preventDefault();
-              finishRename();
-            } else if (event.key === "Escape") {
-              event.preventDefault();
-              cancelled.current = true;
-              setDraft(undefined);
-            }
-          }}
-        />
-      )}
     </div>
   );
-}
-
-function focusRenameInput(element: HTMLInputElement | null) {
-  element?.focus();
-  element?.select();
 }
