@@ -797,20 +797,18 @@ export class RecorderRuntime {
   }
 
   updateLocator({ id, ...changes }: RecorderLocatorUpdate): void {
+    const { locators } = this.store.get();
     this.store.update({
-      locators: this.store
-        .get()
-        .locators.map((locator) =>
-          locator.id === id ? { ...locator, ...changes } : locator,
-        ),
+      locators: locators.map((locator) =>
+        locator.id === id ? { ...locator, ...changes } : locator,
+      ),
     });
   }
 
   deleteLocator(id: string): void {
+    const { locators } = this.store.get();
     this.store.update({
-      locators: this.store
-        .get()
-        .locators.filter((locator) => locator.id !== id),
+      locators: locators.filter((locator) => locator.id !== id),
     });
   }
 
