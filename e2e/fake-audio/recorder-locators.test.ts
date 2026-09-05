@@ -84,6 +84,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
 
   // Save restores the edited label and beat, but not the selection.
   await verse.click();
+  await expect(verse).toHaveAttribute("aria-pressed", "true");
   await saveProjectButton.click();
   await expect(saveProjectButton).toHaveAttribute("data-status", "saved");
   await page.reload();
