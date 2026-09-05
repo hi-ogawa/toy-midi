@@ -1,4 +1,4 @@
-import { PlusIcon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { snapToGrid } from "../../lib/music";
@@ -148,7 +148,6 @@ function LocatorMarker({
       return locator.beat;
     },
     onClick: onSeek,
-    onDoubleClick: rename,
     onDragStart: () => setDragging(true),
     onDragMove: (_event, { data, deltaX }) => {
       onUpdate({
@@ -174,7 +173,7 @@ function LocatorMarker({
 
   return (
     <div
-      className="absolute inset-y-0"
+      className="group/locator absolute inset-y-0 -left-1.5 flex w-max items-center gap-0.5"
       style={{ left, zIndex: selected ? 10 : 1 }}
     >
       <button
@@ -182,9 +181,9 @@ function LocatorMarker({
         type="button"
         aria-label={locator.label}
         aria-pressed={selected}
-        title={`${locator.label}\nDrag to move · Double-click to rename · Delete to remove`}
+        title={`${locator.label}\nDrag to move · Delete to remove`}
         className={cn(
-          "group absolute inset-y-0 -left-1.5 flex w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
+          "group flex h-full w-max items-center gap-1 text-neutral-400 outline-none hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300",
           selected && "text-sky-300",
           dragging ? "cursor-ew-resize" : "cursor-pointer",
         )}
@@ -198,6 +197,15 @@ function LocatorMarker({
         >
           {locator.label}
         </span>
+      </button>
+      <button
+        type="button"
+        aria-label={`Rename ${locator.label}`}
+        title="Rename locator"
+        onClick={rename}
+        className="rounded p-0.5 text-neutral-500 opacity-0 outline-none hover:bg-neutral-700 hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300 focus-visible:opacity-100 group-focus-within/locator:opacity-100 group-hover/locator:opacity-100"
+      >
+        <PencilIcon className="size-3" />
       </button>
     </div>
   );

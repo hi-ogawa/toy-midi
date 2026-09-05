@@ -1,9 +1,5 @@
 import { listenPointerDrag } from "./pointer-drag.ts";
 
-// Keep single clicks responsive while giving fast native double-clicks a chance
-// to supersede them. Slower double-clicks still fire after the single click.
-const deferredClickDelay = 150;
-
 export type PointerGesture<T> = {
   data: T;
   deltaX: number;
@@ -14,7 +10,6 @@ export type PointerGestureOptions<T> = {
   threshold?: number;
   onStart: (event: PointerEvent) => T;
   onClick?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
-  onDoubleClick?: (event: MouseEvent) => void;
   onDragStart?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragMove: (event: PointerEvent, gesture: PointerGesture<T>) => void;
   onDragEnd?: (event: PointerEvent, gesture: PointerGesture<T>) => void;
@@ -30,13 +25,11 @@ export function listenPointerGesture<T>({
   threshold = 4,
   onStart,
   onClick,
-  onDoubleClick,
   onDragStart,
   onDragMove,
   onDragEnd,
   onCancel,
 }: PointerGestureOptions<T> & { element: HTMLElement }) {
-  const clickTimeouts = new Set<ReturnType<typeof setTimeout>>();
   type State = {
     startX: number;
     startY: number;
@@ -51,18 +44,7 @@ export function listenPointerGesture<T>({
     deltaX: event.clientX - state.startX,
     deltaY: event.clientY - state.startY,
   });
-  const handleDoubleClick = (event: MouseEvent) => {
-    for (const timeout of clickTimeouts) {
-      clearTimeout(timeout);
-    }
-    clickTimeouts.clear();
-    onDoubleClick?.(event);
-  };
-
-  if (onDoubleClick) {
-    element.addEventListener("dblclick", handleDoubleClick);
-  }
-  const cleanup = listenPointerDrag({
+  return listenPointerDrag({
     element,
     onStart: (event): State => ({
       startX: event.clientX,
@@ -87,12 +69,6 @@ export function listenPointerGesture<T>({
       const gesture = createGesture(event, state);
       if (state.dragged) {
         onDragEnd?.(event, gesture);
-      } else if (onDoubleClick) {
-        const timeout = setTimeout(() => {
-          clickTimeouts.delete(timeout);
-          onClick?.(event, gesture);
-        }, deferredClickDelay);
-        clickTimeouts.add(timeout);
       } else {
         onClick?.(event, gesture);
       }
@@ -101,11 +77,4 @@ export function listenPointerGesture<T>({
       onCancel?.(event, createGesture(event, state), state.dragged);
     },
   });
-  return () => {
-    for (const timeout of clickTimeouts) {
-      clearTimeout(timeout);
-    }
-    element.removeEventListener("dblclick", handleDoubleClick);
-    cleanup();
-  };
 }
