@@ -180,6 +180,7 @@ function LocatorMarker({
         <button
           ref={dragRef}
           type="button"
+          data-testid="recorder-locator"
           aria-label={locator.label}
           aria-pressed={selected}
           title={`${locator.label}\nDrag to move · Delete to remove`}

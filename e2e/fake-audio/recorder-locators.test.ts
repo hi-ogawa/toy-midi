@@ -138,5 +138,5 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.reload();
   await expect(firstRenamed).toHaveCount(0);
   await expect(second).toBeVisible();
-  await expect(lane.locator("button[aria-pressed]")).toHaveCount(1);
+  await expect(lane.getByTestId("recorder-locator")).toHaveCount(1);
 });
