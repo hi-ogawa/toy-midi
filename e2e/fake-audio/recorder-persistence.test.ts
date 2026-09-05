@@ -5,10 +5,8 @@ test("saves and restores a recorder project", async ({ page }) => {
   // Create a project and give it a recognizable name.
   await createRecorderProject(page);
   const projectUrl = page.url();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
-  const saveButton = page.getByRole("button", { name: "All changes saved" });
+  const saveButton = page.getByTestId("recorder-save-button");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
   const saveTooltip = page.getByRole("tooltip");
   await expect(saveButton).not.toHaveAttribute("title");
   await expect(saveTooltip).toHaveCSS("opacity", "0");
@@ -23,9 +21,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   await page.getByTestId("recorder-play-button").click();
   await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await page.getByTestId("recorder-play-button").click();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   page.once("dialog", (dialog) => dialog.accept("Practice take"));
   await page.getByTestId("recorder-project-name").click();
@@ -67,17 +63,9 @@ test("saves and restores a recorder project", async ({ page }) => {
   await metronomeLevel.press("Enter");
 
   // The accumulated project edits are unsaved until explicitly saved.
-  await expect(
-    page.getByRole("button", {
-      name: "Unsaved changes (Ctrl/Cmd+S to save)",
-    }),
-  ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Unsaved changes (Ctrl/Cmd+S to save)" })
-    .click();
-  await expect(
-    page.getByRole("button", { name: "All changes saved" }),
-  ).toHaveAttribute("aria-disabled", "true");
+  await expect(saveButton).toHaveAttribute("data-status", "unsaved");
+  await saveButton.click();
+  await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Reload restores project identity, tempo, and PCM-backed waveform data.
   await page.reload();
