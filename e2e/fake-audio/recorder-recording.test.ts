@@ -4,6 +4,7 @@ import {
   createRecorderProject,
   dragBy,
   enableInput,
+  getRecorderPosition,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -27,7 +28,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
-  const position = page.getByTestId("recorder-position");
   const takesToggle = page.getByTestId("recorder-takes-toggle");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takesToggle).toContainText("0");
@@ -159,9 +159,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows).toHaveCount(2);
 
   // Selecting a source take does not seek, and Escape clears the selection.
-  const positionBeforeSelection = await position.textContent();
+  const positionBeforeSelection = await getRecorderPosition(page);
   await take.nth(0).click();
-  await expect(position).toHaveText(positionBeforeSelection!);
+  await expect
+    .poll(() => getRecorderPosition(page))
+    .toBe(positionBeforeSelection);
   await expect(take.nth(0)).toHaveAttribute("data-selected", "true");
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");

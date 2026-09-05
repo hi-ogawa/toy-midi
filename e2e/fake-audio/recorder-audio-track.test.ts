@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { createRecorderProject, dragBy } from "./recorder-helpers";
+import {
+  createRecorderProject,
+  dragBy,
+  getRecorderPosition,
+} from "./recorder-helpers";
 
 test("uploads and plays a backing track", async ({ page }) => {
   await createRecorderProject(page);
@@ -44,11 +48,10 @@ test("uploads and plays a backing track", async ({ page }) => {
 
   // Playback rolls the shared transport and can be paused from its new position.
   const playButton = page.getByTestId("recorder-play-button");
-  const position = page.getByTestId("recorder-position");
-  await expect(position).toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBe(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "true");
-  await expect(position).not.toHaveText("01|01 - 00:00.000");
+  await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0);
   await playButton.click();
   await expect(playButton).toHaveAttribute("aria-pressed", "false");
 
