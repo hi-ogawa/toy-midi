@@ -85,10 +85,9 @@ test("advances recorder position at the selected playback rate", async ({
   const start = await sample();
   await page.waitForTimeout(1_000);
   const end = await sample();
-  checkpoint("sample playback clocks");
 
   const observedRate =
     (end.position - start.position) / (end.wallTime - start.wallTime);
-  expect(observedRate).toBeGreaterThan(0.4);
-  expect(observedRate).toBeLessThan(0.6);
+  checkpoint("sample playback clocks");
+  expect(observedRate).toBeCloseTo(0.5, 1);
 });
