@@ -203,7 +203,10 @@ function LocatorMarker({
         aria-label={`Rename ${locator.label}`}
         title="Rename locator"
         onClick={rename}
-        className="rounded p-0.5 text-neutral-500 opacity-0 outline-none hover:bg-neutral-700 hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300 focus-visible:opacity-100 group-focus-within/locator:opacity-100 group-hover/locator:opacity-100"
+        className={cn(
+          "rounded p-0.5 text-neutral-500 opacity-0 outline-none hover:bg-neutral-700 hover:text-sky-200 focus-visible:ring-1 focus-visible:ring-sky-300 focus-visible:opacity-100 group-hover/locator:opacity-100",
+          selected && "opacity-100",
+        )}
       >
         <PencilIcon className="size-3" />
       </button>
