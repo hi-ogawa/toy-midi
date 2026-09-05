@@ -31,6 +31,7 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   // Rename commits without seeking; cancelling keeps the existing label.
   await seekRecorderByPixels(page, pixelsPerBeat * 3);
   page.once("dialog", (dialog) => dialog.accept("Verse"));
+  // Playwright can click the opacity-hidden rename action, avoiding hover setup here.
   await renameFirst.click();
   await expect(verse).toBeVisible();
   await expect.poll(() => getRecorderBeat(page)).toBe(3);
