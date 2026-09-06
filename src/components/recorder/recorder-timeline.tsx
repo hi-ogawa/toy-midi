@@ -204,7 +204,6 @@ function TimelineRuler({
           label="Punch"
           testId="recorder-punch"
           activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
-          inactiveClassName="border-amber-400/70 bg-amber-400/10 text-amber-300"
           clearHoverClassName="hover:bg-amber-200/20"
           pixelsPerBeat={pixelsPerBeat}
           subdivisionsPerBeat={subdivisionsPerBeat}
@@ -253,7 +252,6 @@ function LoopRange({
       label="Loop"
       testId="recorder-loop"
       activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
-      inactiveClassName="border-violet-400/70 bg-violet-400/10 text-violet-300"
       clearHoverClassName="hover:bg-violet-200/20"
       pixelsPerBeat={pixelsPerBeat}
       subdivisionsPerBeat={subdivisionsPerBeat}
@@ -270,7 +268,6 @@ function TimelineRange({
   label,
   testId,
   activeClassName,
-  inactiveClassName,
   clearHoverClassName,
   pixelsPerBeat,
   subdivisionsPerBeat,
@@ -283,7 +280,6 @@ function TimelineRange({
   label: string;
   testId: "recorder-loop" | "recorder-punch";
   activeClassName: string;
-  inactiveClassName: string;
   clearHoverClassName: string;
   pixelsPerBeat: number;
   subdivisionsPerBeat: number;
@@ -344,7 +340,9 @@ function TimelineRange({
       data-testid={`${testId}-range`}
       className={cn(
         "pointer-events-none absolute inset-y-0 z-10 border-x select-none",
-        enabled ? activeClassName : inactiveClassName,
+        enabled
+          ? activeClassName
+          : "border-neutral-500 bg-neutral-400/10 text-neutral-400",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
@@ -353,10 +351,15 @@ function TimelineRange({
     >
       <span
         ref={dragRef}
-        className="pointer-events-auto absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
-        title={`Move ${label.toLowerCase()} range`}
+        className="pointer-events-auto absolute left-1 top-1 z-10 max-w-[calc(100%-1.5rem)] cursor-grab truncate font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
+        title={
+          enabled
+            ? `Move ${label.toLowerCase()} range`
+            : `${label} off. Drag to move range; enable ${label.toLowerCase()} in the toolbar.`
+        }
       >
         {label}
+        {!enabled && " off"}
       </span>
       <div
         ref={startRef}
@@ -374,7 +377,7 @@ function TimelineRange({
         data-testid={`${testId}-clear`}
         className={cn(
           "pointer-events-auto absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
-          clearHoverClassName,
+          enabled ? clearHoverClassName : "hover:bg-neutral-400/20",
         )}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
@@ -811,12 +814,12 @@ function TimelineClip({
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
     : clip.variant === "reference"
-      ? "bg-amber-400/15 text-amber-50"
+      ? "bg-blue-400/10 text-blue-100"
       : "bg-emerald-400/20 text-emerald-100";
   const clipBorderClass = recording
     ? "border-red-400/70"
     : clip.variant === "reference"
-      ? "border-amber-400/60"
+      ? "border-blue-400/40"
       : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const pixelsPerSecond = secondsToBeats(1, tempo) * pixelsPerBeat;
