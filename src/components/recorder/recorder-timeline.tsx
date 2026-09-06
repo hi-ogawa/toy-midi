@@ -342,7 +342,7 @@ function TimelineRange({
         "pointer-events-none absolute inset-y-0 z-10 border-x select-none",
         enabled
           ? activeClassName
-          : "border-dashed border-neutral-500 bg-transparent text-neutral-400",
+          : "border-neutral-500 bg-neutral-400/10 text-neutral-400",
       )}
       style={{
         left: (range.startBeat - viewportStartBeat) * pixelsPerBeat,
