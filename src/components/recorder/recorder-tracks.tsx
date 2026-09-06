@@ -14,7 +14,6 @@ import {
   MAX_DB,
   MIN_DB,
   dbToGain,
-  dbToPercent,
   formatGainDb,
   gainToDb,
 } from "../../lib/music";
@@ -138,7 +137,7 @@ export function TrackRow({
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-              style={{ left: `${dbToPercent(0)}%` }}
+              style={{ left: `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%` }}
             />
             <input
               aria-label={`${title} gain`}
@@ -338,7 +337,7 @@ export function CaptureTrackRow({
           <div className="relative">
             <div
               className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-              style={{ left: `${dbToPercent(0)}%` }}
+              style={{ left: `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%` }}
             />
             <input
               aria-label="Capture gain"

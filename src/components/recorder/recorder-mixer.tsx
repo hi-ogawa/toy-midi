@@ -5,7 +5,6 @@ import {
   MAX_DB,
   MIN_DB,
   dbToGain,
-  dbToPercent,
   formatGainDb,
   gainToDb,
 } from "../../lib/music";
@@ -223,7 +222,7 @@ function MixerChannel({
       <div className="relative h-48">
         <div
           className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-          style={{ bottom: `${dbToPercent(0)}%` }}
+          style={{ bottom: `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%` }}
         />
         <Slider
           value={[gainToDb(gain)]}
