@@ -382,6 +382,19 @@ export function TakeTrackRow({
     >
       <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
         <span className="mr-auto px-4">Take {number}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Take ${number} actions`} className="size-7">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
           aria-label={`Mute Take ${number}`}
@@ -400,19 +413,6 @@ export function TakeTrackRow({
           className="size-7"
           title="Solo take"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-label={`Take ${number} actions`} className="size-7">
-              <MoreVerticalIcon className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onDelete}>
-              <Trash2Icon />
-              Delete take
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       {children}
     </div>
