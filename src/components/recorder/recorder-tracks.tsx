@@ -10,12 +10,7 @@ import {
 } from "lucide-react";
 import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import type { AudioAnalyser } from "../../lib/audio-analyser";
-import {
-  dbToPercent,
-  formatGainDb,
-  gainToPercent,
-  percentToGain,
-} from "../../lib/music";
+import { formatGainDb } from "../../lib/music";
 import { openFilePicker } from "../file-drop-input";
 import { InputMeter } from "../input-meter";
 import { Button } from "../ui/button";
@@ -28,6 +23,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
+import { RecorderGainSlider } from "./recorder-mixer";
 
 export function AudioTrackActions({
   label,
@@ -133,24 +129,11 @@ export function TrackRow({
           />
         </div>
         <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-              style={{ left: `${dbToPercent(0)}%` }}
-            />
-            <input
-              aria-label={`${title} gain`}
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={gainToPercent(gain)}
-              onChange={(event) =>
-                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
-              }
-              className="w-full accent-emerald-600"
-            />
-          </div>
+          <RecorderGainSlider
+            label={`${title} gain`}
+            gain={gain}
+            onGainChange={onGainChange}
+          />
           <span className="text-right font-mono">{formatGainDb(gain)}</span>
         </label>
       </div>
@@ -333,24 +316,11 @@ export function CaptureTrackRow({
           <InputMeter active={inputActive} analyser={inputAnalyser} compact />
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
-          <div className="relative">
-            <div
-              className="pointer-events-none absolute top-1/2 h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-              style={{ left: `${dbToPercent(0)}%` }}
-            />
-            <input
-              aria-label="Capture gain"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={gainToPercent(gain)}
-              onChange={(event) =>
-                onGainChange(percentToGain(event.currentTarget.valueAsNumber))
-              }
-              className="block w-full accent-emerald-600"
-            />
-          </div>
+          <RecorderGainSlider
+            label="Capture gain"
+            gain={gain}
+            onGainChange={onGainChange}
+          />
           <span className="text-right font-mono">{formatGainDb(gain)}</span>
         </label>
       </div>

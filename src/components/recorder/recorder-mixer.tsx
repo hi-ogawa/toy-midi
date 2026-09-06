@@ -1,15 +1,7 @@
 import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import {
-  MAX_DB,
-  MIN_DB,
-  dbToGain,
-  dbToPercent,
-  gainToDb,
-  gainToPercent,
-  percentToGain,
-} from "../../lib/music";
+import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -191,20 +183,13 @@ function MixerChannel({
           {label}
         </span>
       </div>
-      <div className="relative h-48">
-        <div
-          className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-          style={{ bottom: `${dbToPercent(0)}%` }}
-        />
-        <Slider
-          value={[gainToPercent(gain)]}
-          onValueChange={([value]) => onGainChange(percentToGain(value))}
-          max={100}
-          step={1}
-          orientation="vertical"
-          className="h-48"
-        />
-      </div>
+      <RecorderGainSlider
+        label={`${label === "Metro" ? "Metronome" : label} gain`}
+        gain={gain}
+        onGainChange={onGainChange}
+        orientation="vertical"
+        className="h-48"
+      />
       <label className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
         <input
           type="text"
@@ -216,6 +201,48 @@ function MixerChannel({
         <span>dB</span>
       </label>
       {action ?? <div className="h-8" />}
+    </div>
+  );
+}
+
+export function RecorderGainSlider({
+  label,
+  gain,
+  onGainChange,
+  orientation = "horizontal",
+  className,
+  "data-testid": testId,
+  ...props
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+  orientation?: "horizontal" | "vertical";
+  className?: string;
+  "data-testid"?: string;
+} & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
+  const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
+  return (
+    <div data-testid={testId} className={`relative ${className ?? ""}`}>
+      <div
+        className={
+          orientation === "vertical"
+            ? "pointer-events-none absolute bottom-(--marker-position) left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            : "pointer-events-none absolute top-1/2 left-(--marker-position) h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+        }
+        style={{ "--marker-position": markerPosition } as React.CSSProperties}
+      />
+      <Slider
+        value={[gainToDb(gain)]}
+        onValueChange={([value]) => onGainChange(dbToGain(value))}
+        min={MIN_DB}
+        max={MAX_DB}
+        step={0.5}
+        orientation={orientation}
+        aria-label={label}
+        className={orientation === "vertical" ? "h-full" : "w-full"}
+        {...props}
+      />
     </div>
   );
 }

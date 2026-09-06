@@ -230,6 +230,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
+        masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
         position={state.position}
@@ -250,6 +251,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}
+        onMasterGainChange={(gain) => runtime.setMasterGain(gain)}
         onLoopChange={(update) => runtime.setLoop(update)}
         onPunchChange={(update) => runtime.setPunch(update)}
         onTimeSignatureChange={(timeSignature) =>
