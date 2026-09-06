@@ -36,6 +36,12 @@ export function AudioWaveformView({
   const pixelsPerPoint = (endPixel - startPixel) / slice.data.length;
   // Keep viewport bounds on a source-anchored pixel grid while preserving the
   // fractional waveform position inside it as culling changes.
+  // Example in source pixels, with 4 points spaced 0.975 px apart:
+  //   SVG viewport:     10 |-------------------------------| 15
+  //   bucket coverage:      10.3 |------------------| 14.2
+  // The viewport expands to [10, 15), but the points stay at 10.3, 11.275, ...
+  // A viewBox starting at (10 - 10.3) / 0.975 with width 5 / 0.975 preserves
+  // that placement. The CSS left below translates into the clip's local frame.
   const leftPixel = Math.floor(startPixel);
   const width = Math.ceil(endPixel) - leftPixel;
   const viewBoxStart = (leftPixel - startPixel) / pixelsPerPoint;
