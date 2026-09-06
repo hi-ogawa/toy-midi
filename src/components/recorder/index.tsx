@@ -14,6 +14,7 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
+import { RecorderExportDialog } from "./recorder-export-dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
@@ -44,6 +45,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -150,6 +152,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     isProcessing;
 
   useWindowEvent("keydown", (event) => {
+    if (isAudioExportOpen) {
+      return;
+    }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
       if (!saveDisabled) {
@@ -254,6 +259,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
+        onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
@@ -586,6 +592,13 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
+        <RecorderExportDialog
+          runtime={runtime}
+          state={state}
+          isOpen={isAudioExportOpen}
+          onClose={() => setIsAudioExportOpen(false)}
+          disabled={!project.ready || isRecording || isProcessing}
+        />
         <Dialog
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}

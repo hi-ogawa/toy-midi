@@ -1,0 +1,51 @@
+import { readFile } from "node:fs/promises";
+import { expect, test } from "@playwright/test";
+import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
+
+test("exports a stereo WAV from the audio export modal", async ({ page }) => {
+  // Try exporting an empty project and verify the render error allows retrying.
+  await createRecorderProject(page);
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Export Audio", exact: true })
+    .click();
+  const modal = page.getByTestId("recorder-audio-export");
+  const exportButton = modal.getByRole("button", { name: "Export file" });
+  await expect(exportButton).toBeEnabled();
+  await exportButton.click();
+  await expect(
+    page.getByText("No audio to export.", { exact: true }),
+  ).toBeVisible();
+  await expect(exportButton).toBeEnabled();
+
+  // Check the fixed export format before adding audio.
+  await expect(
+    modal.getByText("WAV, stereo, 48 kHz, 16-bit PCM", { exact: true }),
+  ).toBeVisible();
+  await modal.getByRole("button", { name: "Close", exact: true }).click();
+
+  // Add backing audio and name the project for the downloaded file.
+  await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
+  page.once("dialog", (dialog) => dialog.accept("Final mix"));
+  await page.getByTestId("recorder-project-name").click();
+
+  // Reopen the dialog and export the mix.
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("menuitem", { name: "Export Audio", exact: true })
+    .click();
+  await expect(exportButton).toBeEnabled();
+  const downloadPromise = page.waitForEvent("download");
+  await exportButton.click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^Final_mix-.*\.wav$/);
+  const downloadPath = test.info().outputPath("mix.wav");
+  await download.saveAs(downloadPath);
+
+  // Inspect the downloaded file as stereo 16-bit PCM WAV, not just a named blob.
+  const wav = await readFile(downloadPath);
+  expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
+  expect(wav.toString("ascii", 8, 12)).toBe("WAVE");
+  expect(wav.readUInt32LE(24)).toBe(48000);
+  await expect(exportButton).toBeEnabled();
+});
