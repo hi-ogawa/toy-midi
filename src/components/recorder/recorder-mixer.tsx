@@ -16,72 +16,6 @@ import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 
-export function RecorderGainControl({
-  label,
-  gain,
-  onGainChange,
-}: {
-  label: string;
-  gain: number;
-  onGainChange: (gain: number) => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-[10px] text-neutral-400">
-      <span className="font-medium uppercase tracking-wide">{label}</span>
-      <RecorderGainSlider
-        data-testid={`recorder-${label.toLowerCase()}-gain`}
-        label={`${label} gain`}
-        gain={gain}
-        onGainChange={onGainChange}
-        className="w-24"
-      />
-      <span className="w-12 text-right font-mono">{formatGainDb(gain)}</span>
-    </label>
-  );
-}
-
-export function RecorderGainSlider({
-  label,
-  gain,
-  onGainChange,
-  orientation = "horizontal",
-  className,
-  "data-testid": testId,
-  ...props
-}: {
-  label: string;
-  gain: number;
-  onGainChange: (gain: number) => void;
-  orientation?: "horizontal" | "vertical";
-  className?: string;
-  "data-testid"?: string;
-} & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
-  const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
-  return (
-    <div data-testid={testId} className={`relative ${className ?? ""}`}>
-      <div
-        className={
-          orientation === "vertical"
-            ? "pointer-events-none absolute bottom-(--marker-position) left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-            : "pointer-events-none absolute top-1/2 left-(--marker-position) h-3 w-px -translate-y-1/2 bg-neutral-500/70"
-        }
-        style={{ "--marker-position": markerPosition } as React.CSSProperties}
-      />
-      <Slider
-        value={[gainToDb(gain)]}
-        onValueChange={([value]) => onGainChange(dbToGain(value))}
-        min={MIN_DB}
-        max={MAX_DB}
-        step={0.5}
-        orientation={orientation}
-        aria-label={label}
-        className={orientation === "vertical" ? "h-full" : "w-full"}
-        {...props}
-      />
-    </div>
-  );
-}
-
 export function RecorderMixer({
   runtime,
   state,
@@ -273,6 +207,72 @@ function MixerChannel({
         <span>dB</span>
       </label>
       {action ?? <div className="h-8" />}
+    </div>
+  );
+}
+
+export function RecorderGainControl({
+  label,
+  gain,
+  onGainChange,
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-[10px] text-neutral-400">
+      <span className="font-medium uppercase tracking-wide">{label}</span>
+      <RecorderGainSlider
+        data-testid={`recorder-${label.toLowerCase()}-gain`}
+        label={`${label} gain`}
+        gain={gain}
+        onGainChange={onGainChange}
+        className="w-24"
+      />
+      <span className="w-12 text-right font-mono">{formatGainDb(gain)}</span>
+    </label>
+  );
+}
+
+export function RecorderGainSlider({
+  label,
+  gain,
+  onGainChange,
+  orientation = "horizontal",
+  className,
+  "data-testid": testId,
+  ...props
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+  orientation?: "horizontal" | "vertical";
+  className?: string;
+  "data-testid"?: string;
+} & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
+  const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
+  return (
+    <div data-testid={testId} className={`relative ${className ?? ""}`}>
+      <div
+        className={
+          orientation === "vertical"
+            ? "pointer-events-none absolute bottom-(--marker-position) left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            : "pointer-events-none absolute top-1/2 left-(--marker-position) h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+        }
+        style={{ "--marker-position": markerPosition } as React.CSSProperties}
+      />
+      <Slider
+        value={[gainToDb(gain)]}
+        onValueChange={([value]) => onGainChange(dbToGain(value))}
+        min={MIN_DB}
+        max={MAX_DB}
+        step={0.5}
+        orientation={orientation}
+        aria-label={label}
+        className={orientation === "vertical" ? "h-full" : "w-full"}
+        {...props}
+      />
     </div>
   );
 }
