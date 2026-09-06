@@ -45,30 +45,6 @@ export function AudioWaveformView({
     return null;
   }
 
-  const startPixel = slice.actualStart * pixelsPerSecond;
-  const endPixel = slice.actualEnd * pixelsPerSecond;
-  const pixelsPerPoint = (endPixel - startPixel) / slice.data.length;
-  // Keep viewport bounds on a source-anchored pixel grid while preserving the
-  // fractional waveform position inside it as culling changes.
-  // Example in source pixels, with 4 points spaced 0.975 px apart:
-  //   SVG viewport:     10 |-------------------------------| 15
-  //   bucket coverage:      10.3 |------------------| 14.2
-  //   startPixel = 10.3, endPixel = 14.2, slice.data.length = 4
-  //   pixelsPerPoint = 0.975, leftPixel = 10, width = 5
-  //   viewBoxStart = -0.307692..., viewBoxWidth = 5.128205...
-  // The viewport expands to [10, 15), but the points stay at 10.3, 11.275, ...
-  // A viewBox starting at (10 - 10.3) / 0.975 with width 5 / 0.975 preserves
-  // that placement. The CSS left below translates into the clip's local frame.
-  // Keep sourceStart * pixelsPerSecond fractional: the parent moves by that
-  // amount, so subtracting it exactly cancels the moving comp boundary.
-  // The source origin may remain fractional on screen, but its pixel-grid phase
-  // stays fixed. Rounding this subtraction would introduce drift and resets.
-  // Temporarily bypass pixel alignment to evaluate coarse culling alone.
-  const leftPixel = startPixel;
-  const width = endPixel - startPixel;
-  const viewBoxStart = (leftPixel - startPixel) / pixelsPerPoint;
-  const viewBoxWidth = width / pixelsPerPoint;
-
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
@@ -82,12 +58,12 @@ export function AudioWaveformView({
     <svg
       className="absolute"
       style={{
-        left: leftPixel - sourceStart * pixelsPerSecond,
-        width,
+        left: (slice.actualStart - sourceStart) * pixelsPerSecond,
+        width: (slice.actualEnd - slice.actualStart) * pixelsPerSecond,
         top: "5%",
         height: "90%",
       }}
-      viewBox={`${viewBoxStart} -1 ${viewBoxWidth} 2`}
+      viewBox={`0 -1 ${slice.data.length} 2`}
       preserveAspectRatio="none"
     >
       <path
