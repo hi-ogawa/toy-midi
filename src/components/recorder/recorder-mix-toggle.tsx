@@ -16,7 +16,7 @@ export function RecorderMixToggle({
       {...props}
       aria-pressed={active}
       className={cn(
-        "border-neutral-600 text-neutral-300 hover:bg-neutral-700",
+        "border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700",
         active &&
           (kind === "mute"
             ? "border-amber-500/60 bg-amber-500/35 text-amber-300 hover:!bg-amber-500/40 hover:!text-amber-300"
