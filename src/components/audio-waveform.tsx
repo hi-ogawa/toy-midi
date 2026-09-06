@@ -2,34 +2,28 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 
 export function AudioWaveformView({
   audioView,
-  audioDuration,
   rangeStart = 0,
-  rangeEnd = audioDuration,
   visibleStart,
   visibleEnd,
-  pixelWidth,
+  pixelsPerSecond,
 }: {
   audioView: AudioView;
-  /** Complete source-buffer length, in seconds. */
-  audioDuration: number;
-  /** Source interval mapped across pixelWidth; defaults to the full buffer. */
+  /** Source time mapped to the clip's left edge, in seconds. */
   rangeStart?: number;
-  rangeEnd?: number;
   /** Viewport-visible source interval to query and render, in seconds. */
   visibleStart: number;
   visibleEnd: number;
-  /** Pixel width corresponding to [rangeStart, rangeEnd). */
-  pixelWidth: number;
+  /** Timeline scale, independent of the clip box's minimum width. */
+  pixelsPerSecond: number;
 }) {
   if (audioView.data.length === 0) {
     return null;
   }
 
-  const rangeDuration = rangeEnd - rangeStart;
   const visibleDuration = visibleEnd - visibleStart;
   const visiblePixelWidth = Math.max(
     1,
-    Math.round((visibleDuration / rangeDuration) * pixelWidth),
+    Math.round(visibleDuration * pixelsPerSecond),
   );
   const slice = queryAudioView(
     audioView,
@@ -42,9 +36,6 @@ export function AudioWaveformView({
     return null;
   }
 
-  const leftPercent = ((slice.actualStart - rangeStart) / rangeDuration) * 100;
-  const widthPercent =
-    ((slice.actualEnd - slice.actualStart) / rangeDuration) * 100;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
@@ -58,8 +49,8 @@ export function AudioWaveformView({
     <svg
       className="absolute"
       style={{
-        left: `${leftPercent}%`,
-        width: `${widthPercent}%`,
+        left: (slice.actualStart - rangeStart) * pixelsPerSecond,
+        width: (slice.actualEnd - slice.actualStart) * pixelsPerSecond,
         top: "5%",
         height: "90%",
       }}

@@ -52,12 +52,21 @@ for (const gap of [0.25, 1e-13]) {
     const regions = page.getByTestId("recorder-clip-comp");
     await expect(regions).toHaveCount(3);
     const fragment = regions.nth(1);
-    await expect(fragment.locator("svg")).toBeVisible();
-    const { points, width } = await fragment.evaluate((element) => ({
-      points: element.querySelector("svg")!.viewBox.baseVal.width + 1,
-      width: element.getBoundingClientRect().width,
-    }));
+    await expect(fragment.locator("svg")).toHaveCount(1);
+    const { points, width, waveformWidth } = await fragment.evaluate(
+      (element) => ({
+        points: element.querySelector("svg")!.viewBox.baseVal.width + 1,
+        width: element.getBoundingClientRect().width,
+        waveformWidth: element.querySelector("svg")!.getBoundingClientRect()
+          .width,
+      }),
+    );
     // Allow pooling/edge rounding, but never a source-length-sized SVG in a tiny clip.
     expect(points).toBeLessThanOrEqual(Math.ceil(width) * 2 + 2);
+    // The 2 px clip box must not stretch the waveform beyond the timeline scale.
+    // At 120 BPM and 3 px/beat, allow two 800 Hz peak buckets plus CSS rounding.
+    expect(width).toBe(2);
+    expect(waveformWidth).toBeGreaterThanOrEqual(gap * 6 - 0.02);
+    expect(waveformWidth).toBeLessThanOrEqual((gap + 2 / 800) * 6 + 0.02);
   });
 }

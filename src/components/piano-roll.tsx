@@ -1906,10 +1906,9 @@ function WaveformArea({
             audioWaveform.view.data.length > 0 && (
               <AudioWaveformView
                 audioView={audioWaveform.view}
-                audioDuration={audioDuration}
                 visibleStart={audioVisibleStart}
                 visibleEnd={audioVisibleEnd}
-                pixelWidth={Math.max(1, Math.round(audioWidth))}
+                pixelsPerSecond={secondsToBeats(1, tempo) * pixelsPerBeat}
               />
             )}
           {/* File name, status, and offset indicator (pending is indicated

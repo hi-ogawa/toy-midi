@@ -380,7 +380,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                           offset: track.timelineOffset + track.trimStart,
                           testId: "audio",
                           audioView: track.clip.audioView,
-                          audioDuration: track.clip.buffer.duration,
                           audioOffset: track.trimStart,
                         }
                       : undefined
@@ -537,7 +536,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                       offset: take.timelineOffset + take.trimStart,
                       testId: "take-lane",
                       audioView: take.audioView,
-                      audioDuration: take.duration,
                       audioOffset: take.trimStart,
                     }}
                     pixelsPerBeat={timeline.pixelsPerBeat}
