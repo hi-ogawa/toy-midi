@@ -104,10 +104,10 @@ export function TrackRow({
       style={{ height }}
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0 truncate text-xs leading-7 font-semibold">
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
-        <div className="flex gap-1">
+        <div className="flex self-center gap-1">
           {action}
           <RecorderMixToggle
             active={muted}
@@ -198,10 +198,10 @@ export function CaptureTrackRow({
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0 truncate text-xs leading-7 font-semibold">
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
           Capture
         </div>
-        <div className="flex gap-1">
+        <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -380,8 +380,8 @@ export function TakeTrackRow({
       data-testid="recorder-take-row"
       className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
-        <span className="mr-auto px-4 leading-7">Take {number}</span>
+      <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
+        <span className="mr-auto px-4">Take {number}</span>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
           aria-label={`Mute Take ${number}`}
