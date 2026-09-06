@@ -59,7 +59,7 @@ test("uploads and plays a backing track", async ({ page }) => {
   await page.keyboard.press("Delete");
   await expect(clip).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
-  await expect(page.getByText("No file loaded")).toBeVisible();
+  await expect(page.getByText("Audio 1", { exact: true })).toBeVisible();
 });
 
 test("scrolls overflowing tracks from the track list", async ({ page }) => {

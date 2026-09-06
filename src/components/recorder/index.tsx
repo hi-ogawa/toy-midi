@@ -9,7 +9,6 @@ import {
 } from "../../lib/keyboard";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
-import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
@@ -346,7 +345,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               <TrackRow
                 key={track.id}
                 title={`Audio ${index + 1}`}
-                subtitle={track.clip ? "" : "No file loaded"}
                 height={track.height}
                 gain={track.gain}
                 muted={track.muted}
@@ -429,15 +427,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             <CaptureTrackRow
               route={input.route.label}
               routeNeedsSetup={input.route.needsSetup}
-              subtitle={
-                isProcessing
-                  ? "Finalizing take…"
-                  : isRecording
-                    ? `Recording · ${formatTimeWithMilliseconds(state.pendingRecording?.duration ?? 0)}`
-                    : takes.length > 0
-                      ? ""
-                      : "No takes"
-              }
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
               inputActive={input.active}

@@ -173,5 +173,5 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
   await expect(take).toHaveCount(0);
-  await expect(page.getByText("No takes")).toBeVisible();
+  await expect(takesToggle).toHaveText("Takes0");
 });

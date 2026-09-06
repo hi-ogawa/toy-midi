@@ -55,5 +55,5 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   await expect(audio).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(page.getByText("Load an audio file")).toBeVisible();
-  await expect(page.getByText("No file loaded")).toBeVisible();
+  await expect(page.getByText("Audio 1", { exact: true })).toBeVisible();
 });
