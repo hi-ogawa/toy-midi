@@ -126,13 +126,13 @@ describe("queryAudioView", () => {
     expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty slice for zero pixels per second", () => {
+  it("returns empty slice for zero target points per second", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, 0);
     expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty slice for negative pixels per second", () => {
+  it("returns empty slice for negative target points per second", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, -100);
     expect(result).toEqual(emptySlice);
@@ -293,7 +293,7 @@ describe("queryAudioView", () => {
     const pointsPerSec = 800;
     const duration = 180; // 3 minutes
     const viewportDuration = 2; // 2 seconds visible
-    const pixelsPerSecond = 100;
+    const targetPointsPerSecond = 100;
 
     // Create view with distinct values so we can detect changes
     const view: AudioView = {
@@ -309,7 +309,7 @@ describe("queryAudioView", () => {
         view,
         scrollSec,
         scrollSec + viewportDuration,
-        pixelsPerSecond,
+        targetPointsPerSecond,
       );
       results.push({ data: result.data });
     }
@@ -336,9 +336,9 @@ describe("queryAudioView", () => {
       samplesPerPoint: 60,
       sampleRate: 48000,
     };
-    const pixelsPerSecond = 6;
+    const targetPointsPerSecond = 6;
     const bucketDuration = 133 / 800; // round(800 / 6) source points per bucket
-    const whole = queryAudioView(view, 0, 1, pixelsPerSecond);
+    const whole = queryAudioView(view, 0, 1, targetPointsPerSecond);
     expect(whole.data).toHaveLength(7);
     expect(whole.actualEnd).toBeCloseTo(7 * bucketDuration);
 
@@ -347,7 +347,7 @@ describe("queryAudioView", () => {
       [0.25, 0.5],
       [0.3, 0.3 + 1e-13],
     ]) {
-      const slice = queryAudioView(view, start, end, pixelsPerSecond);
+      const slice = queryAudioView(view, start, end, targetPointsPerSecond);
       const first = Math.floor(start / bucketDuration);
       const last = Math.ceil(end / bucketDuration);
       expect(slice.data).toEqual(whole.data.slice(first, last));
