@@ -343,7 +343,7 @@ function TimelineRange({
     <div
       data-testid={`${testId}-range`}
       className={cn(
-        "absolute inset-y-0 z-10 border-x select-none",
+        "pointer-events-none absolute inset-y-0 z-10 border-x select-none",
         enabled ? activeClassName : inactiveClassName,
       )}
       style={{
@@ -353,7 +353,7 @@ function TimelineRange({
     >
       <span
         ref={dragRef}
-        className="absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
+        className="pointer-events-auto absolute left-1 top-1 z-10 cursor-grab font-sans text-[9px] font-semibold uppercase tracking-wide active:cursor-grabbing"
         title={`Move ${label.toLowerCase()} range`}
       >
         {label}
@@ -361,21 +361,22 @@ function TimelineRange({
       <div
         ref={startRef}
         data-testid={`${testId}-start`}
-        className="absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
+        className="pointer-events-auto absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
       />
       <div
         ref={endRef}
         data-testid={`${testId}-end`}
-        className="absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
+        className="pointer-events-auto absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
       />
       <button
         type="button"
         title={`Clear ${label.toLowerCase()} range`}
         data-testid={`${testId}-clear`}
         className={cn(
-          "absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
+          "pointer-events-auto absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
           clearHoverClassName,
         )}
+        onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();
           onClear();
