@@ -28,21 +28,57 @@ export function RecorderGainControl({
   return (
     <label className="flex items-center gap-2 text-[10px] text-neutral-400">
       <span className="font-medium uppercase tracking-wide">{label}</span>
-      <input
-        data-testid={`recorder-${label.toLowerCase()}-gain`}
-        aria-label={`${label} gain`}
-        type="range"
-        min={MIN_DB}
-        max={MAX_DB}
-        step={0.5}
-        value={gainToDb(gain)}
-        onChange={(event) =>
-          onGainChange(dbToGain(event.currentTarget.valueAsNumber))
-        }
-        className="w-24 accent-emerald-600"
+      <RecorderGainSlider
+        testId={`recorder-${label.toLowerCase()}-gain`}
+        label={`${label} gain`}
+        gain={gain}
+        onGainChange={onGainChange}
+        className="w-24"
       />
       <span className="w-12 text-right font-mono">{formatGainDb(gain)}</span>
     </label>
+  );
+}
+
+export function RecorderGainSlider({
+  label,
+  gain,
+  onGainChange,
+  orientation = "horizontal",
+  className,
+  testId,
+  ...props
+}: {
+  label: string;
+  gain: number;
+  onGainChange: (gain: number) => void;
+  orientation?: "horizontal" | "vertical";
+  className?: string;
+  testId?: string;
+} & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
+  const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
+  return (
+    <div data-testid={testId} className={`relative ${className ?? ""}`}>
+      <div
+        className={
+          orientation === "vertical"
+            ? "pointer-events-none absolute bottom-(--marker-position) left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
+            : "pointer-events-none absolute top-1/2 left-(--marker-position) h-3 w-px -translate-y-1/2 bg-neutral-500/70"
+        }
+        style={{ "--marker-position": markerPosition } as React.CSSProperties}
+      />
+      <Slider
+        value={[gainToDb(gain)]}
+        onValueChange={([value]) => onGainChange(dbToGain(value))}
+        min={MIN_DB}
+        max={MAX_DB}
+        step={0.5}
+        orientation={orientation}
+        thumbProps={{ "aria-label": label }}
+        className={orientation === "vertical" ? "h-full" : "w-full"}
+        {...props}
+      />
+    </div>
   );
 }
 
@@ -219,22 +255,13 @@ function MixerChannel({
           {label}
         </span>
       </div>
-      <div className="relative h-48">
-        <div
-          className="pointer-events-none absolute left-1/2 h-px w-3 -translate-x-1/2 bg-neutral-500/70"
-          style={{ bottom: `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%` }}
-        />
-        <Slider
-          value={[gainToDb(gain)]}
-          onValueChange={([value]) => onGainChange(dbToGain(value))}
-          min={MIN_DB}
-          max={MAX_DB}
-          step={0.5}
-          orientation="vertical"
-          aria-label={`${label === "Metro" ? "Metronome" : label} gain`}
-          className="h-48"
-        />
-      </div>
+      <RecorderGainSlider
+        label={`${label === "Metro" ? "Metronome" : label} gain`}
+        gain={gain}
+        onGainChange={onGainChange}
+        orientation="vertical"
+        className="h-48"
+      />
       <label className="flex items-center gap-1 text-xs text-muted-foreground tabular-nums">
         <input
           type="text"

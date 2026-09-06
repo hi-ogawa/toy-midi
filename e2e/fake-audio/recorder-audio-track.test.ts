@@ -94,9 +94,11 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
 
   // Master gain stays available without opening the mixer and steps by 0.5 dB.
   const masterGain = page.getByRole("slider", { name: "Master gain" });
-  await expect(masterGain).toHaveValue("0");
+  await expect(masterGain).toHaveAttribute("aria-valuenow", "0");
   await masterGain.press("ArrowDown");
-  await expect(masterGain).toHaveValue("-0.5");
+  expect(Number(await masterGain.getAttribute("aria-valuenow"))).toBeCloseTo(
+    -0.5,
+  );
 
   // Track gain uses the same dB keyboard step without seeking the timeline.
   const position = page.getByTestId("recorder-position");
@@ -105,7 +107,9 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
   const initialPosition = await position.getAttribute("data-position");
   const audioGain = page.getByRole("slider", { name: "Audio 1 gain" });
   await audioGain.press("ArrowRight");
-  await expect(audioGain).toHaveValue("0.5");
+  expect(Number(await audioGain.getAttribute("aria-valuenow"))).toBeCloseTo(
+    0.5,
+  );
   await expect(position).toHaveAttribute("data-position", initialPosition!);
 
   // Open the floating mixer and inspect every recorder output channel.
