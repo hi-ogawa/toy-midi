@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
-import { snapToGrid } from "../../lib/music";
+import { formatGainDb, snapToGrid } from "../../lib/music";
 import type {
   RecorderLoopState,
   RecorderPunchState,
@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderGainSlider } from "./recorder-mixer";
 import type { SaveStatus } from "./use-recorder-project";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5];
@@ -58,6 +59,7 @@ export function RecorderHeader({
   isRecording,
   isExporting,
   metronomeEnabled,
+  masterGain,
   loop,
   punch,
   position,
@@ -75,6 +77,7 @@ export function RecorderHeader({
   onPlaybackRateChange,
   onTempoChange,
   onMetronomeChange,
+  onMasterGainChange,
   onLoopChange,
   onPunchChange,
   onTimeSignatureChange,
@@ -93,6 +96,7 @@ export function RecorderHeader({
   isRecording: boolean;
   isExporting: boolean;
   metronomeEnabled: boolean;
+  masterGain: number;
   loop: RecorderLoopState;
   punch: RecorderPunchState;
   position: number;
@@ -110,6 +114,7 @@ export function RecorderHeader({
   onPlaybackRateChange: (playbackRate: number) => void;
   onTempoChange: (tempo: number) => void;
   onMetronomeChange: (enabled: boolean) => void;
+  onMasterGainChange: (gain: number) => void;
   onLoopChange: (update: Partial<RecorderLoopState>) => void;
   onPunchChange: (update: Partial<RecorderPunchState>) => void;
   onTimeSignatureChange: (value: string) => void;
@@ -359,6 +364,20 @@ export function RecorderHeader({
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      <div className="h-5 w-px bg-neutral-600" />
+      <label className="flex items-center gap-2 text-[10px] text-neutral-400">
+        <span className="font-medium uppercase tracking-wide">Master</span>
+        <RecorderGainSlider
+          data-testid="recorder-master-gain"
+          label="Master gain"
+          gain={masterGain}
+          onGainChange={onMasterGainChange}
+          className="w-24"
+        />
+        <span className="w-12 text-right font-mono">
+          {formatGainDb(masterGain)}
+        </span>
+      </label>
       <div className="flex-1" />
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button

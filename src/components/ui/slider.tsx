@@ -10,6 +10,8 @@ export function Slider({
   min = 0,
   max = 100,
   onValueChange,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -71,7 +73,9 @@ export function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm outline-none transition-[color,box-shadow] hover:ring-2 hover:ring-emerald-400/40 active:ring-3 active:ring-emerald-400/60 focus:ring-2 focus:ring-emerald-400/60 focus-visible:ring-4 focus-visible:ring-emerald-400 disabled:pointer-events-none disabled:opacity-50"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
         />
       ))}
     </SliderPrimitive.Root>
