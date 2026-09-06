@@ -118,6 +118,7 @@ export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
+    // Custom sliders use arrow keys but are not native form controls.
     (target instanceof HTMLElement &&
       (target.isContentEditable || target.getAttribute("role") === "slider"))
   );
