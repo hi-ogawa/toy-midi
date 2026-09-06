@@ -12,8 +12,10 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await createRecorderProject(page);
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const first = page.getByRole("button", { name: "Section 1", exact: true });
+  const renameFirst = page.getByRole("button", { name: "Rename Section 1" });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
   const verse = page.getByRole("button", { name: "Verse", exact: true });
+  const renameVerse = page.getByRole("button", { name: "Rename Verse" });
 
   // Both creation controls use the snapped playhead and select the new marker.
   await seekRecorderByPixels(page, pixelsPerBeat * 0.9);
@@ -26,12 +28,15 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await first.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(1);
 
-  // Rename commits through the prompt; cancelling keeps the existing label.
+  // Rename commits without seeking; cancelling keeps the existing label.
+  await seekRecorderByPixels(page, pixelsPerBeat * 3);
   page.once("dialog", (dialog) => dialog.accept("Verse"));
-  await first.dblclick();
+  // Playwright can click the opacity-hidden rename action, avoiding hover setup here.
+  await renameFirst.click();
   await expect(verse).toBeVisible();
+  await expect.poll(() => getRecorderBeat(page)).toBe(3);
   page.once("dialog", (dialog) => dialog.dismiss());
-  await verse.dblclick();
+  await renameVerse.click();
   await expect(verse).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(verse).toHaveAttribute("aria-pressed", "false");
@@ -84,6 +89,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
     name: "Renamed 1",
     exact: true,
   });
+  const renameFirst = page.getByRole("button", { name: "Rename Section 1" });
   const second = page.getByRole("button", { name: "Section 2", exact: true });
   const lane = page.getByTestId("recorder-locator-lane");
   const saveButton = page.getByTestId("recorder-save-button");
@@ -108,7 +114,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
 
   // Renaming dirties the project.
   page.once("dialog", (dialog) => dialog.accept("Renamed 1"));
-  await first.dblclick();
+  await renameFirst.click();
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");
@@ -132,5 +138,5 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await page.reload();
   await expect(firstRenamed).toHaveCount(0);
   await expect(second).toBeVisible();
-  await expect(lane.getByRole("button")).toHaveCount(1);
+  await expect(lane.getByTestId("recorder-locator")).toHaveCount(1);
 });

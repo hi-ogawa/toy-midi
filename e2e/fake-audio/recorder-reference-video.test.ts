@@ -24,6 +24,20 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   expect(resizedPanelBox!.width).toBeCloseTo(initialPanelBox!.width + 80, -1);
   expect(resizedPanelBox!.height).toBeCloseTo(initialPanelBox!.height + 60, -1);
 
+  await setup.getByRole("button", { name: "Close Reference Video" }).click();
+  await toggle.click();
+  const restoredPanelBox = await setup.boundingBox();
+  expect(restoredPanelBox).not.toBeNull();
+  expect(restoredPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
+  expect(restoredPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
+
+  await page.reload();
+  await page.getByTestId("recorder-reference-video-button").click();
+  const reloadedPanelBox = await setup.boundingBox();
+  expect(reloadedPanelBox).not.toBeNull();
+  expect(reloadedPanelBox!.width).toBeCloseTo(resizedPanelBox!.width, -1);
+  expect(reloadedPanelBox!.height).toBeCloseTo(resizedPanelBox!.height, -1);
+
   // The preview fits the resized space while preserving the player's 16:9 frame.
   const preview = setup.getByTestId("recorder-reference-video-preview");
   const containedPlayer = preview.locator(":scope > div");

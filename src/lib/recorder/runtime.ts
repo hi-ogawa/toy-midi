@@ -9,6 +9,11 @@ import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
+  deriveTrackMix,
+  renderRecorderMix,
+  resolveRecorderMix,
+} from "./mix.ts";
+import {
   deserializeRecorderRuntimeState,
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
@@ -914,6 +919,20 @@ export class RecorderRuntime {
     });
   }
 
+  async renderMix(): Promise<AudioBuffer> {
+    const state = this.store.get();
+    if (
+      state.captureStatus === "recording" ||
+      state.captureStatus === "processing"
+    ) {
+      throw new Error("Cannot render a mix while capture is in progress.");
+    }
+    return renderRecorderMix({
+      mix: resolveRecorderMix(state),
+      sampleRate: 48000,
+    });
+  }
+
   serializeProject(): SerializedRecorderRuntimeState {
     return serializeRecorderRuntimeState(this.store.get());
   }
@@ -1023,19 +1042,13 @@ export class RecorderRuntime {
 
   private syncTrackMix(): void {
     const { audioTracks, recordingTrack } = this.store.get();
-    const anyTrackSoloed =
-      recordingTrack.soloed || audioTracks.some((track) => track.soloed);
-    for (const track of audioTracks) {
-      this.audioTrackPlaybacks
-        .get(track.id)
-        ?.setGain(
-          track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
-        );
+    const { audioTrackGains, recordingGain } = deriveTrackMix({
+      audioTracks,
+      recordingTrack,
+    });
+    for (const [index, track] of audioTracks.entries()) {
+      this.audioTrackPlaybacks.get(track.id)?.setGain(audioTrackGains[index]!);
     }
-    const recordingGain =
-      recordingTrack.muted || (anyTrackSoloed && !recordingTrack.soloed)
-        ? 0
-        : recordingTrack.gain;
     for (const playback of this.recordingTrackPlaybacks) {
       playback.setGain(recordingGain);
     }
