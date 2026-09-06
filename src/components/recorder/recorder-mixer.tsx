@@ -29,7 +29,7 @@ export function RecorderGainControl({
     <label className="flex items-center gap-2 text-[10px] text-neutral-400">
       <span className="font-medium uppercase tracking-wide">{label}</span>
       <RecorderGainSlider
-        testId={`recorder-${label.toLowerCase()}-gain`}
+        data-testid={`recorder-${label.toLowerCase()}-gain`}
         label={`${label} gain`}
         gain={gain}
         onGainChange={onGainChange}
@@ -46,7 +46,7 @@ export function RecorderGainSlider({
   onGainChange,
   orientation = "horizontal",
   className,
-  testId,
+  "data-testid": testId,
   ...props
 }: {
   label: string;
@@ -54,7 +54,7 @@ export function RecorderGainSlider({
   onGainChange: (gain: number) => void;
   orientation?: "horizontal" | "vertical";
   className?: string;
-  testId?: string;
+  "data-testid"?: string;
 } & Omit<ComponentProps<typeof Slider>, "value" | "onValueChange">) {
   const markerPosition = `${(-MIN_DB / (MAX_DB - MIN_DB)) * 100}%`;
   return (
