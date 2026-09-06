@@ -814,12 +814,12 @@ function TimelineClip({
   const clipClass = recording
     ? "bg-red-400/20 text-red-100"
     : clip.variant === "reference"
-      ? "bg-neutral-400/15 text-neutral-200"
+      ? "bg-blue-400/10 text-blue-100"
       : "bg-emerald-400/20 text-emerald-100";
   const clipBorderClass = recording
     ? "border-red-400/70"
     : clip.variant === "reference"
-      ? "border-neutral-400/60"
+      ? "border-blue-400/40"
       : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
   const pixelsPerSecond = secondsToBeats(1, tempo) * pixelsPerBeat;
