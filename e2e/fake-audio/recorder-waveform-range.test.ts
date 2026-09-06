@@ -64,9 +64,12 @@ for (const gap of [0.25, 1e-13]) {
     // Allow pooling/edge rounding, but never a source-length-sized SVG in a tiny clip.
     expect(points).toBeLessThanOrEqual(Math.ceil(width) * 2 + 2);
     // The 2 px clip box must not stretch the waveform beyond the timeline scale.
-    // At 120 BPM and 3 px/beat, allow two 800 Hz peak buckets plus CSS rounding.
+    // At 120 BPM and 3 px/beat, pooling uses 133 source points per pixel.
+    // The SVG covers complete source-aligned buckets, even for a subpixel clip.
     expect(width).toBe(2);
-    expect(waveformWidth).toBeGreaterThanOrEqual(gap * 6 - 0.02);
-    expect(waveformWidth).toBeLessThanOrEqual((gap + 2 / 800) * 6 + 0.02);
+    const bucketDuration = 133 / 800;
+    const bucketCount =
+      Math.ceil((10 + gap) / bucketDuration) - Math.floor(10 / bucketDuration);
+    expect(waveformWidth).toBeCloseTo(bucketCount * bucketDuration * 6, 1);
   });
 }

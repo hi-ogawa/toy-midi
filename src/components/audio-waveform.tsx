@@ -20,16 +20,11 @@ export function AudioWaveformView({
     return null;
   }
 
-  const visibleDuration = visibleEnd - visibleStart;
-  const visiblePixelWidth = Math.max(
-    1,
-    Math.round(visibleDuration * pixelsPerSecond),
-  );
   const slice = queryAudioView(
     audioView,
     visibleStart,
     visibleEnd,
-    visiblePixelWidth,
+    pixelsPerSecond,
   );
 
   if (slice.data.length === 0) {
