@@ -670,7 +670,7 @@ export function ReferenceTimelineRow({
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
         </div>
-        <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
+        <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] leading-3.5 text-neutral-400">
           <span>
             {formatTimeMinutes(
               Math.max(0, position - referenceVideo.timelineStart),

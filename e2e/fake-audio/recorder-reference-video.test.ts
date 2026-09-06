@@ -83,6 +83,17 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   const referenceTrack = page.getByTestId("recorder-reference-track");
   await expect(referenceTrack).toContainText("Reference");
   await expect(referenceTrack).toContainText("0:00");
+  // The header background must leave the row's bottom border exposed.
+  expect(
+    await referenceTrack.evaluate((row) => {
+      const border = Number.parseFloat(getComputedStyle(row).borderBottomWidth);
+      const header = row.firstElementChild!;
+      return (
+        header.getBoundingClientRect().bottom <=
+        row.getBoundingClientRect().bottom - border
+      );
+    }),
+  ).toBe(true);
   const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
   const initialReferenceClipBox = await referenceClip.boundingBox();
   expect(initialReferenceClipBox).not.toBeNull();
