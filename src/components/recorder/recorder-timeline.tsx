@@ -638,7 +638,7 @@ export function ReferenceTimelineRow({
   return (
     <div
       data-testid="recorder-reference-track"
-      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+      className="grid h-17 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
         <div className="min-w-0">
