@@ -344,7 +344,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               <TrackRow
                 key={track.id}
                 title={`Audio ${index + 1}`}
-                subtitle={track.clip?.name ?? "No file loaded"}
+                subtitle={track.clip ? "" : "No file loaded"}
                 height={track.height}
                 gain={track.gain}
                 muted={track.muted}
@@ -433,7 +433,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   : isRecording
                     ? `Recording · ${formatTimeWithMilliseconds(state.pendingRecording?.duration ?? 0)}`
                     : takes.length > 0
-                      ? `${takes.length} ${takes.length === 1 ? "take" : "takes"}`
+                      ? ""
                       : "No takes"
               }
               gain={state.recordingTrack.gain}
