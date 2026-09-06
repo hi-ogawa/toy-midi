@@ -378,7 +378,7 @@ export function TakeTrackRow({
   return (
     <div
       data-testid="recorder-take-row"
-      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+      className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
         <span className="mr-auto px-4">Take {number}</span>
