@@ -105,19 +105,19 @@ export function createAudioView(
   return builder.view;
 }
 
-// Query visible range, downsample to pixel width
+// Query a visible range at a fixed target point density, independent of culling bounds.
 // Returns data plus actual time bounds (aligned to data boundaries) for renderer positioning
 export function queryAudioView(
   view: AudioView,
   startTime: number, // seconds
   endTime: number, // seconds
-  targetPoints: number, // pixels
+  targetPointsPerSecond: number,
 ): AudioViewSlice {
   const { data, samplesPerPoint, sampleRate } = view;
 
   const emptySlice: AudioViewSlice = { data: [], actualStart: 0, actualEnd: 0 };
 
-  if (data.length === 0 || targetPoints <= 0 || samplesPerPoint <= 0) {
+  if (data.length === 0 || targetPointsPerSecond <= 0 || samplesPerPoint <= 0) {
     return emptySlice;
   }
 
@@ -134,12 +134,11 @@ export function queryAudioView(
     return emptySlice;
   }
 
-  // Choose the second-stage pooling factor for the current viewport scale.
-  const viewportDuration = endTime - startTime;
+  // Choose the second-stage pooling factor for the requested point density.
   const pointsPerSec = sampleRate / samplesPerPoint;
   const alignmentStep = Math.max(
     1,
-    Math.round((viewportDuration * pointsPerSec) / targetPoints),
+    Math.round(pointsPerSec / targetPointsPerSecond),
   );
   // Anchor pooling buckets at source index 0 rather than the moving startIdx.
   // Scrolling then selects and clips the same global buckets instead of
@@ -158,10 +157,8 @@ export function queryAudioView(
   const actualStart = (alignedStartIdx * samplesPerPoint) / sampleRate;
   const actualEnd = (alignedEndIdx * samplesPerPoint) / sampleRate;
 
-  const visibleLength = alignedEndIdx - alignedStartIdx;
-
-  // If fewer points than target, return as-is
-  if (visibleLength <= targetPoints) {
+  // At or above source resolution, no pooling is needed.
+  if (alignmentStep === 1) {
     return {
       data: data.slice(alignedStartIdx, alignedEndIdx),
       actualStart,

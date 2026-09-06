@@ -393,8 +393,6 @@ type RecorderTimelineClip = {
   duration: number;
   /** Absolute timeline position where the visible clip begins. */
   offset: number;
-  /** Complete source-buffer length, used to render a trimmed waveform. */
-  audioDuration?: number;
   /** Visible clip start relative to the source buffer, in seconds. */
   audioOffset?: number;
   testId: "audio" | "comp" | "recording" | "reference" | "take" | "take-lane";
@@ -490,7 +488,6 @@ export function TakeTimelineLane({
                   : `Take ${take.number}`,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
-                audioDuration: take.duration,
                 audioOffset,
                 testId: isPendingRecording ? "recording" : "comp",
                 audioView: take.audioView,
@@ -821,12 +818,10 @@ function TimelineClip({
       ? "border-amber-400/60"
       : "border-emerald-400/60";
   const clipStartBeat = secondsToBeats(clip.offset, tempo);
-  const clipWidth = Math.max(
-    2,
-    secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
-  );
+  const pixelsPerSecond = secondsToBeats(1, tempo) * pixelsPerBeat;
+  const clipWidth = Math.max(2, clip.duration * pixelsPerSecond);
   const visibleStart = Math.max(
-    0,
+    clip.audioOffset ?? 0,
     (clip.audioOffset ?? 0) +
       beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
   );
@@ -863,12 +858,10 @@ function TimelineClip({
             {clip.audioView && visibleEnd > visibleStart && (
               <AudioWaveformView
                 audioView={clip.audioView}
-                audioDuration={clip.audioDuration ?? clip.duration}
-                rangeStart={clip.audioOffset ?? 0}
-                rangeEnd={(clip.audioOffset ?? 0) + clip.duration}
+                sourceStart={clip.audioOffset ?? 0}
                 visibleStart={visibleStart}
                 visibleEnd={visibleEnd}
-                pixelWidth={clipWidth}
+                pixelsPerSecond={pixelsPerSecond}
               />
             )}
             <div className="absolute left-1 top-0.5 z-10 whitespace-nowrap">

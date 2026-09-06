@@ -2,49 +2,49 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 
 export function AudioWaveformView({
   audioView,
-  audioDuration,
-  rangeStart = 0,
-  rangeEnd = audioDuration,
+  sourceStart = 0,
   visibleStart,
   visibleEnd,
-  pixelWidth,
+  pixelsPerSecond,
 }: {
   audioView: AudioView;
-  /** Complete source-buffer length, in seconds. */
-  audioDuration: number;
-  /** Source interval mapped across pixelWidth; defaults to the full buffer. */
-  rangeStart?: number;
-  rangeEnd?: number;
+  /** Source-time origin of the clip's local coordinate frame, in seconds. */
+  sourceStart?: number;
   /** Viewport-visible source interval to query and render, in seconds. */
   visibleStart: number;
   visibleEnd: number;
-  /** Pixel width corresponding to [rangeStart, rangeEnd). */
-  pixelWidth: number;
+  /**
+   * Timeline scale used for pixel placement and as the query's target points
+   * per second, aiming for roughly one pooled peak per pixel. Integer pooling
+   * and available source resolution determine the actual point density.
+   * Independent of the clip box's minimum width.
+   */
+  pixelsPerSecond: number;
 }) {
-  if (audioView.data.length === 0) {
+  if (audioView.data.length === 0 || visibleEnd <= visibleStart) {
     return null;
   }
 
-  const rangeDuration = rangeEnd - rangeStart;
-  const visibleDuration = visibleEnd - visibleStart;
-  const visiblePixelWidth = Math.max(
-    1,
-    Math.round((visibleDuration / rangeDuration) * pixelWidth),
-  );
+  // Expand culling to source-anchored 256 px windows. Small boundary edits keep
+  // the same query/SVG bounds; the parent clip still hides the excess waveform.
+  const cullStep = 256;
+  const queryStart =
+    (Math.floor((visibleStart * pixelsPerSecond) / cullStep) * cullStep) /
+    pixelsPerSecond;
+  const queryEnd =
+    (Math.ceil((visibleEnd * pixelsPerSecond) / cullStep) * cullStep) /
+    pixelsPerSecond;
   const slice = queryAudioView(
     audioView,
-    visibleStart,
-    visibleEnd,
-    visiblePixelWidth,
+    queryStart,
+    queryEnd,
+    pixelsPerSecond,
   );
 
   if (slice.data.length === 0) {
     return null;
   }
 
-  const leftPercent = ((slice.actualStart - rangeStart) / rangeDuration) * 100;
-  const widthPercent =
-    ((slice.actualEnd - slice.actualStart) / rangeDuration) * 100;
   const upperPoints: string[] = [];
   const lowerPoints: string[] = [];
   for (let i = 0; i < slice.data.length; i++) {
@@ -58,12 +58,12 @@ export function AudioWaveformView({
     <svg
       className="absolute"
       style={{
-        left: `${leftPercent}%`,
-        width: `${widthPercent}%`,
+        left: (slice.actualStart - sourceStart) * pixelsPerSecond,
+        width: (slice.actualEnd - slice.actualStart) * pixelsPerSecond,
         top: "5%",
         height: "90%",
       }}
-      viewBox={`0 -1 ${slice.data.length - 1 || 1} 2`}
+      viewBox={`0 -1 ${slice.data.length} 2`}
       preserveAspectRatio="none"
     >
       <path
