@@ -100,10 +100,12 @@ test("mixes recorder outputs in a floating panel", async ({ page }) => {
 
   // Track gain uses the same dB keyboard step without seeking the timeline.
   const position = page.getByTestId("recorder-position");
+  await position.click();
+  await page.keyboard.press("ArrowRight");
   const initialPosition = await position.getAttribute("data-position");
   const audioGain = page.getByRole("slider", { name: "Audio 1 gain" });
-  await audioGain.press("ArrowDown");
-  await expect(audioGain).toHaveValue("-0.5");
+  await audioGain.press("ArrowRight");
+  await expect(audioGain).toHaveValue("0.5");
   await expect(position).toHaveAttribute("data-position", initialPosition!);
 
   // Open the floating mixer and inspect every recorder output channel.
