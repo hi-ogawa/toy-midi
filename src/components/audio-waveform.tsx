@@ -16,14 +16,23 @@ export function AudioWaveformView({
   /** Timeline scale, independent of the clip box's minimum width. */
   pixelsPerSecond: number;
 }) {
-  if (audioView.data.length === 0) {
+  if (audioView.data.length === 0 || visibleEnd <= visibleStart) {
     return null;
   }
 
+  // Expand culling to source-anchored 256 px windows. Small boundary edits keep
+  // the same query/SVG bounds; the parent clip still hides the excess waveform.
+  const cullStep = 256;
+  const queryStart =
+    (Math.floor((visibleStart * pixelsPerSecond) / cullStep) * cullStep) /
+    pixelsPerSecond;
+  const queryEnd =
+    (Math.ceil((visibleEnd * pixelsPerSecond) / cullStep) * cullStep) /
+    pixelsPerSecond;
   const slice = queryAudioView(
     audioView,
-    visibleStart,
-    visibleEnd,
+    queryStart,
+    queryEnd,
     pixelsPerSecond,
   );
 
