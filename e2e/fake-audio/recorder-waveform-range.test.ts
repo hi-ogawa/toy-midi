@@ -53,14 +53,14 @@ for (const gap of [0.25, 1e-13]) {
     await expect(regions).toHaveCount(3);
     const fragment = regions.nth(1);
     await expect(fragment.locator("svg")).toHaveCount(1);
-    const { points, width, waveformWidth } = await fragment.evaluate(
-      (element) => ({
-        points: element.querySelector("svg")!.viewBox.baseVal.width + 1,
+    const { points, width, waveformWidth, pointSpacing } =
+      await fragment.evaluate((element) => ({
+        points: element.querySelector("svg")!.viewBox.baseVal.width,
         width: element.getBoundingClientRect().width,
         waveformWidth: element.querySelector("svg")!.getBoundingClientRect()
           .width,
-      }),
-    );
+        pointSpacing: element.querySelector("svg")!.getScreenCTM()!.a,
+      }));
     // Allow pooling/edge rounding, but never a source-length-sized SVG in a tiny clip.
     expect(points).toBeLessThanOrEqual(Math.ceil(width) * 2 + 2);
     // The 2 px clip box must not stretch the waveform beyond the timeline scale.
@@ -71,5 +71,6 @@ for (const gap of [0.25, 1e-13]) {
     const bucketCount =
       Math.ceil((10 + gap) / bucketDuration) - Math.floor(10 / bucketDuration);
     expect(waveformWidth).toBeCloseTo(bucketCount * bucketDuration * 6, 1);
+    expect(pointSpacing).toBeCloseTo(bucketDuration * 6, 1);
   });
 }

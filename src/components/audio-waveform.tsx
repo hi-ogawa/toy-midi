@@ -49,7 +49,7 @@ export function AudioWaveformView({
         top: "5%",
         height: "90%",
       }}
-      viewBox={`0 -1 ${slice.data.length - 1 || 1} 2`}
+      viewBox={`0 -1 ${slice.data.length} 2`}
       preserveAspectRatio="none"
     >
       <path
