@@ -13,7 +13,12 @@ export function AudioWaveformView({
   /** Viewport-visible source interval to query and render, in seconds. */
   visibleStart: number;
   visibleEnd: number;
-  /** Timeline scale, independent of the clip box's minimum width. */
+  /**
+   * Timeline scale used for pixel placement and as the query's target points
+   * per second, aiming for roughly one pooled peak per pixel. Integer pooling
+   * and available source resolution determine the actual point density.
+   * Independent of the clip box's minimum width.
+   */
   pixelsPerSecond: number;
 }) {
   if (audioView.data.length === 0 || visibleEnd <= visibleStart) {
