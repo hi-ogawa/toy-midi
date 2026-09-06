@@ -169,7 +169,7 @@ export function RecorderHeader({
         className={cn(
           "size-9",
           isRecording
-            ? "bg-red-600 text-white hover:bg-red-500"
+            ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
         title={isRecording ? "Stop recording (R)" : "Record (R)"}

@@ -229,7 +229,7 @@ export function CaptureTrackRow({
             onClick={onInputToggle}
             className={
               inputActive
-                ? "size-7 border-red-500/60 bg-red-500/25 text-xs font-semibold text-red-300 hover:bg-red-500/35"
+                ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
                 : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
             }
             title={inputActive ? "Disarm capture" : "Arm capture"}
