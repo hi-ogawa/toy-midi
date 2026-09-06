@@ -104,7 +104,9 @@ export function TrackRow({
       style={{ height }}
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0 truncate text-xs font-semibold">{title}</div>
+        <div className="min-w-0 truncate text-xs leading-7 font-semibold">
+          {title}
+        </div>
         <div className="flex gap-1">
           {action}
           <RecorderMixToggle
@@ -196,7 +198,9 @@ export function CaptureTrackRow({
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0 truncate text-xs font-semibold">Capture</div>
+        <div className="min-w-0 truncate text-xs leading-7 font-semibold">
+          Capture
+        </div>
         <div className="flex gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
