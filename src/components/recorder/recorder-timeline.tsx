@@ -826,7 +826,7 @@ function TimelineClip({
     secondsToBeats(clip.duration, tempo) * pixelsPerBeat,
   );
   const visibleStart = Math.max(
-    0,
+    clip.audioOffset ?? 0,
     (clip.audioOffset ?? 0) +
       beatsToSeconds(viewportStartBeat - clipStartBeat, tempo),
   );
