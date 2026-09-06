@@ -2,14 +2,14 @@ import { type AudioView, queryAudioView } from "../lib/audio-view";
 
 export function AudioWaveformView({
   audioView,
-  rangeStart = 0,
+  sourceStart = 0,
   visibleStart,
   visibleEnd,
   pixelsPerSecond,
 }: {
   audioView: AudioView;
-  /** Source time mapped to the clip's left edge, in seconds. */
-  rangeStart?: number;
+  /** Source-time origin of the clip's local coordinate frame, in seconds. */
+  sourceStart?: number;
   /** Viewport-visible source interval to query and render, in seconds. */
   visibleStart: number;
   visibleEnd: number;
@@ -49,7 +49,7 @@ export function AudioWaveformView({
     <svg
       className="absolute"
       style={{
-        left: (slice.actualStart - rangeStart) * pixelsPerSecond,
+        left: (slice.actualStart - sourceStart) * pixelsPerSecond,
         width: (slice.actualEnd - slice.actualStart) * pixelsPerSecond,
         top: "5%",
         height: "90%",

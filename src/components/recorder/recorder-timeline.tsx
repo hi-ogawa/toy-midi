@@ -858,7 +858,7 @@ function TimelineClip({
             {clip.audioView && visibleEnd > visibleStart && (
               <AudioWaveformView
                 audioView={clip.audioView}
-                rangeStart={clip.audioOffset ?? 0}
+                sourceStart={clip.audioOffset ?? 0}
                 visibleStart={visibleStart}
                 visibleEnd={visibleEnd}
                 pixelsPerSecond={pixelsPerSecond}
