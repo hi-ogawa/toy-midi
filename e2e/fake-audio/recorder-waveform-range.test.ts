@@ -55,7 +55,9 @@ for (const gap of [0.25, 1e-13]) {
     await expect(fragment.locator("svg")).toHaveCount(1);
     const { points, width, waveformWidth, pointSpacing } =
       await fragment.evaluate((element) => ({
-        points: element.querySelector("svg")!.viewBox.baseVal.width,
+        points:
+          element.querySelector("path")!.getAttribute("d")!.split(" L ")
+            .length / 2,
         width: element.getBoundingClientRect().width,
         waveformWidth: element.querySelector("svg")!.getBoundingClientRect()
           .width,
@@ -68,9 +70,10 @@ for (const gap of [0.25, 1e-13]) {
     // The SVG covers complete source-aligned buckets, even for a subpixel clip.
     expect(width).toBe(2);
     const bucketDuration = 133 / 800;
-    const bucketCount =
-      Math.ceil((10 + gap) / bucketDuration) - Math.floor(10 / bucketDuration);
-    expect(waveformWidth).toBeCloseTo(bucketCount * bucketDuration * 6, 1);
+    const startPixel = Math.floor(10 / bucketDuration) * bucketDuration * 6;
+    const endPixel =
+      Math.ceil((10 + gap) / bucketDuration) * bucketDuration * 6;
+    expect(waveformWidth).toBe(Math.ceil(endPixel) - Math.floor(startPixel));
     expect(pointSpacing).toBeCloseTo(bucketDuration * 6, 1);
   });
 }
