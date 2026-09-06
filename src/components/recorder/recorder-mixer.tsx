@@ -74,7 +74,7 @@ export function RecorderGainSlider({
         max={MAX_DB}
         step={0.5}
         orientation={orientation}
-        thumbProps={{ "aria-label": label }}
+        aria-label={label}
         className={orientation === "vertical" ? "h-full" : "w-full"}
         {...props}
       />
