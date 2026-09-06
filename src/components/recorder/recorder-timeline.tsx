@@ -640,20 +640,11 @@ export function ReferenceTimelineRow({
       data-testid="recorder-reference-track"
       className="grid h-15 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0">
-          <div className="truncate text-xs font-semibold">Reference</div>
-          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
-            <span>
-              {formatTimeMinutes(
-                Math.max(0, position - referenceVideo.timelineStart),
-              )}
-            </span>
-            <span className="text-neutral-600">/</span>
-            <span>{formatTimeMinutes(referenceVideo.duration)}</span>
-          </div>
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-x-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
+          Reference
         </div>
-        <div className="flex gap-1">
+        <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -678,6 +669,15 @@ export function ReferenceTimelineRow({
             className="size-7"
             title={muted ? "Unmute Reference" : "Mute Reference"}
           />
+        </div>
+        <div className="col-span-2 flex items-center gap-1.5 font-mono text-[11px] text-neutral-400">
+          <span>
+            {formatTimeMinutes(
+              Math.max(0, position - referenceVideo.timelineStart),
+            )}
+          </span>
+          <span className="text-neutral-600">/</span>
+          <span>{formatTimeMinutes(referenceVideo.duration)}</span>
         </div>
       </div>
       <div

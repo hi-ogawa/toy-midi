@@ -103,7 +103,7 @@ export function TrackRow({
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
@@ -197,7 +197,7 @@ export function CaptureTrackRow({
   });
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           Capture
         </div>
