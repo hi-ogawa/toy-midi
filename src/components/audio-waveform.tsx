@@ -42,6 +42,10 @@ export function AudioWaveformView({
   // The viewport expands to [10, 15), but the points stay at 10.3, 11.275, ...
   // A viewBox starting at (10 - 10.3) / 0.975 with width 5 / 0.975 preserves
   // that placement. The CSS left below translates into the clip's local frame.
+  // Keep sourceStart * pixelsPerSecond fractional: the parent moves by that
+  // amount, so subtracting it exactly cancels the moving comp boundary.
+  // The source origin may remain fractional on screen, but its pixel-grid phase
+  // stays fixed. Rounding this subtraction would introduce drift and resets.
   const leftPixel = Math.floor(startPixel);
   const width = Math.ceil(endPixel) - leftPixel;
   const viewBoxStart = (leftPixel - startPixel) / pixelsPerPoint;
