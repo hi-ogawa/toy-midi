@@ -65,7 +65,6 @@ export function AudioTrackActions({
 
 export function TrackRow({
   title,
-  subtitle,
   height,
   gain,
   muted,
@@ -78,7 +77,6 @@ export function TrackRow({
   children,
 }: {
   title: string;
-  subtitle: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -101,17 +99,15 @@ export function TrackRow({
   });
   return (
     <div
+      data-testid="recorder-audio-track-row"
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0">
-          <div className="truncate text-xs font-semibold">{title}</div>
-          <div className="mt-0.5 truncate text-[11px] text-neutral-400">
-            {subtitle}
-          </div>
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
+          {title}
         </div>
-        <div className="flex gap-1">
+        <div className="flex self-center gap-1">
           {action}
           <RecorderMixToggle
             active={muted}
@@ -128,7 +124,7 @@ export function TrackRow({
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
         </div>
-        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
             label={`${title} gain`}
             gain={gain}
@@ -150,7 +146,6 @@ export function TrackRow({
 export function CaptureTrackRow({
   route,
   routeNeedsSetup,
-  subtitle,
   height,
   gain,
   inputActive,
@@ -172,7 +167,6 @@ export function CaptureTrackRow({
 }: {
   route: string;
   routeNeedsSetup: boolean;
-  subtitle: string;
   height: number;
   gain: number;
   inputActive: boolean;
@@ -203,14 +197,11 @@ export function CaptureTrackRow({
   });
   return (
     <div className="relative grid grid-cols-[15rem_1fr]" style={{ height }}>
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[2rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 p-3">
-        <div className="min-w-0">
-          <div className="truncate text-xs font-semibold">Capture</div>
-          <div className="mt-0.5 truncate text-[11px] text-neutral-400">
-            {subtitle}
-          </div>
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_1.5rem_0.75rem_1.5rem] content-start gap-x-2 gap-y-1 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+        <div className="min-w-0 self-center truncate text-xs font-semibold">
+          Capture
         </div>
-        <div className="flex gap-1">
+        <div className="flex self-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -238,8 +229,8 @@ export function CaptureTrackRow({
             onClick={onInputToggle}
             className={
               inputActive
-                ? "size-7 border-red-500/60 bg-red-500/25 text-red-300 hover:bg-red-500/35"
-                : "size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+                ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
+                : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
             }
             title={inputActive ? "Disarm capture" : "Arm capture"}
             aria-label={inputActive ? "Disarm capture" : "Arm capture"}
@@ -387,10 +378,23 @@ export function TakeTrackRow({
   return (
     <div
       data-testid="recorder-take-row"
-      className="grid h-20 grid-cols-[15rem_1fr] border-b border-neutral-700"
+      className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
-      <div className="sticky left-0 z-20 flex items-start gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
+      <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
         <span className="mr-auto px-4">Take {number}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button aria-label={`Take ${number} actions`} className="size-7">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDelete}>
+              <Trash2Icon />
+              Delete take
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
           aria-label={`Mute Take ${number}`}
@@ -409,19 +413,6 @@ export function TakeTrackRow({
           className="size-7"
           title="Solo take"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button aria-label={`Take ${number} actions`} className="size-7">
-              <MoreVerticalIcon className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={onDelete}>
-              <Trash2Icon />
-              Delete take
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       {children}
     </div>
