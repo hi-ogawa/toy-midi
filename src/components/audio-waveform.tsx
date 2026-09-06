@@ -39,6 +39,9 @@ export function AudioWaveformView({
   // Example in source pixels, with 4 points spaced 0.975 px apart:
   //   SVG viewport:     10 |-------------------------------| 15
   //   bucket coverage:      10.3 |------------------| 14.2
+  //   startPixel = 10.3, endPixel = 14.2, slice.data.length = 4
+  //   pixelsPerPoint = 0.975, leftPixel = 10, width = 5
+  //   viewBoxStart = -0.307692..., viewBoxWidth = 5.128205...
   // The viewport expands to [10, 15), but the points stay at 10.3, 11.275, ...
   // A viewBox starting at (10 - 10.3) / 0.975 with width 5 / 0.975 preserves
   // that placement. The CSS left below translates into the clip's local frame.
