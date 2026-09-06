@@ -103,7 +103,7 @@ export function TrackRow({
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-r border-neutral-700 bg-neutral-800 p-3">
+      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
@@ -124,7 +124,7 @@ export function TrackRow({
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
         </div>
-        <label className="col-span-2 mt-auto grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
+        <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
             label={`${title} gain`}
             gain={gain}

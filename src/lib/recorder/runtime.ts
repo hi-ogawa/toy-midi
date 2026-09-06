@@ -28,7 +28,7 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 const MAX_RECORDING_SECONDS = 5 * 60;
 const MIN_TAKE_DURATION = 0.01;
 export const WAVEFORM_POINTS_PER_SECOND = 800;
-const DEFAULT_TRACK_HEIGHT = 96;
+const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MIN_RECORDING_TRACK_HEIGHT = 128;
 const MAX_TRACK_HEIGHT = 300;
