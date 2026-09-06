@@ -126,13 +126,13 @@ describe("queryAudioView", () => {
     expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty slice for zero target points per second", () => {
+  it("returns empty slice for zero target points", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, 0);
     expect(result).toEqual(emptySlice);
   });
 
-  it("returns empty slice for negative target points per second", () => {
+  it("returns empty slice for negative target points", () => {
     const view = createTestView(100);
     const result = queryAudioView(view, 0, 5, -100);
     expect(result).toEqual(emptySlice);
@@ -142,7 +142,7 @@ describe("queryAudioView", () => {
     // 100 points at 10 points/sec = 10 seconds
     // View seconds 2-4 (indices 20-40)
     const view = createTestView(100);
-    const result = queryAudioView(view, 2, 4, 1000); // High zoom avoids downsampling
+    const result = queryAudioView(view, 2, 4, 1000); // Large targetPoints to avoid downsampling
 
     // Should get ~20 points (indices 20-40)
     expect(result.data.length).toBeGreaterThanOrEqual(19);
