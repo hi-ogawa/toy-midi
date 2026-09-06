@@ -1,13 +1,7 @@
 import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import {
-  MAX_DB,
-  MIN_DB,
-  dbToGain,
-  formatGainDb,
-  gainToDb,
-} from "../../lib/music";
+import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -208,30 +202,6 @@ function MixerChannel({
       </label>
       {action ?? <div className="h-8" />}
     </div>
-  );
-}
-
-export function RecorderGainControl({
-  label,
-  gain,
-  onGainChange,
-}: {
-  label: string;
-  gain: number;
-  onGainChange: (gain: number) => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-[10px] text-neutral-400">
-      <span className="font-medium uppercase tracking-wide">{label}</span>
-      <RecorderGainSlider
-        data-testid={`recorder-${label.toLowerCase()}-gain`}
-        label={`${label} gain`}
-        gain={gain}
-        onGainChange={onGainChange}
-        className="w-24"
-      />
-      <span className="w-12 text-right font-mono">{formatGainDb(gain)}</span>
-    </label>
   );
 }
 
