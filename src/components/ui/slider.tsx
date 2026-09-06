@@ -74,7 +74,7 @@ export function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm outline-none transition-[color,box-shadow] hover:ring-2 hover:ring-emerald-400/40 active:ring-4 active:ring-emerald-400/60 focus:ring-2 focus:ring-emerald-400/60 focus-visible:ring-4 focus-visible:ring-emerald-400 disabled:pointer-events-none disabled:opacity-50"
+          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm outline-none transition-[color,box-shadow] hover:ring-2 hover:ring-emerald-400/40 active:ring-3 active:ring-emerald-400/60 focus:ring-2 focus:ring-emerald-400/60 focus-visible:ring-4 focus-visible:ring-emerald-400 disabled:pointer-events-none disabled:opacity-50"
           {...thumbProps}
         />
       ))}
