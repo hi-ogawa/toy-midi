@@ -63,8 +63,9 @@ export function AudioWaveformView({
   // amount, so subtracting it exactly cancels the moving comp boundary.
   // The source origin may remain fractional on screen, but its pixel-grid phase
   // stays fixed. Rounding this subtraction would introduce drift and resets.
-  const leftPixel = Math.floor(startPixel);
-  const width = Math.ceil(endPixel) - leftPixel;
+  // Temporarily bypass pixel alignment to evaluate coarse culling alone.
+  const leftPixel = startPixel;
+  const width = endPixel - startPixel;
   const viewBoxStart = (leftPixel - startPixel) / pixelsPerPoint;
   const viewBoxWidth = width / pixelsPerPoint;
 
