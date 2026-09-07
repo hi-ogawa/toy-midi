@@ -28,9 +28,7 @@ export function RecorderRangeControl({
 }) {
   const label = kind === "loop" ? "Loop" : "Punch";
   const status = !state.range ? "No range" : state.enabled ? "On" : "Off";
-  const description = state.range
-    ? `${label}: ${status.toLowerCase()}. Range ${formatPosition(state.range.startBeat)} to ${formatPosition(state.range.endBeat)} (bar:beat). Click to ${state.enabled ? "disable" : "enable"}.`
-    : `${label}: no range. Click to create and enable one bar at the playhead.`;
+  const description = `${label}: ${status.toLowerCase()}`;
 
   return (
     <div
@@ -98,13 +96,5 @@ export function RecorderRangeControl({
       range: { startBeat, endBeat: startBeat + beatsPerBar },
       enabled: true,
     });
-  }
-
-  function formatPosition(beat: number) {
-    const beatsPerBar = getBeatsPerBar(timeSignature);
-    const bar = Math.floor(beat / beatsPerBar);
-    const beatInBar =
-      1 + (beat - bar * beatsPerBar) / (4 / timeSignature.denominator);
-    return `${bar + 1}:${Number(beatInBar.toFixed(6))}`;
   }
 }
