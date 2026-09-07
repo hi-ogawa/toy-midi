@@ -1,6 +1,7 @@
 import {
   ChevronDownIcon,
   CircleAlertIcon,
+  CircleHelpIcon,
   CircleIcon,
   CircleStopIcon,
   DownloadIcon,
@@ -86,6 +87,7 @@ export function RecorderHeader({
   onExportAudio,
   onReferenceVideoOpenChange,
   onMixerToggle,
+  onHelpOpen,
   mixerOpen,
 }: {
   title: string;
@@ -123,6 +125,7 @@ export function RecorderHeader({
   onExportAudio: () => void;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
+  onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -434,6 +437,10 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onHelpOpen}>
+            <CircleHelpIcon />
+            Help &amp; Shortcuts
+          </DropdownMenuItem>
           <DropdownMenuItem
             disabled={isRecording || isProcessing}
             onSelect={onExportAudio}
