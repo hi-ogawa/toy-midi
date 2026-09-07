@@ -1,4 +1,4 @@
-import { ChevronDownIcon, Repeat2Icon } from "lucide-react";
+import { ChevronDownIcon, Repeat2Icon, ScanLineIcon } from "lucide-react";
 import type { RecorderLoopState } from "../../lib/recorder/runtime";
 import { getBeatsPerBar, secondsToBeats } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
@@ -31,12 +31,7 @@ export function RecorderRangeControl({
   const description = `${label}: ${status.toLowerCase()}`;
 
   return (
-    <div
-      className={cn(
-        "flex h-9 shrink-0 rounded-md border border-neutral-600",
-        kind === "loop" ? "w-15" : "w-22",
-      )}
-    >
+    <div className="flex h-9 w-15 shrink-0 rounded-md border border-neutral-600">
       <Button
         data-testid={`recorder-${kind}-toggle`}
         aria-label={description}
@@ -62,7 +57,11 @@ export function RecorderRangeControl({
                 : "text-amber-300 hover:bg-neutral-700",
         )}
       >
-        {kind === "loop" ? <Repeat2Icon className="size-5 shrink-0" /> : label}
+        {kind === "loop" ? (
+          <Repeat2Icon className="size-5 shrink-0" />
+        ) : (
+          <ScanLineIcon className="size-5 shrink-0" />
+        )}
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
