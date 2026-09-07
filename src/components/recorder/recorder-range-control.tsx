@@ -1,4 +1,9 @@
-import { ChevronDownIcon, Repeat2Icon, ScanLineIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  Repeat2Icon,
+  ScanLineIcon,
+} from "lucide-react";
 import type { RecorderLoopState } from "../../lib/recorder/runtime";
 import { getBeatsPerBar, secondsToBeats } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
@@ -55,22 +60,25 @@ export function RecorderRangeControl({
           }
         }}
         className={cn(
-          "min-w-0 flex-1 rounded-r-none border-0 px-2 text-xs font-medium",
-          !state.range
-            ? "text-neutral-400 hover:bg-neutral-700"
-            : kind === "loop"
-              ? state.enabled
-                ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
-                : "text-violet-300 hover:bg-neutral-700"
-              : state.enabled
-                ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
-                : "text-amber-300 hover:bg-neutral-700",
+          "relative min-w-0 flex-1 rounded-r-none border-0 px-2 text-xs font-medium",
+          state.range && state.enabled
+            ? kind === "loop"
+              ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
+              : "bg-amber-500/20 text-amber-300 hover:bg-amber-500/30"
+            : "text-neutral-300 hover:bg-neutral-700",
         )}
       >
         {kind === "loop" ? (
           <Repeat2Icon className="size-5 shrink-0" />
         ) : (
           <ScanLineIcon className="size-5 shrink-0" />
+        )}
+        {!state.range && (
+          <PlusIcon
+            aria-hidden="true"
+            className="absolute right-0.5 bottom-0.5 size-3 rounded-sm bg-neutral-800"
+            strokeWidth={3}
+          />
         )}
       </Button>
       <DropdownMenu>
