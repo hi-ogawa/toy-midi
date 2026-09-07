@@ -12,7 +12,8 @@ test("creates and edits a persisted loop range", async ({ page }) => {
 
   const toggle = page.getByTestId("recorder-loop-toggle");
   const range = page.getByTestId("recorder-loop-range");
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle).toHaveAccessibleName("Loop: no range");
+  await expect(toggle).not.toHaveAttribute("aria-pressed");
   await expect(range).toHaveCount(0);
 
   // First activation creates and enables a loop range at the current bar.
