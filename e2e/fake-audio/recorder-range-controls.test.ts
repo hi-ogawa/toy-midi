@@ -15,6 +15,7 @@ for (const kind of ["loop", "punch"] as const) {
     const range = page.getByTestId(`recorder-${kind}-range`);
     const menu = page.getByRole("button", { name: `${label} range actions` });
 
+    // With no range to clear, New creates and enables one bar at the playhead.
     await expect(toggle).toHaveAccessibleName(`${label}: no range`);
     await expect(toggle).not.toHaveAttribute("aria-pressed");
     await menu.click();
@@ -40,6 +41,7 @@ for (const kind of ["loop", "punch"] as const) {
     await expect(range).toHaveCSS("width", "320px");
     await expect.poll(() => getRecorderBeat(page)).toBe(5);
 
+    // Clear returns to the unset state without moving the playhead.
     await menu.click();
     await page.getByRole("menuitem", { name: "Clear", exact: true }).click();
     await expect(range).toHaveCount(0);
