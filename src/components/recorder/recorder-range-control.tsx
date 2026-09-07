@@ -74,7 +74,7 @@ export function RecorderRangeControl({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="center"
-          className="relative -left-[17px] min-w-24"
+          className="relative -left-[17px] min-w-0!"
         >
           <DropdownMenuItem onSelect={setAtPlayhead}>New</DropdownMenuItem>
           <DropdownMenuItem
