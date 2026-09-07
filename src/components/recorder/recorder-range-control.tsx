@@ -30,6 +30,16 @@ export function RecorderRangeControl({
   const status = !state.range ? "No range" : state.enabled ? "On" : "Off";
   const description = `${label}: ${status.toLowerCase()}`;
 
+  function setAtPlayhead() {
+    const beatsPerBar = getBeatsPerBar(timeSignature);
+    const startBeat =
+      Math.floor(secondsToBeats(position, tempo) / beatsPerBar) * beatsPerBar;
+    onChange({
+      range: { startBeat, endBeat: startBeat + beatsPerBar },
+      enabled: true,
+    });
+  }
+
   return (
     <div className="flex h-9 w-15 shrink-0 rounded-md border border-neutral-600">
       <Button
@@ -88,14 +98,4 @@ export function RecorderRangeControl({
       </DropdownMenu>
     </div>
   );
-
-  function setAtPlayhead() {
-    const beatsPerBar = getBeatsPerBar(timeSignature);
-    const startBeat =
-      Math.floor(secondsToBeats(position, tempo) / beatsPerBar) * beatsPerBar;
-    onChange({
-      range: { startBeat, endBeat: startBeat + beatsPerBar },
-      enabled: true,
-    });
-  }
 }
