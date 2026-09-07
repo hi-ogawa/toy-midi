@@ -72,7 +72,10 @@ export function RecorderRangeControl({
             <ChevronDownIcon className="size-3" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent
+          align="center"
+          className="relative -left-[17px] min-w-24"
+        >
           <DropdownMenuItem onSelect={setAtPlayhead}>New</DropdownMenuItem>
           <DropdownMenuItem
             disabled={!state.range}
