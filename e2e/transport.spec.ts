@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   clickNewProject,
   evaluateStore,
@@ -6,9 +7,6 @@ import {
   waitForAudioReady,
   waitForEditor,
 } from "./helpers";
-
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
 
 test.describe("Transport Controls", () => {
   test.beforeEach(async ({ page }) => {
@@ -373,7 +371,7 @@ test.describe("Timeline Seek", () => {
 
     // Default grid snap is 1/8 note = 0.5 beats
     // Click at beat 2.2 (should snap to beat 2.0 - rounds down)
-    const clickX = timelineBox.x + BEAT_WIDTH * 2.2;
+    const clickX = timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 2.2;
     const clickY = timelineBox.y + timelineBox.height / 2;
     await page.mouse.click(clickX, clickY);
 
@@ -388,12 +386,12 @@ test.describe("Timeline Seek", () => {
     }
 
     // Calculate expected position for beat 2.0
-    const expectedX = timelineBox.x + BEAT_WIDTH * 2;
+    const expectedX = timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 2;
     // Allow 2px tolerance for rounding
     expect(Math.abs(playheadBox.x - expectedX)).toBeLessThan(2);
 
     // Click at beat 2.3 (should snap to beat 2.5 - rounds up to nearest)
-    const clickX2 = timelineBox.x + BEAT_WIDTH * 2.3;
+    const clickX2 = timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 2.3;
     await page.mouse.click(clickX2, clickY);
     await page.waitForTimeout(100);
 
@@ -403,7 +401,7 @@ test.describe("Timeline Seek", () => {
     }
 
     // Calculate expected position for beat 2.5
-    const expectedX2 = timelineBox.x + BEAT_WIDTH * 2.5;
+    const expectedX2 = timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 2.5;
     expect(Math.abs(playheadBox2.x - expectedX2)).toBeLessThan(2);
   });
 
@@ -415,11 +413,11 @@ test.describe("Timeline Seek", () => {
     }
 
     // Create a note at beat 2
-    const noteX = gridBox.x + BEAT_WIDTH * 2;
+    const noteX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2;
     const noteY = gridBox.y + 100;
     await page.mouse.move(noteX, noteY);
     await page.mouse.down();
-    await page.mouse.move(noteX + BEAT_WIDTH, noteY);
+    await page.mouse.move(noteX + DEFAULT_PIXELS_PER_BEAT, noteY);
     await page.mouse.up();
 
     // Seek to beat 4 (past the note)
@@ -429,7 +427,7 @@ test.describe("Timeline Seek", () => {
       throw new Error("Timeline not found");
     }
 
-    const seekX = timelineBox.x + BEAT_WIDTH * 4;
+    const seekX = timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 4;
     await page.mouse.click(seekX, timelineBox.y + timelineBox.height / 2);
 
     // Start playback (Space is a no-op until audio is ready)
@@ -452,6 +450,8 @@ test.describe("Timeline Seek", () => {
     }
 
     // Playhead should still be around beat 4+ (not reset to 0)
-    expect(playheadBox.x).toBeGreaterThan(timelineBox.x + BEAT_WIDTH * 3);
+    expect(playheadBox.x).toBeGreaterThan(
+      timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 3,
+    );
   });
 });

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
@@ -42,11 +43,11 @@ test("creates and edits a persisted loop range", async ({ page }) => {
   await playButton.click();
 
   // The range label moves it while the range body remains available to seek.
-  await dragBy(page, range.getByText("Loop"), 80);
+  await dragBy(page, range.getByText("Loop"), DEFAULT_PIXELS_PER_BEAT);
   const movedBox = await range.boundingBox();
   assert(movedBox);
-  expect(movedBox.x).toBeCloseTo(initialBox.x + 80, -1);
-  await seekRecorderByPixels(page, 320);
+  expect(movedBox.x).toBeCloseTo(initialBox.x + DEFAULT_PIXELS_PER_BEAT, -1);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await expect.poll(() => getRecorderBeat(page)).toBe(4);
 
   // Disabling playback keeps the edited range available for later use.

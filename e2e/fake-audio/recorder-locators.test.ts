@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
   getRecorderBeat,
   seekRecorderByPixels,
 } from "./recorder-helpers";
-
-const pixelsPerBeat = 80;
 
 test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await createRecorderProject(page);
@@ -18,10 +17,10 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   const renameVerse = page.getByRole("button", { name: "Rename Verse" });
 
   // Both creation controls use the snapped playhead and select the new marker.
-  await seekRecorderByPixels(page, pixelsPerBeat * 0.9);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 0.9);
   await page.keyboard.press("l");
   await expect(first).toHaveAttribute("aria-pressed", "true");
-  await seekRecorderByPixels(page, pixelsPerBeat * 4);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await add.click();
   await expect(second).toHaveAttribute("aria-pressed", "true");
   await expect(first).toHaveAttribute("aria-pressed", "false");
@@ -29,7 +28,7 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await expect.poll(() => getRecorderBeat(page)).toBe(1);
 
   // Rename commits without seeking; cancelling keeps the existing label.
-  await seekRecorderByPixels(page, pixelsPerBeat * 3);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 3);
   page.once("dialog", (dialog) => dialog.accept("Verse"));
   // Playwright can click the opacity-hidden rename action, avoiding hover setup here.
   await renameFirst.click();
@@ -61,13 +60,13 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   await expect.poll(() => getRecorderBeat(page)).toBe(1);
 
   // Dragging snaps the marker to beat 2.5 without moving the playhead.
-  await seekRecorderByPixels(page, pixelsPerBeat * 6);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 6);
   const beforeDrag = await verse.boundingBox();
   expect(beforeDrag).not.toBeNull();
-  await dragBy(page, verse, 110);
+  await dragBy(page, verse, DEFAULT_PIXELS_PER_BEAT * 1.375);
   await expect
     .poll(async () => (await verse.boundingBox())?.x)
-    .toBeCloseTo(beforeDrag!.x + pixelsPerBeat * 1.5, 1);
+    .toBeCloseTo(beforeDrag!.x + DEFAULT_PIXELS_PER_BEAT * 1.5, 1);
   await expect(verse).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => getRecorderBeat(page)).toBe(6);
   await verse.click();
@@ -76,7 +75,7 @@ test("edits, seeks, and selects recorder locators", async ({ page }) => {
   // Locator beats remain stable when tempo changes.
   await page.getByTestId("recorder-tempo-input").fill("90");
   await page.getByTestId("recorder-tempo-input").press("Enter");
-  await seekRecorderByPixels(page, pixelsPerBeat * 4);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await expect.poll(() => getRecorderBeat(page)).toBe(4);
   await verse.click();
   await expect.poll(() => getRecorderBeat(page)).toBe(2.5);
@@ -95,9 +94,9 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   const saveButton = page.getByTestId("recorder-save-button");
 
   // Create locators at beats 2.5 and 5.
-  await seekRecorderByPixels(page, pixelsPerBeat * 2.5);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2.5);
   await page.keyboard.press("l");
-  await seekRecorderByPixels(page, pixelsPerBeat * 5);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 5);
   await page.keyboard.press("l");
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
 
@@ -120,7 +119,7 @@ test("persists recorder locator edits and deletion", async ({ page }) => {
   await expect(saveButton).toHaveAttribute("data-status", "saved");
 
   // Moving a locator dirties the project and persists its new beat.
-  await dragBy(page, firstRenamed, pixelsPerBeat * 0.5);
+  await dragBy(page, firstRenamed, DEFAULT_PIXELS_PER_BEAT * 0.5);
   await expect(saveButton).toHaveAttribute("data-status", "unsaved");
   await saveButton.click();
   await expect(saveButton).toHaveAttribute("data-status", "saved");

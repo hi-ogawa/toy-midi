@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -10,10 +11,9 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   page,
 }) => {
   await createRecorderProject(page);
-  const pixelsPerBeat = 80;
   const add = page.getByRole("button", { name: "Add locator at playhead" });
   const marker = page.getByRole("button", { name: "Section 1", exact: true });
-  await seekRecorderByPixels(page, pixelsPerBeat * 4);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await add.click();
 
   // Selecting a locator after a waveform makes Delete remove only the locator.
@@ -29,7 +29,7 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
 
   // Creation also clears clip selection, and clip drag/trim clear locators.
   await audio.click();
-  await seekRecorderByPixels(page, pixelsPerBeat * 8);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 8);
   await add.click();
   await expect(marker).toHaveAttribute("aria-pressed", "true");
   await expect(audio).not.toHaveAttribute("data-selected", "true");

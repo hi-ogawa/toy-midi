@@ -1,10 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { clickNewProject, evaluateStore } from "./helpers";
 
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
+// Row height matches piano-roll.tsx.
 const ROW_HEIGHT = 20;
 
 test.describe("Settings Dialog - Project Export", () => {
@@ -29,12 +29,12 @@ test.describe("Settings Dialog - Project Export", () => {
     }
 
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 1.5,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5,
       gridBox.y + ROW_HEIGHT * 3.5,
     );
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 3,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 3,
       gridBox.y + ROW_HEIGHT * 3.5,
     );
     await page.mouse.up();
