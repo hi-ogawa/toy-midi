@@ -115,34 +115,7 @@ export function RecorderHelp({
         </header>
         <div className="grid grid-cols-2 gap-x-10 gap-y-7 px-8 py-7">
           {sections.map((section) => (
-            <section key={section.title}>
-              <h3 className="mb-3 text-sm font-semibold text-emerald-300">
-                {section.title}
-              </h3>
-              <dl>
-                {section.items.map((item) => (
-                  <div
-                    key={item.action}
-                    className="flex min-h-[34px] items-center justify-between gap-3"
-                  >
-                    <dt className="text-[13px] text-neutral-200">
-                      {item.action}
-                    </dt>
-                    <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">
-                      {item.keys && (
-                        <kbd className={keyClassName}>{item.keys}</kbd>
-                      )}
-                      {item.gesture}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              {section.note && (
-                <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-                  {section.note}
-                </p>
-              )}
-            </section>
+            <HelpSection key={section.title} section={section} />
           ))}
         </div>
         <footer className="flex items-center justify-between gap-4 border-t border-neutral-700 px-8 py-4 text-xs text-neutral-400">
@@ -153,5 +126,34 @@ export function RecorderHelp({
         </footer>
       </div>
     </dialog>
+  );
+}
+
+function HelpSection({ section }: { section: (typeof sections)[number] }) {
+  return (
+    <section>
+      <h3 className="mb-3 text-sm font-semibold text-emerald-300">
+        {section.title}
+      </h3>
+      <dl>
+        {section.items.map((item) => (
+          <div
+            key={item.action}
+            className="flex min-h-[34px] items-center justify-between gap-3"
+          >
+            <dt className="text-[13px] text-neutral-200">{item.action}</dt>
+            <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">
+              {item.keys && <kbd className={keyClassName}>{item.keys}</kbd>}
+              {item.gesture}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {section.note && (
+        <p className="mt-2 text-xs leading-relaxed text-neutral-400">
+          {section.note}
+        </p>
+      )}
+    </section>
   );
 }
