@@ -600,7 +600,10 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
-        <RecorderHelp isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+        <RecorderHelp
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
         <RecorderExportDialog
           runtime={runtime}
           state={state}

@@ -19,7 +19,10 @@ const sections: {
   {
     title: "Move around",
     items: [
-      { action: "Scroll timeline horizontally", gesture: "Wheel over timeline" },
+      {
+        action: "Scroll timeline horizontally",
+        gesture: "Wheel over timeline",
+      },
       { action: "Zoom at pointer", keys: "Ctrl", gesture: " + wheel" },
       { action: "Seek to a position", gesture: "Click ruler / empty lane" },
       { action: "Toggle follow playhead", keys: "F" },
