@@ -96,7 +96,7 @@ export function RecorderRangeControl({
       Math.floor(secondsToBeats(position, tempo) / beatsPerBar) * beatsPerBar;
     onChange({
       range: { startBeat, endBeat: startBeat + beatsPerBar },
-      enabled: state.range ? state.enabled : true,
+      enabled: true,
     });
   }
 
