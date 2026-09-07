@@ -77,15 +77,13 @@ export function RecorderRangeControl({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onSelect={setAtPlayhead}>
-            {state.range
-              ? "Reset at playhead (one bar)"
-              : "Set at playhead (one bar)"}
+            {state.range ? "Recreate" : "Create"}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={!state.range}
             onSelect={() => onChange({ range: undefined, enabled: false })}
           >
-            Clear range
+            Clear
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
