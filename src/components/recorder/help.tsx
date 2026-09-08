@@ -73,7 +73,7 @@ export function RecorderHelp({
       isOpen={isOpen}
       onClose={onClose}
       title="Recorder quick reference"
-      widthClassName="max-w-[960px]"
+      size="wide"
     >
       <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
         <div className="columns-2 gap-10">

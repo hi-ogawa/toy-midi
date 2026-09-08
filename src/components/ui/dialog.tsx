@@ -8,7 +8,7 @@ type DialogProps = {
   title: string;
   children: ReactNode;
   testId?: string;
-  widthClassName?: string;
+  size?: "default" | "wide";
 };
 
 export function Dialog({
@@ -17,7 +17,7 @@ export function Dialog({
   title,
   children,
   testId,
-  widthClassName = "max-w-md",
+  size = "default",
 }: DialogProps) {
   if (!isOpen) {
     return null;
@@ -32,7 +32,7 @@ export function Dialog({
       <div
         className={cn(
           "bg-neutral-800 rounded-lg shadow-2xl w-full",
-          widthClassName,
+          size === "wide" ? "max-w-[960px]" : "max-w-md",
         )}
         onClick={(e) => e.stopPropagation()}
       >
