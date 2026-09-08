@@ -56,6 +56,10 @@ const sections: HelpSectionData[] = [
       { action: "Remove selected locator", keys: "Delete / Backspace" },
     ],
   },
+  {
+    title: "Project",
+    items: [{ action: "Save project", keys: "Ctrl / Cmd + S" }],
+  },
 ];
 
 const keyClassName =
@@ -111,18 +115,10 @@ export function RecorderHelp({
             <XIcon className="size-5" />
           </button>
         </header>
-        <div className="px-8 py-7">
-          <div className="columns-2 gap-10">
-            {sections.map((section) => (
-              <HelpSection key={section.title} section={section} />
-            ))}
-          </div>
-          <dl className="flex items-center justify-between gap-3 border-t border-neutral-700 pt-4">
-            <dt className="text-[13px] text-neutral-200">Save project</dt>
-            <dd>
-              <kbd className={keyClassName}>Ctrl / Cmd + S</kbd>
-            </dd>
-          </dl>
+        <div className="columns-2 gap-10 px-8 py-7">
+          {sections.map((section) => (
+            <HelpSection key={section.title} section={section} />
+          ))}
         </div>
       </div>
     </dialog>
