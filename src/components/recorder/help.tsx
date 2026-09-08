@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 type HelpSectionData = {
   title: string;
   items: { action: string; keys?: string; gesture?: string }[];
-  note?: string;
 };
 
 const sections: HelpSectionData[] = [
@@ -16,7 +15,6 @@ const sections: HelpSectionData[] = [
       { action: "Seek backward / forward 5 seconds", keys: "Left / Right" },
       { action: "Toggle metronome", keys: "M" },
     ],
-    note: "Space also stops an active recording. Arrow-key seeking is unavailable while recording or processing.",
   },
   {
     title: "Move around",
@@ -44,7 +42,6 @@ const sections: HelpSectionData[] = [
       { action: "Remove selected clips", keys: "Delete / Backspace" },
       { action: "Clear selection", keys: "Esc" },
     ],
-    note: "Drag a selected clip to move the group together.",
   },
   {
     title: "Mark and save",
@@ -93,18 +90,13 @@ export function RecorderHelp({
       }}
     >
       <div>
-        <header className="flex items-start justify-between gap-5 border-b border-neutral-700 px-8 py-6">
-          <div>
-            <h2
-              id="recorder-help-title"
-              className="text-2xl font-semibold tracking-tight"
-            >
-              Recorder quick reference
-            </h2>
-            <p className="mt-2 text-[13px] text-neutral-400">
-              The keys and gestures for recording, navigating, and editing.
-            </p>
-          </div>
+        <header className="flex items-center justify-between gap-5 border-b border-neutral-700 px-8 py-6">
+          <h2
+            id="recorder-help-title"
+            className="text-2xl font-semibold tracking-tight"
+          >
+            Recorder quick reference
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -144,11 +136,6 @@ function HelpSection({ section }: { section: HelpSectionData }) {
           </div>
         ))}
       </dl>
-      {section.note && (
-        <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-          {section.note}
-        </p>
-      )}
     </section>
   );
 }
