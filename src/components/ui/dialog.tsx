@@ -1,5 +1,6 @@
 import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "./utils";
 
 type DialogProps = {
   isOpen: boolean;
@@ -7,6 +8,7 @@ type DialogProps = {
   title: string;
   children: ReactNode;
   testId?: string;
+  size?: "default" | "wide";
 };
 
 export function Dialog({
@@ -15,6 +17,7 @@ export function Dialog({
   title,
   children,
   testId,
+  size = "default",
 }: DialogProps) {
   if (!isOpen) {
     return null;
@@ -27,7 +30,10 @@ export function Dialog({
       onClick={onClose}
     >
       <div
-        className="bg-neutral-800 rounded-lg shadow-2xl w-full max-w-md"
+        className={cn(
+          "bg-neutral-800 rounded-lg shadow-2xl w-full",
+          size === "wide" ? "max-w-[960px]" : "max-w-md",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

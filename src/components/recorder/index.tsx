@@ -13,6 +13,7 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
+import { RecorderHelp } from "./help";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
@@ -45,6 +46,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -151,6 +153,16 @@ export function Recorder({ projectId }: { projectId: string }) {
     isProcessing;
 
   useWindowEvent("keydown", (event) => {
+    if (isHelpOpen) {
+      if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
+        event.preventDefault();
+        setIsHelpOpen(false);
+      }
+      if (matchKeyboardEvent(event, "Ctrl+S")) {
+        event.preventDefault();
+      }
+      return;
+    }
     if (isAudioExportOpen) {
       return;
     }
@@ -262,6 +274,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
+        onHelpOpen={() => setIsHelpOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -579,6 +592,10 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
+        <RecorderHelp
+          isOpen={isHelpOpen}
+          onClose={() => setIsHelpOpen(false)}
+        />
         <RecorderExportDialog
           runtime={runtime}
           state={state}
