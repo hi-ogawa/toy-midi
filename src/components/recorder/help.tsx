@@ -107,9 +107,8 @@ export function RecorderHelp({
             type="button"
             onClick={onClose}
             aria-label="Close help"
-            className="flex items-center gap-2.5 text-neutral-400 hover:text-neutral-100"
+            className="text-neutral-400 hover:text-neutral-100"
           >
-            <kbd className={keyClassName}>Esc</kbd>
             <XIcon className="size-5" />
           </button>
         </header>
