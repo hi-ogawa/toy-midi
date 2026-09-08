@@ -394,7 +394,7 @@ export function RecorderHeader({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
-            Help &amp; Shortcuts
+            Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={isRecording || isProcessing}
