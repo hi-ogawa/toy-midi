@@ -1,11 +1,13 @@
 import { XIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-const sections: {
+type HelpSectionData = {
   title: string;
   items: { action: string; keys?: string; gesture?: string }[];
   note?: string;
-}[] = [
+};
+
+const sections: HelpSectionData[] = [
   {
     title: "Play and record",
     items: [
@@ -122,7 +124,7 @@ export function RecorderHelp({
   );
 }
 
-function HelpSection({ section }: { section: (typeof sections)[number] }) {
+function HelpSection({ section }: { section: HelpSectionData }) {
   return (
     <section>
       <h3 className="mb-3 text-sm font-semibold text-emerald-300">
