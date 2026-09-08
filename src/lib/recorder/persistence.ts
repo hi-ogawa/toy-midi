@@ -1,5 +1,10 @@
 import { createAudioView } from "../audio-view.ts";
 import {
+  createDefaultPeakingEq,
+  normalizePeakingEq,
+  type PeakingEqState,
+} from "./eq";
+import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
@@ -12,6 +17,8 @@ export interface SerializedRecorderRuntimeState {
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
+    // Optional for projects saved before track EQ support.
+    eq?: PeakingEqState;
     height: number;
     gain: number;
     muted: boolean;
@@ -53,6 +60,8 @@ export interface SerializedRecorderRuntimeState {
 }
 
 interface SerializedAudioTrackState {
+  // Optional for projects saved before track EQ support.
+  eq?: PeakingEqState;
   id: string;
   height: number;
   clip?: {
@@ -100,6 +109,7 @@ export function serializeRecorderRuntimeState(
             pcm: serializeAudioBuffer(track.clip.buffer),
           }
         : undefined,
+      eq: track.eq,
       gain: track.gain,
       muted: track.muted,
       soloed: track.soloed,
@@ -109,6 +119,7 @@ export function serializeRecorderRuntimeState(
     })),
     recordingTrack: {
       height: state.recordingTrack.height,
+      eq: state.recordingTrack.eq,
       gain: state.recordingTrack.gain,
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
@@ -169,6 +180,7 @@ export function deserializeRecorderRuntimeState({
                 ),
               }
             : undefined,
+        eq: normalizePeakingEq(track.eq ?? createDefaultPeakingEq()),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
@@ -179,6 +191,9 @@ export function deserializeRecorderRuntimeState({
     }),
     recordingTrack: {
       height: project.recordingTrack.height,
+      eq: normalizePeakingEq(
+        project.recordingTrack.eq ?? createDefaultPeakingEq(),
+      ),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,

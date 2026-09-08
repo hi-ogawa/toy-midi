@@ -13,9 +13,13 @@ import { RecorderMixToggle } from "./recorder-mix-toggle";
 export function RecorderMixer({
   runtime,
   state,
+  openEffects,
+  onEffectsToggle,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
+  openEffects: ReadonlySet<string>;
+  onEffectsToggle: (id: string) => void;
 }) {
   const masterInput = useGainInput(
     state.masterGain,
@@ -38,6 +42,8 @@ export function RecorderMixer({
       {state.audioTracks.map((track, index) => (
         <RecorderTrackChannel
           key={track.id}
+          effectsOpen={openEffects.has(track.id)}
+          onEffectsToggle={() => onEffectsToggle(track.id)}
           label={`Audio ${index + 1}`}
           labelTitle={track.clip?.name}
           gain={track.gain}
@@ -54,6 +60,8 @@ export function RecorderMixer({
       ))}
       <RecorderTrackChannel
         label="Capture"
+        effectsOpen={openEffects.has("capture")}
+        onEffectsToggle={() => onEffectsToggle("capture")}
         gain={state.recordingTrack.gain}
         muted={state.recordingTrack.muted}
         soloed={state.recordingTrack.soloed}
@@ -93,6 +101,8 @@ function RecorderTrackChannel({
   onGainChange,
   onMutedChange,
   onSoloedChange,
+  effectsOpen,
+  onEffectsToggle,
 }: {
   label: string;
   labelTitle?: string;
@@ -103,6 +113,8 @@ function RecorderTrackChannel({
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
+  effectsOpen: boolean;
+  onEffectsToggle: () => void;
 }) {
   const input = useGainInput(gain, onGainChange);
   return (
@@ -130,6 +142,14 @@ function RecorderTrackChannel({
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
+          <button
+            aria-label={`${label} effects`}
+            aria-pressed={effectsOpen}
+            onClick={onEffectsToggle}
+            className="h-8 min-w-8 rounded border border-neutral-600 px-1.5 text-xs font-semibold hover:bg-neutral-700 aria-pressed:border-blue-400 aria-pressed:text-blue-300"
+          >
+            FX
+          </button>
         </div>
       }
     />

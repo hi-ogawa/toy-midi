@@ -50,3 +50,5 @@ Project score routes read persisted documents directly and generate MusicXML in 
 Portable project files are zip archives containing project data, a manifest, and audio assets. MIDI import and export remain separate from the project-file format.
 
 The standalone recorder keeps project content in `RecorderRuntime` and saves explicitly to IndexedDB or portable project archives. Locators persist stable IDs, labels, and beat positions so tempo changes preserve their musical position. Locator selection remains transient UI state, and projects saved before locator support load with no locators.
+
+Recorder Audio and Capture tracks own one peaking EQ state each. EQ settings persist with tracks and older projects load the default EQ. Effects panel visibility is transient UI state. The initial UI prototype saves and edits EQ settings without applying them to playback or rendered audio.

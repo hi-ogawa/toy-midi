@@ -14,6 +14,7 @@ import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
+import { RecorderEffects } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
@@ -45,6 +46,10 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  // Audio track UUIDs and the singleton Capture channel identify panels.
+  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -124,6 +129,23 @@ export function Recorder({ projectId }: { projectId: string }) {
   const takes = state.recordingTrack.takes;
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
+
+  function toggleEffects(id: string) {
+    setOpenEffects((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function closeMixer() {
+    setIsMixerOpen(false);
+    setOpenEffects(new Set());
+  }
 
   function togglePlay() {
     if (isProcessing) {
@@ -273,7 +295,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
-        onMixerToggle={() => setIsMixerOpen((open) => !open)}
+        onMixerToggle={() =>
+          isMixerOpen ? closeMixer() : setIsMixerOpen(true)
+        }
         onHelpOpen={() => setIsHelpOpen(true)}
       />
 
@@ -380,7 +404,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onFileChange={(file) =>
                       audioTrackMutation.mutate({ file, id: track.id })
                     }
-                    onRemove={() => runtime.removeAudioTrack(track.id)}
+                    onRemove={() => {
+                      runtime.removeAudioTrack(track.id);
+                      setOpenEffects((current) => {
+                        const next = new Set(current);
+                        next.delete(track.id);
+                        return next;
+                      });
+                    }}
                   />
                 }
               >
@@ -641,15 +672,46 @@ export function Recorder({ projectId }: { projectId: string }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
+        {isMixerOpen && openEffects.size > 0 && (
+          <div className="pointer-events-auto flex min-w-0 gap-4 overflow-x-auto">
+            {state.audioTracks.map(
+              (track, index) =>
+                openEffects.has(track.id) && (
+                  <RecorderEffects
+                    key={track.id}
+                    label={`Audio ${index + 1}`}
+                    eq={track.eq}
+                    onChange={(update) =>
+                      runtime.setAudioTrackEq({ id: track.id, update })
+                    }
+                    onClose={() => toggleEffects(track.id)}
+                  />
+                ),
+            )}
+            {openEffects.has("capture") && (
+              <RecorderEffects
+                label="Capture"
+                eq={state.recordingTrack.eq}
+                onChange={(update) => runtime.setRecordingTrackEq(update)}
+                onClose={() => toggleEffects("capture")}
+              />
+            )}
+          </div>
+        )}
         {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"
-            onClose={() => setIsMixerOpen(false)}
+            onClose={closeMixer}
             title="Mixer"
             testId="recorder-mixer-panel"
-            className="pointer-events-auto min-w-0 flex-1"
+            className="pointer-events-auto min-w-80 flex-1"
           >
-            <RecorderMixer runtime={runtime} state={state} />
+            <RecorderMixer
+              runtime={runtime}
+              state={state}
+              openEffects={openEffects}
+              onEffectsToggle={toggleEffects}
+            />
           </RecorderPanel>
         )}
         {isReferenceVideoOpen && (

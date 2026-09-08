@@ -7,6 +7,11 @@ import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
+import {
+  createDefaultPeakingEq,
+  normalizePeakingEq,
+  type PeakingEqState,
+} from "./eq";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deriveTrackMix,
@@ -36,6 +41,7 @@ const MAX_TRACK_HEIGHT = 300;
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
+  eq: PeakingEqState;
   id: string;
   height: number;
   clip?: {
@@ -53,6 +59,7 @@ interface AudioTrackState {
 }
 
 interface RecordingTrackState {
+  eq: PeakingEqState;
   height: number;
   gain: number;
   muted: boolean;
@@ -521,6 +528,29 @@ export class RecorderRuntime {
         .audioTracks.filter((track) => track.id !== id),
     });
     this.syncTrackMix();
+  }
+
+  setAudioTrackEq({
+    id,
+    update,
+  }: {
+    id: string;
+    update: Partial<PeakingEqState>;
+  }): void {
+    this.updateAudioTrack(id, (track) => ({
+      ...track,
+      eq: normalizePeakingEq({ ...track.eq, ...update }),
+    }));
+  }
+
+  setRecordingTrackEq(update: Partial<PeakingEqState>): void {
+    const track = this.store.get().recordingTrack;
+    this.store.update({
+      recordingTrack: {
+        ...track,
+        eq: normalizePeakingEq({ ...track.eq, ...update }),
+      },
+    });
   }
 
   private updateAudioTrack(
@@ -1256,6 +1286,7 @@ function sliceRecordingSamples({
 
 function createAudioTrackState(): AudioTrackState {
   return {
+    eq: createDefaultPeakingEq(),
     id: crypto.randomUUID(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
@@ -1269,6 +1300,7 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
+    eq: createDefaultPeakingEq(),
     height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,
     muted: false,
