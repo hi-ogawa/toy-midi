@@ -154,10 +154,7 @@ export function Recorder({ projectId }: { projectId: string }) {
 
   useWindowEvent("keydown", (event) => {
     if (isHelpOpen) {
-      if (
-        !event.repeat &&
-        (event.key === "?" || matchKeyboardEvent(event, "Escape"))
-      ) {
+      if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
         event.preventDefault();
         setIsHelpOpen(false);
       }
@@ -177,11 +174,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
-      return;
-    }
-    if (event.key === "?") {
-      event.preventDefault();
-      setIsHelpOpen(true);
       return;
     }
     if (matchKeyboardEvent(event, "L")) {

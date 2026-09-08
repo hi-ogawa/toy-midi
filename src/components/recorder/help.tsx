@@ -117,11 +117,8 @@ export function RecorderHelp({
             <HelpSection key={section.title} section={section} />
           ))}
         </div>
-        <footer className="flex items-center justify-between gap-4 border-t border-neutral-700 px-8 py-4 text-xs text-neutral-400">
-          <span>Recorder shortcuts are inactive while help is open.</span>
-          <span>
-            Toggle this reference with <kbd className={keyClassName}>?</kbd>
-          </span>
+        <footer className="border-t border-neutral-700 px-8 py-4 text-xs text-neutral-400">
+          Recorder shortcuts are inactive while help is open.
         </footer>
       </div>
     </dialog>
