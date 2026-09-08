@@ -1,5 +1,4 @@
-import { XIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Dialog } from "../ui/dialog";
 
 type HelpSectionData = {
   title: string;
@@ -69,56 +68,21 @@ export function RecorderHelp({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current!;
-    if (isOpen) {
-      dialog.showModal();
-    } else {
-      dialog.close();
-    }
-  }, [isOpen]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="recorder-help-title"
-      className="fixed inset-0 m-auto max-h-[90vh] w-[960px] max-w-[calc(100vw-3rem)] overflow-y-auto rounded-xl border border-neutral-600 bg-neutral-800 p-0 text-neutral-100 shadow-2xl backdrop:bg-black/60"
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Recorder quick reference"
+      widthClassName="max-w-[960px]"
     >
-      <div>
-        <header className="flex items-center justify-between gap-5 border-b border-neutral-700 px-8 py-6">
-          <h2
-            id="recorder-help-title"
-            className="text-2xl font-semibold tracking-tight"
-          >
-            Recorder quick reference
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close help"
-            className="text-neutral-400 hover:text-neutral-100"
-          >
-            <XIcon className="size-5" />
-          </button>
-        </header>
-        <div className="columns-2 gap-10 px-8 py-7">
+      <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
+        <div className="columns-2 gap-10">
           {sections.map((section) => (
             <HelpSection key={section.title} section={section} />
           ))}
         </div>
       </div>
-    </dialog>
+    </Dialog>
   );
 }
 
