@@ -62,9 +62,6 @@ const sections: HelpSectionData[] = [
   },
 ];
 
-const keyClassName =
-  "whitespace-nowrap rounded border border-b-2 border-neutral-600 bg-neutral-700/60 px-1.5 py-0.5 font-sans text-[11px] text-neutral-300";
-
 export function RecorderHelp({
   isOpen,
   onClose,
@@ -139,7 +136,11 @@ function HelpSection({ section }: { section: HelpSectionData }) {
           >
             <dt className="text-[13px] text-neutral-200">{item.action}</dt>
             <dd className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-neutral-400">
-              {item.keys && <kbd className={keyClassName}>{item.keys}</kbd>}
+              {item.keys && (
+                <kbd className="whitespace-nowrap rounded border border-b-2 border-neutral-600 bg-neutral-700/60 px-1.5 py-0.5 font-sans text-[11px] text-neutral-300">
+                  {item.keys}
+                </kbd>
+              )}
               {item.gesture}
             </dd>
           </div>
