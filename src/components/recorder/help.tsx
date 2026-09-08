@@ -117,9 +117,6 @@ export function RecorderHelp({
             <HelpSection key={section.title} section={section} />
           ))}
         </div>
-        <footer className="border-t border-neutral-700 px-8 py-4 text-xs text-neutral-400">
-          Recorder shortcuts are inactive while help is open.
-        </footer>
       </div>
     </dialog>
   );
