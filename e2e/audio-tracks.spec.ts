@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   clickNewProject,
   evaluateFlushAutoSave,
@@ -137,9 +138,9 @@ test.describe("Multiple Audio Tracks", () => {
       await page.mouse.up();
     }
 
-    // Default 80 px/beat at 120 BPM: 160 px = 2 beats = 1 s.
+    // At 120 BPM, two beats equal one second.
     // Linked (default on): dragging one region moves both tracks.
-    await dragRegionBy(page, 0, 160);
+    await dragRegionBy(page, 0, DEFAULT_PIXELS_PER_BEAT * 2);
     let offsets = await getOffsets(page);
     expect(offsets[0]).toBeCloseTo(1, 5);
     expect(offsets[1]).toBeCloseTo(1, 5);
@@ -151,7 +152,7 @@ test.describe("Multiple Audio Tracks", () => {
     await page.getByRole("button", { name: "Close" }).click();
     await expect(page.getByTestId("settings-dialog")).toBeHidden();
 
-    await dragRegionBy(page, 1, 80);
+    await dragRegionBy(page, 1, DEFAULT_PIXELS_PER_BEAT);
     offsets = await getOffsets(page);
     expect(offsets[0]).toBeCloseTo(1, 5);
     expect(offsets[1]).toBeCloseTo(1.5, 5);

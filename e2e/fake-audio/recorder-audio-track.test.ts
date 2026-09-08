@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -19,10 +20,10 @@ test("uploads and plays a backing track", async ({ page }) => {
   // Move and trim backing audio without changing its source.
   const beforeEdit = await clip.boundingBox();
   expect(beforeEdit).not.toBeNull();
-  await dragBy(page, clip, 80);
+  await dragBy(page, clip, DEFAULT_PIXELS_PER_BEAT);
   const afterMove = await clip.boundingBox();
   expect(afterMove).not.toBeNull();
-  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + DEFAULT_PIXELS_PER_BEAT, -1);
 
   const trimPixels = afterMove!.width / 4;
   await dragBy(page, clip.getByTestId("recorder-take-trim-start"), trimPixels);

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   clickNewProject,
   evaluateFlushAutoSave,
@@ -36,7 +37,7 @@ test.describe("Locators", () => {
 
     // Seek to beat 4 and add second locator
     await page.mouse.click(
-      timelineBox.x + 320,
+      timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 4,
       timelineBox.y + timelineBox.height / 2,
     );
     await page.keyboard.press("l");
@@ -138,7 +139,7 @@ test.describe("Locators", () => {
 
     // Seek to beat 4 and add second locator
     await page.mouse.click(
-      timelineBox.x + 320,
+      timelineBox.x + DEFAULT_PIXELS_PER_BEAT * 4,
       timelineBox.y + timelineBox.height / 2,
     );
     await page.keyboard.press("l");

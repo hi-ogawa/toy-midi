@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
@@ -23,7 +24,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
 
   // Place the playhead away from zero to exercise take placement.
-  await seekRecorderByPixels(page, 160);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
 
   // Recording starts capture and rolls the stopped transport.
   const recordButton = page.getByTestId("recorder-record-button");
@@ -68,15 +69,15 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await page.keyboard.press("Escape");
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
-  ).toBeCloseTo(160, -2);
+  ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 2, -2);
 
   // The take can be moved and trimmed without changing its source audio.
   const beforeEdit = await take.boundingBox();
   expect(beforeEdit).not.toBeNull();
-  await dragBy(page, take, 80);
+  await dragBy(page, take, DEFAULT_PIXELS_PER_BEAT);
   const afterMove = await take.boundingBox();
   expect(afterMove).not.toBeNull();
-  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + 80, -1);
+  expect(afterMove!.x).toBeCloseTo(beforeEdit!.x + DEFAULT_PIXELS_PER_BEAT, -1);
 
   const trimStart = take.getByTestId("recorder-take-trim-start");
   const trimPixels = Math.max(2, afterMove!.width / 4);
@@ -115,7 +116,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await playButton.click();
 
   // Move later in the song and record another attempt.
-  await seekRecorderByPixels(page, 320);
+  await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 4);
   await recordButton.click();
   const secondRecording = page.getByTestId("recorder-clip-recording");
   await expect(secondRecording).toContainText("Recording...");
@@ -130,7 +131,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     Number.parseFloat(
       await take.nth(1).evaluate((element) => element.style.left),
     ),
-  ).toBeCloseTo(320, -2);
+  ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 4, -2);
 
   // Muting removes a take from Capture without deleting its source lane.
   const muteTake = page.getByTestId("recorder-take-mute");

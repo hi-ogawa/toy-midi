@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import { createRecorderProject, dragBy } from "./recorder-helpers";
 
 test("configures an ephemeral YouTube reference", async ({ page }) => {
@@ -97,13 +98,13 @@ test("configures an ephemeral YouTube reference", async ({ page }) => {
   const referenceClip = referenceTrack.getByTestId("recorder-clip-reference");
   const initialReferenceClipBox = await referenceClip.boundingBox();
   expect(initialReferenceClipBox).not.toBeNull();
-  await dragBy(page, referenceClip, 80, {
+  await dragBy(page, referenceClip, DEFAULT_PIXELS_PER_BEAT, {
     anchorXOffset: 20,
   });
   const movedReferenceClipBox = await referenceClip.boundingBox();
   expect(movedReferenceClipBox).not.toBeNull();
   expect(movedReferenceClipBox!.x).toBeCloseTo(
-    initialReferenceClipBox!.x + 80,
+    initialReferenceClipBox!.x + DEFAULT_PIXELS_PER_BEAT,
     -1,
   );
 

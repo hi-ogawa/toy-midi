@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   clickNewProject,
   evaluateFlushAutoSave,
   waitForEditor,
 } from "./helpers";
 
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
+// Row height matches piano-roll.tsx.
 const ROW_HEIGHT = 20;
 
 // TODO: add coverage for resize batching (drag through many steps creates a single undo entry)
@@ -25,12 +25,12 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     // Verify note was created
@@ -52,12 +52,12 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']");
@@ -82,12 +82,12 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note at row 5
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 5.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -99,10 +99,10 @@ test.describe("Undo/Redo", () => {
     const initialY = initialBox.y;
 
     // Move note horizontally
-    const noteCenter = startX + BEAT_WIDTH * 0.5;
+    const noteCenter = startX + DEFAULT_PIXELS_PER_BEAT * 0.5;
     await page.mouse.move(noteCenter, startY);
     await page.mouse.down();
-    await page.mouse.move(noteCenter + BEAT_WIDTH * 2, startY);
+    await page.mouse.move(noteCenter + DEFAULT_PIXELS_PER_BEAT * 2, startY);
     await page.mouse.up();
 
     // Verify note moved
@@ -132,12 +132,12 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -154,7 +154,7 @@ test.describe("Undo/Redo", () => {
     );
     await page.mouse.down();
     await page.mouse.move(
-      initialBox.x + initialBox.width + BEAT_WIDTH,
+      initialBox.x + initialBox.width + DEFAULT_PIXELS_PER_BEAT,
       initialBox.y + initialBox.height / 2,
     );
     await page.mouse.up();
@@ -185,12 +185,12 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']");
@@ -223,25 +223,31 @@ test.describe("Undo/Redo", () => {
     const note = page.locator("[data-testid^='note-']");
 
     // Create first note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
     await expect(note).toHaveCount(1);
 
     // Create second note
     await page.mouse.move(startX, startY + ROW_HEIGHT);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT);
+    await page.mouse.move(
+      startX + DEFAULT_PIXELS_PER_BEAT,
+      startY + ROW_HEIGHT,
+    );
     await page.mouse.up();
     await expect(note).toHaveCount(2);
 
     // Create third note
     await page.mouse.move(startX, startY + ROW_HEIGHT * 2);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT * 2);
+    await page.mouse.move(
+      startX + DEFAULT_PIXELS_PER_BEAT,
+      startY + ROW_HEIGHT * 2,
+    );
     await page.mouse.up();
     await expect(note).toHaveCount(3);
 
@@ -276,11 +282,11 @@ test.describe("Undo/Redo", () => {
     const note = page.locator("[data-testid^='note-']");
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
     await expect(note).toHaveCount(1);
 
@@ -291,7 +297,10 @@ test.describe("Undo/Redo", () => {
     // Create a different note (should clear redo stack)
     await page.mouse.move(startX, startY + ROW_HEIGHT);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY + ROW_HEIGHT);
+    await page.mouse.move(
+      startX + DEFAULT_PIXELS_PER_BEAT,
+      startY + ROW_HEIGHT,
+    );
     await page.mouse.up();
     await expect(note).toHaveCount(1);
 
@@ -314,11 +323,11 @@ test.describe("Undo/Redo", () => {
     const note = page.locator("[data-testid^='note-']");
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
     await expect(note).toHaveCount(1);
 
@@ -347,11 +356,11 @@ test.describe("Undo/Redo", () => {
     const notes = page.locator("[data-testid^='note-']");
 
     // Create first note at row 5
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const row1Y = gridBox.y + ROW_HEIGHT * 5.5;
     await page.mouse.move(startX, row1Y);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, row1Y);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, row1Y);
     await page.mouse.up();
     await expect(notes).toHaveCount(1);
 
@@ -359,7 +368,7 @@ test.describe("Undo/Redo", () => {
     const row2Y = gridBox.y + ROW_HEIGHT * 6.5;
     await page.mouse.move(startX, row2Y);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, row2Y);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, row2Y);
     await page.mouse.up();
     await expect(notes).toHaveCount(2);
 
@@ -377,7 +386,7 @@ test.describe("Undo/Redo", () => {
     await page.keyboard.down("Shift");
     await page.mouse.down();
     await page.mouse.move(
-      gridBox.x + BEAT_WIDTH * 2,
+      gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2,
       gridBox.y + ROW_HEIGHT * 7.5,
     );
     await page.mouse.up();
@@ -389,7 +398,7 @@ test.describe("Undo/Redo", () => {
     const moveStartY = initial1.y + initial1.height / 2;
     await page.mouse.move(moveStartX, moveStartY);
     await page.mouse.down();
-    await page.mouse.move(moveStartX + BEAT_WIDTH * 2, moveStartY);
+    await page.mouse.move(moveStartX + DEFAULT_PIXELS_PER_BEAT * 2, moveStartY);
     await page.mouse.up();
 
     // Verify both notes moved
@@ -434,11 +443,11 @@ test.describe("Undo/Redo", () => {
     }
 
     // Create a note
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 5.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -449,13 +458,16 @@ test.describe("Undo/Redo", () => {
     const initialX = initialBox.x;
 
     // Drag note through MANY intermediate steps (simulating a long drag)
-    const noteCenter = startX + BEAT_WIDTH * 0.5;
+    const noteCenter = startX + DEFAULT_PIXELS_PER_BEAT * 0.5;
     await page.mouse.move(noteCenter, startY);
     await page.mouse.down();
 
     // Move through 10 intermediate positions
     for (let i = 1; i <= 10; i++) {
-      await page.mouse.move(noteCenter + BEAT_WIDTH * 0.3 * i, startY);
+      await page.mouse.move(
+        noteCenter + DEFAULT_PIXELS_PER_BEAT * 0.3 * i,
+        startY,
+      );
     }
     await page.mouse.up();
 

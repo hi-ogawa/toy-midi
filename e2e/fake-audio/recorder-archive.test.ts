@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -15,8 +16,8 @@ test("exports and imports a recorder project archive", async ({ page }) => {
 
   await enableInput(page);
   const recordButton = page.getByTestId("recorder-record-button");
-  for (const position of [160, 320]) {
-    await seekRecorderByPixels(page, position);
+  for (const beat of [2, 4]) {
+    await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
     await recordButton.click();
     await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
     await recordButton.click();

@@ -8,7 +8,6 @@ import {
   HouseIcon,
   LoaderCircleIcon,
   LocateFixedIcon,
-  Repeat2Icon,
   Mic2Icon,
   MoreVerticalIcon,
   PauseIcon,
@@ -20,7 +19,7 @@ import {
 } from "lucide-react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
-import { formatGainDb, snapToGrid } from "../../lib/music";
+import { formatGainDb } from "../../lib/music";
 import type {
   RecorderLoopState,
   RecorderPunchState,
@@ -29,7 +28,6 @@ import { routes } from "../../lib/routes";
 import { formatTimeWithMilliseconds } from "../../lib/time-format";
 import {
   formatBarBeatAtTime,
-  getBeatsPerBar,
   secondsToBeats,
   type GridDivision,
   GRID_DIVISIONS,
@@ -47,6 +45,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { RecorderGainSlider } from "./recorder-mixer";
+import { RecorderRangeControl } from "./recorder-range-control";
 import type { SaveStatus } from "./use-recorder-project";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5];
@@ -184,66 +183,22 @@ export function RecorderHeader({
         )}
       </Button>
       <div className="mx-1 h-5 w-px bg-neutral-600" />
-      <Button
-        data-testid="recorder-loop-toggle"
-        onClick={() => {
-          const enabled = !loop.enabled;
-          const beatsPerBar = getBeatsPerBar(timeSignature);
-          const startBeat = snapToGrid(
-            secondsToBeats(position, tempo),
-            beatsPerBar,
-            { floor: true },
-          );
-          onLoopChange({
-            enabled,
-            range:
-              loop.range ??
-              (enabled
-                ? { startBeat, endBeat: startBeat + beatsPerBar }
-                : undefined),
-          });
-        }}
-        aria-pressed={loop.enabled}
-        title={loop.range ? "Toggle loop playback" : "Create loop range"}
-        className={cn(
-          "size-9",
-          loop.enabled
-            ? "bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
-            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
-        )}
-      >
-        <Repeat2Icon className="size-5" />
-      </Button>
-      <Button
-        data-testid="recorder-punch-toggle"
-        onClick={() => {
-          const enabled = !punch.enabled;
-          const beatsPerBar = getBeatsPerBar(timeSignature);
-          const startBeat = snapToGrid(
-            secondsToBeats(position, tempo),
-            beatsPerBar,
-            { floor: true },
-          );
-          onPunchChange({
-            enabled,
-            range:
-              punch.range ??
-              (enabled
-                ? { startBeat, endBeat: startBeat + beatsPerBar }
-                : undefined),
-          });
-        }}
-        aria-pressed={punch.enabled}
-        title={punch.range ? "Toggle punch recording" : "Create punch range"}
-        className={cn(
-          "h-9 gap-1.5 px-2.5 text-xs font-medium",
-          punch.enabled
-            ? "bg-amber-500/20 text-amber-300 hover:bg-amber-500/25"
-            : "text-neutral-300 hover:bg-neutral-700/50 hover:text-neutral-100",
-        )}
-      >
-        Punch
-      </Button>
+      <RecorderRangeControl
+        kind="loop"
+        state={loop}
+        position={position}
+        tempo={tempo}
+        timeSignature={timeSignature}
+        onChange={onLoopChange}
+      />
+      <RecorderRangeControl
+        kind="punch"
+        state={punch}
+        position={position}
+        tempo={tempo}
+        timeSignature={timeSignature}
+        onChange={onPunchChange}
+      />
       <Button
         onClick={() => onMetronomeChange(!metronomeEnabled)}
         aria-pressed={metronomeEnabled}
