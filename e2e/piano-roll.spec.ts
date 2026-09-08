@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import { clickNewProject, evaluateStore } from "./helpers";
 
-// Constants matching piano-roll.tsx
-const BEAT_WIDTH = 80;
+// Row height matches piano-roll.tsx.
 const ROW_HEIGHT = 20;
 
 test.describe("Piano Roll", () => {
@@ -28,12 +28,12 @@ test.describe("Piano Roll", () => {
     }
 
     // Create note at beat 0, pitch G3 (top row)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     // Note should be created and selected
@@ -46,7 +46,7 @@ test.describe("Piano Roll", () => {
     await expect(note).toHaveAttribute("data-selected", "false");
 
     // Click on note to select
-    await page.mouse.click(startX + BEAT_WIDTH * 0.25, startY);
+    await page.mouse.click(startX + DEFAULT_PIXELS_PER_BEAT * 0.25, startY);
     await expect(note).toHaveAttribute("data-selected", "true");
 
     // Delete with Delete key
@@ -56,7 +56,7 @@ test.describe("Piano Roll", () => {
     // Create another note to test Backspace
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     await expect(note).toHaveCount(1);
@@ -79,12 +79,12 @@ test.describe("Piano Roll", () => {
     }
 
     const clickBeat = 4.6;
-    const clickX = gridBox.x + clickBeat * BEAT_WIDTH;
+    const clickX = gridBox.x + clickBeat * DEFAULT_PIXELS_PER_BEAT;
     const clickY = gridBox.y + ROW_HEIGHT * 2.5;
 
     await page.mouse.move(clickX, clickY);
     await page.mouse.down();
-    await page.mouse.move(clickX + BEAT_WIDTH * 0.1, clickY);
+    await page.mouse.move(clickX + DEFAULT_PIXELS_PER_BEAT * 0.1, clickY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -95,7 +95,7 @@ test.describe("Piano Roll", () => {
       throw new Error("Note not found");
     }
 
-    const expectedStartX = gridBox.x + 4 * BEAT_WIDTH;
+    const expectedStartX = gridBox.x + 4 * DEFAULT_PIXELS_PER_BEAT;
     expect(noteBox.x).toBeCloseTo(expectedStartX, 1);
   });
 
@@ -115,12 +115,15 @@ test.describe("Piano Roll", () => {
       throw new Error("Grid not found");
     }
 
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 2.5;
 
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * tripletGridSize, startY);
+    await page.mouse.move(
+      startX + DEFAULT_PIXELS_PER_BEAT * tripletGridSize,
+      startY,
+    );
     await page.mouse.up();
 
     const notes = await evaluateStore(page, (store) => store.getState().notes);
@@ -137,11 +140,11 @@ test.describe("Piano Roll", () => {
     }
 
     // Create a note at row 5 (to have room to move up)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 5.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -153,10 +156,10 @@ test.describe("Piano Roll", () => {
     const initialY = initialBox.y;
 
     // Drag note horizontally (time)
-    const noteCenter = startX + BEAT_WIDTH * 0.25;
+    const noteCenter = startX + DEFAULT_PIXELS_PER_BEAT * 0.25;
     await page.mouse.move(noteCenter, startY);
     await page.mouse.down();
-    await page.mouse.move(noteCenter + BEAT_WIDTH * 2, startY);
+    await page.mouse.move(noteCenter + DEFAULT_PIXELS_PER_BEAT * 2, startY);
     await page.mouse.up();
 
     let movedBox = await note.boundingBox();
@@ -192,11 +195,11 @@ test.describe("Piano Roll", () => {
     }
 
     // Create a note at beat 2 (so we have room to resize left)
-    const startX = gridBox.x + BEAT_WIDTH * 2;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH * 2, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT * 2, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -212,7 +215,7 @@ test.describe("Piano Roll", () => {
     const noteY = initialBox.y + initialBox.height / 2;
     await page.mouse.move(rightEdgeX, noteY);
     await page.mouse.down();
-    await page.mouse.move(rightEdgeX + BEAT_WIDTH, noteY);
+    await page.mouse.move(rightEdgeX + DEFAULT_PIXELS_PER_BEAT, noteY);
     await page.mouse.up();
 
     let resizedBox = await note.boundingBox();
@@ -225,7 +228,7 @@ test.describe("Piano Roll", () => {
     const leftEdgeX = resizedBox.x + 2;
     await page.mouse.move(leftEdgeX, noteY);
     await page.mouse.down();
-    await page.mouse.move(leftEdgeX + BEAT_WIDTH * 0.5, noteY);
+    await page.mouse.move(leftEdgeX + DEFAULT_PIXELS_PER_BEAT * 0.5, noteY);
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
@@ -269,11 +272,14 @@ test.describe("Piano Roll", () => {
     // Create a 1-beat note at beat 1 (ends at beat 2)
     const noteStartBeat = 1;
     const noteDurationBeats = 1;
-    const startX = gridBox.x + noteStartBeat * BEAT_WIDTH;
+    const startX = gridBox.x + noteStartBeat * DEFAULT_PIXELS_PER_BEAT;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + noteDurationBeats * BEAT_WIDTH, startY);
+    await page.mouse.move(
+      startX + noteDurationBeats * DEFAULT_PIXELS_PER_BEAT,
+      startY,
+    );
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -284,48 +290,48 @@ test.describe("Piano Roll", () => {
     const noteY = initialBox.y + initialBox.height / 2;
 
     // Note ends at beat 2
-    const noteEndX = gridBox.x + 2 * BEAT_WIDTH;
+    const noteEndX = gridBox.x + 2 * DEFAULT_PIXELS_PER_BEAT;
 
     // Test 1: Drag to beat 2.1 (cell 4: 2.0-2.5) -> end snaps to 2.5
     await page.mouse.move(noteEndX - 2, noteY);
     await page.mouse.down();
-    await page.mouse.move(gridBox.x + 2.1 * BEAT_WIDTH, noteY);
+    await page.mouse.move(gridBox.x + 2.1 * DEFAULT_PIXELS_PER_BEAT, noteY);
     await page.mouse.up();
 
     let resizedBox = await note.boundingBox();
     if (!resizedBox) {
       throw new Error("Note not found after resize");
     }
-    // End at 2.5 means duration = 1.5 beats = 120px
-    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH * 1.5, 1);
+    // End at 2.5 means duration = 1.5 beats.
+    expect(resizedBox.width).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 1.5, 1);
 
     // Test 2: Drag to beat 1.9 (cell 3: 1.5-2.0) -> end snaps to 2.0 (shrinks)
-    const newEndX = gridBox.x + 2.5 * BEAT_WIDTH;
+    const newEndX = gridBox.x + 2.5 * DEFAULT_PIXELS_PER_BEAT;
     await page.mouse.move(newEndX - 2, noteY);
     await page.mouse.down();
-    await page.mouse.move(gridBox.x + 1.9 * BEAT_WIDTH, noteY);
+    await page.mouse.move(gridBox.x + 1.9 * DEFAULT_PIXELS_PER_BEAT, noteY);
     await page.mouse.up();
 
     resizedBox = await note.boundingBox();
     if (!resizedBox) {
       throw new Error("Note not found after resize");
     }
-    // End at 2.0 means duration = 1.0 beat = 80px
-    expect(resizedBox.width).toBeCloseTo(BEAT_WIDTH, 1);
+    // End at 2.0 means duration = 1.0 beat.
+    expect(resizedBox.width).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT, 1);
 
     // Test 3: Drag to beat 2.6 (cell 5: 2.5-3.0) -> end snaps to 3.0
-    const currentEndX = gridBox.x + 2 * BEAT_WIDTH;
+    const currentEndX = gridBox.x + 2 * DEFAULT_PIXELS_PER_BEAT;
     await page.mouse.move(currentEndX - 2, noteY);
     await page.mouse.down();
-    await page.mouse.move(gridBox.x + 2.6 * BEAT_WIDTH, noteY);
+    await page.mouse.move(gridBox.x + 2.6 * DEFAULT_PIXELS_PER_BEAT, noteY);
     await page.mouse.up();
 
     const finalBox = await note.boundingBox();
     if (!finalBox) {
       throw new Error("Note not found after final resize");
     }
-    // End at 3.0 means duration = 2.0 beats = 160px
-    expect(finalBox.width).toBeCloseTo(BEAT_WIDTH * 2, 1);
+    // End at 3.0 means duration = 2.0 beats.
+    expect(finalBox.width).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 2, 1);
   });
 
   test("deselect with Escape", async ({ page }) => {
@@ -336,11 +342,11 @@ test.describe("Piano Roll", () => {
     }
 
     // Create a note (auto-selected after creation)
-    const startX = gridBox.x + BEAT_WIDTH * 0.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const startY = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     const note = page.locator("[data-testid^='note-']").first();
@@ -359,22 +365,22 @@ test.describe("Piano Roll", () => {
     }
 
     // Create first note at beat 0
-    const note1X = gridBox.x + BEAT_WIDTH * 0.5;
+    const note1X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const note1Y = gridBox.y + ROW_HEIGHT * 0.5;
     await page.mouse.move(note1X, note1Y);
     await page.mouse.down();
-    await page.mouse.move(note1X + BEAT_WIDTH, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT, note1Y);
     await page.mouse.up();
 
     // Press Escape to deselect before creating second note
     await page.keyboard.press("Escape");
 
     // Create second note at beat 2
-    const note2X = gridBox.x + BEAT_WIDTH * 2.5;
+    const note2X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2.5;
     const note2Y = gridBox.y + ROW_HEIGHT * 2.5;
     await page.mouse.move(note2X, note2Y);
     await page.mouse.down();
-    await page.mouse.move(note2X + BEAT_WIDTH, note2Y);
+    await page.mouse.move(note2X + DEFAULT_PIXELS_PER_BEAT, note2Y);
     await page.mouse.up();
 
     const notes = page.locator("[data-testid^='note-']");
@@ -388,7 +394,7 @@ test.describe("Piano Roll", () => {
 
     // Shift+click on first note to add to selection
     await page.keyboard.down("Shift");
-    await page.mouse.click(note1X + BEAT_WIDTH * 0.25, note1Y);
+    await page.mouse.click(note1X + DEFAULT_PIXELS_PER_BEAT * 0.25, note1Y);
     await page.keyboard.up("Shift");
 
     // Both notes should now be selected
@@ -404,20 +410,20 @@ test.describe("Piano Roll", () => {
     }
 
     // Create two notes
-    const note1X = gridBox.x + BEAT_WIDTH * 1;
+    const note1X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1;
     const note1Y = gridBox.y + ROW_HEIGHT * 2;
     await page.mouse.move(note1X, note1Y);
     await page.mouse.down();
-    await page.mouse.move(note1X + BEAT_WIDTH, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT, note1Y);
     await page.mouse.up();
 
     await page.keyboard.press("Escape");
 
-    const note2X = gridBox.x + BEAT_WIDTH * 2;
+    const note2X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 2;
     const note2Y = gridBox.y + ROW_HEIGHT * 3;
     await page.mouse.move(note2X, note2Y);
     await page.mouse.down();
-    await page.mouse.move(note2X + BEAT_WIDTH, note2Y);
+    await page.mouse.move(note2X + DEFAULT_PIXELS_PER_BEAT, note2Y);
     await page.mouse.up();
 
     await page.keyboard.press("Escape");
@@ -430,9 +436,9 @@ test.describe("Piano Roll", () => {
     await expect(notes.last()).toHaveAttribute("data-selected", "false");
 
     // Shift+drag a box that covers both notes
-    const boxStartX = gridBox.x + BEAT_WIDTH * 0.5;
+    const boxStartX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 0.5;
     const boxStartY = gridBox.y + ROW_HEIGHT * 1.5;
-    const boxEndX = gridBox.x + BEAT_WIDTH * 3.5;
+    const boxEndX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 3.5;
     const boxEndY = gridBox.y + ROW_HEIGHT * 4.5;
 
     await page.keyboard.down("Shift");
@@ -494,11 +500,11 @@ test.describe("Piano Roll", () => {
     }
 
     // Create a note at beat 1
-    const startX = gridBox.x + BEAT_WIDTH * 1.5;
+    const startX = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5;
     const startY = gridBox.y + ROW_HEIGHT * 2.5;
     await page.mouse.move(startX, startY);
     await page.mouse.down();
-    await page.mouse.move(startX + BEAT_WIDTH, startY);
+    await page.mouse.move(startX + DEFAULT_PIXELS_PER_BEAT, startY);
     await page.mouse.up();
 
     // Verify one note is created and selected
@@ -521,7 +527,10 @@ test.describe("Piano Roll", () => {
     await page.keyboard.down("Control");
     await page.mouse.move(noteCenter, noteMiddleY);
     await page.mouse.down();
-    await page.mouse.move(noteCenter + BEAT_WIDTH * 2, noteMiddleY);
+    await page.mouse.move(
+      noteCenter + DEFAULT_PIXELS_PER_BEAT * 2,
+      noteMiddleY,
+    );
     await page.mouse.up();
     await page.keyboard.up("Control");
 
@@ -559,28 +568,34 @@ test.describe("Piano Roll", () => {
     }
 
     // Create first note
-    const note1X = gridBox.x + BEAT_WIDTH * 1.5;
+    const note1X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5;
     const note1Y = gridBox.y + ROW_HEIGHT * 2.5;
     await page.mouse.move(note1X, note1Y);
     await page.mouse.down();
-    await page.mouse.move(note1X + BEAT_WIDTH, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT, note1Y);
     await page.mouse.up();
 
     // Create second note at different position
     await page.keyboard.press("Escape");
-    const note2X = gridBox.x + BEAT_WIDTH * 1.5;
+    const note2X = gridBox.x + DEFAULT_PIXELS_PER_BEAT * 1.5;
     const note2Y = gridBox.y + ROW_HEIGHT * 4.5;
     await page.mouse.move(note2X, note2Y);
     await page.mouse.down();
-    await page.mouse.move(note2X + BEAT_WIDTH, note2Y);
+    await page.mouse.move(note2X + DEFAULT_PIXELS_PER_BEAT, note2Y);
     await page.mouse.up();
 
     // Select both notes with box select
     await page.keyboard.press("Escape");
     await page.keyboard.down("Shift");
-    await page.mouse.move(note1X - BEAT_WIDTH * 0.5, note1Y - ROW_HEIGHT * 0.5);
+    await page.mouse.move(
+      note1X - DEFAULT_PIXELS_PER_BEAT * 0.5,
+      note1Y - ROW_HEIGHT * 0.5,
+    );
     await page.mouse.down();
-    await page.mouse.move(note2X + BEAT_WIDTH * 1.5, note2Y + ROW_HEIGHT * 0.5);
+    await page.mouse.move(
+      note2X + DEFAULT_PIXELS_PER_BEAT * 1.5,
+      note2Y + ROW_HEIGHT * 0.5,
+    );
     await page.mouse.up();
     await page.keyboard.up("Shift");
 
@@ -592,9 +607,9 @@ test.describe("Piano Roll", () => {
 
     // Ctrl+drag one of the selected notes to duplicate both
     await page.keyboard.down("Control");
-    await page.mouse.move(note1X + BEAT_WIDTH * 0.5, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT * 0.5, note1Y);
     await page.mouse.down();
-    await page.mouse.move(note1X + BEAT_WIDTH * 3, note1Y);
+    await page.mouse.move(note1X + DEFAULT_PIXELS_PER_BEAT * 3, note1Y);
     await page.mouse.up();
     await page.keyboard.up("Control");
 

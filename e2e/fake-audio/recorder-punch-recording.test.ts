@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
+import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
@@ -20,8 +21,16 @@ test("records only the punched interval into the comp", async ({ page }) => {
   await page.getByTestId("recorder-punch-toggle").click();
   const punchRange = page.getByTestId("recorder-punch-range");
   await expect(punchRange).toBeVisible();
-  await dragBy(page, page.getByTestId("recorder-punch-start"), 40);
-  await dragBy(page, page.getByTestId("recorder-punch-end"), -40);
+  await dragBy(
+    page,
+    page.getByTestId("recorder-punch-start"),
+    DEFAULT_PIXELS_PER_BEAT * 0.5,
+  );
+  await dragBy(
+    page,
+    page.getByTestId("recorder-punch-end"),
+    -DEFAULT_PIXELS_PER_BEAT * 0.5,
+  );
   const punchBox = await punchRange.boundingBox();
   assert(punchBox);
 
