@@ -8,28 +8,28 @@ type HelpSectionData = {
 
 const sections: HelpSectionData[] = [
   {
-    title: "Play and record",
+    title: "Transport",
     items: [
       { action: "Play / pause", keys: "Space" },
       { action: "Start / stop recording", keys: "R" },
-      { action: "Seek backward / forward 5 seconds", keys: "Left / Right" },
       { action: "Toggle metronome", keys: "M" },
     ],
   },
   {
-    title: "Move around",
+    title: "Timeline",
     items: [
+      { action: "Seek to a position", gesture: "Click ruler / empty lane" },
+      { action: "Seek backward / forward 5 seconds", keys: "Left / Right" },
       {
         action: "Scroll timeline horizontally",
         gesture: "Wheel over timeline",
       },
       { action: "Zoom at pointer", keys: "Ctrl", gesture: " + wheel" },
-      { action: "Seek to a position", gesture: "Click ruler / empty lane" },
       { action: "Toggle follow playhead", keys: "F" },
     ],
   },
   {
-    title: "Work with clips",
+    title: "Clips",
     items: [
       { action: "Select a clip", gesture: "Click clip" },
       {
@@ -44,11 +44,16 @@ const sections: HelpSectionData[] = [
     ],
   },
   {
-    title: "Mark and save",
+    title: "Locators",
     items: [
       { action: "Add locator at playhead", keys: "L" },
+      { action: "Select and seek to locator", gesture: "Click locator" },
+      { action: "Move locator", gesture: "Drag locator" },
+      {
+        action: "Rename locator",
+        gesture: "Hover / select, then click pencil",
+      },
       { action: "Remove selected locator", keys: "Delete / Backspace" },
-      { action: "Save project", keys: "Ctrl / Cmd + S" },
     ],
   },
 ];
@@ -106,10 +111,18 @@ export function RecorderHelp({
             <XIcon className="size-5" />
           </button>
         </header>
-        <div className="grid grid-cols-2 gap-x-10 gap-y-7 px-8 py-7">
-          {sections.map((section) => (
-            <HelpSection key={section.title} section={section} />
-          ))}
+        <div className="px-8 py-7">
+          <div className="columns-2 gap-10">
+            {sections.map((section) => (
+              <HelpSection key={section.title} section={section} />
+            ))}
+          </div>
+          <dl className="flex items-center justify-between gap-3 border-t border-neutral-700 pt-4">
+            <dt className="text-[13px] text-neutral-200">Save project</dt>
+            <dd>
+              <kbd className={keyClassName}>Ctrl / Cmd + S</kbd>
+            </dd>
+          </dl>
         </div>
       </div>
     </dialog>
@@ -118,7 +131,7 @@ export function RecorderHelp({
 
 function HelpSection({ section }: { section: HelpSectionData }) {
   return (
-    <section>
+    <section className="mb-7 break-inside-avoid">
       <h3 className="mb-3 text-sm font-semibold text-emerald-300">
         {section.title}
       </h3>
