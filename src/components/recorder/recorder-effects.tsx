@@ -91,20 +91,20 @@ function EqParameter({
 }) {
   const { min, max, step } = limits;
   let config = {
-    sliderMin: min,
-    sliderMax: max,
-    sliderStep: step,
+    min,
+    max,
+    step,
     toSliderValue: (value: number) => value,
     toParameterValue: (value: number) => value,
   };
   if (scale === "logarithmic") {
     const logRange = Math.log(max / min);
     config = {
-      sliderMin: 0,
-      sliderMax: 1,
+      min: 0,
+      max: 1,
       // 1,000 steps across 20–20,000 Hz gives about 100 steps per octave
       // because log(2) / (0.001 * log(20000 / 20)) ≈ 100.
-      sliderStep: 0.001,
+      step: 0.001,
       // (log(value) - log(min)) / (log(max) - log(min))
       // = log(value / min) / log(max / min); solve for value for the inverse.
       toSliderValue: (value: number) => Math.log(value / min) / logRange,
@@ -112,6 +112,7 @@ function EqParameter({
         Number((min * Math.exp(position * logRange)).toFixed(2)),
     };
   }
+  const { toSliderValue, toParameterValue, ...sliderProps } = config;
   const input = useDraftInput({
     value,
     onCommit: onChange,
@@ -137,11 +138,9 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        value={[config.toSliderValue(value)]}
-        min={config.sliderMin}
-        max={config.sliderMax}
-        step={config.sliderStep}
-        onValueChange={([next]) => onChange(config.toParameterValue(next))}
+        {...sliderProps}
+        value={[toSliderValue(value)]}
+        onValueChange={([next]) => onChange(toParameterValue(next))}
       />
     </div>
   );
