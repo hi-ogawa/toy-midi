@@ -4,6 +4,7 @@ import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
 test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
 }) => {
+  // Open independent effects panels for backing audio and Capture.
   await page.setViewportSize({ width: 1600, height: 900 });
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
@@ -20,6 +21,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   const capture = page.getByTestId("recorder-effects-panel").filter({
     has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
   });
+
+  // Edit every Audio EQ control while Capture retains its defaults.
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
@@ -68,6 +71,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
 
+  // Save and reload the independent EQ settings.
   const save = page.getByTestId("recorder-save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
@@ -94,6 +98,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "saved");
+
+  // Resetting Audio leaves Capture unchanged and dirties the project.
   await audio.getByRole("button", { name: "Reset" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
@@ -117,6 +123,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 test("toggles multiple track panels and closes them with the mixer or track", async ({
   page,
 }) => {
+  // Open effects for multiple tracks at once from the mixer.
   await createRecorderProject(page);
   await page.getByTitle("Add empty audio track").click();
   await page.getByTitle("Add empty audio track").click();
@@ -135,6 +142,8 @@ test("toggles multiple track panels and closes them with the mixer or track", as
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
   await expect(panels).toHaveCount(3);
+
+  // Toggle or explicitly close an individual effects panel.
   await audioFx.click();
   await expect(panels).toHaveCount(2);
   await audioFx.click();
@@ -142,6 +151,8 @@ test("toggles multiple track panels and closes them with the mixer or track", as
     .getByRole("button", { name: "Close Audio 1 Effects", exact: true })
     .click();
   await expect(audioFx).toHaveAttribute("aria-pressed", "false");
+
+  // Closing the mixer clears its effects panels instead of restoring them later.
   await mixerToggle.click();
   await expect(panels).toHaveCount(0);
   await mixerToggle.click();
@@ -150,6 +161,8 @@ test("toggles multiple track panels and closes them with the mixer or track", as
   await page.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await mixerToggle.click();
   await expect(panels).toHaveCount(0);
+
+  // Removing a track also removes its open effects panel.
   await audioFx.click();
   const firstTrack = page.getByTestId("recorder-audio-track-row").first();
   await firstTrack.getByTitle("Audio 1 actions").click();
@@ -163,6 +176,7 @@ test("toggles multiple track panels and closes them with the mixer or track", as
 test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
+  // Fill the effects area beyond the available viewport width.
   await createRecorderProject(page);
   for (let index = 0; index < 5; index++) {
     await page.getByTitle("Add empty audio track").click();
@@ -176,6 +190,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(5);
   const mixer = page.getByTestId("recorder-mixer-panel");
   expect((await mixer.boundingBox())!.width).toBeGreaterThanOrEqual(320);
+
   // Each panel can be reached through the effects container's horizontal scroll.
   for (let index = 5; index >= 1; index--) {
     await page
