@@ -1,4 +1,4 @@
-import { EQ_LIMITS } from "../../lib/dsp/eq";
+import { EQ_LIMITS } from "../../lib/dsp/biquad-eq";
 
 export const EQ_CONTROL_LIMITS = {
   frequency: { ...EQ_LIMITS.frequency, step: 1 },

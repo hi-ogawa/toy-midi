@@ -7,7 +7,7 @@ import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   type EqParameters,
-} from "../../lib/dsp/eq";
+} from "../../lib/dsp/biquad-eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 

@@ -1,8 +1,8 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import type { EqParameters, EqType } from "../../lib/dsp/biquad-eq";
 import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
-import type { EqParameters, EqType } from "../../lib/dsp/eq";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";

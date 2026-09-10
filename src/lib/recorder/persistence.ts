@@ -1,6 +1,6 @@
 import { createAudioView } from "../audio-view.ts";
 import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters, EqType } from "../dsp/eq.ts";
+import type { EqParameters, EqType } from "../dsp/biquad-eq.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,

@@ -1,5 +1,5 @@
-import { BiquadEqNode, ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/eq.ts";
+import { ensureBiquadEqWorklet, BiquadEqNode } from "../dsp/biquad-eq-node.ts";
+import type { EqParameters } from "../dsp/biquad-eq.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {

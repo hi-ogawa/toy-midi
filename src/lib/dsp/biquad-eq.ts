@@ -51,7 +51,7 @@ export class BiquadEq {
   private remaining = 0;
   // Per-channel Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
   private readonly history: Float64Array[];
-  // Biquad coefficients normalized to a0 = 1.
+  // Reused while parameters ramp to keep the processing loop allocation-free.
   private readonly coefficients: BiquadEqCoefficients = {
     b0: 1,
     b1: 0,

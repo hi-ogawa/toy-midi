@@ -1,4 +1,4 @@
-import { BiquadEq, type EqParameters } from "./eq.ts";
+import { type EqParameters, BiquadEq } from "./biquad-eq.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 

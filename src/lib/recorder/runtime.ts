@@ -5,7 +5,7 @@ import {
   createDefaultEq,
   ensureBiquadEqWorklet,
 } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/eq.ts";
+import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
