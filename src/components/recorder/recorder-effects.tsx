@@ -96,7 +96,7 @@ function EqParameter({
     parse: "float",
     format: formatParameter,
   });
-  const logarithmic = parameter === "frequency";
+  const slider = createParameterSliderConfig({ parameter, value });
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs">
@@ -113,18 +113,39 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        value={[
-          logarithmic ? Math.log10(value / min) / Math.log10(max / min) : value,
-        ]}
-        min={logarithmic ? 0 : min}
-        max={logarithmic ? 1 : max}
-        step={logarithmic ? 0.001 : step}
-        onValueChange={([next]) =>
-          onChange(
-            logarithmic ? Number((min * (max / min) ** next).toFixed(2)) : next,
-          )
-        }
+        value={[slider.value]}
+        min={slider.min}
+        max={slider.max}
+        step={slider.step}
+        onValueChange={([next]) => onChange(slider.toParameterValue(next))}
       />
     </div>
   );
+}
+
+function createParameterSliderConfig({
+  parameter,
+  value,
+}: {
+  parameter: keyof typeof EQ_LIMITS;
+  value: number;
+}) {
+  const { min, max, step } = EQ_LIMITS[parameter];
+  if (parameter === "frequency") {
+    return {
+      value: Math.log10(value / min) / Math.log10(max / min),
+      min: 0,
+      max: 1,
+      step: 0.001,
+      toParameterValue: (position: number) =>
+        Number((min * (max / min) ** position).toFixed(2)),
+    };
+  }
+  return {
+    value,
+    min,
+    max,
+    step,
+    toParameterValue: (next: number) => next,
+  };
 }
