@@ -5,6 +5,68 @@ export type EqParameters = {
   bypass: boolean;
 };
 
+export type PeakingEqCoefficients = {
+  b0: number;
+  b1: number;
+  b2: number;
+  a1: number;
+  a2: number;
+};
+
+/** RBJ peaking EQ coefficients normalized to a0 = 1. */
+export function calculatePeakingEqCoefficients({
+  sampleRate,
+  frequency,
+  gain,
+  q,
+  output,
+}: {
+  sampleRate: number;
+  frequency: number;
+  gain: number;
+  q: number;
+  output?: PeakingEqCoefficients;
+}): PeakingEqCoefficients {
+  // https://www.w3.org/TR/audio-eq-cookbook/#formulae
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const amplitude = Math.sqrt(gain);
+  const alpha = Math.sin(omega) / (2 * q);
+  const a0 = 1 + alpha / amplitude;
+  const b1 = (-2 * Math.cos(omega)) / a0;
+  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  result.b0 = (1 + alpha * amplitude) / a0;
+  result.b1 = b1;
+  result.b2 = (1 - alpha * amplitude) / a0;
+  result.a1 = b1;
+  result.a2 = (1 - alpha / amplitude) / a0;
+  return result;
+}
+
+export function calculatePeakingEqResponseDb({
+  coefficients,
+  sampleRate,
+  frequency,
+}: {
+  coefficients: PeakingEqCoefficients;
+  sampleRate: number;
+  frequency: number;
+}): number {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos1 = Math.cos(omega);
+  const sin1 = Math.sin(omega);
+  const cos2 = Math.cos(2 * omega);
+  const sin2 = Math.sin(2 * omega);
+  const numeratorReal =
+    coefficients.b0 + coefficients.b1 * cos1 + coefficients.b2 * cos2;
+  const numeratorImag = -coefficients.b1 * sin1 - coefficients.b2 * sin2;
+  const denominatorReal = 1 + coefficients.a1 * cos1 + coefficients.a2 * cos2;
+  const denominatorImag = -coefficients.a1 * sin1 - coefficients.a2 * sin2;
+  const magnitudeSquared =
+    (numeratorReal ** 2 + numeratorImag ** 2) /
+    (denominatorReal ** 2 + denominatorImag ** 2);
+  return 10 * Math.log10(magnitudeSquared);
+}
+
 /** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
 export class PeakingEq {
   private readonly sampleRate: number;
@@ -16,12 +78,14 @@ export class PeakingEq {
   private remaining = 0;
   // Per-channel Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
   private readonly history: Float64Array[];
-  // Biquad coefficients normalized to a0 = 1.
-  private b0 = 1;
-  private b1 = 0;
-  private b2 = 0;
-  private a1 = 0;
-  private a2 = 0;
+  // Reused while parameters ramp to keep the processing loop allocation-free.
+  private readonly coefficients: PeakingEqCoefficients = {
+    b0: 1,
+    b1: 0,
+    b2: 0,
+    a1: 0,
+    a2: 0,
+  };
 
   constructor({
     sampleRate,
@@ -120,11 +184,11 @@ export class PeakingEq {
         const y =
           this.current[1] === 0
             ? x
-            : this.b0 * x +
-              this.b1 * h[0] +
-              this.b2 * h[1] -
-              this.a1 * h[2] -
-              this.a2 * h[3];
+            : this.coefficients.b0 * x +
+              this.coefficients.b1 * h[0] +
+              this.coefficients.b2 * h[1] -
+              this.coefficients.a1 * h[2] -
+              this.coefficients.a2 * h[3];
         h[1] = h[0];
         h[0] = x;
         h[3] = h[2];
@@ -137,16 +201,13 @@ export class PeakingEq {
   }
 
   private updateCoefficients(): void {
-    // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
-    const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
-    const amplitude = Math.exp(this.current[1] / 2);
-    const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
-    const a0 = 1 + alpha / amplitude;
-    this.b0 = (1 + alpha * amplitude) / a0;
-    this.b1 = (-2 * Math.cos(omega)) / a0;
-    this.b2 = (1 - alpha * amplitude) / a0;
-    this.a1 = this.b1;
-    this.a2 = (1 - alpha / amplitude) / a0;
+    calculatePeakingEqCoefficients({
+      sampleRate: this.sampleRate,
+      frequency: Math.exp(this.current[0]),
+      gain: Math.exp(this.current[1]),
+      q: Math.exp(this.current[2]),
+      output: this.coefficients,
+    });
   }
 }
 

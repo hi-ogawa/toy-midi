@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain } from "../music";
-import { type EqParameters, PeakingEq } from "./eq";
+import {
+  calculatePeakingEqCoefficients,
+  calculatePeakingEqResponseDb,
+  type EqParameters,
+  PeakingEq,
+} from "./eq";
 
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {
@@ -9,6 +14,56 @@ const DEFAULT_PARAMETERS: EqParameters = {
   q: 1,
   bypass: false,
 };
+
+describe(calculatePeakingEqResponseDb, () => {
+  it.each([-18, -6, 0, 6, 18])(
+    "returns %s dB at the center frequency",
+    (gainDb) => {
+      expect(
+        calculateResponse({
+          gainDb,
+          responseFrequency: 1000,
+          eqFrequency: 1000,
+          q: 1,
+        }),
+      ).toBeCloseTo(gainDb, 10);
+    },
+  );
+
+  it("matches the processed response away from the center frequency", () => {
+    const parameters = {
+      gainDb: 12,
+      responseFrequency: 2400,
+      eqFrequency: 1000,
+      q: 2,
+    };
+    expect(calculateResponse(parameters)).toBeCloseTo(
+      measureResponse({
+        gain: dbToGain(parameters.gainDb),
+        signalFrequency: parameters.responseFrequency,
+        eqFrequency: parameters.eqFrequency,
+        q: parameters.q,
+      }),
+      3,
+    );
+  });
+
+  it("reflects Q in the response bandwidth", () => {
+    const wide = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 1,
+    });
+    const narrow = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 8,
+    });
+    expect(wide).toBeGreaterThan(narrow);
+  });
+});
 
 describe(PeakingEq, () => {
   it.each([-18, -6, 6, 18])(
@@ -121,6 +176,30 @@ function createSignal({
   return Float32Array.from({ length: frames }, (_, i) =>
     Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
   );
+}
+
+function calculateResponse({
+  gainDb,
+  responseFrequency,
+  eqFrequency,
+  q,
+}: {
+  gainDb: number;
+  responseFrequency: number;
+  eqFrequency: number;
+  q: number;
+}): number {
+  const coefficients = calculatePeakingEqCoefficients({
+    sampleRate: SAMPLE_RATE,
+    frequency: eqFrequency,
+    gain: dbToGain(gainDb),
+    q,
+  });
+  return calculatePeakingEqResponseDb({
+    coefficients,
+    sampleRate: SAMPLE_RATE,
+    frequency: responseFrequency,
+  });
 }
 
 function process(eq: PeakingEq, input: Float32Array): Float32Array {

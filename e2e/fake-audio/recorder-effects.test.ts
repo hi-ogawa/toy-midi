@@ -33,6 +33,48 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
 
+  // Graph mode is local to this panel and edits frequency and gain together.
+  await audio.getByRole("button", { name: "Graph", exact: true }).click();
+  await expect(audio.getByTestId("eq-response-graph")).toBeVisible();
+  await expect(
+    capture.getByRole("button", { name: "Sliders", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const graphBounds = await audio
+    .getByTestId("eq-response-graph")
+    .boundingBox();
+  expect(graphBounds).toBeTruthy();
+  const targetFrequency = 2000;
+  const targetGainDb = 9;
+  const startX =
+    34 + (Math.log(1000 / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
+  const startY = 8 + (18 / 36) * (152 - 8 - 22);
+  const graphX =
+    34 +
+    (Math.log(targetFrequency / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
+  const graphY = 8 + ((18 - targetGainDb) / 36) * (152 - 8 - 22);
+  await page.mouse.move(
+    graphBounds!.x + (startX / 320) * graphBounds!.width,
+    graphBounds!.y + (startY / 152) * graphBounds!.height,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    graphBounds!.x + (graphX / 320) * graphBounds!.width,
+    graphBounds!.y + (graphY / 152) * graphBounds!.height,
+  );
+  await page.mouse.up();
+  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "2000",
+  );
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveValue("9");
+  await audio.getByRole("checkbox", { name: "Bypass" }).check();
+  await expect(audio.getByTestId("eq-response-curve")).toHaveClass(
+    /stroke-blue-400\/35/,
+  );
+  await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
+  await audio.getByRole("button", { name: "Sliders", exact: true }).click();
+
   const frequency = audio.getByRole("slider", { name: "Frequency" });
   await frequency.press("Home");
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
@@ -70,8 +112,9 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await capture
     .getByRole("textbox", { name: "Gain", exact: true })
     .press("Enter");
+  await audio.getByRole("button", { name: "Graph", exact: true }).click();
 
-  // Save and reload the independent EQ settings.
+  // Save and reload the independent EQ settings, but not the local edit mode.
   const save = page.getByTestId("recorder-save-button");
   await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
@@ -84,6 +127,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
+  await expect(
+    audio.getByRole("button", { name: "Sliders", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(audio.getByTestId("eq-response-graph")).toHaveCount(0);
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "500",
   );
