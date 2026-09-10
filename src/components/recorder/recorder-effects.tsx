@@ -40,21 +40,22 @@ export function RecorderEffects({
         <EqParameter
           label="Frequency"
           unit="Hz"
-          config={createLogarithmicParameterConfig(EQ_LIMITS.frequency)}
+          limits={EQ_LIMITS.frequency}
+          scale="logarithmic"
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
         />
         <EqParameter
           label="Gain"
           unit="dB"
-          config={createLinearParameterConfig(EQ_LIMITS.gainDb)}
+          limits={EQ_LIMITS.gainDb}
           value={gainToDb(eq.gain)}
           onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
         />
         <EqParameter
           label="Q"
           unit=""
-          config={createLinearParameterConfig(EQ_LIMITS.q)}
+          limits={EQ_LIMITS.q}
           value={eq.q}
           onChange={(q) => onChange({ q })}
         />
@@ -76,16 +77,22 @@ const formatParameter = (value: number) => String(Number(value.toFixed(2)));
 function EqParameter({
   label,
   unit,
-  config,
+  limits,
+  scale = "linear",
   value,
   onChange,
 }: {
   label: string;
   unit: string;
-  config: ParameterConfig;
+  limits: ParameterLimits;
+  scale?: "linear" | "logarithmic";
   value: number;
   onChange: (value: number) => void;
 }) {
+  const config =
+    scale === "logarithmic"
+      ? createLogarithmicParameterConfig(limits)
+      : createLinearParameterConfig(limits);
   const input = useDraftInput({
     value,
     onCommit: onChange,
@@ -121,10 +128,13 @@ function EqParameter({
   );
 }
 
-type ParameterConfig = {
+type ParameterLimits = {
   min: number;
   max: number;
   step: number;
+};
+
+type ParameterConfig = ParameterLimits & {
   sliderMin: number;
   sliderMax: number;
   sliderStep: number;
@@ -136,11 +146,7 @@ function createLinearParameterConfig({
   min,
   max,
   step,
-}: {
-  min: number;
-  max: number;
-  step: number;
-}): ParameterConfig {
+}: ParameterLimits): ParameterConfig {
   return {
     min,
     max,
@@ -157,11 +163,7 @@ function createLogarithmicParameterConfig({
   min,
   max,
   step,
-}: {
-  min: number;
-  max: number;
-  step: number;
-}): ParameterConfig {
+}: ParameterLimits): ParameterConfig {
   return {
     min,
     max,
