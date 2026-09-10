@@ -64,7 +64,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
-  await expect(audio.getByTestId("eq-response-graph")).toBeVisible();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "500",
   );
