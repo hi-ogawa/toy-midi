@@ -32,6 +32,9 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
+  await expect(
+    audio.getByRole("combobox", { name: "Filter type" }),
+  ).toHaveValue("peaking");
 
   const frequency = audio.getByRole("slider", { name: "Frequency" });
   await frequency.press("Home");
@@ -59,6 +62,22 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .press("Enter");
   await audio.getByRole("textbox", { name: "Q", exact: true }).fill("2");
   await audio.getByRole("textbox", { name: "Q", exact: true }).press("Enter");
+  const filterType = audio.getByRole("combobox", { name: "Filter type" });
+  await filterType.selectOption("low-shelf");
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toBeVisible();
+  await expect(
+    audio.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveCount(0);
+  await filterType.selectOption("low-pass");
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    audio.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("2");
+  await filterType.selectOption("low-shelf");
   await audio.getByRole("checkbox", { name: "Bypass" }).check();
   await expect(capture.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
@@ -90,6 +109,11 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("6");
+  await expect(filterType).toHaveValue("low-shelf");
+  await expect(
+    audio.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveCount(0);
+  await filterType.selectOption("peaking");
   await expect(
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("2");
@@ -97,6 +121,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
+  await expect(save).toHaveAttribute("data-status", "unsaved");
+  await save.click();
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Resetting Audio leaves Capture unchanged and dirties the project.
@@ -118,6 +144,55 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await page.screenshot({ path: test.info().outputPath("effects.png") });
+});
+
+test("loads persisted EQ settings without a filter type as peaking", async ({
+  page,
+}) => {
+  await createRecorderProject(page);
+  const projectId = page.url().split("/").at(-1)!;
+  await page.evaluate(async (projectId) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("toy-midi-recorder", 3);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction("projects", "readwrite");
+    const store = transaction.objectStore("projects");
+    const project = await new Promise<{
+      content: {
+        audioTracks: { eq?: { type?: string } }[];
+        recordingTrack: { eq?: { type?: string } };
+      };
+    }>((resolve, reject) => {
+      const request = store.get(projectId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    for (const track of project.content.audioTracks) {
+      if (track.eq) {
+        delete track.eq.type;
+      }
+    }
+    if (project.content.recordingTrack.eq) {
+      delete project.content.recordingTrack.eq.type;
+    }
+    store.put(project);
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  }, projectId);
+
+  await page.reload();
+  await page.getByTestId("recorder-mixer-button").click();
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  await expect(page.getByRole("combobox", { name: "Filter type" })).toHaveValue(
+    "peaking",
+  );
 });
 
 test("toggles multiple track panels and closes them with the mixer or track", async ({

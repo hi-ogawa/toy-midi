@@ -1,6 +1,6 @@
 import { createAudioView } from "../audio-view.ts";
-import type { EqParameters } from "../dsp/eq.ts";
-import { createDefaultPeakingEq } from "../dsp/peaking-eq-node.ts";
+import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
+import type { EqParameters, EqType } from "../dsp/eq.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
@@ -15,7 +15,7 @@ export interface SerializedRecorderRuntimeState {
   audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: EqParameters;
+    eq?: SerializedEqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -58,7 +58,7 @@ export interface SerializedRecorderRuntimeState {
 
 interface SerializedAudioTrackState {
   // Optional for projects saved before track EQ support.
-  eq?: EqParameters;
+  eq?: SerializedEqParameters;
   id: string;
   height: number;
   clip?: {
@@ -73,6 +73,8 @@ interface SerializedAudioTrackState {
   trimStart?: number;
   trimEnd?: number;
 }
+
+type SerializedEqParameters = Omit<EqParameters, "type"> & { type?: EqType };
 
 interface SerializedTakeState {
   // Optional for recorder projects saved before multi-take support.
@@ -177,7 +179,7 @@ export function deserializeRecorderRuntimeState({
                 ),
               }
             : undefined,
-        eq: track.eq ?? createDefaultPeakingEq(),
+        eq: deserializeEq(track.eq),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
@@ -188,7 +190,7 @@ export function deserializeRecorderRuntimeState({
     }),
     recordingTrack: {
       height: project.recordingTrack.height,
-      eq: project.recordingTrack.eq ?? createDefaultPeakingEq(),
+      eq: deserializeEq(project.recordingTrack.eq),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
@@ -224,6 +226,10 @@ export function deserializeRecorderRuntimeState({
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
   };
+}
+
+function deserializeEq(eq?: SerializedEqParameters): EqParameters {
+  return { ...createDefaultEq(), ...eq, type: eq?.type ?? "peaking" };
 }
 
 function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {

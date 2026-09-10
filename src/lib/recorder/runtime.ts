@@ -1,11 +1,11 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
-import type { EqParameters } from "../dsp/eq.ts";
 import {
-  createDefaultPeakingEq,
-  ensurePeakingEqWorklet,
-} from "../dsp/peaking-eq-node.ts";
+  createDefaultEq,
+  ensureBiquadEqWorklet,
+} from "../dsp/biquad-eq-node.ts";
+import type { EqParameters } from "../dsp/eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
@@ -689,7 +689,7 @@ export class RecorderRuntime {
     const context = this.ensureContext();
     await Promise.all([
       ensurePitchShifterWorklet(context),
-      ensurePeakingEqWorklet(context),
+      ensureBiquadEqWorklet(context),
     ]);
     await context.resume();
     this.transport!.play();
@@ -1288,7 +1288,7 @@ function sliceRecordingSamples({
 
 function createAudioTrackState(): AudioTrackState {
   return {
-    eq: createDefaultPeakingEq(),
+    eq: createDefaultEq(),
     id: crypto.randomUUID(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
@@ -1302,7 +1302,7 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
-    eq: createDefaultPeakingEq(),
+    eq: createDefaultEq(),
     height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,
     muted: false,

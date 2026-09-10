@@ -1,14 +1,25 @@
+export type EqType =
+  | "peaking"
+  | "low-shelf"
+  | "high-shelf"
+  | "low-pass"
+  | "high-pass"
+  | "band-pass"
+  | "notch";
+
 export type EqParameters = {
+  type: EqType;
   frequency: number;
   gain: number;
   q: number;
   bypass: boolean;
 };
 
-/** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
-export class PeakingEq {
+/** Standalone biquad EQ. Continuous parameters ramp over 10 ms of processed audio. */
+export class BiquadEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
+  private type: EqType = "peaking";
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   // Slots are log frequency, log gain, log Q, and linear wet mix.
   private readonly current = new Float64Array(4);
@@ -26,6 +37,7 @@ export class PeakingEq {
   constructor({
     sampleRate,
     channelCount,
+    type,
     frequency,
     gain,
     q,
@@ -37,16 +49,26 @@ export class PeakingEq {
       { length: channelCount },
       () => new Float64Array(4),
     );
-    this.setParameters({ frequency, gain, q, bypass });
+    this.setParameters({ type, frequency, gain, q, bypass });
     this.reset();
   }
 
   /** Update targets without restarting a ramp when the targets are unchanged. */
-  setParameters({ frequency, gain, q, bypass }: Partial<EqParameters>): void {
+  setParameters({
+    type,
+    frequency,
+    gain,
+    q,
+    bypass,
+  }: Partial<EqParameters>): void {
     for (const value of [frequency, gain, q]) {
       if (value !== undefined && !Number.isFinite(value)) {
         throw new RangeError("EQ parameters must be finite");
       }
+    }
+    const typeChanged = type !== undefined && type !== this.type;
+    if (type !== undefined) {
+      this.type = type;
     }
     let changed = false;
     const update = (index: number, value: number) => {
@@ -74,6 +96,9 @@ export class PeakingEq {
     }
     if (changed) {
       this.remaining = this.rampFrames;
+    }
+    if (typeChanged) {
+      this.updateCoefficients();
     }
   }
 
@@ -116,9 +141,9 @@ export class PeakingEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At unity gain the exact identity also removes any residual filter tail.
+        // Gain filters are exact identity at unity, which also removes any tail.
         const y =
-          this.current[1] === 0
+          isGainFilter(this.type) && this.current[1] === 0
             ? x
             : this.b0 * x +
               this.b1 * h[0] +
@@ -137,17 +162,102 @@ export class PeakingEq {
   }
 
   private updateCoefficients(): void {
-    // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
+    // RBJ cookbook: https://www.w3.org/TR/audio-eq-cookbook/#formulae
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
+    const cos = Math.cos(omega);
+    const sin = Math.sin(omega);
     const amplitude = Math.exp(this.current[1] / 2);
-    const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
-    const a0 = 1 + alpha / amplitude;
-    this.b0 = (1 + alpha * amplitude) / a0;
-    this.b1 = (-2 * Math.cos(omega)) / a0;
-    this.b2 = (1 - alpha * amplitude) / a0;
-    this.a1 = this.b1;
-    this.a2 = (1 - alpha / amplitude) / a0;
+    const q = Math.exp(this.current[2]);
+    const alpha = sin / (2 * q);
+    let b0: number;
+    let b1: number;
+    let b2: number;
+    let a0: number;
+    let a1: number;
+    let a2: number;
+    switch (this.type) {
+      case "peaking": {
+        a0 = 1 + alpha / amplitude;
+        b0 = 1 + alpha * amplitude;
+        b1 = -2 * cos;
+        b2 = 1 - alpha * amplitude;
+        a1 = b1;
+        a2 = 1 - alpha / amplitude;
+        break;
+      }
+      case "low-shelf":
+      case "high-shelf": {
+        // Shelf slope S=1 makes alpha independent of gain.
+        const shelfAlpha = sin / Math.SQRT2;
+        const twoSqrtAAlpha = 2 * Math.sqrt(amplitude) * shelfAlpha;
+        if (this.type === "low-shelf") {
+          b0 =
+            amplitude * (amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha);
+          b1 = 2 * amplitude * (amplitude - 1 - (amplitude + 1) * cos);
+          b2 =
+            amplitude * (amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha);
+          a0 = amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha;
+          a1 = -2 * (amplitude - 1 + (amplitude + 1) * cos);
+          a2 = amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha;
+        } else {
+          b0 =
+            amplitude * (amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha);
+          b1 = -2 * amplitude * (amplitude - 1 + (amplitude + 1) * cos);
+          b2 =
+            amplitude * (amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha);
+          a0 = amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha;
+          a1 = 2 * (amplitude - 1 - (amplitude + 1) * cos);
+          a2 = amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha;
+        }
+        break;
+      }
+      case "low-pass": {
+        b0 = (1 - cos) / 2;
+        b1 = 1 - cos;
+        b2 = b0;
+        a0 = 1 + alpha;
+        a1 = -2 * cos;
+        a2 = 1 - alpha;
+        break;
+      }
+      case "high-pass": {
+        b0 = (1 + cos) / 2;
+        b1 = -(1 + cos);
+        b2 = b0;
+        a0 = 1 + alpha;
+        a1 = -2 * cos;
+        a2 = 1 - alpha;
+        break;
+      }
+      case "band-pass": {
+        b0 = sin / 2;
+        b1 = 0;
+        b2 = -b0;
+        a0 = 1 + alpha;
+        a1 = -2 * cos;
+        a2 = 1 - alpha;
+        break;
+      }
+      case "notch": {
+        b0 = 1;
+        b1 = -2 * cos;
+        b2 = 1;
+        a0 = 1 + alpha;
+        a1 = b1;
+        a2 = 1 - alpha;
+        break;
+      }
+    }
+    this.b0 = b0 / a0;
+    this.b1 = b1 / a0;
+    this.b2 = b2 / a0;
+    this.a1 = a1 / a0;
+    this.a2 = a2 / a0;
   }
+}
+
+function isGainFilter(type: EqType): boolean {
+  return type === "peaking" || type === "low-shelf" || type === "high-shelf";
 }
 
 function clamp(value: number, min: number, max: number): number {

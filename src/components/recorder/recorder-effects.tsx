@@ -1,9 +1,6 @@
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters } from "../../lib/dsp/eq";
-import {
-  createDefaultPeakingEq,
-  EQ_LIMITS,
-} from "../../lib/dsp/peaking-eq-node";
+import { createDefaultEq, EQ_LIMITS } from "../../lib/dsp/biquad-eq-node";
+import type { EqParameters, EqType } from "../../lib/dsp/eq";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
@@ -29,14 +26,33 @@ export function RecorderEffects({
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium">Peaking EQ</h3>
+          <h3 className="text-sm font-medium">EQ</h3>
           <button
-            onClick={() => onChange(createDefaultPeakingEq())}
+            onClick={() => onChange(createDefaultEq())}
             className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
           >
             Reset
           </button>
         </div>
+        <label className="flex items-center gap-2 text-xs">
+          <span className="mr-auto">Filter type</span>
+          <select
+            aria-label="Filter type"
+            className="h-7 rounded border border-neutral-600 bg-neutral-900 px-1 text-xs"
+            value={eq.type}
+            onChange={(event) =>
+              onChange({ type: event.target.value as EqType })
+            }
+          >
+            <option value="peaking">Peaking</option>
+            <option value="low-shelf">Low shelf</option>
+            <option value="high-shelf">High shelf</option>
+            <option value="low-pass">Low pass</option>
+            <option value="high-pass">High pass</option>
+            <option value="band-pass">Band pass</option>
+            <option value="notch">Notch</option>
+          </select>
+        </label>
         <EqParameter
           label="Frequency"
           unit="Hz"
@@ -45,20 +61,24 @@ export function RecorderEffects({
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
         />
-        <EqParameter
-          label="Gain"
-          unit="dB"
-          limits={EQ_LIMITS.gainDb}
-          value={gainToDb(eq.gain)}
-          onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-        />
-        <EqParameter
-          label="Q"
-          unit=""
-          limits={EQ_LIMITS.q}
-          value={eq.q}
-          onChange={(q) => onChange({ q })}
-        />
+        {(eq.type === "peaking" || eq.type.endsWith("shelf")) && (
+          <EqParameter
+            label="Gain"
+            unit="dB"
+            limits={EQ_LIMITS.gainDb}
+            value={gainToDb(eq.gain)}
+            onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+          />
+        )}
+        {!eq.type.endsWith("shelf") && (
+          <EqParameter
+            label="Q"
+            unit=""
+            limits={EQ_LIMITS.q}
+            value={eq.q}
+            onChange={(q) => onChange({ q })}
+          />
+        )}
         <label className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"

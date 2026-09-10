@@ -1,7 +1,7 @@
+import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
 import type { EqParameters } from "./eq.ts";
-import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 
-const PROCESSOR_NAME = "peaking-eq";
+const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
 export const EQ_LIMITS = {
@@ -10,11 +10,11 @@ export const EQ_LIMITS = {
   q: { min: 0.1, max: 18, step: 0.1 },
 };
 
-export function createDefaultPeakingEq(): EqParameters {
-  return { frequency: 1000, gain: 1, q: 1, bypass: false };
+export function createDefaultEq(): EqParameters {
+  return { type: "peaking", frequency: 1000, gain: 1, q: 1, bypass: false };
 }
 
-export class PeakingEqNode extends AudioWorkletNode {
+export class BiquadEqNode extends AudioWorkletNode {
   constructor({
     context,
     channelCount,
@@ -39,12 +39,12 @@ export class PeakingEqNode extends AudioWorkletNode {
   }
 }
 
-export async function ensurePeakingEqWorklet(
+export async function ensureBiquadEqWorklet(
   context: BaseAudioContext,
 ): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
-    registration = context.audioWorklet.addModule(peakingEqWorkletUrl);
+    registration = context.audioWorklet.addModule(biquadEqWorkletUrl);
     registrations.set(context, registration);
   }
   try {
