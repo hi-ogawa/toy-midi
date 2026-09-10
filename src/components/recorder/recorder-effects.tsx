@@ -90,7 +90,13 @@ function EqParameter({
   onChange: (value: number) => void;
 }) {
   const { min, max, step } = limits;
-  let config;
+  let config: {
+    sliderMin: number;
+    sliderMax: number;
+    sliderStep: number;
+    toSliderValue: (value: number) => number;
+    toParameterValue: (value: number) => number;
+  };
   if (scale === "logarithmic") {
     const logRange = Math.log(max / min);
     config = {
