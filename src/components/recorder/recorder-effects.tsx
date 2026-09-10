@@ -1,5 +1,5 @@
 import { SlidersHorizontal } from "lucide-react";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
 import { createDefaultPeakingEq } from "../../lib/dsp/peaking-eq-node";
@@ -21,7 +21,6 @@ export function RecorderEffects({
   onClose: () => void;
 }) {
   const [slidersOpen, setSlidersOpen] = useState(false);
-  const slidersId = useId();
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -53,7 +52,6 @@ export function RecorderEffects({
               title={slidersOpen ? "Hide sliders" : "Show sliders"}
               aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
               aria-expanded={slidersOpen}
-              aria-controls={slidersId}
               onClick={() => setSlidersOpen((open) => !open)}
               className="flex size-7 items-center justify-center rounded border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100 aria-expanded:bg-neutral-600 aria-expanded:text-neutral-100 focus-visible:outline-2 focus-visible:outline-blue-300"
             >
@@ -85,38 +83,32 @@ export function RecorderEffects({
             onChange={(q) => onChange({ q })}
           />
         </div>
-        <div
-          id={slidersId}
-          hidden={!slidersOpen}
-          className="space-y-4 border-t border-neutral-700 pt-4"
-        >
-          {slidersOpen && (
-            <>
-              <EqSlider
-                label="Frequency"
-                unit="Hz"
-                limits={EQ_CONTROL_LIMITS.frequency}
-                scale="logarithmic"
-                value={eq.frequency}
-                onChange={(frequency) => onChange({ frequency })}
-              />
-              <EqSlider
-                label="Gain"
-                unit="dB"
-                limits={EQ_CONTROL_LIMITS.gainDb}
-                value={gainToDb(eq.gain)}
-                onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-              />
-              <EqSlider
-                label="Q"
-                unit=""
-                limits={EQ_CONTROL_LIMITS.q}
-                value={eq.q}
-                onChange={(q) => onChange({ q })}
-              />
-            </>
-          )}
-        </div>
+        {slidersOpen && (
+          <div className="space-y-4 border-t border-neutral-700 pt-4">
+            <EqSlider
+              label="Frequency"
+              unit="Hz"
+              limits={EQ_CONTROL_LIMITS.frequency}
+              scale="logarithmic"
+              value={eq.frequency}
+              onChange={(frequency) => onChange({ frequency })}
+            />
+            <EqSlider
+              label="Gain"
+              unit="dB"
+              limits={EQ_CONTROL_LIMITS.gainDb}
+              value={gainToDb(eq.gain)}
+              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+            />
+            <EqSlider
+              label="Q"
+              unit=""
+              limits={EQ_CONTROL_LIMITS.q}
+              value={eq.q}
+              onChange={(q) => onChange({ q })}
+            />
+          </div>
+        )}
       </div>
     </RecorderPanel>
   );
