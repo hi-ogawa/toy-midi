@@ -14,7 +14,12 @@ describe(PeakingEq, () => {
     "applies %s dB at the center frequency",
     (gainDb) => {
       expect(
-        measureResponse({ gain: dbToGain(gainDb), frequency: 1000 }),
+        measureResponse({
+          gain: dbToGain(gainDb),
+          frequency: 1000,
+          centerFrequency: 1000,
+          q: 1,
+        }),
       ).toBeCloseTo(gainDb, 3);
     },
   );
@@ -25,6 +30,7 @@ describe(PeakingEq, () => {
         gain: dbToGain(12),
         frequency: 1000,
         centerFrequency: 1500,
+        q: 1,
       }),
     ).toBeGreaterThan(
       measureResponse({
@@ -39,6 +45,7 @@ describe(PeakingEq, () => {
         gain: dbToGain(12),
         frequency: 20,
         centerFrequency: 1500,
+        q: 1,
       }),
     ).toBeCloseTo(0, 1);
     expect(
@@ -46,6 +53,7 @@ describe(PeakingEq, () => {
         gain: dbToGain(12),
         frequency: 20000,
         centerFrequency: 1500,
+        q: 1,
       }),
     ).toBeCloseTo(0, 1);
   });
@@ -139,13 +147,13 @@ function process(eq: PeakingEq, input: Float32Array): Float32Array {
 function measureResponse({
   gain,
   frequency,
-  centerFrequency = frequency,
-  q = 1,
+  centerFrequency,
+  q,
 }: {
   gain: number;
   frequency: number;
-  centerFrequency?: number;
-  q?: number;
+  centerFrequency: number;
+  q: number;
 }): number {
   const input = Float32Array.from({ length: sampleRate }, (_, i) =>
     Math.sin((2 * Math.PI * frequency * i) / sampleRate),
