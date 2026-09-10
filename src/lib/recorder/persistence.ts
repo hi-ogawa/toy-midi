@@ -1,9 +1,6 @@
 import { createAudioView } from "../audio-view.ts";
 import type { EqParameters } from "../dsp/eq.ts";
-import {
-  createDefaultPeakingEq,
-  normalizePeakingEq,
-} from "../dsp/peaking-eq-node.ts";
+import { createDefaultPeakingEq } from "../dsp/peaking-eq-node.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
@@ -180,7 +177,7 @@ export function deserializeRecorderRuntimeState({
                 ),
               }
             : undefined,
-        eq: normalizePeakingEq(track.eq ?? createDefaultPeakingEq()),
+        eq: track.eq ?? createDefaultPeakingEq(),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
@@ -191,9 +188,7 @@ export function deserializeRecorderRuntimeState({
     }),
     recordingTrack: {
       height: project.recordingTrack.height,
-      eq: normalizePeakingEq(
-        project.recordingTrack.eq ?? createDefaultPeakingEq(),
-      ),
+      eq: project.recordingTrack.eq ?? createDefaultPeakingEq(),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
