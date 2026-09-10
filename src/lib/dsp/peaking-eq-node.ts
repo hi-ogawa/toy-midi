@@ -43,30 +43,29 @@ export function gainToDb(gain: number): number {
   return 20 * Math.log10(gain);
 }
 
-export function createPeakingEqNode({
-  context,
-  channelCount,
-  parameters,
-}: {
-  context: AudioContext;
-  channelCount: number;
-  parameters: EqParameters;
-}): AudioWorkletNode {
-  return new AudioWorkletNode(context, PROCESSOR_NAME, {
-    numberOfInputs: 1,
-    numberOfOutputs: 1,
+export class PeakingEqNode extends AudioWorkletNode {
+  constructor({
+    context,
     channelCount,
-    channelCountMode: "explicit",
-    outputChannelCount: [channelCount],
-    processorOptions: { channelCount, parameters },
-  });
-}
+    parameters,
+  }: {
+    context: AudioContext;
+    channelCount: number;
+    parameters: EqParameters;
+  }) {
+    super(context, PROCESSOR_NAME, {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      channelCount,
+      channelCountMode: "explicit",
+      outputChannelCount: [channelCount],
+      processorOptions: { channelCount, parameters },
+    });
+  }
 
-export function setPeakingEqNodeParameters(
-  node: AudioWorkletNode,
-  parameters: Partial<EqParameters>,
-): void {
-  node.port.postMessage(parameters);
+  setParameters(parameters: Partial<EqParameters>): void {
+    this.port.postMessage(parameters);
+  }
 }
 
 export async function ensurePeakingEqWorklet(
