@@ -1,6 +1,11 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import type { EqParameters } from "../dsp/eq.ts";
+import {
+  createDefaultPeakingEq,
+  ensurePeakingEqWorklet,
+} from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
@@ -35,6 +40,7 @@ const MAX_TRACK_HEIGHT = 300;
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
+  eq: EqParameters;
   id: string;
   height: number;
   clip?: {
@@ -52,6 +58,7 @@ interface AudioTrackState {
 }
 
 interface RecordingTrackState {
+  eq: EqParameters;
   height: number;
   gain: number;
   muted: boolean;
@@ -522,6 +529,33 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
+  setAudioTrackEq({
+    id,
+    update,
+  }: {
+    id: string;
+    update: Partial<EqParameters>;
+  }): void {
+    const track = this.updateAudioTrack(id, (track) => ({
+      ...track,
+      eq: { ...track.eq, ...update },
+    }));
+    this.audioTrackPlaybacks.get(id)?.setEq(track.eq);
+  }
+
+  setRecordingTrackEq(update: Partial<EqParameters>): void {
+    const track = this.store.get().recordingTrack;
+    this.store.update({
+      recordingTrack: {
+        ...track,
+        eq: { ...track.eq, ...update },
+      },
+    });
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.setEq(this.store.get().recordingTrack.eq);
+    }
+  }
+
   private updateAudioTrack(
     id: string,
     update: (track: AudioTrackState) => AudioTrackState,
@@ -552,6 +586,7 @@ export class RecorderRuntime {
         throw new Error("Audio track state is missing.");
       }
       playback.setBufferTimelineOffset(track.timelineOffset);
+      playback.setEq(track.eq);
       this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
@@ -652,7 +687,10 @@ export class RecorderRuntime {
 
   async play(): Promise<void> {
     const context = this.ensureContext();
-    await ensurePitchShifterWorklet(context);
+    await Promise.all([
+      ensurePitchShifterWorklet(context),
+      ensurePeakingEqWorklet(context),
+    ]);
     await context.resume();
     this.transport!.play();
   }
@@ -963,6 +1001,7 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(buffer);
+      playback.setEq(track.eq);
       playback.setBufferTimelineOffset(track.timelineOffset);
       playback.setTimelineRange({
         start: track.timelineOffset + track.trimStart,
@@ -1175,6 +1214,7 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(take.buffer);
+      playback.setEq(this.store.get().recordingTrack.eq);
       playback.setBufferTimelineOffset(take.timelineOffset);
       playback.setTimelineRange({
         start: region.timelineStart,
@@ -1248,6 +1288,7 @@ function sliceRecordingSamples({
 
 function createAudioTrackState(): AudioTrackState {
   return {
+    eq: createDefaultPeakingEq(),
     id: crypto.randomUUID(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
@@ -1261,6 +1302,7 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): RecordingTrackState {
   return {
+    eq: createDefaultPeakingEq(),
     height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,
     muted: false,

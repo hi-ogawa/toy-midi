@@ -1,3 +1,8 @@
+import type { EqParameters } from "../dsp/eq.ts";
+import {
+  ensurePeakingEqWorklet,
+  PeakingEqNode,
+} from "../dsp/peaking-eq-node.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {
@@ -8,7 +13,7 @@ interface MixRegion {
 }
 
 interface RecorderMix {
-  tracks: { gain: number; regions: MixRegion[] }[];
+  tracks: { eq: EqParameters; gain: number; regions: MixRegion[] }[];
   masterGain: number;
   duration: number;
 }
@@ -18,6 +23,7 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const { audioTrackGains, recordingGain } = deriveTrackMix(state);
   const tracks: RecorderMix["tracks"] = state.audioTracks.map(
     (track, index) => ({
+      eq: track.eq,
       gain: audioTrackGains[index]!,
       regions: track.clip
         ? [
@@ -32,6 +38,7 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
     }),
   );
   tracks.push({
+    eq: state.recordingTrack.eq,
     gain: recordingGain,
     regions: state.takeRegions.flatMap((region) =>
       region.take.buffer
@@ -84,14 +91,21 @@ export async function renderRecorderMix({
   master.channelCountMode = "explicit";
   master.channelInterpretation = "speakers";
   master.connect(context.destination);
+  await ensurePeakingEqWorklet(context);
   for (const track of mix.tracks) {
     const gain = context.createGain();
     gain.gain.value = track.gain;
     gain.connect(master);
+    const equalizer = new PeakingEqNode({
+      context,
+      channelCount: 2,
+      parameters: track.eq,
+    });
+    equalizer.connect(gain);
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
-      source.connect(gain);
+      source.connect(equalizer);
       source.start(region.start, region.offset, region.duration);
     }
   }

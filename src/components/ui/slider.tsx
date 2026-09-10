@@ -12,6 +12,7 @@ export function Slider({
   onValueChange,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  "aria-valuetext": ariaValueText,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -76,6 +77,7 @@ export function Slider({
           className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm outline-none transition-[color,box-shadow] hover:ring-2 hover:ring-emerald-400/40 active:ring-3 active:ring-emerald-400/60 focus:ring-2 focus:ring-emerald-400/60 focus-visible:ring-4 focus-visible:ring-emerald-400 disabled:pointer-events-none disabled:opacity-50"
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledBy}
+          aria-valuetext={ariaValueText}
         />
       ))}
     </SliderPrimitive.Root>
