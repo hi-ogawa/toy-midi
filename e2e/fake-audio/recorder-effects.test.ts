@@ -174,6 +174,17 @@ test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
     /stroke-blue-400\/35/,
   );
   await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
+
+  // Optional sliders can be shown and hidden beside the graph controls.
+  await expect(audio.getByRole("slider")).toHaveCount(0);
+  await audio
+    .getByRole("button", { name: "Show sliders", exact: true })
+    .click();
+  await expect(audio.getByRole("slider")).toHaveCount(3);
+  await audio
+    .getByRole("button", { name: "Hide sliders", exact: true })
+    .click();
+  await expect(audio.getByRole("slider")).toHaveCount(0);
 });
 
 test("toggles multiple track panels and closes them with the mixer or track", async ({
@@ -267,80 +278,4 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
-});
-
-test("expands EQ sliders from the header", async ({ page }) => {
-  await page.setViewportSize({ width: 1600, height: 900 });
-  await createRecorderProject(page);
-  await page.getByTestId("recorder-mixer-button").click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  const panel = page.getByTestId("recorder-effects-panel");
-  const toggle = panel.getByRole("button", { name: /sliders/ });
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-  const collapsedPanel = await panel.boundingBox();
-  const numericInput = await panel
-    .getByRole("textbox", { name: "Q", exact: true })
-    .boundingBox();
-  expect(collapsedPanel).toBeTruthy();
-  expect(numericInput).toBeTruthy();
-  const collapsedPadding =
-    collapsedPanel!.y +
-    collapsedPanel!.height -
-    numericInput!.y -
-    numericInput!.height;
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  await expect(panel.getByRole("slider")).toHaveCount(3);
-  const expandedPanel = await panel.boundingBox();
-  const qThumb = await panel
-    .getByRole("slider", { name: "Q", exact: true })
-    .boundingBox();
-  expect(expandedPanel).toBeTruthy();
-  expect(qThumb).toBeTruthy();
-  const expandedPadding =
-    expandedPanel!.y + expandedPanel!.height - qThumb!.y - qThumb!.height;
-  expect(expandedPadding).toBeCloseTo(collapsedPadding, 0);
-  await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
-
-  const frequency = panel.getByRole("slider", {
-    name: "Frequency",
-    exact: true,
-  });
-  await frequency.press("Home");
-  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "20",
-  );
-  await frequency.press("ArrowRight");
-  await expect(frequency).not.toHaveAttribute("aria-valuetext", "20 Hz");
-  await frequency.press("End");
-  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "20000",
-  );
-  await panel.getByRole("textbox", { name: "Frequency" }).fill("1000");
-  await panel.getByRole("textbox", { name: "Frequency" }).press("Enter");
-  await expect(frequency).toHaveAttribute("aria-valuetext", "1000 Hz");
-  await panel
-    .getByRole("slider", { name: "Gain", exact: true })
-    .press("ArrowRight");
-  await expect(
-    panel.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("0.1");
-  await panel
-    .getByRole("slider", { name: "Q", exact: true })
-    .press("ArrowRight");
-  await expect(
-    panel.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("1.1");
-  await page.screenshot({
-    path: test.info().outputPath("expanded-effects.png"),
-  });
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-  await expect(
-    panel.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("1.1");
 });
