@@ -47,8 +47,6 @@ export function EqResponseGraph({
     );
     return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${gainDbToGraphY(gainDb).toFixed(2)}`;
   }).join(" ");
-  const pointX = frequencyToGraphX(eq.frequency);
-  const pointY = gainDbToGraphY(gainToDb(eq.gain));
 
   // Pointer edits map the plot position back to frequency and gain.
   const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -176,8 +174,8 @@ export function EqResponseGraph({
       />
       <circle
         data-testid="eq-response-point"
-        cx={pointX}
-        cy={pointY}
+        cx={frequencyToGraphX(eq.frequency)}
+        cy={gainDbToGraphY(gainToDb(eq.gain))}
         r={5}
         className="fill-neutral-900 stroke-blue-300"
         strokeWidth={2}
