@@ -88,13 +88,18 @@ for (const playbackRate of [0.5, 1.5]) {
       }));
 
     await page.getByTestId("recorder-play-button").click();
+    // Exclude the transport's scheduling lead from the playback-rate measurement.
+    await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(0.1);
+    checkpoint("playback advancing");
     const start = await sample();
     await page.waitForTimeout(1_000);
     const end = await sample();
 
     const observedRate =
       (end.position - start.position) / (end.wallTime - start.wallTime);
-    checkpoint("sample playback clocks");
+    checkpoint(
+      `sample playback clocks: expected ${playbackRate}, observed ${observedRate}`,
+    );
     expect(observedRate).toBeCloseTo(playbackRate, 1);
   });
 }
