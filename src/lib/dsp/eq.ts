@@ -211,6 +211,14 @@ export function calculatePeakingEqCoefficients({
   return result;
 }
 
+/**
+ * Evaluate the general biquad magnitude response using the supplied coefficients.
+ * H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2) = N/D.
+ * On the frequency circle, z = exp(i*omega), so z^-k = cos(k*omega) - i*sin(k*omega).
+ * Expanding N and D into real and imaginary parts gives
+ * |H|^2 = |N|^2 / |D|^2 = (Nr^2 + Ni^2) / (Dr^2 + Di^2).
+ * Take the square root to return the amplitude ratio |H|.
+ */
 export function calculatePeakingEqResponse({
   coefficients,
   sampleRate,
