@@ -89,10 +89,29 @@ function EqParameter({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const config =
+  const { min, max, step } = limits;
+  const config: ParameterConfig =
     scale === "logarithmic"
-      ? createLogarithmicParameterConfig(limits)
-      : createLinearParameterConfig(limits);
+      ? {
+          ...limits,
+          sliderMin: 0,
+          sliderMax: 1,
+          sliderStep: 0.001,
+          // Start with geometric interpolation: value = min * (max / min) ** p.
+          // Taking logs and solving for p gives log(value / min) / log(max / min).
+          toSliderValue: (value) =>
+            Math.log10(value / min) / Math.log10(max / min),
+          toParameterValue: (position) =>
+            Number((min * (max / min) ** position).toFixed(2)),
+        }
+      : {
+          ...limits,
+          sliderMin: min,
+          sliderMax: max,
+          sliderStep: step,
+          toSliderValue: (value) => value,
+          toParameterValue: (value) => value,
+        };
   const input = useDraftInput({
     value,
     onCommit: onChange,
@@ -141,40 +160,3 @@ type ParameterConfig = ParameterLimits & {
   toSliderValue: (value: number) => number;
   toParameterValue: (value: number) => number;
 };
-
-function createLinearParameterConfig({
-  min,
-  max,
-  step,
-}: ParameterLimits): ParameterConfig {
-  return {
-    min,
-    max,
-    step,
-    sliderMin: min,
-    sliderMax: max,
-    sliderStep: step,
-    toSliderValue: (value) => value,
-    toParameterValue: (value) => value,
-  };
-}
-
-function createLogarithmicParameterConfig({
-  min,
-  max,
-  step,
-}: ParameterLimits): ParameterConfig {
-  return {
-    min,
-    max,
-    step,
-    sliderMin: 0,
-    sliderMax: 1,
-    sliderStep: 0.001,
-    // Start with geometric interpolation: value = min * (max / min) ** p.
-    // Taking logs and solving for p gives log(value / min) / log(max / min).
-    toSliderValue: (value) => Math.log10(value / min) / Math.log10(max / min),
-    toParameterValue: (position) =>
-      Number((min * (max / min) ** position).toFixed(2)),
-  };
-}
