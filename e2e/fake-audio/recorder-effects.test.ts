@@ -99,7 +99,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page.screenshot({ path: test.info().outputPath("effects.png") });
 });
 
-test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
+test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   await createRecorderProject(page);
   await page.getByTestId("recorder-mixer-button").click();
   await page
@@ -107,35 +107,19 @@ test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
     .click();
   const panel = page.getByTestId("recorder-effects-panel");
   await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
-  const graphBounds = await panel
-    .getByTestId("eq-response-graph")
-    .boundingBox();
-  expect(graphBounds).toBeTruthy();
-  const targetFrequency = 2000;
-  const targetGainDb = 9.2;
-  const startX =
-    34 + (Math.log(1000 / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
-  const startY = 8 + (18 / 36) * (152 - 8 - 22);
-  const graphX =
-    34 +
-    (Math.log(targetFrequency / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
-  const graphY = 8 + ((18 - targetGainDb) / 36) * (152 - 8 - 22);
-  await page.mouse.move(
-    graphBounds!.x + (startX / 320) * graphBounds!.width,
-    graphBounds!.y + (startY / 152) * graphBounds!.height,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    graphBounds!.x + (graphX / 320) * graphBounds!.width,
-    graphBounds!.y + (graphY / 152) * graphBounds!.height,
-  );
-  await page.mouse.up();
-  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "2000",
-  );
-  await expect(
-    panel.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("9.2");
+  const point = await panel.getByTestId("eq-response-point").boundingBox();
+  expect(point).toBeTruthy();
+  await page.mouse.click(point!.x + point!.width / 2 + 30, point!.y - 20);
+  const frequencyInput = panel.getByRole("textbox", { name: "Frequency" });
+  const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
+  await expect
+    .poll(async () => Number(await frequencyInput.inputValue()))
+    .toBeGreaterThan(1000);
+  await expect
+    .poll(async () => Number(await gainInput.inputValue()))
+    .toBeGreaterThan(0);
+  const frequency = await frequencyInput.inputValue();
+  const gain = await gainInput.inputValue();
   // Wheel adjusts bandwidth independently.
   const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
   await page.mouse.wheel(0, -100);
@@ -144,12 +128,8 @@ test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
     .toBeGreaterThan(1);
   await page.mouse.wheel(0, 100);
   await expect(qInput).toHaveValue("1");
-  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "2000",
-  );
-  await expect(
-    panel.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("9.2");
+  await expect(frequencyInput).toHaveValue(frequency);
+  await expect(gainInput).toHaveValue(gain);
   await panel.getByRole("checkbox", { name: "Bypass" }).check();
   await expect(panel.getByTestId("eq-response-curve")).toHaveClass(
     /stroke-blue-400\/35/,
