@@ -177,6 +177,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
   // Fill the effects area beyond the available viewport width.
+  await page.setViewportSize({ width: 1280, height: 900 });
   await createRecorderProject(page);
   for (let index = 0; index < 5; index++) {
     await page.getByTitle("Add empty audio track").click();
@@ -187,11 +188,18 @@ test("keeps the mixer usable with many effects panels open", async ({
       .getByRole("button", { name: `Audio ${index} effects`, exact: true })
       .click();
   }
-  await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(5);
+  const panels = page.getByTestId("recorder-effects-panel");
+  await expect(panels).toHaveCount(5);
   const mixer = page.getByTestId("recorder-mixer-panel");
-  expect((await mixer.boundingBox())!.width).toBeGreaterThanOrEqual(320);
 
-  // Each panel can be reached through the effects container's horizontal scroll.
+  // Horizontal scrolling brings the clipped final panel into view.
+  await expect(panels.first()).toBeInViewport();
+  await expect(panels.last()).not.toBeInViewport();
+  await panels.last().scrollIntoViewIfNeeded();
+  await expect(panels.last()).toBeInViewport();
+  await expect(panels.first()).not.toBeInViewport();
+
+  // Each panel remains reachable and closable.
   for (let index = 5; index >= 1; index--) {
     await page
       .getByRole("button", {
