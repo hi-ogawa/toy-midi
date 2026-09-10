@@ -31,6 +31,14 @@ export type EqParameters = {
   bypass: boolean;
 };
 
+export type BiquadEqCoefficients = {
+  b0: number;
+  b1: number;
+  b2: number;
+  a1: number;
+  a2: number;
+};
+
 /** Standalone biquad EQ. Continuous parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
@@ -44,11 +52,13 @@ export class BiquadEq {
   // Per-channel Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
   private readonly history: Float64Array[];
   // Biquad coefficients normalized to a0 = 1.
-  private b0 = 1;
-  private b1 = 0;
-  private b2 = 0;
-  private a1 = 0;
-  private a2 = 0;
+  private readonly coefficients: BiquadEqCoefficients = {
+    b0: 1,
+    b1: 0,
+    b2: 0,
+    a1: 0,
+    a2: 0,
+  };
 
   constructor({
     sampleRate,
@@ -173,11 +183,11 @@ export class BiquadEq {
         const y =
           isGainFilter(this.type) && this.current[1] === 0
             ? x
-            : this.b0 * x +
-              this.b1 * h[0] +
-              this.b2 * h[1] -
-              this.a1 * h[2] -
-              this.a2 * h[3];
+            : this.coefficients.b0 * x +
+              this.coefficients.b1 * h[0] +
+              this.coefficients.b2 * h[1] -
+              this.coefficients.a1 * h[2] -
+              this.coefficients.a2 * h[3];
         h[1] = h[0];
         h[0] = x;
         h[3] = h[2];
@@ -190,97 +200,153 @@ export class BiquadEq {
   }
 
   private updateCoefficients(): void {
-    const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
-    const cos = Math.cos(omega);
-    const sin = Math.sin(omega);
-    const amplitude = Math.exp(this.current[1] / 2);
-    const q = Math.exp(this.current[2]);
-    const alpha = sin / (2 * q);
-    let b0: number;
-    let b1: number;
-    let b2: number;
-    let a0: number;
-    let a1: number;
-    let a2: number;
-    switch (this.type) {
-      case "peaking": {
-        a0 = 1 + alpha / amplitude;
-        b0 = 1 + alpha * amplitude;
-        b1 = -2 * cos;
-        b2 = 1 - alpha * amplitude;
-        a1 = b1;
-        a2 = 1 - alpha / amplitude;
-        break;
-      }
-      case "low-shelf":
-      case "high-shelf": {
-        // Shelf slope S=1 makes alpha independent of gain.
-        const shelfAlpha = sin / Math.SQRT2;
-        const twoSqrtAAlpha = 2 * Math.sqrt(amplitude) * shelfAlpha;
-        if (this.type === "low-shelf") {
-          b0 =
-            amplitude * (amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha);
-          b1 = 2 * amplitude * (amplitude - 1 - (amplitude + 1) * cos);
-          b2 =
-            amplitude * (amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha);
-          a0 = amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha;
-          a1 = -2 * (amplitude - 1 + (amplitude + 1) * cos);
-          a2 = amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha;
-        } else {
-          b0 =
-            amplitude * (amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha);
-          b1 = -2 * amplitude * (amplitude - 1 + (amplitude + 1) * cos);
-          b2 =
-            amplitude * (amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha);
-          a0 = amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha;
-          a1 = 2 * (amplitude - 1 - (amplitude + 1) * cos);
-          a2 = amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha;
-        }
-        break;
-      }
-      case "low-pass": {
-        b0 = (1 - cos) / 2;
-        b1 = 1 - cos;
-        b2 = b0;
-        a0 = 1 + alpha;
-        a1 = -2 * cos;
-        a2 = 1 - alpha;
-        break;
-      }
-      case "high-pass": {
-        b0 = (1 + cos) / 2;
-        b1 = -(1 + cos);
-        b2 = b0;
-        a0 = 1 + alpha;
-        a1 = -2 * cos;
-        a2 = 1 - alpha;
-        break;
-      }
-      case "band-pass": {
-        b0 = sin / 2;
-        b1 = 0;
-        b2 = -b0;
-        a0 = 1 + alpha;
-        a1 = -2 * cos;
-        a2 = 1 - alpha;
-        break;
-      }
-      case "notch": {
-        b0 = 1;
-        b1 = -2 * cos;
-        b2 = 1;
-        a0 = 1 + alpha;
-        a1 = b1;
-        a2 = 1 - alpha;
-        break;
-      }
-    }
-    this.b0 = b0 / a0;
-    this.b1 = b1 / a0;
-    this.b2 = b2 / a0;
-    this.a1 = a1 / a0;
-    this.a2 = a2 / a0;
+    calculateBiquadEqCoefficients({
+      type: this.type,
+      sampleRate: this.sampleRate,
+      frequency: Math.exp(this.current[0]),
+      gain: Math.exp(this.current[1]),
+      q: Math.exp(this.current[2]),
+      output: this.coefficients,
+    });
   }
+}
+
+export function calculateBiquadEqCoefficients({
+  type,
+  sampleRate,
+  frequency,
+  gain,
+  q,
+  output,
+}: {
+  type: EqType;
+  sampleRate: number;
+  frequency: number;
+  gain: number;
+  q: number;
+  output?: BiquadEqCoefficients;
+}): BiquadEqCoefficients {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos = Math.cos(omega);
+  const sin = Math.sin(omega);
+  const amplitude = Math.sqrt(gain);
+  const alpha = sin / (2 * q);
+  let b0: number;
+  let b1: number;
+  let b2: number;
+  let a0: number;
+  let a1: number;
+  let a2: number;
+  switch (type) {
+    case "peaking": {
+      a0 = 1 + alpha / amplitude;
+      b0 = 1 + alpha * amplitude;
+      b1 = -2 * cos;
+      b2 = 1 - alpha * amplitude;
+      a1 = b1;
+      a2 = 1 - alpha / amplitude;
+      break;
+    }
+    case "low-shelf":
+    case "high-shelf": {
+      // Shelf slope S=1 makes alpha independent of gain.
+      const shelfAlpha = sin / Math.SQRT2;
+      const twoSqrtAAlpha = 2 * Math.sqrt(amplitude) * shelfAlpha;
+      if (type === "low-shelf") {
+        b0 =
+          amplitude * (amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha);
+        b1 = 2 * amplitude * (amplitude - 1 - (amplitude + 1) * cos);
+        b2 =
+          amplitude * (amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha);
+        a0 = amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha;
+        a1 = -2 * (amplitude - 1 + (amplitude + 1) * cos);
+        a2 = amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha;
+      } else {
+        b0 =
+          amplitude * (amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha);
+        b1 = -2 * amplitude * (amplitude - 1 + (amplitude + 1) * cos);
+        b2 =
+          amplitude * (amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha);
+        a0 = amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha;
+        a1 = 2 * (amplitude - 1 - (amplitude + 1) * cos);
+        a2 = amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha;
+      }
+      break;
+    }
+    case "low-pass": {
+      b0 = (1 - cos) / 2;
+      b1 = 1 - cos;
+      b2 = b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "high-pass": {
+      b0 = (1 + cos) / 2;
+      b1 = -(1 + cos);
+      b2 = b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "band-pass": {
+      b0 = sin / 2;
+      b1 = 0;
+      b2 = -b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "notch": {
+      b0 = 1;
+      b1 = -2 * cos;
+      b2 = 1;
+      a0 = 1 + alpha;
+      a1 = b1;
+      a2 = 1 - alpha;
+      break;
+    }
+  }
+  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  result.b0 = b0 / a0;
+  result.b1 = b1 / a0;
+  result.b2 = b2 / a0;
+  result.a1 = a1 / a0;
+  result.a2 = a2 / a0;
+  return result;
+}
+
+/**
+ * Evaluate the general biquad magnitude response using the supplied coefficients.
+ * H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2) = N/D.
+ * On the frequency circle, z = exp(i*omega), so z^-k = cos(k*omega) - i*sin(k*omega).
+ * Expanding N and D into real and imaginary parts gives
+ * |H|^2 = |N|^2 / |D|^2 = (Nr^2 + Ni^2) / (Dr^2 + Di^2).
+ * Take the square root to return the amplitude ratio |H|.
+ */
+export function calculateBiquadEqResponse({
+  coefficients,
+  sampleRate,
+  frequency,
+}: {
+  coefficients: BiquadEqCoefficients;
+  sampleRate: number;
+  frequency: number;
+}): number {
+  const { b0, b1, b2, a1, a2 } = coefficients;
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos1 = Math.cos(omega);
+  const sin1 = Math.sin(omega);
+  const cos2 = Math.cos(2 * omega);
+  const sin2 = Math.sin(2 * omega);
+  const nr = b0 + b1 * cos1 + b2 * cos2;
+  const ni = -b1 * sin1 - b2 * sin2;
+  const dr = 1 + a1 * cos1 + a2 * cos2;
+  const di = -a1 * sin1 - a2 * sin2;
+  return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
 }
 
 function isGainFilter(type: EqType): boolean {

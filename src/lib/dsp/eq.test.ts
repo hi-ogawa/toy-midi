@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { dbToGain } from "../music";
-import { BiquadEq, type EqParameters, type EqType } from "./eq";
+import { dbToGain, gainToDb } from "../music";
+import {
+  BiquadEq,
+  calculateBiquadEqCoefficients,
+  calculateBiquadEqResponse,
+  type EqParameters,
+  type EqType,
+} from "./eq";
 
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {
@@ -202,6 +208,98 @@ describe(BiquadEq, () => {
     ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
   });
 });
+
+describe(calculateBiquadEqResponse, () => {
+  it.each([-18, -6, 0, 6, 18])(
+    "returns %s dB at the center frequency",
+    (gainDb) => {
+      expect(
+        calculateResponse({
+          gainDb,
+          responseFrequency: 1000,
+          eqFrequency: 1000,
+          q: 1,
+        }),
+      ).toBeCloseTo(gainDb, 10);
+    },
+  );
+
+  it.each<EqType>([
+    "peaking",
+    "low-shelf",
+    "high-shelf",
+    "low-pass",
+    "high-pass",
+    "band-pass",
+    "notch",
+  ])(
+    "matches the processed %s response away from the center frequency",
+    (type) => {
+      const parameters = {
+        type,
+        gainDb: 12,
+        responseFrequency: 2400,
+        eqFrequency: 1000,
+        q: 2,
+      };
+      expect(calculateResponse(parameters)).toBeCloseTo(
+        measureResponse({
+          type,
+          gain: dbToGain(parameters.gainDb),
+          signalFrequency: parameters.responseFrequency,
+          eqFrequency: parameters.eqFrequency,
+          q: parameters.q,
+        }),
+        3,
+      );
+    },
+  );
+
+  it("reflects Q in the response bandwidth", () => {
+    const wide = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 1,
+    });
+    const narrow = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 8,
+    });
+    expect(wide).toBeGreaterThan(narrow);
+  });
+});
+
+function calculateResponse({
+  type = "peaking",
+  gainDb,
+  responseFrequency,
+  eqFrequency,
+  q,
+}: {
+  type?: EqType;
+  gainDb: number;
+  responseFrequency: number;
+  eqFrequency: number;
+  q: number;
+}): number {
+  const coefficients = calculateBiquadEqCoefficients({
+    type,
+    sampleRate: SAMPLE_RATE,
+    frequency: eqFrequency,
+    gain: dbToGain(gainDb),
+    q,
+  });
+  return gainToDb(
+    calculateBiquadEqResponse({
+      coefficients,
+      sampleRate: SAMPLE_RATE,
+      frequency: responseFrequency,
+    }),
+  );
+}
 
 function createSignal({
   frames,
