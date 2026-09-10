@@ -10,7 +10,7 @@ import {
   type EqParameters,
 } from "../../lib/dsp/eq";
 import { EQ_LIMITS } from "../../lib/dsp/eq";
-import { dbToGain, gainToDb } from "../../lib/music";
+import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
 const GRAPH_SAMPLE_RATE = 48000;
@@ -210,8 +210,4 @@ function graphYToGainDb(y: number): number {
 
 function formatFrequencyTick(frequency: number): string {
   return frequency >= 1000 ? `${frequency / 1000}k` : String(frequency);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
