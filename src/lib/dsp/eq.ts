@@ -29,7 +29,7 @@ export type PeakingEqCoefficients = {
   a2: number;
 };
 
-/** RBJ peaking EQ coefficients normalized to a0 = 1. */
+/** Biquad coefficients normalized to a0 = 1. */
 export function calculatePeakingEqCoefficients({
   sampleRate,
   frequency,
@@ -43,7 +43,6 @@ export function calculatePeakingEqCoefficients({
   q: number;
   output?: PeakingEqCoefficients;
 }): PeakingEqCoefficients {
-  // https://www.w3.org/TR/audio-eq-cookbook/#formulae
   const omega = (2 * Math.PI * frequency) / sampleRate;
   const amplitude = Math.sqrt(gain);
   const alpha = Math.sin(omega) / (2 * q);
