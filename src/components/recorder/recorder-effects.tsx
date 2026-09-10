@@ -8,6 +8,10 @@ import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
 
+const FREQUENCY_CONFIG = createLogarithmicParameterConfig(EQ_LIMITS.frequency);
+const GAIN_CONFIG = createLinearParameterConfig(EQ_LIMITS.gainDb);
+const Q_CONFIG = createLinearParameterConfig(EQ_LIMITS.q);
+
 export function RecorderEffects({
   label,
   eq,
@@ -40,21 +44,21 @@ export function RecorderEffects({
         <EqParameter
           label="Frequency"
           unit="Hz"
-          parameter="frequency"
+          config={FREQUENCY_CONFIG}
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
         />
         <EqParameter
           label="Gain"
           unit="dB"
-          parameter="gainDb"
+          config={GAIN_CONFIG}
           value={gainToDb(eq.gain)}
           onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
         />
         <EqParameter
           label="Q"
           unit=""
-          parameter="q"
+          config={Q_CONFIG}
           value={eq.q}
           onChange={(q) => onChange({ q })}
         />
@@ -76,27 +80,25 @@ const formatParameter = (value: number) => String(Number(value.toFixed(2)));
 function EqParameter({
   label,
   unit,
-  parameter,
+  config,
   value,
   onChange,
 }: {
   label: string;
   unit: string;
-  parameter: keyof typeof EQ_LIMITS;
+  config: ParameterConfig;
   value: number;
   onChange: (value: number) => void;
 }) {
-  const { min, max, step } = EQ_LIMITS[parameter];
   const input = useDraftInput({
     value,
     onCommit: onChange,
-    min,
-    max,
-    step,
+    min: config.min,
+    max: config.max,
+    step: config.step,
     parse: "float",
     format: formatParameter,
   });
-  const slider = createParameterSliderConfig({ parameter, value });
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs">
@@ -113,39 +115,66 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        value={[slider.value]}
-        min={slider.min}
-        max={slider.max}
-        step={slider.step}
-        onValueChange={([next]) => onChange(slider.toParameterValue(next))}
+        value={[config.toSliderValue(value)]}
+        min={config.sliderMin}
+        max={config.sliderMax}
+        step={config.sliderStep}
+        onValueChange={([next]) => onChange(config.toParameterValue(next))}
       />
     </div>
   );
 }
 
-function createParameterSliderConfig({
-  parameter,
-  value,
+type ParameterConfig = {
+  min: number;
+  max: number;
+  step: number;
+  sliderMin: number;
+  sliderMax: number;
+  sliderStep: number;
+  toSliderValue: (value: number) => number;
+  toParameterValue: (value: number) => number;
+};
+
+function createLinearParameterConfig({
+  min,
+  max,
+  step,
 }: {
-  parameter: keyof typeof EQ_LIMITS;
-  value: number;
-}) {
-  const { min, max, step } = EQ_LIMITS[parameter];
-  if (parameter === "frequency") {
-    return {
-      value: Math.log10(value / min) / Math.log10(max / min),
-      min: 0,
-      max: 1,
-      step: 0.001,
-      toParameterValue: (position: number) =>
-        Number((min * (max / min) ** position).toFixed(2)),
-    };
-  }
+  min: number;
+  max: number;
+  step: number;
+}): ParameterConfig {
   return {
-    value,
     min,
     max,
     step,
-    toParameterValue: (next: number) => next,
+    sliderMin: min,
+    sliderMax: max,
+    sliderStep: step,
+    toSliderValue: (value) => value,
+    toParameterValue: (value) => value,
+  };
+}
+
+function createLogarithmicParameterConfig({
+  min,
+  max,
+  step,
+}: {
+  min: number;
+  max: number;
+  step: number;
+}): ParameterConfig {
+  return {
+    min,
+    max,
+    step,
+    sliderMin: 0,
+    sliderMax: 1,
+    sliderStep: 0.001,
+    toSliderValue: (value) => Math.log10(value / min) / Math.log10(max / min),
+    toParameterValue: (position) =>
+      Number((min * (max / min) ** position).toFixed(2)),
   };
 }
