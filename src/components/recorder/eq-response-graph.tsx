@@ -34,9 +34,8 @@ export function EqResponseGraph({
     event.preventDefault();
     const unit =
       event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? GRAPH_HEIGHT : 1;
-    const sensitivity = event.shiftKey ? 0.0002 : 0.002;
     const q = clamp(
-      eq.q * Math.exp(-event.deltaY * unit * sensitivity),
+      eq.q * Math.exp(-event.deltaY * unit * 0.002),
       EQ_LIMITS.q.min,
       EQ_LIMITS.q.max,
     );

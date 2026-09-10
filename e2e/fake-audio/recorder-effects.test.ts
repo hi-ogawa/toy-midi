@@ -65,22 +65,14 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("9.2");
-  // Wheel adjusts bandwidth independently, with finer movement using Shift.
+  // Wheel adjusts bandwidth independently.
   const qInput = audio.getByRole("textbox", { name: "Q", exact: true });
   await page.mouse.wheel(0, -100);
   await expect
     .poll(async () => Number(await qInput.inputValue()))
     .toBeGreaterThan(1);
-  const coarseQ = Number(await qInput.inputValue());
   await page.mouse.wheel(0, 100);
   await expect(qInput).toHaveValue("1");
-  await page.keyboard.down("Shift");
-  await page.mouse.wheel(0, -100);
-  await page.keyboard.up("Shift");
-  await expect
-    .poll(async () => Number(await qInput.inputValue()))
-    .toBeGreaterThan(1);
-  expect(Number(await qInput.inputValue())).toBeLessThan(coarseQ);
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "2000",
   );
