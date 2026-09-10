@@ -1,8 +1,8 @@
 import { createAudioView } from "../audio-view.ts";
+import type { EqParameters } from "../dsp/eq.ts";
 import {
   createDefaultPeakingEq,
   normalizePeakingEq,
-  type PeakingEqState,
 } from "../dsp/peaking-eq-node.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
@@ -18,7 +18,7 @@ export interface SerializedRecorderRuntimeState {
   audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: PeakingEqState;
+    eq?: EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -61,7 +61,7 @@ export interface SerializedRecorderRuntimeState {
 
 interface SerializedAudioTrackState {
   // Optional for projects saved before track EQ support.
-  eq?: PeakingEqState;
+  eq?: EqParameters;
   id: string;
   height: number;
   clip?: {

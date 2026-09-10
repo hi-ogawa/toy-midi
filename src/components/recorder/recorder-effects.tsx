@@ -1,8 +1,10 @@
 import { useDraftInput } from "../../hooks/use-draft-input";
+import type { EqParameters } from "../../lib/dsp/eq";
 import {
   createDefaultPeakingEq,
+  dbToGain,
   EQ_LIMITS,
-  type PeakingEqState,
+  gainToDb,
 } from "../../lib/dsp/peaking-eq-node";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
@@ -14,8 +16,8 @@ export function RecorderEffects({
   onClose,
 }: {
   label: string;
-  eq: PeakingEqState;
-  onChange: (update: Partial<PeakingEqState>) => void;
+  eq: EqParameters;
+  onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
   return (
@@ -46,9 +48,9 @@ export function RecorderEffects({
         <EqParameter
           label="Gain"
           unit="dB"
-          parameter="gain"
-          value={eq.gain}
-          onChange={(gain) => onChange({ gain })}
+          parameter="gainDb"
+          value={gainToDb(eq.gain)}
+          onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
         />
         <EqParameter
           label="Q"
@@ -60,8 +62,8 @@ export function RecorderEffects({
         <label className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"
-            checked={eq.bypassed}
-            onChange={(event) => onChange({ bypassed: event.target.checked })}
+            checked={eq.bypass}
+            onChange={(event) => onChange({ bypass: event.target.checked })}
           />
           Bypass
         </label>
@@ -81,7 +83,7 @@ function EqParameter({
 }: {
   label: string;
   unit: string;
-  parameter: "frequency" | "gain" | "q";
+  parameter: keyof typeof EQ_LIMITS;
   value: number;
   onChange: (value: number) => void;
 }) {

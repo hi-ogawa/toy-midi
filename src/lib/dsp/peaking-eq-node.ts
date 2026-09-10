@@ -5,44 +5,42 @@ import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 const PROCESSOR_NAME = "peaking-eq";
 const registrations = new WeakMap<AudioContext, Promise<void>>();
 
-export interface PeakingEqState {
-  frequency: number;
-  gain: number;
-  q: number;
-  bypassed: boolean;
-}
-
 export const EQ_LIMITS = {
   frequency: { min: 20, max: 20000, step: 1 },
-  gain: { min: -18, max: 18, step: 0.5 },
+  gainDb: { min: -18, max: 18, step: 0.5 },
   q: { min: 0.1, max: 18, step: 0.1 },
 };
 
-export function createDefaultPeakingEq(): PeakingEqState {
-  return { frequency: 1000, gain: 0, q: 1, bypassed: false };
+export function createDefaultPeakingEq(): EqParameters {
+  return { frequency: 1000, gain: 1, q: 1, bypass: false };
 }
 
-export function normalizePeakingEq(eq: PeakingEqState): PeakingEqState {
+export function normalizePeakingEq(eq: EqParameters): EqParameters {
   const defaults = createDefaultPeakingEq();
-  const normalize = (key: "frequency" | "gain" | "q") =>
-    Number.isFinite(eq[key])
-      ? clamp(eq[key], EQ_LIMITS[key].min, EQ_LIMITS[key].max)
-      : defaults[key];
   return {
-    frequency: normalize("frequency"),
-    gain: normalize("gain"),
-    q: normalize("q"),
-    bypassed: eq.bypassed,
+    frequency: Number.isFinite(eq.frequency)
+      ? clamp(eq.frequency, EQ_LIMITS.frequency.min, EQ_LIMITS.frequency.max)
+      : defaults.frequency,
+    gain: Number.isFinite(eq.gain)
+      ? clamp(
+          eq.gain,
+          dbToGain(EQ_LIMITS.gainDb.min),
+          dbToGain(EQ_LIMITS.gainDb.max),
+        )
+      : defaults.gain,
+    q: Number.isFinite(eq.q)
+      ? clamp(eq.q, EQ_LIMITS.q.min, EQ_LIMITS.q.max)
+      : defaults.q,
+    bypass: eq.bypass,
   };
 }
 
-export function createPeakingEqParameters(eq: PeakingEqState): EqParameters {
-  return {
-    frequency: eq.frequency,
-    gain: 10 ** (eq.gain / 20),
-    q: eq.q,
-    bypass: eq.bypassed,
-  };
+export function dbToGain(db: number): number {
+  return 10 ** (db / 20);
+}
+
+export function gainToDb(gain: number): number {
+  return 20 * Math.log10(gain);
 }
 
 export function createPeakingEqNode({
@@ -96,7 +94,7 @@ export function processPeakingEqBuffer({
 }: {
   context: BaseAudioContext;
   buffer: AudioBuffer;
-  eq: PeakingEqState;
+  eq: EqParameters;
   offset: number;
   duration: number;
 }): AudioBuffer {
@@ -113,7 +111,7 @@ export function processPeakingEqBuffer({
   const processor = new PeakingEq({
     sampleRate: buffer.sampleRate,
     channelCount: buffer.numberOfChannels,
-    ...createPeakingEqParameters(eq),
+    ...eq,
   });
   processor.process({
     input: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>

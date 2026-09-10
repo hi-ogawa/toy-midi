@@ -1,13 +1,12 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import type { EqParameters } from "../dsp/eq.ts";
 import {
   createDefaultPeakingEq,
-  createPeakingEqParameters,
   ensurePeakingEqWorklet,
   normalizePeakingEq,
   processPeakingEqBuffer,
-  type PeakingEqState,
 } from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
@@ -44,7 +43,7 @@ const MAX_TRACK_HEIGHT = 300;
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 interface AudioTrackState {
-  eq: PeakingEqState;
+  eq: EqParameters;
   id: string;
   height: number;
   clip?: {
@@ -62,7 +61,7 @@ interface AudioTrackState {
 }
 
 interface RecordingTrackState {
-  eq: PeakingEqState;
+  eq: EqParameters;
   height: number;
   gain: number;
   muted: boolean;
@@ -538,18 +537,16 @@ export class RecorderRuntime {
     update,
   }: {
     id: string;
-    update: Partial<PeakingEqState>;
+    update: Partial<EqParameters>;
   }): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       eq: normalizePeakingEq({ ...track.eq, ...update }),
     }));
-    this.audioTrackPlaybacks
-      .get(id)
-      ?.setEq(createPeakingEqParameters(track.eq));
+    this.audioTrackPlaybacks.get(id)?.setEq(track.eq);
   }
 
-  setRecordingTrackEq(update: Partial<PeakingEqState>): void {
+  setRecordingTrackEq(update: Partial<EqParameters>): void {
     const track = this.store.get().recordingTrack;
     this.store.update({
       recordingTrack: {
@@ -558,9 +555,7 @@ export class RecorderRuntime {
       },
     });
     for (const playback of this.recordingTrackPlaybacks) {
-      playback.setEq(
-        createPeakingEqParameters(this.store.get().recordingTrack.eq),
-      );
+      playback.setEq(this.store.get().recordingTrack.eq);
     }
   }
 
@@ -594,7 +589,7 @@ export class RecorderRuntime {
         throw new Error("Audio track state is missing.");
       }
       playback.setBufferTimelineOffset(track.timelineOffset);
-      playback.setEq(createPeakingEqParameters(track.eq));
+      playback.setEq(track.eq);
       this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
@@ -1026,7 +1021,7 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(buffer);
-      playback.setEq(createPeakingEqParameters(track.eq));
+      playback.setEq(track.eq);
       playback.setBufferTimelineOffset(track.timelineOffset);
       playback.setTimelineRange({
         start: track.timelineOffset + track.trimStart,
@@ -1239,9 +1234,7 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(take.buffer);
-      playback.setEq(
-        createPeakingEqParameters(this.store.get().recordingTrack.eq),
-      );
+      playback.setEq(this.store.get().recordingTrack.eq);
       playback.setBufferTimelineOffset(take.timelineOffset);
       playback.setTimelineRange({
         start: region.timelineStart,

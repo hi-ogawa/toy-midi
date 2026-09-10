@@ -1,7 +1,5 @@
-import {
-  processPeakingEqBuffer,
-  type PeakingEqState,
-} from "../dsp/peaking-eq-node.ts";
+import type { EqParameters } from "../dsp/eq.ts";
+import { processPeakingEqBuffer } from "../dsp/peaking-eq-node.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {
@@ -12,7 +10,7 @@ interface MixRegion {
 }
 
 interface RecorderMix {
-  tracks: { eq: PeakingEqState; gain: number; regions: MixRegion[] }[];
+  tracks: { eq: EqParameters; gain: number; regions: MixRegion[] }[];
   masterGain: number;
   duration: number;
 }
