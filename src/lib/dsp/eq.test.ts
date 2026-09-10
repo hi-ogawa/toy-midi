@@ -13,18 +13,21 @@ describe(PeakingEq, () => {
   it.each([-18, -6, 6, 18])(
     "applies %s dB at the center frequency",
     (gainDb) => {
-      expect(response({ gain: dbToGain(gainDb), frequency: 1000 })).toBeCloseTo(
-        gainDb,
-        3,
-      );
+      expect(
+        measureResponse({ gain: dbToGain(gainDb), frequency: 1000 }),
+      ).toBeCloseTo(gainDb, 3);
     },
   );
 
   it("narrows the bandwidth as Q increases and preserves distant frequencies", () => {
     expect(
-      response({ gain: dbToGain(12), frequency: 1000, centerFrequency: 1500 }),
+      measureResponse({
+        gain: dbToGain(12),
+        frequency: 1000,
+        centerFrequency: 1500,
+      }),
     ).toBeGreaterThan(
-      response({
+      measureResponse({
         gain: dbToGain(12),
         frequency: 1000,
         centerFrequency: 1500,
@@ -32,10 +35,18 @@ describe(PeakingEq, () => {
       }),
     );
     expect(
-      response({ gain: dbToGain(12), frequency: 20, centerFrequency: 1500 }),
+      measureResponse({
+        gain: dbToGain(12),
+        frequency: 20,
+        centerFrequency: 1500,
+      }),
     ).toBeCloseTo(0, 1);
     expect(
-      response({ gain: dbToGain(12), frequency: 20000, centerFrequency: 1500 }),
+      measureResponse({
+        gain: dbToGain(12),
+        frequency: 20000,
+        centerFrequency: 1500,
+      }),
     ).toBeCloseTo(0, 1);
   });
 
@@ -46,7 +57,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
     });
     eq.setParameters({ gain: dbToGain(18) });
-    const input = signal(2000);
+    const input = createSignal(2000);
     const ramped = process(eq, input);
     const immediate = process(
       new PeakingEq({
@@ -80,7 +91,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
       gain: dbToGain(12),
     });
-    const input = signal(2000);
+    const input = createSignal(2000);
     expect(process(eq, input)).toEqual(input);
     process(reference, input);
     eq.setParameters({ bypass: false });
@@ -96,7 +107,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
       gain: dbToGain(18),
     });
-    process(eq, signal(100));
+    process(eq, createSignal(100));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
     const fresh = new PeakingEq({
@@ -107,11 +118,13 @@ describe(PeakingEq, () => {
       q: 3,
       bypass: false,
     });
-    expect(process(eq, signal(2000))).toEqual(process(fresh, signal(2000)));
+    expect(process(eq, createSignal(2000))).toEqual(
+      process(fresh, createSignal(2000)),
+    );
   });
 });
 
-function signal(frames: number): Float32Array {
+function createSignal(frames: number): Float32Array {
   return Float32Array.from({ length: frames }, (_, i) =>
     Math.sin((2 * Math.PI * 1000 * i) / sampleRate),
   );
@@ -123,7 +136,7 @@ function process(eq: PeakingEq, input: Float32Array): Float32Array {
   return output;
 }
 
-function response({
+function measureResponse({
   gain,
   frequency,
   centerFrequency = frequency,
