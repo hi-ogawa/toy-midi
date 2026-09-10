@@ -8,7 +8,7 @@
 
 import { clamp, dbToGain } from "../music.ts";
 
-const EQ_LIMITS = {
+export const EQ_LIMITS = {
   frequency: { min: 20, max: 20000 },
   gainDb: { min: -18, max: 18 },
   q: { min: 0.1, max: 18 },

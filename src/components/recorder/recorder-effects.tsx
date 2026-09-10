@@ -1,9 +1,6 @@
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters } from "../../lib/dsp/eq";
-import {
-  createDefaultPeakingEq,
-  EQ_LIMITS,
-} from "../../lib/dsp/peaking-eq-node";
+import { EQ_LIMITS, type EqParameters } from "../../lib/dsp/eq";
+import { createDefaultPeakingEq } from "../../lib/dsp/peaking-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
@@ -40,7 +37,7 @@ export function RecorderEffects({
         <EqParameter
           label="Frequency"
           unit="Hz"
-          limits={EQ_LIMITS.frequency}
+          limits={{ ...EQ_LIMITS.frequency, step: 1 }}
           scale="logarithmic"
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
@@ -48,14 +45,14 @@ export function RecorderEffects({
         <EqParameter
           label="Gain"
           unit="dB"
-          limits={EQ_LIMITS.gainDb}
+          limits={{ ...EQ_LIMITS.gainDb, step: 0.5 }}
           value={gainToDb(eq.gain)}
           onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
         />
         <EqParameter
           label="Q"
           unit=""
-          limits={EQ_LIMITS.q}
+          limits={{ ...EQ_LIMITS.q, step: 0.1 }}
           value={eq.q}
           onChange={(q) => onChange({ q })}
         />
