@@ -1,5 +1,5 @@
 import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
 import type {
@@ -9,6 +9,52 @@ import type {
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
+
+export function useRecorderMixerUi() {
+  const [isOpen, setIsOpen] = useState(false);
+  // Audio track UUIDs and the singleton Capture channel identify panels.
+  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+
+  function close() {
+    setIsOpen(false);
+    setOpenEffects(new Set());
+  }
+
+  function toggle() {
+    if (isOpen) {
+      close();
+    } else {
+      setIsOpen(true);
+    }
+  }
+
+  function toggleEffects(id: string) {
+    setOpenEffects((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function closeEffects(id: string) {
+    setOpenEffects((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  return { isOpen, openEffects, toggle, close, toggleEffects, closeEffects };
+}
 
 export function RecorderMixer({
   runtime,

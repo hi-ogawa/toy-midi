@@ -19,7 +19,7 @@ import { RecorderExportDialog } from "./recorder-export-dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
-import { RecorderMixer } from "./recorder-mixer";
+import { RecorderMixer, useRecorderMixerUi } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
@@ -45,11 +45,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
-  const [isMixerOpen, setIsMixerOpen] = useState(false);
-  // Audio track UUIDs and the singleton Capture channel identify panels.
-  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
+  const mixer = useRecorderMixerUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -129,23 +125,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const takes = state.recordingTrack.takes;
   const isRecording = state.captureStatus === "recording";
   const isProcessing = state.captureStatus === "processing";
-
-  function toggleEffects(id: string) {
-    setOpenEffects((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function closeMixer() {
-    setIsMixerOpen(false);
-    setOpenEffects(new Set());
-  }
 
   function togglePlay() {
     if (isProcessing) {
@@ -294,10 +273,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
-        mixerOpen={isMixerOpen}
-        onMixerToggle={() =>
-          isMixerOpen ? closeMixer() : setIsMixerOpen(true)
-        }
+        mixerOpen={mixer.isOpen}
+        onMixerToggle={mixer.toggle}
         onHelpOpen={() => setIsHelpOpen(true)}
       />
 
@@ -406,11 +383,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     }
                     onRemove={() => {
                       runtime.removeAudioTrack(track.id);
-                      setOpenEffects((current) => {
-                        const next = new Set(current);
-                        next.delete(track.id);
-                        return next;
-                      });
+                      mixer.closeEffects(track.id);
                     }}
                   />
                 }
@@ -672,11 +645,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
-        {isMixerOpen && openEffects.size > 0 && (
+        {mixer.isOpen && mixer.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 gap-4 overflow-x-auto">
             {state.audioTracks.map(
               (track, index) =>
-                openEffects.has(track.id) && (
+                mixer.openEffects.has(track.id) && (
                   <RecorderEffects
                     key={track.id}
                     label={`Audio ${index + 1}`}
@@ -684,24 +657,24 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onChange={(update) =>
                       runtime.setAudioTrackEq({ id: track.id, update })
                     }
-                    onClose={() => toggleEffects(track.id)}
+                    onClose={() => mixer.toggleEffects(track.id)}
                   />
                 ),
             )}
-            {openEffects.has("capture") && (
+            {mixer.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
                 eq={state.recordingTrack.eq}
                 onChange={(update) => runtime.setRecordingTrackEq(update)}
-                onClose={() => toggleEffects("capture")}
+                onClose={() => mixer.toggleEffects("capture")}
               />
             )}
           </div>
         )}
-        {isMixerOpen && (
+        {mixer.isOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"
-            onClose={closeMixer}
+            onClose={mixer.close}
             title="Mixer"
             testId="recorder-mixer-panel"
             className="pointer-events-auto min-w-80 flex-1"
@@ -709,8 +682,8 @@ export function Recorder({ projectId }: { projectId: string }) {
             <RecorderMixer
               runtime={runtime}
               state={state}
-              openEffects={openEffects}
-              onEffectsToggle={toggleEffects}
+              openEffects={mixer.openEffects}
+              onEffectsToggle={mixer.toggleEffects}
             />
           </RecorderPanel>
         )}
