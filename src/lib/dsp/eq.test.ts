@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type EqParameters, PeakingEq } from "./eq";
 
-const sampleRate = 48000;
-const defaultParameters: EqParameters = {
+const SAMPLE_RATE = 48000;
+const DEFAULT_PARAMETERS: EqParameters = {
   frequency: 1000,
   gain: 1,
   q: 1,
@@ -60,18 +60,18 @@ describe(PeakingEq, () => {
 
   it("ramps gain and bypass rather than switching immediately", () => {
     const eq = new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
-      ...defaultParameters,
+      ...DEFAULT_PARAMETERS,
     });
     eq.setParameters({ gain: dbToGain(18) });
     const input = createSignal({ frames: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
       new PeakingEq({
-        sampleRate,
+        sampleRate: SAMPLE_RATE,
         channelCount: 1,
-        ...defaultParameters,
+        ...DEFAULT_PARAMETERS,
         gain: dbToGain(18),
       }),
       input,
@@ -87,16 +87,16 @@ describe(PeakingEq, () => {
 
   it("keeps history current while bypassed", () => {
     const eq = new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
-      ...defaultParameters,
+      ...DEFAULT_PARAMETERS,
       gain: dbToGain(12),
       bypass: true,
     });
     const reference = new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
-      ...defaultParameters,
+      ...DEFAULT_PARAMETERS,
       gain: dbToGain(12),
     });
     const input = createSignal({ frames: 2000, frequency: 1000 });
@@ -110,16 +110,16 @@ describe(PeakingEq, () => {
 
   it("resets history and settles pending parameters", () => {
     const eq = new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
-      ...defaultParameters,
+      ...DEFAULT_PARAMETERS,
       gain: dbToGain(18),
     });
     process(eq, createSignal({ frames: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
     const fresh = new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: 3000,
       gain: dbToGain(-6),
@@ -140,7 +140,7 @@ function createSignal({
   frequency: number;
 }): Float32Array {
   return Float32Array.from({ length: frames }, (_, i) =>
-    Math.sin((2 * Math.PI * frequency * i) / sampleRate),
+    Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
   );
 }
 
@@ -162,12 +162,12 @@ function measureResponse({
   q: number;
 }): number {
   const input = createSignal({
-    frames: sampleRate,
+    frames: SAMPLE_RATE,
     frequency: signalFrequency,
   });
   const output = process(
     new PeakingEq({
-      sampleRate,
+      sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: eqFrequency,
       gain,
@@ -178,7 +178,7 @@ function measureResponse({
   );
   let inputEnergy = 0;
   let outputEnergy = 0;
-  for (let i = sampleRate / 2; i < sampleRate; i++) {
+  for (let i = SAMPLE_RATE / 2; i < SAMPLE_RATE; i++) {
     inputEnergy += input[i] ** 2;
     outputEnergy += output[i] ** 2;
   }
