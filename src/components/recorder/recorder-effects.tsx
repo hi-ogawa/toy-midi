@@ -110,7 +110,6 @@ function EqParameter({
         Number((min * Math.exp(position * logRange)).toFixed(2)),
     };
   }
-  const { toSliderValue, toParameterValue, ...sliderProps } = config;
   const input = useDraftInput({
     value,
     onCommit: onChange,
@@ -134,11 +133,11 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        min={sliderProps.min}
-        max={sliderProps.max}
-        step={sliderProps.step}
-        value={[toSliderValue(value)]}
-        onValueChange={([next]) => onChange(toParameterValue(next))}
+        min={config.min}
+        max={config.max}
+        step={config.step}
+        value={[config.toSliderValue(value)]}
+        onValueChange={([next]) => onChange(config.toParameterValue(next))}
       />
     </div>
   );
