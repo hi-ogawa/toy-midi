@@ -8,10 +8,6 @@ import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
 
-const FREQUENCY_CONFIG = createLogarithmicParameterConfig(EQ_LIMITS.frequency);
-const GAIN_CONFIG = createLinearParameterConfig(EQ_LIMITS.gainDb);
-const Q_CONFIG = createLinearParameterConfig(EQ_LIMITS.q);
-
 export function RecorderEffects({
   label,
   eq,
@@ -44,21 +40,21 @@ export function RecorderEffects({
         <EqParameter
           label="Frequency"
           unit="Hz"
-          config={FREQUENCY_CONFIG}
+          config={createLogarithmicParameterConfig(EQ_LIMITS.frequency)}
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
         />
         <EqParameter
           label="Gain"
           unit="dB"
-          config={GAIN_CONFIG}
+          config={createLinearParameterConfig(EQ_LIMITS.gainDb)}
           value={gainToDb(eq.gain)}
           onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
         />
         <EqParameter
           label="Q"
           unit=""
-          config={Q_CONFIG}
+          config={createLinearParameterConfig(EQ_LIMITS.q)}
           value={eq.q}
           onChange={(q) => onChange({ q })}
         />
