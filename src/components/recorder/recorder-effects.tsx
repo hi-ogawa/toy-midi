@@ -65,9 +65,6 @@ export function RecorderEffects({
           />
           Bypass
         </label>
-        <p className="text-xs text-muted-foreground">
-          Prototype: EQ settings are saved but do not affect sound yet.
-        </p>
       </div>
     </RecorderPanel>
   );
