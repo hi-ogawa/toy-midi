@@ -22,7 +22,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
   });
 
-  // Edit every Audio EQ control while Capture retains its defaults.
+  // Set different EQ values for Audio and Capture to verify independent settings.
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
