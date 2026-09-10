@@ -179,8 +179,29 @@ function EqSlider({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const logarithmic = scale === "logarithmic";
-  const logRange = logarithmic ? Math.log(limits.max / limits.min) : 0;
+  let config = {
+    ...limits,
+    toSliderValue: (value: number) => value,
+    toParameterValue: (value: number) => value,
+  };
+  if (scale === "logarithmic") {
+    const logRange = Math.log(limits.max / limits.min);
+    config = {
+      min: 0,
+      max: 1,
+      // 1,000 steps across 20–20,000 Hz gives about 100 steps per octave.
+      // With frequency = min * (max / min)^position, n steps multiply it by
+      // (max / min)^(n * step). Doubling therefore requires
+      // (max / min)^(n * step) = 2, so n * step * log(max / min) = log(2).
+      // Thus n = log(2) / (0.001 * log(20000 / 20)) ≈ 100.
+      step: 0.001,
+      // (log(value) - log(min)) / (log(max) - log(min))
+      // = log(value / min) / log(max / min); solve for value for the inverse.
+      toSliderValue: (value: number) => Math.log(value / limits.min) / logRange,
+      toParameterValue: (position: number) =>
+        Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
+    };
+  }
   const valueText = `${formatParameter(value)} ${unit}`.trim();
   return (
     <div className="space-y-2">
@@ -191,17 +212,11 @@ function EqSlider({
       <Slider
         aria-label={label}
         aria-valuetext={valueText}
-        min={logarithmic ? 0 : limits.min}
-        max={logarithmic ? 1 : limits.max}
-        step={logarithmic ? 0.001 : limits.step}
-        value={[logarithmic ? Math.log(value / limits.min) / logRange : value]}
-        onValueChange={([next]) =>
-          onChange(
-            logarithmic
-              ? Number((limits.min * Math.exp(next * logRange)).toFixed(2))
-              : next,
-          )
-        }
+        min={config.min}
+        max={config.max}
+        step={config.step}
+        value={[config.toSliderValue(value)]}
+        onValueChange={([next]) => onChange(config.toParameterValue(next))}
       />
     </div>
   );
