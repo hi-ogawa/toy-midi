@@ -65,7 +65,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
     });
     eq.setParameters({ gain: dbToGain(18) });
-    const input = createSignal(2000);
+    const input = createSignal({ frames: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
       new PeakingEq({
@@ -99,7 +99,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
       gain: dbToGain(12),
     });
-    const input = createSignal(2000);
+    const input = createSignal({ frames: 2000, frequency: 1000 });
     expect(process(eq, input)).toEqual(input);
     process(reference, input);
     eq.setParameters({ bypass: false });
@@ -115,7 +115,7 @@ describe(PeakingEq, () => {
       ...defaultParameters,
       gain: dbToGain(18),
     });
-    process(eq, createSignal(100));
+    process(eq, createSignal({ frames: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
     const fresh = new PeakingEq({
@@ -126,15 +126,21 @@ describe(PeakingEq, () => {
       q: 3,
       bypass: false,
     });
-    expect(process(eq, createSignal(2000))).toEqual(
-      process(fresh, createSignal(2000)),
-    );
+    expect(
+      process(eq, createSignal({ frames: 2000, frequency: 1000 })),
+    ).toEqual(process(fresh, createSignal({ frames: 2000, frequency: 1000 })));
   });
 });
 
-function createSignal(frames: number): Float32Array {
+function createSignal({
+  frames,
+  frequency,
+}: {
+  frames: number;
+  frequency: number;
+}): Float32Array {
   return Float32Array.from({ length: frames }, (_, i) =>
-    Math.sin((2 * Math.PI * 1000 * i) / sampleRate),
+    Math.sin((2 * Math.PI * frequency * i) / sampleRate),
   );
 }
 
@@ -155,9 +161,10 @@ function measureResponse({
   eqFrequency: number;
   q: number;
 }): number {
-  const input = Float32Array.from({ length: sampleRate }, (_, i) =>
-    Math.sin((2 * Math.PI * signalFrequency * i) / sampleRate),
-  );
+  const input = createSignal({
+    frames: sampleRate,
+    frequency: signalFrequency,
+  });
   const output = process(
     new PeakingEq({
       sampleRate,
