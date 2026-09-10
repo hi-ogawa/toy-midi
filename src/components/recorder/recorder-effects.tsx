@@ -1,6 +1,6 @@
 import { useDraftInput } from "../../hooks/use-draft-input";
-import { createDefaultEq, EQ_LIMITS } from "../../lib/dsp/biquad-eq-node";
-import type { EqParameters, EqType } from "../../lib/dsp/eq";
+import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
+import { EQ_LIMITS, type EqParameters, type EqType } from "../../lib/dsp/eq";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
@@ -56,7 +56,7 @@ export function RecorderEffects({
         <EqParameter
           label="Frequency"
           unit="Hz"
-          limits={EQ_LIMITS.frequency}
+          limits={{ ...EQ_LIMITS.frequency, step: 1 }}
           scale="logarithmic"
           value={eq.frequency}
           onChange={(frequency) => onChange({ frequency })}
@@ -65,7 +65,7 @@ export function RecorderEffects({
           <EqParameter
             label="Gain"
             unit="dB"
-            limits={EQ_LIMITS.gainDb}
+            limits={{ ...EQ_LIMITS.gainDb, step: 0.5 }}
             value={gainToDb(eq.gain)}
             onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
           />
@@ -74,7 +74,7 @@ export function RecorderEffects({
           <EqParameter
             label="Q"
             unit=""
-            limits={EQ_LIMITS.q}
+            limits={{ ...EQ_LIMITS.q, step: 0.1 }}
             value={eq.q}
             onChange={(q) => onChange({ q })}
           />
@@ -109,38 +109,36 @@ function EqParameter({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const { min, max, step } = limits;
-  let config;
-  if (scale === "logarithmic") {
-    const logRange = Math.log(max / min);
-    config = {
-      sliderMin: 0,
-      sliderMax: 1,
-      sliderStep: 0.001,
-      // (log(value) - log(min)) / (log(max) - log(min))
-      // = log(value / min) / log(max / min); solve for value for the inverse.
-      toSliderValue: (value: number) => Math.log(value / min) / logRange,
-      toParameterValue: (position: number) =>
-        Number((min * Math.exp(position * logRange)).toFixed(2)),
-    };
-  } else {
-    config = {
-      sliderMin: min,
-      sliderMax: max,
-      sliderStep: step,
-      toSliderValue: (value: number) => value,
-      toParameterValue: (value: number) => value,
-    };
-  }
   const input = useDraftInput({
     value,
     onCommit: onChange,
-    min,
-    max,
-    step,
+    ...limits,
     parse: "float",
     format: formatParameter,
   });
+  let config = {
+    ...limits,
+    toSliderValue: (value: number) => value,
+    toParameterValue: (value: number) => value,
+  };
+  if (scale === "logarithmic") {
+    const logRange = Math.log(limits.max / limits.min);
+    config = {
+      min: 0,
+      max: 1,
+      // 1,000 steps across 20–20,000 Hz gives about 100 steps per octave.
+      // With frequency = min * (max / min)^position, n steps multiply it by
+      // (max / min)^(n * step). Doubling therefore requires
+      // (max / min)^(n * step) = 2, so n * step * log(max / min) = log(2).
+      // Thus n = log(2) / (0.001 * log(20000 / 20)) ≈ 100.
+      step: 0.001,
+      // (log(value) - log(min)) / (log(max) - log(min))
+      // = log(value / min) / log(max / min); solve for value for the inverse.
+      toSliderValue: (value: number) => Math.log(value / limits.min) / logRange,
+      toParameterValue: (position: number) =>
+        Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
+    };
+  }
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs">
@@ -157,10 +155,10 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
+        min={config.min}
+        max={config.max}
+        step={config.step}
         value={[config.toSliderValue(value)]}
-        min={config.sliderMin}
-        max={config.sliderMax}
-        step={config.sliderStep}
         onValueChange={([next]) => onChange(config.toParameterValue(next))}
       />
     </div>

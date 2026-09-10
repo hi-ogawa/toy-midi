@@ -1,3 +1,19 @@
+/**
+ * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
+ * The biquad coefficients follow from an analog peaking filter via the bilinear transform with center-frequency prewarping.
+ *
+ * Math walkthrough with GPT Astra (not verified against published literature) explains how delays and feedback shape the response, constructs a local boost or cut from gain and width constraints, and derives the sample-loop coefficients:
+ * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
+ */
+
+import { clamp, dbToGain } from "../music.ts";
+
+export const EQ_LIMITS = {
+  frequency: { min: 20, max: 20000 },
+  gainDb: { min: -18, max: 18 },
+  q: { min: 0.1, max: 18 },
+};
+
 export type EqType =
   | "peaking"
   | "low-shelf"
@@ -81,15 +97,27 @@ export class BiquadEq {
       update(
         0,
         Math.log(
-          Math.min(clamp(frequency, 20, 20000), this.sampleRate * 0.499),
+          Math.min(
+            clamp(frequency, EQ_LIMITS.frequency.min, EQ_LIMITS.frequency.max),
+            this.sampleRate * 0.499,
+          ),
         ),
       );
     }
     if (gain !== undefined) {
-      update(1, Math.log(clamp(gain, 10 ** (-18 / 20), 10 ** (18 / 20))));
+      update(
+        1,
+        Math.log(
+          clamp(
+            gain,
+            dbToGain(EQ_LIMITS.gainDb.min),
+            dbToGain(EQ_LIMITS.gainDb.max),
+          ),
+        ),
+      );
     }
     if (q !== undefined) {
-      update(2, Math.log(clamp(q, 0.1, 18)));
+      update(2, Math.log(clamp(q, EQ_LIMITS.q.min, EQ_LIMITS.q.max)));
     }
     if (bypass !== undefined) {
       update(3, bypass ? 0 : 1);
@@ -162,7 +190,6 @@ export class BiquadEq {
   }
 
   private updateCoefficients(): void {
-    // RBJ cookbook: https://www.w3.org/TR/audio-eq-cookbook/#formulae
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
     const cos = Math.cos(omega);
     const sin = Math.sin(omega);
@@ -258,8 +285,4 @@ export class BiquadEq {
 
 function isGainFilter(type: EqType): boolean {
   return type === "peaking" || type === "low-shelf" || type === "high-shelf";
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
