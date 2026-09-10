@@ -1,3 +1,11 @@
+/**
+ * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
+ * The biquad coefficients follow from an analog peaking filter via the bilinear transform with center-frequency prewarping.
+ *
+ * Math walkthrough with GPT Astra (not verified against published literature) explains how delays and feedback shape the response, constructs a local boost or cut from gain and width constraints, and derives the sample-loop coefficients:
+ * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
+ */
+
 export type EqParameters = {
   frequency: number;
   gain: number;
@@ -137,7 +145,6 @@ export class PeakingEq {
   }
 
   private updateCoefficients(): void {
-    // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
     const amplitude = Math.exp(this.current[1] / 2);
     const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
