@@ -4,7 +4,7 @@
  *
  * Theory: Robert Bristow-Johnson, "The Equivalence of Various Methods of Computing Biquad Coefficients for Audio Parametric Equalizers" (AES, 1994).
  * https://aes.org/publications/elibrary-page/?id=6326
- * Derivation walkthrough explains how delays and feedback shape the response, constructs a local boost or cut from gain and width constraints, and derives the sample-loop coefficients:
+ * Math walkthrough by GPT Astra (not verified against published literature) explains how delays and feedback shape the response, constructs a local boost or cut from gain and width constraints, and derives the sample-loop coefficients:
  * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
  */
 
