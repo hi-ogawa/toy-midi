@@ -1,7 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters, EqType } from "../../lib/dsp/biquad-eq";
+import {
+  type EqParameters,
+  type EqType,
+  isGainFilter,
+  usesQ,
+} from "../../lib/dsp/biquad-eq";
 import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
@@ -21,6 +26,8 @@ export function RecorderEffects({
   onClose: () => void;
 }) {
   const [slidersOpen, setSlidersOpen] = useState(false);
+  const hasGain = isGainFilter(eq.type);
+  const hasQ = usesQ(eq.type);
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -87,7 +94,7 @@ export function RecorderEffects({
             value={eq.frequency}
             onChange={(frequency) => onChange({ frequency })}
           />
-          {(eq.type === "peaking" || eq.type.endsWith("shelf")) && (
+          {hasGain && (
             <EqNumericInput
               label="Gain"
               unit="dB"
@@ -96,7 +103,7 @@ export function RecorderEffects({
               onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
             />
           )}
-          {!eq.type.endsWith("shelf") && (
+          {hasQ && (
             <EqNumericInput
               label="Q"
               unit=""
@@ -116,7 +123,7 @@ export function RecorderEffects({
               value={eq.frequency}
               onChange={(frequency) => onChange({ frequency })}
             />
-            {(eq.type === "peaking" || eq.type.endsWith("shelf")) && (
+            {hasGain && (
               <EqSlider
                 label="Gain"
                 unit="dB"
@@ -125,7 +132,7 @@ export function RecorderEffects({
                 onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
               />
             )}
-            {!eq.type.endsWith("shelf") && (
+            {hasQ && (
               <EqSlider
                 label="Q"
                 unit=""

@@ -7,6 +7,8 @@ import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   type EqParameters,
+  isGainFilter,
+  usesQ,
 } from "../../lib/dsp/biquad-eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
@@ -23,8 +25,8 @@ export function EqResponseGraph({
   onChange: (update: Partial<EqParameters>) => void;
 }) {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
-  const hasGain = eq.type === "peaking" || eq.type.endsWith("shelf");
-  const hasQ = !eq.type.endsWith("shelf");
+  const hasGain = isGainFilter(eq.type);
+  const hasQ = usesQ(eq.type);
   const coefficients = calculateBiquadEqCoefficients({
     type: eq.type,
     sampleRate: GRAPH_SAMPLE_RATE,

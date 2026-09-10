@@ -349,6 +349,10 @@ export function calculateBiquadEqResponse({
   return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
 }
 
-function isGainFilter(type: EqType): boolean {
+export function isGainFilter(type: EqType): boolean {
   return type === "peaking" || type === "low-shelf" || type === "high-shelf";
+}
+
+export function usesQ(type: EqType): boolean {
+  return type !== "low-shelf" && type !== "high-shelf";
 }
