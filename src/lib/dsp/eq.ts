@@ -1,8 +1,13 @@
 /**
  * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
- * Coefficient formulas: https://www.w3.org/TR/audio-eq-cookbook/#formulae
- * The derivation builds from complex waves, delays, and feedback to the RBJ coefficients via the bilinear transform with center-frequency prewarping.
- * Derivation: https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
+ * The biquad coefficients follow from an analog peaking filter via the bilinear transform with center-frequency prewarping.
+ *
+ * Theory: Robert Bristow-Johnson, "The Equivalence of Various Methods of Computing Biquad Coefficients for Audio Parametric Equalizers" (AES, 1994).
+ * https://aes.org/publications/elibrary-page/?id=6326
+ * Formula reference: Audio EQ Cookbook, which collects the coefficient formulas used here.
+ * https://www.w3.org/TR/audio-eq-cookbook/#formulae
+ * Explanatory walkthrough from complex waves, delays, and feedback to the peaking EQ coefficients:
+ * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
  */
 
 export type EqParameters = {
