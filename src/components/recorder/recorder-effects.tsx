@@ -31,12 +31,22 @@ export function RecorderEffects({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Peaking EQ</h3>
-          <button
-            onClick={() => onChange(createDefaultPeakingEq())}
-            className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
-          >
-            Reset
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={eq.bypass}
+                onChange={(event) => onChange({ bypass: event.target.checked })}
+              />
+              Bypass
+            </label>
+            <button
+              onClick={() => onChange(createDefaultPeakingEq())}
+              className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
+            >
+              Reset
+            </button>
+          </div>
         </div>
         <EqResponseGraph eq={eq} onChange={onChange} />
         <div className="grid grid-cols-3 gap-3">
@@ -74,14 +84,6 @@ export function RecorderEffects({
             onValueChange={([q]) => onChange({ q })}
           />
         </div>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={eq.bypass}
-            onChange={(event) => onChange({ bypass: event.target.checked })}
-          />
-          Bypass
-        </label>
       </div>
     </RecorderPanel>
   );
