@@ -90,26 +90,29 @@ function EqParameter({
   onChange: (value: number) => void;
 }) {
   const { min, max, step } = limits;
-  const config =
-    scale === "logarithmic"
-      ? {
-          sliderMin: 0,
-          sliderMax: 1,
-          sliderStep: 0.001,
-          // Start with geometric interpolation: value = min * (max / min) ** p.
-          // Taking logs and solving for p gives log(value / min) / log(max / min).
-          toSliderValue: (value: number) =>
-            Math.log10(value / min) / Math.log10(max / min),
-          toParameterValue: (position: number) =>
-            Number((min * (max / min) ** position).toFixed(2)),
-        }
-      : {
-          sliderMin: min,
-          sliderMax: max,
-          sliderStep: step,
-          toSliderValue: (value: number) => value,
-          toParameterValue: (value: number) => value,
-        };
+  let config;
+  if (scale === "logarithmic") {
+    const logMin = Math.log10(min);
+    const logMax = Math.log10(max);
+    config = {
+      sliderMin: 0,
+      sliderMax: 1,
+      sliderStep: 0.001,
+      // Normalize in log space; the inverse denormalizes before exponentiating.
+      toSliderValue: (value: number) =>
+        (Math.log10(value) - logMin) / (logMax - logMin),
+      toParameterValue: (position: number) =>
+        Number((10 ** (logMin + position * (logMax - logMin))).toFixed(2)),
+    };
+  } else {
+    config = {
+      sliderMin: min,
+      sliderMax: max,
+      sliderStep: step,
+      toSliderValue: (value: number) => value,
+      toParameterValue: (value: number) => value,
+    };
+  }
   const input = useDraftInput({
     value,
     onCommit: onChange,
