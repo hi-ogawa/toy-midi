@@ -1,7 +1,6 @@
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  DownloadIcon,
   HeadphonesIcon,
   MoreVerticalIcon,
   Settings2Icon,
@@ -154,14 +153,12 @@ export function CaptureTrackRow({
   inputToggleDisabled,
   muted,
   soloed,
-  takeDownloadDisabled,
   onGainChange,
   onInputSetup,
   onInputMonitoringChange,
   onInputToggle,
   onMutedChange,
   onSoloedChange,
-  onTakeDownload,
   onHeightChange,
   children,
 }: {
@@ -175,14 +172,12 @@ export function CaptureTrackRow({
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
-  takeDownloadDisabled: boolean;
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
-  onTakeDownload: () => void;
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
@@ -202,27 +197,6 @@ export function CaptureTrackRow({
           Capture
         </div>
         <div className="flex self-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-                title="Capture actions"
-                aria-label="Capture actions"
-              >
-                <MoreVerticalIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                data-testid="recorder-download-take"
-                disabled={takeDownloadDisabled}
-                onSelect={onTakeDownload}
-              >
-                <DownloadIcon />
-                Download recording
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button
             data-testid="recorder-input-toggle"
             disabled={inputToggleDisabled}

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
@@ -32,10 +31,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const takesToggle = page.getByTestId("recorder-takes-toggle");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takesToggle).toContainText("0");
-  const captureActions = page.getByRole("button", { name: "Capture actions" });
-  await captureActions.click();
-  await expect(page.getByTestId("recorder-download-take")).toBeDisabled();
-  await page.keyboard.press("Escape");
   await recordButton.click();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
@@ -64,9 +59,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
-  await captureActions.click();
-  await expect(page.getByTestId("recorder-download-take")).toBeEnabled();
-  await page.keyboard.press("Escape");
   expect(
     Number.parseFloat(await take.evaluate((element) => element.style.left)),
   ).toBeCloseTo(DEFAULT_PIXELS_PER_BEAT * 2, -2);
@@ -99,16 +91,6 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     afterStartTrim!.width - trimPixels,
     -1,
   );
-
-  // The resolved recording downloads as a timestamped WAV file.
-  const downloadPromise = page.waitForEvent("download");
-  await captureActions.click();
-  await page.getByTestId("recorder-download-take").click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^toy-midi-recording-.*\.wav$/);
-  const downloadPath = test.info().outputPath("take.wav");
-  await download.saveAs(downloadPath);
-  expect(readFileSync(downloadPath).subarray(0, 4).toString()).toBe("RIFF");
 
   // The completed take immediately joins normal transport playback.
   await playButton.click();
