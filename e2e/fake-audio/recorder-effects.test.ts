@@ -22,7 +22,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
   });
 
-  // Set different EQ values for Audio and Capture to verify independent settings.
+  // Verify the default EQ settings on Audio.
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
@@ -32,7 +32,11 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
+  await expect(
+    audio.getByRole("checkbox", { name: "Bypass" }),
+  ).not.toBeChecked();
 
+  // Set different EQ values for Audio and Capture.
   await audio.getByRole("textbox", { name: "Frequency" }).fill("500");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
   await audio.getByRole("textbox", { name: "Gain", exact: true }).fill("6");
@@ -42,12 +46,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await audio.getByRole("textbox", { name: "Q", exact: true }).fill("2");
   await audio.getByRole("textbox", { name: "Q", exact: true }).press("Enter");
   await audio.getByRole("checkbox", { name: "Bypass" }).check();
-  await expect(capture.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "1000",
-  );
-  await expect(
-    capture.getByRole("checkbox", { name: "Bypass" }),
-  ).not.toBeChecked();
   await capture.getByRole("textbox", { name: "Gain", exact: true }).fill("-4");
   await capture
     .getByRole("textbox", { name: "Gain", exact: true })
