@@ -10,10 +10,13 @@ export class PeakingEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
+  // Slots are log frequency, log gain, log Q, and linear wet mix.
   private readonly current = new Float64Array(4);
   private readonly target = new Float64Array(4);
   private remaining = 0;
+  // Per-channel Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
   private readonly history: Float64Array[];
+  // Biquad coefficients normalized to a0 = 1.
   private b0 = 1;
   private b1 = 0;
   private b2 = 0;
