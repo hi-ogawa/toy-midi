@@ -8,7 +8,6 @@ import {
   calculatePeakingEqResponse,
   type EqParameters,
 } from "../../lib/dsp/eq";
-import { EQ_LIMITS } from "../../lib/dsp/eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
@@ -62,8 +61,8 @@ export function EqResponseGraph({
     event.preventDefault();
     const q = clamp(
       eq.q * Math.exp(event.deltaY * 0.002),
-      EQ_LIMITS.q.min,
-      EQ_LIMITS.q.max,
+      EQ_CONTROL_LIMITS.q.min,
+      EQ_CONTROL_LIMITS.q.max,
     );
     onChange({ q });
   });
@@ -178,22 +177,22 @@ export function EqResponseGraph({
 }
 
 function frequencyToGraphX(frequency: number): number {
-  const { min, max } = EQ_LIMITS.frequency;
+  const { min, max } = EQ_CONTROL_LIMITS.frequency;
   return Math.log(frequency / min) / Math.log(max / min);
 }
 
 function graphXToFrequency(x: number): number {
-  const { min, max } = EQ_LIMITS.frequency;
+  const { min, max } = EQ_CONTROL_LIMITS.frequency;
   return min * (max / min) ** x;
 }
 
 function gainDbToGraphY(gainDb: number): number {
-  const { min, max } = EQ_LIMITS.gainDb;
+  const { min, max } = EQ_CONTROL_LIMITS.gainDb;
   return (max - gainDb) / (max - min);
 }
 
 function graphYToGainDb(y: number): number {
-  const { min, max } = EQ_LIMITS.gainDb;
+  const { min, max } = EQ_CONTROL_LIMITS.gainDb;
   return max - y * (max - min);
 }
 
