@@ -50,6 +50,22 @@ export function RecorderEffects({
             >
               Reset
             </button>
+            <button
+              type="button"
+              title={slidersOpen ? "Hide sliders" : "Show sliders"}
+              aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
+              aria-expanded={slidersOpen}
+              aria-controls={slidersId}
+              onClick={() => setSlidersOpen((open) => !open)}
+              className="flex h-7 items-center gap-1 rounded border border-neutral-600 px-2 text-neutral-300 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-blue-300"
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              {slidersOpen ? (
+                <ChevronDown className="size-3" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="size-3" aria-hidden="true" />
+              )}
+            </button>
           </div>
         </div>
         <EqResponseGraph eq={eq} onChange={onChange} />
@@ -76,53 +92,37 @@ export function RecorderEffects({
             onChange={(q) => onChange({ q })}
           />
         </div>
-        <div className="space-y-4 border-t border-neutral-700 pt-4">
-          <div id={slidersId} hidden={!slidersOpen} className="space-y-4">
-            {slidersOpen && (
-              <>
-                <EqSlider
-                  label="Frequency"
-                  unit="Hz"
-                  limits={EQ_LIMITS.frequency}
-                  scale="logarithmic"
-                  value={eq.frequency}
-                  onChange={(frequency) => onChange({ frequency })}
-                />
-                <EqSlider
-                  label="Gain"
-                  unit="dB"
-                  limits={EQ_LIMITS.gainDb}
-                  value={gainToDb(eq.gain)}
-                  onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-                />
-                <EqSlider
-                  label="Q"
-                  unit=""
-                  limits={EQ_LIMITS.q}
-                  value={eq.q}
-                  onChange={(q) => onChange({ q })}
-                />
-              </>
-            )}
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              title={slidersOpen ? "Hide sliders" : "Show sliders"}
-              aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
-              aria-expanded={slidersOpen}
-              aria-controls={slidersId}
-              onClick={() => setSlidersOpen((open) => !open)}
-              className="flex h-7 items-center gap-1 rounded border border-neutral-600 px-2 text-neutral-300 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-blue-300"
-            >
-              <SlidersHorizontal className="size-4" aria-hidden="true" />
-              {slidersOpen ? (
-                <ChevronDown className="size-3" aria-hidden="true" />
-              ) : (
-                <ChevronRight className="size-3" aria-hidden="true" />
-              )}
-            </button>
-          </div>
+        <div
+          id={slidersId}
+          hidden={!slidersOpen}
+          className="space-y-4 border-t border-neutral-700 pt-4"
+        >
+          {slidersOpen && (
+            <>
+              <EqSlider
+                label="Frequency"
+                unit="Hz"
+                limits={EQ_LIMITS.frequency}
+                scale="logarithmic"
+                value={eq.frequency}
+                onChange={(frequency) => onChange({ frequency })}
+              />
+              <EqSlider
+                label="Gain"
+                unit="dB"
+                limits={EQ_LIMITS.gainDb}
+                value={gainToDb(eq.gain)}
+                onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+              />
+              <EqSlider
+                label="Q"
+                unit=""
+                limits={EQ_LIMITS.q}
+                value={eq.q}
+                onChange={(q) => onChange({ q })}
+              />
+            </>
+          )}
         </div>
       </div>
     </RecorderPanel>

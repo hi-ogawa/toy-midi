@@ -250,7 +250,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(mixer).toHaveCount(0);
 });
 
-test("expands EQ sliders with a stationary footer toggle", async ({ page }) => {
+test("expands EQ sliders from the header", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await createRecorderProject(page);
   await page.getByTestId("recorder-mixer-button").click();
@@ -261,12 +261,9 @@ test("expands EQ sliders with a stationary footer toggle", async ({ page }) => {
   const toggle = panel.getByRole("button", { name: /sliders/ });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(panel.getByRole("slider")).toHaveCount(0);
-  const initialBounds = await toggle.boundingBox();
-  expect(initialBounds).toBeTruthy();
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(panel.getByRole("slider")).toHaveCount(3);
-  expect(await toggle.boundingBox()).toEqual(initialBounds);
   await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
 
   const frequency = panel.getByRole("slider", {
@@ -303,7 +300,6 @@ test("expands EQ sliders with a stationary footer toggle", async ({ page }) => {
   });
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  expect(await toggle.boundingBox()).toEqual(initialBounds);
   await expect(panel.getByRole("slider")).toHaveCount(0);
   await expect(
     panel.getByRole("textbox", { name: "Q", exact: true }),
