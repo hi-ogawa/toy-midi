@@ -228,16 +228,16 @@ export function calculatePeakingEqResponse({
   sampleRate: number;
   frequency: number;
 }): number {
+  const { b0, b1, b2, a1, a2 } = coefficients;
   const omega = (2 * Math.PI * frequency) / sampleRate;
   const cos1 = Math.cos(omega);
   const sin1 = Math.sin(omega);
   const cos2 = Math.cos(2 * omega);
   const sin2 = Math.sin(2 * omega);
-  const numeratorReal =
-    coefficients.b0 + coefficients.b1 * cos1 + coefficients.b2 * cos2;
-  const numeratorImag = -coefficients.b1 * sin1 - coefficients.b2 * sin2;
-  const denominatorReal = 1 + coefficients.a1 * cos1 + coefficients.a2 * cos2;
-  const denominatorImag = -coefficients.a1 * sin1 - coefficients.a2 * sin2;
+  const numeratorReal = b0 + b1 * cos1 + b2 * cos2;
+  const numeratorImag = -b1 * sin1 - b2 * sin2;
+  const denominatorReal = 1 + a1 * cos1 + a2 * cos2;
+  const denominatorImag = -a1 * sin1 - a2 * sin2;
   const magnitudeSquared =
     (numeratorReal ** 2 + numeratorImag ** 2) /
     (denominatorReal ** 2 + denominatorImag ** 2);
