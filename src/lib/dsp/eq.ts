@@ -9,7 +9,7 @@ type EqParameters = {
 export class PeakingEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
-  // Log frequency, linear gain, log Q, and wet mix.
+  // Log frequency, log gain, log Q, and wet mix.
   private readonly current = new Float64Array(4);
   private readonly target = new Float64Array(4);
   private remaining = 0;
@@ -67,7 +67,7 @@ export class PeakingEq {
       );
     }
     if (gain !== undefined) {
-      update(1, clamp(gain, 10 ** (-18 / 20), 10 ** (18 / 20)));
+      update(1, Math.log(clamp(gain, 10 ** (-18 / 20), 10 ** (18 / 20))));
     }
     if (q !== undefined) {
       update(2, Math.log(clamp(q, 0.1, 18)));
@@ -121,7 +121,7 @@ export class PeakingEq {
         // Direct form I retains input/output history across coefficient changes.
         // At unity gain the exact identity also removes any residual filter tail.
         const y =
-          this.current[1] === 1
+          this.current[1] === 0
             ? x
             : this.b0 * x +
               this.b1 * h[0] +
@@ -142,7 +142,7 @@ export class PeakingEq {
   private updateCoefficients(): void {
     // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
-    const amplitude = Math.sqrt(this.current[1]);
+    const amplitude = Math.exp(this.current[1] / 2);
     const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
     const a0 = 1 + alpha / amplitude;
     this.b0 = (1 + alpha * amplitude) / a0;
