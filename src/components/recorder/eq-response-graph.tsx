@@ -15,7 +15,7 @@ import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
 const GRAPH_SAMPLE_RATE = 48000;
 const GRAPH_WIDTH = 320;
-const GRAPH_HEIGHT = 184;
+const GRAPH_HEIGHT = 200;
 const GRAPH_BOUNDS = { left: 34, right: 8, top: 8, bottom: 22 };
 const FREQUENCY_TICKS = [20, 100, 1000, 10000, 20000];
 const GAIN_TICKS = [-18, -12, -6, 0, 6, 12, 18];
