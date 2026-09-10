@@ -9,7 +9,7 @@ type EqParameters = {
 export class PeakingEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
-  // Log frequency, log gain, log Q, and wet mix.
+  // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   private readonly current = new Float64Array(4);
   private readonly target = new Float64Array(4);
   private remaining = 0;
