@@ -124,13 +124,13 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   const frequency = await frequencyInput.inputValue();
   const gain = await gainInput.inputValue();
 
-  // Scroll Q up and back down while frequency and gain stay unchanged.
+  // Positive wheel delta increases Q, matching the timeline pan direction.
   const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
-  await page.mouse.wheel(0, -100);
+  await page.mouse.wheel(0, 100);
   await expect
     .poll(async () => Number(await qInput.inputValue()))
     .toBeGreaterThan(1);
-  await page.mouse.wheel(0, 100);
+  await page.mouse.wheel(0, -100);
   await expect(qInput).toHaveValue("1");
   await expect(frequencyInput).toHaveValue(frequency);
   await expect(gainInput).toHaveValue(gain);

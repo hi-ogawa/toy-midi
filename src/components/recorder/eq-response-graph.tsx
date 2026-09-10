@@ -61,7 +61,7 @@ export function EqResponseGraph({
     }
     event.preventDefault();
     const q = clamp(
-      eq.q * Math.exp(-event.deltaY * 0.002),
+      eq.q * Math.exp(event.deltaY * 0.002),
       EQ_LIMITS.q.min,
       EQ_LIMITS.q.max,
     );
