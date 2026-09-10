@@ -95,15 +95,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     /stroke-blue-400\/35/,
   );
   await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
-  const qSlider = audio.getByRole("slider", { name: "Q", exact: true });
-  await qSlider.press("Home");
-  await expect(
-    audio.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("0.1");
-  await qSlider.press("End");
-  await expect(
-    audio.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("18");
   await audio.getByRole("textbox", { name: "Frequency" }).fill("500");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
   await audio.getByRole("textbox", { name: "Gain", exact: true }).fill("6");

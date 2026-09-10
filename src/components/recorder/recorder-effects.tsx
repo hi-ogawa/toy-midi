@@ -5,7 +5,6 @@ import {
   EQ_LIMITS,
 } from "../../lib/dsp/peaking-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
-import { Slider } from "../ui/slider";
 import { EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
@@ -75,18 +74,6 @@ export function RecorderEffects({
             limits={EQ_LIMITS.q}
             value={eq.q}
             onChange={(q) => onChange({ q })}
-          />
-        </div>
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">Q · Bandwidth</div>
-          <Slider
-            aria-label="Q"
-            aria-valuetext={formatParameter(eq.q)}
-            value={[eq.q]}
-            min={EQ_LIMITS.q.min}
-            max={EQ_LIMITS.q.max}
-            step={EQ_LIMITS.q.step}
-            onValueChange={([q]) => onChange({ q })}
           />
         </div>
       </div>
