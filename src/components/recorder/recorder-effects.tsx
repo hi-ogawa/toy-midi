@@ -48,7 +48,12 @@ export function RecorderEffects({
             </button>
           </div>
         </div>
-        <EqResponseGraph eq={eq} onChange={onChange} />
+        <div className="space-y-1.5">
+          <EqResponseGraph eq={eq} onChange={onChange} />
+          <p className="text-[11px] text-muted-foreground">
+            Drag for frequency/gain · Scroll for Q · Shift for fine Q
+          </p>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           <EqNumericInput
             label="Frequency"

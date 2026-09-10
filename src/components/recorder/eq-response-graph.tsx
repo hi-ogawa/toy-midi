@@ -1,4 +1,9 @@
-import type { PointerEvent as ReactPointerEvent } from "react";
+import {
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useEffectEvent,
+  useRef,
+} from "react";
 import {
   calculatePeakingEqCoefficients,
   calculatePeakingEqResponseDb,
@@ -21,6 +26,29 @@ export function EqResponseGraph({
   eq: EqParameters;
   onChange: (update: Partial<EqParameters>) => void;
 }) {
+  const graphRef = useRef<SVGSVGElement | null>(null);
+  const handleWheel = useEffectEvent((event: WheelEvent) => {
+    if (event.ctrlKey || event.metaKey || event.deltaY === 0) {
+      return;
+    }
+    event.preventDefault();
+    const unit =
+      event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? GRAPH_HEIGHT : 1;
+    const sensitivity = event.shiftKey ? 0.0002 : 0.002;
+    const q = clamp(
+      eq.q * Math.exp(-event.deltaY * unit * sensitivity),
+      EQ_LIMITS.q.min,
+      EQ_LIMITS.q.max,
+    );
+    onChange({ q });
+  });
+  useEffect(() => {
+    const graph = graphRef.current!;
+    // A non-passive listener consumes Q gestures without scrolling the panel.
+    graph.addEventListener("wheel", handleWheel, { passive: false });
+    return () => graph.removeEventListener("wheel", handleWheel);
+  }, []);
+
   const coefficients = calculatePeakingEqCoefficients({
     sampleRate: GRAPH_SAMPLE_RATE,
     frequency: eq.frequency,
@@ -65,6 +93,7 @@ export function EqResponseGraph({
 
   return (
     <svg
+      ref={graphRef}
       data-testid="eq-response-graph"
       aria-label="EQ response graph"
       viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
