@@ -5,7 +5,6 @@ import type { EqParameters } from "../dsp/eq.ts";
 import {
   createDefaultPeakingEq,
   ensurePeakingEqWorklet,
-  PeakingEqNode,
 } from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
@@ -25,7 +24,6 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
@@ -949,32 +947,6 @@ export class RecorderRuntime {
   private detachYouTubePlayer(): void {
     this.attachedYouTubePlayer?.playback.dispose();
     this.attachedYouTubePlayer = undefined;
-  }
-
-  async renderComp(): Promise<AudioBuffer | undefined> {
-    const buffer = renderTakeComp({
-      context: this.ensureContext(),
-      regions: this.store.get().takeRegions,
-    });
-    if (!buffer) {
-      return undefined;
-    }
-    const context = new OfflineAudioContext({
-      numberOfChannels: buffer.numberOfChannels,
-      length: buffer.length,
-      sampleRate: buffer.sampleRate,
-    });
-    await ensurePeakingEqWorklet(context);
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    const equalizer = new PeakingEqNode({
-      context,
-      channelCount: buffer.numberOfChannels,
-      parameters: this.store.get().recordingTrack.eq,
-    });
-    source.connect(equalizer).connect(context.destination);
-    source.start();
-    return context.startRendering();
   }
 
   async renderMix(): Promise<AudioBuffer> {

@@ -10,7 +10,6 @@ import {
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { beatsToSeconds } from "../../lib/timeline";
-import { encodeWav } from "../../lib/wav";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
@@ -457,9 +456,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
-              takeDownloadDisabled={
-                takes.length === 0 || isRecording || isProcessing
-              }
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onInputSetup={() => setIsInputSetupOpen(true)}
               onInputMonitoringChange={(monitoring) =>
@@ -473,19 +469,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setRecordingTrackHeight(height)
               }
-              onTakeDownload={async () => {
-                const comp = await runtime.renderComp();
-                if (!comp) {
-                  return;
-                }
-                downloadBlob(
-                  encodeWav(comp),
-                  buildExportFileName({
-                    baseName: "toy-midi-recording",
-                    extension: "wav",
-                  }),
-                );
-              }}
             >
               <TakeTimelineLane
                 takes={takes}
