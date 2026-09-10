@@ -36,61 +36,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("checkbox", { name: "Bypass" }),
   ).not.toBeChecked();
 
-  // The graph and numeric controls are available together in both panels.
-  await expect(audio.getByTestId("eq-response-graph")).toBeVisible();
-  await expect(capture.getByTestId("eq-response-graph")).toBeVisible();
-  const graphBounds = await audio
-    .getByTestId("eq-response-graph")
-    .boundingBox();
-  expect(graphBounds).toBeTruthy();
-  const targetFrequency = 2000;
-  const targetGainDb = 9.2;
-  const startX =
-    34 + (Math.log(1000 / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
-  const startY = 8 + (18 / 36) * (152 - 8 - 22);
-  const graphX =
-    34 +
-    (Math.log(targetFrequency / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
-  const graphY = 8 + ((18 - targetGainDb) / 36) * (152 - 8 - 22);
-  await page.mouse.move(
-    graphBounds!.x + (startX / 320) * graphBounds!.width,
-    graphBounds!.y + (startY / 152) * graphBounds!.height,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    graphBounds!.x + (graphX / 320) * graphBounds!.width,
-    graphBounds!.y + (graphY / 152) * graphBounds!.height,
-  );
-  await page.mouse.up();
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "2000",
-  );
-  await expect(
-    audio.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("9.2");
-  // Wheel adjusts bandwidth independently.
-  const qInput = audio.getByRole("textbox", { name: "Q", exact: true });
-  await page.mouse.wheel(0, -100);
-  await expect
-    .poll(async () => Number(await qInput.inputValue()))
-    .toBeGreaterThan(1);
-  await page.mouse.wheel(0, 100);
-  await expect(qInput).toHaveValue("1");
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "2000",
-  );
-  await expect(
-    audio.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("9.2");
-  await expect(
-    capture.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("1");
-  await audio.getByRole("checkbox", { name: "Bypass" }).check();
-  await expect(audio.getByTestId("eq-response-curve")).toHaveClass(
-    /stroke-blue-400\/35/,
-  );
-  await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
-
   // Set different EQ values for Audio and Capture.
   await audio.getByRole("textbox", { name: "Frequency" }).fill("500");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
@@ -154,6 +99,81 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await page.screenshot({ path: test.info().outputPath("effects.png") });
+});
+
+test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
+  // Open independent effects panels for backing audio and Capture.
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await createRecorderProject(page);
+  await page.getByTitle("Add empty audio track").click();
+  await page.getByTestId("recorder-mixer-button").click();
+  await page
+    .getByRole("button", { name: "Audio 1 effects", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const audio = page.getByTestId("recorder-effects-panel").filter({
+    has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
+  });
+  const capture = page.getByTestId("recorder-effects-panel").filter({
+    has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
+  });
+
+  // The graph and numeric controls are available together in both panels.
+  await expect(audio.getByTestId("eq-response-graph")).toBeVisible();
+  await expect(capture.getByTestId("eq-response-graph")).toBeVisible();
+  const graphBounds = await audio
+    .getByTestId("eq-response-graph")
+    .boundingBox();
+  expect(graphBounds).toBeTruthy();
+  const targetFrequency = 2000;
+  const targetGainDb = 9.2;
+  const startX =
+    34 + (Math.log(1000 / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
+  const startY = 8 + (18 / 36) * (152 - 8 - 22);
+  const graphX =
+    34 +
+    (Math.log(targetFrequency / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
+  const graphY = 8 + ((18 - targetGainDb) / 36) * (152 - 8 - 22);
+  await page.mouse.move(
+    graphBounds!.x + (startX / 320) * graphBounds!.width,
+    graphBounds!.y + (startY / 152) * graphBounds!.height,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    graphBounds!.x + (graphX / 320) * graphBounds!.width,
+    graphBounds!.y + (graphY / 152) * graphBounds!.height,
+  );
+  await page.mouse.up();
+  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "2000",
+  );
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveValue("9.2");
+  // Wheel adjusts bandwidth independently.
+  const qInput = audio.getByRole("textbox", { name: "Q", exact: true });
+  await page.mouse.wheel(0, -100);
+  await expect
+    .poll(async () => Number(await qInput.inputValue()))
+    .toBeGreaterThan(1);
+  await page.mouse.wheel(0, 100);
+  await expect(qInput).toHaveValue("1");
+  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "2000",
+  );
+  await expect(
+    audio.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveValue("9.2");
+  await expect(
+    capture.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("1");
+  await audio.getByRole("checkbox", { name: "Bypass" }).check();
+  await expect(audio.getByTestId("eq-response-curve")).toHaveClass(
+    /stroke-blue-400\/35/,
+  );
+  await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
 });
 
 test("toggles multiple track panels and closes them with the mixer or track", async ({
