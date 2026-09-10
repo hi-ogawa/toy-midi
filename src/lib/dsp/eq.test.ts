@@ -15,56 +15,6 @@ const DEFAULT_PARAMETERS: EqParameters = {
   bypass: false,
 };
 
-describe(calculatePeakingEqResponseDb, () => {
-  it.each([-18, -6, 0, 6, 18])(
-    "returns %s dB at the center frequency",
-    (gainDb) => {
-      expect(
-        calculateResponse({
-          gainDb,
-          responseFrequency: 1000,
-          eqFrequency: 1000,
-          q: 1,
-        }),
-      ).toBeCloseTo(gainDb, 10);
-    },
-  );
-
-  it("matches the processed response away from the center frequency", () => {
-    const parameters = {
-      gainDb: 12,
-      responseFrequency: 2400,
-      eqFrequency: 1000,
-      q: 2,
-    };
-    expect(calculateResponse(parameters)).toBeCloseTo(
-      measureResponse({
-        gain: dbToGain(parameters.gainDb),
-        signalFrequency: parameters.responseFrequency,
-        eqFrequency: parameters.eqFrequency,
-        q: parameters.q,
-      }),
-      3,
-    );
-  });
-
-  it("reflects Q in the response bandwidth", () => {
-    const wide = calculateResponse({
-      gainDb: 12,
-      responseFrequency: 1500,
-      eqFrequency: 1000,
-      q: 1,
-    });
-    const narrow = calculateResponse({
-      gainDb: 12,
-      responseFrequency: 1500,
-      eqFrequency: 1000,
-      q: 8,
-    });
-    expect(wide).toBeGreaterThan(narrow);
-  });
-});
-
 describe(PeakingEq, () => {
   it.each([-18, -6, 6, 18])(
     "applies %s dB at the center frequency",
@@ -166,17 +116,55 @@ describe(PeakingEq, () => {
   });
 });
 
-function createSignal({
-  frames,
-  frequency,
-}: {
-  frames: number;
-  frequency: number;
-}): Float32Array {
-  return Float32Array.from({ length: frames }, (_, i) =>
-    Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
+describe(calculatePeakingEqResponseDb, () => {
+  it.each([-18, -6, 0, 6, 18])(
+    "returns %s dB at the center frequency",
+    (gainDb) => {
+      expect(
+        calculateResponse({
+          gainDb,
+          responseFrequency: 1000,
+          eqFrequency: 1000,
+          q: 1,
+        }),
+      ).toBeCloseTo(gainDb, 10);
+    },
   );
-}
+
+  it("matches the processed response away from the center frequency", () => {
+    const parameters = {
+      gainDb: 12,
+      responseFrequency: 2400,
+      eqFrequency: 1000,
+      q: 2,
+    };
+    expect(calculateResponse(parameters)).toBeCloseTo(
+      measureResponse({
+        gain: dbToGain(parameters.gainDb),
+        signalFrequency: parameters.responseFrequency,
+        eqFrequency: parameters.eqFrequency,
+        q: parameters.q,
+      }),
+      3,
+    );
+  });
+
+  it("reflects Q in the response bandwidth", () => {
+    const wide = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 1,
+    });
+    const narrow = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 8,
+    });
+    expect(wide).toBeGreaterThan(narrow);
+  });
+});
 
 function calculateResponse({
   gainDb,
@@ -200,6 +188,18 @@ function calculateResponse({
     sampleRate: SAMPLE_RATE,
     frequency: responseFrequency,
   });
+}
+
+function createSignal({
+  frames,
+  frequency,
+}: {
+  frames: number;
+  frequency: number;
+}): Float32Array {
+  return Float32Array.from({ length: frames }, (_, i) =>
+    Math.sin((2 * Math.PI * frequency * i) / SAMPLE_RATE),
+  );
 }
 
 function process(eq: PeakingEq, input: Float32Array): Float32Array {
