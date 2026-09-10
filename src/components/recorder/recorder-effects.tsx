@@ -89,14 +89,13 @@ function EqParameter({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const { min, max } = limits;
   let config = {
     ...limits,
     toSliderValue: (value: number) => value,
     toParameterValue: (value: number) => value,
   };
   if (scale === "logarithmic") {
-    const logRange = Math.log(max / min);
+    const logRange = Math.log(limits.max / limits.min);
     config = {
       min: 0,
       max: 1,
@@ -105,9 +104,9 @@ function EqParameter({
       step: 0.001,
       // (log(value) - log(min)) / (log(max) - log(min))
       // = log(value / min) / log(max / min); solve for value for the inverse.
-      toSliderValue: (value: number) => Math.log(value / min) / logRange,
+      toSliderValue: (value: number) => Math.log(value / limits.min) / logRange,
       toParameterValue: (position: number) =>
-        Number((min * Math.exp(position * logRange)).toFixed(2)),
+        Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
     };
   }
   const input = useDraftInput({
