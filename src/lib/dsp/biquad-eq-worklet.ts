@@ -1,6 +1,6 @@
-import { type EqParameters, PeakingEq } from "./eq.ts";
+import { type EqParameters, BiquadEq } from "./eq.ts";
 
-const PROCESSOR_NAME = "peaking-eq";
+const PROCESSOR_NAME = "biquad-eq";
 
 type ProcessorOptions = {
   channelCount: number;
@@ -18,14 +18,14 @@ declare function registerProcessor(
   processorCtor: typeof AudioWorkletProcessor,
 ): void;
 
-class PeakingEqProcessor extends AudioWorkletProcessor {
-  private readonly eq: PeakingEq;
+class BiquadEqProcessor extends AudioWorkletProcessor {
+  private readonly eq: BiquadEq;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
     const { channelCount, parameters } = options!
       .processorOptions as ProcessorOptions;
-    this.eq = new PeakingEq({ sampleRate, channelCount, ...parameters });
+    this.eq = new BiquadEq({ sampleRate, channelCount, ...parameters });
     this.port.onmessage = (event: MessageEvent<Partial<EqParameters>>) => {
       this.eq.setParameters(event.data);
     };
@@ -42,4 +42,4 @@ class PeakingEqProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor(PROCESSOR_NAME, PeakingEqProcessor);
+registerProcessor(PROCESSOR_NAME, BiquadEqProcessor);

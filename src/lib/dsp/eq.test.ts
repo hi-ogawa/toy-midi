@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { dbToGain, gainToDb } from "../music";
 import {
-  calculatePeakingEqCoefficients,
-  calculatePeakingEqResponse,
+  calculateBiquadEqCoefficients,
+  calculateBiquadEqResponse,
   type EqParameters,
-  PeakingEq,
+  BiquadEq,
 } from "./eq";
 
 const SAMPLE_RATE = 48000;
@@ -15,7 +15,7 @@ const DEFAULT_PARAMETERS: EqParameters = {
   bypass: false,
 };
 
-describe(PeakingEq, () => {
+describe(BiquadEq, () => {
   it.each([-18, -6, 6, 18])(
     "applies %s dB at the center frequency",
     (gainDb) => {
@@ -65,7 +65,7 @@ describe(PeakingEq, () => {
   });
 
   it("ramps gain rather than switching immediately", () => {
-    const eq = new PeakingEq({
+    const eq = new BiquadEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       ...DEFAULT_PARAMETERS,
@@ -74,7 +74,7 @@ describe(PeakingEq, () => {
     const input = createSignal({ frames: 2000, frequency: 1000 });
     const ramped = process(eq, input);
     const immediate = process(
-      new PeakingEq({
+      new BiquadEq({
         sampleRate: SAMPLE_RATE,
         channelCount: 1,
         ...DEFAULT_PARAMETERS,
@@ -93,7 +93,7 @@ describe(PeakingEq, () => {
   });
 
   it("resets history and settles pending parameters", () => {
-    const eq = new PeakingEq({
+    const eq = new BiquadEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       ...DEFAULT_PARAMETERS,
@@ -102,7 +102,7 @@ describe(PeakingEq, () => {
     process(eq, createSignal({ frames: 100, frequency: 1000 }));
     eq.setParameters({ frequency: 3000, gain: dbToGain(-6), q: 3 });
     eq.reset();
-    const fresh = new PeakingEq({
+    const fresh = new BiquadEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: 3000,
@@ -116,7 +116,7 @@ describe(PeakingEq, () => {
   });
 });
 
-describe(calculatePeakingEqResponse, () => {
+describe(calculateBiquadEqResponse, () => {
   it.each([-18, -6, 0, 6, 18])(
     "returns %s dB at the center frequency",
     (gainDb) => {
@@ -177,14 +177,14 @@ function calculateResponse({
   eqFrequency: number;
   q: number;
 }): number {
-  const coefficients = calculatePeakingEqCoefficients({
+  const coefficients = calculateBiquadEqCoefficients({
     sampleRate: SAMPLE_RATE,
     frequency: eqFrequency,
     gain: dbToGain(gainDb),
     q,
   });
   return gainToDb(
-    calculatePeakingEqResponse({
+    calculateBiquadEqResponse({
       coefficients,
       sampleRate: SAMPLE_RATE,
       frequency: responseFrequency,
@@ -204,7 +204,7 @@ function createSignal({
   );
 }
 
-function process(eq: PeakingEq, input: Float32Array): Float32Array {
+function process(eq: BiquadEq, input: Float32Array): Float32Array {
   const output = new Float32Array(input.length);
   eq.process({ input: [input], output: [output] });
   return output;
@@ -226,7 +226,7 @@ function measureResponse({
     frequency: signalFrequency,
   });
   const output = process(
-    new PeakingEq({
+    new BiquadEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
       frequency: eqFrequency,
