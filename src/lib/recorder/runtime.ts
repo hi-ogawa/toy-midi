@@ -19,7 +19,6 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import { renderTakeComp } from "./take-comp.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
@@ -910,13 +909,6 @@ export class RecorderRuntime {
   private detachYouTubePlayer(): void {
     this.attachedYouTubePlayer?.playback.dispose();
     this.attachedYouTubePlayer = undefined;
-  }
-
-  renderComp(): AudioBuffer | undefined {
-    return renderTakeComp({
-      context: this.ensureContext(),
-      regions: this.store.get().takeRegions,
-    });
   }
 
   async renderMix(): Promise<AudioBuffer> {
