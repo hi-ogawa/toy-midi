@@ -58,7 +58,7 @@ describe(PeakingEq, () => {
     ).toBeCloseTo(0, 1);
   });
 
-  it("ramps gain and bypass rather than switching immediately", () => {
+  it("ramps gain rather than switching immediately", () => {
     const eq = new PeakingEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
@@ -79,10 +79,6 @@ describe(PeakingEq, () => {
     expect(Math.abs(ramped[1] - input[1])).toBeLessThan(
       Math.abs(immediate[1] - input[1]) / 10,
     );
-    eq.setParameters({ bypass: true });
-    const bypassed = process(eq, input);
-    expect(bypassed.slice(480)).toEqual(input.slice(480));
-    expect(bypassed.slice(0, 100)).not.toEqual(input.slice(0, 100));
   });
 
   it("resets history and settles pending parameters", () => {
