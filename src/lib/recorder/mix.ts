@@ -1,3 +1,4 @@
+import { processPeakingEqBuffer, type PeakingEqState } from "./eq.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {
@@ -8,7 +9,7 @@ interface MixRegion {
 }
 
 interface RecorderMix {
-  tracks: { gain: number; regions: MixRegion[] }[];
+  tracks: { eq: PeakingEqState; gain: number; regions: MixRegion[] }[];
   masterGain: number;
   duration: number;
 }
@@ -18,6 +19,7 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const { audioTrackGains, recordingGain } = deriveTrackMix(state);
   const tracks: RecorderMix["tracks"] = state.audioTracks.map(
     (track, index) => ({
+      eq: track.eq,
       gain: audioTrackGains[index]!,
       regions: track.clip
         ? [
@@ -32,6 +34,7 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
     }),
   );
   tracks.push({
+    eq: state.recordingTrack.eq,
     gain: recordingGain,
     regions: state.takeRegions.flatMap((region) =>
       region.take.buffer
@@ -90,9 +93,15 @@ export async function renderRecorderMix({
     gain.connect(master);
     for (const region of track.regions) {
       const source = context.createBufferSource();
-      source.buffer = region.buffer;
+      source.buffer = processPeakingEqBuffer({
+        context,
+        buffer: region.buffer,
+        eq: track.eq,
+        offset: region.offset,
+        duration: region.duration,
+      });
       source.connect(gain);
-      source.start(region.start, region.offset, region.duration);
+      source.start(region.start);
     }
   }
   return context.startRendering();

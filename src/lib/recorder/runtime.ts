@@ -1,6 +1,7 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
+import { ensurePeakingEqWorklet } from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
@@ -9,7 +10,9 @@ import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import {
   createDefaultPeakingEq,
+  createPeakingEqParameters,
   normalizePeakingEq,
+  processPeakingEqBuffer,
   type PeakingEqState,
 } from "./eq";
 import { RecorderMetronome } from "./metronome.ts";
@@ -537,10 +540,13 @@ export class RecorderRuntime {
     id: string;
     update: Partial<PeakingEqState>;
   }): void {
-    this.updateAudioTrack(id, (track) => ({
+    const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       eq: normalizePeakingEq({ ...track.eq, ...update }),
     }));
+    this.audioTrackPlaybacks
+      .get(id)
+      ?.setEq(createPeakingEqParameters(track.eq));
   }
 
   setRecordingTrackEq(update: Partial<PeakingEqState>): void {
@@ -551,6 +557,11 @@ export class RecorderRuntime {
         eq: normalizePeakingEq({ ...track.eq, ...update }),
       },
     });
+    for (const playback of this.recordingTrackPlaybacks) {
+      playback.setEq(
+        createPeakingEqParameters(this.store.get().recordingTrack.eq),
+      );
+    }
   }
 
   private updateAudioTrack(
@@ -583,6 +594,7 @@ export class RecorderRuntime {
         throw new Error("Audio track state is missing.");
       }
       playback.setBufferTimelineOffset(track.timelineOffset);
+      playback.setEq(createPeakingEqParameters(track.eq));
       this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
@@ -683,7 +695,10 @@ export class RecorderRuntime {
 
   async play(): Promise<void> {
     const context = this.ensureContext();
-    await ensurePitchShifterWorklet(context);
+    await Promise.all([
+      ensurePitchShifterWorklet(context),
+      ensurePeakingEqWorklet(context),
+    ]);
     await context.resume();
     this.transport!.play();
   }
@@ -943,10 +958,20 @@ export class RecorderRuntime {
   }
 
   renderComp(): AudioBuffer | undefined {
-    return renderTakeComp({
-      context: this.ensureContext(),
+    const context = this.ensureContext();
+    const buffer = renderTakeComp({
+      context,
       regions: this.store.get().takeRegions,
     });
+    return buffer
+      ? processPeakingEqBuffer({
+          context,
+          buffer,
+          eq: this.store.get().recordingTrack.eq,
+          offset: 0,
+          duration: buffer.duration,
+        })
+      : undefined;
   }
 
   async renderMix(): Promise<AudioBuffer> {
@@ -1001,6 +1026,7 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(buffer);
+      playback.setEq(createPeakingEqParameters(track.eq));
       playback.setBufferTimelineOffset(track.timelineOffset);
       playback.setTimelineRange({
         start: track.timelineOffset + track.trimStart,
@@ -1213,6 +1239,9 @@ export class RecorderRuntime {
         output: this.masterOutput!,
       });
       playback.setBuffer(take.buffer);
+      playback.setEq(
+        createPeakingEqParameters(this.store.get().recordingTrack.eq),
+      );
       playback.setBufferTimelineOffset(take.timelineOffset);
       playback.setTimelineRange({
         start: region.timelineStart,

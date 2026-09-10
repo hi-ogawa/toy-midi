@@ -1,3 +1,4 @@
+import { type EqParameters, PeakingEq } from "../dsp/eq.ts";
 import { clamp } from "../music";
 
 export interface PeakingEqState {
@@ -29,4 +30,52 @@ export function normalizePeakingEq(eq: PeakingEqState): PeakingEqState {
     q: normalize("q"),
     bypassed: eq.bypassed,
   };
+}
+
+export function createPeakingEqParameters(eq: PeakingEqState): EqParameters {
+  return {
+    frequency: eq.frequency,
+    gain: 10 ** (eq.gain / 20),
+    q: eq.q,
+    bypass: eq.bypassed,
+  };
+}
+
+export function processPeakingEqBuffer({
+  context,
+  buffer,
+  eq,
+  offset,
+  duration,
+}: {
+  context: BaseAudioContext;
+  buffer: AudioBuffer;
+  eq: PeakingEqState;
+  offset: number;
+  duration: number;
+}): AudioBuffer {
+  const startFrame = Math.round(offset * buffer.sampleRate);
+  const endFrame = Math.min(
+    buffer.length,
+    Math.round((offset + duration) * buffer.sampleRate),
+  );
+  const output = context.createBuffer(
+    buffer.numberOfChannels,
+    endFrame - startFrame,
+    buffer.sampleRate,
+  );
+  const processor = new PeakingEq({
+    sampleRate: buffer.sampleRate,
+    channelCount: buffer.numberOfChannels,
+    ...createPeakingEqParameters(eq),
+  });
+  processor.process({
+    input: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
+      buffer.getChannelData(channel).subarray(startFrame, endFrame),
+    ),
+    output: Array.from({ length: output.numberOfChannels }, (_, channel) =>
+      output.getChannelData(channel),
+    ),
+  });
+  return output;
 }
