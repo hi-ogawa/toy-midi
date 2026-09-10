@@ -16,8 +16,8 @@ describe(PeakingEq, () => {
       expect(
         measureResponse({
           gain: dbToGain(gainDb),
-          frequency: 1000,
-          centerFrequency: 1000,
+          signalFrequency: 1000,
+          eqFrequency: 1000,
           q: 1,
         }),
       ).toBeCloseTo(gainDb, 3);
@@ -28,31 +28,31 @@ describe(PeakingEq, () => {
     expect(
       measureResponse({
         gain: dbToGain(12),
-        frequency: 1000,
-        centerFrequency: 1500,
+        signalFrequency: 1000,
+        eqFrequency: 1500,
         q: 1,
       }),
     ).toBeGreaterThan(
       measureResponse({
         gain: dbToGain(12),
-        frequency: 1000,
-        centerFrequency: 1500,
+        signalFrequency: 1000,
+        eqFrequency: 1500,
         q: 8,
       }),
     );
     expect(
       measureResponse({
         gain: dbToGain(12),
-        frequency: 20,
-        centerFrequency: 1500,
+        signalFrequency: 20,
+        eqFrequency: 1500,
         q: 1,
       }),
     ).toBeCloseTo(0, 1);
     expect(
       measureResponse({
         gain: dbToGain(12),
-        frequency: 20000,
-        centerFrequency: 1500,
+        signalFrequency: 20000,
+        eqFrequency: 1500,
         q: 1,
       }),
     ).toBeCloseTo(0, 1);
@@ -146,23 +146,23 @@ function process(eq: PeakingEq, input: Float32Array): Float32Array {
 
 function measureResponse({
   gain,
-  frequency,
-  centerFrequency,
+  signalFrequency,
+  eqFrequency,
   q,
 }: {
   gain: number;
-  frequency: number;
-  centerFrequency: number;
+  signalFrequency: number;
+  eqFrequency: number;
   q: number;
 }): number {
   const input = Float32Array.from({ length: sampleRate }, (_, i) =>
-    Math.sin((2 * Math.PI * frequency * i) / sampleRate),
+    Math.sin((2 * Math.PI * signalFrequency * i) / sampleRate),
   );
   const output = process(
     new PeakingEq({
       sampleRate,
       channelCount: 1,
-      frequency: centerFrequency,
+      frequency: eqFrequency,
       gain,
       q,
       bypass: false,
