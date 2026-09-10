@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { dbToGain } from "../music";
 import { type EqParameters, PeakingEq } from "./eq";
 
 const SAMPLE_RATE = 48000;
@@ -169,8 +170,4 @@ function measureEnergy(signal: Float32Array): number {
     energy += sample ** 2;
   }
   return energy;
-}
-
-function dbToGain(db: number): number {
-  return 10 ** (db / 20);
 }
