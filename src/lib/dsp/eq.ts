@@ -58,7 +58,7 @@ export function calculatePeakingEqCoefficients({
   return result;
 }
 
-export function calculatePeakingEqResponseDb({
+export function calculatePeakingEqResponse({
   coefficients,
   sampleRate,
   frequency,
@@ -80,7 +80,7 @@ export function calculatePeakingEqResponseDb({
   const magnitudeSquared =
     (numeratorReal ** 2 + numeratorImag ** 2) /
     (denominatorReal ** 2 + denominatorImag ** 2);
-  return 10 * Math.log10(magnitudeSquared);
+  return Math.sqrt(magnitudeSquared);
 }
 
 /** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */

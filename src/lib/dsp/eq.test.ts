@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { dbToGain } from "../music";
+import { dbToGain, gainToDb } from "../music";
 import {
   calculatePeakingEqCoefficients,
-  calculatePeakingEqResponseDb,
+  calculatePeakingEqResponse,
   type EqParameters,
   PeakingEq,
 } from "./eq";
@@ -116,7 +116,7 @@ describe(PeakingEq, () => {
   });
 });
 
-describe(calculatePeakingEqResponseDb, () => {
+describe(calculatePeakingEqResponse, () => {
   it.each([-18, -6, 0, 6, 18])(
     "returns %s dB at the center frequency",
     (gainDb) => {
@@ -183,11 +183,13 @@ function calculateResponse({
     gain: dbToGain(gainDb),
     q,
   });
-  return calculatePeakingEqResponseDb({
-    coefficients,
-    sampleRate: SAMPLE_RATE,
-    frequency: responseFrequency,
-  });
+  return gainToDb(
+    calculatePeakingEqResponse({
+      coefficients,
+      sampleRate: SAMPLE_RATE,
+      frequency: responseFrequency,
+    }),
+  );
 }
 
 function createSignal({

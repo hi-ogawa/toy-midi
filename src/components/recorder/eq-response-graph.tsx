@@ -6,7 +6,7 @@ import {
 } from "react";
 import {
   calculatePeakingEqCoefficients,
-  calculatePeakingEqResponseDb,
+  calculatePeakingEqResponse,
   type EqParameters,
 } from "../../lib/dsp/eq";
 import { EQ_LIMITS } from "../../lib/dsp/eq";
@@ -60,11 +60,13 @@ export function EqResponseGraph({
       GRAPH_BOUNDS.left +
       (index / 160) * (GRAPH_WIDTH - GRAPH_BOUNDS.left - GRAPH_BOUNDS.right);
     const frequency = graphXToFrequency(x);
-    const gainDb = calculatePeakingEqResponseDb({
-      coefficients,
-      sampleRate: GRAPH_SAMPLE_RATE,
-      frequency,
-    });
+    const gainDb = gainToDb(
+      calculatePeakingEqResponse({
+        coefficients,
+        sampleRate: GRAPH_SAMPLE_RATE,
+        frequency,
+      }),
+    );
     return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${gainDbToGraphY(gainDb).toFixed(2)}`;
   }).join(" ");
   const pointX = frequencyToGraphX(eq.frequency);
