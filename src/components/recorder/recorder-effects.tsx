@@ -173,6 +173,7 @@ function createLogarithmicParameterConfig({
     sliderMin: 0,
     sliderMax: 1,
     sliderStep: 0.001,
+    // p = log(value / min) / log(max / min), so value = min * (max / min) ** p.
     toSliderValue: (value) => Math.log10(value / min) / Math.log10(max / min),
     toParameterValue: (position) =>
       Number((min * (max / min) ** position).toFixed(2)),
