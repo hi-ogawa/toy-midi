@@ -1,4 +1,4 @@
-type EqParameters = {
+export type EqParameters = {
   frequency: number;
   gain: number;
   q: number;

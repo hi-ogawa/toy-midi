@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PeakingEq } from "./eq";
+import { type EqParameters, PeakingEq } from "./eq";
 
 const sampleRate = 48000;
-const defaultParameters = {
+const defaultParameters: EqParameters = {
   frequency: 1000,
   gain: 1,
   q: 1,
