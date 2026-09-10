@@ -103,20 +103,6 @@ export class PeakingEq {
     output: readonly Float32Array[];
   }): void {
     const frames = input[0]?.length ?? 0;
-    if (
-      input.length !== this.history.length ||
-      output.length !== this.history.length
-    ) {
-      throw new RangeError("EQ channel count mismatch");
-    }
-    for (let channel = 0; channel < input.length; channel++) {
-      if (
-        input[channel].length !== frames ||
-        output[channel].length !== frames
-      ) {
-        throw new RangeError("EQ buffer length mismatch");
-      }
-    }
     for (let frame = 0; frame < frames; frame++) {
       if (this.remaining > 0) {
         for (let i = 0; i < this.current.length; i++) {
