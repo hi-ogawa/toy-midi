@@ -100,6 +100,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 });
 
 test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
+  // Open Capture effects with the default EQ settings.
   await createRecorderProject(page);
   await page.getByTestId("recorder-mixer-button").click();
   await page
@@ -107,6 +108,8 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
     .click();
   const panel = page.getByTestId("recorder-effects-panel");
   await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
+
+  // Click above and to the right of the point to increase frequency and gain.
   const point = await panel.getByTestId("eq-response-point").boundingBox();
   expect(point).toBeTruthy();
   await page.mouse.click(point!.x + point!.width / 2 + 30, point!.y - 20);
@@ -120,7 +123,8 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
     .toBeGreaterThan(0);
   const frequency = await frequencyInput.inputValue();
   const gain = await gainInput.inputValue();
-  // Wheel adjusts bandwidth independently.
+
+  // Scroll Q up and back down while frequency and gain stay unchanged.
   const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
   await page.mouse.wheel(0, -100);
   await expect
@@ -130,6 +134,8 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   await expect(qInput).toHaveValue("1");
   await expect(frequencyInput).toHaveValue(frequency);
   await expect(gainInput).toHaveValue(gain);
+
+  // Bypass dims the configured response curve.
   await panel.getByRole("checkbox", { name: "Bypass" }).check();
   await expect(panel.getByTestId("eq-response-curve")).toHaveClass(
     /stroke-blue-400\/35/,
