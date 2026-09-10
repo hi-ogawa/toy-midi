@@ -5,7 +5,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
 }) => {
   // Open independent effects panels for backing audio and Capture.
-  await page.setViewportSize({ width: 1600, height: 900 });
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   await page.getByTestId("recorder-mixer-button").click();
@@ -102,7 +101,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 
 test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
   // Open independent effects panels for backing audio and Capture.
-  await page.setViewportSize({ width: 1600, height: 900 });
   await createRecorderProject(page);
   await page.getByTitle("Add empty audio track").click();
   await page.getByTestId("recorder-mixer-button").click();
