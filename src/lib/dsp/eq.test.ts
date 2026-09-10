@@ -76,9 +76,14 @@ describe(PeakingEq, () => {
       }),
       input,
     );
-    expect(Math.abs(ramped[1] - input[1])).toBeLessThan(
-      Math.abs(immediate[1] - input[1]) / 10,
-    );
+    expect(
+      measureEnergy(ramped.subarray(0, 100)) /
+        measureEnergy(immediate.subarray(0, 100)),
+    ).toBeLessThan(0.5);
+    expect(
+      measureEnergy(ramped.subarray(1000)) /
+        measureEnergy(immediate.subarray(1000)),
+    ).toBeCloseTo(1, 3);
   });
 
   it("resets history and settles pending parameters", () => {
@@ -149,13 +154,21 @@ function measureResponse({
     }),
     input,
   );
-  let inputEnergy = 0;
-  let outputEnergy = 0;
-  for (let i = SAMPLE_RATE / 2; i < SAMPLE_RATE; i++) {
-    inputEnergy += input[i] ** 2;
-    outputEnergy += output[i] ** 2;
+  return (
+    10 *
+    Math.log10(
+      measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+        measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+    )
+  );
+}
+
+function measureEnergy(signal: Float32Array): number {
+  let energy = 0;
+  for (const sample of signal) {
+    energy += sample ** 2;
   }
-  return 10 * Math.log10(outputEnergy / inputEnergy);
+  return energy;
 }
 
 function dbToGain(db: number): number {
