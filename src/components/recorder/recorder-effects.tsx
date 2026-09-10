@@ -134,7 +134,9 @@ function EqParameter({
       <Slider
         aria-label={label}
         aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        {...sliderProps}
+        min={sliderProps.min}
+        max={sliderProps.max}
+        step={sliderProps.step}
         value={[toSliderValue(value)]}
         onValueChange={([next]) => onChange(toParameterValue(next))}
       />
