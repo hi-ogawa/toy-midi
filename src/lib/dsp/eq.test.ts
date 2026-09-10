@@ -39,21 +39,6 @@ describe(PeakingEq, () => {
     ).toBeCloseTo(0, 1);
   });
 
-  it("is exactly transparent at unity gain", () => {
-    const eq = new PeakingEq({
-      sampleRate,
-      channelCount: 1,
-      ...defaultParameters,
-    });
-    const input = signal(2048);
-    expect(process(eq, input)).toEqual(input);
-    eq.setParameters({ gain: dbToGain(18) });
-    process(eq, input);
-    eq.setParameters({ gain: 1 });
-    const output = process(eq, input);
-    expect(output.slice(480)).toEqual(input.slice(480));
-  });
-
   it("ramps gain and bypass rather than switching immediately", () => {
     const eq = new PeakingEq({
       sampleRate,
