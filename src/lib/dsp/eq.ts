@@ -31,12 +31,6 @@ export class PeakingEq {
     q,
     bypass,
   }: { sampleRate: number; channelCount: number } & EqParameters) {
-    if (!Number.isFinite(sampleRate) || sampleRate <= 40) {
-      throw new RangeError("sampleRate must be finite and greater than 40 Hz");
-    }
-    if (!Number.isInteger(channelCount) || channelCount < 1) {
-      throw new RangeError("channelCount must be a positive integer");
-    }
     this.sampleRate = sampleRate;
     this.rampFrames = Math.max(1, Math.round(sampleRate * 0.01));
     this.history = Array.from(
