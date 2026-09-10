@@ -138,6 +138,7 @@ export class PeakingEq {
 
   private updateCoefficients(): void {
     // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
+    // Derivation: https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
     const amplitude = Math.exp(this.current[1] / 2);
     const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
