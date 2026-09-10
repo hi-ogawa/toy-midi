@@ -1,3 +1,5 @@
+import { ChevronDown, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { useId, useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
 import {
@@ -5,6 +7,7 @@ import {
   EQ_LIMITS,
 } from "../../lib/dsp/peaking-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
+import { Slider } from "../ui/slider";
 import { EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
@@ -19,6 +22,8 @@ export function RecorderEffects({
   onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
+  const [slidersOpen, setSlidersOpen] = useState(false);
+  const slidersId = useId();
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -71,6 +76,50 @@ export function RecorderEffects({
             onChange={(q) => onChange({ q })}
           />
         </div>
+        <div className="space-y-4 border-t border-neutral-700 pt-4">
+          <div id={slidersId} hidden={!slidersOpen} className="space-y-4">
+            <EqSlider
+              label="Frequency"
+              unit="Hz"
+              limits={EQ_LIMITS.frequency}
+              scale="logarithmic"
+              value={eq.frequency}
+              onChange={(frequency) => onChange({ frequency })}
+            />
+            <EqSlider
+              label="Gain"
+              unit="dB"
+              limits={EQ_LIMITS.gainDb}
+              value={gainToDb(eq.gain)}
+              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+            />
+            <EqSlider
+              label="Q"
+              unit=""
+              limits={EQ_LIMITS.q}
+              value={eq.q}
+              onChange={(q) => onChange({ q })}
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              title={slidersOpen ? "Hide sliders" : "Show sliders"}
+              aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
+              aria-expanded={slidersOpen}
+              aria-controls={slidersId}
+              onClick={() => setSlidersOpen((open) => !open)}
+              className="flex h-7 items-center gap-1 rounded border border-neutral-600 px-2 text-neutral-300 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-blue-300"
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              {slidersOpen ? (
+                <ChevronDown className="size-3" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="size-3" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </RecorderPanel>
   );
@@ -112,5 +161,48 @@ function EqNumericInput({
         {...input.props}
       />
     </label>
+  );
+}
+
+function EqSlider({
+  label,
+  unit,
+  limits,
+  scale = "linear",
+  value,
+  onChange,
+}: {
+  label: string;
+  unit: string;
+  limits: { min: number; max: number; step: number };
+  scale?: "linear" | "logarithmic";
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const logarithmic = scale === "logarithmic";
+  const logRange = logarithmic ? Math.log(limits.max / limits.min) : 0;
+  const valueText = `${formatParameter(value)} ${unit}`.trim();
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-mono">{valueText}</span>
+      </div>
+      <Slider
+        aria-label={label}
+        aria-valuetext={valueText}
+        min={logarithmic ? 0 : limits.min}
+        max={logarithmic ? 1 : limits.max}
+        step={logarithmic ? 0.001 : limits.step}
+        value={[logarithmic ? Math.log(value / limits.min) / logRange : value]}
+        onValueChange={([next]) =>
+          onChange(
+            logarithmic
+              ? Number((limits.min * Math.exp(next * logRange)).toFixed(2))
+              : next,
+          )
+        }
+      />
+    </div>
   );
 }

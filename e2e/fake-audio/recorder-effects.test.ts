@@ -249,3 +249,63 @@ test("keeps the mixer usable with many effects panels open", async ({
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
 });
+
+test("expands EQ sliders with a stationary footer toggle", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await createRecorderProject(page);
+  await page.getByTestId("recorder-mixer-button").click();
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const panel = page.getByTestId("recorder-effects-panel");
+  const toggle = panel.getByRole("button", { name: /sliders/ });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(panel.getByRole("slider")).toHaveCount(0);
+  const initialBounds = await toggle.boundingBox();
+  expect(initialBounds).toBeTruthy();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(panel.getByRole("slider")).toHaveCount(3);
+  expect(await toggle.boundingBox()).toEqual(initialBounds);
+  await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
+
+  const frequency = panel.getByRole("slider", {
+    name: "Frequency",
+    exact: true,
+  });
+  await frequency.press("Home");
+  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "20",
+  );
+  await frequency.press("ArrowRight");
+  await expect(frequency).not.toHaveAttribute("aria-valuetext", "20 Hz");
+  await frequency.press("End");
+  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "20000",
+  );
+  await panel.getByRole("textbox", { name: "Frequency" }).fill("1000");
+  await panel.getByRole("textbox", { name: "Frequency" }).press("Enter");
+  await expect(frequency).toHaveAttribute("aria-valuetext", "1000 Hz");
+  await panel
+    .getByRole("slider", { name: "Gain", exact: true })
+    .press("ArrowRight");
+  await expect(
+    panel.getByRole("textbox", { name: "Gain", exact: true }),
+  ).toHaveValue("0.1");
+  await panel
+    .getByRole("slider", { name: "Q", exact: true })
+    .press("ArrowRight");
+  await expect(
+    panel.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("1.1");
+  await page.screenshot({
+    path: test.info().outputPath("expanded-effects.png"),
+  });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(await toggle.boundingBox()).toEqual(initialBounds);
+  await expect(panel.getByRole("slider")).toHaveCount(0);
+  await expect(
+    panel.getByRole("textbox", { name: "Q", exact: true }),
+  ).toHaveValue("1.1");
+});
