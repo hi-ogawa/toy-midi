@@ -13,9 +13,6 @@ import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
 const GRAPH_SAMPLE_RATE = 48000;
-const GRAPH_WIDTH = 320;
-const GRAPH_HEIGHT = 200;
-const PLOT_MARGIN = { left: 34, right: 8, top: 8, bottom: 22 };
 const FREQUENCY_TICKS = [20, 100, 1000, 10000, 20000];
 const GAIN_TICKS = [-18, -12, -6, 0, 6, 12, 18];
 
@@ -26,7 +23,7 @@ export function EqResponseGraph({
   eq: EqParameters;
   onChange: (update: Partial<EqParameters>) => void;
 }) {
-  // Map the configured response and control point into SVG coordinates.
+  // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const coefficients = calculatePeakingEqCoefficients({
     sampleRate: GRAPH_SAMPLE_RATE,
     frequency: eq.frequency,
@@ -34,9 +31,7 @@ export function EqResponseGraph({
     q: eq.q,
   });
   const responsePath = Array.from({ length: 161 }, (_, index) => {
-    const x =
-      PLOT_MARGIN.left +
-      (index / 160) * (GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right);
+    const x = index / 160;
     const frequency = graphXToFrequency(x);
     const gainDb = gainToDb(
       calculatePeakingEqResponse({
@@ -45,25 +40,14 @@ export function EqResponseGraph({
         frequency,
       }),
     );
-    return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${gainDbToGraphY(gainDb).toFixed(2)}`;
+    return `${index === 0 ? "M" : "L"}${x.toFixed(5)},${gainDbToGraphY(gainDb).toFixed(5)}`;
   }).join(" ");
 
   // Pointer edits map the plot position back to frequency and gain.
-  const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>) => {
+  const updateFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x =
-      PLOT_MARGIN.left +
-      clamp(
-        ((event.clientX - bounds.left) / bounds.width) * GRAPH_WIDTH -
-          PLOT_MARGIN.left,
-        0,
-        GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right,
-      );
-    const y = clamp(
-      ((event.clientY - bounds.top) / bounds.height) * GRAPH_HEIGHT,
-      PLOT_MARGIN.top,
-      GRAPH_HEIGHT - PLOT_MARGIN.bottom,
-    );
+    const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+    const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
     const frequency = Math.round(graphXToFrequency(x));
     const step = EQ_CONTROL_LIMITS.gainDb.step;
     const gainDb = Math.round(graphYToGainDb(y) / step) * step;
@@ -77,7 +61,11 @@ export function EqResponseGraph({
     }
     event.preventDefault();
     const unit =
-      event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? GRAPH_HEIGHT : 1;
+      event.deltaMode === 1
+        ? 16
+        : event.deltaMode === 2
+          ? (event.currentTarget as HTMLDivElement).clientHeight
+          : 1;
     const q = clamp(
       eq.q * Math.exp(-event.deltaY * unit * 0.002),
       EQ_LIMITS.q.min,
@@ -86,7 +74,7 @@ export function EqResponseGraph({
     onChange({ q });
   });
   const graphRef = useCallback(
-    (graph: SVGSVGElement | null) => {
+    (graph: HTMLDivElement | null) => {
       if (!graph) {
         return;
       }
@@ -97,120 +85,122 @@ export function EqResponseGraph({
     [handleWheel],
   );
 
-  // Draw the axes, response curve, and editable point.
+  // Axis labels sit outside the measured plot, so layout does not affect gestures.
   return (
-    <svg
-      ref={graphRef}
+    <div
       data-testid="eq-response-graph"
       aria-label="EQ response graph"
-      viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`}
-      className="w-full touch-none cursor-crosshair select-none rounded border border-neutral-700 bg-neutral-900"
-      onPointerDown={(event) => {
-        if (event.button === 0) {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          updateFromPointer(event);
-        }
-      }}
-      onPointerMove={(event) => {
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          updateFromPointer(event);
-        }
-      }}
+      className="grid aspect-[8/5] w-full grid-cols-[34px_1fr] grid-rows-[1fr_22px] rounded border border-neutral-700 bg-neutral-900 pt-2 pr-2 text-[9px] text-neutral-500 select-none"
     >
-      {GAIN_TICKS.map((gainDb) => {
-        const y = gainDbToGraphY(gainDb);
-        return (
-          <g key={gainDb}>
+      <div className="relative">
+        {GAIN_TICKS.map((gainDb) => (
+          <span
+            key={gainDb}
+            className="absolute right-1.5 -translate-y-1/2"
+            style={{ top: `${gainDbToGraphY(gainDb) * 100}%` }}
+          >
+            {gainDb > 0 ? `+${gainDb}` : gainDb}
+          </span>
+        ))}
+      </div>
+      <div
+        ref={graphRef}
+        className="relative min-h-0 min-w-0 touch-none cursor-crosshair"
+        onPointerDown={(event) => {
+          if (event.button === 0) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+            updateFromPointer(event);
+          }
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+            updateFromPointer(event);
+          }
+        }}
+      >
+        <svg
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute size-full overflow-visible"
+          aria-hidden="true"
+        >
+          {GAIN_TICKS.map((gainDb) => (
             <line
-              x1={PLOT_MARGIN.left}
-              x2={GRAPH_WIDTH - PLOT_MARGIN.right}
-              y1={y}
-              y2={y}
+              key={gainDb}
+              x1={0}
+              x2={1}
+              y1={gainDbToGraphY(gainDb)}
+              y2={gainDbToGraphY(gainDb)}
               className={
                 gainDb === 0 ? "stroke-neutral-500" : "stroke-neutral-700"
               }
               strokeWidth={gainDb === 0 ? 1 : 0.5}
+              vectorEffect="non-scaling-stroke"
             />
-            <text
-              x={PLOT_MARGIN.left - 5}
-              y={y + 3}
-              textAnchor="end"
-              className="fill-neutral-500 text-[8px]"
-            >
-              {gainDb > 0 ? `+${gainDb}` : gainDb}
-            </text>
-          </g>
-        );
-      })}
-      {FREQUENCY_TICKS.map((frequency) => {
-        const x = frequencyToGraphX(frequency);
-        return (
-          <g key={frequency}>
+          ))}
+          {FREQUENCY_TICKS.map((frequency) => (
             <line
-              x1={x}
-              x2={x}
-              y1={PLOT_MARGIN.top}
-              y2={GRAPH_HEIGHT - PLOT_MARGIN.bottom}
+              key={frequency}
+              x1={frequencyToGraphX(frequency)}
+              x2={frequencyToGraphX(frequency)}
+              y1={0}
+              y2={1}
               className="stroke-neutral-700"
               strokeWidth={0.5}
+              vectorEffect="non-scaling-stroke"
             />
-            <text
-              x={x}
-              y={GRAPH_HEIGHT - 7}
-              textAnchor="middle"
-              className="fill-neutral-500 text-[8px]"
-            >
-              {formatFrequencyTick(frequency)}
-            </text>
-          </g>
-        );
-      })}
-      <path
-        data-testid="eq-response-curve"
-        d={responsePath}
-        fill="none"
-        className={eq.bypass ? "stroke-blue-400/35" : "stroke-blue-400"}
-        strokeWidth={2}
-      />
-      <circle
-        data-testid="eq-response-point"
-        cx={frequencyToGraphX(eq.frequency)}
-        cy={gainDbToGraphY(gainToDb(eq.gain))}
-        r={5}
-        className="fill-neutral-900 stroke-blue-300"
-        strokeWidth={2}
-      />
-    </svg>
+          ))}
+          <path
+            data-testid="eq-response-curve"
+            d={responsePath}
+            fill="none"
+            className={eq.bypass ? "stroke-blue-400/35" : "stroke-blue-400"}
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        <span
+          data-testid="eq-response-point"
+          className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-300 bg-neutral-900"
+          style={{
+            left: `${frequencyToGraphX(eq.frequency) * 100}%`,
+            top: `${gainDbToGraphY(gainToDb(eq.gain)) * 100}%`,
+          }}
+        />
+      </div>
+      <div className="relative col-start-2">
+        {FREQUENCY_TICKS.map((frequency) => (
+          <span
+            key={frequency}
+            className="absolute top-1 -translate-x-1/2"
+            style={{ left: `${frequencyToGraphX(frequency) * 100}%` }}
+          >
+            {formatFrequencyTick(frequency)}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
 function frequencyToGraphX(frequency: number): number {
   const { min, max } = EQ_LIMITS.frequency;
-  const position = Math.log(frequency / min) / Math.log(max / min);
-  return (
-    PLOT_MARGIN.left +
-    position * (GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right)
-  );
+  return Math.log(frequency / min) / Math.log(max / min);
 }
 
 function graphXToFrequency(x: number): number {
   const { min, max } = EQ_LIMITS.frequency;
-  const position =
-    (x - PLOT_MARGIN.left) /
-    (GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right);
-  return min * Math.exp(position * Math.log(max / min));
+  return min * (max / min) ** x;
 }
 
 function gainDbToGraphY(gainDb: number): number {
   const { min, max } = EQ_LIMITS.gainDb;
-  const height = GRAPH_HEIGHT - PLOT_MARGIN.top - PLOT_MARGIN.bottom;
-  return PLOT_MARGIN.top + ((max - gainDb) / (max - min)) * height;
+  return (max - gainDb) / (max - min);
 }
 
 function graphYToGainDb(y: number): number {
   const { min, max } = EQ_LIMITS.gainDb;
-  const height = GRAPH_HEIGHT - PLOT_MARGIN.top - PLOT_MARGIN.bottom;
-  return max - ((y - PLOT_MARGIN.top) / height) * (max - min);
+  return max - y * (max - min);
 }
 
 function formatFrequencyTick(frequency: number): string {
