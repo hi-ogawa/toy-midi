@@ -3,7 +3,7 @@ import {
   createDefaultPeakingEq,
   EQ_LIMITS,
   type PeakingEqState,
-} from "../../lib/recorder/eq";
+} from "../../lib/dsp/peaking-eq-node";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
 

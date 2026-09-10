@@ -3,7 +3,7 @@ import {
   createDefaultPeakingEq,
   normalizePeakingEq,
   type PeakingEqState,
-} from "./eq";
+} from "../dsp/peaking-eq-node.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,

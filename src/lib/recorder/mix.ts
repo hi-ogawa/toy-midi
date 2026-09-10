@@ -1,4 +1,7 @@
-import { processPeakingEqBuffer, type PeakingEqState } from "./eq.ts";
+import {
+  processPeakingEqBuffer,
+  type PeakingEqState,
+} from "../dsp/peaking-eq-node.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {

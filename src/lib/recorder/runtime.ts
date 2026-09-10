@@ -1,20 +1,20 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
-import { ensurePeakingEqWorklet } from "../dsp/peaking-eq-node.ts";
+import {
+  createDefaultPeakingEq,
+  createPeakingEqParameters,
+  ensurePeakingEqWorklet,
+  normalizePeakingEq,
+  processPeakingEqBuffer,
+  type PeakingEqState,
+} from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
-import {
-  createDefaultPeakingEq,
-  createPeakingEqParameters,
-  normalizePeakingEq,
-  processPeakingEqBuffer,
-  type PeakingEqState,
-} from "./eq";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deriveTrackMix,
