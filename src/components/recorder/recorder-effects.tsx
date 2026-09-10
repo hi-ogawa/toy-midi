@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { useId, useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
@@ -57,14 +57,9 @@ export function RecorderEffects({
               aria-expanded={slidersOpen}
               aria-controls={slidersId}
               onClick={() => setSlidersOpen((open) => !open)}
-              className="flex h-7 items-center gap-1 rounded border border-neutral-600 px-2 text-neutral-300 hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-blue-300"
+              className="flex size-7 items-center justify-center rounded border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100 aria-expanded:bg-neutral-600 aria-expanded:text-neutral-100 focus-visible:outline-2 focus-visible:outline-blue-300"
             >
               <SlidersHorizontal className="size-4" aria-hidden="true" />
-              {slidersOpen ? (
-                <ChevronDown className="size-3" aria-hidden="true" />
-              ) : (
-                <ChevronRight className="size-3" aria-hidden="true" />
-              )}
             </button>
           </div>
         </div>
