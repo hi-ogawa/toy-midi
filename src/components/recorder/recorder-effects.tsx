@@ -90,12 +90,12 @@ function EqParameter({
   onChange: (value: number) => void;
 }) {
   const { min, max, step } = limits;
-  let config: {
-    sliderMin: number;
-    sliderMax: number;
-    sliderStep: number;
-    toSliderValue: (value: number) => number;
-    toParameterValue: (value: number) => number;
+  let config = {
+    sliderMin: min,
+    sliderMax: max,
+    sliderStep: step,
+    toSliderValue: (value: number) => value,
+    toParameterValue: (value: number) => value,
   };
   if (scale === "logarithmic") {
     const logRange = Math.log(max / min);
@@ -108,14 +108,6 @@ function EqParameter({
       toSliderValue: (value: number) => Math.log(value / min) / logRange,
       toParameterValue: (position: number) =>
         Number((min * Math.exp(position * logRange)).toFixed(2)),
-    };
-  } else {
-    config = {
-      sliderMin: min,
-      sliderMax: max,
-      sliderStep: step,
-      toSliderValue: (value: number) => value,
-      toParameterValue: (value: number) => value,
     };
   }
   const input = useDraftInput({
