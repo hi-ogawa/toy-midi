@@ -1,6 +1,6 @@
 type EqParameters = {
   frequency: number;
-  gainDb: number;
+  gain: number;
   q: number;
   bypass: boolean;
 };
@@ -9,7 +9,7 @@ type EqParameters = {
 export class PeakingEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
-  // Log frequency, gain in dB, log Q, and wet mix.
+  // Log frequency, linear gain, log Q, and wet mix.
   private readonly current = new Float64Array(4);
   private readonly target = new Float64Array(4);
   private remaining = 0;
@@ -23,11 +23,11 @@ export class PeakingEq {
   constructor({
     sampleRate,
     channelCount,
-    frequency = 1000,
-    gainDb = 0,
-    q = 1,
-    bypass = false,
-  }: { sampleRate: number; channelCount: number } & Partial<EqParameters>) {
+    frequency,
+    gain,
+    q,
+    bypass,
+  }: { sampleRate: number; channelCount: number } & EqParameters) {
     if (!Number.isFinite(sampleRate) || sampleRate <= 40) {
       throw new RangeError("sampleRate must be finite and greater than 40 Hz");
     }
@@ -40,13 +40,13 @@ export class PeakingEq {
       { length: channelCount },
       () => new Float64Array(4),
     );
-    this.setParameters({ frequency, gainDb, q, bypass });
+    this.setParameters({ frequency, gain, q, bypass });
     this.reset();
   }
 
   /** Update targets without restarting a ramp when the targets are unchanged. */
-  setParameters({ frequency, gainDb, q, bypass }: Partial<EqParameters>): void {
-    for (const value of [frequency, gainDb, q]) {
+  setParameters({ frequency, gain, q, bypass }: Partial<EqParameters>): void {
+    for (const value of [frequency, gain, q]) {
       if (value !== undefined && !Number.isFinite(value)) {
         throw new RangeError("EQ parameters must be finite");
       }
@@ -66,8 +66,8 @@ export class PeakingEq {
         ),
       );
     }
-    if (gainDb !== undefined) {
-      update(1, clamp(gainDb, -18, 18));
+    if (gain !== undefined) {
+      update(1, clamp(gain, 10 ** (-18 / 20), 10 ** (18 / 20)));
     }
     if (q !== undefined) {
       update(2, Math.log(clamp(q, 0.1, 18)));
@@ -133,9 +133,9 @@ export class PeakingEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At zero gain the exact identity also removes any residual filter tail.
+        // At unity gain the exact identity also removes any residual filter tail.
         const y =
-          this.current[1] === 0
+          this.current[1] === 1
             ? x
             : this.b0 * x +
               this.b1 * h[0] +
@@ -156,7 +156,7 @@ export class PeakingEq {
   private updateCoefficients(): void {
     // RBJ peakingEQ: https://www.w3.org/TR/audio-eq-cookbook/#formulae
     const omega = (2 * Math.PI * Math.exp(this.current[0])) / this.sampleRate;
-    const amplitude = 10 ** (this.current[1] / 40);
+    const amplitude = Math.sqrt(this.current[1]);
     const alpha = Math.sin(omega) / (2 * Math.exp(this.current[2]));
     const a0 = 1 + alpha / amplitude;
     this.b0 = (1 + alpha * amplitude) / a0;
