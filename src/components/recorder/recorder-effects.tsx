@@ -102,6 +102,8 @@ function EqParameter({
     config = {
       sliderMin: 0,
       sliderMax: 1,
+      // 1,000 steps across 20–20,000 Hz gives about 100 steps per octave
+      // because log(2) / (0.001 * log(20000 / 20)) ≈ 100.
       sliderStep: 0.001,
       // (log(value) - log(min)) / (log(max) - log(min))
       // = log(value / min) / log(max / min); solve for value for the inverse.
