@@ -95,7 +95,7 @@ export function RecorderEffects({
         <div
           id={slidersId}
           hidden={!slidersOpen}
-          className="space-y-4 border-t border-neutral-700 pt-4"
+          className="space-y-4 border-t border-neutral-700 pt-4 pb-2"
         >
           {slidersOpen && (
             <>
