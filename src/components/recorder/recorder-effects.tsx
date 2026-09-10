@@ -89,6 +89,13 @@ function EqParameter({
   value: number;
   onChange: (value: number) => void;
 }) {
+  const input = useDraftInput({
+    value,
+    onCommit: onChange,
+    ...limits,
+    parse: "float",
+    format: formatParameter,
+  });
   let config = {
     ...limits,
     toSliderValue: (value: number) => value,
@@ -112,13 +119,6 @@ function EqParameter({
         Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
     };
   }
-  const input = useDraftInput({
-    value,
-    onCommit: onChange,
-    ...limits,
-    parse: "float",
-    format: formatParameter,
-  });
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-2 text-xs">
