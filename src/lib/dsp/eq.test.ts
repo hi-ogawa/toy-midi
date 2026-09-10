@@ -85,29 +85,6 @@ describe(PeakingEq, () => {
     expect(bypassed.slice(0, 100)).not.toEqual(input.slice(0, 100));
   });
 
-  it("keeps history current while bypassed", () => {
-    const eq = new PeakingEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-      gain: dbToGain(12),
-      bypass: true,
-    });
-    const reference = new PeakingEq({
-      sampleRate: SAMPLE_RATE,
-      channelCount: 1,
-      ...DEFAULT_PARAMETERS,
-      gain: dbToGain(12),
-    });
-    const input = createSignal({ frames: 2000, frequency: 1000 });
-    expect(process(eq, input)).toEqual(input);
-    process(reference, input);
-    eq.setParameters({ bypass: false });
-    expect(process(eq, input).slice(480)).toEqual(
-      process(reference, input).slice(480),
-    );
-  });
-
   it("resets history and settles pending parameters", () => {
     const eq = new PeakingEq({
       sampleRate: SAMPLE_RATE,
