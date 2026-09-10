@@ -500,8 +500,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setRecordingTrackHeight(height)
               }
-              onTakeDownload={() => {
-                const comp = runtime.renderComp();
+              onTakeDownload={async () => {
+                const comp = await runtime.renderComp();
                 if (!comp) {
                   return;
                 }

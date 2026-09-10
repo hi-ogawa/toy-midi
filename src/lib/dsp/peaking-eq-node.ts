@@ -1,9 +1,9 @@
 import { clamp, dbToGain } from "../music.ts";
-import { type EqParameters, PeakingEq } from "./eq.ts";
+import type { EqParameters } from "./eq.ts";
 import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 
 const PROCESSOR_NAME = "peaking-eq";
-const registrations = new WeakMap<AudioContext, Promise<void>>();
+const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
 export const EQ_LIMITS = {
   frequency: { min: 20, max: 20000, step: 1 },
@@ -41,7 +41,7 @@ export class PeakingEqNode extends AudioWorkletNode {
     channelCount,
     parameters,
   }: {
-    context: AudioContext;
+    context: BaseAudioContext;
     channelCount: number;
     parameters: EqParameters;
   }) {
@@ -61,7 +61,7 @@ export class PeakingEqNode extends AudioWorkletNode {
 }
 
 export async function ensurePeakingEqWorklet(
-  context: AudioContext,
+  context: BaseAudioContext,
 ): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
@@ -74,43 +74,4 @@ export async function ensurePeakingEqWorklet(
     registrations.delete(context);
     throw error;
   }
-}
-
-export function processPeakingEqBuffer({
-  context,
-  buffer,
-  eq,
-  offset,
-  duration,
-}: {
-  context: BaseAudioContext;
-  buffer: AudioBuffer;
-  eq: EqParameters;
-  offset: number;
-  duration: number;
-}): AudioBuffer {
-  const startFrame = Math.round(offset * buffer.sampleRate);
-  const endFrame = Math.min(
-    buffer.length,
-    Math.round((offset + duration) * buffer.sampleRate),
-  );
-  const output = context.createBuffer(
-    buffer.numberOfChannels,
-    endFrame - startFrame,
-    buffer.sampleRate,
-  );
-  const processor = new PeakingEq({
-    sampleRate: buffer.sampleRate,
-    channelCount: buffer.numberOfChannels,
-    ...eq,
-  });
-  processor.process({
-    input: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
-      buffer.getChannelData(channel).subarray(startFrame, endFrame),
-    ),
-    output: Array.from({ length: output.numberOfChannels }, (_, channel) =>
-      output.getChannelData(channel),
-    ),
-  });
-  return output;
 }

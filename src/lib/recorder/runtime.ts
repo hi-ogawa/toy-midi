@@ -6,7 +6,7 @@ import {
   createDefaultPeakingEq,
   ensurePeakingEqWorklet,
   normalizePeakingEq,
-  processPeakingEqBuffer,
+  PeakingEqNode,
 } from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
@@ -952,21 +952,30 @@ export class RecorderRuntime {
     this.attachedYouTubePlayer = undefined;
   }
 
-  renderComp(): AudioBuffer | undefined {
-    const context = this.ensureContext();
+  async renderComp(): Promise<AudioBuffer | undefined> {
     const buffer = renderTakeComp({
-      context,
+      context: this.ensureContext(),
       regions: this.store.get().takeRegions,
     });
-    return buffer
-      ? processPeakingEqBuffer({
-          context,
-          buffer,
-          eq: this.store.get().recordingTrack.eq,
-          offset: 0,
-          duration: buffer.duration,
-        })
-      : undefined;
+    if (!buffer) {
+      return undefined;
+    }
+    const context = new OfflineAudioContext({
+      numberOfChannels: buffer.numberOfChannels,
+      length: buffer.length,
+      sampleRate: buffer.sampleRate,
+    });
+    await ensurePeakingEqWorklet(context);
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    const equalizer = new PeakingEqNode({
+      context,
+      channelCount: buffer.numberOfChannels,
+      parameters: this.store.get().recordingTrack.eq,
+    });
+    source.connect(equalizer).connect(context.destination);
+    source.start();
+    return context.startRendering();
   }
 
   async renderMix(): Promise<AudioBuffer> {
