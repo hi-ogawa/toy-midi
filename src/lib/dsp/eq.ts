@@ -1,7 +1,7 @@
 /**
  * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
- * Uses the RBJ biquad coefficients with parameter smoothing to avoid abrupt changes.
  * Coefficient formulas: https://www.w3.org/TR/audio-eq-cookbook/#formulae
+ * The derivation builds from complex waves, delays, and feedback to the RBJ coefficients via the bilinear transform with center-frequency prewarping.
  * Derivation: https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
  */
 
