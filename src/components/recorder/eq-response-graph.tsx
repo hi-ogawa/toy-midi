@@ -60,14 +60,8 @@ export function EqResponseGraph({
       return;
     }
     event.preventDefault();
-    const unit =
-      event.deltaMode === 1
-        ? 16
-        : event.deltaMode === 2
-          ? (event.currentTarget as HTMLDivElement).clientHeight
-          : 1;
     const q = clamp(
-      eq.q * Math.exp(-event.deltaY * unit * 0.002),
+      eq.q * Math.exp(-event.deltaY * 0.002),
       EQ_LIMITS.q.min,
       EQ_LIMITS.q.max,
     );
