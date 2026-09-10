@@ -2,10 +2,9 @@ import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
 import {
   createDefaultPeakingEq,
-  dbToGain,
   EQ_LIMITS,
-  gainToDb,
 } from "../../lib/dsp/peaking-eq-node";
+import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
 

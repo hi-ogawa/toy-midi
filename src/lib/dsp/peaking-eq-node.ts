@@ -1,4 +1,4 @@
-import { clamp } from "../music.ts";
+import { clamp, dbToGain } from "../music.ts";
 import { type EqParameters, PeakingEq } from "./eq.ts";
 import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 
@@ -33,14 +33,6 @@ export function normalizePeakingEq(eq: EqParameters): EqParameters {
       : defaults.q,
     bypass: eq.bypass,
   };
-}
-
-export function dbToGain(db: number): number {
-  return 10 ** (db / 20);
-}
-
-export function gainToDb(gain: number): number {
-  return 20 * Math.log10(gain);
 }
 
 export class PeakingEqNode extends AudioWorkletNode {
