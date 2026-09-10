@@ -6,6 +6,8 @@
  * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
  */
 
+import { clamp } from "../music.ts";
+
 export type EqParameters = {
   frequency: number;
   gain: number;
@@ -155,8 +157,4 @@ export class PeakingEq {
     this.a1 = this.b1;
     this.a2 = (1 - alpha / amplitude) / a0;
   }
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
