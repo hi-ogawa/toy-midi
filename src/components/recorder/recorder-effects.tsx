@@ -92,17 +92,16 @@ function EqParameter({
   const { min, max, step } = limits;
   let config;
   if (scale === "logarithmic") {
-    const logMin = Math.log10(min);
-    const logMax = Math.log10(max);
+    const logRange = Math.log(max / min);
     config = {
       sliderMin: 0,
       sliderMax: 1,
       sliderStep: 0.001,
-      // Normalize in log space; the inverse denormalizes before exponentiating.
-      toSliderValue: (value: number) =>
-        (Math.log10(value) - logMin) / (logMax - logMin),
+      // (log(value) - log(min)) / (log(max) - log(min))
+      // = log(value / min) / log(max / min); solve for value for the inverse.
+      toSliderValue: (value: number) => Math.log(value / min) / logRange,
       toParameterValue: (position: number) =>
-        Number((10 ** (logMin + position * (logMax - logMin))).toFixed(2)),
+        Number((min * Math.exp(position * logRange)).toFixed(2)),
     };
   } else {
     config = {
