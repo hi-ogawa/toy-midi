@@ -9,8 +9,9 @@ import {
   calculatePeakingEqResponseDb,
   type EqParameters,
 } from "../../lib/dsp/eq";
-import { EQ_LIMITS } from "../../lib/dsp/peaking-eq-node";
+import { EQ_LIMITS } from "../../lib/dsp/eq";
 import { dbToGain, gainToDb } from "../../lib/music";
+import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
 const GRAPH_SAMPLE_RATE = 48000;
 const GRAPH_WIDTH = 320;
@@ -85,7 +86,7 @@ export function EqResponseGraph({
       GRAPH_HEIGHT - GRAPH_BOUNDS.bottom,
     );
     const frequency = Math.round(graphXToFrequency(x));
-    const step = EQ_LIMITS.gainDb.step;
+    const step = EQ_CONTROL_LIMITS.gainDb.step;
     const gainDb = Math.round(graphYToGainDb(y) / step) * step;
     onChange({ frequency, gain: dbToGain(gainDb) });
   };

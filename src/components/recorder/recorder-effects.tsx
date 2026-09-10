@@ -2,12 +2,10 @@ import { SlidersHorizontal } from "lucide-react";
 import { useId, useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
-import {
-  createDefaultPeakingEq,
-  EQ_LIMITS,
-} from "../../lib/dsp/peaking-eq-node";
+import { createDefaultPeakingEq } from "../../lib/dsp/peaking-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
+import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
@@ -68,21 +66,21 @@ export function RecorderEffects({
           <EqNumericInput
             label="Frequency"
             unit="Hz"
-            limits={EQ_LIMITS.frequency}
+            limits={EQ_CONTROL_LIMITS.frequency}
             value={eq.frequency}
             onChange={(frequency) => onChange({ frequency })}
           />
           <EqNumericInput
             label="Gain"
             unit="dB"
-            limits={EQ_LIMITS.gainDb}
+            limits={EQ_CONTROL_LIMITS.gainDb}
             value={gainToDb(eq.gain)}
             onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
           />
           <EqNumericInput
             label="Q"
             unit=""
-            limits={EQ_LIMITS.q}
+            limits={EQ_CONTROL_LIMITS.q}
             value={eq.q}
             onChange={(q) => onChange({ q })}
           />
@@ -97,7 +95,7 @@ export function RecorderEffects({
               <EqSlider
                 label="Frequency"
                 unit="Hz"
-                limits={EQ_LIMITS.frequency}
+                limits={EQ_CONTROL_LIMITS.frequency}
                 scale="logarithmic"
                 value={eq.frequency}
                 onChange={(frequency) => onChange({ frequency })}
@@ -105,14 +103,14 @@ export function RecorderEffects({
               <EqSlider
                 label="Gain"
                 unit="dB"
-                limits={EQ_LIMITS.gainDb}
+                limits={EQ_CONTROL_LIMITS.gainDb}
                 value={gainToDb(eq.gain)}
                 onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
               />
               <EqSlider
                 label="Q"
                 unit=""
-                limits={EQ_LIMITS.q}
+                limits={EQ_CONTROL_LIMITS.q}
                 value={eq.q}
                 onChange={(q) => onChange({ q })}
               />

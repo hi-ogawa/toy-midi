@@ -4,12 +4,6 @@ import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 const PROCESSOR_NAME = "peaking-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
-export const EQ_LIMITS = {
-  frequency: { min: 20, max: 20000, step: 1 },
-  gainDb: { min: -18, max: 18, step: 0.1 },
-  q: { min: 0.1, max: 18, step: 0.1 },
-};
-
 export function createDefaultPeakingEq(): EqParameters {
   return { frequency: 1000, gain: 1, q: 1, bypass: false };
 }
