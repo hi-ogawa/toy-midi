@@ -5,7 +5,7 @@ import {
   calculateBiquadEqResponse,
   type EqParameters,
   BiquadEq,
-} from "./eq";
+} from "./biquad-eq";
 
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {

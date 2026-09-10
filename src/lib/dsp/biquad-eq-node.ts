@@ -1,5 +1,5 @@
 import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
-import type { EqParameters } from "./eq.ts";
+import type { EqParameters } from "./biquad-eq.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
