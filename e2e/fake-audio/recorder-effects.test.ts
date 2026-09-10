@@ -41,7 +41,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .boundingBox();
   expect(graphBounds).toBeTruthy();
   const targetFrequency = 2000;
-  const targetGainDb = 9;
+  const targetGainDb = 9.2;
   const startX =
     34 + (Math.log(1000 / 20) / Math.log(20000 / 20)) * (320 - 34 - 8);
   const startY = 8 + (18 / 36) * (152 - 8 - 22);
@@ -64,7 +64,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   );
   await expect(
     audio.getByRole("textbox", { name: "Gain", exact: true }),
-  ).toHaveValue("9");
+  ).toHaveValue("9.2");
   await audio.getByRole("checkbox", { name: "Bypass" }).check();
   await expect(audio.getByTestId("eq-response-curve")).toHaveClass(
     /stroke-blue-400\/35/,

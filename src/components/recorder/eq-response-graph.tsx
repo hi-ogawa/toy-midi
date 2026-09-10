@@ -58,7 +58,8 @@ export function EqResponseGraph({
       GRAPH_HEIGHT - GRAPH_BOUNDS.bottom,
     );
     const frequency = Math.round(graphXToFrequency(x));
-    const gainDb = Math.round(graphYToGainDb(y) * 2) / 2;
+    const step = EQ_LIMITS.gainDb.step;
+    const gainDb = Math.round(graphYToGainDb(y) / step) * step;
     onChange({ frequency, gain: dbToGain(gainDb) });
   };
 
