@@ -1,8 +1,7 @@
 import {
   type PointerEvent as ReactPointerEvent,
-  useEffect,
+  useCallback,
   useEffectEvent,
-  useRef,
 } from "react";
 import {
   calculatePeakingEqCoefficients,
@@ -27,7 +26,6 @@ export function EqResponseGraph({
   eq: EqParameters;
   onChange: (update: Partial<EqParameters>) => void;
 }) {
-  const graphRef = useRef<SVGSVGElement | null>(null);
   const handleWheel = useEffectEvent((event: WheelEvent) => {
     if (event.ctrlKey || event.metaKey || event.deltaY === 0) {
       return;
@@ -42,12 +40,17 @@ export function EqResponseGraph({
     );
     onChange({ q });
   });
-  useEffect(() => {
-    const graph = graphRef.current!;
-    // A non-passive listener consumes Q gestures without scrolling the panel.
-    graph.addEventListener("wheel", handleWheel, { passive: false });
-    return () => graph.removeEventListener("wheel", handleWheel);
-  }, []);
+  const graphRef = useCallback(
+    (graph: SVGSVGElement | null) => {
+      if (!graph) {
+        return;
+      }
+      // A non-passive listener consumes Q gestures without scrolling the panel.
+      graph.addEventListener("wheel", handleWheel, { passive: false });
+      return () => graph.removeEventListener("wheel", handleWheel);
+    },
+    [handleWheel],
+  );
 
   const coefficients = calculatePeakingEqCoefficients({
     sampleRate: GRAPH_SAMPLE_RATE,
