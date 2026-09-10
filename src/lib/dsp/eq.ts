@@ -234,12 +234,9 @@ export function calculatePeakingEqResponse({
   const sin1 = Math.sin(omega);
   const cos2 = Math.cos(2 * omega);
   const sin2 = Math.sin(2 * omega);
-  const numeratorReal = b0 + b1 * cos1 + b2 * cos2;
-  const numeratorImag = -b1 * sin1 - b2 * sin2;
-  const denominatorReal = 1 + a1 * cos1 + a2 * cos2;
-  const denominatorImag = -a1 * sin1 - a2 * sin2;
-  const magnitudeSquared =
-    (numeratorReal ** 2 + numeratorImag ** 2) /
-    (denominatorReal ** 2 + denominatorImag ** 2);
-  return Math.sqrt(magnitudeSquared);
+  const nr = b0 + b1 * cos1 + b2 * cos2;
+  const ni = -b1 * sin1 - b2 * sin2;
+  const dr = 1 + a1 * cos1 + a2 * cos2;
+  const di = -a1 * sin1 - a2 * sin2;
+  return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
 }
