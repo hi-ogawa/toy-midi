@@ -78,28 +78,32 @@ export function RecorderEffects({
         </div>
         <div className="space-y-4 border-t border-neutral-700 pt-4">
           <div id={slidersId} hidden={!slidersOpen} className="space-y-4">
-            <EqSlider
-              label="Frequency"
-              unit="Hz"
-              limits={EQ_LIMITS.frequency}
-              scale="logarithmic"
-              value={eq.frequency}
-              onChange={(frequency) => onChange({ frequency })}
-            />
-            <EqSlider
-              label="Gain"
-              unit="dB"
-              limits={EQ_LIMITS.gainDb}
-              value={gainToDb(eq.gain)}
-              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-            />
-            <EqSlider
-              label="Q"
-              unit=""
-              limits={EQ_LIMITS.q}
-              value={eq.q}
-              onChange={(q) => onChange({ q })}
-            />
+            {slidersOpen && (
+              <>
+                <EqSlider
+                  label="Frequency"
+                  unit="Hz"
+                  limits={EQ_LIMITS.frequency}
+                  scale="logarithmic"
+                  value={eq.frequency}
+                  onChange={(frequency) => onChange({ frequency })}
+                />
+                <EqSlider
+                  label="Gain"
+                  unit="dB"
+                  limits={EQ_LIMITS.gainDb}
+                  value={gainToDb(eq.gain)}
+                  onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+                />
+                <EqSlider
+                  label="Q"
+                  unit=""
+                  limits={EQ_LIMITS.q}
+                  value={eq.q}
+                  onChange={(q) => onChange({ q })}
+                />
+              </>
+            )}
           </div>
           <div className="flex justify-end">
             <button
