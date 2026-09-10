@@ -50,7 +50,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
   await expect(frequency).toHaveAttribute(
     "aria-valuenow",
-    String(Math.log10(500 / 20) / Math.log10(20000 / 20)),
+    String(Math.log(500 / 20) / Math.log(20000 / 20)),
   );
   await expect(frequency).toHaveAttribute("aria-valuetext", "500 Hz");
   await audio.getByRole("textbox", { name: "Gain", exact: true }).fill("6");
