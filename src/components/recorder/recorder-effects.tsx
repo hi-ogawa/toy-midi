@@ -32,7 +32,7 @@ export function RecorderEffects({
       testId="recorder-effects-panel"
       className="pointer-events-auto w-96 shrink-0"
     >
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Peaking EQ</h3>
           <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ export function RecorderEffects({
         <div
           id={slidersId}
           hidden={!slidersOpen}
-          className="space-y-4 border-t border-neutral-700 pt-4 pb-2"
+          className="space-y-4 border-t border-neutral-700 pt-4"
         >
           {slidersOpen && (
             <>
@@ -214,6 +214,7 @@ function EqSlider({
         <span className="font-mono">{valueText}</span>
       </div>
       <Slider
+        className="h-4"
         aria-label={label}
         aria-valuetext={valueText}
         min={config.min}

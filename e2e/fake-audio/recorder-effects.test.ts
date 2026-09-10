@@ -261,9 +261,29 @@ test("expands EQ sliders from the header", async ({ page }) => {
   const toggle = panel.getByRole("button", { name: /sliders/ });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(panel.getByRole("slider")).toHaveCount(0);
+  const collapsedPanel = await panel.boundingBox();
+  const numericInput = await panel
+    .getByRole("textbox", { name: "Q", exact: true })
+    .boundingBox();
+  expect(collapsedPanel).toBeTruthy();
+  expect(numericInput).toBeTruthy();
+  const collapsedPadding =
+    collapsedPanel!.y +
+    collapsedPanel!.height -
+    numericInput!.y -
+    numericInput!.height;
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(panel.getByRole("slider")).toHaveCount(3);
+  const expandedPanel = await panel.boundingBox();
+  const qThumb = await panel
+    .getByRole("slider", { name: "Q", exact: true })
+    .boundingBox();
+  expect(expandedPanel).toBeTruthy();
+  expect(qThumb).toBeTruthy();
+  const expandedPadding =
+    expandedPanel!.y + expandedPanel!.height - qThumb!.y - qThumb!.height;
+  expect(expandedPadding).toBeCloseTo(collapsedPadding, 0);
   await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
 
   const frequency = panel.getByRole("slider", {
