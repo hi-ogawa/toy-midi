@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/eq";
 import {
@@ -7,7 +6,6 @@ import {
 } from "../../lib/dsp/peaking-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
-import { cn } from "../ui/utils";
 import { EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
@@ -22,17 +20,13 @@ export function RecorderEffects({
   onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<"sliders" | "graph">("sliders");
   return (
     <RecorderPanel
       title={`${label} Effects`}
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
       testId="recorder-effects-panel"
-      className={cn(
-        "pointer-events-auto shrink-0 transition-[width]",
-        mode === "sliders" ? "w-64" : "w-96",
-      )}
+      className="pointer-events-auto w-96 shrink-0"
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
@@ -44,76 +38,42 @@ export function RecorderEffects({
             Reset
           </button>
         </div>
-        <div
-          role="group"
-          aria-label="EQ edit mode"
-          className="grid grid-cols-2 rounded border border-neutral-600 p-0.5 text-xs"
-        >
-          {(["sliders", "graph"] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={mode === value}
-              className="rounded px-2 py-1 text-neutral-400 hover:text-neutral-100 aria-pressed:bg-neutral-600 aria-pressed:text-neutral-100"
-              onClick={() => setMode(value)}
-            >
-              {value === "sliders" ? "Sliders" : "Graph"}
-            </button>
-          ))}
+        <EqResponseGraph eq={eq} onChange={onChange} />
+        <div className="grid grid-cols-3 gap-3">
+          <EqNumericInput
+            label="Frequency"
+            unit="Hz"
+            limits={EQ_LIMITS.frequency}
+            value={eq.frequency}
+            onChange={(frequency) => onChange({ frequency })}
+          />
+          <EqNumericInput
+            label="Gain"
+            unit="dB"
+            limits={EQ_LIMITS.gainDb}
+            value={gainToDb(eq.gain)}
+            onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+          />
+          <EqNumericInput
+            label="Q"
+            unit=""
+            limits={EQ_LIMITS.q}
+            value={eq.q}
+            onChange={(q) => onChange({ q })}
+          />
         </div>
-        {mode === "sliders" ? (
-          <div className="space-y-4">
-            <EqParameter
-              label="Frequency"
-              unit="Hz"
-              limits={EQ_LIMITS.frequency}
-              scale="logarithmic"
-              value={eq.frequency}
-              onChange={(frequency) => onChange({ frequency })}
-            />
-            <EqParameter
-              label="Gain"
-              unit="dB"
-              limits={EQ_LIMITS.gainDb}
-              value={gainToDb(eq.gain)}
-              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-            />
-            <EqParameter
-              label="Q"
-              unit=""
-              limits={EQ_LIMITS.q}
-              value={eq.q}
-              onChange={(q) => onChange({ q })}
-            />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <EqResponseGraph eq={eq} onChange={onChange} />
-            <div className="grid grid-cols-3 gap-3">
-              <EqNumericInput
-                label="Frequency"
-                unit="Hz"
-                limits={EQ_LIMITS.frequency}
-                value={eq.frequency}
-                onChange={(frequency) => onChange({ frequency })}
-              />
-              <EqNumericInput
-                label="Gain"
-                unit="dB"
-                limits={EQ_LIMITS.gainDb}
-                value={gainToDb(eq.gain)}
-                onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-              />
-              <EqNumericInput
-                label="Q"
-                unit=""
-                limits={EQ_LIMITS.q}
-                value={eq.q}
-                onChange={(q) => onChange({ q })}
-              />
-            </div>
-          </div>
-        )}
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">Q · Bandwidth</div>
+          <Slider
+            aria-label="Q"
+            aria-valuetext={formatParameter(eq.q)}
+            value={[eq.q]}
+            min={EQ_LIMITS.q.min}
+            max={EQ_LIMITS.q.max}
+            step={EQ_LIMITS.q.step}
+            onValueChange={([q]) => onChange({ q })}
+          />
+        </div>
         <label className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"
@@ -128,66 +88,6 @@ export function RecorderEffects({
 }
 
 const formatParameter = (value: number) => String(Number(value.toFixed(2)));
-
-function EqParameter({
-  label,
-  unit,
-  limits,
-  scale = "linear",
-  value,
-  onChange,
-}: {
-  label: string;
-  unit: string;
-  limits: { min: number; max: number; step: number };
-  scale?: "linear" | "logarithmic";
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  const { min, max, step } = limits;
-  let config;
-  if (scale === "logarithmic") {
-    const logRange = Math.log(max / min);
-    config = {
-      sliderMin: 0,
-      sliderMax: 1,
-      sliderStep: 0.001,
-      // (log(value) - log(min)) / (log(max) - log(min))
-      // = log(value / min) / log(max / min); solve for value for the inverse.
-      toSliderValue: (value: number) => Math.log(value / min) / logRange,
-      toParameterValue: (position: number) =>
-        Number((min * Math.exp(position * logRange)).toFixed(2)),
-    };
-  } else {
-    config = {
-      sliderMin: min,
-      sliderMax: max,
-      sliderStep: step,
-      toSliderValue: (value: number) => value,
-      toParameterValue: (value: number) => value,
-    };
-  }
-  return (
-    <div className="space-y-2">
-      <EqNumericInput
-        label={label}
-        unit={unit}
-        limits={limits}
-        value={value}
-        onChange={onChange}
-      />
-      <Slider
-        aria-label={label}
-        aria-valuetext={`${formatParameter(value)} ${unit}`.trim()}
-        value={[config.toSliderValue(value)]}
-        min={config.sliderMin}
-        max={config.sliderMax}
-        step={config.sliderStep}
-        onValueChange={([next]) => onChange(config.toParameterValue(next))}
-      />
-    </div>
-  );
-}
 
 function EqNumericInput({
   label,
@@ -210,16 +110,18 @@ function EqNumericInput({
     format: formatParameter,
   });
   return (
-    <label className="flex min-w-0 items-center gap-2 text-xs">
-      <span className="mr-auto truncate">{label}</span>
+    <label className="flex min-w-0 flex-col gap-1.5 text-xs">
+      <span className="text-muted-foreground">
+        {label}
+        {unit && ` (${unit})`}
+      </span>
       <input
         type="text"
         inputMode="decimal"
         aria-label={label}
-        className="h-6 w-16 rounded border border-neutral-600 bg-neutral-900 px-1 text-right font-mono text-xs focus:border-neutral-500 focus:outline-none"
+        className="h-7 w-full rounded border border-neutral-600 bg-neutral-900 px-1 text-right font-mono text-xs focus:border-neutral-500 focus:outline-none"
         {...input.props}
       />
-      {unit && <span className="w-4 text-muted-foreground">{unit}</span>}
     </label>
   );
 }
