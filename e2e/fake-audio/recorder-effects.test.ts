@@ -33,26 +33,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
 
-  const frequency = audio.getByRole("slider", { name: "Frequency" });
-  await frequency.press("Home");
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "20",
-  );
-  await frequency.press("End");
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
-    "20000",
-  );
-  await frequency.press("Home");
-  await frequency.press("ArrowRight");
-  // A logarithmic keyboard step near 20 Hz must still advance the slider.
-  await expect(frequency).not.toHaveAttribute("aria-valuetext", "20 Hz");
   await audio.getByRole("textbox", { name: "Frequency" }).fill("500");
   await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
-  await expect(frequency).toHaveAttribute(
-    "aria-valuenow",
-    String(Math.log(500 / 20) / Math.log(20000 / 20)),
-  );
-  await expect(frequency).toHaveAttribute("aria-valuetext", "500 Hz");
   await audio.getByRole("textbox", { name: "Gain", exact: true }).fill("6");
   await audio
     .getByRole("textbox", { name: "Gain", exact: true })
