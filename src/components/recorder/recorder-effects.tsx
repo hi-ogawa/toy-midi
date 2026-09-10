@@ -93,7 +93,6 @@ function EqParameter({
   const config: ParameterConfig =
     scale === "logarithmic"
       ? {
-          ...limits,
           sliderMin: 0,
           sliderMax: 1,
           sliderStep: 0.001,
@@ -105,7 +104,6 @@ function EqParameter({
             Number((min * (max / min) ** position).toFixed(2)),
         }
       : {
-          ...limits,
           sliderMin: min,
           sliderMax: max,
           sliderStep: step,
@@ -115,9 +113,9 @@ function EqParameter({
   const input = useDraftInput({
     value,
     onCommit: onChange,
-    min: config.min,
-    max: config.max,
-    step: config.step,
+    min,
+    max,
+    step,
     parse: "float",
     format: formatParameter,
   });
@@ -153,7 +151,7 @@ type ParameterLimits = {
   step: number;
 };
 
-type ParameterConfig = ParameterLimits & {
+type ParameterConfig = {
   sliderMin: number;
   sliderMax: number;
   sliderStep: number;
