@@ -26,6 +26,53 @@ export function EqResponseGraph({
   eq: EqParameters;
   onChange: (update: Partial<EqParameters>) => void;
 }) {
+  // Map the configured response and control point into SVG coordinates.
+  const coefficients = calculatePeakingEqCoefficients({
+    sampleRate: GRAPH_SAMPLE_RATE,
+    frequency: eq.frequency,
+    gain: eq.gain,
+    q: eq.q,
+  });
+  const responsePath = Array.from({ length: 161 }, (_, index) => {
+    const x =
+      PLOT_MARGIN.left +
+      (index / 160) * (GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right);
+    const frequency = graphXToFrequency(x);
+    const gainDb = gainToDb(
+      calculatePeakingEqResponse({
+        coefficients,
+        sampleRate: GRAPH_SAMPLE_RATE,
+        frequency,
+      }),
+    );
+    return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${gainDbToGraphY(gainDb).toFixed(2)}`;
+  }).join(" ");
+  const pointX = frequencyToGraphX(eq.frequency);
+  const pointY = gainDbToGraphY(gainToDb(eq.gain));
+
+  // Pointer edits map the plot position back to frequency and gain.
+  const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x =
+      PLOT_MARGIN.left +
+      clamp(
+        ((event.clientX - bounds.left) / bounds.width) * GRAPH_WIDTH -
+          PLOT_MARGIN.left,
+        0,
+        GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right,
+      );
+    const y = clamp(
+      ((event.clientY - bounds.top) / bounds.height) * GRAPH_HEIGHT,
+      PLOT_MARGIN.top,
+      GRAPH_HEIGHT - PLOT_MARGIN.bottom,
+    );
+    const frequency = Math.round(graphXToFrequency(x));
+    const step = EQ_CONTROL_LIMITS.gainDb.step;
+    const gainDb = Math.round(graphYToGainDb(y) / step) * step;
+    onChange({ frequency, gain: dbToGain(gainDb) });
+  };
+
+  // Wheel gestures adjust Q independently of the point position.
   const handleWheel = useEffectEvent((event: WheelEvent) => {
     if (event.ctrlKey || event.metaKey || event.deltaY === 0) {
       return;
@@ -52,50 +99,7 @@ export function EqResponseGraph({
     [handleWheel],
   );
 
-  const coefficients = calculatePeakingEqCoefficients({
-    sampleRate: GRAPH_SAMPLE_RATE,
-    frequency: eq.frequency,
-    gain: eq.gain,
-    q: eq.q,
-  });
-  const responsePath = Array.from({ length: 161 }, (_, index) => {
-    const x =
-      PLOT_MARGIN.left +
-      (index / 160) * (GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right);
-    const frequency = graphXToFrequency(x);
-    const gainDb = gainToDb(
-      calculatePeakingEqResponse({
-        coefficients,
-        sampleRate: GRAPH_SAMPLE_RATE,
-        frequency,
-      }),
-    );
-    return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${gainDbToGraphY(gainDb).toFixed(2)}`;
-  }).join(" ");
-  const pointX = frequencyToGraphX(eq.frequency);
-  const pointY = gainDbToGraphY(gainToDb(eq.gain));
-
-  const updateFromPointer = (event: ReactPointerEvent<SVGSVGElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const x =
-      PLOT_MARGIN.left +
-      clamp(
-        ((event.clientX - bounds.left) / bounds.width) * GRAPH_WIDTH -
-          PLOT_MARGIN.left,
-        0,
-        GRAPH_WIDTH - PLOT_MARGIN.left - PLOT_MARGIN.right,
-      );
-    const y = clamp(
-      ((event.clientY - bounds.top) / bounds.height) * GRAPH_HEIGHT,
-      PLOT_MARGIN.top,
-      GRAPH_HEIGHT - PLOT_MARGIN.bottom,
-    );
-    const frequency = Math.round(graphXToFrequency(x));
-    const step = EQ_CONTROL_LIMITS.gainDb.step;
-    const gainDb = Math.round(graphYToGainDb(y) / step) * step;
-    onChange({ frequency, gain: dbToGain(gainDb) });
-  };
-
+  // Draw the axes, response curve, and editable point.
   return (
     <svg
       ref={graphRef}
