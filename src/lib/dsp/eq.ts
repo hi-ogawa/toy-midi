@@ -29,59 +29,6 @@ export type PeakingEqCoefficients = {
   a2: number;
 };
 
-/** Biquad coefficients normalized to a0 = 1. */
-export function calculatePeakingEqCoefficients({
-  sampleRate,
-  frequency,
-  gain,
-  q,
-  output,
-}: {
-  sampleRate: number;
-  frequency: number;
-  gain: number;
-  q: number;
-  output?: PeakingEqCoefficients;
-}): PeakingEqCoefficients {
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const amplitude = Math.sqrt(gain);
-  const alpha = Math.sin(omega) / (2 * q);
-  const a0 = 1 + alpha / amplitude;
-  const b1 = (-2 * Math.cos(omega)) / a0;
-  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  result.b0 = (1 + alpha * amplitude) / a0;
-  result.b1 = b1;
-  result.b2 = (1 - alpha * amplitude) / a0;
-  result.a1 = b1;
-  result.a2 = (1 - alpha / amplitude) / a0;
-  return result;
-}
-
-export function calculatePeakingEqResponse({
-  coefficients,
-  sampleRate,
-  frequency,
-}: {
-  coefficients: PeakingEqCoefficients;
-  sampleRate: number;
-  frequency: number;
-}): number {
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const cos1 = Math.cos(omega);
-  const sin1 = Math.sin(omega);
-  const cos2 = Math.cos(2 * omega);
-  const sin2 = Math.sin(2 * omega);
-  const numeratorReal =
-    coefficients.b0 + coefficients.b1 * cos1 + coefficients.b2 * cos2;
-  const numeratorImag = -coefficients.b1 * sin1 - coefficients.b2 * sin2;
-  const denominatorReal = 1 + coefficients.a1 * cos1 + coefficients.a2 * cos2;
-  const denominatorImag = -coefficients.a1 * sin1 - coefficients.a2 * sin2;
-  const magnitudeSquared =
-    (numeratorReal ** 2 + numeratorImag ** 2) /
-    (denominatorReal ** 2 + denominatorImag ** 2);
-  return Math.sqrt(magnitudeSquared);
-}
-
 /** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
 export class PeakingEq {
   private readonly sampleRate: number;
@@ -236,4 +183,57 @@ export class PeakingEq {
       output: this.coefficients,
     });
   }
+}
+
+/** Biquad coefficients normalized to a0 = 1. */
+export function calculatePeakingEqCoefficients({
+  sampleRate,
+  frequency,
+  gain,
+  q,
+  output,
+}: {
+  sampleRate: number;
+  frequency: number;
+  gain: number;
+  q: number;
+  output?: PeakingEqCoefficients;
+}): PeakingEqCoefficients {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const amplitude = Math.sqrt(gain);
+  const alpha = Math.sin(omega) / (2 * q);
+  const a0 = 1 + alpha / amplitude;
+  const b1 = (-2 * Math.cos(omega)) / a0;
+  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  result.b0 = (1 + alpha * amplitude) / a0;
+  result.b1 = b1;
+  result.b2 = (1 - alpha * amplitude) / a0;
+  result.a1 = b1;
+  result.a2 = (1 - alpha / amplitude) / a0;
+  return result;
+}
+
+export function calculatePeakingEqResponse({
+  coefficients,
+  sampleRate,
+  frequency,
+}: {
+  coefficients: PeakingEqCoefficients;
+  sampleRate: number;
+  frequency: number;
+}): number {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos1 = Math.cos(omega);
+  const sin1 = Math.sin(omega);
+  const cos2 = Math.cos(2 * omega);
+  const sin2 = Math.sin(2 * omega);
+  const numeratorReal =
+    coefficients.b0 + coefficients.b1 * cos1 + coefficients.b2 * cos2;
+  const numeratorImag = -coefficients.b1 * sin1 - coefficients.b2 * sin2;
+  const denominatorReal = 1 + coefficients.a1 * cos1 + coefficients.a2 * cos2;
+  const denominatorImag = -coefficients.a1 * sin1 - coefficients.a2 * sin2;
+  const magnitudeSquared =
+    (numeratorReal ** 2 + numeratorImag ** 2) /
+    (denominatorReal ** 2 + denominatorImag ** 2);
+  return Math.sqrt(magnitudeSquared);
 }
