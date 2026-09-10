@@ -185,7 +185,6 @@ export class PeakingEq {
   }
 }
 
-/** Biquad coefficients normalized to a0 = 1. */
 export function calculatePeakingEqCoefficients({
   sampleRate,
   frequency,
