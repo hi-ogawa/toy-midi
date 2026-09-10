@@ -84,7 +84,7 @@ function EqParameter({
 }: {
   label: string;
   unit: string;
-  limits: ParameterLimits;
+  limits: { min: number; max: number; step: number };
   scale?: "linear" | "logarithmic";
   value: number;
   onChange: (value: number) => void;
@@ -146,9 +146,3 @@ function EqParameter({
     </div>
   );
 }
-
-type ParameterLimits = {
-  min: number;
-  max: number;
-  step: number;
-};
