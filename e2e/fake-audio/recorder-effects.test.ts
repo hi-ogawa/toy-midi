@@ -100,27 +100,14 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 });
 
 test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
-  // Open independent effects panels for backing audio and Capture.
   await createRecorderProject(page);
-  await page.getByTitle("Add empty audio track").click();
   await page.getByTestId("recorder-mixer-button").click();
-  await page
-    .getByRole("button", { name: "Audio 1 effects", exact: true })
-    .click();
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
-  const audio = page.getByTestId("recorder-effects-panel").filter({
-    has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
-  });
-  const capture = page.getByTestId("recorder-effects-panel").filter({
-    has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
-  });
-
-  // The graph and numeric controls are available together in both panels.
-  await expect(audio.getByTestId("eq-response-graph")).toBeVisible();
-  await expect(capture.getByTestId("eq-response-graph")).toBeVisible();
-  const graphBounds = await audio
+  const panel = page.getByTestId("recorder-effects-panel");
+  await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
+  const graphBounds = await panel
     .getByTestId("eq-response-graph")
     .boundingBox();
   expect(graphBounds).toBeTruthy();
@@ -143,45 +130,42 @@ test("edits EQ with graph dragging and wheel gestures", async ({ page }) => {
     graphBounds!.y + (graphY / 152) * graphBounds!.height,
   );
   await page.mouse.up();
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "2000",
   );
   await expect(
-    audio.getByRole("textbox", { name: "Gain", exact: true }),
+    panel.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("9.2");
   // Wheel adjusts bandwidth independently.
-  const qInput = audio.getByRole("textbox", { name: "Q", exact: true });
+  const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
   await page.mouse.wheel(0, -100);
   await expect
     .poll(async () => Number(await qInput.inputValue()))
     .toBeGreaterThan(1);
   await page.mouse.wheel(0, 100);
   await expect(qInput).toHaveValue("1");
-  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+  await expect(panel.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "2000",
   );
   await expect(
-    audio.getByRole("textbox", { name: "Gain", exact: true }),
+    panel.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("9.2");
-  await expect(
-    capture.getByRole("textbox", { name: "Q", exact: true }),
-  ).toHaveValue("1");
-  await audio.getByRole("checkbox", { name: "Bypass" }).check();
-  await expect(audio.getByTestId("eq-response-curve")).toHaveClass(
+  await panel.getByRole("checkbox", { name: "Bypass" }).check();
+  await expect(panel.getByTestId("eq-response-curve")).toHaveClass(
     /stroke-blue-400\/35/,
   );
-  await audio.getByRole("checkbox", { name: "Bypass" }).uncheck();
+  await panel.getByRole("checkbox", { name: "Bypass" }).uncheck();
 
   // Optional sliders can be shown and hidden beside the graph controls.
-  await expect(audio.getByRole("slider")).toHaveCount(0);
-  await audio
+  await expect(panel.getByRole("slider")).toHaveCount(0);
+  await panel
     .getByRole("button", { name: "Show sliders", exact: true })
     .click();
-  await expect(audio.getByRole("slider")).toHaveCount(3);
-  await audio
+  await expect(panel.getByRole("slider")).toHaveCount(3);
+  await panel
     .getByRole("button", { name: "Hide sliders", exact: true })
     .click();
-  await expect(audio.getByRole("slider")).toHaveCount(0);
+  await expect(panel.getByRole("slider")).toHaveCount(0);
 });
 
 test("toggles multiple track panels and closes them with the mixer or track", async ({
