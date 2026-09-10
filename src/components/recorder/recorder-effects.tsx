@@ -89,11 +89,9 @@ function EqParameter({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const { min, max, step } = limits;
+  const { min, max } = limits;
   let config = {
-    min,
-    max,
-    step,
+    ...limits,
     toSliderValue: (value: number) => value,
     toParameterValue: (value: number) => value,
   };
@@ -116,9 +114,7 @@ function EqParameter({
   const input = useDraftInput({
     value,
     onCommit: onChange,
-    min,
-    max,
-    step,
+    ...limits,
     parse: "float",
     format: formatParameter,
   });
