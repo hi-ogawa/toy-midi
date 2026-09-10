@@ -1,5 +1,5 @@
-import type { EqParameters } from "../dsp/eq.ts";
-import { PeakingEqNode } from "../dsp/peaking-eq-node.ts";
+import { BiquadEqNode } from "../dsp/biquad-eq-node.ts";
+import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import type {
   AudioContextTransport,
@@ -14,7 +14,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   private source?: AudioBufferSourceNode;
   private pitchShifter?: AudioWorkletNode;
   private eqParameters?: EqParameters;
-  private equalizer?: PeakingEqNode;
+  private equalizer?: BiquadEqNode;
   /** Transport timeline time corresponding to source-buffer time zero. */
   private bufferTimelineOffset = 0;
   private timelineRange?: { start: number; end: number };
@@ -95,7 +95,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       this.pitchShifter = pitchShifter;
     }
     if (this.eqParameters) {
-      const equalizer = new PeakingEqNode({
+      const equalizer = new BiquadEqNode({
         context: this.transport.context,
         channelCount: buffer.numberOfChannels,
         parameters: this.eqParameters,

@@ -21,7 +21,7 @@ export type EqParameters = {
   bypass: boolean;
 };
 
-export type PeakingEqCoefficients = {
+export type BiquadEqCoefficients = {
   b0: number;
   b1: number;
   b2: number;
@@ -30,7 +30,7 @@ export type PeakingEqCoefficients = {
 };
 
 /** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
-export class PeakingEq {
+export class BiquadEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
@@ -41,7 +41,7 @@ export class PeakingEq {
   // Per-channel Direct Form I history: x[n-1], x[n-2], y[n-1], y[n-2].
   private readonly history: Float64Array[];
   // Reused while parameters ramp to keep the processing loop allocation-free.
-  private readonly coefficients: PeakingEqCoefficients = {
+  private readonly coefficients: BiquadEqCoefficients = {
     b0: 1,
     b1: 0,
     b2: 0,
@@ -175,7 +175,7 @@ export class PeakingEq {
   }
 
   private updateCoefficients(): void {
-    calculatePeakingEqCoefficients({
+    calculateBiquadEqCoefficients({
       sampleRate: this.sampleRate,
       frequency: Math.exp(this.current[0]),
       gain: Math.exp(this.current[1]),
@@ -185,7 +185,7 @@ export class PeakingEq {
   }
 }
 
-export function calculatePeakingEqCoefficients({
+export function calculateBiquadEqCoefficients({
   sampleRate,
   frequency,
   gain,
@@ -196,8 +196,8 @@ export function calculatePeakingEqCoefficients({
   frequency: number;
   gain: number;
   q: number;
-  output?: PeakingEqCoefficients;
-}): PeakingEqCoefficients {
+  output?: BiquadEqCoefficients;
+}): BiquadEqCoefficients {
   const omega = (2 * Math.PI * frequency) / sampleRate;
   const amplitude = Math.sqrt(gain);
   const alpha = Math.sin(omega) / (2 * q);
@@ -219,12 +219,12 @@ export function calculatePeakingEqCoefficients({
  * |H|^2 = |N|^2 / |D|^2 = (Nr^2 + Ni^2) / (Dr^2 + Di^2).
  * Take the square root to return the amplitude ratio |H|.
  */
-export function calculatePeakingEqResponse({
+export function calculateBiquadEqResponse({
   coefficients,
   sampleRate,
   frequency,
 }: {
-  coefficients: PeakingEqCoefficients;
+  coefficients: BiquadEqCoefficients;
   sampleRate: number;
   frequency: number;
 }): number {

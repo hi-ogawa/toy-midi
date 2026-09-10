@@ -4,10 +4,10 @@ import {
   useEffectEvent,
 } from "react";
 import {
-  calculatePeakingEqCoefficients,
-  calculatePeakingEqResponse,
+  calculateBiquadEqCoefficients,
+  calculateBiquadEqResponse,
   type EqParameters,
-} from "../../lib/dsp/eq";
+} from "../../lib/dsp/biquad-eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 
@@ -23,7 +23,7 @@ export function EqResponseGraph({
   onChange: (update: Partial<EqParameters>) => void;
 }) {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
-  const coefficients = calculatePeakingEqCoefficients({
+  const coefficients = calculateBiquadEqCoefficients({
     sampleRate: GRAPH_SAMPLE_RATE,
     frequency: eq.frequency,
     gain: eq.gain,
@@ -33,7 +33,7 @@ export function EqResponseGraph({
     const x = index / 160;
     const frequency = graphXToFrequency(x);
     const gainDb = gainToDb(
-      calculatePeakingEqResponse({
+      calculateBiquadEqResponse({
         coefficients,
         sampleRate: GRAPH_SAMPLE_RATE,
         frequency,

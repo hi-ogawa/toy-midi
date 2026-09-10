@@ -1,8 +1,8 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters } from "../../lib/dsp/eq";
-import { createDefaultPeakingEq } from "../../lib/dsp/peaking-eq-node";
+import type { EqParameters } from "../../lib/dsp/biquad-eq";
+import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
@@ -42,7 +42,7 @@ export function RecorderEffects({
               Bypass
             </label>
             <button
-              onClick={() => onChange(createDefaultPeakingEq())}
+              onClick={() => onChange(createDefaultEq())}
               className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
             >
               Reset
