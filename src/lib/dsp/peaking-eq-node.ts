@@ -1,4 +1,3 @@
-import { clamp, dbToGain } from "../music.ts";
 import type { EqParameters } from "./eq.ts";
 import peakingEqWorkletUrl from "./peaking-eq-worklet.ts?worker&url";
 
@@ -13,26 +12,6 @@ export const EQ_LIMITS = {
 
 export function createDefaultPeakingEq(): EqParameters {
   return { frequency: 1000, gain: 1, q: 1, bypass: false };
-}
-
-export function normalizePeakingEq(eq: EqParameters): EqParameters {
-  const defaults = createDefaultPeakingEq();
-  return {
-    frequency: Number.isFinite(eq.frequency)
-      ? clamp(eq.frequency, EQ_LIMITS.frequency.min, EQ_LIMITS.frequency.max)
-      : defaults.frequency,
-    gain: Number.isFinite(eq.gain)
-      ? clamp(
-          eq.gain,
-          dbToGain(EQ_LIMITS.gainDb.min),
-          dbToGain(EQ_LIMITS.gainDb.max),
-        )
-      : defaults.gain,
-    q: Number.isFinite(eq.q)
-      ? clamp(eq.q, EQ_LIMITS.q.min, EQ_LIMITS.q.max)
-      : defaults.q,
-    bypass: eq.bypass,
-  };
 }
 
 export class PeakingEqNode extends AudioWorkletNode {

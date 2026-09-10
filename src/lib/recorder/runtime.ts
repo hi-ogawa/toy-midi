@@ -5,7 +5,6 @@ import type { EqParameters } from "../dsp/eq.ts";
 import {
   createDefaultPeakingEq,
   ensurePeakingEqWorklet,
-  normalizePeakingEq,
   PeakingEqNode,
 } from "../dsp/peaking-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
@@ -541,7 +540,7 @@ export class RecorderRuntime {
   }): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
-      eq: normalizePeakingEq({ ...track.eq, ...update }),
+      eq: { ...track.eq, ...update },
     }));
     this.audioTrackPlaybacks.get(id)?.setEq(track.eq);
   }
@@ -551,7 +550,7 @@ export class RecorderRuntime {
     this.store.update({
       recordingTrack: {
         ...track,
-        eq: normalizePeakingEq({ ...track.eq, ...update }),
+        eq: { ...track.eq, ...update },
       },
     });
     for (const playback of this.recordingTrackPlaybacks) {
