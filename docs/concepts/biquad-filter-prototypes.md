@@ -156,28 +156,9 @@ $$
 
 Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
-## Map The Analog Frequency To Sample Delays
+## Apply The Existing Bilinear Mapping
 
-Let $T=1/F_s$ be the sample interval and let the requested digital frequency be $\omega_0=2\pi f_0/F_s$ radians per sample. The bilinear transform substitutes
-
-$$
-S\leftarrow\frac{2}{T}\frac{1-z^{-1}}{1+z^{-1}}.
-$$
-
-For a digital sinusoid $z=e^{j\omega}$,
-
-$$
-\frac{1-e^{-j\omega}}{1+e^{-j\omega}}
-=j\tan\frac{\omega}{2}.
-$$
-
-The digital frequency $\omega_0$ should reach the analog prototype at $S=j\Omega_0$. This requires the prewarped analog frequency
-
-$$
-\Omega_0=\frac{2}{T}\tan\frac{\omega_0}{2}.
-$$
-
-Since $s=S/\Omega_0$, the normalized substitution becomes
+The [peaking-EQ derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#digital-map) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
 
 $$
 s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
@@ -185,7 +166,7 @@ s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
 K=\cot\frac{\omega_0}{2}.
 $$
 
-At $z=e^{j\omega_0}$ this gives $s=j$, so the analog prototype's natural-frequency point lands at the requested digital frequency.
+This maps $z=e^{j\omega_0}$ to $s=j$. What remains is the low-pass-specific expansion.
 
 ## Expand The Digital Response
 
