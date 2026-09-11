@@ -127,16 +127,16 @@ H(j\Omega_0)
 =-j\frac{\Omega_0}{d_1}.
 $$
 
-Its amplitude is set by damping relative to the natural-frequency scale. Measure all complex frequencies relative to that scale:
+Its amplitude is set by damping relative to the natural-frequency scale. Write a relative complex rate $s$ so that
 
 $$
-s=\frac{S}{\Omega_0}.
+S=\Omega_0s.
 $$
 
-Substitute $S=\Omega_0s$ and use $d_0=\Omega_0^2$:
+Substitute this argument into the same response and use $d_0=\Omega_0^2$:
 
 $$
-H(s)
+H(\Omega_0s)
 =\frac{1}{s^2+(d_1/\Omega_0)s+1}.
 $$
 
@@ -146,10 +146,10 @@ $$
 \delta=\frac{d_1}{\Omega_0}.
 $$
 
-The response is now
+The normalized expression for the same response is
 
 $$
-H(s)=\frac{1}{s^2+\delta s+1}.
+H(\Omega_0s)=\frac{1}{s^2+\delta s+1}.
 $$
 
 ## Inspect The Remaining Freedom
@@ -157,9 +157,9 @@ $$
 The damping coefficient $\delta$ is still free. At the natural-frequency scale,
 
 $$
-H(j)=\frac{1}{-1+j\delta+1}=\frac{1}{j\delta},
+H(j\Omega_0)=\frac{1}{-1+j\delta+1}=\frac{1}{j\delta},
 \qquad
-|H(j)|=\frac{1}{\delta}.
+|H(j\Omega_0)|=\frac{1}{\delta}.
 $$
 
 It is conventional to name reciprocal damping $Q$:
@@ -171,10 +171,10 @@ $$
 The low-pass prototype is therefore
 
 $$
-H_{\mathrm{LP}}(s)=\frac{1}{s^2+s/Q+1}.
+H_{\mathrm{LP}}(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-At $s=j$, its amplitude is $Q$. Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB value there. Increasing $Q$ reduces damping and eventually creates a resonant rise around the natural-frequency scale.
+At $s=j$, meaning $S=j\Omega_0$, its amplitude is $Q$. Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB value there. Increasing $Q$ reduces damping and eventually creates a resonant rise around the natural-frequency scale.
 
 ## Other Responses
 
