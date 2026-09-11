@@ -85,7 +85,7 @@ $$
 
 ### Identify the Natural Frequency
 
-The denominator describes an oscillator, with $d_0$ providing the restoring term and $d_1$ the damping. To find its natural frequency, take $d_0>0$ and temporarily set $d_1=0$:
+To identify a frequency scale in the denominator, take $d_0>0$ and temporarily set $d_1=0$:
 
 $$
 D_0(S)=S^2+d_0.
@@ -109,11 +109,11 @@ $$
 D_0(S)=(S-j\Omega_0)(S+j\Omega_0)
 $$
 
-shows the free oscillations $e^{\pm j\Omega_0t}$. Without damping, they continue at the natural angular frequency $\Omega_0$ with constant amplitude.
+shows the free oscillations $e^{\pm j\Omega_0t}$. They have constant amplitude and angular frequency $\Omega_0$, which gives us the natural frequency of this system.
 
 ### Normalize the Frequency Scale
 
-Restoring the damping term, measure the complex rate relative to $\Omega_0$ by writing
+Restore the $d_1S$ term and measure the complex rate relative to $\Omega_0$ by writing
 
 $$
 S=\Omega_0s.
@@ -132,7 +132,7 @@ $$
 
 ### Express the Remaining Freedom as Q
 
-For positive damping $d_1>0$, evaluate the response at the natural frequency, where $s=j$:
+For $d_1>0$, evaluate the response at the natural frequency, where $s=j$:
 
 $$
 H(j\Omega_0)
@@ -156,7 +156,7 @@ $$
 
 This connects the low-pass $Q$ knob in an EQ interface to the magnitude we just calculated. Since the magnitude at the selected frequency is $Q$, its level is $20\log_{10}Q$ dB. A value of $Q=1$ therefore means 0 dB at that one frequency. Whether the passband is flat depends on the surrounding curve, which we examine next.
 
-This differs from the peaking EQ in the companion, where gain sets the center level and $Q$ sets the width. Here the same damping parameter controls both the transition shape and the level at the selected frequency, so those two effects change together when we turn the $Q$ knob.
+This differs from the peaking EQ in the companion, where gain sets the center level and $Q$ sets the width. Here $Q$ controls both the transition shape and the level at the selected frequency, so those two effects change together when we turn the knob.
 
 ### Choose a Flat Passband
 
