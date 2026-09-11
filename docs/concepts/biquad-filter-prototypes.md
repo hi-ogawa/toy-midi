@@ -158,7 +158,7 @@ $$
 
 Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
-### Apply The Existing Bilinear Mapping
+### Expand The Low Pass Into Digital Coefficients
 
 The [peaking-EQ derivation](transfer-function-and-peaking-eq.md#9-turn-the-continuous-model-into-delayed-samples) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
 
@@ -168,11 +168,7 @@ s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
 K=\cot\frac{\omega_0}{2}.
 $$
 
-This maps $z=e^{j\omega_0}$ to $s=j$. What remains is applying the reusable polynomial expansion to the low-pass response.
-
-### Expand The Digital Response
-
-Define the digital response by applying that substitution to the analog response:
+This maps $z=e^{j\omega_0}$ to $s=j$. Define the digital response by applying that substitution to the analog response:
 
 $$
 H_d(z)=H\bigl(\Omega_0s(z)\bigr).
