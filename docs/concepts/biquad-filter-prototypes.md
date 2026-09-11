@@ -16,6 +16,10 @@ We have not chosen a filter family or a special frequency. We still have five fr
 
 Begin with a familiar goal: preserve low frequencies and attenuate high frequencies. We will first constrain the numerator, then investigate the freedom left in the denominator.
 
+![Low-pass magnitude response falling from unity toward zero](images/low-pass-response.svg)
+
+_Schematic response. The transition shape depends on $Q$._
+
 ### Constrain the Low- and High-Frequency Limits
 
 At the two frequency extremes, this goal means
@@ -240,6 +244,10 @@ $$
 ## Constructing a Low-Shelf Response
 
 The low-pass construction makes the high-frequency response vanish. A low shelf asks for a different destination: preserve high frequencies while changing the level of low frequencies.
+
+![Low-shelf magnitude response transitioning from a boosted level to unity](images/low-shelf-response.svg)
+
+_Schematic response showing a boost, with $M>1$._
 
 ### Set the Two Endpoint Levels
 
