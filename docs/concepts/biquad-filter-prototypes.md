@@ -2,7 +2,7 @@
 
 The recorder EQ implements several second-order filters with one sample loop. Their coefficients are commonly presented as a table, but a table hides the interesting question: if we started only with the response we wanted, how would we invent each filter?
 
-This document picks up from the continuous second-order system developed in [Modeling an audio effect as a transfer function](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html). We will work through one response at a time, inspect exactly what each requirement decides, and avoid assuming the final filter family in advance.
+This document picks up from the continuous second-order system developed in [Modeling an audio effect as a transfer function](transfer-function-and-peaking-eq.md). We will work through one response at a time, inspect exactly what each requirement decides, and avoid assuming the final filter family in advance.
 
 ## Begin With A General Second-Order Response
 
@@ -160,7 +160,7 @@ Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Large
 
 ### Apply The Existing Bilinear Mapping
 
-The [peaking-EQ derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#digital-map) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
+The [peaking-EQ derivation](transfer-function-and-peaking-eq.md#9-turn-the-continuous-model-into-delayed-samples) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
 
 $$
 s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
@@ -178,7 +178,7 @@ $$
 H_d(z)=H\bigl(\Omega_0s(z)\bigr).
 $$
 
-The gist's [coefficient expansion](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#peak-coefficients) abbreviates the delay as $d=z^{-1}$ and expands the general quadratic
+The companion's [coefficient expansion](transfer-function-and-peaking-eq.md#10-expand-the-mapping-until-the-runtime-coefficients-appear) abbreviates the delay as $d=z^{-1}$ and expands the general quadratic
 
 $$
 s^2+cs+1.
