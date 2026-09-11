@@ -287,20 +287,77 @@ H(\infty)=1,
 M>0.
 $$
 
-Here $M>1$ boosts low frequencies and $0<M<1$ cuts them. Write
+Here $M>1$ boosts low frequencies and $0<M<1$ cuts them. Return to the general second-order response:
 
 $$
-A=\sqrt{M}.
+H(S)=\frac{c_2S^2+c_1S+c_0}{S^2+d_1S+d_0}.
 $$
 
-As before, use the relative rate $s=S/\Omega_0$. One simple reciprocal arrangement of two quadratics that satisfies both endpoint values is
+At zero frequency, the ratio of the constant terms sets the level:
+
+$$
+H(0)=\frac{c_0}{d_0}=M,
+\qquad
+c_0=Md_0.
+$$
+
+At high frequency, the ratio of the leading coefficients is $c_2$. Preserving that level requires $c_2=1$, so the response becomes
+
+$$
+H(S)=\frac{S^2+c_1S+Md_0}{S^2+d_1S+d_0}.
+$$
+
+The endpoint levels leave $c_1$, $d_1$, and $d_0$ to determine the transition.
+
+### Choose a Frequency Scale Between the Two Quadratics
+
+For $d_0>0$, substituting $S=j\Omega$ gives
+
+$$
+H(j\Omega)=\frac{Md_0-\Omega^2+jc_1\Omega}{d_0-\Omega^2+jd_1\Omega}.
+$$
+
+The real parts of the numerator and denominator vanish at $\sqrt{Md_0}$ and $\sqrt{d_0}$, respectively. These give us two frequency scales. Choose $\Omega_0$ halfway between them on a logarithmic frequency axis, which means taking their geometric mean:
+
+$$
+\Omega_0=\sqrt{\sqrt{Md_0}\sqrt{d_0}},
+\qquad
+\Omega_0^2=\sqrt{M}\,d_0.
+$$
+
+The factor $\sqrt{M}$ now appears naturally. Abbreviate it as
+
+$$
+A=\sqrt{M},
+\qquad
+d_0=\frac{\Omega_0^2}{A}.
+$$
+
+Measure the complex rate relative to this frequency by writing $S=\Omega_0s$. Substituting and dividing both polynomials by $\Omega_0^2$ gives
+
+$$
+\begin{aligned}
+H(\Omega_0s)
+&=\frac{\Omega_0^2s^2+c_1\Omega_0s+M\Omega_0^2/A}{\Omega_0^2s^2+d_1\Omega_0s+\Omega_0^2/A}\\
+&=\frac{s^2+(c_1/\Omega_0)s+A}{s^2+(d_1/\Omega_0)s+1/A}.
+\end{aligned}
+$$
+
+Multiplying both numerator and denominator by $A$ puts the response in the form
+
+$$
+H(\Omega_0s)
+=A\frac{s^2+(c_1/\Omega_0)s+A}{As^2+(Ad_1/\Omega_0)s+1}.
+$$
+
+Write $c_n=c_1/\Omega_0$ and $c_d=Ad_1/\Omega_0$ for the two linear coefficients:
 
 $$
 H(\Omega_0s)
 =A\frac{s^2+c_n s+A}{As^2+c_d s+1}.
 $$
 
-Indeed, its zero-frequency response is $A^2=M$, while the ratio of its leading coefficients at infinite frequency is one. The numerator and denominator place their constant and quadratic terms in opposite orders, so their frequency scales lie on opposite sides of $s=j$.
+We can now use the response at $s=j$ to relate these coefficients.
 
 ### Place the Center Halfway Between the Levels
 
