@@ -99,13 +99,27 @@ $$
 \Omega^2=d_0.
 $$
 
-This reveals a distinguished angular frequency in the response:
+At that frequency the denominator contains only the damping term. If $d_1$ were zero, the entire denominator would vanish: the restoring and second-derivative terms would support an undamped free oscillation. Positive damping prevents that singular response, leaving
+
+$$
+D(j\sqrt{d_0})=j d_1\sqrt{d_0}.
+$$
+
+The balance therefore reveals the system's undamped natural angular frequency:
 
 $$
 \Omega_0=\sqrt{d_0}.
 $$
 
-The definition is not an arbitrary normalization introduced in advance. It is the frequency where the restoring and second-derivative terms balance. Measure all complex frequencies relative to it:
+For the low-pass response already constructed, its value there is
+
+$$
+H(j\Omega_0)
+=\frac{d_0}{j d_1\sqrt{d_0}}
+=-j\frac{\sqrt{d_0}}{d_1}.
+$$
+
+The output has a quarter-cycle lag, and its amplitude is determined entirely by the damping relative to this natural-frequency scale. Measure all complex frequencies relative to it:
 
 $$
 s=\frac{S}{\Omega_0}.
