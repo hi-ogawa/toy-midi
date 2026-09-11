@@ -99,17 +99,33 @@ $$
 \Omega^2=d_0.
 $$
 
-At that frequency the denominator contains only the damping term. If $d_1$ were zero, the entire denominator would vanish: the restoring and second-derivative terms would support an undamped free oscillation. Positive damping prevents that singular response, leaving
-
-$$
-D(j\sqrt{d_0})=j d_1\sqrt{d_0}.
-$$
-
-The balance therefore reveals the system's undamped natural angular frequency:
+Denote the positive solution by
 
 $$
 \Omega_0=\sqrt{d_0}.
 $$
+
+To see why this frequency matters, first set $d_1=0$. The denominator factors as
+
+$$
+S^2+\Omega_0^2=(S-j\Omega_0)(S+j\Omega_0).
+$$
+
+Its roots $S=\pm j\Omega_0$ produce the homogeneous modes
+
+$$
+e^{\pm j\Omega_0t},
+$$
+
+whose magnitudes do not decay. The same roots make the denominator of the sinusoidal response zero at $S=j\Omega_0$, so an input at that frequency has no finite steady-state response in the undamped model.
+
+For $d_1>0$, substitution at the same frequency instead gives
+
+$$
+D(j\Omega_0)=j d_1\Omega_0.
+$$
+
+The denominator is now nonzero, and the response is finite. This is why $\Omega_0$ is called the undamped natural angular frequency.
 
 For the low-pass response already constructed, its value there is
 
