@@ -140,11 +140,13 @@ H(j\Omega_0)
 =-j\frac{\Omega_0}{d_1}.
 $$
 
-The quality factor $Q$ expresses the natural frequency relative to the damping coefficient. For this low-pass response, it also equals the magnitude at the natural frequency:
+The magnitude at this frequency is $\Omega_0/d_1$. Give this ratio a name:
 
 $$
 Q=\frac{\Omega_0}{d_1}.
 $$
+
+At a fixed natural frequency, increasing $Q$ means reducing damping, which strengthens the response there. This is the quantity conventionally called the **quality factor**, and it gives us a way to characterize the filter's resonance.
 
 Using $Q$ to express the damping gives the normalized low-pass prototype:
 
@@ -152,7 +154,7 @@ $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-In an EQ interface, this connects the low-pass $Q$ control to both resonance and level. Increasing $Q$ reduces damping and raises the magnitude at the selected frequency. Since that magnitude is $Q$, its level is $20\log_{10}Q$ dB. A value of $Q=1$ therefore means 0 dB at that one frequency. Whether the passband is flat depends on the surrounding curve, which we examine next.
+This connects the low-pass $Q$ knob in an EQ interface to the magnitude we just calculated. Since the magnitude at the selected frequency is $Q$, its level is $20\log_{10}Q$ dB. A value of $Q=1$ therefore means 0 dB at that one frequency. Whether the passband is flat depends on the surrounding curve, which we examine next.
 
 This differs from the peaking EQ in the companion, where gain sets the center level and $Q$ sets the width. Here the same damping parameter controls both the transition shape and the level at the selected frequency, so those two effects change together when we turn the $Q$ knob.
 
