@@ -239,12 +239,6 @@ a_2&=\frac{1-\alpha}{1+\alpha}.
 \end{aligned}
 $$
 
-These are the low-pass coefficients used by `calculateBiquadEqCoefficients`. They enter the existing Direct Form I recurrence as
-
-$$
-y[n]=b_0x[n]+b_1x[n-1]+b_2x[n-2]-a_1y[n-1]-a_2y[n-2].
-$$
-
 ## Other Responses
 
 TODO: derive each remaining prototype independently from its response goals before identifying any shared family:
