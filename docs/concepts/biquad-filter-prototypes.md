@@ -140,23 +140,17 @@ H(j\Omega_0)
 =-j\frac{\Omega_0}{d_1}.
 $$
 
-The magnitude at this frequency is $\Omega_0/d_1$. Give this ratio a name:
+The magnitude at this frequency is $\Omega_0/d_1$. Write
 
 $$
 Q=\frac{\Omega_0}{d_1}.
 $$
-
-Increasing $Q$ therefore raises the response at the natural frequency. This parameter is conventionally called the **quality factor**. We will examine how it shapes the surrounding response below.
 
 Substituting $Q$ into the normalized response gives the low-pass prototype:
 
 $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
-
-This connects the low-pass $Q$ knob in an EQ interface to the magnitude we just calculated. Since the magnitude at the selected frequency is $Q$, its level is $20\log_{10}Q$ dB. A value of $Q=1$ therefore means 0 dB at that one frequency. Whether the passband is flat depends on the surrounding curve, which we examine next.
-
-This differs from the peaking EQ in the companion, where gain sets the center level and $Q$ sets the width. Here $Q$ controls both the transition shape and the level at the selected frequency, so those two effects change together when we turn the knob.
 
 ### Choose a Flat Passband
 
@@ -187,6 +181,12 @@ $$
 $$
 
 At the natural frequency, $\nu=1$, the power ratio is $1/2$, so the magnitude is $1/\sqrt{2}$, approximately $-3$ dB. The familiar $-3$ dB point follows from choosing a flat passband.
+
+This shows how $Q$ shapes the response. Above $1/\sqrt{2}$, a peak develops before the rolloff. At the boundary, the passband is maximally flat. This parameter is conventionally called the **quality factor** and serves as the low-pass resonance control.
+
+The $Q$ knob in an EQ interface also controls the magnitude at the selected frequency. Since that magnitude is $Q$, its level is $20\log_{10}Q$ dB. A value of $Q=1$ therefore means 0 dB at that one frequency, while the surrounding curve has a peak.
+
+This differs from the peaking EQ in the companion, where gain sets the center level and $Q$ sets the width. Here $Q$ controls both the transition shape and the level at the selected frequency, so those two effects change together when we turn the knob.
 
 ### Derive the Digital Coefficients
 
