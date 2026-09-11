@@ -146,9 +146,9 @@ $$
 Q=\frac{\Omega_0}{d_1}.
 $$
 
-At a fixed natural frequency, increasing $Q$ means reducing damping, which strengthens the response there. This is the quantity conventionally called the **quality factor**, and it gives us a way to characterize the filter's resonance.
+Increasing $Q$ therefore raises the response at the natural frequency. This parameter is conventionally called the **quality factor**. We will examine how it shapes the surrounding response below.
 
-Using $Q$ to express the damping gives the normalized low-pass prototype:
+Substituting $Q$ into the normalized response gives the low-pass prototype:
 
 $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
