@@ -180,7 +180,7 @@ $$
 |H(j\Omega_0\nu)|^2=\frac{1}{1+\nu^4}.
 $$
 
-At the natural frequency, $\nu=1$, the power ratio is $1/2$, so the magnitude is $1/\sqrt{2}$, approximately $-3$ dB. The familiar $-3$ dB point follows from choosing a flat passband.
+At the natural frequency, $\nu=1$, the squared magnitude is $1/2$, so the magnitude is $1/\sqrt{2}\approx0.707$. Our EQ displays this mathematical $Q$ directly, so the flat-passband setting is **$Q\approx0.71$ on the control**. On the response graph, which measures magnitude in dB, the level at the selected frequency is approximately **$-3$ dB**, because $20\log_{10}(1/\sqrt{2})\approx-3.01$. The knob shows a linear ratio, while the graph shows its value in decibels.
 
 This shows how $Q$ shapes the response. Above $1/\sqrt{2}$, a peak develops before the rolloff. At the boundary, the passband is maximally flat. This parameter is conventionally called the **quality factor** and serves as the low-pass resonance control.
 
