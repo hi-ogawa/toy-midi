@@ -152,7 +152,37 @@ $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-For example, $Q=1/\sqrt{2}$ gives a magnitude of $1/\sqrt{2}$, approximately $-3$ dB, at the natural frequency. Increasing $Q$ raises the magnitude there.
+### Choose a Flat Passband
+
+What value of $Q$ gives the familiar low-pass shape, with a flat passband before the response rolls off? A first guess might be $Q=1$. At the natural frequency, that gives unity magnitude, but what happens on the way there?
+
+Write $\nu=\Omega/\Omega_0$ for the relative frequency. Substituting $s=j\nu$ and taking the squared magnitude gives
+
+$$
+\begin{aligned}
+|H(j\Omega_0\nu)|^2
+&=\frac{1}{(1-\nu^2)^2+\nu^2/Q^2}\\
+&=\frac{1}{1+(Q^{-2}-2)\nu^2+\nu^4}.
+\end{aligned}
+$$
+
+For $Q=1$, the denominator is $1-\nu^2+\nu^4$. It initially decreases as frequency rises from zero, so the magnitude rises above unity before falling. That choice creates a bump in the passband.
+
+To keep the passband as flat as possible near zero frequency, cancel the $\nu^2$ term:
+
+$$
+Q^{-2}-2=0,
+\qquad
+Q=\frac{1}{\sqrt{2}}.
+$$
+
+The squared magnitude then becomes
+
+$$
+|H(j\Omega_0\nu)|^2=\frac{1}{1+\nu^4}.
+$$
+
+At the natural frequency, $\nu=1$, the power ratio is $1/2$, so the magnitude is $1/\sqrt{2}$, approximately $-3$ dB. The familiar $-3$ dB point follows from choosing a flat passband.
 
 ### Derive the Digital Coefficients
 
