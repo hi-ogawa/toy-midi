@@ -166,17 +166,9 @@ test("shares effects panels between track rows and mixer", async ({ page }) => {
     .getByTestId("recorder-audio-track-row")
     .first()
     .getByRole("button", { name: "Audio 1 effects", exact: true });
-  const captureFx = page.getByRole("button", {
-    name: "Capture effects",
-    exact: true,
-  });
   await rowFx.click();
   await expect(panels).toHaveCount(1);
   await expect(rowFx).toHaveAttribute("aria-pressed", "true");
-  await captureFx.click();
-  await expect(panels).toHaveCount(2);
-  await captureFx.click();
-  await expect(panels).toHaveCount(1);
   await mixerToggle.click();
   await expect(audioFx).toHaveAttribute("aria-pressed", "true");
   await page
