@@ -156,6 +156,116 @@ $$
 
 Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
+## Map The Analog Frequency To Sample Delays
+
+Let $T=1/F_s$ be the sample interval and let the requested digital frequency be $\omega_0=2\pi f_0/F_s$ radians per sample. The bilinear transform substitutes
+
+$$
+S\leftarrow\frac{2}{T}\frac{1-z^{-1}}{1+z^{-1}}.
+$$
+
+For a digital sinusoid $z=e^{j\omega}$,
+
+$$
+\frac{1-e^{-j\omega}}{1+e^{-j\omega}}
+=j\tan\frac{\omega}{2}.
+$$
+
+The digital frequency $\omega_0$ should reach the analog prototype at $S=j\Omega_0$. This requires the prewarped analog frequency
+
+$$
+\Omega_0=\frac{2}{T}\tan\frac{\omega_0}{2}.
+$$
+
+Since $s=S/\Omega_0$, the normalized substitution becomes
+
+$$
+s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
+\qquad
+K=\cot\frac{\omega_0}{2}.
+$$
+
+At $z=e^{j\omega_0}$ this gives $s=j$, so the analog prototype's natural-frequency point lands at the requested digital frequency.
+
+## Expand The Digital Response
+
+Define the digital response by applying that substitution to the analog response:
+
+$$
+H_d(z)=H\bigl(\Omega_0s(z)\bigr).
+$$
+
+Write $r=z^{-1}$ to keep the expansion compact. Substituting into the low-pass prototype gives
+
+$$
+H_d(z)
+=\frac{1}
+{K^2\left(\dfrac{1-r}{1+r}\right)^2
++\dfrac{K}{Q}\left(\dfrac{1-r}{1+r}\right)+1}.
+$$
+
+Multiply numerator and denominator by $(1+r)^2$:
+
+$$
+H_d(z)
+=\frac{(1+r)^2}
+{K^2(1-r)^2+(K/Q)(1-r)(1+r)+(1+r)^2}.
+$$
+
+Expanding and collecting powers of $r$ produces
+
+$$
+H_d(z)=
+\frac{1+2r+r^2}
+{(K^2+K/Q+1)+2(1-K^2)r+(K^2-K/Q+1)r^2}.
+$$
+
+This already has the biquad form. Its coefficients may all be multiplied by the same nonzero factor without changing the response. Choose
+
+$$
+C=\frac{1-\cos\omega_0}{2}.
+$$
+
+Using $K=\cot(\omega_0/2)$ and the half-angle identities gives
+
+$$
+\begin{aligned}
+C(K^2+1)&=1,\\
+C\frac{K}{Q}&=\frac{\sin\omega_0}{2Q}=\alpha,\\
+2C(1-K^2)&=-2\cos\omega_0.
+\end{aligned}
+$$
+
+After multiplying the collected coefficients by $C$, the unnormalized digital response is
+
+$$
+H_d(z)=
+\frac{\dfrac{1-\cos\omega_0}{2}
++(1-\cos\omega_0)z^{-1}
++\dfrac{1-\cos\omega_0}{2}z^{-2}}
+{(1+\alpha)-2\cos\omega_0z^{-1}+(1-\alpha)z^{-2}},
+\qquad
+\alpha=\frac{\sin\omega_0}{2Q}.
+$$
+
+Finally divide every coefficient by $a_0=1+\alpha$ so the denominator's leading coefficient is one:
+
+$$
+\begin{aligned}
+b_0&=\frac{(1-\cos\omega_0)/2}{1+\alpha},\\
+b_1&=\frac{1-\cos\omega_0}{1+\alpha},\\
+b_2&=\frac{(1-\cos\omega_0)/2}{1+\alpha},\\
+a_1&=\frac{-2\cos\omega_0}{1+\alpha},\\
+a_2&=\frac{1-\alpha}{1+\alpha}.
+\end{aligned}
+$$
+
+These are the low-pass coefficients used by `calculateBiquadEqCoefficients`. They enter the existing Direct Form I recurrence as
+
+$$
+y[n]=b_0x[n]+b_1x[n-1]+b_2x[n-2]-a_1y[n-1]-a_2y[n-2].
+$$
+
 ## Other Responses
 
 TODO: derive each remaining prototype independently from its response goals before identifying any shared family:
