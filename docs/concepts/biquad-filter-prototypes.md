@@ -14,9 +14,9 @@ $$
 
 We have not chosen a filter family or a special frequency. We still have five free coefficients and can ask which of them are fixed by the response we want.
 
-## Try To Preserve Slow Motion
+## Try To Preserve Low Frequencies
 
-Suppose the output should follow a constant or slowly changing input but reject fast motion:
+Suppose low-frequency tones should pass unchanged while high-frequency tones should be attenuated. At the two frequency extremes, this means
 
 $$
 H(0)=1,
