@@ -4,9 +4,7 @@ The recorder EQ implements several second-order filters with one sample loop. Th
 
 This document picks up from the continuous second-order system developed in [Modeling an audio effect as a transfer function](transfer-function-and-peaking-eq.md). We will work through one response at a time, inspect exactly what each requirement decides, and avoid assuming the final filter family in advance.
 
-## Begin With A General Second-Order Response
-
-A continuous second-order input/output system can be written, after scaling the leading denominator coefficient to one, as
+Our starting point is the general continuous second-order response developed in the companion. After scaling the leading denominator coefficient to one, it has the form
 
 $$
 H(S)=\frac{c_2S^2+c_1S+c_0}{S^2+d_1S+d_0}.
@@ -14,11 +12,13 @@ $$
 
 We have not chosen a filter family or a special frequency. We still have five free coefficients and can ask which of them are fixed by the response we want.
 
-## Low Pass
+## Constructing a Low-Pass Response
 
-### Try To Preserve Low Frequencies
+Begin with a familiar goal: preserve low frequencies and attenuate high frequencies. We will first constrain the numerator, then investigate the freedom left in the denominator.
 
-Suppose low-frequency tones should pass unchanged while high-frequency tones should be attenuated. At the two frequency extremes, this means
+### Constrain the Low- and High-Frequency Limits
+
+At the two frequency extremes, this goal means
 
 $$
 H(0)=1,
@@ -62,7 +62,7 @@ $$
 
 This already approaches zero at high frequency, but those endpoint values alone do not establish the familiar all-pole low-pass shape.
 
-### Ask How Fast The Response Should Fall
+### Require Second-Order Rolloff
 
 The remaining numerator term changes the asymptotic attenuation. If $c_1\ne0$, then
 
@@ -85,7 +85,7 @@ $$
 
 The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
 
-### Inspect $d_0$ By Itself
+### Identify the Natural Frequency
 
 The denominator still contains $d_0$ and $d_1$. To see their roles one at a time, take $d_0>0$ and first try the special case $d_1=0$:
 
@@ -113,7 +113,7 @@ $$
 
 shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $d_0$ sets the natural angular frequency $\Omega_0$ in this simpler case.
 
-### Measure Frequency Relative To $\Omega_0$
+### Normalize the Frequency Scale
 
 Return to the full response and write a relative complex rate $s$ so that
 
@@ -132,7 +132,7 @@ H(\Omega_0s)
 \end{aligned}
 $$
 
-### Name The Remaining Freedom
+### Express the Remaining Freedom as Q
 
 At the natural-frequency scale, $s=j$:
 
@@ -158,7 +158,7 @@ $$
 
 Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
-### Expand The Low Pass Into Digital Coefficients
+### Derive the Digital Coefficients
 
 The [peaking-EQ derivation](transfer-function-and-peaking-eq.md#9-turn-the-continuous-model-into-delayed-samples) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
 
@@ -237,11 +237,13 @@ a_2&=\frac{1-\alpha}{1+\alpha}.
 \end{aligned}
 $$
 
-## Low Shelf
+## Constructing a Low-Shelf Response
 
-### Ask For Two Nonzero Plateaus
+The low-pass construction makes the high-frequency response vanish. A low shelf asks for a different destination: preserve high frequencies while changing the level of low frequencies.
 
-A low shelf does not reject high frequencies. Instead, it asks for one constant response at each end:
+### Set the Two Endpoint Levels
+
+The response should now connect two nonzero plateaus:
 
 $$
 H(0)=M,
@@ -266,7 +268,7 @@ $$
 
 Indeed, its zero-frequency response is $A^2=M$, while the ratio of its leading coefficients at infinite frequency is one. The numerator and denominator place their constant and quadratic terms in opposite orders, so their frequency scales lie on opposite sides of $s=j$.
 
-### Put The Shelf Center Halfway Between The Plateaus
+### Place the Center Halfway Between the Levels
 
 Halfway between two amplitude ratios is most naturally measured geometrically. The desired amplitude at $s=j$ is therefore
 
@@ -300,7 +302,7 @@ H(\Omega_0s)
 =A\frac{s^2+cs+A}{As^2+cs+1}.
 $$
 
-### Find The Steepest Monotonic Shelf
+### Choose the Steepest Monotonic Transition
 
 The remaining $c$ controls the shape of the transition. Probe the response at $s=j\sqrt{x}$ and remove the constant factor $A^2$ from its squared amplitude:
 
@@ -343,7 +345,7 @@ H(\Omega_0s)
 =A\frac{s^2+\sqrt{2A}s+A}{As^2+\sqrt{2A}s+1}.
 $$
 
-### Expand The Low Shelf Into Digital Coefficients
+### Derive the Digital Coefficients
 
 Reuse the same substitution $s\leftarrow K(1-d)/(1+d)$. The low-pass derivation needed the special quadratic $s^2+cs+1$; the shelf needs the slightly more general form
 
