@@ -144,35 +144,17 @@ H(\Omega_0s)
 \end{aligned}
 $$
 
-Only one dimensionless coefficient remains. Call it
+## Name The Remaining Freedom
+
+The center calculation above showed that the amplitude at $\Omega_0$ is the dimensionless ratio $\Omega_0/d_1$. It is conventional to call this ratio $Q$:
 
 $$
-\delta=\frac{d_1}{\Omega_0}.
-$$
-
-The normalized expression for the same response is
-
-$$
-H(\Omega_0s)=\frac{1}{s^2+\delta s+1}.
-$$
-
-## Inspect The Remaining Freedom
-
-The damping coefficient $\delta$ is still free. At the natural-frequency scale,
-
-$$
-H(j\Omega_0)=\frac{1}{-1+j\delta+1}=\frac{1}{j\delta},
+Q=\frac{\Omega_0}{d_1},
 \qquad
-|H(j\Omega_0)|=\frac{1}{\delta}.
+\frac{d_1}{\Omega_0}=\frac{1}{Q}.
 $$
 
-It is conventional to name reciprocal damping $Q$:
-
-$$
-Q=\frac{1}{\delta}.
-$$
-
-The low-pass prototype is therefore
+Substituting it into the normalized response gives the low-pass prototype:
 
 $$
 H_{\mathrm{LP}}(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
