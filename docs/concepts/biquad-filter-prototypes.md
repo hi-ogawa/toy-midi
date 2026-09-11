@@ -111,23 +111,9 @@ $$
 
 shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $\Omega_0$ is the undamped natural angular frequency set by $d_0$.
 
-## Restore Damping
+## Measure Frequency Relative To $\Omega_0$
 
-Put the $d_1S$ term back with $d_1>0$ and evaluate the denominator at the frequency just found:
-
-$$
-D(j\Omega_0)=j d_1\Omega_0.
-$$
-
-The low-pass response there is finite:
-
-$$
-H(j\Omega_0)
-=\frac{\Omega_0^2}{j d_1\Omega_0}
-=-j\frac{\Omega_0}{d_1}.
-$$
-
-Its amplitude is set by damping relative to the natural-frequency scale. Write a relative complex rate $s$ so that
+Return to the full response and write a relative complex rate $s$ so that
 
 $$
 S=\Omega_0s.
@@ -146,7 +132,15 @@ $$
 
 ## Name The Remaining Freedom
 
-The center calculation above showed that the amplitude at $\Omega_0$ is the dimensionless ratio $\Omega_0/d_1$. It is conventional to call this ratio $Q$:
+At the natural-frequency scale, $s=j$:
+
+$$
+H(j\Omega_0)
+=\frac{1}{j(d_1/\Omega_0)}
+=-j\frac{\Omega_0}{d_1}.
+$$
+
+Its amplitude is the dimensionless ratio $\Omega_0/d_1$. It is conventional to call this ratio $Q$:
 
 $$
 Q=\frac{\Omega_0}{d_1},
@@ -157,10 +151,10 @@ $$
 Substituting it into the normalized response gives the low-pass prototype:
 
 $$
-H_{\mathrm{LP}}(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
+H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-At $s=j$, meaning $S=j\Omega_0$, its amplitude is $Q$. Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB value there. Increasing $Q$ reduces damping and eventually creates a resonant rise around the natural-frequency scale.
+Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Increasing $Q$ reduces damping and eventually creates a resonant rise around the natural-frequency scale.
 
 ## Other Responses
 
