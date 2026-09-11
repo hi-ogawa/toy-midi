@@ -85,7 +85,9 @@ The constant numerator was not implied by the endpoint values alone. It follows 
 
 ## Find The Frequency Scale In The Result
 
-The denominator still contains $d_0$ and $d_1$. Stability of the real second-order denominator requires $d_0>0$ and $d_1>0$. Probe it with a sinusoid by setting $S=j\Omega$:
+The denominator still contains $d_0$ and $d_1$. Each denominator root $S=r$ contributes free motion proportional to $e^{rt}$, which decays when $\operatorname{Re}(r)<0$. For the real quadratic $S^2+d_1S+d_0$, both roots decay exactly when $d_0>0$ and $d_1>0$: complex roots have real part $-d_1/2$, while real roots have negative sum $-d_1$ and positive product $d_0$, making both negative.
+
+Probe the denominator with a sinusoid by setting $S=j\Omega$:
 
 $$
 D(j\Omega)=d_0-\Omega^2+j d_1\Omega.
