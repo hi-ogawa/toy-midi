@@ -1,7 +1,12 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters } from "../../lib/dsp/biquad-eq";
+import {
+  type EqParameters,
+  type EqType,
+  isGainFilter,
+  usesQ,
+} from "../../lib/dsp/biquad-eq";
 import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
@@ -21,6 +26,8 @@ export function RecorderEffects({
   onClose: () => void;
 }) {
   const [slidersOpen, setSlidersOpen] = useState(false);
+  const hasGain = isGainFilter(eq.type);
+  const hasQ = usesQ(eq.type);
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -31,7 +38,7 @@ export function RecorderEffects({
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium">Peaking EQ</h3>
+          <h3 className="text-sm font-medium">EQ</h3>
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-xs">
               <input
@@ -59,6 +66,25 @@ export function RecorderEffects({
             </button>
           </div>
         </div>
+        <label className="flex items-center gap-2 text-xs">
+          <span className="mr-auto">Filter type</span>
+          <select
+            aria-label="Filter type"
+            className="h-7 rounded border border-neutral-600 bg-neutral-900 px-1 text-xs"
+            value={eq.type}
+            onChange={(event) =>
+              onChange({ type: event.target.value as EqType })
+            }
+          >
+            <option value="peaking">Peaking</option>
+            <option value="low-shelf">Low shelf</option>
+            <option value="high-shelf">High shelf</option>
+            <option value="low-pass">Low pass</option>
+            <option value="high-pass">High pass</option>
+            <option value="band-pass">Band pass</option>
+            <option value="notch">Notch</option>
+          </select>
+        </label>
         <EqResponseGraph eq={eq} onChange={onChange} />
         <div className="grid grid-cols-3 gap-3">
           <EqNumericInput
@@ -68,20 +94,24 @@ export function RecorderEffects({
             value={eq.frequency}
             onChange={(frequency) => onChange({ frequency })}
           />
-          <EqNumericInput
-            label="Gain"
-            unit="dB"
-            limits={EQ_CONTROL_LIMITS.gainDb}
-            value={gainToDb(eq.gain)}
-            onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-          />
-          <EqNumericInput
-            label="Q"
-            unit=""
-            limits={EQ_CONTROL_LIMITS.q}
-            value={eq.q}
-            onChange={(q) => onChange({ q })}
-          />
+          {hasGain && (
+            <EqNumericInput
+              label="Gain"
+              unit="dB"
+              limits={EQ_CONTROL_LIMITS.gainDb}
+              value={gainToDb(eq.gain)}
+              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+            />
+          )}
+          {hasQ && (
+            <EqNumericInput
+              label="Q"
+              unit=""
+              limits={EQ_CONTROL_LIMITS.q}
+              value={eq.q}
+              onChange={(q) => onChange({ q })}
+            />
+          )}
         </div>
         {slidersOpen && (
           <div className="space-y-4 border-t border-neutral-700 pt-4">
@@ -93,20 +123,24 @@ export function RecorderEffects({
               value={eq.frequency}
               onChange={(frequency) => onChange({ frequency })}
             />
-            <EqSlider
-              label="Gain"
-              unit="dB"
-              limits={EQ_CONTROL_LIMITS.gainDb}
-              value={gainToDb(eq.gain)}
-              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-            />
-            <EqSlider
-              label="Q"
-              unit=""
-              limits={EQ_CONTROL_LIMITS.q}
-              value={eq.q}
-              onChange={(q) => onChange({ q })}
-            />
+            {hasGain && (
+              <EqSlider
+                label="Gain"
+                unit="dB"
+                limits={EQ_CONTROL_LIMITS.gainDb}
+                value={gainToDb(eq.gain)}
+                onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+              />
+            )}
+            {hasQ && (
+              <EqSlider
+                label="Q"
+                unit=""
+                limits={EQ_CONTROL_LIMITS.q}
+                value={eq.q}
+                onChange={(q) => onChange({ q })}
+              />
+            )}
           </div>
         )}
       </div>

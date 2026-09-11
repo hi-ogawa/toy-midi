@@ -1,9 +1,7 @@
 /**
- * Peaking EQ boosts or cuts a band around the center frequency, with Q controlling its width.
- * The biquad coefficients follow from an analog peaking filter via the bilinear transform with center-frequency prewarping.
- *
- * Math walkthrough with GPT Astra (not verified against published literature) explains how delays and feedback shape the response, constructs a local boost or cut from gain and width constraints, and derives the sample-loop coefficients:
- * https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html
+ * RBJ biquad filters derived from analog prototypes with center-frequency
+ * prewarping. See docs/concepts/biquad-filter-prototypes.md for the prototype
+ * investigation and https://www.w3.org/TR/audio-eq-cookbook/ for the coefficient table.
  */
 
 import { clamp, dbToGain } from "../music.ts";
@@ -14,7 +12,17 @@ export const EQ_LIMITS = {
   q: { min: 0.1, max: 18 },
 };
 
+export type EqType =
+  | "peaking"
+  | "low-shelf"
+  | "high-shelf"
+  | "low-pass"
+  | "high-pass"
+  | "band-pass"
+  | "notch";
+
 export type EqParameters = {
+  type: EqType;
   frequency: number;
   gain: number;
   q: number;
@@ -29,10 +37,11 @@ export type BiquadEqCoefficients = {
   a2: number;
 };
 
-/** Standalone peaking EQ. Parameters ramp over 10 ms of processed audio. */
+/** Standalone biquad EQ. Continuous parameters ramp over 10 ms of processed audio. */
 export class BiquadEq {
   private readonly sampleRate: number;
   private readonly rampFrames: number;
+  private type: EqType = "peaking";
   // Log-space ramps make equal ratios advance evenly for frequency, gain, and Q.
   // Slots are log frequency, log gain, log Q, and linear wet mix.
   private readonly current = new Float64Array(4);
@@ -52,6 +61,7 @@ export class BiquadEq {
   constructor({
     sampleRate,
     channelCount,
+    type,
     frequency,
     gain,
     q,
@@ -63,16 +73,26 @@ export class BiquadEq {
       { length: channelCount },
       () => new Float64Array(4),
     );
-    this.setParameters({ frequency, gain, q, bypass });
+    this.setParameters({ type, frequency, gain, q, bypass });
     this.reset();
   }
 
   /** Update targets without restarting a ramp when the targets are unchanged. */
-  setParameters({ frequency, gain, q, bypass }: Partial<EqParameters>): void {
+  setParameters({
+    type,
+    frequency,
+    gain,
+    q,
+    bypass,
+  }: Partial<EqParameters>): void {
     for (const value of [frequency, gain, q]) {
       if (value !== undefined && !Number.isFinite(value)) {
         throw new RangeError("EQ parameters must be finite");
       }
+    }
+    const typeChanged = type !== undefined && type !== this.type;
+    if (type !== undefined) {
+      this.type = type;
     }
     let changed = false;
     const update = (index: number, value: number) => {
@@ -112,6 +132,9 @@ export class BiquadEq {
     }
     if (changed) {
       this.remaining = this.rampFrames;
+    }
+    if (typeChanged) {
+      this.updateCoefficients();
     }
   }
 
@@ -154,9 +177,9 @@ export class BiquadEq {
         const x = input[channel][frame];
         const h = this.history[channel];
         // Direct form I retains input/output history across coefficient changes.
-        // At unity gain the exact identity also removes any residual filter tail.
+        // Gain filters are exact identity at unity, which also removes any tail.
         const y =
-          this.current[1] === 0
+          isGainFilter(this.type) && this.current[1] === 0
             ? x
             : this.coefficients.b0 * x +
               this.coefficients.b1 * h[0] +
@@ -176,6 +199,7 @@ export class BiquadEq {
 
   private updateCoefficients(): void {
     calculateBiquadEqCoefficients({
+      type: this.type,
       sampleRate: this.sampleRate,
       frequency: Math.exp(this.current[0]),
       gain: Math.exp(this.current[1]),
@@ -186,12 +210,14 @@ export class BiquadEq {
 }
 
 export function calculateBiquadEqCoefficients({
+  type,
   sampleRate,
   frequency,
   gain,
   q,
   output,
 }: {
+  type: EqType;
   sampleRate: number;
   frequency: number;
   gain: number;
@@ -199,15 +225,95 @@ export function calculateBiquadEqCoefficients({
   output?: BiquadEqCoefficients;
 }): BiquadEqCoefficients {
   const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos = Math.cos(omega);
+  const sin = Math.sin(omega);
   const amplitude = Math.sqrt(gain);
-  const alpha = Math.sin(omega) / (2 * q);
-  const a0 = 1 + alpha / amplitude;
+  const alpha = sin / (2 * q);
+  let b0: number;
+  let b1: number;
+  let b2: number;
+  let a0: number;
+  let a1: number;
+  let a2: number;
+  switch (type) {
+    case "peaking": {
+      a0 = 1 + alpha / amplitude;
+      b0 = 1 + alpha * amplitude;
+      b1 = -2 * cos;
+      b2 = 1 - alpha * amplitude;
+      a1 = b1;
+      a2 = 1 - alpha / amplitude;
+      break;
+    }
+    case "low-shelf":
+    case "high-shelf": {
+      // Shelf slope S=1 makes alpha independent of gain.
+      const shelfAlpha = sin / Math.SQRT2;
+      const twoSqrtAAlpha = 2 * Math.sqrt(amplitude) * shelfAlpha;
+      if (type === "low-shelf") {
+        b0 =
+          amplitude * (amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha);
+        b1 = 2 * amplitude * (amplitude - 1 - (amplitude + 1) * cos);
+        b2 =
+          amplitude * (amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha);
+        a0 = amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha;
+        a1 = -2 * (amplitude - 1 + (amplitude + 1) * cos);
+        a2 = amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha;
+      } else {
+        b0 =
+          amplitude * (amplitude + 1 + (amplitude - 1) * cos + twoSqrtAAlpha);
+        b1 = -2 * amplitude * (amplitude - 1 + (amplitude + 1) * cos);
+        b2 =
+          amplitude * (amplitude + 1 + (amplitude - 1) * cos - twoSqrtAAlpha);
+        a0 = amplitude + 1 - (amplitude - 1) * cos + twoSqrtAAlpha;
+        a1 = 2 * (amplitude - 1 - (amplitude + 1) * cos);
+        a2 = amplitude + 1 - (amplitude - 1) * cos - twoSqrtAAlpha;
+      }
+      break;
+    }
+    case "low-pass": {
+      b0 = (1 - cos) / 2;
+      b1 = 1 - cos;
+      b2 = b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "high-pass": {
+      b0 = (1 + cos) / 2;
+      b1 = -(1 + cos);
+      b2 = b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "band-pass": {
+      b0 = sin / 2;
+      b1 = 0;
+      b2 = -b0;
+      a0 = 1 + alpha;
+      a1 = -2 * cos;
+      a2 = 1 - alpha;
+      break;
+    }
+    case "notch": {
+      b0 = 1;
+      b1 = -2 * cos;
+      b2 = 1;
+      a0 = 1 + alpha;
+      a1 = b1;
+      a2 = 1 - alpha;
+      break;
+    }
+  }
   const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  result.b0 = (1 + alpha * amplitude) / a0;
-  result.b1 = (-2 * Math.cos(omega)) / a0;
-  result.b2 = (1 - alpha * amplitude) / a0;
-  result.a1 = result.b1;
-  result.a2 = (1 - alpha / amplitude) / a0;
+  result.b0 = b0 / a0;
+  result.b1 = b1 / a0;
+  result.b2 = b2 / a0;
+  result.a1 = a1 / a0;
+  result.a2 = a2 / a0;
   return result;
 }
 
@@ -239,4 +345,12 @@ export function calculateBiquadEqResponse({
   const dr = 1 + a1 * cos1 + a2 * cos2;
   const di = -a1 * sin1 - a2 * sin2;
   return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
+}
+
+export function isGainFilter(type: EqType): boolean {
+  return type === "peaking" || type === "low-shelf" || type === "high-shelf";
+}
+
+export function usesQ(type: EqType): boolean {
+  return type !== "low-shelf" && type !== "high-shelf";
 }

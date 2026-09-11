@@ -7,6 +7,8 @@ import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
   type EqParameters,
+  isGainFilter,
+  usesQ,
 } from "../../lib/dsp/biquad-eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
@@ -23,7 +25,10 @@ export function EqResponseGraph({
   onChange: (update: Partial<EqParameters>) => void;
 }) {
   // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
+  const hasGain = isGainFilter(eq.type);
+  const hasQ = usesQ(eq.type);
   const coefficients = calculateBiquadEqCoefficients({
+    type: eq.type,
     sampleRate: GRAPH_SAMPLE_RATE,
     frequency: eq.frequency,
     gain: eq.gain,
@@ -50,12 +55,12 @@ export function EqResponseGraph({
     const frequency = Math.round(graphXToFrequency(x));
     const step = EQ_CONTROL_LIMITS.gainDb.step;
     const gainDb = Math.round(graphYToGainDb(y) / step) * step;
-    onChange({ frequency, gain: dbToGain(gainDb) });
+    onChange(hasGain ? { frequency, gain: dbToGain(gainDb) } : { frequency });
   };
 
   // Wheel gestures adjust Q independently of the point position.
   const handleWheel = useEffectEvent((event: WheelEvent) => {
-    if (event.ctrlKey || event.metaKey || event.deltaY === 0) {
+    if (!hasQ || event.ctrlKey || event.metaKey || event.deltaY === 0) {
       return;
     }
     event.preventDefault();
@@ -114,7 +119,7 @@ export function EqResponseGraph({
         <svg
           viewBox="0 0 1 1"
           preserveAspectRatio="none"
-          className="pointer-events-none absolute size-full overflow-visible"
+          className="pointer-events-none absolute size-full overflow-hidden"
           aria-hidden="true"
         >
           {GAIN_TICKS.map((gainDb) => (
@@ -157,7 +162,7 @@ export function EqResponseGraph({
           className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-300 bg-neutral-900"
           style={{
             left: `${frequencyToGraphX(eq.frequency) * 100}%`,
-            top: `${gainDbToGraphY(gainToDb(eq.gain)) * 100}%`,
+            top: `${gainDbToGraphY(hasGain ? gainToDb(eq.gain) : 0) * 100}%`,
           }}
         />
       </div>
