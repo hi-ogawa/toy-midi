@@ -133,11 +133,15 @@ $$
 S=\Omega_0s.
 $$
 
-Substitute this argument into the same response and use $d_0=\Omega_0^2$:
+Substitute this argument into the same response, then use $d_0=\Omega_0^2$ and divide numerator and denominator by $\Omega_0^2$:
 
 $$
+\begin{aligned}
 H(\Omega_0s)
-=\frac{1}{s^2+(d_1/\Omega_0)s+1}.
+&=\frac{d_0}{(\Omega_0s)^2+d_1\Omega_0s+d_0}\\
+&=\frac{\Omega_0^2}{\Omega_0^2s^2+d_1\Omega_0s+\Omega_0^2}\\
+&=\frac{1}{s^2+(d_1/\Omega_0)s+1}.
+\end{aligned}
 $$
 
 Only one dimensionless coefficient remains. Call it
