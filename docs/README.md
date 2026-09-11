@@ -11,6 +11,7 @@
 ## Concepts
 
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
+- [Analog biquad filter prototypes](concepts/biquad-filter-prototypes.md): deriving low-pass, high-pass, band-pass, notch, peaking, and shelf filters from their desired responses.
 
 ## Bass Pitch
 
