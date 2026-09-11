@@ -239,6 +239,159 @@ a_2&=\frac{1-\alpha}{1+\alpha}.
 \end{aligned}
 $$
 
+## Ask For Two Nonzero Plateaus
+
+A low shelf does not reject high frequencies. Instead, it asks for one constant response at each end:
+
+$$
+H(0)=M,
+\qquad
+H(\infty)=1,
+\qquad
+M>0.
+$$
+
+Here $M>1$ boosts low frequencies and $0<M<1$ cuts them. Write
+
+$$
+A=\sqrt{M}.
+$$
+
+As before, use the relative rate $s=S/\Omega_0$. One simple reciprocal arrangement of two quadratics that satisfies both endpoint values is
+
+$$
+H(\Omega_0s)
+=A\frac{s^2+c_n s+A}{As^2+c_d s+1}.
+$$
+
+Indeed, its zero-frequency response is $A^2=M$, while the ratio of its leading coefficients at infinite frequency is one. The numerator and denominator place their constant and quadratic terms in opposite orders, so their frequency scales lie on opposite sides of $s=j$.
+
+## Put The Shelf Center Halfway Between The Plateaus
+
+Halfway between two amplitude ratios is most naturally measured geometrically. The desired amplitude at $s=j$ is therefore
+
+$$
+\sqrt{M}=A.
+$$
+
+At that frequency,
+
+$$
+H(j\Omega_0)
+=A\frac{(A-1)+jc_n}{(1-A)+jc_d}.
+$$
+
+For positive $c_n$ and $c_d$, its amplitude equals $A$ exactly when
+
+$$
+(A-1)^2+c_n^2=(A-1)^2+c_d^2,
+$$
+
+which fixes
+
+$$
+c_n=c_d=c.
+$$
+
+The endpoint and midpoint requirements have now reduced the family to
+
+$$
+H(\Omega_0s)
+=A\frac{s^2+cs+A}{As^2+cs+1}.
+$$
+
+## Find The Steepest Monotonic Shelf
+
+The remaining $c$ controls the shape of the transition. Probe the response at $s=j\sqrt{x}$ and remove the constant factor $A^2$ from its squared amplitude:
+
+$$
+R(x)=\frac{|H(j\Omega_0\sqrt{x})|^2}{A^2}
+=\frac{(A-x)^2+c^2x}{(1-Ax)^2+c^2x},
+\qquad x\ge0.
+$$
+
+Differentiating gives
+
+$$
+R'(x)=
+\frac{(1-A^2)\left[(c^2-2A)(x^2+1)+2(1+A^2)x\right]}
+{\left[(1-Ax)^2+c^2x\right]^2}.
+$$
+
+For a boost, $1-A^2<0$ and the response should decrease. For a cut, $1-A^2>0$ and the response should increase. In both cases, the bracketed expression must be nonnegative for every $x\ge0$. At $x=0$ this requires
+
+$$
+c^2\ge2A,
+$$
+
+and that condition is also sufficient because every term in the bracket is then nonnegative. At the midpoint,
+
+$$
+|R'(1)|=\frac{2|1-A^2|}{(A-1)^2+c^2},
+$$
+
+so increasing $c$ makes the transition gentler. The steepest choice that remains monotonic is the boundary
+
+$$
+c=\sqrt{2A}.
+$$
+
+This boundary is the shelf-slope choice conventionally called $S=1$. It gives the analog low-shelf prototype
+
+$$
+H(\Omega_0s)
+=A\frac{s^2+\sqrt{2A}s+A}{As^2+\sqrt{2A}s+1}.
+$$
+
+## Expand The Low Shelf Into Digital Coefficients
+
+Reuse the same substitution $s\leftarrow K(1-d)/(1+d)$. The low-pass derivation needed the special quadratic $s^2+cs+1$; the shelf needs the slightly more general form
+
+$$
+us^2+cs+v.
+$$
+
+After clearing $(1+d)^2$, its polynomial is
+
+$$
+P_{u,c,v}(d)
+=uK^2(1-d)^2+cK(1-d)(1+d)+v(1+d)^2.
+$$
+
+Collecting powers of $d$ and multiplying by the convenient common scale $2/(K^2+1)$ gives
+
+$$
+\begin{aligned}
+\frac{2P_{u,c,v}(d)}{K^2+1}
+={}&\left[(u+v)+(u-v)\cos\omega_0+c\sin\omega_0\right]\\
+&+2\left[(v-u)-(u+v)\cos\omega_0\right]d\\
+&+\left[(u+v)+(u-v)\cos\omega_0-c\sin\omega_0\right]d^2.
+\end{aligned}
+$$
+
+For the numerator, $(u,c,v)=(1,\sqrt{2A},A)$ and the entire polynomial has the additional factor $A$. For the denominator, $(u,c,v)=(A,\sqrt{2A},1)$. Define
+
+$$
+\alpha_s=\frac{\sin\omega_0}{\sqrt{2}},
+\qquad
+\sqrt{2A}\sin\omega_0=2\sqrt{A}\alpha_s.
+$$
+
+Substitution into the collected polynomial gives the unnormalized coefficients
+
+$$
+\begin{aligned}
+b_0&=A\left[(A+1)-(A-1)\cos\omega_0+2\sqrt{A}\alpha_s\right],\\
+b_1&=2A\left[(A-1)-(A+1)\cos\omega_0\right],\\
+b_2&=A\left[(A+1)-(A-1)\cos\omega_0-2\sqrt{A}\alpha_s\right],\\
+a_0&=(A+1)+(A-1)\cos\omega_0+2\sqrt{A}\alpha_s,\\
+a_1&=-2\left[(A-1)+(A+1)\cos\omega_0\right],\\
+a_2&=(A+1)+(A-1)\cos\omega_0-2\sqrt{A}\alpha_s.
+\end{aligned}
+$$
+
+Finally, divide $b_0$, $b_1$, $b_2$, $a_1$, and $a_2$ by $a_0$ so the denominator's leading coefficient is one.
+
 ## Other Responses
 
 TODO: derive each remaining prototype independently from its response goals before identifying any shared family:
@@ -247,7 +400,6 @@ TODO: derive each remaining prototype independently from its response goals befo
 - Band-pass, including the constant-peak and constant-skirt choices
 - Notch
 - Peaking
-- Low shelf, including why fixed slope $S=1$ is the steepest monotonic choice
 - High shelf
 
 Once those constructions are stable, compare their common structure and perform the shared bilinear-transform expansion into the sample coefficients used by `src/lib/dsp/biquad-eq.ts`.
