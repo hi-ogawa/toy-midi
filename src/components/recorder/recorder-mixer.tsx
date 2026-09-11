@@ -1,5 +1,5 @@
 import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
 import type {
@@ -8,53 +8,8 @@ import type {
 } from "../../lib/recorder/runtime";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
+import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
-
-export function useRecorderMixerUi() {
-  const [isOpen, setIsOpen] = useState(false);
-  // Audio track UUIDs and the singleton Capture channel identify panels.
-  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
-    new Set(),
-  );
-
-  function close() {
-    setIsOpen(false);
-    setOpenEffects(new Set());
-  }
-
-  function toggle() {
-    if (isOpen) {
-      close();
-    } else {
-      setIsOpen(true);
-    }
-  }
-
-  function toggleEffects(id: string) {
-    setOpenEffects((current) => {
-      const next = new Set(current);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
-
-  function closeEffects(id: string) {
-    setOpenEffects((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
-
-  return { isOpen, openEffects, toggle, close, toggleEffects, closeEffects };
-}
 
 export function RecorderMixer({
   runtime,
@@ -188,14 +143,12 @@ function RecorderTrackChannel({
             aria-label={`Toggle ${label} solo`}
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
-          <button
-            aria-label={`${label} effects`}
-            aria-pressed={effectsOpen}
+          <RecorderEffectsToggle
+            label={label}
+            open={effectsOpen}
             onClick={onEffectsToggle}
-            className="h-8 min-w-8 rounded border border-neutral-600 px-1.5 text-xs font-semibold hover:bg-neutral-700 aria-pressed:border-blue-400 aria-pressed:text-blue-300"
-          >
-            FX
-          </button>
+            className="h-8 min-w-8 px-1.5"
+          />
         </div>
       }
     />

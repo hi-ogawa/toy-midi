@@ -7,7 +7,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   // Open independent effects panels for backing audio and Capture.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await page.getByTestId("recorder-mixer-button").click();
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
@@ -56,7 +55,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
-  await page.getByTestId("recorder-mixer-button").click();
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
@@ -102,7 +100,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   // Open Capture effects with the default EQ settings.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-mixer-button").click();
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
@@ -154,59 +151,6 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   await expect(panel.getByRole("slider")).toHaveCount(0);
 });
 
-test("toggles multiple track panels and closes them with the mixer or track", async ({
-  page,
-}) => {
-  // Open effects for multiple tracks at once from the mixer.
-  await createRecorderProject(page);
-  await page.getByTitle("Add empty audio track").click();
-  await page.getByTitle("Add empty audio track").click();
-  const mixerToggle = page.getByTestId("recorder-mixer-button");
-  const panels = page.getByTestId("recorder-effects-panel");
-  const audioFx = page.getByRole("button", {
-    name: "Audio 1 effects",
-    exact: true,
-  });
-  await mixerToggle.click();
-  await audioFx.click();
-  await page
-    .getByRole("button", { name: "Audio 2 effects", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  await expect(panels).toHaveCount(3);
-
-  // Toggle or explicitly close an individual effects panel.
-  await audioFx.click();
-  await expect(panels).toHaveCount(2);
-  await audioFx.click();
-  await page
-    .getByRole("button", { name: "Close Audio 1 Effects", exact: true })
-    .click();
-  await expect(audioFx).toHaveAttribute("aria-pressed", "false");
-
-  // Closing the mixer clears its effects panels instead of restoring them later.
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-  await audioFx.click();
-  await page.getByRole("button", { name: "Close Mixer", exact: true }).click();
-  await mixerToggle.click();
-  await expect(panels).toHaveCount(0);
-
-  // Removing a track also removes its open effects panel.
-  await audioFx.click();
-  const firstTrack = page.getByTestId("recorder-audio-track-row").first();
-  await firstTrack.getByTitle("Audio 1 actions").click();
-  await page
-    .getByRole("menuitem", { name: "Remove track", exact: true })
-    .click();
-  await expect(panels).toHaveCount(0);
-  await expect(page.getByTestId("recorder-audio-track-row")).toHaveCount(1);
-});
-
 test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
@@ -219,6 +163,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   await page.getByTestId("recorder-mixer-button").click();
   for (let index = 1; index <= 5; index++) {
     await page
+      .getByTestId("recorder-mixer-panel")
       .getByRole("button", { name: `Audio ${index} effects`, exact: true })
       .click();
   }

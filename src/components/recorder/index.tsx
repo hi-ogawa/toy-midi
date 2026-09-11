@@ -13,12 +13,12 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
-import { RecorderEffects } from "./recorder-effects";
+import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
-import { RecorderMixer, useRecorderMixerUi } from "./recorder-mixer";
+import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
@@ -44,7 +44,8 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
-  const mixer = useRecorderMixerUi();
+  const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
@@ -272,8 +273,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
-        mixerOpen={mixer.isOpen}
-        onMixerToggle={mixer.toggle}
+        mixerOpen={isMixerOpen}
+        onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
       />
 
@@ -362,6 +363,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                 gain={track.gain}
                 muted={track.muted}
                 soloed={track.soloed}
+                effectsOpen={effects.openEffects.has(track.id)}
+                onEffectsToggle={() => effects.toggleEffects(track.id)}
                 onGainChange={(gain) =>
                   runtime.setAudioTrackMix(track.id, { gain })
                 }
@@ -382,7 +385,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     }
                     onRemove={() => {
                       runtime.removeAudioTrack(track.id);
-                      mixer.closeEffects(track.id);
+                      effects.closeEffects(track.id);
                     }}
                   />
                 }
@@ -456,6 +459,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
+              effectsOpen={effects.openEffects.has("capture")}
+              onEffectsToggle={() => effects.toggleEffects("capture")}
               onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
               onInputSetup={() => setIsInputSetupOpen(true)}
               onInputMonitoringChange={(monitoring) =>
@@ -628,11 +633,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         </Dialog>
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
-        {mixer.isOpen && mixer.openEffects.size > 0 && (
+        {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 gap-4 overflow-x-auto">
             {state.audioTracks.map(
               (track, index) =>
-                mixer.openEffects.has(track.id) && (
+                effects.openEffects.has(track.id) && (
                   <RecorderEffects
                     key={track.id}
                     label={`Audio ${index + 1}`}
@@ -640,24 +645,24 @@ export function Recorder({ projectId }: { projectId: string }) {
                     onChange={(update) =>
                       runtime.setAudioTrackEq({ id: track.id, update })
                     }
-                    onClose={() => mixer.toggleEffects(track.id)}
+                    onClose={() => effects.closeEffects(track.id)}
                   />
                 ),
             )}
-            {mixer.openEffects.has("capture") && (
+            {effects.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
                 eq={state.recordingTrack.eq}
                 onChange={(update) => runtime.setRecordingTrackEq(update)}
-                onClose={() => mixer.toggleEffects("capture")}
+                onClose={() => effects.closeEffects("capture")}
               />
             )}
           </div>
         )}
-        {mixer.isOpen && (
+        {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"
-            onClose={mixer.close}
+            onClose={() => setIsMixerOpen(false)}
             title="Mixer"
             testId="recorder-mixer-panel"
             className="pointer-events-auto min-w-80 flex-1"
@@ -665,8 +670,8 @@ export function Recorder({ projectId }: { projectId: string }) {
             <RecorderMixer
               runtime={runtime}
               state={state}
-              openEffects={mixer.openEffects}
-              onEffectsToggle={mixer.toggleEffects}
+              openEffects={effects.openEffects}
+              onEffectsToggle={effects.toggleEffects}
             />
           </RecorderPanel>
         )}

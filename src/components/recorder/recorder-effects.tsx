@@ -9,6 +9,38 @@ import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EqResponseGraph } from "./eq-response-graph";
 import { RecorderPanel } from "./recorder-panel";
 
+export function useRecorderEffectsUi() {
+  // Audio track UUIDs and the singleton Capture channel identify panels.
+  const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+
+  function toggleEffects(id: string) {
+    setOpenEffects((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function closeEffects(id: string) {
+    setOpenEffects((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  return { openEffects, toggleEffects, closeEffects };
+}
+
 export function RecorderEffects({
   label,
   eq,
