@@ -393,14 +393,23 @@ H(\Omega_0s)
 =A\frac{s^2+cs+A}{As^2+cs+1}.
 $$
 
-### Choose the Steepest Monotonic Transition
+### Make the Response Move Smoothly Between the Plateaus
 
-The remaining $c$ controls the shape of the transition. Probe the response at $s=j\sqrt{x}$ and remove the constant factor $A^2$ from its squared amplitude:
+A smooth shelf should move from the low-frequency level $M$ to the high-frequency level 1 without overshooting either plateau. For a boost, the magnitude should decrease throughout the transition. For a cut, it should increase. When $M=1$, numerator and denominator coincide and the response is flat.
+
+To examine the curve for a boost or cut, write $x=(\Omega/\Omega_0)^2$. The squared magnitude is
+
+$$
+|H(j\Omega_0\sqrt{x})|^2
+=A^2\frac{(A-x)^2+c^2x}{(1-Ax)^2+c^2x},
+\qquad x\ge0.
+$$
+
+As frequency rises, $x$ increases, and the squared magnitude rises or falls in the same direction as the magnitude. Remove the constant factor $A^2$ to simplify the derivative:
 
 $$
 R(x)=\frac{|H(j\Omega_0\sqrt{x})|^2}{A^2}
-=\frac{(A-x)^2+c^2x}{(1-Ax)^2+c^2x},
-\qquad x\ge0.
+=\frac{(A-x)^2+c^2x}{(1-Ax)^2+c^2x}.
 $$
 
 Differentiating gives
@@ -411,19 +420,27 @@ R'(x)=
 {\left[(1-Ax)^2+c^2x\right]^2}.
 $$
 
-For a boost, $1-A^2<0$ and the response should decrease. For a cut, $1-A^2>0$ and the response should increase. In both cases, the bracketed expression must be nonnegative for every $x\ge0$. At $x=0$ this requires
+The denominator is positive. For a boost, $A>1$, so the factor $1-A^2$ is negative. For a cut, $A<1$, so it is positive. These are precisely the signs we want for a falling or rising shelf, provided the bracketed expression stays nonnegative.
+
+The sign of $c^2-2A$ decides the shape. If it is negative, the bracket is negative at $x=0$, so the curve initially moves away from its destination. A boost rises above its low-frequency plateau, while a cut dips below it.
+
+If instead
 
 $$
 c^2\ge2A,
 $$
 
-and that condition is also sufficient because every term in the bracket is then nonnegative. At the midpoint,
+every term in the bracket is nonnegative for $x\ge0$. The magnitude then moves monotonically from $M$ to 1 and stays between those levels throughout. This is the smooth shelf shape we wanted.
+
+### Choose the Steepest Monotonic Transition
+
+Within this family of smooth shelves, $c$ still controls how gradual the transition is. At the midpoint, $x=1$,
 
 $$
-|R'(1)|=\frac{2|1-A^2|}{(A-1)^2+c^2},
+|R'(1)|=\frac{2|1-A^2|}{(A-1)^2+c^2}.
 $$
 
-so increasing $c$ makes the transition gentler. The steepest choice that remains monotonic is the boundary
+Increasing $c$ reduces the slope there. The steepest midpoint slope compatible with a monotonic response occurs at the boundary
 
 $$
 c=\sqrt{2A}.
