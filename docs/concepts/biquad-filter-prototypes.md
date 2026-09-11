@@ -14,7 +14,7 @@ We have not chosen a filter family or a special frequency. We still have five fr
 
 ## Constructing a Low-Pass Response
 
-Begin with a familiar goal: preserve low frequencies and attenuate high frequencies. We will first constrain the numerator, then investigate the freedom left in the denominator.
+A low-pass filter preserves low frequencies and attenuates high frequencies. The numerator determines its high-frequency rolloff, while the denominator sets the frequency scale and the shape of the transition.
 
 ![Low-pass magnitude response falling from unity toward zero](images/low-pass-response.svg)
 
@@ -30,15 +30,13 @@ H(0)=1,
 H(\infty)=0.
 $$
 
-What do these two conditions actually decide?
-
 At zero frequency,
 
 $$
 H(0)=\frac{c_0}{d_0},
 $$
 
-so unity response fixes
+so preserving the low-frequency level requires
 
 $$
 c_0=d_0.
@@ -52,46 +50,42 @@ H(S)
 \longrightarrow c_2.
 $$
 
-Rejection at infinite frequency therefore fixes
+For the response to approach zero, we need
 
 $$
 c_2=0.
 $$
 
-The endpoint requirements alone leave $c_1$ free:
+With these values, the response becomes
 
 $$
 H(S)=\frac{c_1S+d_0}{S^2+d_1S+d_0}.
 $$
 
-This already approaches zero at high frequency, but those endpoint values alone do not establish the familiar all-pole low-pass shape.
-
 ### Require Second-Order Rolloff
 
-The remaining numerator term changes the asymptotic attenuation. If $c_1\ne0$, then
+The coefficient $c_1$ determines how quickly the response falls at high frequencies. If $c_1\ne0$, then
 
 $$
 H(S)\sim\frac{c_1S}{S^2}=\frac{c_1}{S}
 \qquad (|S|\to\infty).
 $$
 
-Its magnitude falls as $1/|S|$, which is first-order attenuation. If we want to use the full second-order attenuation available from the quadratic denominator, the response should instead behave as $1/S^2$. That additional requirement fixes
+Its magnitude falls as $1/|S|$. To obtain second-order attenuation, with magnitude falling as $1/|S|^2$, we set
 
 $$
 c_1=0.
 $$
 
-Only after adding the rolloff requirement have we reached
+The low-pass response is then
 
 $$
 H(S)=\frac{d_0}{S^2+d_1S+d_0}.
 $$
 
-The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
-
 ### Identify the Natural Frequency
 
-The denominator still contains $d_0$ and $d_1$. To see their roles one at a time, take $d_0>0$ and first try the special case $d_1=0$:
+The denominator describes an oscillator, with $d_0$ providing the restoring term and $d_1$ the damping. To find its natural frequency, take $d_0>0$ and temporarily set $d_1=0$:
 
 $$
 D_0(S)=S^2+d_0.
@@ -115,17 +109,17 @@ $$
 D_0(S)=(S-j\Omega_0)(S+j\Omega_0)
 $$
 
-shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $d_0$ sets the natural angular frequency $\Omega_0$ in this simpler case.
+shows the free oscillations $e^{\pm j\Omega_0t}$. Without damping, they continue at the natural angular frequency $\Omega_0$ with constant amplitude.
 
 ### Normalize the Frequency Scale
 
-Return to the full response and write a relative complex rate $s$ so that
+Restoring the damping term, measure the complex rate relative to $\Omega_0$ by writing
 
 $$
 S=\Omega_0s.
 $$
 
-Substitute this argument into the same response, then use $d_0=\Omega_0^2$ and divide numerator and denominator by $\Omega_0^2$:
+Substituting $S=\Omega_0s$ and $d_0=\Omega_0^2$, then dividing numerator and denominator by $\Omega_0^2$, gives
 
 $$
 \begin{aligned}
@@ -138,7 +132,7 @@ $$
 
 ### Express the Remaining Freedom as Q
 
-At the natural-frequency scale, $s=j$:
+For positive damping $d_1>0$, evaluate the response at the natural frequency, where $s=j$:
 
 $$
 H(j\Omega_0)
@@ -146,7 +140,7 @@ H(j\Omega_0)
 =-j\frac{\Omega_0}{d_1}.
 $$
 
-Its amplitude is the dimensionless ratio $\Omega_0/d_1$. It is conventional to call this ratio $Q$:
+The magnitude at this frequency is $\Omega_0/d_1$. This dimensionless ratio is the quality factor $Q$:
 
 $$
 Q=\frac{\Omega_0}{d_1},
@@ -154,17 +148,17 @@ Q=\frac{\Omega_0}{d_1},
 \frac{d_1}{\Omega_0}=\frac{1}{Q}.
 $$
 
-Substituting it into the normalized response gives the low-pass prototype:
+Using $Q$ to express the damping gives the normalized low-pass prototype:
 
 $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
+For example, $Q=1/\sqrt{2}$ gives a magnitude of $1/\sqrt{2}$, approximately $-3$ dB, at the natural frequency. Increasing $Q$ raises the magnitude there.
 
 ### Derive the Digital Coefficients
 
-The [peaking-EQ derivation](transfer-function-and-peaking-eq.md#9-turn-the-continuous-model-into-delayed-samples) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
+To convert this analog response into a digital filter, use the bilinear substitution from the [peaking-EQ derivation](transfer-function-and-peaking-eq.md#10-expand-the-mapping-until-the-runtime-coefficients-appear). For the requested digital frequency $\omega_0=2\pi f_0/F_s$, it is
 
 $$
 s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
@@ -172,25 +166,25 @@ s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
 K=\cot\frac{\omega_0}{2}.
 $$
 
-This maps $z=e^{j\omega_0}$ to $s=j$. Define the digital response by applying that substitution to the analog response:
+This maps the requested digital frequency, $z=e^{j\omega_0}$, to the analog natural frequency, $s=j$. The resulting digital response is
 
 $$
 H_d(z)=H\bigl(\Omega_0s(z)\bigr).
 $$
 
-The companion's [coefficient expansion](transfer-function-and-peaking-eq.md#10-expand-the-mapping-until-the-runtime-coefficients-appear) abbreviates the delay as $d=z^{-1}$ and expands the general quadratic
+Write $d=z^{-1}$ for the delay. The denominator has the quadratic form
 
 $$
 s^2+cs+1.
 $$
 
-After applying the bilinear substitution and clearing $(1+d)^2$, call its polynomial
+Substituting for $s$ and multiplying by $(1+d)^2$ gives the polynomial
 
 $$
 P_c(d)=K^2(1-d)^2+cK(1-d)(1+d)+(1+d)^2.
 $$
 
-The reusable result established there is
+Expanding and dividing by $K^2+1$, as in the companion, gives
 
 $$
 \frac{P_c(d)}{K^2+1}
@@ -199,20 +193,20 @@ $$
 +\left(1-\frac{c\sin\omega_0}{2}\right)d^2.
 $$
 
-The low-pass denominator is this polynomial with $c=1/Q$. Define
+For the low-pass denominator, $c=1/Q$. Writing
 
 $$
 \alpha=\frac{\sin\omega_0}{2Q}.
 $$
 
-Its scaled denominator is therefore
+puts the scaled denominator in the form
 
 $$
 \frac{P_{1/Q}(d)}{K^2+1}
 =(1+\alpha)-2\cos\omega_0d+(1-\alpha)d^2.
 $$
 
-The analog numerator is the constant one. Clearing the same $(1+d)^2$ denominator and applying the same scale gives
+The analog numerator is one. Multiplying it by $(1+d)^2$ and dividing by the same scale factor gives
 
 $$
 \frac{(1+d)^2}{K^2+1}
