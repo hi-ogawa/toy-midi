@@ -7,13 +7,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   // Open independent effects panels for backing audio and Capture.
   await createRecorderProject(page);
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
-  await page.getByTestId("recorder-mixer-button").click();
   await page
-    .getByTestId("recorder-mixer-panel")
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
   await page
-    .getByTestId("recorder-mixer-panel")
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
   const audio = page.getByTestId("recorder-effects-panel").filter({
@@ -58,13 +55,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(save).toHaveAttribute("data-status", "saved");
   await page.reload();
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
-  await page.getByTestId("recorder-mixer-button").click();
   await page
-    .getByTestId("recorder-mixer-panel")
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
   await page
-    .getByTestId("recorder-mixer-panel")
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
@@ -106,9 +100,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
 test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   // Open Capture effects with the default EQ settings.
   await createRecorderProject(page);
-  await page.getByTestId("recorder-mixer-button").click();
   await page
-    .getByTestId("recorder-mixer-panel")
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
   const panel = page.getByTestId("recorder-effects-panel");
