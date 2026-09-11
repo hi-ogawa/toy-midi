@@ -83,59 +83,51 @@ $$
 
 The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
 
-## Find The Frequency Scale In The Result
+## First Remove Damping
 
-The denominator still contains $d_0$ and $d_1$. Each denominator root $S=r$ contributes free motion proportional to $e^{rt}$, which decays when $\mathrm{Re}(r)<0$. For the real quadratic $S^2+d_1S+d_0$, both roots decay exactly when $d_0>0$ and $d_1>0$: complex roots have real part $-d_1/2$, while real roots have negative sum $-d_1$ and positive product $d_0$, making both negative.
-
-Probe the denominator with a sinusoid by setting $S=j\Omega$:
+The denominator still contains $d_0$ and $d_1$. To see their roles one at a time, take $d_0>0$ and first try the special case $d_1=0$:
 
 $$
-D(j\Omega)=d_0-\Omega^2+j d_1\Omega.
+D_0(S)=S^2+d_0.
 $$
 
-The constant and quadratic terms cancel when
+For a sinusoidal probe $S=j\Omega$,
 
 $$
-\Omega^2=d_0.
+D_0(j\Omega)=d_0-\Omega^2.
 $$
 
-Denote the positive solution by
+It vanishes at the positive angular frequency
 
 $$
 \Omega_0=\sqrt{d_0}.
 $$
 
-To see why this frequency matters, first set $d_1=0$. The denominator factors as
+The factorization
 
 $$
-S^2+\Omega_0^2=(S-j\Omega_0)(S+j\Omega_0).
+D_0(S)=(S-j\Omega_0)(S+j\Omega_0)
 $$
 
-Its roots $S=\pm j\Omega_0$ produce the homogeneous modes
+shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $\Omega_0$ is the undamped natural angular frequency set by $d_0$.
 
-$$
-e^{\pm j\Omega_0t},
-$$
+## Restore Damping
 
-whose magnitudes do not decay. The same roots make the denominator of the sinusoidal response zero at $S=j\Omega_0$, so an input at that frequency has no finite steady-state response in the undamped model.
-
-For $d_1>0$, substitution at the same frequency instead gives
+Put the $d_1S$ term back with $d_1>0$ and evaluate the denominator at the frequency just found:
 
 $$
 D(j\Omega_0)=j d_1\Omega_0.
 $$
 
-The denominator is now nonzero, and the response is finite. This is why $\Omega_0$ is called the undamped natural angular frequency.
-
-For the low-pass response already constructed, its value there is
+The low-pass response there is finite:
 
 $$
 H(j\Omega_0)
-=\frac{d_0}{j d_1\sqrt{d_0}}
-=-j\frac{\sqrt{d_0}}{d_1}.
+=\frac{\Omega_0^2}{j d_1\Omega_0}
+=-j\frac{\Omega_0}{d_1}.
 $$
 
-The output has a quarter-cycle lag, and its amplitude is determined entirely by the damping relative to this natural-frequency scale. Measure all complex frequencies relative to it:
+Its amplitude is set by damping relative to the natural-frequency scale. Measure all complex frequencies relative to that scale:
 
 $$
 s=\frac{S}{\Omega_0}.
