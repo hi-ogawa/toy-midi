@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 import { RecorderGainSlider } from "./recorder-mixer";
 
@@ -68,6 +69,8 @@ export function TrackRow({
   gain,
   muted,
   soloed,
+  effectsOpen,
+  onEffectsToggle,
   action,
   onGainChange,
   onMutedChange,
@@ -80,6 +83,8 @@ export function TrackRow({
   gain: number;
   muted: boolean;
   soloed: boolean;
+  effectsOpen: boolean;
+  onEffectsToggle: () => void;
   action: React.ReactNode;
   onGainChange: (gain: number) => void;
   onMutedChange: (muted: boolean) => void;
@@ -122,6 +127,12 @@ export function TrackRow({
             className="size-7"
             title={soloed ? `Disable ${title} solo` : `Solo ${title}`}
           />
+          <RecorderEffectsToggle
+            label={title}
+            open={effectsOpen}
+            onClick={onEffectsToggle}
+            className="size-7"
+          />
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
@@ -153,6 +164,8 @@ export function CaptureTrackRow({
   inputToggleDisabled,
   muted,
   soloed,
+  effectsOpen,
+  onEffectsToggle,
   onGainChange,
   onInputSetup,
   onInputMonitoringChange,
@@ -172,6 +185,8 @@ export function CaptureTrackRow({
   inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
+  effectsOpen: boolean;
+  onEffectsToggle: () => void;
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
@@ -225,6 +240,12 @@ export function CaptureTrackRow({
             onClick={() => onSoloedChange(!soloed)}
             className="size-7"
             title={soloed ? "Disable Capture solo" : "Solo Capture"}
+          />
+          <RecorderEffectsToggle
+            label="Capture"
+            open={effectsOpen}
+            onClick={onEffectsToggle}
+            className="size-7"
           />
         </div>
         <div className="col-span-2 flex min-w-0 items-center gap-1">
