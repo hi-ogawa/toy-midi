@@ -166,7 +166,7 @@ s\leftarrow K\frac{1-z^{-1}}{1+z^{-1}},
 K=\cot\frac{\omega_0}{2}.
 $$
 
-This maps $z=e^{j\omega_0}$ to $s=j$. What remains is the low-pass-specific expansion.
+This maps $z=e^{j\omega_0}$ to $s=j$. What remains is applying the reusable polynomial expansion to the low-pass response.
 
 ## Expand The Digital Response
 
@@ -176,57 +176,57 @@ $$
 H_d(z)=H\bigl(\Omega_0s(z)\bigr).
 $$
 
-As in the peaking derivation, abbreviate the delay as $d=z^{-1}$. Substituting into the low-pass prototype gives
+The gist's [coefficient expansion](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#peak-coefficients) abbreviates the delay as $d=z^{-1}$ and expands the general quadratic
 
 $$
-H_d(z)
-=\frac{1}
-{K^2\left(\dfrac{1-d}{1+d}\right)^2
-+\dfrac{K}{Q}\left(\dfrac{1-d}{1+d}\right)+1}.
+s^2+cs+1.
 $$
 
-Multiply numerator and denominator by $(1+d)^2$:
+After applying the bilinear substitution and clearing $(1+d)^2$, call its polynomial
 
 $$
-H_d(z)
-=\frac{(1+d)^2}
-{K^2(1-d)^2+(K/Q)(1-d)(1+d)+(1+d)^2}.
+P_c(d)=K^2(1-d)^2+cK(1-d)(1+d)+(1+d)^2.
 $$
 
-Expanding and collecting powers of $d$ produces
+The reusable result established there is
 
 $$
-H_d(z)=
-\frac{1+2d+d^2}
-{(K^2+K/Q+1)+2(1-K^2)d+(K^2-K/Q+1)d^2}.
+\frac{P_c(d)}{K^2+1}
+=\left(1+\frac{c\sin\omega_0}{2}\right)
+-2\cos\omega_0d
++\left(1-\frac{c\sin\omega_0}{2}\right)d^2.
 $$
 
-This already has the biquad form. Its coefficients may all be multiplied by the same nonzero factor without changing the response. Choose
+The low-pass denominator is this polynomial with $c=1/Q$. Define
 
 $$
-C=\frac{1-\cos\omega_0}{2}.
+\alpha=\frac{\sin\omega_0}{2Q}.
 $$
 
-Using $K=\cot(\omega_0/2)$ and the half-angle identities gives
+Its scaled denominator is therefore
 
 $$
-\begin{aligned}
-C(K^2+1)&=1,\\
-C\frac{K}{Q}&=\frac{\sin\omega_0}{2Q}=\alpha,\\
-2C(1-K^2)&=-2\cos\omega_0.
-\end{aligned}
+\frac{P_{1/Q}(d)}{K^2+1}
+=(1+\alpha)-2\cos\omega_0d+(1-\alpha)d^2.
 $$
 
-After multiplying the collected coefficients by $C$, the unnormalized digital response is
+The analog numerator is the constant one. Clearing the same $(1+d)^2$ denominator and applying the same scale gives
+
+$$
+\frac{(1+d)^2}{K^2+1}
+=C(1+2d+d^2),
+\qquad
+C=\frac{1}{K^2+1}=\frac{1-\cos\omega_0}{2}.
+$$
+
+Substitute $d=z^{-1}$ to obtain the unnormalized digital response:
 
 $$
 H_d(z)=
 \frac{\dfrac{1-\cos\omega_0}{2}
 +(1-\cos\omega_0)z^{-1}
 +\dfrac{1-\cos\omega_0}{2}z^{-2}}
-{(1+\alpha)-2\cos\omega_0z^{-1}+(1-\alpha)z^{-2}},
-\qquad
-\alpha=\frac{\sin\omega_0}{2Q}.
+{(1+\alpha)-2\cos\omega_0z^{-1}+(1-\alpha)z^{-2}}.
 $$
 
 Finally divide every coefficient by $a_0=1+\alpha$ so the denominator's leading coefficient is one:
