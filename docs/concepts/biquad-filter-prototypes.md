@@ -176,29 +176,29 @@ $$
 H_d(z)=H\bigl(\Omega_0s(z)\bigr).
 $$
 
-Write $r=z^{-1}$ to keep the expansion compact. Substituting into the low-pass prototype gives
+As in the peaking derivation, abbreviate the delay as $d=z^{-1}$. Substituting into the low-pass prototype gives
 
 $$
 H_d(z)
 =\frac{1}
-{K^2\left(\dfrac{1-r}{1+r}\right)^2
-+\dfrac{K}{Q}\left(\dfrac{1-r}{1+r}\right)+1}.
+{K^2\left(\dfrac{1-d}{1+d}\right)^2
++\dfrac{K}{Q}\left(\dfrac{1-d}{1+d}\right)+1}.
 $$
 
-Multiply numerator and denominator by $(1+r)^2$:
+Multiply numerator and denominator by $(1+d)^2$:
 
 $$
 H_d(z)
-=\frac{(1+r)^2}
-{K^2(1-r)^2+(K/Q)(1-r)(1+r)+(1+r)^2}.
+=\frac{(1+d)^2}
+{K^2(1-d)^2+(K/Q)(1-d)(1+d)+(1+d)^2}.
 $$
 
-Expanding and collecting powers of $r$ produces
+Expanding and collecting powers of $d$ produces
 
 $$
 H_d(z)=
-\frac{1+2r+r^2}
-{(K^2+K/Q+1)+2(1-K^2)r+(K^2-K/Q+1)r^2}.
+\frac{1+2d+d^2}
+{(K^2+K/Q+1)+2(1-K^2)d+(K^2-K/Q+1)d^2}.
 $$
 
 This already has the biquad form. Its coefficients may all be multiplied by the same nonzero factor without changing the response. Choose
