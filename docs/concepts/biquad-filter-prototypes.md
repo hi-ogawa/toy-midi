@@ -14,7 +14,9 @@ $$
 
 We have not chosen a filter family or a special frequency. We still have five free coefficients and can ask which of them are fixed by the response we want.
 
-## Try To Preserve Low Frequencies
+## Low Pass
+
+### Try To Preserve Low Frequencies
 
 Suppose low-frequency tones should pass unchanged while high-frequency tones should be attenuated. At the two frequency extremes, this means
 
@@ -60,7 +62,7 @@ $$
 
 This already approaches zero at high frequency, but those endpoint values alone do not establish the familiar all-pole low-pass shape.
 
-## Ask How Fast The Response Should Fall
+### Ask How Fast The Response Should Fall
 
 The remaining numerator term changes the asymptotic attenuation. If $c_1\ne0$, then
 
@@ -83,7 +85,7 @@ $$
 
 The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
 
-## Inspect $d_0$ By Itself
+### Inspect $d_0$ By Itself
 
 The denominator still contains $d_0$ and $d_1$. To see their roles one at a time, take $d_0>0$ and first try the special case $d_1=0$:
 
@@ -111,7 +113,7 @@ $$
 
 shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $d_0$ sets the natural angular frequency $\Omega_0$ in this simpler case.
 
-## Measure Frequency Relative To $\Omega_0$
+### Measure Frequency Relative To $\Omega_0$
 
 Return to the full response and write a relative complex rate $s$ so that
 
@@ -130,7 +132,7 @@ H(\Omega_0s)
 \end{aligned}
 $$
 
-## Name The Remaining Freedom
+### Name The Remaining Freedom
 
 At the natural-frequency scale, $s=j$:
 
@@ -156,7 +158,7 @@ $$
 
 Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
-## Apply The Existing Bilinear Mapping
+### Apply The Existing Bilinear Mapping
 
 The [peaking-EQ derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#digital-map) already develops the bilinear transform and center-frequency prewarping. Reuse its normalized substitution for the requested digital frequency $\omega_0=2\pi f_0/F_s$:
 
@@ -168,7 +170,7 @@ $$
 
 This maps $z=e^{j\omega_0}$ to $s=j$. What remains is applying the reusable polynomial expansion to the low-pass response.
 
-## Expand The Digital Response
+### Expand The Digital Response
 
 Define the digital response by applying that substitution to the analog response:
 
@@ -239,7 +241,9 @@ a_2&=\frac{1-\alpha}{1+\alpha}.
 \end{aligned}
 $$
 
-## Ask For Two Nonzero Plateaus
+## Low Shelf
+
+### Ask For Two Nonzero Plateaus
 
 A low shelf does not reject high frequencies. Instead, it asks for one constant response at each end:
 
@@ -266,7 +270,7 @@ $$
 
 Indeed, its zero-frequency response is $A^2=M$, while the ratio of its leading coefficients at infinite frequency is one. The numerator and denominator place their constant and quadratic terms in opposite orders, so their frequency scales lie on opposite sides of $s=j$.
 
-## Put The Shelf Center Halfway Between The Plateaus
+### Put The Shelf Center Halfway Between The Plateaus
 
 Halfway between two amplitude ratios is most naturally measured geometrically. The desired amplitude at $s=j$ is therefore
 
@@ -300,7 +304,7 @@ H(\Omega_0s)
 =A\frac{s^2+cs+A}{As^2+cs+1}.
 $$
 
-## Find The Steepest Monotonic Shelf
+### Find The Steepest Monotonic Shelf
 
 The remaining $c$ controls the shape of the transition. Probe the response at $s=j\sqrt{x}$ and remove the constant factor $A^2$ from its squared amplitude:
 
@@ -343,7 +347,7 @@ H(\Omega_0s)
 =A\frac{s^2+\sqrt{2A}s+A}{As^2+\sqrt{2A}s+1}.
 $$
 
-## Expand The Low Shelf Into Digital Coefficients
+### Expand The Low Shelf Into Digital Coefficients
 
 Reuse the same substitution $s\leftarrow K(1-d)/(1+d)$. The low-pass derivation needed the special quadratic $s^2+cs+1$; the shelf needs the slightly more general form
 
