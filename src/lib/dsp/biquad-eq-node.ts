@@ -5,6 +5,8 @@ const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
 export function createDefaultEq(): EqParameters {
+  // TODO: Use type-specific defaults so low-pass and high-pass start with a flat
+  // passband at Q = 1 / Math.SQRT2 when selected, instead of inheriting Q = 1.
   return { type: "peaking", frequency: 1000, gain: 1, q: 1, bypass: false };
 }
 
