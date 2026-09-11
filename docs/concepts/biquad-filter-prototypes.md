@@ -12,23 +12,7 @@ $$
 H(S)=\frac{c_2S^2+c_1S+c_0}{S^2+d_1S+d_0}.
 $$
 
-For a stable real second-order system, $d_0>0$ sets a natural angular-frequency scale and $d_1>0$ supplies damping. Depending on their ratio, its free motion may decay with or without oscillating. Let
-
-$$
-\Omega_0=\sqrt{d_0},
-\qquad
-s=\frac{S}{\Omega_0},
-\qquad
-\delta=\frac{d_1}{\Omega_0}.
-$$
-
-Substitute $S=\Omega_0s$ and divide numerator and denominator by $\Omega_0^2$. Absorb the resulting numerator scales into $n_2$, $n_1$, and $n_0$:
-
-$$
-H(s)=\frac{n_2s^2+n_1s+n_0}{s^2+\delta s+1}.
-$$
-
-A sinusoid at the natural-frequency scale is represented by $s=j$. We have not chosen a filter family. We still have three numerator coefficients and one damping coefficient, and can ask which of them are fixed by the response we want.
+We have not chosen a filter family or a special frequency. We still have five free coefficients and can ask which of them are fixed by the response we want.
 
 ## Try To Preserve Slow Motion
 
@@ -45,59 +29,104 @@ What do these two conditions actually decide?
 At zero frequency,
 
 $$
-H(0)=n_0,
+H(0)=\frac{c_0}{d_0},
 $$
 
 so unity response fixes
 
 $$
-n_0=1.
+c_0=d_0.
 $$
 
-At high frequency, divide numerator and denominator by $s^2$:
+At high frequency, divide numerator and denominator by $S^2$:
 
 $$
-H(s)
-=\frac{n_2+n_1/s+n_0/s^2}{1+\delta/s+1/s^2}
-\longrightarrow n_2.
+H(S)
+=\frac{c_2+c_1/S+c_0/S^2}{1+d_1/S+d_0/S^2}
+\longrightarrow c_2.
 $$
 
 Rejection at infinite frequency therefore fixes
 
 $$
-n_2=0.
+c_2=0.
 $$
 
-The endpoint requirements alone leave $n_1$ free:
+The endpoint requirements alone leave $c_1$ free:
 
 $$
-H(s)=\frac{n_1s+1}{s^2+\delta s+1}.
+H(S)=\frac{c_1S+d_0}{S^2+d_1S+d_0}.
 $$
 
-This already approaches zero at high frequency. It is a family of low-pass responses, not yet the familiar all-pole prototype.
+This already approaches zero at high frequency, but those endpoint values alone do not establish the familiar all-pole low-pass shape.
 
 ## Ask How Fast The Response Should Fall
 
-The remaining numerator term changes the asymptotic attenuation. If $n_1\ne0$, then
+The remaining numerator term changes the asymptotic attenuation. If $c_1\ne0$, then
 
 $$
-H(s)\sim\frac{n_1s}{s^2}=\frac{n_1}{s}
-\qquad (|s|\to\infty).
+H(S)\sim\frac{c_1S}{S^2}=\frac{c_1}{S}
+\qquad (|S|\to\infty).
 $$
 
-Its magnitude falls as $1/|s|$, which is first-order attenuation. If we want to use the full second-order attenuation available from the quadratic denominator, the response should instead behave as $1/s^2$. That additional requirement fixes
+Its magnitude falls as $1/|S|$, which is first-order attenuation. If we want to use the full second-order attenuation available from the quadratic denominator, the response should instead behave as $1/S^2$. That additional requirement fixes
 
 $$
-n_1=0.
+c_1=0.
 $$
 
 Only after adding the rolloff requirement have we reached
 
 $$
-H(s)=\frac{1}{s^2+\delta s+1}.
+H(S)=\frac{d_0}{S^2+d_1S+d_0}.
 $$
 
 The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
+
+## Find The Frequency Scale In The Result
+
+The denominator still contains $d_0$ and $d_1$. Stability of the real second-order denominator requires $d_0>0$ and $d_1>0$. Probe it with a sinusoid by setting $S=j\Omega$:
+
+$$
+D(j\Omega)=d_0-\Omega^2+j d_1\Omega.
+$$
+
+The constant and quadratic terms cancel when
+
+$$
+\Omega^2=d_0.
+$$
+
+This reveals a distinguished angular frequency in the response:
+
+$$
+\Omega_0=\sqrt{d_0}.
+$$
+
+The definition is not an arbitrary normalization introduced in advance. It is the frequency where the restoring and second-derivative terms balance. Measure all complex frequencies relative to it:
+
+$$
+s=\frac{S}{\Omega_0}.
+$$
+
+Substitute $S=\Omega_0s$ and use $d_0=\Omega_0^2$:
+
+$$
+H(s)
+=\frac{1}{s^2+(d_1/\Omega_0)s+1}.
+$$
+
+Only one dimensionless coefficient remains. Call it
+
+$$
+\delta=\frac{d_1}{\Omega_0}.
+$$
+
+The response is now
+
+$$
+H(s)=\frac{1}{s^2+\delta s+1}.
+$$
 
 ## Inspect The Remaining Freedom
 
