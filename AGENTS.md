@@ -8,16 +8,6 @@
 | `pnpm test`     | Unit tests (src/, vitest)                 |
 | `pnpm test-e2e` | E2E tests (e2e/, playwright)              |
 
-## Key Docs
-
-| File                       | Purpose                            |
-| -------------------------- | ---------------------------------- |
-| `docs/architecture.md`     | Technical architecture overview    |
-| `docs/references.md`       | Reference projects and libraries   |
-| `docs/rust-development.md` | Rust and WASM development workflow |
-
-Planned work and known bugs live in GitHub issues, minor code-level nits as inline `TODO` comments. Update `docs/architecture.md` only when architectural ownership, data flow, persistence contracts, or other durable design decisions change, and file follow-ups as issues.
-
 ## Conventions
 
 - This application is desktop-only. Do not propose, evaluate, implement, or mention mobile or responsive behavior
