@@ -143,9 +143,7 @@ $$
 The magnitude at this frequency is $\Omega_0/d_1$. This dimensionless ratio is the quality factor $Q$:
 
 $$
-Q=\frac{\Omega_0}{d_1},
-\qquad
-\frac{d_1}{\Omega_0}=\frac{1}{Q}.
+Q=\frac{\Omega_0}{d_1}.
 $$
 
 Using $Q$ to express the damping gives the normalized low-pass prototype:
