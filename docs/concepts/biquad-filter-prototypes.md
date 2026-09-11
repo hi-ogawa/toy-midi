@@ -290,4 +290,4 @@ $$
 
 Multiplying through by $(1+z^{-1})^2$, collecting powers of $z^{-1}$, and dividing by $a_0$ produces the five coefficients used by the Direct Form I loop. The trigonometric forms in `src/lib/dsp/biquad-eq.ts` are algebraic simplifications of this expansion.
 
-The implementation follows the coefficient conventions in the [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/). That reference supplies an authoritative final table; the prototype arguments above explain why those particular rational functions produce the requested filter shapes.
+The implementation follows the coefficient conventions listed in the [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/). Expanding the independently constructed prototypes through the bilinear substitution provides the mathematical check that those coefficients implement the intended responses.
