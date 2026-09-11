@@ -1,26 +1,40 @@
-# Designing Analog Biquad Filter Prototypes
+# Discovering Analog Biquad Filter Prototypes
 
-The recorder EQ implements several second-order filters with the same sample loop. Their digital coefficients are commonly presented as a table, but the filter-specific insight comes earlier: why does each analog prototype have its particular numerator and denominator?
+The recorder EQ implements several second-order filters with one sample loop. Their coefficients are commonly presented as a table, but a table hides the interesting question: if we started only with the response we wanted, how would we invent each filter?
 
-This document reconstructs those prototypes from their desired responses. It assumes the transfer-function and bilinear-transform background developed in [Modeling an audio effect as a transfer function](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html). That walkthrough derives the peaking filter in detail; this document concentrates on the other filter shapes.
+This document picks up from the continuous second-order system developed in [Modeling an audio effect as a transfer function](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html). We will try simple response requirements, inspect what they force, and only afterward compare the resulting family with the coefficient convention used by the implementation.
 
-## Shared Second-Order System
+## Begin With General Second-Order Motion
 
-Measure frequency relative to the significant angular frequency $\Omega_0$ by writing $s=S/\Omega_0$. A sinusoid at that frequency is therefore represented by $s=j$.
-
-The low-pass, high-pass, band-pass, and notch filters share the denominator
+A continuous second-order input/output system has a transfer function whose denominator can be written, after scaling its leading coefficient to one, as
 
 $$
-D(s)=s^2+\frac{s}{Q}+1.
+D(S)=S^2+d_1S+d_0.
 $$
 
-Its roots are a stable pole pair for $Q>0$. The constant and quadratic terms set the normalized natural frequency to one, while $Q$ controls damping and therefore the width or resonance around that frequency. Choosing a numerator places zeros and fixes the gain at important frequencies without changing those poles.
+For a stable real second-order system, $d_0>0$ sets a natural angular-frequency scale and $d_1>0$ supplies damping. Depending on their ratio, its free motion may decay with or without oscillating. Let
 
-For a polynomial ratio, the responses at zero and infinite frequency are especially easy to inspect. At $s=0$, only the constant terms survive. As $|s|\to\infty$, only the highest-order terms survive. Zeros at either endpoint appear by omitting the corresponding numerator term.
+$$
+\Omega_0=\sqrt{d_0},
+\qquad
+s=\frac{S}{\Omega_0},
+\qquad
+\delta=\frac{d_1}{\Omega_0}.
+$$
 
-## Low-Pass
+Dividing the denominator by $\Omega_0^2$ leaves the dimensionless form
 
-A second-order low-pass should have
+$$
+D(s)=s^2+\delta s+1.
+$$
+
+A sinusoid at the natural-frequency scale is now represented by $s=j$. We have not chosen a filter family yet. We only have the quadratic motion made available by a second-order system, and freedom to ask what different numerators make it do.
+
+At $s=0$, only a polynomial's constant term survives. As $|s|\to\infty$, only its highest-order term survives. Those two observations give us a place to start exploring.
+
+## Try To Preserve Slow Motion
+
+Suppose the output should follow a constant or slowly changing input, but reject fast motion with the full attenuation available from a second-order denominator. At the two frequency extremes we want
 
 $$
 H(0)=1,
@@ -28,23 +42,37 @@ H(0)=1,
 H(\infty)=0.
 $$
 
-A constant numerator gives two more powers of $s$ in the denominator at high frequency, producing the desired second-order rolloff. Unity at zero fixes that constant to one:
+A constant numerator gives two more powers of $s$ in the denominator at high frequency, producing second-order attenuation. Unity at zero fixes that constant to one:
+
+$$
+H(s)=\frac{1}{s^2+\delta s+1}.
+$$
+
+This response has emerged as a low-pass filter. What does the still-free damping coefficient $\delta$ do? At the natural-frequency scale,
+
+$$
+H(j)=\frac{1}{-1+j\delta+1}=\frac{1}{j\delta},
+\qquad
+|H(j)|=\frac{1}{\delta}.
+$$
+
+It is conventional to name this reciprocal damping parameter $Q$:
+
+$$
+Q=\frac{1}{\delta}.
+$$
+
+Our first prototype is therefore
 
 $$
 H_{\mathrm{LP}}(s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-The numerator has two zeros at infinity. At the significant frequency,
+The value $Q=1/\sqrt{2}$ gives the familiar $-3$ dB response at $s=j$. Increasing $Q$ reduces damping and eventually produces a resonant rise around that frequency.
 
-$$
-\left|H_{\mathrm{LP}}(j)\right|=Q.
-$$
+## Reverse Which End Survives
 
-Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB value at the corner, while larger $Q$ introduces a resonant rise near it.
-
-## High-Pass
-
-A second-order high-pass reverses the endpoint requirements:
+What if we instead reject slow motion and preserve fast motion?
 
 $$
 H(0)=0,
@@ -52,17 +80,17 @@ H(0)=0,
 H(\infty)=1.
 $$
 
-Rejecting low frequencies to second order requires a double zero at the origin, so the numerator contains $s^2$. Matching the leading denominator coefficient gives unity at high frequency:
+Rejecting low frequencies to second order requires a double zero at the origin, so the numerator must contain $s^2$. Matching the leading denominator coefficient gives unity at high frequency:
 
 $$
 H_{\mathrm{HP}}(s)=\frac{s^2}{s^2+s/Q+1}.
 $$
 
-This is also the low-pass prototype with frequency inverted: replacing $s$ by $1/s$ in the low-pass response and simplifying produces the high-pass response.
+We have found the high-pass response. Its relation to the previous result can be seen by replacing $s$ with $1/s$ in the low-pass prototype and simplifying. Frequency inversion exchanges zero and infinite frequency, so it exchanges low-pass and high-pass.
 
-## Band-Pass
+## Suppress Both Ends
 
-A band-pass should vanish at both frequency extremes:
+Can the same second-order motion preserve a region in the middle while suppressing both extremes? Now we ask for
 
 $$
 H(0)=0,
@@ -70,13 +98,13 @@ H(0)=0,
 H(\infty)=0.
 $$
 
-A numerator $cs$ supplies one zero at the origin and one at infinity while preserving a second-order denominator:
+The lowest-degree numerator that vanishes at zero but still grows more slowly than the quadratic denominator is $cs$:
 
 $$
 H_{\mathrm{BP}}(s)=\frac{cs}{s^2+s/Q+1}.
 $$
 
-The endpoint requirements do not determine $c$. Evaluating the center exposes the remaining choice:
+This is a band-pass shape, but its endpoint behavior does not determine $c$. Evaluating the natural-frequency scale exposes the remaining choice:
 
 $$
 H_{\mathrm{BP}}(j)
@@ -99,17 +127,30 @@ c&=1
 \end{aligned}
 $$
 
-The recorder uses the constant-skirt form:
+The recorder chooses the constant-skirt form:
 
 $$
 H_{\mathrm{BP}}(s)=\frac{s}{s^2+s/Q+1}.
 $$
 
-Consequently, changing $Q$ changes both bandwidth and center gain. This is a convention chosen after the band-pass shape is established, not a consequence of the endpoint constraints alone.
+The meaning of $Q$ becomes more concrete here. For a probe $s=j\nu$, this form has
 
-## Notch
+$$
+\left|H_{\mathrm{BP}}(j\nu)\right|^2
+=\frac{\nu^2}{(1-\nu^2)^2+\nu^2/Q^2}.
+$$
 
-A notch should preserve both frequency extremes but completely reject the significant frequency:
+Its center power is $Q^2$. Setting the power to half that value gives
+
+$$
+\left|\nu-\frac{1}{\nu}\right|=\frac{1}{Q}.
+$$
+
+The positive crossing below the center and the one above it differ by $1/Q$. Thus the same parameter introduced as reciprocal damping is also center frequency divided by the half-power bandwidth. In the chosen constant-skirt convention, changing it necessarily changes both bandwidth and center gain.
+
+## Remove Only The Center
+
+The opposite experiment is to preserve both extremes but completely remove the natural-frequency scale:
 
 $$
 H(0)=1,
@@ -119,30 +160,49 @@ H(\infty)=1,
 H(j)=0.
 $$
 
-A real polynomial with a zero at $j$ must also have a zero at its conjugate $-j$. The numerator is therefore
+A zero at $s=j$ gives the desired rejection. Because the sample computation needs real coefficients, a complex zero must be accompanied by its conjugate at $s=-j$. This determines the numerator:
 
 $$
 N(s)=(s-j)(s+j)=s^2+1.
 $$
 
-Its constant and leading coefficients already match the denominator, giving unity at both endpoints:
+Its constant and leading coefficients happen to match the denominator, so the same construction already gives unity at both endpoints:
 
 $$
 H_{\mathrm{notch}}(s)=\frac{s^2+1}{s^2+s/Q+1}.
 $$
 
-The numerator fixes the rejected frequency. The denominator's pole pair determines how quickly the response recovers around it, so $Q$ controls the notch width.
+We have discovered the notch response. Its zeros fix the rejected frequency, while the denominator's poles determine how quickly the response recovers around it. Increasing $Q$ reduces their damping and narrows the notch.
 
-## Peaking
+## A Pattern Has Appeared
 
-The peaking filter also preserves both endpoints, but it changes the center by a finite amplitude ratio $M$. Let $A=\sqrt{M}$. Distributing $A$ reciprocally between the numerator and denominator's linear terms gives
+Only after constructing these responses can we see their common structure. Low-pass, high-pass, band-pass, and notch all use the normalized quadratic motion
+
+$$
+s^2+\frac{s}{Q}+1
+$$
+
+and differ in where their numerator places zeros:
+
+| Response  | Numerator | Zeros                           |
+| --------- | --------- | ------------------------------- |
+| Low-pass  | $1$       | Two at infinity                 |
+| High-pass | $s^2$     | Two at zero                     |
+| Band-pass | $s$       | One at zero and one at infinity |
+| Notch     | $s^2+1$   | One at each of $j$ and $-j$     |
+
+The shared denominator was not the starting assumption. It is the reusable second-order motion that remained after each numerator was chosen from a different response goal.
+
+## Change The Center Instead Of Removing It
+
+The notch suggests another question: instead of forcing the center to zero, can we adjust it by a finite amount while preserving both endpoints? Let the desired center amplitude ratio be $M$ and write $A=\sqrt{M}$. Distributing $A$ reciprocally between the numerator and denominator's linear terms gives
 
 $$
 H_{\mathrm{peak}}(s)
 =\frac{s^2+(A/Q)s+1}{s^2+s/(AQ)+1}.
 $$
 
-At $s=j$, the quadratic and constant terms cancel, leaving center gain $A^2=M$. Replacing $A$ by $1/A$ exchanges numerator and denominator, so matching boosts and cuts are exact inverses. The [peaking-EQ derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#analog-design) develops how the same reciprocal construction gives the intended halfway-gain bandwidth convention.
+At $s=j$, the quadratic and constant terms cancel, leaving center gain $A^2=M$. Replacing $A$ by $1/A$ exchanges numerator and denominator, so matching boosts and cuts are exact inverses. The [peaking-EQ derivation](https://gisthost.github.io/?fa5a99c49105d575455b4cc1154156d1/peaking-eq-derivation.html#analog-design) develops this construction from the endpoint, center, reciprocal-gain, and halfway-bandwidth requirements rather than taking the prototype as given.
 
 ## Low Shelf
 
