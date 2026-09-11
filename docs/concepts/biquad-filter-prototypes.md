@@ -83,7 +83,7 @@ $$
 
 The constant numerator was not implied by the endpoint values alone. It follows from the endpoint values together with the decision to require second-order attenuation.
 
-## First Remove Damping
+## Inspect $d_0$ By Itself
 
 The denominator still contains $d_0$ and $d_1$. To see their roles one at a time, take $d_0>0$ and first try the special case $d_1=0$:
 
@@ -109,7 +109,7 @@ $$
 D_0(S)=(S-j\Omega_0)(S+j\Omega_0)
 $$
 
-shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $\Omega_0$ is the undamped natural angular frequency set by $d_0$.
+shows the corresponding free modes $e^{\pm j\Omega_0t}$. Their magnitudes do not decay, so $d_0$ sets the natural angular frequency $\Omega_0$ in this simpler case.
 
 ## Measure Frequency Relative To $\Omega_0$
 
@@ -154,7 +154,7 @@ $$
 H(\Omega_0s)=\frac{1}{s^2+s/Q+1}.
 $$
 
-Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Increasing $Q$ reduces damping and eventually creates a resonant rise around the natural-frequency scale.
+Thus $Q=1/\sqrt{2}$ gives the familiar $-3$ dB amplitude at $S=j\Omega_0$. Larger $Q$ gives a larger amplitude at that frequency.
 
 ## Other Responses
 
