@@ -154,9 +154,7 @@ $$
 
 ### Choose a Flat Passband
 
-What value of $Q$ gives the familiar low-pass shape, with a flat passband before the response rolls off? A first guess might be $Q=1$. At the natural frequency, that gives unity magnitude, but what happens on the way there?
-
-Write $\nu=\Omega/\Omega_0$ for the relative frequency. Substituting $s=j\nu$ and taking the squared magnitude gives
+The squared magnitude shows how $Q$ shapes the passband. Write $\nu=\Omega/\Omega_0$ for the relative frequency. Substituting $s=j\nu$ gives
 
 $$
 \begin{aligned}
@@ -166,7 +164,7 @@ $$
 \end{aligned}
 $$
 
-For $Q=1$, the denominator is $1-\nu^2+\nu^4$. It initially decreases as frequency rises from zero, so the magnitude rises above unity before falling. That choice creates a bump in the passband.
+Near zero frequency, the $\nu^2$ term determines how the response leaves unity. When $Q^{-2}>2$, the denominator increases, so the magnitude falls. When $Q^{-2}<2$, the denominator initially decreases, so the magnitude rises above unity before falling, creating a bump in the passband.
 
 To keep the passband as flat as possible near zero frequency, cancel the $\nu^2$ term:
 
