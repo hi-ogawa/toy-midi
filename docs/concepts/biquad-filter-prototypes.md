@@ -214,9 +214,7 @@ The analog numerator is the constant one. Clearing the same $(1+d)^2$ denominato
 
 $$
 \frac{(1+d)^2}{K^2+1}
-=C(1+2d+d^2),
-\qquad
-C=\frac{1}{K^2+1}=\frac{1-\cos\omega_0}{2}.
+=\frac{1-\cos\omega_0}{2}(1+2d+d^2).
 $$
 
 Substitute $d=z^{-1}$ to obtain the unnormalized digital response:
