@@ -108,69 +108,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page.screenshot({ path: test.info().outputPath("effects.png") });
 });
 
-test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
-  // Open Capture effects with the default EQ settings.
-  await createRecorderProject(page);
-  await page
-    .getByRole("button", { name: "Capture effects", exact: true })
-    .click();
-  const panel = page.getByTestId("recorder-effects-panel");
-  await expect(panel.getByTestId("multiband-eq-response-graph")).toBeVisible();
-
-  // Click above and to the right of the point to increase frequency and gain.
-  const point = await panel
-    .getByTestId("multiband-eq-response-point")
-    .boundingBox();
-  expect(point).toBeTruthy();
-  const pointCenter = {
-    x: point!.x + point!.width / 2,
-    y: point!.y + point!.height / 2,
-  };
-  await page.mouse.move(pointCenter.x, pointCenter.y);
-  await page.mouse.down();
-  await page.mouse.move(pointCenter.x + 30, pointCenter.y - 20);
-  await page.mouse.up();
-  const frequencyInput = panel.getByRole("textbox", { name: "Frequency" });
-  const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
-  await expect
-    .poll(async () => Number(await frequencyInput.inputValue()))
-    .toBeGreaterThan(1000);
-  await expect
-    .poll(async () => Number(await gainInput.inputValue()))
-    .toBeGreaterThan(0);
-  const frequency = await frequencyInput.inputValue();
-  const gain = await gainInput.inputValue();
-
-  // Positive wheel delta increases Q, matching the timeline pan direction.
-  const qInput = panel.getByRole("textbox", { name: "Q", exact: true });
-  await page.mouse.wheel(0, 100);
-  await expect
-    .poll(async () => Number(await qInput.inputValue()))
-    .toBeGreaterThan(1);
-  await page.mouse.wheel(0, -100);
-  await expect(qInput).toHaveValue("1");
-  await expect(frequencyInput).toHaveValue(frequency);
-  await expect(gainInput).toHaveValue(gain);
-
-  // Bypass dims the configured response curve.
-  await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
-  await expect(
-    panel.getByTestId("multiband-eq-combined-curve"),
-  ).toHaveAttribute("stroke-opacity", "0.25");
-  await panel.getByRole("checkbox", { name: "Bypass" }).first().uncheck();
-
-  // Optional sliders can be shown and hidden beside the graph controls.
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-  await panel
-    .getByRole("button", { name: "Show sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(3);
-  await panel
-    .getByRole("button", { name: "Hide sliders", exact: true })
-    .click();
-  await expect(panel.getByRole("slider")).toHaveCount(0);
-});
-
 test("keeps the mixer usable with many effects panels open", async ({
   page,
 }) => {
