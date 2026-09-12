@@ -212,7 +212,7 @@ export class RecorderRuntime {
   private captureChannel?: AudioChannel;
   /** Silences existing takes during recording while live monitoring stays audible. */
   private readonly takePlaybackGain: GainNode;
-  private readonly takePlaybackBus: PlaybackBus;
+  private takePlaybackBus?: PlaybackBus;
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -226,10 +226,6 @@ export class RecorderRuntime {
     this.masterOutput.connect(this.context.destination);
     this.takePlaybackGain = this.context.createGain();
     this.transport = new AudioContextTransport(this.context);
-    this.takePlaybackBus = new PlaybackBus({
-      transport: this.transport,
-      output: this.takePlaybackGain,
-    });
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -248,6 +244,11 @@ export class RecorderRuntime {
       ensureBiquadEqWorklet(this.context),
     ]);
     if (!this.captureChannel) {
+      this.takePlaybackBus = new PlaybackBus({
+        transport: this.transport,
+        output: this.takePlaybackGain,
+      });
+
       this.captureChannel = new AudioChannel({
         context: this.context,
         output: this.masterOutput,
@@ -1222,7 +1223,7 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.takePlaybackBus.input,
+        output: this.takePlaybackBus!.input,
       });
       playback.setBuffer(take.buffer);
       playback.setBufferTimelineOffset(take.timelineOffset);

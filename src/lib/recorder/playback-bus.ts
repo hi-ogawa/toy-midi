@@ -1,4 +1,4 @@
-import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
+import { PitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -6,11 +6,9 @@ import type {
 
 /** Sums playback sources before pitch correction for one transport run. */
 export class PlaybackBus implements TransportParticipant {
-  readonly input: GainNode;
+  readonly input: PitchShifterNode;
   private readonly transport: AudioContextTransport;
-  private readonly output: AudioNode;
   private readonly unregister: () => void;
-  private pitchShifter?: AudioWorkletNode;
 
   constructor({
     transport,
@@ -20,32 +18,25 @@ export class PlaybackBus implements TransportParticipant {
     output: AudioNode;
   }) {
     this.transport = transport;
-    this.output = output;
-    this.input = transport.context.createGain();
+    this.input = new PitchShifterNode({
+      context: transport.context,
+      channelCount: 2,
+      pitchRatio: 1,
+    });
+    this.input.connect(output);
     this.unregister = transport.register(this);
   }
 
   start(): void {
-    const playbackRate = this.transport.playbackRate;
-    if (playbackRate === 1) {
-      this.input.connect(this.output);
-      return;
-    }
-    this.pitchShifter = createPitchShifterNode({
-      context: this.transport.context,
-      channelCount: 2,
-      pitchRatio: 1 / playbackRate,
-    });
-    this.input.connect(this.pitchShifter).connect(this.output);
+    this.input.setPitchRatio(1 / this.transport.playbackRate);
   }
 
   stop(): void {
-    this.input.disconnect();
-    this.pitchShifter?.disconnect();
-    this.pitchShifter = undefined;
+    this.input.reset();
   }
 
   dispose(): void {
     this.unregister();
+    this.input.disconnect();
   }
 }
