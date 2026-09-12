@@ -99,11 +99,13 @@ export function useRecorderClipInteraction({
     setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
     const clips = [
-      ...selected.audioTracks.map((track) => ({
-        type: "audio" as const,
-        id: track.id,
-        timelineOffset: track.clips[0]!.timelineOffset,
-      })),
+      ...selected.audioTracks.flatMap((track) =>
+        track.clips.map((clip) => ({
+          type: "audio" as const,
+          id: track.id,
+          timelineOffset: clip.timelineOffset,
+        })),
+      ),
       ...selected.takes.map((take) => ({
         type: "take" as const,
         id: take.id,
@@ -121,8 +123,8 @@ export function useRecorderClipInteraction({
     return {
       clips,
       minimumVisibleStart: Math.min(
-        ...selected.audioTracks.map(
-          (track) => track.clips[0]!.timelineOffset + track.clips[0]!.trimStart,
+        ...selected.audioTracks.flatMap((track) =>
+          track.clips.map((clip) => clip.timelineOffset + clip.trimStart),
         ),
         ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
         ...(selected.referenceVideo
