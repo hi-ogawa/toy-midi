@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -9,6 +9,11 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { getAudioClipLabel } from "../../lib/recorder/audio-clip";
+import {
+  deriveClipRegions,
+  getActiveClips,
+} from "../../lib/recorder/clip-regions";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -126,7 +131,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const takes = state.recordingTrack.clips;
+  const recordingTrack = state.audioTracks.find(
+    (track) => track.id === state.armedTrackId,
+  )!;
+  const audioTracks = state.audioTracks.filter(
+    (track) => track.id !== state.armedTrackId,
+  );
+  const takes = recordingTrack.clips;
+  const regions = useMemo(
+    () => deriveClipRegions(getActiveClips(takes)),
+    [takes],
+  );
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
@@ -358,7 +373,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => runtime.removeReferenceVideo()}
               />
             )}
-            {state.audioTracks.map((track, index) => {
+            {audioTracks.map((track, index) => {
               const clip = track.clips[0];
               return (
                 <TrackRow
@@ -400,7 +415,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       clip
                         ? {
                             duration: clip.trimEnd - clip.trimStart,
-                            label: clip.name ?? "Audio",
+                            label: getAudioClipLabel(clip),
                             offset: clip.timelineOffset + clip.trimStart,
                             testId: "audio",
                             audioView: clip.audioView,
@@ -415,26 +430,38 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel="Load an audio file"
-                    selected={clipInteraction.isSelected({
-                      type: "audio",
-                      id: track.id,
-                    })}
+                    selected={
+                      clip !== undefined &&
+                      clipInteraction.isSelected({
+                        type: "audio",
+                        trackId: track.id,
+                        id: clip.id,
+                      })
+                    }
                     onClipClick={(additive) =>
                       clipInteraction.select(
-                        { type: "audio", id: track.id },
+                        { type: "audio", trackId: track.id, id: clip!.id },
                         additive,
                       )
                     }
                     onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "audio", id: track.id },
+                        clip: {
+                          type: "audio",
+                          trackId: track.id,
+                          id: clip!.id,
+                        },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
                     onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "audio", id: track.id },
+                        clip: {
+                          type: "audio",
+                          trackId: track.id,
+                          id: clip!.id,
+                        },
                         additive,
                       })
                     }
@@ -451,8 +478,8 @@ export function Recorder({ projectId }: { projectId: string }) {
             <CaptureTrackRow
               route={input.route.label}
               routeNeedsSetup={input.route.needsSetup}
-              gain={state.recordingTrack.gain}
-              height={state.recordingTrack.height}
+              gain={recordingTrack.gain}
+              height={recordingTrack.height}
               inputActive={input.active}
               inputAnalyser={runtime.captureInput?.analyser}
               inputMonitoring={state.inputMonitoring}
@@ -462,31 +489,39 @@ export function Recorder({ projectId }: { projectId: string }) {
                 flags.isRecording ||
                 (!input.active && input.route.needsSetup)
               }
-              muted={state.recordingTrack.muted}
-              soloed={state.recordingTrack.soloed}
+              muted={recordingTrack.muted}
+              soloed={recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
               onEffectsToggle={() => effects.toggleEffects("capture")}
-              onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+              onGainChange={(gain) =>
+                runtime.setAudioTrackMix(recordingTrack.id, { gain })
+              }
               onInputSetup={() => setIsInputSetupOpen(true)}
               onInputMonitoringChange={(monitoring) =>
                 runtime.setInputMonitoring(monitoring)
               }
               onInputToggle={input.toggle}
-              onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
+              onMutedChange={(muted) =>
+                runtime.setAudioTrackMix(recordingTrack.id, { muted })
+              }
               onSoloedChange={(soloed) =>
-                runtime.setRecordingTrackMix({ soloed })
+                runtime.setAudioTrackMix(recordingTrack.id, { soloed })
               }
               onHeightChange={(height) =>
-                runtime.setRecordingTrackHeight(height)
+                runtime.setAudioTrackHeight(recordingTrack.id, height)
               }
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewClipRegions ?? state.takeRegions}
+                regions={state.previewClipRegions ?? regions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>
-                  clipInteraction.isSelected({ type: "take", id })
+                  clipInteraction.isSelected({
+                    type: "audio",
+                    trackId: recordingTrack.id,
+                    id,
+                  })
                 }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -500,17 +535,20 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }}
                 onTakeDragStart={(id, additive) =>
                   clipInteraction.startMove({
-                    clip: { type: "take", id },
+                    clip: { type: "audio", trackId: recordingTrack.id, id },
                     additive,
                   })
                 }
                 onTakeClick={(id, additive) =>
-                  clipInteraction.select({ type: "take", id }, additive)
+                  clipInteraction.select(
+                    { type: "audio", trackId: recordingTrack.id, id },
+                    additive,
+                  )
                 }
                 onTakeDragMove={clipInteraction.move}
                 onTakeTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
-                    clip: { type: "take", id },
+                    clip: { type: "audio", trackId: recordingTrack.id, id },
                     edge,
                   })
                 }
@@ -526,22 +564,36 @@ export function Recorder({ projectId }: { projectId: string }) {
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
-                  number={take.number!}
+                  label={getAudioClipLabel(take)}
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>
-                    runtime.setTakeMuted(take.id, muted)
+                    runtime.setClipMuted({
+                      trackId: recordingTrack.id,
+                      id: take.id,
+                      muted,
+                    })
                   }
                   onSoloedChange={(soloed) =>
-                    runtime.setTakeSoloed(take.id, soloed)
+                    runtime.setClipSoloed({
+                      trackId: recordingTrack.id,
+                      id: take.id,
+                      soloed,
+                    })
                   }
                   onDelete={() =>
-                    runtime.removeClips([{ type: "take", id: take.id }])
+                    runtime.removeClips([
+                      {
+                        type: "audio",
+                        trackId: recordingTrack.id,
+                        id: take.id,
+                      },
+                    ])
                   }
                 >
                   <TimelineLane
                     clip={{
-                      label: `Take ${take.number}`,
+                      label: getAudioClipLabel(take),
                       duration: take.trimEnd - take.trimStart,
                       offset: take.timelineOffset + take.trimStart,
                       testId: "take-lane",
@@ -556,25 +608,38 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
                     selected={clipInteraction.isSelected({
-                      type: "take",
+                      type: "audio",
+                      trackId: recordingTrack.id,
                       id: take.id,
                     })}
                     onClipClick={(additive) =>
                       clipInteraction.select(
-                        { type: "take", id: take.id },
+                        {
+                          type: "audio",
+                          trackId: recordingTrack.id,
+                          id: take.id,
+                        },
                         additive,
                       )
                     }
                     onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "take", id: take.id },
+                        clip: {
+                          type: "audio",
+                          trackId: recordingTrack.id,
+                          id: take.id,
+                        },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
                     onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "take", id: take.id },
+                        clip: {
+                          type: "audio",
+                          trackId: recordingTrack.id,
+                          id: take.id,
+                        },
                         additive,
                       })
                     }
@@ -639,7 +704,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {effects.openEffects.size > 0 && (
           <div className="pointer-events-auto flex min-w-0 gap-4 overflow-x-auto">
-            {state.audioTracks.map(
+            {audioTracks.map(
               (track, index) =>
                 effects.openEffects.has(track.id) && (
                   <RecorderEffects
@@ -656,8 +721,10 @@ export function Recorder({ projectId }: { projectId: string }) {
             {effects.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
-                eq={state.recordingTrack.eq}
-                onChange={(update) => runtime.setRecordingTrackEq(update)}
+                eq={recordingTrack.eq}
+                onChange={(update) =>
+                  runtime.setAudioTrackEq({ id: recordingTrack.id, update })
+                }
                 onClose={() => effects.closeEffects("capture")}
               />
             )}

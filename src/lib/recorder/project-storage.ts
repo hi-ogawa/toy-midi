@@ -3,12 +3,16 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
+import {
+  migrateRecorderProject,
+  type RecorderProjectInput,
+} from "./project-migration.ts";
 import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 
 interface StoredRecorderProject {
   id: string;
   updatedAt: number;
-  content: SerializedRecorderRuntimeState;
+  content: RecorderProjectInput;
 }
 
 export interface RecorderProjectMetadata {
@@ -63,7 +67,7 @@ export const recorderProjectStorage = {
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
     }
-    return project.content;
+    return migrateRecorderProject(project.content);
   },
 
   async save({

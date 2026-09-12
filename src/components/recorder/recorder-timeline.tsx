@@ -11,6 +11,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
+import { getAudioClipLabel } from "../../lib/recorder/audio-clip";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -425,8 +426,8 @@ export function TakeTimelineLane({
   onTakeTrimStart,
   onTakeTrimMove,
 }: {
-  takes: RecorderRuntimeState["recordingTrack"]["clips"];
-  regions: RecorderRuntimeState["takeRegions"];
+  takes: RecorderRuntimeState["audioTracks"][number]["clips"];
+  regions: NonNullable<RecorderRuntimeState["previewClipRegions"]>;
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;
@@ -489,7 +490,7 @@ export function TakeTimelineLane({
                   ? captureStatus === "processing"
                     ? "Finalizing..."
                     : "Recording..."
-                  : `Take ${take.number}`,
+                  : getAudioClipLabel(take),
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset,
@@ -511,7 +512,7 @@ export function TakeTimelineLane({
         <TimelineClip
           key={take.id}
           clip={{
-            label: `Take ${take.number}`,
+            label: getAudioClipLabel(take),
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
             testId: "take",

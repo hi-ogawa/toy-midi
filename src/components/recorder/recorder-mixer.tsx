@@ -22,6 +22,12 @@ export function RecorderMixer({
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
+  const recordingTrack = state.audioTracks.find(
+    (track) => track.id === state.armedTrackId,
+  )!;
+  const audioTracks = state.audioTracks.filter(
+    (track) => track.id !== state.armedTrackId,
+  );
   const masterInput = useGainInput(
     state.masterGain,
     runtime.setMasterGain.bind(runtime),
@@ -40,7 +46,7 @@ export function RecorderMixer({
         inputProps={masterInput.props}
         testId="recorder-mixer-master"
       />
-      {state.audioTracks.map((track, index) => (
+      {audioTracks.map((track, index) => (
         <RecorderTrackChannel
           key={track.id}
           effectsOpen={openEffects.has(track.id)}
@@ -63,13 +69,19 @@ export function RecorderMixer({
         label="Capture"
         effectsOpen={openEffects.has("capture")}
         onEffectsToggle={() => onEffectsToggle("capture")}
-        gain={state.recordingTrack.gain}
-        muted={state.recordingTrack.muted}
-        soloed={state.recordingTrack.soloed}
+        gain={recordingTrack.gain}
+        muted={recordingTrack.muted}
+        soloed={recordingTrack.soloed}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
-        onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
-        onSoloedChange={(soloed) => runtime.setRecordingTrackMix({ soloed })}
+        onGainChange={(gain) =>
+          runtime.setAudioTrackMix(recordingTrack.id, { gain })
+        }
+        onMutedChange={(muted) =>
+          runtime.setAudioTrackMix(recordingTrack.id, { muted })
+        }
+        onSoloedChange={(soloed) =>
+          runtime.setAudioTrackMix(recordingTrack.id, { soloed })
+        }
       />
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}

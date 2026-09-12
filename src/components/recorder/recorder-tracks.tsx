@@ -196,13 +196,21 @@ export function CaptureTrackRow({
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
+  // The current Capture controls need more space than an ordinary track row.
+  const minimumHeight = 116;
+  height = Math.max(minimumHeight, height);
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
       return { startClientY: event.clientY, startHeight: height };
     },
     onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+      onHeightChange(
+        Math.max(
+          minimumHeight,
+          drag.startHeight + event.clientY - drag.startClientY,
+        ),
+      );
     },
   });
   return (
@@ -354,7 +362,7 @@ export function TakesDisclosureRow({
 }
 
 export function TakeTrackRow({
-  number,
+  label,
   muted,
   soloed,
   onMutedChange,
@@ -362,7 +370,7 @@ export function TakeTrackRow({
   onDelete,
   children,
 }: {
-  number: number;
+  label: string;
   muted: boolean;
   soloed: boolean;
   onMutedChange: (muted: boolean) => void;
@@ -376,10 +384,10 @@ export function TakeTrackRow({
       className="grid h-16 grid-cols-[15rem_1fr] border-b border-neutral-700"
     >
       <div className="sticky left-0 z-20 flex items-center gap-1 border-r border-neutral-700 bg-neutral-900 px-3 py-3 text-xs font-semibold text-neutral-300">
-        <span className="mr-auto px-4">Take {number}</span>
+        <span className="mr-auto px-4">{label}</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button aria-label={`Take ${number} actions`} className="size-7">
+            <Button aria-label={`${label} actions`} className="size-7">
               <MoreVerticalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -392,7 +400,7 @@ export function TakeTrackRow({
         </DropdownMenu>
         <RecorderMixToggle
           data-testid="recorder-take-mute"
-          aria-label={`Mute Take ${number}`}
+          aria-label={`Mute ${label}`}
           active={muted}
           kind="mute"
           onClick={() => onMutedChange(!muted)}
@@ -401,7 +409,7 @@ export function TakeTrackRow({
         />
         <RecorderMixToggle
           data-testid="recorder-take-solo"
-          aria-label={`Solo Take ${number}`}
+          aria-label={`Solo ${label}`}
           active={soloed}
           kind="solo"
           onClick={() => onSoloedChange(!soloed)}

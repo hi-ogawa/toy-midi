@@ -20,3 +20,9 @@ export interface ClipRegion {
   timelineStart: number;
   timelineEnd: number;
 }
+
+export function getAudioClipLabel(clip: AudioClip): string {
+  return (
+    clip.name ?? (clip.number === undefined ? "Audio" : `Take ${clip.number}`)
+  );
+}

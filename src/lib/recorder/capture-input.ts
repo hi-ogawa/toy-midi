@@ -101,6 +101,11 @@ export class CaptureInput {
       .connect(output);
   }
 
+  setMonitorOutput(output: AudioNode): void {
+    this.monitorGain.disconnect();
+    this.monitorGain.connect(output);
+  }
+
   setChannel(channel: number): void {
     this.worklet.setChannel(channel);
   }

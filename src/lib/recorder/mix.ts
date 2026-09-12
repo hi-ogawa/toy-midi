@@ -13,19 +13,12 @@ interface RecorderMix {
 
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
 export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
-  const { audioTrackGains, recordingGain } = deriveTrackMix(state);
-  const tracks: RecorderMix["tracks"] = state.audioTracks.map(
-    (track, index) => ({
-      eq: track.eq,
-      gain: audioTrackGains[index]!,
-      regions: getAudioTrackSources(track),
-    }),
-  );
-  tracks.push({
-    eq: state.recordingTrack.eq,
-    gain: recordingGain,
-    regions: getAudioTrackSources(state.recordingTrack),
-  });
+  const gains = deriveTrackMix(state);
+  const tracks: RecorderMix["tracks"] = state.audioTracks.map((track) => ({
+    eq: track.eq,
+    gain: gains.get(track.id)!,
+    regions: getAudioTrackSources(track),
+  }));
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
   for (const track of tracks) {
@@ -84,12 +77,12 @@ export async function renderRecorderMix({
 
 export function deriveTrackMix({
   audioTracks,
-  recordingTrack,
-}: Pick<RecorderRuntimeState, "audioTracks" | "recordingTrack">) {
-  const tracks = [...audioTracks, recordingTrack];
-  const anyTrackSoloed = tracks.some((track) => track.soloed);
-  const gains = tracks.map((track) =>
-    track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+}: Pick<RecorderRuntimeState, "audioTracks">): Map<string, number> {
+  const anyTrackSoloed = audioTracks.some((track) => track.soloed);
+  return new Map(
+    audioTracks.map((track) => [
+      track.id,
+      track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
+    ]),
   );
-  return { audioTrackGains: gains.slice(0, -1), recordingGain: gains.at(-1)! };
 }
