@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+} from "./recorder-helpers";
 
 test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
@@ -190,4 +194,87 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
+});
+
+test("resizes effects panels and remembers the preferred size", async ({
+  page,
+}) => {
+  // Open Audio and Capture effects with room to compare their sizes.
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await createRecorderProject(page);
+  await page.getByTitle("Add empty audio track").click();
+  await page
+    .getByRole("button", { name: "Audio 1 effects", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const panels = page.getByTestId("recorder-effects-panel");
+  const audio = panels.filter({
+    has: page.getByRole("heading", { name: "Audio 1 Effects", exact: true }),
+  });
+  const capture = panels.filter({
+    has: page.getByRole("heading", { name: "Capture Effects", exact: true }),
+  });
+  const initial = (await capture.boundingBox())!;
+  const initialAudio = (await audio.boundingBox())!;
+  const initialGraph = (await capture
+    .getByTestId("eq-response-graph")
+    .boundingBox())!;
+
+  // Drag Capture's top-left corner to grow its panel and graph while keeping both panels bottom-aligned.
+  await dragBy(
+    page,
+    capture.getByRole("button", { name: "Resize Capture Effects" }),
+    -100,
+    { deltaY: -100 },
+  );
+  const resized = (await capture.boundingBox())!;
+  const unchangedAudio = (await audio.boundingBox())!;
+  expect(resized.width).toBeCloseTo(initial.width + 100, 0);
+  expect(resized.height).toBeCloseTo(initial.height + 100, 0);
+  expect(resized.x + resized.width).toBeCloseTo(initial.x + initial.width, 0);
+  expect(resized.y + resized.height).toBeCloseTo(initial.y + initial.height, 0);
+  expect(unchangedAudio.height).toBe(initialAudio.height);
+  expect(unchangedAudio.width).toBe(initialAudio.width);
+  expect(unchangedAudio.y + unchangedAudio.height).toBeCloseTo(
+    resized.y + resized.height,
+    0,
+  );
+  const graph = (await capture.getByTestId("eq-response-graph").boundingBox())!;
+  expect(graph.width).toBeGreaterThan(initialGraph.width);
+  expect(graph.height).toBeGreaterThan(initialGraph.height);
+
+  // Reload and reopen Capture to restore its saved dimensions.
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const restored = (await capture.boundingBox())!;
+  expect(restored.width).toBeCloseTo(resized.width, 0);
+  expect(restored.height).toBeCloseTo(resized.height, 0);
+
+  // Shrink to the minimum size and scroll to edit the controls below the graph.
+  await dragBy(
+    page,
+    capture.getByRole("button", { name: "Resize Capture Effects" }),
+    250,
+    { deltaY: 300 },
+  );
+  const small = (await capture.boundingBox())!;
+  expect(small.width).toBe(384);
+  expect(small.height).toBe(300);
+  await capture
+    .getByRole("button", { name: "Show sliders", exact: true })
+    .click();
+  const qSlider = capture.getByRole("slider", { name: "Q", exact: true });
+  await qSlider.scrollIntoViewIfNeeded();
+  await qSlider.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    capture.getByRole("textbox", { name: "Q", exact: true }),
+  ).not.toHaveValue("1");
+  await page.screenshot({
+    path: test.info().outputPath("resized-effects.png"),
+  });
 });

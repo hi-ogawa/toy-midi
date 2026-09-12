@@ -635,7 +635,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       </div>
       <div className="pointer-events-none fixed right-4 bottom-4 z-40 flex max-w-[calc(100vw-2rem)] items-end gap-4">
         {effects.openEffects.size > 0 && (
-          <div className="pointer-events-auto flex min-w-0 gap-4 overflow-x-auto">
+          <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
             {state.audioTracks.map(
               (track, index) =>
                 effects.openEffects.has(track.id) && (

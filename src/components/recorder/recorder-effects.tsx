@@ -1,9 +1,11 @@
 import { SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import type { EqParameters } from "../../lib/dsp/biquad-eq";
 import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
-import { dbToGain, gainToDb } from "../../lib/music";
+import { clamp, dbToGain, gainToDb } from "../../lib/music";
+import { recorderStorage } from "../../lib/recorder/storage";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EqResponseGraph } from "./eq-response-graph";
@@ -52,17 +54,63 @@ export function RecorderEffects({
   onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
+  const [size, setSize] = useState(() =>
+    clampEffectsSize(
+      recorderStorage.readPreferences().effectsSize ?? {
+        width: 384,
+        height: 440,
+      },
+    ),
+  );
+  const resizeHandleRef = usePointerDrag({
+    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
+    onMove: (event, drag) => {
+      setSize(
+        clampEffectsSize({
+          width: drag.size.width + drag.x - event.clientX,
+          height: drag.size.height + drag.y - event.clientY,
+        }),
+      );
+    },
+    onEnd: () => {
+      recorderStorage.updatePreferences({ effectsSize: size });
+    },
+  });
+
   return (
     <RecorderPanel
       title={`${label} Effects`}
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
       testId="recorder-effects-panel"
-      className="pointer-events-auto w-96 shrink-0"
+      className="pointer-events-auto relative flex shrink-0 flex-col"
+      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      style={size}
     >
+      <button
+        ref={resizeHandleRef}
+        type="button"
+        aria-label={`Resize ${label} Effects`}
+        className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+      >
+        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
+      </button>
       <RecorderEffectsContent eq={eq} onChange={onChange} />
     </RecorderPanel>
   );
+}
+
+function clampEffectsSize({
+  width,
+  height,
+}: {
+  width: number;
+  height: number;
+}) {
+  return {
+    width: clamp(width, 384, window.innerWidth - 32),
+    height: clamp(height, 300, window.innerHeight - 48),
+  };
 }
 
 export function RecorderEffectsContent({
@@ -75,7 +123,7 @@ export function RecorderEffectsContent({
   const [slidersOpen, setSlidersOpen] = useState(false);
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <div className="flex h-full flex-col gap-4 [&>*]:shrink-0">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Peaking EQ</h3>
           <div className="flex items-center gap-3">
