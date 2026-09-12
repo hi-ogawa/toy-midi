@@ -171,7 +171,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
                 <DropdownMenuItem asChild>
                   <a href={routes.home.href()} data-testid="home-menu-item">
                     <HouseIcon />
-                    Projects
+                    Home
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem

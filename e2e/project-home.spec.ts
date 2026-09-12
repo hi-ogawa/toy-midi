@@ -40,7 +40,7 @@ test("both editors return to the shared project home", async ({ page }) => {
   await clickNewProject(page);
   const midiUrl = page.url();
   await page.getByTestId("app-menu-button").click();
-  await page.getByRole("menuitem", { name: "Projects", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(
     page.getByRole("tab", { name: "MIDI", exact: true }),
@@ -54,7 +54,7 @@ test("both editors return to the shared project home", async ({ page }) => {
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   const recorderUrl = page.url();
   await page.getByRole("button", { name: "More", exact: true }).click();
-  await page.getByRole("menuitem", { name: "Projects", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(
     page.getByRole("tab", { name: "Recorder", exact: true }),
