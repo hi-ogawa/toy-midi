@@ -177,6 +177,7 @@ describe(MultibandEq, () => {
     });
     const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
     const output = process(eq, input);
+    // Two bands double amplitude twice, so the energy ratio is (2 * 2) ** 2 = 16.
     expect(
       measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
         measureEnergy(input.subarray(SAMPLE_RATE / 2)),
