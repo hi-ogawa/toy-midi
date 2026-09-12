@@ -417,26 +417,29 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel="Load an audio file"
-                    selected={clipInteraction.isSelected({
-                      type: "audio",
-                      id: track.id,
-                    })}
+                    selected={
+                      clip &&
+                      clipInteraction.isSelected({
+                        type: "audio",
+                        id: clip.id,
+                      })
+                    }
                     onClipClick={(additive) =>
                       clipInteraction.select(
-                        { type: "audio", id: track.id },
+                        { type: "audio", id: clip!.id },
                         additive,
                       )
                     }
                     onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "audio", id: track.id },
+                        clip: { type: "audio", id: clip!.id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
                     onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "audio", id: track.id },
+                        clip: { type: "audio", id: clip!.id },
                         additive,
                       })
                     }

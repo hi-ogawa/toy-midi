@@ -374,7 +374,10 @@ export class RecorderRuntime {
     )?.timelineOffset;
     if (
       [...audioOffsets.keys()].some(
-        (id) => !state.audioTracks.some((track) => track.id === id),
+        (id) =>
+          !state.audioTracks.some((track) =>
+            track.clips.some((clip) => clip.id === id),
+          ),
       ) ||
       [...takeOffsets.keys()].some(
         (id) => !state.recordingTrack.clips.some((take) => take.id === id),
@@ -387,13 +390,14 @@ export class RecorderRuntime {
       this.pause();
     }
     const audioTracks = state.audioTracks.map((track) =>
-      audioOffsets.has(track.id)
+      track.clips.some((clip) => audioOffsets.has(clip.id))
         ? resolveTrackRegions({
             ...track,
-            clips: track.clips.map((clip) => ({
-              ...clip,
-              timelineOffset: audioOffsets.get(track.id)!,
-            })),
+            clips: track.clips.map((clip) =>
+              audioOffsets.has(clip.id)
+                ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
+                : clip,
+            ),
           })
         : track,
     );
@@ -425,10 +429,10 @@ export class RecorderRuntime {
     if (referenceOffset !== undefined) {
       this.syncYouTubePlayer();
     }
-    for (const id of audioOffsets.keys()) {
-      this.syncAudioTrackPlayback(
-        audioTracks.find((track) => track.id === id)!,
-      );
+    for (const track of audioTracks) {
+      if (track.clips.some((clip) => audioOffsets.has(clip.id))) {
+        this.syncAudioTrackPlayback(track);
+      }
     }
     if (wasPlaying) {
       this.transport.play();
@@ -438,11 +442,40 @@ export class RecorderRuntime {
   trimClip({ type, id, edge, value }: RecorderClipTrim): void {
     switch (type) {
       case "audio": {
-        if (edge === "start") {
-          this.setAudioTrackTrimStart(id, value);
-        } else {
-          this.setAudioTrackTrimEnd(id, value);
+        const owner = this.store
+          .get()
+          .audioTracks.find((track) =>
+            track.clips.some((clip) => clip.id === id),
+          );
+        if (!owner) {
+          throw new Error("Recorder clip state is missing.");
         }
+        const track = this.updateAudioTrack(owner.id, (track) => ({
+          ...track,
+          clips: track.clips.map((clip) =>
+            clip.id !== id
+              ? clip
+              : {
+                  ...clip,
+                  ...(edge === "start"
+                    ? {
+                        trimStart: clamp(
+                          value,
+                          0,
+                          clip.trimEnd - MIN_TAKE_DURATION,
+                        ),
+                      }
+                    : {
+                        trimEnd: clamp(
+                          value,
+                          clip.trimStart + MIN_TAKE_DURATION,
+                          clip.duration,
+                        ),
+                      }),
+                },
+          ),
+        }));
+        this.syncAudioTrackPlayback(track);
         break;
       }
       case "take": {
@@ -454,32 +487,6 @@ export class RecorderRuntime {
         break;
       }
     }
-  }
-
-  private setAudioTrackTrimStart(id: string, trimStart: number): void {
-    const track = this.updateAudioTrack(id, (track) => ({
-      ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        trimStart: clamp(trimStart, 0, clip.trimEnd - MIN_TAKE_DURATION),
-      })),
-    }));
-    this.syncAudioTrackPlayback(track);
-  }
-
-  private setAudioTrackTrimEnd(id: string, trimEnd: number): void {
-    const track = this.updateAudioTrack(id, (track) => ({
-      ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        trimEnd: clamp(
-          trimEnd,
-          clip.trimStart + MIN_TAKE_DURATION,
-          clip.duration,
-        ),
-      })),
-    }));
-    this.syncAudioTrackPlayback(track);
   }
 
   removeClips(clips: readonly RecorderClipId[]): void {
@@ -496,7 +503,10 @@ export class RecorderRuntime {
     const removeReference = clips.some((clip) => clip.type === "reference");
     if (
       [...audioIds].some(
-        (id) => !state.audioTracks.some((track) => track.id === id),
+        (id) =>
+          !state.audioTracks.some((track) =>
+            track.clips.some((clip) => clip.id === id),
+          ),
       ) ||
       [...takeIds].some(
         (id) => !state.recordingTrack.clips.some((take) => take.id === id),
@@ -508,11 +518,13 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    for (const id of audioIds) {
-      this.audioTracks.get(id)?.setSources([]);
-    }
     const audioTracks = state.audioTracks.map((track) =>
-      audioIds.has(track.id) ? { ...track, clips: [], regions: [] } : track,
+      track.clips.some((clip) => audioIds.has(clip.id))
+        ? resolveTrackRegions({
+            ...track,
+            clips: track.clips.filter((clip) => !audioIds.has(clip.id)),
+          })
+        : track,
     );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     if (takeIds.size > 0) {
@@ -528,6 +540,13 @@ export class RecorderRuntime {
       });
     } else {
       this.store.update({ audioTracks, referenceVideo });
+    }
+    for (const track of audioTracks) {
+      if (
+        track !== state.audioTracks.find((previous) => previous.id === track.id)
+      ) {
+        this.syncAudioTrackPlayback(track);
+      }
     }
     if (removeReference) {
       this.syncYouTubePlayer();
