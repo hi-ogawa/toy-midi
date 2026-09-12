@@ -90,7 +90,8 @@ export function RecorderHeader({
   onHelpOpen,
   mixerOpen,
 }: {
-  title: string;
+  /** Undefined until the project has initialized, so the default title never shows. */
+  title?: string;
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
@@ -344,6 +345,7 @@ export function RecorderHeader({
         type="button"
         data-testid="recorder-project-name"
         title="Rename project"
+        disabled={title === undefined}
         onClick={() => {
           const nextTitle = window.prompt("Project name", title)?.trim();
           if (nextTitle && nextTitle !== title) {
@@ -352,7 +354,12 @@ export function RecorderHeader({
         }}
         className="max-w-[220px] truncate text-sm text-neutral-300 hover:text-neutral-100"
       >
-        {title}
+        {title ?? (
+          <span
+            aria-label="Loading project name"
+            className="inline-block h-3 w-24 rounded bg-neutral-700 align-middle"
+          />
+        )}
       </button>
       <div className="h-5 w-px bg-neutral-600" />
       <Button
