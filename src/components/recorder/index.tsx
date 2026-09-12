@@ -716,7 +716,7 @@ function RecorderInitError({ error }: { error: Error }) {
         <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
           <h1 id="recorder-init-error-title" className="text-lg font-medium">
-            Could not open this recording
+            Could not open this project
           </h1>
           <p className="text-sm text-neutral-400">{error.message}</p>
         </div>
