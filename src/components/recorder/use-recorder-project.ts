@@ -21,7 +21,10 @@ export function useRecorderProject({
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
-      const project = await recorderProjectStorage.load(projectId);
+      const [, project] = await Promise.all([
+        runtime.init(),
+        recorderProjectStorage.load(projectId),
+      ]);
       runtime.deserializeProject(project);
       return true;
     },

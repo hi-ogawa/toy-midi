@@ -67,6 +67,7 @@ export function RecorderHeader({
   tempo,
   timeSignature,
   gridDivision,
+  playDisabled,
   recordDisabled,
   autoScrollEnabled,
   onPlayToggle,
@@ -105,6 +106,7 @@ export function RecorderHeader({
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
+  playDisabled: boolean;
   recordDisabled: boolean;
   autoScrollEnabled: boolean;
   onPlayToggle: () => void;
@@ -147,7 +149,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={isProcessing}
+        disabled={playDisabled || isProcessing}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
