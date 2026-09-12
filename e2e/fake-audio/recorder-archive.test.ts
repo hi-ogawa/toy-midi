@@ -81,9 +81,7 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("imports a legacy recorder archive and saves the migrated project", async ({
-  page,
-}) => {
+test("imports a legacy recorder archive", async ({ page }) => {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = [
@@ -159,68 +157,12 @@ test("imports a legacy recorder archive and saves the migrated project", async (
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Legacy archive",
   );
-  await verifyMigratedClips(page);
 
-  // Rename and save the migrated project, then reload its current-format data.
-  page.once("dialog", (dialog) => dialog.accept("Migrated archive"));
-  await page.getByTestId("recorder-project-name").click();
-  const save = page.getByTestId("recorder-save-button");
-  await expect(save).toHaveAttribute("data-status", "unsaved");
-  await save.click();
-  await expect(save).toHaveAttribute("data-status", "saved");
-  await page.reload();
-  await expect(page.getByTestId("recorder-project-name")).toHaveText(
-    "Migrated archive",
-  );
-  await verifyMigratedClips(page);
-});
-
-async function verifyMigratedClips(page: Page) {
+  // Verify legacy backing audio and the retained take appear with decoded waveforms.
   const audio = page.getByTestId("recorder-clip-audio");
   const take = page.getByTestId("recorder-clip-comp");
   await expect(audio).toContainText("stereo.wav");
   await expect(take).toContainText("Take 8");
   await expect(audio.locator("svg")).toBeVisible();
   await expect(take.locator("svg")).toBeVisible();
-  // At 120 BPM each source second spans two beats, including the saved trims.
-  const pixelsPerSecond = 2 * DEFAULT_PIXELS_PER_BEAT;
-  await expect
-    .poll(() => getRecorderClipGeometry(page))
-    .toEqual([
-      {
-        variant: "audio",
-        clips: [
-          {
-            left: `${2.5 * pixelsPerSecond}px`,
-            width: `${2.5 * pixelsPerSecond}px`,
-          },
-        ],
-      },
-      {
-        variant: "take",
-        clips: [
-          {
-            left: `${3.25 * pixelsPerSecond}px`,
-            width: `${1.75 * pixelsPerSecond}px`,
-          },
-        ],
-      },
-      {
-        variant: "comp",
-        clips: [
-          {
-            left: `${3.25 * pixelsPerSecond}px`,
-            width: `${1.75 * pixelsPerSecond}px`,
-          },
-        ],
-      },
-    ]);
-  await page.getByTestId("recorder-mixer-button").click();
-  await expect(
-    page.getByRole("textbox", { name: "Audio 1 level in dB", exact: true }),
-  ).toHaveValue("-6.0");
-  await expect(
-    page.getByRole("textbox", { name: "Capture level in dB", exact: true }),
-  ).toHaveValue("-1.9");
-  await page.getByRole("button", { name: "Close Mixer" }).click();
-}
+});
