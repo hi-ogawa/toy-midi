@@ -1,12 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-  AudioLinesIcon,
-  GitForkIcon,
-  Mic2Icon,
-  Music2Icon,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
@@ -17,20 +10,16 @@ import { routes } from "../lib/routes";
 import { FileDropInput } from "./file-drop-input";
 import { Button } from "./ui/button";
 
-type ProjectListViewProps = {
-  onSelectProject: (projectId: string) => void;
-  onNewProject: () => void;
-};
-
-export function ProjectListView({
-  onSelectProject,
-  onNewProject,
-}: ProjectListViewProps) {
+export function MidiProjectList() {
   const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
 
   const hasProjects = projects.length > 0;
   const lastProjectId = projectStorage.getLastProjectId();
+
+  function openMidiProject(projectId: string) {
+    window.location.href = routes.project.href({ projectId });
+  }
 
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -41,7 +30,7 @@ export function ProjectListView({
     },
     onSuccess: (newProjectId) => {
       // Select the newly imported project
-      onSelectProject(newProjectId);
+      openMidiProject(newProjectId);
     },
     onError: (error) => {
       console.error("Failed to import project:", error);
@@ -74,132 +63,66 @@ export function ProjectListView({
   };
 
   return (
-    <div
-      data-testid="startup-screen"
-      className="fixed inset-0 z-50 overflow-hidden bg-neutral-900"
-    >
-      {/* Gradient glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_70%_70%_at_50%_0%,#10b9811f_0%,transparent_70%)]" />
+    <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {hasProjects && (
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+          {projects.map((project) => (
+            <ProjectListItem
+              key={project.id}
+              project={project}
+              isLastProject={project.id === lastProjectId}
+              isRenaming={project.id === renamingProjectId}
+              onRenameStart={(e) => handleRenameStart(e, project.id)}
+              onRenameSubmit={(nextName) =>
+                handleRenameSubmit(project.id, nextName)
+              }
+              onRenameCancel={handleRenameCancel}
+              onDelete={(e) => handleDelete(e, project.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      <div className="relative mx-auto flex h-full w-full max-w-4xl flex-col px-8 py-12">
-        <header className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-neutral-100 tracking-tight">
-              Toy MIDI
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              A simple piano roll editor
-            </p>
-          </div>
-          <nav className="flex items-center gap-4 text-sm text-neutral-500">
-            <a
-              href={routes.recorder.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-            >
-              <Mic2Icon className="size-4" />
-              Recorder
-            </a>
-            <a
-              href={routes.latencyChecker.href()}
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-            >
-              <AudioLinesIcon className="size-4" />
-              Latency Checker
-            </a>
-            <a
-              href={routes.scoreViewer.href()}
-              data-testid="score-viewer-link"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-            >
-              <Music2Icon className="size-4" />
-              Score Viewer
-            </a>
-            <a
-              href="https://github.com/hi-ogawa/toy-midi/"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 hover:text-emerald-400 transition-colors"
-            >
-              <GitForkIcon className="size-4" />
-              GitHub
-            </a>
-          </nav>
-        </header>
+      {!hasProjects && (
+        <div className="flex min-h-36 flex-col items-center justify-center text-center">
+          <p className="text-base font-medium text-neutral-300">
+            No MIDI projects yet
+          </p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Start from an empty piano roll or import an existing project.
+          </p>
+        </div>
+      )}
 
-        <main className="mt-14 min-h-0 flex-1">
-          <div className="mb-4">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
-              Your Projects
-            </h2>
-            <p className="mt-2 text-sm text-neutral-600">
-              {hasProjects
-                ? "Open a project to continue editing."
-                : "Create a project to start arranging MIDI."}
-            </p>
-          </div>
-
-          <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
-            {hasProjects && (
-              <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-                {projects.map((project) => (
-                  <ProjectListItem
-                    key={project.id}
-                    project={project}
-                    isLastProject={project.id === lastProjectId}
-                    isRenaming={project.id === renamingProjectId}
-                    onRenameStart={(e) => handleRenameStart(e, project.id)}
-                    onRenameSubmit={(nextName) =>
-                      handleRenameSubmit(project.id, nextName)
-                    }
-                    onRenameCancel={handleRenameCancel}
-                    onDelete={(e) => handleDelete(e, project.id)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {!hasProjects && (
-              <div className="flex min-h-36 flex-col items-center justify-center text-center">
-                <p className="text-base font-medium text-neutral-300">
-                  No projects yet
-                </p>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Start from an empty piano roll or import an existing project.
-                </p>
-              </div>
-            )}
-
-            <div
-              className={`flex items-center gap-2 ${
-                hasProjects ? "mt-4 border-t border-neutral-700/70 pt-4" : ""
-              }`}
-            >
-              <Button
-                data-testid="new-project-button"
-                disabled={isLoading}
-                onClick={onNewProject}
-                className={`px-4 py-2 text-sm ${
-                  hasProjects
-                    ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
-                    : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-                }`}
-              >
-                {hasProjects ? "New Project" : "Create Your First Project"}
-              </Button>
-              <FileDropInput
-                accept=".toymidi"
-                onFile={(file) => importProjectMutation.mutate(file)}
-                data-testid="import-project-button"
-                disabled={isLoading}
-                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
-              >
-                {isLoading ? "Importing..." : "Import Project"}
-              </FileDropInput>
-            </div>
-          </section>
-        </main>
+      <div
+        className={`flex items-center gap-2 ${
+          hasProjects ? "mt-4 border-t border-neutral-700/70 pt-4" : ""
+        }`}
+      >
+        <Button
+          data-testid="new-project-button"
+          disabled={isLoading}
+          onClick={() => openMidiProject(projectStorage.createNew())}
+          className={`px-4 py-2 text-sm ${
+            hasProjects
+              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
+              : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+          }`}
+        >
+          New MIDI project
+        </Button>
+        <FileDropInput
+          accept=".toymidi"
+          title="Import a .toymidi project file"
+          onFile={(file) => importProjectMutation.mutate(file)}
+          data-testid="import-project-button"
+          disabled={isLoading}
+          className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+        >
+          {isLoading ? "Importing..." : "Import MIDI project"}
+        </FileDropInput>
       </div>
-    </div>
+    </section>
   );
 }
 

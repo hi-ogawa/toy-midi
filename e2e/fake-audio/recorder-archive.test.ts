@@ -42,7 +42,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   await download.saveAs(archivePath);
 
   // Import from the project list, which opens a newly created local project.
-  await page.goto("/recorder");
+  await page.goto("/");
   const importChooserPromise = page.waitForEvent("filechooser");
   await page.getByTestId("import-recorder-project").click();
   await (await importChooserPromise).setFiles(archivePath);

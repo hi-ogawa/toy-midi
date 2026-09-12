@@ -2,7 +2,8 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
-  await page.goto("/recorder");
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
   await page.getByTestId("new-recorder-project-button").click();
   await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
   await expect(page.getByTestId("recorder-project-name")).toBeVisible();

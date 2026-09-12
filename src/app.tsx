@@ -1,21 +1,16 @@
 import { Editor } from "./components/editor";
+import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
-import { ProjectListView } from "./components/project-list-view";
 import { Recorder } from "./components/recorder";
-import { RecorderProjectList } from "./components/recorder/project-list";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
 import { getProjectSession } from "./lib/project-session";
-import { projectStorage } from "./lib/project-storage";
 import { matchRoute, routes } from "./lib/routes";
 
 export function App() {
   const match = matchRoute(window.location.href);
 
   switch (match?.data) {
-    case "recorder": {
-      return <RecorderProjectList />;
-    }
     case "recorderProject": {
       return <Recorder projectId={match.params.projectId} />;
     }
@@ -33,7 +28,7 @@ export function App() {
     }
     case "home":
     default: {
-      return <StartupApp />;
+      return <Home />;
     }
   }
 }
@@ -52,12 +47,6 @@ function ProjectScoreRoute({ projectId }: { projectId: string }) {
   }
 
   return <ScoreViewer initialSource={score.value} />;
-}
-
-// All project opens are full-page navigation; ProjectRoute is the only way
-// into the editor.
-function openProject(projectId: string) {
-  window.location.href = routes.project.href({ projectId });
 }
 
 // Deep-link entry: load the project named by the URL directly, no startup
@@ -108,14 +97,5 @@ function RouteError({
         {backLabel}
       </a>
     </div>
-  );
-}
-
-function StartupApp() {
-  return (
-    <ProjectListView
-      onSelectProject={openProject}
-      onNewProject={() => openProject(projectStorage.createNew())}
-    />
   );
 }

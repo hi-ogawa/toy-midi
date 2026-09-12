@@ -51,10 +51,12 @@ const PROJECT_KEY_PREFIX = "toy-midi:project:";
 // Based on https://github.com/hi-ogawa/demucs-onnx/blob/main/packages/app/src/lib/preferences.ts.
 const PREFERENCES_KEY = "toy-midi:preferences";
 const preferencesSchema = z.object({
+  projectType: z.enum(["midi", "recorder"]),
   defaultMidiProgram: z.number().int().min(0).max(127),
 });
 type Preferences = z.infer<typeof preferencesSchema>;
 const DEFAULT_PREFERENCES: Preferences = {
+  projectType: "midi",
   defaultMidiProgram: 0,
 };
 

@@ -93,7 +93,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   ).toHaveValue("-9.0");
 
   // The metadata index finds the saved project and reopens the same route.
-  await page.goto("/recorder");
+  await page.goto("/");
   const project = page.getByText("Practice take", { exact: true });
   await expect(project).toBeVisible();
   await project.click();
@@ -103,7 +103,7 @@ test("saves and restores a recorder project", async ({ page }) => {
   );
 
   // Deleting from the index removes the project metadata and content.
-  await page.goto("/recorder");
+  await page.goto("/");
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete recording" }).click();
   await expect(page.getByText("Practice take", { exact: true })).toBeHidden();
