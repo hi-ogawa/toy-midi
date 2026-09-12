@@ -63,9 +63,9 @@ export class AudioTrackPlayback {
     }
   }
 
-  setPlaybackMuted(muted: boolean): void {
+  setPlaybackGain(gain: number): void {
     this.playbackGain.gain.setValueAtTime(
-      muted ? 0 : 1,
+      gain,
       this.transport.context.currentTime,
     );
   }

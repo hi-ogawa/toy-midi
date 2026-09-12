@@ -729,7 +729,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.captureTrack!.setPlaybackMuted(true);
+    this.captureTrack!.setPlaybackGain(0);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport.playbackAnchor!.contextTime * context.sampleRate;
@@ -1069,8 +1069,8 @@ export class RecorderRuntime {
     this.captureTrack?.channel.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = this.store.get();
-    this.captureTrack?.setPlaybackMuted(
-      captureStatus === "recording" || captureStatus === "processing",
+    this.captureTrack?.setPlaybackGain(
+      captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
     );
   }
 
