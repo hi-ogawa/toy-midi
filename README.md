@@ -12,5 +12,3 @@ A web-based MIDI piano roll for simple transcription workflow.
 pnpm install
 pnpm dev
 ```
-
-Open `/_preview` for isolated component previews.
