@@ -1,6 +1,6 @@
 import {
   type PointerEvent as ReactPointerEvent,
-  useCallback,
+  useEffect,
   useEffectEvent,
   useRef,
 } from "react";
@@ -42,7 +42,7 @@ export function EqResponseGraph({
     update: Partial<Omit<MultibandEqBand, "id">>,
   ) => void;
 }) {
-  const plotElementRef = useRef<HTMLDivElement>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const bandResponses = bands.map((band) => ({
     band,
     path: createResponsePath([band]),
@@ -53,7 +53,7 @@ export function EqResponseGraph({
     event: ReactPointerEvent<HTMLButtonElement>,
     id: string,
   ) => {
-    const bounds = plotElementRef.current!.getBoundingClientRect();
+    const bounds = plotRef.current!.getBoundingClientRect();
     const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
     const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
     const frequency = Math.round(graphXToFrequency(x));
@@ -84,17 +84,11 @@ export function EqResponseGraph({
       ),
     });
   });
-  const plotRef = useCallback(
-    (plot: HTMLDivElement | null) => {
-      plotElementRef.current = plot;
-      if (!plot) {
-        return;
-      }
-      plot.addEventListener("wheel", handleWheel, { passive: false });
-      return () => plot.removeEventListener("wheel", handleWheel);
-    },
-    [handleWheel],
-  );
+  useEffect(() => {
+    const plot = plotRef.current!;
+    plot.addEventListener("wheel", handleWheel, { passive: false });
+    return () => plot.removeEventListener("wheel", handleWheel);
+  }, []);
 
   return (
     <div
