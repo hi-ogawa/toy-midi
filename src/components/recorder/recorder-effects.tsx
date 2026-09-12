@@ -120,131 +120,156 @@ export function RecorderEffectsContent({
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2">
-          <h3 className="mr-auto text-sm font-medium">Parametric EQ</h3>
-          <label className="flex items-center gap-1.5 text-xs">
-            <input
-              type="checkbox"
-              checked={eq.bypass}
-              onChange={(event) =>
-                onChange({ ...eq, bypass: event.target.checked })
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <h3 className="mr-auto text-sm font-medium">Parametric EQ</h3>
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            checked={eq.bypass}
+            onChange={(event) =>
+              onChange({ ...eq, bypass: event.target.checked })
+            }
+          />
+          Bypass
+        </label>
+        <IconButton label="Reset EQ" onClick={resetEq}>
+          <RotateCcw className="size-3.5" aria-hidden="true" />
+        </IconButton>
+        <IconButton
+          label="Add band"
+          onClick={addBand}
+          disabled={eq.bands.length >= MAX_EQ_BANDS}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </IconButton>
+      </div>
+
+      <EqResponseGraph
+        bands={eq.bands}
+        selectedBandId={selectedBand?.id}
+        bypass={eq.bypass}
+        onSelectBand={setSelectedBandId}
+        onBandChange={updateBand}
+      />
+
+      <div className="flex min-w-0 gap-1 overflow-x-auto pb-1">
+        {eq.bands.map((band, index) => {
+          const selected = band.id === selectedBand?.id;
+          return (
+            <button
+              key={band.id}
+              type="button"
+              aria-label={`Select band ${index + 1}`}
+              aria-pressed={selected}
+              onClick={() => setSelectedBandId(band.id)}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
+            >
+              <span
+                className="size-2 rounded-full"
+                style={{
+                  background: EQ_BAND_COLORS[index],
+                  opacity: band.bypass ? 0.35 : 1,
+                }}
+              />
+              <span>{index + 1}</span>
+              <span className="font-mono text-[10px] text-neutral-500">
+                {formatFrequency(band.frequency)}
+              </span>
+            </button>
+          );
+        })}
+        {eq.bands.length === 0 && (
+          <button
+            type="button"
+            onClick={addBand}
+            className="h-8 rounded border border-dashed border-neutral-600 px-3 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"
+          >
+            Add first band
+          </button>
+        )}
+      </div>
+
+      {selectedBand && (
+        <div className="space-y-4 border-t border-neutral-700 pt-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="size-2.5 rounded-full"
+              style={{ background: EQ_BAND_COLORS[selectedIndex] }}
+            />
+            <h4 className="mr-auto text-xs font-medium">
+              Band {selectedIndex + 1}
+            </h4>
+            <label className="flex items-center gap-1.5 text-xs text-neutral-400">
+              <input
+                type="checkbox"
+                checked={selectedBand.bypass}
+                onChange={(event) =>
+                  updateBand(selectedBand.id, {
+                    bypass: event.target.checked,
+                  })
+                }
+              />
+              Bypass
+            </label>
+            <IconButton
+              label="Reset band"
+              onClick={() => updateBand(selectedBand.id, createDefaultEqBand())}
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+            </IconButton>
+            <IconButton label="Delete band" onClick={deleteSelectedBand}>
+              <Trash2 className="size-3.5" aria-hidden="true" />
+            </IconButton>
+            <IconButton
+              label={slidersOpen ? "Hide sliders" : "Show sliders"}
+              aria-expanded={slidersOpen}
+              active={slidersOpen}
+              onClick={() => setSlidersOpen((open) => !open)}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+            </IconButton>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <EqNumericInput
+              label="Frequency"
+              unit="Hz"
+              limits={EQ_CONTROL_LIMITS.frequency}
+              value={selectedBand.frequency}
+              onChange={(frequency) =>
+                updateBand(selectedBand.id, { frequency })
               }
             />
-            Bypass
-          </label>
-          <IconButton label="Reset EQ" onClick={resetEq}>
-            <RotateCcw className="size-3.5" aria-hidden="true" />
-          </IconButton>
-          <IconButton
-            label="Add band"
-            onClick={addBand}
-            disabled={eq.bands.length >= MAX_EQ_BANDS}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-          </IconButton>
-        </div>
-
-        <EqResponseGraph
-          bands={eq.bands}
-          selectedBandId={selectedBand?.id}
-          bypass={eq.bypass}
-          onSelectBand={setSelectedBandId}
-          onBandChange={updateBand}
-        />
-
-        <div className="flex min-w-0 gap-1 overflow-x-auto pb-1">
-          {eq.bands.map((band, index) => {
-            const selected = band.id === selectedBand?.id;
-            return (
-              <button
-                key={band.id}
-                type="button"
-                aria-label={`Select band ${index + 1}`}
-                aria-pressed={selected}
-                onClick={() => setSelectedBandId(band.id)}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-400 outline-none hover:border-neutral-500 hover:text-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-300 aria-pressed:border-neutral-500 aria-pressed:bg-neutral-800 aria-pressed:text-neutral-100"
-              >
-                <span
-                  className="size-2 rounded-full"
-                  style={{
-                    background: EQ_BAND_COLORS[index],
-                    opacity: band.bypass ? 0.35 : 1,
-                  }}
-                />
-                <span>{index + 1}</span>
-                <span className="font-mono text-[10px] text-neutral-500">
-                  {formatFrequency(band.frequency)}
-                </span>
-              </button>
-            );
-          })}
-          {eq.bands.length === 0 && (
-            <button
-              type="button"
-              onClick={addBand}
-              className="h-8 rounded border border-dashed border-neutral-600 px-3 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"
-            >
-              Add first band
-            </button>
-          )}
-        </div>
-
-        {selectedBand && (
-          <div className="space-y-4 border-t border-neutral-700 pt-4">
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: EQ_BAND_COLORS[selectedIndex] }}
-              />
-              <h4 className="mr-auto text-xs font-medium">
-                Band {selectedIndex + 1}
-              </h4>
-              <label className="flex items-center gap-1.5 text-xs text-neutral-400">
-                <input
-                  type="checkbox"
-                  checked={selectedBand.bypass}
-                  onChange={(event) =>
-                    updateBand(selectedBand.id, {
-                      bypass: event.target.checked,
-                    })
-                  }
-                />
-                Bypass
-              </label>
-              <IconButton
-                label="Reset band"
-                onClick={() =>
-                  updateBand(selectedBand.id, createDefaultEqBand())
-                }
-              >
-                <RotateCcw className="size-3.5" aria-hidden="true" />
-              </IconButton>
-              <IconButton label="Delete band" onClick={deleteSelectedBand}>
-                <Trash2 className="size-3.5" aria-hidden="true" />
-              </IconButton>
-              <IconButton
-                label={slidersOpen ? "Hide sliders" : "Show sliders"}
-                aria-expanded={slidersOpen}
-                active={slidersOpen}
-                onClick={() => setSlidersOpen((open) => !open)}
-              >
-                <SlidersHorizontal className="size-4" aria-hidden="true" />
-              </IconButton>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <EqNumericInput
+            <EqNumericInput
+              label="Gain"
+              unit="dB"
+              limits={EQ_CONTROL_LIMITS.gainDb}
+              value={gainToDb(selectedBand.gain)}
+              onChange={(gainDb) =>
+                updateBand(selectedBand.id, { gain: dbToGain(gainDb) })
+              }
+            />
+            <EqNumericInput
+              label="Q"
+              unit=""
+              limits={EQ_CONTROL_LIMITS.q}
+              value={selectedBand.q}
+              onChange={(q) => updateBand(selectedBand.id, { q })}
+            />
+          </div>
+          {slidersOpen && (
+            <div className="space-y-4 border-t border-neutral-700 pt-4">
+              <EqSlider
                 label="Frequency"
                 unit="Hz"
                 limits={EQ_CONTROL_LIMITS.frequency}
+                scale="logarithmic"
                 value={selectedBand.frequency}
                 onChange={(frequency) =>
                   updateBand(selectedBand.id, { frequency })
                 }
               />
-              <EqNumericInput
+              <EqSlider
                 label="Gain"
                 unit="dB"
                 limits={EQ_CONTROL_LIMITS.gainDb}
@@ -253,7 +278,7 @@ export function RecorderEffectsContent({
                   updateBand(selectedBand.id, { gain: dbToGain(gainDb) })
                 }
               />
-              <EqNumericInput
+              <EqSlider
                 label="Q"
                 unit=""
                 limits={EQ_CONTROL_LIMITS.q}
@@ -261,40 +286,10 @@ export function RecorderEffectsContent({
                 onChange={(q) => updateBand(selectedBand.id, { q })}
               />
             </div>
-            {slidersOpen && (
-              <div className="space-y-4 border-t border-neutral-700 pt-4">
-                <EqSlider
-                  label="Frequency"
-                  unit="Hz"
-                  limits={EQ_CONTROL_LIMITS.frequency}
-                  scale="logarithmic"
-                  value={selectedBand.frequency}
-                  onChange={(frequency) =>
-                    updateBand(selectedBand.id, { frequency })
-                  }
-                />
-                <EqSlider
-                  label="Gain"
-                  unit="dB"
-                  limits={EQ_CONTROL_LIMITS.gainDb}
-                  value={gainToDb(selectedBand.gain)}
-                  onChange={(gainDb) =>
-                    updateBand(selectedBand.id, { gain: dbToGain(gainDb) })
-                  }
-                />
-                <EqSlider
-                  label="Q"
-                  unit=""
-                  limits={EQ_CONTROL_LIMITS.q}
-                  value={selectedBand.q}
-                  onChange={(q) => updateBand(selectedBand.id, { q })}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
