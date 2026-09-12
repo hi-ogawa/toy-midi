@@ -209,7 +209,7 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private audioChannels = new Map<string, AudioChannel>();
   private captureChannel?: AudioChannel;
-  private readonly takePlaybackGate = this.context.createGain();
+  private readonly takePlaybackGain = this.context.createGain();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -246,7 +246,7 @@ export class RecorderRuntime {
         eq: this.store.get().recordingTrack.eq,
         gain: deriveTrackMix(this.store.get()).recordingGain,
       });
-      this.takePlaybackGate.connect(this.captureChannel.input);
+      this.takePlaybackGain.connect(this.captureChannel.input);
     }
   }
 
@@ -748,7 +748,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.takePlaybackGate.gain.setValueAtTime(0, context.currentTime);
+    this.takePlaybackGain.gain.setValueAtTime(0, context.currentTime);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport.playbackAnchor!.contextTime * context.sampleRate;
@@ -1102,7 +1102,7 @@ export class RecorderRuntime {
     this.captureChannel?.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = this.store.get();
-    this.takePlaybackGate.gain.setValueAtTime(
+    this.takePlaybackGain.gain.setValueAtTime(
       captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
       this.context.currentTime,
     );
@@ -1233,7 +1233,7 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.takePlaybackGate,
+        output: this.takePlaybackGain,
       });
       playback.setBuffer(take.buffer);
       playback.setBufferTimelineOffset(take.timelineOffset);
