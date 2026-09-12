@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { routes } from "../lib/routes";
 import { EqResponseGraphPreview } from "./previews/eq-response-graph-preview";
+import { RecorderEffectsPreview } from "./previews/recorder-effects-preview";
 
 export function ComponentPreview() {
   return (
@@ -21,6 +22,12 @@ export function ComponentPreview() {
           description="Drag to change frequency and gain. Scroll over the graph to change Q."
         >
           <EqResponseGraphPreview />
+        </PreviewCard>
+        <PreviewCard
+          title="Recorder effects panel"
+          description="Exercise the complete track effects surface without recorder or audio setup."
+        >
+          <RecorderEffectsPreview />
         </PreviewCard>
       </div>
     </main>
