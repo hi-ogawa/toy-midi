@@ -438,33 +438,33 @@ export class RecorderRuntime {
     switch (type) {
       case "audio": {
         const state = this.store.get();
+        const clipIds = new Set([id]);
         const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
           state.audioTracks,
-          new Set([id]),
+          clipIds,
           (clips) =>
-            clips.map((clip) => {
-              if (clip.id !== id) {
-                return clip;
-              }
-              return {
-                ...clip,
-                ...(edge === "start"
-                  ? {
-                      trimStart: clamp(
-                        value,
-                        0,
-                        clip.trimEnd - MIN_TAKE_DURATION,
-                      ),
-                    }
-                  : {
-                      trimEnd: clamp(
-                        value,
-                        clip.trimStart + MIN_TAKE_DURATION,
-                        clip.duration,
-                      ),
-                    }),
-              };
-            }),
+            clips.map((clip) =>
+              clipIds.has(clip.id)
+                ? {
+                    ...clip,
+                    ...(edge === "start"
+                      ? {
+                          trimStart: clamp(
+                            value,
+                            0,
+                            clip.trimEnd - MIN_TAKE_DURATION,
+                          ),
+                        }
+                      : {
+                          trimEnd: clamp(
+                            value,
+                            clip.trimStart + MIN_TAKE_DURATION,
+                            clip.duration,
+                          ),
+                        }),
+                  }
+                : clip,
+            ),
         );
         if (audioTracksToSync.length === 0) {
           throw new Error("Recorder clip state is missing.");
