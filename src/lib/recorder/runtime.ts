@@ -1007,7 +1007,9 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTracks.clear();
-    const audioTracks = project.audioTracks.map(resolveTrackRegions);
+    const audioTracks = project.audioTracks.map((track) =>
+      resolveTrackRegions(track),
+    );
     for (const track of audioTracks) {
       if (track.clips.length === 0) {
         continue;
@@ -1200,9 +1202,17 @@ export class RecorderRuntime {
 }
 
 /** Publish clips and their audible comp together at the runtime boundary. */
-function resolveTrackRegions<T extends { clips: AudioClip[] }>(
-  track: T,
-): T & { regions: ClipRegion[] } {
+function resolveTrackRegions(
+  track: Omit<AudioTrackState, "regions">,
+): AudioTrackState;
+function resolveTrackRegions(
+  track: Omit<RecordingTrackState, "regions">,
+): RecordingTrackState;
+function resolveTrackRegions(
+  track:
+    | Omit<AudioTrackState, "regions">
+    | Omit<RecordingTrackState, "regions">,
+): AudioTrackState | RecordingTrackState {
   return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
 }
 
