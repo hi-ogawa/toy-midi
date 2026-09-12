@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import { exportRecorderProjectArchiveV1 } from "../../src/lib/recorder/project-archive";
-import type { SerializedRecorderRuntimeStateV1 } from "../../src/lib/recorder/project-migration";
+import type { SerializedRecorderRuntimeState } from "../../src/lib/recorder/persistence";
+import { exportRecorderProjectArchive } from "../../src/lib/recorder/project-archive";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
@@ -84,10 +84,10 @@ async function getRecorderClipGeometry(page: Page) {
 }
 
 test("imports a legacy recorder archive", async ({ page }) => {
-  // Export a typed legacy project using the v1 archive writer.
+  // Export a typed legacy project using the archive writer.
   const bytes = await readFile("e2e/fixtures/test-tones.pcm");
   const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
-  const project: SerializedRecorderRuntimeStateV1 = {
+  const project: SerializedRecorderRuntimeState = {
     title: "Legacy archive",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },
@@ -126,7 +126,7 @@ test("imports a legacy recorder archive", async ({ page }) => {
       ],
     },
   };
-  const archive = await exportRecorderProjectArchiveV1(project);
+  const archive = await exportRecorderProjectArchive(project);
 
   // Import through the Recorder project list and open the migrated recorder.
   await page.goto("/");
