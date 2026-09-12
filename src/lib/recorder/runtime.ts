@@ -1140,12 +1140,14 @@ export class RecorderRuntime {
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
         clips: [
           ...recordingTrack.clips,
-          createAudioClip({
-            id: pendingRecording.id,
-            name: pendingRecording.name,
-            buffer: takeBuffer,
+          {
+            ...createAudioClip({
+              id: pendingRecording.id,
+              name: pendingRecording.name,
+              buffer: takeBuffer,
+            }),
             timelineOffset,
-          }),
+          },
         ],
       },
     });
