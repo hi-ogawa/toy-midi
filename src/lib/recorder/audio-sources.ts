@@ -1,5 +1,5 @@
-import type { TakeRegion } from "./audio-clip.ts";
-import type { AudioTrackState } from "./runtime.ts";
+import type { ClipRegion, AudioClip } from "./audio-clip.ts";
+import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
 
 /** A buffer slice placed on the timeline, with all times in seconds. */
 export interface AudioPlaybackSource {
@@ -10,31 +10,19 @@ export interface AudioPlaybackSource {
   timelineEnd: number;
 }
 
-export function getAudioTrackSources(
-  track: AudioTrackState,
-): AudioPlaybackSource[] {
-  const clip = track.clips[0];
-  return clip?.buffer
-    ? [
-        {
-          buffer: clip.buffer,
-          timelineOffset: clip.timelineOffset,
-          timelineStart: clip.timelineOffset + clip.trimStart,
-          timelineEnd: clip.timelineOffset + clip.trimEnd,
-        },
-      ]
-    : [];
+export function getAudioTrackSources(track: {
+  clips: readonly AudioClip[];
+}): AudioPlaybackSource[] {
+  return getClipSources(deriveClipRegions(getActiveClips(track.clips)));
 }
 
-export function getTakeSources(
-  regions: readonly TakeRegion[],
-): AudioPlaybackSource[] {
-  return regions.flatMap(({ take, timelineStart, timelineEnd }) =>
-    take.buffer
+function getClipSources(regions: readonly ClipRegion[]): AudioPlaybackSource[] {
+  return regions.flatMap(({ clip, timelineStart, timelineEnd }) =>
+    clip.buffer
       ? [
           {
-            buffer: take.buffer,
-            timelineOffset: take.timelineOffset,
+            buffer: clip.buffer,
+            timelineOffset: clip.timelineOffset,
             timelineStart,
             timelineEnd,
           },
