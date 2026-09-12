@@ -5,8 +5,7 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 export class AudioChannel {
   readonly input: GainNode;
   private readonly gain: GainNode;
-  private equalizer?: BiquadEqNode;
-  private eq: EqParameters;
+  private readonly equalizer: BiquadEqNode;
 
   constructor({
     context,
@@ -19,29 +18,20 @@ export class AudioChannel {
     eq: EqParameters;
     gain: number;
   }) {
-    this.eq = eq;
     this.input = context.createGain();
     this.gain = context.createGain();
     this.gain.gain.value = gain;
     this.gain.connect(output);
-  }
-
-  /** Connect processing after the caller has registered the EQ worklet. */
-  prepare(): void {
-    if (this.equalizer) {
-      return;
-    }
     this.equalizer = new BiquadEqNode({
-      context: this.input.context,
+      context,
       channelCount: 2,
-      parameters: this.eq,
+      parameters: eq,
     });
     this.input.connect(this.equalizer).connect(this.gain);
   }
 
   setEq(eq: EqParameters): void {
-    this.eq = eq;
-    this.equalizer?.setParameters(eq);
+    this.equalizer.setParameters(eq);
   }
 
   setGain(gain: number): void {
@@ -50,7 +40,7 @@ export class AudioChannel {
 
   dispose(): void {
     this.input.disconnect();
-    this.equalizer?.disconnect();
+    this.equalizer.disconnect();
     this.gain.disconnect();
   }
 }

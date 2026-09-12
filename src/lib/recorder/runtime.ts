@@ -225,13 +225,13 @@ export class RecorderRuntime {
   }): Promise<{ channelCount: number }> {
     const context = this.ensureContext();
     await ensureBiquadEqWorklet(context);
-    this.captureChannel!.prepare();
+    const channel = this.getCaptureChannel();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.captureChannel!.input,
+      output: channel.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -313,7 +313,6 @@ export class RecorderRuntime {
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
     playback.setBuffer(buffer);
-    this.audioChannels.get(id)!.prepare();
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: 0,
@@ -608,6 +607,9 @@ export class RecorderRuntime {
   }
 
   private syncAudioTrackPlayback(track: AudioTrackState): void {
+    if (!track.clip) {
+      return;
+    }
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -706,10 +708,7 @@ export class RecorderRuntime {
       ensureBiquadEqWorklet(context),
     ]);
     await context.resume();
-    this.captureChannel!.prepare();
-    for (const channel of this.audioChannels.values()) {
-      channel.prepare();
-    }
+    this.getCaptureChannel();
     this.transport!.play();
   }
 
@@ -983,10 +982,15 @@ export class RecorderRuntime {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
-  deserializeProject(project: SerializedRecorderRuntimeState): void {
+  async deserializeProject(
+    project: SerializedRecorderRuntimeState,
+  ): Promise<void> {
+    const context = this.ensureContext();
+    await ensureBiquadEqWorklet(context);
+    this.getCaptureChannel();
     this.replacePersistableState(
       deserializeRecorderRuntimeState({
-        context: this.ensureContext(),
+        context,
         project,
       }),
     );
@@ -1083,14 +1087,7 @@ export class RecorderRuntime {
       this.context = new AudioContext();
       this.masterOutput = this.context.createGain();
       this.masterOutput.connect(this.context.destination);
-      this.captureChannel = new AudioChannel({
-        context: this.context,
-        output: this.masterOutput,
-        eq: this.store.get().recordingTrack.eq,
-        gain: deriveTrackMix(this.store.get()).recordingGain,
-      });
       this.takePlaybackGate = this.context.createGain();
-      this.takePlaybackGate.connect(this.captureChannel.input);
       this.transport = new AudioContextTransport(this.context);
       this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
       this.masterOutput.gain.value = this.store.get().masterGain;
@@ -1104,6 +1101,20 @@ export class RecorderRuntime {
       });
     }
     return this.context;
+  }
+
+  /** Called after EQ worklet registration at input, playback, or project load. */
+  private getCaptureChannel(): AudioChannel {
+    if (!this.captureChannel) {
+      this.captureChannel = new AudioChannel({
+        context: this.context!,
+        output: this.masterOutput!,
+        eq: this.store.get().recordingTrack.eq,
+        gain: deriveTrackMix(this.store.get()).recordingGain,
+      });
+      this.takePlaybackGate!.connect(this.captureChannel.input);
+    }
+    return this.captureChannel;
   }
 
   private syncTrackMix(): void {

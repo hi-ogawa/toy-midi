@@ -97,7 +97,6 @@ export async function renderRecorderMix({
       eq: track.eq,
       gain: track.gain,
     });
-    channel.prepare();
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;

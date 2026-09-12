@@ -24,7 +24,7 @@ export function useRecorderProject({
     queryFn: async () => {
       try {
         const project = await recorderProjectStorage.load(projectId);
-        runtime.deserializeProject(project);
+        await runtime.deserializeProject(project);
         return true;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unknown error");
