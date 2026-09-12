@@ -423,7 +423,7 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["audioTracks"][number]["clips"];
-  regions: NonNullable<RecorderRuntimeState["previewClipRegions"]>;
+  regions: RecorderRuntimeState["audioTracks"][number]["regions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;

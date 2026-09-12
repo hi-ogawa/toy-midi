@@ -105,6 +105,47 @@ test("routes monitoring and recording to an ordinary track and reconnects after 
       const clipCounts = runtime.store
         .get()
         .audioTracks.map((track) => track.clips.length);
+      // Commit the recording into its track's comp, then audition it with clip mute and solo.
+      const destination = () =>
+        runtime.store.get().audioTracks.find((track) => track.id === secondId)!;
+      const recorded = destination().clips.at(-1)!;
+      const committedRegion = destination().regions.some(
+        (region) => region.clip === recorded,
+      );
+      const playbackMatchesComp = sources
+        .get(second)!
+        .every((source, index) => {
+          const region = destination().regions[index]!;
+          return (
+            source.buffer === region.clip.buffer &&
+            source.timelineStart === region.timelineStart &&
+            source.timelineEnd === region.timelineEnd
+          );
+        });
+      runtime.setClipMuted({ trackId: secondId, id: recorded.id, muted: true });
+      const mutedComp = destination().regions.every(
+        (region) => region.clip.id !== recorded.id,
+      );
+      runtime.setClipMuted({
+        trackId: secondId,
+        id: recorded.id,
+        muted: false,
+      });
+      runtime.setClipSoloed({
+        trackId: secondId,
+        id: recorded.id,
+        soloed: true,
+      });
+      const soloComp =
+        destination().regions.length === 1 &&
+        destination().regions[0]!.clip.id === recorded.id;
+      runtime.setClipSoloed({
+        trackId: secondId,
+        id: recorded.id,
+        soloed: false,
+      });
+
+      // Reload the project and reconnect the open input to the restored channel.
       const saved = runtime.serializeProject();
       runtime.deserializeProject(saved);
       const replacement = [...sources].find(
@@ -117,6 +158,10 @@ test("routes monitoring and recording to an ordinary track and reconnects after 
         runtime.captureInput === input &&
         runtime.store.get().inputMonitoring;
       return {
+        committedRegion,
+        playbackMatchesComp,
+        mutedComp,
+        soloComp,
         initialRoute,
         armedRoute,
         startupArmRejected,
@@ -138,6 +183,10 @@ test("routes monitoring and recording to an ordinary track and reconnects after 
     }
   });
   expect(result).toMatchObject({
+    committedRegion: true,
+    playbackMatchesComp: true,
+    mutedComp: true,
+    soloComp: true,
     initialRoute: true,
     armedRoute: true,
     startupArmRejected: true,

@@ -11,7 +11,7 @@ import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import type { ClipRegion, AudioClip } from "./audio-clip.ts";
-import { getAudioTrackSources } from "./audio-sources.ts";
+import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
@@ -46,6 +46,7 @@ export interface AudioTrackState {
   // The ordinary-track UI currently keeps zero or one imported clip and has
   // no clip-level mute/solo controls. Imported clips initialize both flags to false.
   clips: AudioClip[];
+  regions: ClipRegion[];
   nextTakeNumber: number;
   gain: number;
   muted: boolean;
@@ -139,11 +140,10 @@ export type PersistableRecorderRuntimeState = Pick<
   | "metronomeGain"
   | "loop"
   | "punch"
-  | "audioTracks"
   | "armedTrackId"
   | "latencyCompensation"
   | "referenceVideo"
->;
+> & { audioTracks: Omit<AudioTrackState, "regions">[] };
 
 export type RecorderClipId =
   | { type: "audio"; trackId: string; id: string }
@@ -479,7 +479,9 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
-    audioTracks[index] = update(track);
+    const next = update(track);
+    audioTracks[index] =
+      next.clips === track.clips ? next : resolveTrackRegions(next);
     this.store.update({ audioTracks });
     return audioTracks[index]!;
   }
@@ -511,7 +513,7 @@ export class RecorderRuntime {
       this.pause();
     }
     const playback = this.getAudioTrackPlayback(track.id);
-    playback.setSources(getAudioTrackSources(track));
+    playback.setSources(getClipSources(track.regions));
     if (wasPlaying) {
       this.transport.play();
     }
@@ -583,7 +585,7 @@ export class RecorderRuntime {
       if (clips === track.clips) {
         return track;
       }
-      const next = { ...track, clips };
+      const next = resolveTrackRegions({ ...track, clips });
       changed.push(next);
       return next;
     });
@@ -597,7 +599,7 @@ export class RecorderRuntime {
     this.store.update({ audioTracks });
     for (const track of changed) {
       this.getAudioTrackPlayback(track.id).setSources(
-        getAudioTrackSources(track),
+        getClipSources(track.regions),
       );
     }
     if (wasPlaying) {
@@ -913,15 +915,17 @@ export class RecorderRuntime {
     this.store.update({
       ...project,
       position: 0,
-      audioTracks: project.audioTracks.map((track) => ({
-        ...track,
-        height: clampTrackHeight(track.height),
-      })),
+      audioTracks: project.audioTracks.map((track) =>
+        resolveTrackRegions({
+          ...track,
+          height: clampTrackHeight(track.height),
+        }),
+      ),
     });
     for (const track of this.store.get().audioTracks) {
       if (track.clips.length > 0 || track.id === project.armedTrackId) {
         this.getAudioTrackPlayback(track.id).setSources(
-          getAudioTrackSources(track),
+          getClipSources(track.regions),
         );
       }
     }
@@ -1034,7 +1038,7 @@ export class RecorderRuntime {
       audioTracks: this.store.get().audioTracks.map((track) =>
         track.id !== recordingTrack.id
           ? track
-          : {
+          : resolveTrackRegions({
               ...recordingTrack,
               nextTakeNumber: recordingTrack.nextTakeNumber + 1,
               clips: [
@@ -1056,7 +1060,7 @@ export class RecorderRuntime {
                   ),
                 },
               ],
-            },
+            }),
       ),
     });
     this.syncAudioTrackPlayback(this.getTrack(pendingRecording.trackId));
@@ -1077,6 +1081,13 @@ export class RecorderRuntime {
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
   }
+}
+
+/** Publish clips and their audible comp together at the runtime boundary. */
+function resolveTrackRegions<T extends { clips: AudioClip[] }>(
+  track: T,
+): T & { regions: ClipRegion[] } {
+  return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
 }
 
 function pendingRecordingToTake(
@@ -1143,6 +1154,7 @@ function createAudioTrackState(): AudioTrackState {
     muted: false,
     soloed: false,
     clips: [],
+    regions: [],
     nextTakeNumber: 1,
   };
 }

@@ -12,7 +12,6 @@ import {
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
-  type RecorderRuntimeState,
   type RecorderLocator,
 } from "./runtime.ts";
 
@@ -73,7 +72,7 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
 }
 
 export function serializeRecorderRuntimeState(
-  state: RecorderRuntimeState,
+  state: PersistableRecorderRuntimeState,
 ): SerializedRecorderRuntimeState {
   return {
     version: 2,

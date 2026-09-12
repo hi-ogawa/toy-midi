@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 import { DEFAULT_PARAMETERS } from "../dsp/biquad-eq.ts";
-import { getAudioTrackSources } from "./audio-sources.ts";
+import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
 import {
   deserializeRecorderRuntimeState,
   serializeRecorderRuntimeState,
@@ -44,7 +44,7 @@ it("preserves legacy clip placement, stereo PCM, mix, take numbering, and comp p
     ["newer", "Take 3"],
   ]);
   expect(
-    getAudioTrackSources(capture!).map((source) => [
+    deriveClipRegions(getActiveClips(capture!.clips)).map((source) => [
       source.timelineStart,
       source.timelineEnd,
     ]),

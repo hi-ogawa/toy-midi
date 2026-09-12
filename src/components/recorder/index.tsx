@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -9,10 +9,6 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import {
-  deriveClipRegions,
-  getActiveClips,
-} from "../../lib/recorder/clip-regions";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -137,10 +133,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     (track) => track.id !== state.armedTrackId,
   );
   const takes = recordingTrack.clips;
-  const regions = useMemo(
-    () => deriveClipRegions(getActiveClips(takes)),
-    [takes],
-  );
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
@@ -373,7 +365,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
             {audioTracks.map((track, index) => {
-              const clip = track.clips[0];
+              const region = track.regions[0];
+              const clip = region?.clip;
               return (
                 <TrackRow
                   key={track.id}
@@ -411,14 +404,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 >
                   <TimelineLane
                     clip={
-                      clip
+                      region && clip
                         ? {
-                            duration: clip.trimEnd - clip.trimStart,
+                            duration: region.timelineEnd - region.timelineStart,
                             label: clip.name,
-                            offset: clip.timelineOffset + clip.trimStart,
+                            offset: region.timelineStart,
                             testId: "audio",
                             audioView: clip.audioView,
-                            audioOffset: clip.trimStart,
+                            audioOffset:
+                              region.timelineStart - clip.timelineOffset,
                           }
                         : undefined
                     }
@@ -512,7 +506,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewClipRegions ?? regions}
+                regions={state.previewClipRegions ?? recordingTrack.regions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>
