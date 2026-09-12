@@ -1178,9 +1178,8 @@ export class RecorderRuntime {
   }
 
   private updateRecordingTrack(
-    update: Omit<Partial<RecorderRuntimeState>, "recordingTrack"> & {
-      recordingTrack: RecordingTrackState;
-    },
+    update: Partial<RecorderRuntimeState> &
+      Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     this.store.update(update);
     this.syncTakePlayback(update.recordingTrack.regions);
