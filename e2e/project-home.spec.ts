@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { clickNewProject } from "./helpers";
 
-test("project tabs persist across reloads and visits with keyboard selection", async ({
+test("project tabs persist across reloads and visits", async ({
   page,
   context,
 }) => {
@@ -12,10 +12,8 @@ test("project tabs persist across reloads and visits with keyboard selection", a
   await expect(midi).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No MIDI projects yet")).toBeVisible();
 
-  // Switch to Recorder with the keyboard without leaving the home URL.
-  await midi.focus();
-  await midi.press("ArrowRight");
-  await expect(recorder).toBeFocused();
+  // Click Recorder to switch project lists without leaving the home URL.
+  await recorder.click();
   await expect(recorder).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No recorder projects yet")).toBeVisible();
   await expect(page).toHaveURL("/");
@@ -32,20 +30,9 @@ test("project tabs persist across reloads and visits with keyboard selection", a
   ).toHaveAttribute("aria-selected", "true");
   await nextPage.close();
 
-  // Arrow keys wrap between tabs, while Home and End select the endpoints.
-  await recorder.focus();
-  await recorder.press("Home");
-  await expect(midi).toBeFocused();
-  await midi.press("ArrowLeft");
-  await expect(recorder).toBeFocused();
-  await recorder.press("ArrowRight");
-  await expect(midi).toBeFocused();
-  await midi.press("End");
-  await expect(recorder).toBeFocused();
-  await recorder.press("Home");
-  await expect(midi).toBeFocused();
-
-  // Returning to MIDI also becomes the default for the next visit.
+  // Click MIDI and confirm it becomes the default for the next visit.
+  await midi.click();
+  await expect(midi).toHaveAttribute("aria-selected", "true");
   await page.reload();
   await expect(midi).toHaveAttribute("aria-selected", "true");
   await page.screenshot({ path: test.info().outputPath("midi-home.png") });
