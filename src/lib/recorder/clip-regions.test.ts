@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AudioClip } from "./audio-clip.ts";
-import { deriveClipRegions } from "./clip-regions.ts";
+import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
 
 describe(deriveClipRegions, () => {
   it("keeps disjoint clips in timeline order", () => {
@@ -63,6 +63,14 @@ describe(deriveClipRegions, () => {
       { clip: trimmed, timelineStart: 4, timelineEnd: 8 },
     ]);
   });
+});
+
+it("filters clip mute and solo within each track", () => {
+  const soloed = { ...clip("soloed", 0, 10), soloed: true };
+  const ordinary = clip("ordinary", 0, 10);
+  expect(getActiveClips([soloed, ordinary])).toEqual([soloed]);
+  expect(getActiveClips([{ ...soloed, muted: true }, ordinary])).toEqual([]);
+  expect(getActiveClips([ordinary])).toEqual([ordinary]);
 });
 
 function clip(id: string, timelineOffset: number, duration: number): AudioClip {
