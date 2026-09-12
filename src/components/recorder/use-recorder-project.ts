@@ -7,6 +7,8 @@ import { RecorderRuntime } from "../../lib/recorder/runtime";
 
 export type SaveStatus = "saved" | "unsaved" | "saving" | "error";
 
+export type RecorderProject = ReturnType<typeof useRecorderProject>;
+
 export function useRecorderProject({
   projectId,
   runtime,
