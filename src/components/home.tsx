@@ -1,4 +1,10 @@
-import { AudioLinesIcon, GitForkIcon, Music2Icon } from "lucide-react";
+import {
+  AudioLinesIcon,
+  GitForkIcon,
+  Music2Icon,
+  PianoIcon,
+  Mic2Icon,
+} from "lucide-react";
 import { useState } from "react";
 import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
@@ -70,7 +76,7 @@ export function Home() {
           <div
             role="tablist"
             aria-label="Project type"
-            className="mb-4 flex gap-2"
+            className="mb-5 flex gap-2 border-b border-neutral-700/70"
           >
             {(["midi", "recorder"] as const).map((type) => (
               <button
@@ -106,8 +112,13 @@ export function Home() {
                   selectProjectType(nextType);
                   document.getElementById(`project-tab-${nextType}`)?.focus();
                 }}
-                className="rounded-md px-4 py-2 text-sm text-neutral-400 hover:bg-neutral-800 aria-selected:bg-neutral-700 aria-selected:text-neutral-100"
+                className="relative -mb-px inline-flex min-w-36 items-center justify-center gap-2.5 rounded-t-lg border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-400 transition-colors hover:bg-neutral-800/50 hover:text-neutral-200 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400 aria-selected:border-emerald-400 aria-selected:bg-emerald-400/5 aria-selected:text-emerald-300"
               >
+                {type === "midi" ? (
+                  <PianoIcon aria-hidden="true" className="size-4" />
+                ) : (
+                  <Mic2Icon aria-hidden="true" className="size-4" />
+                )}
                 {type === "midi" ? "MIDI" : "Recorder"}
               </button>
             ))}
