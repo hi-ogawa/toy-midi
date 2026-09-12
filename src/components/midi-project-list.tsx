@@ -59,76 +59,66 @@ export function MidiProjectList() {
   };
 
   return (
-    <>
-      <div className="mb-4">
-        <p className="mt-2 text-sm text-neutral-600">
-          {hasProjects
-            ? "Open a project to continue editing."
-            : "Create a project to start arranging MIDI."}
-        </p>
-      </div>
+    <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {hasProjects && (
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+          {projects.map((project) => (
+            <ProjectListItem
+              key={project.id}
+              project={project}
+              isLastProject={project.id === lastProjectId}
+              isRenaming={project.id === renamingProjectId}
+              onRenameStart={(e) => handleRenameStart(e, project.id)}
+              onRenameSubmit={(nextName) =>
+                handleRenameSubmit(project.id, nextName)
+              }
+              onRenameCancel={handleRenameCancel}
+              onDelete={(e) => handleDelete(e, project.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      <section className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
-        {hasProjects && (
-          <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-            {projects.map((project) => (
-              <ProjectListItem
-                key={project.id}
-                project={project}
-                isLastProject={project.id === lastProjectId}
-                isRenaming={project.id === renamingProjectId}
-                onRenameStart={(e) => handleRenameStart(e, project.id)}
-                onRenameSubmit={(nextName) =>
-                  handleRenameSubmit(project.id, nextName)
-                }
-                onRenameCancel={handleRenameCancel}
-                onDelete={(e) => handleDelete(e, project.id)}
-              />
-            ))}
-          </div>
-        )}
+      {!hasProjects && (
+        <div className="flex min-h-36 flex-col items-center justify-center text-center">
+          <p className="text-base font-medium text-neutral-300">
+            No MIDI projects yet
+          </p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Start from an empty piano roll or import an existing project.
+          </p>
+        </div>
+      )}
 
-        {!hasProjects && (
-          <div className="flex min-h-36 flex-col items-center justify-center text-center">
-            <p className="text-base font-medium text-neutral-300">
-              No MIDI projects yet
-            </p>
-            <p className="mt-1 text-sm text-neutral-500">
-              Start from an empty piano roll or import an existing project.
-            </p>
-          </div>
-        )}
-
-        <div
-          className={`flex items-center gap-2 ${
-            hasProjects ? "mt-4 border-t border-neutral-700/70 pt-4" : ""
+      <div
+        className={`flex items-center gap-2 ${
+          hasProjects ? "mt-4 border-t border-neutral-700/70 pt-4" : ""
+        }`}
+      >
+        <Button
+          data-testid="new-project-button"
+          disabled={isLoading}
+          onClick={() => openMidiProject(projectStorage.createNew())}
+          className={`px-4 py-2 text-sm ${
+            hasProjects
+              ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
+              : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
           }`}
         >
-          <Button
-            data-testid="new-project-button"
-            disabled={isLoading}
-            onClick={() => openMidiProject(projectStorage.createNew())}
-            className={`px-4 py-2 text-sm ${
-              hasProjects
-                ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
-                : "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-            }`}
-          >
-            New MIDI project
-          </Button>
-          <FileDropInput
-            accept=".toymidi"
-            title="Import a .toymidi project file"
-            onFile={(file) => importProjectMutation.mutate(file)}
-            data-testid="import-project-button"
-            disabled={isLoading}
-            className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
-          >
-            {isLoading ? "Importing..." : "Import MIDI project"}
-          </FileDropInput>
-        </div>
-      </section>
-    </>
+          New MIDI project
+        </Button>
+        <FileDropInput
+          accept=".toymidi"
+          title="Import a .toymidi project file"
+          onFile={(file) => importProjectMutation.mutate(file)}
+          data-testid="import-project-button"
+          disabled={isLoading}
+          className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+        >
+          {isLoading ? "Importing..." : "Import MIDI project"}
+        </FileDropInput>
+      </div>
+    </section>
   );
 }
 

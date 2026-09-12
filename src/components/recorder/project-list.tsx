@@ -36,81 +36,76 @@ export function RecorderProjectList() {
   });
 
   return (
-    <>
-      <p className="mb-4 text-sm text-neutral-600">
-        Open a project or create one to begin recording.
-      </p>
-      <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
-        {!projects.data.ok ? (
-          <div className="p-8 text-center text-sm text-orange-300">
-            {String(projects.data.error)}
-          </div>
-        ) : projects.data.value.length === 0 ? (
-          <div className="flex min-h-36 flex-col items-center justify-center text-center">
-            <p className="font-medium text-neutral-300">
-              No recorder projects yet
-            </p>
-            <p className="mt-1 text-sm text-neutral-500">
-              Create a recorder project to begin.
-            </p>
-          </div>
-        ) : (
-          <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
-            {projects.data.value.map((project) => (
-              <RecorderProjectListItem
-                key={project.id}
-                project={project}
-                deletePending={deleteProject.isPending}
-                onDelete={() => deleteProject.mutate(project.id)}
-              />
-            ))}
-          </div>
-        )}
-        {projects.data.ok && (
-          <div
-            className={
-              projects.data.value.length > 0
-                ? "mt-4 border-t border-neutral-700/70 pt-4"
-                : ""
-            }
-          >
-            <div className="flex gap-2">
-              <Button
-                data-testid="new-recorder-project-button"
-                onClick={() => createProject.mutate()}
-                disabled={createProject.isPending || importProject.isPending}
-                className={
-                  projects.data.value.length > 0
-                    ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
-                    : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-                }
-              >
-                New recorder project
-              </Button>
-              <FileDropInput
-                accept=".toymidi.zip"
-                title="Import a .toymidi.zip recorder project archive"
-                onFile={(file) => importProject.mutate(file)}
-                data-testid="import-recorder-project"
-                disabled={createProject.isPending || importProject.isPending}
-                className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
-              >
-                <span className="grid">
-                  <span className="invisible col-start-1 row-start-1">
-                    Import recorder project
-                  </span>
-                  <span className="col-start-1 row-start-1">
-                    {importProject.isPending
-                      ? "Importing..."
-                      : "Import recorder project"}
-                  </span>
+    <div className="rounded-xl border border-neutral-700/70 bg-neutral-800/45 p-4 shadow-2xl shadow-black/20">
+      {!projects.data.ok ? (
+        <div className="p-8 text-center text-sm text-orange-300">
+          {String(projects.data.error)}
+        </div>
+      ) : projects.data.value.length === 0 ? (
+        <div className="flex min-h-36 flex-col items-center justify-center text-center">
+          <p className="font-medium text-neutral-300">
+            No recorder projects yet
+          </p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Create a recorder project to begin.
+          </p>
+        </div>
+      ) : (
+        <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+          {projects.data.value.map((project) => (
+            <RecorderProjectListItem
+              key={project.id}
+              project={project}
+              deletePending={deleteProject.isPending}
+              onDelete={() => deleteProject.mutate(project.id)}
+            />
+          ))}
+        </div>
+      )}
+      {projects.data.ok && (
+        <div
+          className={
+            projects.data.value.length > 0
+              ? "mt-4 border-t border-neutral-700/70 pt-4"
+              : ""
+          }
+        >
+          <div className="flex gap-2">
+            <Button
+              data-testid="new-recorder-project-button"
+              onClick={() => createProject.mutate()}
+              disabled={createProject.isPending || importProject.isPending}
+              className={
+                projects.data.value.length > 0
+                  ? "bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600"
+                  : "bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+              }
+            >
+              New recorder project
+            </Button>
+            <FileDropInput
+              accept=".toymidi.zip"
+              title="Import a .toymidi.zip recorder project archive"
+              onFile={(file) => importProject.mutate(file)}
+              data-testid="import-recorder-project"
+              disabled={createProject.isPending || importProject.isPending}
+              className="bg-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-600 data-[drag-over=true]:bg-emerald-700 data-[drag-over=true]:text-white"
+            >
+              <span className="grid">
+                <span className="invisible col-start-1 row-start-1">
+                  Import recorder project
                 </span>
-              </FileDropInput>
-            </div>
+                <span className="col-start-1 row-start-1">
+                  {importProject.isPending
+                    ? "Importing..."
+                    : "Import recorder project"}
+                </span>
+              </span>
+            </FileDropInput>
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+    </div>
   );
 }
 
