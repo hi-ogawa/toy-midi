@@ -710,7 +710,7 @@ function RecorderInitError({ error }: { error: Error }) {
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="recorder-init-error-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/80 p-4 text-neutral-100"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 text-neutral-100"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
         <Mic2Icon className="size-6 text-emerald-400" />
