@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
+import { Mic2Icon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
@@ -9,12 +11,14 @@ import {
 } from "../../lib/keyboard";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
+import { routes } from "../../lib/routes";
 import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
+import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
@@ -123,14 +127,16 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.takes;
-  const isRecording = state.captureStatus === "recording";
-  const isProcessing = state.captureStatus === "processing";
+  const flags = deriveRecorderFlags({
+    captureStatus: state.captureStatus,
+    project,
+  });
 
   function togglePlay() {
-    if (!project.ready || isProcessing) {
+    if (flags.playDisabled) {
       return;
     }
-    if (isRecording) {
+    if (flags.isRecording) {
       recordMutation.mutate("stop");
     } else if (state.isPlaying) {
       runtime.pause();
@@ -140,20 +146,16 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (!project.ready || isProcessing || state.captureStatus === "disabled") {
+    if (flags.recordDisabled) {
       return;
     }
-    recordMutation.mutate(isRecording ? "stop" : "start");
+    recordMutation.mutate(flags.isRecording ? "stop" : "start");
   }
 
-  const saveDisabled =
-    !project.ready ||
-    !project.dirty ||
-    project.saving ||
-    isRecording ||
-    isProcessing;
-
   useWindowEvent("keydown", (event) => {
+    if (project.initError) {
+      return;
+    }
     if (isHelpOpen) {
       if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
         event.preventDefault();
@@ -169,7 +171,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
-      if (!saveDisabled) {
+      if (!flags.saveDisabled) {
         project.save();
       }
       return;
@@ -199,7 +201,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       : matchKeyboardEvent(event, "ArrowRight")
         ? 1
         : 0;
-    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+    if (seekDirection !== 0 && !flags.isRecording) {
       event.preventDefault();
       const position = Math.max(0, state.position + seekDirection * 5);
       runtime.seek(position);
@@ -231,14 +233,16 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
+    <main
+      inert={project.initError !== undefined}
+      className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
+    >
       <RecorderHeader
-        title={state.title}
+        title={project.ready ? state.title : undefined}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
-        isProcessing={isProcessing}
-        isRecording={isRecording}
+        flags={flags}
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
@@ -250,8 +254,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
-        playDisabled={!project.ready}
-        recordDisabled={!project.ready || state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onTitleChange={(nextTitle) => {
           runtime.setTitle(nextTitle);
@@ -454,8 +456,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputToggleDisabled={
                 input.mutationPending ||
                 !input.initialized ||
-                isRecording ||
-                isProcessing ||
+                flags.isRecording ||
                 (!input.active && input.route.needsSetup)
               }
               muted={state.recordingTrack.muted}
@@ -594,7 +595,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           state={state}
           isOpen={isAudioExportOpen}
           onClose={() => setIsAudioExportOpen(false)}
-          disabled={!project.ready || isRecording || isProcessing}
+          disabled={!project.ready || flags.isRecording}
         />
         <Dialog
           isOpen={isInputSetupOpen}
@@ -609,8 +610,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputActive={input.active}
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
-            isProcessing={isProcessing}
-            isRecording={isRecording}
+            isRecording={flags.isRecording}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
@@ -684,6 +684,40 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         )}
       </div>
+      {project.initError &&
+        createPortal(
+          <RecorderInitError error={project.initError} />,
+          document.body,
+        )}
     </main>
+  );
+}
+
+// Rendered outside the inert editor so the notice stays interactive while
+// everything beneath it is blocked from pointer and keyboard access.
+function RecorderInitError({ error }: { error: Error }) {
+  return (
+    <div
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="recorder-init-error-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 text-neutral-100"
+    >
+      <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
+        <Mic2Icon className="size-6 text-emerald-400" />
+        <div className="flex flex-col gap-1">
+          <h1 id="recorder-init-error-title" className="text-lg font-medium">
+            Could not open this project
+          </h1>
+          <p className="text-sm text-neutral-400">{error.message}</p>
+        </div>
+        <a
+          href={routes.home.href()}
+          className="rounded-md border border-neutral-600 px-3 py-1.5 text-sm hover:bg-neutral-700"
+        >
+          Back to projects
+        </a>
+      </div>
+    </div>
   );
 }
