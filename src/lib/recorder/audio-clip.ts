@@ -25,12 +25,12 @@ export const WAVEFORM_POINTS_PER_SECOND = 800;
 export function createAudioClip({
   buffer,
   name,
-  timelineOffset,
+  timelineOffset = 0,
   id = crypto.randomUUID(),
 }: {
   buffer: AudioBuffer;
   name: string;
-  timelineOffset: number;
+  timelineOffset?: number;
   id?: string;
 }): AudioClip {
   return {
