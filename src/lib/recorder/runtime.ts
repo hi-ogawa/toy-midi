@@ -78,7 +78,6 @@ interface PendingRecordingState extends Pick<
   AudioClip,
   "id" | "name" | "duration" | "timelineOffset"
 > {
-  trackId: string;
   recording: ActiveRecording;
   punchRange?: { start: number; end: number };
 }
@@ -473,10 +472,7 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    if (
-      this.store.get().armedTrackId === id ||
-      this.store.get().pendingRecording?.trackId === id
-    ) {
+    if (this.store.get().armedTrackId === id) {
       throw new Error("Cannot remove the recording destination.");
     }
     this.trackPlaybacks.get(id)?.dispose();
@@ -553,12 +549,7 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioTrackPlayback {
     let playback = this.trackPlaybacks.get(id);
     if (!playback) {
-      const track = this.store
-        .get()
-        .audioTracks.find((entry) => entry.id === id);
-      if (!track) {
-        throw new Error("Audio track state is missing.");
-      }
+      const track = this.getTrack(id);
       playback = new AudioTrackPlayback({
         transport: this.transport,
         output: this.masterOutput,
@@ -648,7 +639,6 @@ export class RecorderRuntime {
             }
           : undefined;
       const pendingRecording: PendingRecordingState = {
-        trackId,
         id,
         name: `Take ${number}`,
         duration: 0,
@@ -892,11 +882,7 @@ export class RecorderRuntime {
   private replacePersistableState(
     project: PersistableRecorderRuntimeState,
   ): void {
-    if (
-      this.startingRecording ||
-      this.store.get().captureStatus === "recording" ||
-      this.store.get().captureStatus === "processing"
-    ) {
+    if (this.startingRecording || this.store.get().pendingRecording) {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
@@ -962,7 +948,7 @@ export class RecorderRuntime {
       playback?.channel.setGain(gains.get(track.id)!);
       // Region playback is independent of monitoring through the track channel.
       playback?.setPlaybackGain(
-        state.pendingRecording?.trackId === track.id ? 0 : 1,
+        state.pendingRecording && state.armedTrackId === track.id ? 0 : 1,
       );
     }
   }
@@ -1022,7 +1008,7 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
-    const recordingTrack = this.getTrack(pendingRecording.trackId);
+    const recordingTrack = this.getTrack(this.store.get().armedTrackId);
     this.store.update({
       captureStatus: "ready",
       pendingRecording: undefined,
@@ -1047,7 +1033,7 @@ export class RecorderRuntime {
             }),
       ),
     });
-    this.syncAudioTrackPlayback(this.getTrack(pendingRecording.trackId));
+    this.syncAudioTrackPlayback(this.getTrack(recordingTrack.id));
     this.syncTrackMix();
   }
 
@@ -1060,7 +1046,7 @@ export class RecorderRuntime {
     pendingRecording: PendingRecordingState,
   ): void {
     const previewClipRegions = deriveClipRegions([
-      ...getActiveClips(this.getTrack(pendingRecording.trackId).clips),
+      ...getActiveClips(this.getTrack(this.store.get().armedTrackId).clips),
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
