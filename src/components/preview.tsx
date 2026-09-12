@@ -2,7 +2,6 @@ import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./previews/recorder-effects-preview";
-import { RecorderMixerPreview } from "./previews/recorder-mixer-preview";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -17,11 +16,6 @@ const PREVIEWS = [
     id: "recorder-effects",
     label: "Recorder effects",
     component: RecorderEffectsPreview,
-  },
-  {
-    id: "recorder-mixer",
-    label: "Recorder mixer",
-    component: RecorderMixerPreview,
   },
 ] as const;
 

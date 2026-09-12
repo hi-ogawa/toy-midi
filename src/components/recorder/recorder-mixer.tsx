@@ -2,51 +2,33 @@ import { GaugeIcon, Mic2Icon, Volume2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { MAX_DB, MIN_DB, dbToGain, gainToDb } from "../../lib/music";
+import type {
+  RecorderRuntime,
+  RecorderRuntimeState,
+} from "../../lib/recorder/runtime";
 import { MetronomeIcon } from "../icons";
 import { Slider } from "../ui/slider";
 import { RecorderEffectsToggle } from "./recorder-effects-toggle";
 import { RecorderMixToggle } from "./recorder-mix-toggle";
 
-interface TrackMix {
-  gain: number;
-  muted: boolean;
-  soloed: boolean;
-}
-
-export interface RecorderMixerState {
-  masterGain: number;
-  metronomeGain: number;
-  metronomeEnabled: boolean;
-  audioTracks: (TrackMix & { id: string; clip?: { name: string } })[];
-  recordingTrack: TrackMix;
-}
-
 export function RecorderMixer({
-  onMasterGainChange,
-  onMetronomeGainChange,
-  onMetronomeEnabledChange,
-  onAudioTrackMixChange,
-  onRecordingTrackMixChange,
+  runtime,
   state,
   openEffects,
   onEffectsToggle,
 }: {
-  onMasterGainChange: (gain: number) => void;
-  onMetronomeGainChange: (gain: number) => void;
-  onMetronomeEnabledChange: (enabled: boolean) => void;
-  onAudioTrackMixChange: (options: {
-    id: string;
-    update: Partial<TrackMix>;
-  }) => void;
-  onRecordingTrackMixChange: (update: Partial<TrackMix>) => void;
-  state: RecorderMixerState;
+  runtime: RecorderRuntime;
+  state: RecorderRuntimeState;
   openEffects: ReadonlySet<string>;
   onEffectsToggle: (id: string) => void;
 }) {
-  const masterInput = useGainInput(state.masterGain, onMasterGainChange);
+  const masterInput = useGainInput(
+    state.masterGain,
+    runtime.setMasterGain.bind(runtime),
+  );
   const metronomeInput = useGainInput(
     state.metronomeGain,
-    onMetronomeGainChange,
+    runtime.setMetronomeGain.bind(runtime),
   );
   return (
     <div className="flex min-w-max justify-center gap-8 py-1">
@@ -54,7 +36,7 @@ export function RecorderMixer({
         icon={<GaugeIcon className="size-4 text-muted-foreground" />}
         label="Master"
         gain={state.masterGain}
-        onGainChange={onMasterGainChange}
+        onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
         testId="recorder-mixer-master"
       />
@@ -68,14 +50,12 @@ export function RecorderMixer({
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
-          onGainChange={(gain) =>
-            onAudioTrackMixChange({ id: track.id, update: { gain } })
-          }
+          onGainChange={(gain) => runtime.setAudioTrackMix(track.id, { gain })}
           onMutedChange={(muted) =>
-            onAudioTrackMixChange({ id: track.id, update: { muted } })
+            runtime.setAudioTrackMix(track.id, { muted })
           }
           onSoloedChange={(soloed) =>
-            onAudioTrackMixChange({ id: track.id, update: { soloed } })
+            runtime.setAudioTrackMix(track.id, { soloed })
           }
         />
       ))}
@@ -87,22 +67,22 @@ export function RecorderMixer({
         muted={state.recordingTrack.muted}
         soloed={state.recordingTrack.soloed}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) => onRecordingTrackMixChange({ gain })}
-        onMutedChange={(muted) => onRecordingTrackMixChange({ muted })}
-        onSoloedChange={(soloed) => onRecordingTrackMixChange({ soloed })}
+        onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+        onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
+        onSoloedChange={(soloed) => runtime.setRecordingTrackMix({ soloed })}
       />
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
         label="Metro"
         gain={state.metronomeGain}
-        onGainChange={onMetronomeGainChange}
+        onGainChange={(gain) => runtime.setMetronomeGain(gain)}
         inputProps={metronomeInput.props}
         testId="recorder-mixer-metro"
         action={
           <RecorderMixToggle
             active={!state.metronomeEnabled}
             kind="mute"
-            onClick={() => onMetronomeEnabledChange(!state.metronomeEnabled)}
+            onClick={() => runtime.setMetronomeEnabled(!state.metronomeEnabled)}
             aria-label="Toggle metronome mute"
             className="h-8 min-w-8 px-1.5 text-xs font-semibold"
           />
