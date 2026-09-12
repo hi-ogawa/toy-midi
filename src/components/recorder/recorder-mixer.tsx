@@ -38,7 +38,7 @@ export function RecorderMixer({
         gain={state.masterGain}
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
-        testId="recorder-mixer-master"
+        data-testid="recorder-mixer-master"
       />
       {state.audioTracks.map((track, index) => (
         <RecorderTrackChannel
@@ -77,7 +77,7 @@ export function RecorderMixer({
         gain={state.metronomeGain}
         onGainChange={(gain) => runtime.setMetronomeGain(gain)}
         inputProps={metronomeInput.props}
-        testId="recorder-mixer-metro"
+        data-testid="recorder-mixer-metro"
         action={
           <RecorderMixToggle
             active={!state.metronomeEnabled}
@@ -126,7 +126,7 @@ function RecorderTrackChannel({
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
-      testId={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
+      data-testid={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
           <RecorderMixToggle
@@ -176,7 +176,7 @@ function MixerChannel({
   gain,
   onGainChange,
   inputProps,
-  testId,
+  "data-testid": testId,
   action,
 }: {
   icon: ReactNode;
@@ -185,7 +185,7 @@ function MixerChannel({
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
-  testId: string;
+  "data-testid": string;
   action?: ReactNode;
 }) {
   return (
