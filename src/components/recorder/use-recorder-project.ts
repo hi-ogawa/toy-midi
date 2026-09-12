@@ -69,7 +69,7 @@ export function useRecorderProject({
         : "saved";
   return {
     dirty,
-    loadError: projectQuery.error ?? undefined,
+    initError: projectQuery.error ?? undefined,
     ready: projectQuery.isSuccess,
     save: saveMutation.mutate,
     saveStatus,

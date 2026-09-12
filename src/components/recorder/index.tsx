@@ -157,7 +157,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     isProcessing;
 
   useWindowEvent("keydown", (event) => {
-    if (project.loadError) {
+    if (project.initError) {
       return;
     }
     if (isHelpOpen) {
@@ -238,7 +238,7 @@ export function Recorder({ projectId }: { projectId: string }) {
 
   return (
     <main
-      inert={project.loadError !== undefined}
+      inert={project.initError !== undefined}
       className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
     >
       <RecorderHeader
@@ -693,9 +693,9 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         )}
       </div>
-      {project.loadError &&
+      {project.initError &&
         createPortal(
-          <RecorderLoadError error={project.loadError} />,
+          <RecorderInitError error={project.initError} />,
           document.body,
         )}
     </main>
@@ -704,18 +704,18 @@ export function Recorder({ projectId }: { projectId: string }) {
 
 // Rendered outside the inert editor so the notice stays interactive while
 // everything beneath it is blocked from pointer and keyboard access.
-function RecorderLoadError({ error }: { error: Error }) {
+function RecorderInitError({ error }: { error: Error }) {
   return (
     <div
       role="alertdialog"
       aria-modal="true"
-      aria-labelledby="recorder-load-error-title"
+      aria-labelledby="recorder-init-error-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/80 p-4 text-neutral-100"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-4 rounded-lg border border-neutral-700 bg-neutral-800 p-6 text-center shadow-2xl">
         <Mic2Icon className="size-6 text-emerald-400" />
         <div className="flex flex-col gap-1">
-          <h1 id="recorder-load-error-title" className="text-lg font-medium">
+          <h1 id="recorder-init-error-title" className="text-lg font-medium">
             Could not open this recording
           </h1>
           <p className="text-sm text-neutral-400">{error.message}</p>
