@@ -14,7 +14,7 @@ export function RecorderEffectsPreview() {
   const [eq, setEq] = useState(INITIAL_EQ);
 
   return (
-    <div className="w-96">
+    <div className="w-96 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl">
       <RecorderEffectsContent
         eq={eq}
         onChange={(update) => setEq((current) => ({ ...current, ...update }))}
