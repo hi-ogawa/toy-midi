@@ -1,6 +1,6 @@
 import { Editor } from "./components/editor";
+import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
-import { ProjectListView } from "./components/project-list-view";
 import { Recorder } from "./components/recorder";
 import { ScoreViewer } from "./components/score-viewer";
 import { getProjectScoreSource } from "./lib/project-score";
@@ -28,7 +28,7 @@ export function App() {
     }
     case "home":
     default: {
-      return <ProjectListView />;
+      return <Home />;
     }
   }
 }
