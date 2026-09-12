@@ -209,6 +209,7 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private audioChannels = new Map<string, AudioChannel>();
   private captureChannel?: AudioChannel;
+  /** Silences existing takes during recording while live monitoring stays audible. */
   private readonly takePlaybackGain: GainNode;
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
