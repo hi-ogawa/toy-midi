@@ -401,13 +401,17 @@ export class RecorderRuntime {
           })
         : track,
     );
-    const recordingTrack = {
-      ...state.recordingTrack,
-      clips: state.recordingTrack.clips.map((take) => ({
-        ...take,
-        timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
-      })),
-    };
+    const recordingTrack =
+      takeOffsets.size > 0
+        ? resolveTrackRegions({
+            ...state.recordingTrack,
+            clips: state.recordingTrack.clips.map((take) =>
+              takeOffsets.has(take.id)
+                ? { ...take, timelineOffset: takeOffsets.get(take.id)! }
+                : take,
+            ),
+          })
+        : state.recordingTrack;
     const referenceVideo = state.referenceVideo
       ? {
           ...state.referenceVideo,
@@ -531,12 +535,12 @@ export class RecorderRuntime {
       this.updateRecordingTrack({
         audioTracks,
         referenceVideo,
-        recordingTrack: {
+        recordingTrack: resolveTrackRegions({
           ...state.recordingTrack,
           clips: state.recordingTrack.clips.filter(
             (take) => !takeIds.has(take.id),
           ),
-        },
+        }),
       });
     } else {
       this.store.update({ audioTracks, referenceVideo });
@@ -709,10 +713,10 @@ export class RecorderRuntime {
     }
     const recordingTrack = this.store.get().recordingTrack;
     this.updateRecordingTrack({
-      recordingTrack: {
+      recordingTrack: resolveTrackRegions({
         ...recordingTrack,
         clips: updateFn(recordingTrack.clips),
-      },
+      }),
     });
     if (wasPlaying) {
       this.transport.play();
@@ -1035,10 +1039,10 @@ export class RecorderRuntime {
       ...project,
       audioTracks,
       position: 0,
-      recordingTrack: {
+      recordingTrack: resolveTrackRegions({
         ...project.recordingTrack,
         height: clampRecordingTrackHeight(project.recordingTrack.height),
-      },
+      }),
     });
     this.captureTrack!.channel.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
@@ -1150,7 +1154,7 @@ export class RecorderRuntime {
       captureStatus: "ready",
       pendingRecording: undefined,
       previewClipRegions: undefined,
-      recordingTrack: {
+      recordingTrack: resolveTrackRegions({
         ...recordingTrack,
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
         clips: [
@@ -1164,7 +1168,7 @@ export class RecorderRuntime {
             timelineOffset,
           },
         ],
-      },
+      }),
     });
   }
 
@@ -1175,12 +1179,11 @@ export class RecorderRuntime {
 
   private updateRecordingTrack(
     update: Omit<Partial<RecorderRuntimeState>, "recordingTrack"> & {
-      recordingTrack: Omit<RecordingTrackState, "regions">;
+      recordingTrack: RecordingTrackState;
     },
   ): void {
-    const recordingTrack = resolveTrackRegions(update.recordingTrack);
-    this.store.update({ ...update, recordingTrack });
-    this.syncTakePlayback(recordingTrack.regions);
+    this.store.update(update);
+    this.syncTakePlayback(update.recordingTrack.regions);
   }
 
   private updatePendingRecording(
