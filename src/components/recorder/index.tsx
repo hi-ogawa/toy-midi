@@ -127,7 +127,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const isProcessing = state.captureStatus === "processing";
 
   function togglePlay() {
-    if (isProcessing) {
+    if (!project.ready || isProcessing) {
       return;
     }
     if (isRecording) {
@@ -140,7 +140,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (isProcessing || state.captureStatus === "disabled") {
+    if (!project.ready || isProcessing || state.captureStatus === "disabled") {
       return;
     }
     recordMutation.mutate(isRecording ? "stop" : "start");
@@ -250,7 +250,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
-        recordDisabled={state.captureStatus === "disabled"}
+        playDisabled={!project.ready}
+        recordDisabled={!project.ready || state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onTitleChange={(nextTitle) => {
           runtime.setTitle(nextTitle);
@@ -259,7 +260,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onRecordToggle={toggleRecord}
         onAutoScrollChange={timeline.setAutoScrollEnabled}
         onPlaybackRateChange={(playbackRate) => {
-          void runtime.setPlaybackRate(playbackRate);
+          runtime.setPlaybackRate(playbackRate);
         }}
         onTempoChange={(tempo) => runtime.setTempo(tempo)}
         onMetronomeChange={(enabled) => runtime.setMetronomeEnabled(enabled)}

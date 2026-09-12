@@ -23,8 +23,11 @@ export function useRecorderProject({
     staleTime: Infinity,
     queryFn: async () => {
       try {
-        const project = await recorderProjectStorage.load(projectId);
-        await runtime.deserializeProject(project);
+        const [, project] = await Promise.all([
+          runtime.init(),
+          recorderProjectStorage.load(projectId),
+        ]);
+        runtime.deserializeProject(project);
         return true;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unknown error");

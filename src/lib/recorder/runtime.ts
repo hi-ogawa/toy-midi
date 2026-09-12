@@ -202,36 +202,66 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
-  private context?: AudioContext;
-  private masterOutput?: GainNode;
-  private transport?: AudioContextTransport;
+  private readonly context = new AudioContext();
+  private readonly masterOutput: GainNode;
+  private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private audioChannels = new Map<string, AudioChannel>();
   private captureChannel?: AudioChannel;
-  private takePlaybackGate?: GainNode;
+  private readonly takePlaybackGate = this.context.createGain();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
     playback: YouTubePlayerPlayback;
   };
-  private metronome?: RecorderMetronome;
+  private readonly metronome: RecorderMetronome;
+
+  constructor() {
+    this.masterOutput = this.context.createGain();
+    this.masterOutput.connect(this.context.destination);
+    this.transport = new AudioContextTransport(this.context);
+    this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
+    this.masterOutput.gain.value = this.store.get().masterGain;
+    this.syncMetronomeGain();
+    this.metronome.setTempo(this.store.get().tempo);
+    this.metronome.setTimeSignature(this.store.get().timeSignature);
+    this.syncLoopRange();
+    this.transport.store.subscribe(() => {
+      const { position, isPlaying } = this.transport.store.get();
+      this.store.update({ isPlaying, position });
+    });
+  }
+
+  async init(): Promise<void> {
+    await Promise.all([
+      ensurePitchShifterWorklet(this.context),
+      ensureBiquadEqWorklet(this.context),
+    ]);
+    if (!this.captureChannel) {
+      this.captureChannel = new AudioChannel({
+        context: this.context,
+        output: this.masterOutput,
+        eq: this.store.get().recordingTrack.eq,
+        gain: deriveTrackMix(this.store.get()).recordingGain,
+      });
+      this.takePlaybackGate.connect(this.captureChannel.input);
+    }
+  }
 
   async startInput({
     deviceId,
   }: {
     deviceId: string;
   }): Promise<{ channelCount: number }> {
-    const context = this.ensureContext();
-    await ensureBiquadEqWorklet(context);
-    const channel = this.getCaptureChannel();
+    const context = this.context;
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: channel.input,
+      output: this.captureChannel!.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -304,9 +334,7 @@ export class RecorderRuntime {
   }
 
   async setAudioTrack(id: string, file: File): Promise<void> {
-    const context = this.ensureContext();
-    const buffer = await context.decodeAudioData(await file.arrayBuffer());
-    await ensureBiquadEqWorklet(context);
+    const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
@@ -414,7 +442,7 @@ export class RecorderRuntime {
       );
     }
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -514,7 +542,7 @@ export class RecorderRuntime {
       this.syncYouTubePlayer();
     }
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -581,7 +609,6 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
-      this.ensureContext();
       const track = this.store
         .get()
         .audioTracks.find((entry) => entry.id === id);
@@ -589,14 +616,14 @@ export class RecorderRuntime {
         throw new Error("Audio track state is missing.");
       }
       const channel = new AudioChannel({
-        context: this.context!,
-        output: this.masterOutput!,
+        context: this.context,
+        output: this.masterOutput,
         eq: track.eq,
         gain: 0,
       });
       this.audioChannels.set(id, channel);
       playback = new AudioBufferPlayback({
-        transport: this.transport!,
+        transport: this.transport,
         output: channel.input,
       });
       playback.setBufferTimelineOffset(track.timelineOffset);
@@ -607,9 +634,6 @@ export class RecorderRuntime {
   }
 
   private syncAudioTrackPlayback(track: AudioTrackState): void {
-    if (!track.clip) {
-      return;
-    }
     const wasPlaying = this.store.get().isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -621,7 +645,7 @@ export class RecorderRuntime {
       end: track.timelineOffset + track.trimEnd,
     });
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -697,47 +721,40 @@ export class RecorderRuntime {
       },
     });
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
   async play(): Promise<void> {
-    const context = this.ensureContext();
-    await Promise.all([
-      ensurePitchShifterWorklet(context),
-      ensureBiquadEqWorklet(context),
-    ]);
-    await context.resume();
-    this.getCaptureChannel();
-    this.transport!.play();
+    await this.context.resume();
+    this.transport.play();
   }
 
   pause(): void {
-    this.transport?.pause();
+    this.transport.pause();
   }
 
   seek(position: number): void {
-    this.ensureContext();
-    this.transport!.seek(position);
+    this.transport.seek(position);
   }
 
   async startRecording(): Promise<void> {
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = this.ensureContext();
+    const context = this.context;
     await context.resume();
     const captureStartFrame = await this.captureInput.startCapture();
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.takePlaybackGate!.gain.setValueAtTime(0, context.currentTime);
+    this.takePlaybackGate.gain.setValueAtTime(0, context.currentTime);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
-      this.transport!.playbackAnchor!.contextTime * context.sampleRate;
+      this.transport.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
-      this.transport!.getPlaybackPositionByContextTime(
+      this.transport.getPlaybackPositionByContextTime(
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
@@ -786,22 +803,20 @@ export class RecorderRuntime {
 
   setTempo(tempo: number): void {
     this.store.update({ tempo });
-    this.metronome?.setTempo(tempo);
+    this.metronome.setTempo(tempo);
     this.syncLoopRange();
   }
 
-  async setPlaybackRate(playbackRate: number): Promise<void> {
-    const context = this.ensureContext();
-    await ensurePitchShifterWorklet(context);
-    this.transport!.setPlaybackRate(playbackRate);
+  setPlaybackRate(playbackRate: number): void {
+    this.transport.setPlaybackRate(playbackRate);
     this.store.update({ playbackRate });
   }
 
   setMasterGain(masterGain: number): void {
     this.store.update({ masterGain });
-    this.masterOutput?.gain.setTargetAtTime(
+    this.masterOutput.gain.setTargetAtTime(
       masterGain,
-      this.context!.currentTime,
+      this.context.currentTime,
       0.01,
     );
   }
@@ -831,7 +846,7 @@ export class RecorderRuntime {
 
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
-    this.metronome?.setTimeSignature(timeSignature);
+    this.metronome.setTimeSignature(timeSignature);
   }
 
   setTitle(title: string): void {
@@ -876,7 +891,6 @@ export class RecorderRuntime {
     videoId: string;
     player: YouTubePlayerApi;
   }): () => void {
-    this.ensureContext();
     const duration = player.getDuration();
     if (!Number.isFinite(duration) || duration <= 0) {
       throw new Error("YouTube player returned an invalid duration.");
@@ -884,7 +898,7 @@ export class RecorderRuntime {
 
     this.detachYouTubePlayer();
     const playback = new YouTubePlayerPlayback({
-      transport: this.transport!,
+      transport: this.transport,
       duration,
       player,
     });
@@ -982,15 +996,10 @@ export class RecorderRuntime {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
-  async deserializeProject(
-    project: SerializedRecorderRuntimeState,
-  ): Promise<void> {
-    const context = this.ensureContext();
-    await ensureBiquadEqWorklet(context);
-    this.getCaptureChannel();
+  deserializeProject(project: SerializedRecorderRuntimeState): void {
     this.replacePersistableState(
       deserializeRecorderRuntimeState({
-        context,
+        context: this.context,
         project,
       }),
     );
@@ -1005,7 +1014,6 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot load a project while recording.");
     }
-    this.ensureContext();
     this.pause();
     for (const playback of this.audioTrackPlaybacks.values()) {
       playback.dispose();
@@ -1021,14 +1029,14 @@ export class RecorderRuntime {
         continue;
       }
       const channel = new AudioChannel({
-        context: this.context!,
-        output: this.masterOutput!,
+        context: this.context,
+        output: this.masterOutput,
         eq: track.eq,
         gain: 0,
       });
       this.audioChannels.set(track.id, channel);
       const playback = new AudioBufferPlayback({
-        transport: this.transport!,
+        transport: this.transport,
         output: channel.input,
       });
       playback.setBuffer(buffer);
@@ -1051,11 +1059,11 @@ export class RecorderRuntime {
     });
     this.captureChannel!.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
-    this.transport!.seek(0);
-    this.metronome!.setTempo(project.tempo);
-    this.metronome!.setTimeSignature(project.timeSignature);
+    this.transport.seek(0);
+    this.metronome.setTempo(project.tempo);
+    this.metronome.setTimeSignature(project.timeSignature);
     this.syncLoopRange();
-    this.masterOutput!.gain.value = project.masterGain;
+    this.masterOutput.gain.value = project.masterGain;
     this.syncMetronomeGain();
     this.syncTrackMix();
   }
@@ -1082,41 +1090,6 @@ export class RecorderRuntime {
     });
   }
 
-  private ensureContext(): AudioContext {
-    if (!this.context) {
-      this.context = new AudioContext();
-      this.masterOutput = this.context.createGain();
-      this.masterOutput.connect(this.context.destination);
-      this.takePlaybackGate = this.context.createGain();
-      this.transport = new AudioContextTransport(this.context);
-      this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
-      this.masterOutput.gain.value = this.store.get().masterGain;
-      this.syncMetronomeGain();
-      this.metronome.setTempo(this.store.get().tempo);
-      this.metronome.setTimeSignature(this.store.get().timeSignature);
-      this.syncLoopRange();
-      this.transport.store.subscribe(() => {
-        const { position, isPlaying } = this.transport!.store.get();
-        this.store.update({ isPlaying, position });
-      });
-    }
-    return this.context;
-  }
-
-  /** Called after EQ worklet registration at input, playback, or project load. */
-  private getCaptureChannel(): AudioChannel {
-    if (!this.captureChannel) {
-      this.captureChannel = new AudioChannel({
-        context: this.context!,
-        output: this.masterOutput!,
-        eq: this.store.get().recordingTrack.eq,
-        gain: deriveTrackMix(this.store.get()).recordingGain,
-      });
-      this.takePlaybackGate!.connect(this.captureChannel.input);
-    }
-    return this.captureChannel;
-  }
-
   private syncTrackMix(): void {
     const { audioTracks, recordingTrack } = this.store.get();
     const { audioTrackGains, recordingGain } = deriveTrackMix({
@@ -1129,21 +1102,21 @@ export class RecorderRuntime {
     this.captureChannel?.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = this.store.get();
-    this.takePlaybackGate?.gain.setValueAtTime(
+    this.takePlaybackGate.gain.setValueAtTime(
       captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
-      this.context!.currentTime,
+      this.context.currentTime,
     );
   }
 
   private syncMetronomeGain(): void {
     const state = this.store.get();
-    this.metronome?.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
+    this.metronome.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
   }
 
   private syncLoopRange(): void {
     const state = this.store.get();
     const loopRange = state.loop.enabled ? state.loop.range : undefined;
-    this.transport?.setLoopRange(
+    this.transport.setLoopRange(
       loopRange
         ? {
             start: beatsToSeconds(loopRange.startBeat, state.tempo),
@@ -1156,7 +1129,7 @@ export class RecorderRuntime {
   private finishRecording(stopFrame: number): void {
     const context = this.context;
     const pendingRecording = this.store.get().pendingRecording;
-    if (!context || !pendingRecording) {
+    if (!pendingRecording) {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
@@ -1249,7 +1222,6 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
@@ -1260,8 +1232,8 @@ export class RecorderRuntime {
         continue;
       }
       const playback = new AudioBufferPlayback({
-        transport: this.transport!,
-        output: this.takePlaybackGate!,
+        transport: this.transport,
+        output: this.takePlaybackGate,
       });
       playback.setBuffer(take.buffer);
       playback.setBufferTimelineOffset(take.timelineOffset);
