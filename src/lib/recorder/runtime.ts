@@ -389,24 +389,22 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracksToSync: AudioTrackState[] = [];
     const audioTracks = state.audioTracks.map((track) => {
-      let changed = false;
-      const clips = track.clips.map((clip) => {
-        const timelineOffset = audioOffsets.get(clip.id);
-        if (timelineOffset === undefined) {
-          return clip;
-        }
-        changed = true;
-        return { ...clip, timelineOffset };
-      });
-      if (!changed) {
+      if (!track.clips.some((clip) => audioOffsets.has(clip.id))) {
         return track;
       }
-      const next = resolveTrackRegions({ ...track, clips });
-      audioTracksToSync.push(next);
-      return next;
+      return resolveTrackRegions({
+        ...track,
+        clips: track.clips.map((clip) =>
+          audioOffsets.has(clip.id)
+            ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
+            : clip,
+        ),
+      });
     });
+    const audioTracksToSync = audioTracks.filter(
+      (track, index) => track !== state.audioTracks[index],
+    );
     const recordingTrack =
       takeOffsets.size > 0
         ? resolveTrackRegions({
@@ -499,16 +497,16 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracksToSync: AudioTrackState[] = [];
     const audioTracks = state.audioTracks.map((track) => {
       const clips = track.clips.filter((clip) => !audioIds.has(clip.id));
       if (clips.length === track.clips.length) {
         return track;
       }
-      const next = resolveTrackRegions({ ...track, clips });
-      audioTracksToSync.push(next);
-      return next;
+      return resolveTrackRegions({ ...track, clips });
     });
+    const audioTracksToSync = audioTracks.filter(
+      (track, index) => track !== state.audioTracks[index],
+    );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     const recordingTrack =
       takeIds.size > 0
