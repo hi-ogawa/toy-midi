@@ -23,21 +23,8 @@ flowchart LR
         end
     end
 
-    subgraph audioTrack["audioTracks.get(id): AudioTrackPlayback"]
-        audioSource["playbacks[i].source"] --> audioBusInput
-        subgraph audioPitchShiftBus["bus: PitchShiftBus"]
-            audioBusInput["input"] --> audioPitchShifter["pitchShifter (optional)"]
-        end
-        audioPitchShifter --> audioPlaybackGain["playbackGain"]
-        audioPlaybackGain --> trackInput
-        subgraph audioChannel["channel: AudioChannel"]
-            trackInput["input"] --> trackEqualizer["equalizer"]
-            trackEqualizer --> trackGain["gain"]
-        end
-    end
-
     captureGain --> masterOutput["masterOutput"]
-    trackGain --> masterOutput
+    audioTrack["audioTracks.get(id): AudioTrackPlayback"] --> masterOutput
     oscillator["oscillator"] --> envelope["envelope"]
     envelope --> metronomeOutput["metronome.output"]
     metronomeOutput --> masterOutput
