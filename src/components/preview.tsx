@@ -19,8 +19,6 @@ const PREVIEWS = [
   },
 ] as const;
 
-type PreviewId = (typeof PREVIEWS)[number]["id"];
-
 export function Preview() {
   const [previewId, setPreviewId] = useState(readPreviewId);
   const preview = PREVIEWS.find((entry) => entry.id === previewId)!;
@@ -37,7 +35,7 @@ export function Preview() {
     return () => window.removeEventListener("popstate", syncPreview);
   }, []);
 
-  function selectPreview(id: PreviewId) {
+  function selectPreview(id: string) {
     const url = new URL(window.location.href);
     url.searchParams.set("component", id);
     window.history.pushState({}, "", url);
@@ -58,11 +56,7 @@ export function Preview() {
           <DropdownMenuContent align="start">
             <DropdownMenuRadioGroup
               value={previewId}
-              onValueChange={(value) => {
-                if (isPreviewId(value)) {
-                  selectPreview(value);
-                }
-              }}
+              onValueChange={selectPreview}
             >
               {PREVIEWS.map((entry) => (
                 <DropdownMenuRadioItem key={entry.id} value={entry.id}>
@@ -87,11 +81,7 @@ export function Preview() {
   );
 }
 
-function readPreviewId(): PreviewId {
+function readPreviewId(): string {
   const value = new URL(window.location.href).searchParams.get("component");
-  return isPreviewId(value) ? value : PREVIEWS[0].id;
-}
-
-function isPreviewId(value: string | null): value is PreviewId {
-  return PREVIEWS.some((entry) => entry.id === value);
+  return PREVIEWS.find((entry) => entry.id === value)?.id ?? PREVIEWS[0].id;
 }
