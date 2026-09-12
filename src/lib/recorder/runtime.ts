@@ -446,40 +446,18 @@ export class RecorderRuntime {
   trimClip({ type, id, edge, value }: RecorderClipTrim): void {
     switch (type) {
       case "audio": {
-        const owner = this.store
-          .get()
-          .audioTracks.find((track) =>
-            track.clips.some((clip) => clip.id === id),
-          );
-        if (!owner) {
-          throw new Error("Recorder clip state is missing.");
-        }
-        const track = this.updateAudioTrack(owner.id, (track) => ({
-          ...track,
-          clips: track.clips.map((clip) =>
-            clip.id !== id
-              ? clip
-              : {
-                  ...clip,
-                  ...(edge === "start"
-                    ? {
-                        trimStart: clamp(
-                          value,
-                          0,
-                          clip.trimEnd - MIN_TAKE_DURATION,
-                        ),
-                      }
-                    : {
-                        trimEnd: clamp(
-                          value,
-                          clip.trimStart + MIN_TAKE_DURATION,
-                          clip.duration,
-                        ),
-                      }),
-                },
-          ),
+        this.updateAudioClip(id, (clip) => ({
+          ...clip,
+          ...(edge === "start"
+            ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_TAKE_DURATION) }
+            : {
+                trimEnd: clamp(
+                  value,
+                  clip.trimStart + MIN_TAKE_DURATION,
+                  clip.duration,
+                ),
+              }),
         }));
-        this.syncAudioTrackPlayback(track);
         break;
       }
       case "take": {
@@ -595,6 +573,23 @@ export class RecorderRuntime {
       },
     });
     this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
+  }
+
+  private updateAudioClip(
+    id: string,
+    update: (clip: AudioClip) => AudioClip,
+  ): void {
+    const owner = this.store
+      .get()
+      .audioTracks.find((track) => track.clips.some((clip) => clip.id === id));
+    if (!owner) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    const track = this.updateAudioTrack(owner.id, (track) => ({
+      ...track,
+      clips: track.clips.map((clip) => (clip.id === id ? update(clip) : clip)),
+    }));
+    this.syncAudioTrackPlayback(track);
   }
 
   private updateAudioTrack(
