@@ -7,6 +7,8 @@ import {
   BiquadEq,
 } from "./biquad-eq";
 
+import { MAX_EQ_BANDS, MultibandEq } from "./biquad-eq-multiband";
+
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {
   frequency: 1000,
@@ -116,6 +118,80 @@ describe(BiquadEq, () => {
   });
 });
 
+describe(MultibandEq, () => {
+  it("cascades bands in one fixed-capacity processor", () => {
+    const eq = new MultibandEq({
+      sampleRate: SAMPLE_RATE,
+      channelCount: 1,
+      parameters: {
+        bypass: false,
+        bands: ["a", "b"].map((id) => ({
+          id,
+          ...DEFAULT_PARAMETERS,
+          gain: dbToGain(6),
+        })),
+      },
+    });
+    const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
+    const output = process(eq, input);
+    expect(
+      10 *
+        Math.log10(
+          measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+            measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+        ),
+    ).toBeCloseTo(12, 3);
+  });
+
+  it("reconciles updates by band ID without resetting its ramp", () => {
+    const eq = new MultibandEq({
+      sampleRate: SAMPLE_RATE,
+      channelCount: 1,
+      parameters: {
+        bypass: false,
+        bands: [{ id: "band", ...DEFAULT_PARAMETERS }],
+      },
+    });
+    eq.setParameters({
+      bypass: false,
+      bands: [{ id: "band", ...DEFAULT_PARAMETERS, gain: dbToGain(18) }],
+    });
+    const input = createSignal({ frames: 100, frequency: 1000 });
+    const ramped = process(eq, input);
+    const replaced = process(
+      new MultibandEq({
+        sampleRate: SAMPLE_RATE,
+        channelCount: 1,
+        parameters: {
+          bypass: false,
+          bands: [
+            { id: "replacement", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+          ],
+        },
+      }),
+      input,
+    );
+    expect(measureEnergy(ramped) / measureEnergy(replaced)).toBeLessThan(0.5);
+  });
+
+  it("rejects state beyond its fixed capacity", () => {
+    expect(
+      () =>
+        new MultibandEq({
+          sampleRate: SAMPLE_RATE,
+          channelCount: 1,
+          parameters: {
+            bypass: false,
+            bands: Array.from({ length: MAX_EQ_BANDS + 1 }, (_, index) => ({
+              id: String(index),
+              ...DEFAULT_PARAMETERS,
+            })),
+          },
+        }),
+    ).toThrow(`EQ supports at most ${MAX_EQ_BANDS} bands`);
+  });
+});
+
 describe(calculateBiquadEqResponse, () => {
   it.each([-18, -6, 0, 6, 18])(
     "returns %s dB at the center frequency",
@@ -204,7 +280,10 @@ function createSignal({
   );
 }
 
-function process(eq: BiquadEq, input: Float32Array): Float32Array {
+function process(
+  eq: Pick<BiquadEq, "process">,
+  input: Float32Array,
+): Float32Array {
   const output = new Float32Array(input.length);
   eq.process({ input: [input], output: [output] });
   return output;
