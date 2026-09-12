@@ -18,7 +18,7 @@ export type AudioPlaybackRegion = {
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
   private playbacks: AudioBufferPlayback[] = [];
-  private readonly bus: PlaybackBus;
+  private readonly bus: PitchShiftBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
   readonly channel: AudioChannel;
@@ -43,7 +43,7 @@ export class AudioTrackPlayback {
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);
-    this.bus = new PlaybackBus({ transport, output: this.playbackGain });
+    this.bus = new PitchShiftBus({ transport, output: this.playbackGain });
   }
 
   setRegions(regions: readonly AudioPlaybackRegion[]): void {
@@ -81,7 +81,7 @@ export class AudioTrackPlayback {
 }
 
 /** Sums playback sources before pitch correction for one transport run. */
-class PlaybackBus implements TransportParticipant {
+class PitchShiftBus implements TransportParticipant {
   readonly input: GainNode;
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;

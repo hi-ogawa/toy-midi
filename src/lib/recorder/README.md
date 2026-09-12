@@ -12,7 +12,7 @@ flowchart LR
 
     subgraph captureTrack["captureTrack: AudioTrackPlayback"]
         takeSource["playbacks[i].source"] --> takeBusInput
-        subgraph takePlaybackBus["bus: PlaybackBus"]
+        subgraph takePitchShiftBus["bus: PitchShiftBus"]
             takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
         end
         takePitchShifter --> takePlaybackGain["playbackGain"]
@@ -25,7 +25,7 @@ flowchart LR
 
     subgraph audioTrack["audioTracks.get(id): AudioTrackPlayback"]
         audioSource["playbacks[i].source"] --> audioBusInput
-        subgraph audioPlaybackBus["bus: PlaybackBus"]
+        subgraph audioPitchShiftBus["bus: PitchShiftBus"]
             audioBusInput["input"] --> audioPitchShifter["pitchShifter (optional)"]
         end
         audioPitchShifter --> audioPlaybackGain["playbackGain"]
