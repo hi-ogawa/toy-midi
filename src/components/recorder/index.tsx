@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { Mic2Icon } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -9,6 +10,7 @@ import {
 } from "../../lib/keyboard";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
+import { routes } from "../../lib/routes";
 import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
@@ -154,6 +156,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     isProcessing;
 
   useWindowEvent("keydown", (event) => {
+    if (project.loadError) {
+      return;
+    }
     if (isHelpOpen) {
       if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
         event.preventDefault();
@@ -229,6 +234,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       timeline.setAutoScrollEnabled(!timeline.autoScrollEnabled);
     }
   });
+
+  if (project.loadError) {
+    return <RecorderLoadError error={project.loadError} />;
+  }
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100">
@@ -683,6 +692,24 @@ export function Recorder({ projectId }: { projectId: string }) {
           />
         )}
       </div>
+    </main>
+  );
+}
+
+function RecorderLoadError({ error }: { error: Error }) {
+  return (
+    <main className="flex h-screen flex-col items-center justify-center gap-6 bg-neutral-900 px-6 text-neutral-100">
+      <div className="flex max-w-md flex-col items-center gap-2 text-center">
+        <Mic2Icon className="size-6 text-emerald-400" />
+        <h1 className="text-lg font-medium">Could not open this recording</h1>
+        <p className="text-sm text-neutral-400">{error.message}</p>
+      </div>
+      <a
+        href={routes.home.href()}
+        className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
+      >
+        Back to projects
+      </a>
     </main>
   );
 }
