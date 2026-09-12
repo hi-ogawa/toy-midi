@@ -364,24 +364,16 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracksToSync: AudioTrackState[] = [];
-    const audioTracks = state.audioTracks.map((track) => {
-      let changed = false;
-      const clips = track.clips.map((clip) => {
-        const timelineOffset = audioOffsets.get(clip.id);
-        if (timelineOffset === undefined) {
-          return clip;
-        }
-        changed = true;
-        return { ...clip, timelineOffset };
-      });
-      if (!changed) {
-        return track;
-      }
-      const next = resolveTrackRegions({ ...track, clips });
-      audioTracksToSync.push(next);
-      return next;
-    });
+    const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
+      state.audioTracks,
+      new Set(audioOffsets.keys()),
+      (clips) =>
+        clips.map((clip) =>
+          audioOffsets.has(clip.id)
+            ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
+            : clip,
+        ),
+    );
     const referenceVideo = state.referenceVideo
       ? {
           ...state.referenceVideo,
@@ -404,18 +396,42 @@ export class RecorderRuntime {
   }
 
   trimClip({ id, edge, value }: RecorderClipTrim): void {
-    this.updateAudioClip(id, (clip) => ({
-      ...clip,
-      ...(edge === "start"
-        ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_TAKE_DURATION) }
-        : {
-            trimEnd: clamp(
-              value,
-              clip.trimStart + MIN_TAKE_DURATION,
-              clip.duration,
-            ),
-          }),
-    }));
+    const state = this.store.get();
+    const clipIds = new Set([id]);
+    const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
+      state.audioTracks,
+      clipIds,
+      (clips) =>
+        clips.map((clip) =>
+          clipIds.has(clip.id)
+            ? {
+                ...clip,
+                ...(edge === "start"
+                  ? {
+                      trimStart: clamp(
+                        value,
+                        0,
+                        clip.trimEnd - MIN_TAKE_DURATION,
+                      ),
+                    }
+                  : {
+                      trimEnd: clamp(
+                        value,
+                        clip.trimStart + MIN_TAKE_DURATION,
+                        clip.duration,
+                      ),
+                    }),
+              }
+            : clip,
+        ),
+    );
+    if (audioTracksToSync.length === 0) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    this.store.update({ audioTracks });
+    for (const track of audioTracksToSync) {
+      this.syncAudioTrackPlayback(track);
+    }
   }
 
   removeClips(clips: readonly RecorderClipId[]): void {
@@ -441,16 +457,11 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracksToSync: AudioTrackState[] = [];
-    const audioTracks = state.audioTracks.map((track) => {
-      const clips = track.clips.filter((clip) => !audioIds.has(clip.id));
-      if (clips.length === track.clips.length) {
-        return track;
-      }
-      const next = resolveTrackRegions({ ...track, clips });
-      audioTracksToSync.push(next);
-      return next;
-    });
+    const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
+      state.audioTracks,
+      audioIds,
+      (clips) => clips.filter((clip) => !audioIds.has(clip.id)),
+    );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     this.store.update({ audioTracks, referenceVideo });
     for (const track of audioTracksToSync) {
@@ -1051,6 +1062,23 @@ export class RecorderRuntime {
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
   }
+}
+
+function updateAudioTrackClips(
+  tracks: AudioTrackState[],
+  clipIds: ReadonlySet<string>,
+  update: (clips: AudioClip[]) => AudioClip[],
+): { audioTracks: AudioTrackState[]; audioTracksToSync: AudioTrackState[] } {
+  const audioTracksToSync: AudioTrackState[] = [];
+  const audioTracks = tracks.map((track) => {
+    if (!track.clips.some((clip) => clipIds.has(clip.id))) {
+      return track;
+    }
+    const next = resolveTrackRegions({ ...track, clips: update(track.clips) });
+    audioTracksToSync.push(next);
+    return next;
+  });
+  return { audioTracks, audioTracksToSync };
 }
 
 function resolveTrackRegions(

@@ -1,6 +1,9 @@
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
-import type { SerializedRecorderRuntimeState } from "./persistence.ts";
+import type {
+  RecorderPcm,
+  SerializedRecorderRuntimeState,
+} from "./persistence.ts";
 import type { RecorderLocator } from "./runtime.ts";
 
 export type RecorderProjectInput =
@@ -65,11 +68,11 @@ export function migrateRecorderProject(
   };
 }
 
-export interface LegacyRecorderProject {
+export interface LegacyRecorderProject<ChannelData = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
-  audioTracks: SerializedAudioTrackState[];
+  audioTracks: SerializedAudioTrackState<ChannelData>[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -77,7 +80,7 @@ export interface LegacyRecorderProject {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState[];
+    takes: SerializedTakeState<ChannelData>[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -113,14 +116,14 @@ export interface LegacyRecorderProject {
   };
 }
 
-interface SerializedAudioTrackState {
+interface SerializedAudioTrackState<ChannelData> {
   // Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm;
+    pcm: RecorderPcm<ChannelData>;
   };
   gain: number;
   muted: boolean;
@@ -131,7 +134,7 @@ interface SerializedAudioTrackState {
   trimEnd?: number;
 }
 
-interface SerializedTakeState {
+interface SerializedTakeState<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -141,10 +144,5 @@ interface SerializedTakeState {
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm;
-}
-
-interface RecorderPcm {
-  sampleRate: number;
-  channels: Float32Array[];
+  pcm: RecorderPcm<ChannelData>;
 }

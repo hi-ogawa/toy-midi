@@ -531,7 +531,7 @@ export function TakeTimelineLane({
   );
 }
 
-export function TimelineLane({
+export function AudioTimelineLane({
   beatsPerBar,
   clips,
   regions,
@@ -611,6 +611,74 @@ export function TimelineLane({
           />
         );
       })}
+    </div>
+  );
+}
+
+export function TimelineLane({
+  beatsPerBar,
+  clip,
+  emptyLabel,
+  pixelsPerBeat,
+  viewportStartBeat,
+  tempo,
+  viewportWidth,
+  selected,
+  onClipDragStart,
+  onClipClick,
+  onClipDragMove,
+  onTrimStart,
+  onTrimMove,
+  subdivisionsPerBeat,
+  onSeek,
+}: {
+  beatsPerBar: number;
+  clip?: RecorderTimelineClip;
+  emptyLabel: string;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  tempo: number;
+  viewportWidth: number;
+  selected: boolean;
+  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (additive: boolean) => void;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  subdivisionsPerBeat: number;
+  onSeek: (position: number) => void;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden bg-neutral-900"
+      {...getTimelineSurfaceProps({
+        beatsPerBar,
+        onSeek,
+        pixelsPerBeat,
+        tempo,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
+    >
+      {clip ? (
+        <TimelineClip
+          clip={clip}
+          pixelsPerBeat={pixelsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+          tempo={tempo}
+          viewportWidth={viewportWidth}
+          selected={selected}
+          onClipDragStart={onClipDragStart}
+          onClipClick={onClipClick}
+          onClipDragMove={onClipDragMove}
+          onTrimStart={onTrimStart}
+          onTrimMove={onTrimMove}
+        />
+      ) : (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
     </div>
   );
 }

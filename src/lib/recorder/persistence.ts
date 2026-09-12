@@ -14,7 +14,11 @@ import {
   type RecorderLocator,
 } from "./runtime.ts";
 
-export interface SerializedRecorderRuntimeState {
+/**
+ * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
+ * path (`string`) in project archives.
+ */
+export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   version: 2;
   title: string;
   locators?: RecorderLocator[];
@@ -35,7 +39,7 @@ export interface SerializedRecorderRuntimeState {
       timelineOffset: number;
       trimStart?: number;
       trimEnd?: number;
-      pcm: { sampleRate: number; channels: Float32Array[] };
+      pcm: RecorderPcm<ChannelData>;
     }[];
   }[];
   latencyCompensation: number;
@@ -68,6 +72,11 @@ export interface SerializedRecorderRuntimeState {
     title?: string;
     duration: number;
   };
+}
+
+export interface RecorderPcm<ChannelData> {
+  sampleRate: number;
+  channels: ChannelData[];
 }
 
 export function serializeRecorderRuntimeState(

@@ -1,11 +1,17 @@
 import JSZip from "jszip";
-import type { SerializedRecorderRuntimeState } from "./persistence.ts";
+import type {
+  RecorderPcm,
+  SerializedRecorderRuntimeState,
+} from "./persistence.ts";
 import {
   migrateRecorderProject,
   type LegacyRecorderProject,
 } from "./project-migration.ts";
 
 // Audio channels are stored at audio/tracks/<track>/clips/<clip>/channel-<channel>.f32.
+// project.json serializes SerializedRecorderRuntimeState<string>, replacing
+// each PCM channel's Float32Array with its ZIP entry path. The samples are
+// stored separately in the referenced .f32 files.
 const CURRENT_FORMAT_VERSION = 2;
 const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
@@ -14,61 +20,6 @@ interface RecorderProjectManifest {
   formatVersion: number;
   projectType: "recorder";
   exportedAt: string;
-}
-
-interface RecorderProjectFileContent extends Omit<
-  SerializedRecorderRuntimeState,
-  "audioTracks"
-> {
-  audioTracks: RecorderProjectAudioTrack[];
-}
-
-interface RecorderProjectAudioTrack extends Omit<
-  SerializedRecorderRuntimeState["audioTracks"][number],
-  "clips"
-> {
-  clips: RecorderProjectClip[];
-}
-
-interface RecorderProjectClip extends Omit<
-  SerializedRecorderRuntimeState["audioTracks"][number]["clips"][number],
-  "pcm"
-> {
-  pcm: RecorderProjectPcm;
-}
-
-interface RecorderProjectFileContentV1 extends Omit<
-  LegacyRecorderProject,
-  "audioTracks" | "recordingTrack"
-> {
-  audioTracks: RecorderProjectAudioTrackV1[];
-  recordingTrack: RecorderProjectRecordingTrackV1;
-}
-
-interface RecorderProjectAudioTrackV1 extends Omit<
-  LegacyRecorderProject["audioTracks"][number],
-  "clip"
-> {
-  clip?: { name: string; pcm: RecorderProjectPcm };
-}
-
-interface RecorderProjectRecordingTrackV1 extends Omit<
-  LegacyRecorderProject["recordingTrack"],
-  "takes"
-> {
-  takes: RecorderProjectTakeV1[];
-}
-
-interface RecorderProjectTakeV1 extends Omit<
-  LegacyRecorderProject["recordingTrack"]["takes"][number],
-  "pcm"
-> {
-  pcm: RecorderProjectPcm;
-}
-
-interface RecorderProjectPcm {
-  sampleRate: number;
-  channels: string[];
 }
 
 export async function exportRecorderProjectArchive(
@@ -94,7 +45,7 @@ export async function exportRecorderProjectArchiveV1(
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
   };
-  const project: RecorderProjectFileContentV1 = {
+  const project: LegacyRecorderProject<string> = {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
@@ -148,20 +99,23 @@ export async function parseRecorderProjectArchive(
     );
   }
   if (formatVersion === 1) {
-    const project = await readJson<RecorderProjectFileContentV1>(
+    const project = await readJson<LegacyRecorderProject<string>>(
       zip,
       PROJECT_PATH,
     );
     return migrateRecorderProject(await readProjectContentV1(zip, project));
   }
-  const project = await readJson<RecorderProjectFileContent>(zip, PROJECT_PATH);
+  const project = await readJson<SerializedRecorderRuntimeState<string>>(
+    zip,
+    PROJECT_PATH,
+  );
   return readProjectContent(zip, project);
 }
 
 function writeProjectContent(
   zip: JSZip,
   content: SerializedRecorderRuntimeState,
-): RecorderProjectFileContent {
+): SerializedRecorderRuntimeState<string> {
   return {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
@@ -180,7 +134,7 @@ function writeProjectContent(
 
 async function readProjectContent(
   zip: JSZip,
-  content: RecorderProjectFileContent,
+  content: SerializedRecorderRuntimeState<string>,
 ): Promise<SerializedRecorderRuntimeState> {
   return {
     ...content,
@@ -200,7 +154,7 @@ async function readProjectContent(
 
 async function readProjectContentV1(
   zip: JSZip,
-  content: RecorderProjectFileContentV1,
+  content: LegacyRecorderProject<string>,
 ): Promise<LegacyRecorderProject> {
   return {
     ...content,
@@ -226,9 +180,9 @@ async function readProjectContentV1(
 
 function writeProjectPcm(
   zip: JSZip,
-  pcm: { sampleRate: number; channels: Float32Array[] },
+  pcm: RecorderPcm<Float32Array>,
   path: string,
-): RecorderProjectPcm {
+): RecorderPcm<string> {
   return {
     sampleRate: pcm.sampleRate,
     channels: pcm.channels.map((channel, channelIndex) => {
@@ -245,8 +199,8 @@ function writeProjectPcm(
 
 async function readProjectPcm(
   zip: JSZip,
-  pcm: RecorderProjectPcm,
-): Promise<{ sampleRate: number; channels: Float32Array[] }> {
+  pcm: RecorderPcm<string>,
+): Promise<RecorderPcm<Float32Array>> {
   const channels = await Promise.all(
     pcm.channels.map(async (path) => {
       const entry = zip.file(path);
