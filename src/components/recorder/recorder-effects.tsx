@@ -179,15 +179,6 @@ export function RecorderEffectsContent({
             </button>
           );
         })}
-        {eq.bands.length === 0 && (
-          <button
-            type="button"
-            onClick={addBand}
-            className="h-8 rounded border border-dashed border-neutral-600 px-3 text-xs text-neutral-400 hover:border-neutral-500 hover:text-neutral-100"
-          >
-            Add first band
-          </button>
-        )}
       </div>
 
       {selectedBand && (
