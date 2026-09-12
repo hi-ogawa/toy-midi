@@ -4,6 +4,13 @@ import { AudioChannel } from "./audio-channel.ts";
 import { PlaybackBus } from "./playback-bus.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
+type AudioPlaybackRegion = {
+  buffer: AudioBuffer;
+  timelineOffset: number;
+  timelineStart: number;
+  timelineEnd: number;
+};
+
 /** Owns region playback and a channel that also accepts independently routed input. */
 export class AudioTrackPlayback {
   readonly channel: AudioChannel;
@@ -36,14 +43,7 @@ export class AudioTrackPlayback {
     this.bus = new PlaybackBus({ transport, output: this.playbackGain });
   }
 
-  setRegions(
-    regions: readonly {
-      buffer: AudioBuffer;
-      timelineOffset: number;
-      timelineStart: number;
-      timelineEnd: number;
-    }[],
-  ): void {
+  setRegions(regions: readonly AudioPlaybackRegion[]): void {
     for (const playback of this.playbacks) {
       playback.dispose();
     }
