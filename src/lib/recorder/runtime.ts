@@ -569,6 +569,8 @@ export class RecorderRuntime {
     this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
   }
 
+  // Single-clip trim publishes and syncs playback here. Future bulk trim should
+  // batch edits, publish once, and sync each affected track once, like move/delete.
   private updateAudioClip(
     id: string,
     update: (clip: AudioClip) => AudioClip,
