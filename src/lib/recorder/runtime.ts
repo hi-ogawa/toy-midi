@@ -219,9 +219,9 @@ export class RecorderRuntime {
   private readonly metronome: RecorderMetronome;
 
   constructor() {
-    this.takePlaybackGain = this.context.createGain();
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
+    this.takePlaybackGain = this.context.createGain();
     this.transport = new AudioContextTransport(this.context);
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
