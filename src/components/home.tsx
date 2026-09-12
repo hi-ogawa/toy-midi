@@ -78,23 +78,23 @@ export function Home() {
             options={[
               {
                 value: "midi",
-                content: <MidiProjectList />,
                 label: (
                   <>
                     <PianoIcon aria-hidden="true" className="size-4" />
                     MIDI
                   </>
                 ),
+                content: <MidiProjectList />,
               },
               {
                 value: "recorder",
-                content: <RecorderProjectList />,
                 label: (
                   <>
                     <Mic2Icon aria-hidden="true" className="size-4" />
                     Recorder
                   </>
                 ),
+                content: <RecorderProjectList />,
               },
             ]}
           />
