@@ -172,9 +172,11 @@ export function RecorderEffectsContent({
                   opacity: band.bypass ? 0.35 : 1,
                 }}
               />
-              <span>{index + 1}</span>
-              <span className="font-mono text-[10px] text-neutral-500">
-                {formatFrequency(band.frequency)}
+              <span className="flex items-baseline gap-1.5">
+                <span>{index + 1}</span>
+                <span className="font-mono text-[10px] text-neutral-500">
+                  {formatFrequency(band.frequency)}
+                </span>
               </span>
             </button>
           );
