@@ -11,6 +11,10 @@ import type {
 // └── audio/
 //     ├── tracks/0/channel-0.f32
 //     └── takes/0/channel-0.f32
+//
+// project.json serializes SerializedRecorderRuntimeState<string>, replacing
+// each PCM channel's Float32Array with its ZIP entry path. The samples are
+// stored separately in the referenced .f32 files.
 
 const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
 const MANIFEST_PATH = "manifest.json";
