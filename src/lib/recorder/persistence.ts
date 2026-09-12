@@ -94,7 +94,7 @@ interface SerializedTakeState<Channel> {
   pcm: RecorderPcm<Channel>;
 }
 
-interface RecorderPcm<Channel> {
+export interface RecorderPcm<Channel> {
   sampleRate: number;
   channels: Channel[];
 }

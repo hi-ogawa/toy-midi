@@ -1,5 +1,8 @@
 import JSZip from "jszip";
-import type { SerializedRecorderRuntimeState } from "./persistence.ts";
+import type {
+  RecorderPcm,
+  SerializedRecorderRuntimeState,
+} from "./persistence.ts";
 
 // .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
@@ -20,11 +23,6 @@ interface RecorderProjectManifest {
 }
 
 type RecorderProjectFileContent = SerializedRecorderRuntimeState<string>;
-
-interface RecorderProjectPcm {
-  sampleRate: number;
-  channels: string[];
-}
 
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
@@ -129,9 +127,9 @@ async function readProjectContent(
 
 function writeProjectPcm(
   zip: JSZip,
-  pcm: { sampleRate: number; channels: Float32Array[] },
+  pcm: RecorderPcm<Float32Array>,
   path: string,
-): RecorderProjectPcm {
+): RecorderPcm<string> {
   return {
     sampleRate: pcm.sampleRate,
     channels: pcm.channels.map((channel, channelIndex) => {
@@ -148,8 +146,8 @@ function writeProjectPcm(
 
 async function readProjectPcm(
   zip: JSZip,
-  pcm: RecorderProjectPcm,
-): Promise<{ sampleRate: number; channels: Float32Array[] }> {
+  pcm: RecorderPcm<string>,
+): Promise<RecorderPcm<Float32Array>> {
   const channels = await Promise.all(
     pcm.channels.map(async (path) => {
       const entry = zip.file(path);
