@@ -23,8 +23,8 @@ export function Preview() {
   const SelectedPreview = preview.component;
 
   return (
-    <main className="min-h-screen bg-neutral-950 px-8 py-10 text-neutral-100">
-      <header className="mx-auto mb-8 flex max-w-[1600px] items-baseline gap-4 border-b border-neutral-800 pb-4">
+    <main className="min-h-screen bg-neutral-950 px-8 pt-4 pb-10 text-neutral-100">
+      <header className="mx-auto mb-4 flex max-w-[1600px] items-baseline gap-4 border-b border-neutral-800 pb-2">
         <h1 className="text-lg font-semibold">Preview</h1>
         <a
           href={routes.home.href()}
