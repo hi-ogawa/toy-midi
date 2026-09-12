@@ -3,18 +3,12 @@ import { dbToGain, gainToDb } from "../music";
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
-  type EqParameters,
+  DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
 import { MultibandEq } from "./biquad-eq-multiband";
 
 const SAMPLE_RATE = 48000;
-const DEFAULT_PARAMETERS: EqParameters = {
-  frequency: 1000,
-  gain: 1,
-  q: 1,
-  bypass: false,
-};
 
 describe(BiquadEq, () => {
   it.each([-18, -6, 6, 18])(

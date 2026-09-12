@@ -1,4 +1,8 @@
-import { BiquadEq, type EqParameters } from "./biquad-eq.ts";
+import {
+  BiquadEq,
+  DEFAULT_PARAMETERS,
+  type EqParameters,
+} from "./biquad-eq.ts";
 
 export const MAX_EQ_BANDS = 8;
 
@@ -26,9 +30,7 @@ export class MultibandEq {
       eq: new BiquadEq({
         sampleRate,
         channelCount,
-        frequency: 1000,
-        gain: 1,
-        q: 1,
+        ...DEFAULT_PARAMETERS,
         bypass: true,
       }),
     }));
