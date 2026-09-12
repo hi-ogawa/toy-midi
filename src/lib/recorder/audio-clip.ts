@@ -15,8 +15,8 @@ export interface AudioClip {
   audioView?: AudioView;
 }
 
-export interface TakeRegion {
-  take: AudioClip;
+export interface ClipRegion {
+  clip: AudioClip;
   timelineStart: number;
   timelineEnd: number;
 }

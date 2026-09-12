@@ -2,7 +2,7 @@ import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
-import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
+import { getAudioTrackSources, getClipSources } from "./audio-sources.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface RecorderMix {
@@ -28,7 +28,7 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   tracks.push({
     eq: state.recordingTrack.eq,
     gain: recordingGain,
-    regions: getTakeSources(state.takeRegions),
+    regions: getClipSources(state.takeRegions),
   });
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;

@@ -10,10 +10,11 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import type { TakeRegion, AudioClip } from "./audio-clip.ts";
-import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
+import type { ClipRegion, AudioClip } from "./audio-clip.ts";
+import { getAudioTrackSources, getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
+import { deriveClipRegions } from "./clip-regions.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deriveTrackMix,
@@ -26,7 +27,6 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import { deriveTakeRegions } from "./take-regions.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
@@ -126,8 +126,8 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
-  takeRegions: TakeRegion[];
-  previewTakeRegions?: TakeRegion[];
+  takeRegions: ClipRegion[];
+  previewClipRegions?: ClipRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
@@ -1115,7 +1115,7 @@ export class RecorderRuntime {
       this.store.update({
         captureStatus: "ready",
         pendingRecording: undefined,
-        previewTakeRegions: undefined,
+        previewClipRegions: undefined,
       });
       this.syncTrackMix();
       return;
@@ -1131,7 +1131,7 @@ export class RecorderRuntime {
     this.updateRecordingTrack({
       captureStatus: "ready",
       pendingRecording: undefined,
-      previewTakeRegions: undefined,
+      previewClipRegions: undefined,
       recordingTrack: {
         ...recordingTrack,
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
@@ -1168,9 +1168,7 @@ export class RecorderRuntime {
       Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     const { recordingTrack } = update;
-    const takeRegions = deriveTakeRegions(
-      deriveActiveTakes(recordingTrack.clips),
-    );
+    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.clips));
     this.store.update({ ...update, takeRegions });
     this.syncTakePlayback(takeRegions);
   }
@@ -1178,20 +1176,20 @@ export class RecorderRuntime {
   private updatePendingRecording(
     pendingRecording: PendingRecordingState,
   ): void {
-    const previewTakeRegions = deriveTakeRegions([
-      ...deriveActiveTakes(this.store.get().recordingTrack.clips),
+    const previewClipRegions = deriveClipRegions([
+      ...getActiveClips(this.store.get().recordingTrack.clips),
       pendingRecordingToTake(pendingRecording),
     ]);
-    this.store.update({ pendingRecording, previewTakeRegions });
+    this.store.update({ pendingRecording, previewClipRegions });
   }
 
-  private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    this.captureTrack!.setSources(getTakeSources(takeRegions));
+  private syncTakePlayback(takeRegions: ClipRegion[]): void {
+    this.captureTrack!.setSources(getClipSources(takeRegions));
     this.syncTrackMix();
   }
 }
 
-function deriveActiveTakes(takes: readonly AudioClip[]): AudioClip[] {
+function getActiveClips(takes: readonly AudioClip[]): AudioClip[] {
   const anyTakeSoloed = takes.some((take) => take.soloed);
   return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
 }
