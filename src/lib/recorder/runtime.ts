@@ -338,7 +338,6 @@ export class RecorderRuntime {
         createAudioClip({
           buffer,
           name: file.name,
-          timelineOffset: track.clips[0]?.timelineOffset ?? 0,
         }),
       ],
     }));

@@ -41,7 +41,7 @@ test("publishes track regions with clip edits and rebuilds them only when needed
     runtime.seek(1);
     const retained = track().regions === original;
 
-    // Move and trim the clip, then replace it while keeping its timeline position.
+    // Move and trim the clip, then replace it and expect the new clip to start at zero.
     runtime.moveClips([{ type: "audio", id, timelineOffset: 2 }]);
     const moved = track().regions[0]!.timelineStart;
     runtime.trimClip({ type: "audio", id, edge: "start", value: 0.1 });
@@ -90,9 +90,9 @@ test("publishes track regions with clip edits and rebuilds them only when needed
     retained: true,
     moved: 2,
     trimmed: 2.1,
-    replaced: { name: "replacement.wav", start: 2 },
+    replaced: { name: "replacement.wav", start: 0 },
     persistedRegions: false,
-    loaded: { rebuilt: true, start: 2, sameClip: true },
+    loaded: { rebuilt: true, start: 0, sameClip: true },
     removed: { clips: 0, regions: 0 },
   });
 });
