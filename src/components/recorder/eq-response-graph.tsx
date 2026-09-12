@@ -47,6 +47,7 @@ export function EqResponseGraph({
   }));
   const combinedPath = createResponsePath(bands.filter((band) => !band.bypass));
 
+  // Pointer edits map the plot position back to frequency and gain.
   const updateFromPointer = (
     event: ReactPointerEvent<HTMLButtonElement>,
     id: string,
@@ -61,6 +62,7 @@ export function EqResponseGraph({
     onBandChange(id, { frequency, gain: dbToGain(gainDb) });
   };
 
+  // Wheel gestures adjust Q independently of the point position.
   const handleWheel = useEffectEvent((event: WheelEvent) => {
     if (
       !selectedBandId ||
@@ -88,12 +90,14 @@ export function EqResponseGraph({
       if (!plot) {
         return;
       }
+      // A non-passive listener consumes Q gestures without scrolling the panel.
       plot.addEventListener("wheel", handleWheel, { passive: false });
       return () => plot.removeEventListener("wheel", handleWheel);
     },
     [handleWheel],
   );
 
+  // Axis labels sit outside the measured plot, so layout does not affect gestures.
   return (
     <div
       data-testid="eq-response-graph"
@@ -220,6 +224,7 @@ export function EqResponseGraph({
 }
 
 function createResponsePath(bands: MultibandEqBand[]): string {
+  // The plot uses normalized log-frequency and gain coordinates from 0 to 1.
   const bandCoefficients = bands.map((band) =>
     calculateBiquadEqCoefficients({
       sampleRate: GRAPH_SAMPLE_RATE,
