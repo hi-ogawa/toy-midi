@@ -11,7 +11,7 @@ import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
-  type AudioPlaybackRegion,
+  type AudioPlaybackSource,
   AudioTrackPlayback,
 } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -509,7 +509,7 @@ export class RecorderRuntime {
       this.pause();
     }
     for (const id of audioIds) {
-      this.audioTracks.get(id)?.setRegions([]);
+      this.audioTracks.get(id)?.setSources([]);
     }
     const audioTracks = state.audioTracks.map((track) =>
       audioIds.has(track.id)
@@ -624,7 +624,7 @@ export class RecorderRuntime {
       this.pause();
     }
     const playback = this.getAudioTrackPlayback(track.id);
-    playback.setRegions(getAudioTrackRegions(track));
+    playback.setSources(getAudioTrackSources(track));
     if (wasPlaying) {
       this.transport.play();
     }
@@ -1011,7 +1011,7 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      playback.setRegions(getAudioTrackRegions(track));
+      playback.setSources(getAudioTrackSources(track));
       this.audioTracks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
@@ -1188,7 +1188,7 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    this.captureTrack!.setRegions(
+    this.captureTrack!.setSources(
       takeRegions.flatMap(({ take, timelineStart, timelineEnd }) =>
         take.buffer
           ? [
@@ -1206,7 +1206,7 @@ export class RecorderRuntime {
   }
 }
 
-function getAudioTrackRegions(track: AudioTrackState): AudioPlaybackRegion[] {
+function getAudioTrackSources(track: AudioTrackState): AudioPlaybackSource[] {
   return track.clip
     ? [
         {

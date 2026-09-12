@@ -7,7 +7,7 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
-export type AudioPlaybackRegion = {
+export type AudioPlaybackSource = {
   buffer: AudioBuffer;
   timelineOffset: number;
   timelineStart: number;
@@ -49,20 +49,20 @@ export class AudioTrackPlayback {
     });
   }
 
-  setRegions(regions: readonly AudioPlaybackRegion[]): void {
+  setSources(sources: readonly AudioPlaybackSource[]): void {
     for (const playback of this.playbacks) {
       playback.dispose();
     }
-    this.playbacks = regions.map((region) => {
+    this.playbacks = sources.map((source) => {
       const playback = new AudioBufferPlayback({
         transport: this.transport,
         output: this.pitchShiftBus.input,
       });
-      playback.setBuffer(region.buffer);
-      playback.setBufferTimelineOffset(region.timelineOffset);
+      playback.setBuffer(source.buffer);
+      playback.setBufferTimelineOffset(source.timelineOffset);
       playback.setTimelineRange({
-        start: region.timelineStart,
-        end: region.timelineEnd,
+        start: source.timelineStart,
+        end: source.timelineEnd,
       });
       return playback;
     });
@@ -76,7 +76,7 @@ export class AudioTrackPlayback {
   }
 
   dispose(): void {
-    this.setRegions([]);
+    this.setSources([]);
     this.pitchShiftBus.dispose();
     this.playbackGain.disconnect();
     this.channel.dispose();
