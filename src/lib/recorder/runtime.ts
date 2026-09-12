@@ -389,19 +389,13 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = state.audioTracks.map((track) => {
-      if (!track.clips.some((clip) => audioOffsets.has(clip.id))) {
-        return track;
-      }
-      return resolveTrackRegions({
-        ...track,
-        clips: track.clips.map((clip) =>
-          audioOffsets.has(clip.id)
-            ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
-            : clip,
-        ),
-      });
-    });
+    const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
+      clips.map((clip) =>
+        audioOffsets.has(clip.id)
+          ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
+          : clip,
+      ),
+    );
     const audioTracksToSync = audioTracks.filter(
       (track, index) => track !== state.audioTracks[index],
     );
@@ -443,18 +437,42 @@ export class RecorderRuntime {
   trimClip({ type, id, edge, value }: RecorderClipTrim): void {
     switch (type) {
       case "audio": {
-        this.updateAudioClip(id, (clip) => ({
-          ...clip,
-          ...(edge === "start"
-            ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_TAKE_DURATION) }
-            : {
-                trimEnd: clamp(
-                  value,
-                  clip.trimStart + MIN_TAKE_DURATION,
-                  clip.duration,
-                ),
-              }),
-        }));
+        const state = this.store.get();
+        const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
+          clips.map((clip) => {
+            if (clip.id !== id) {
+              return clip;
+            }
+            return {
+              ...clip,
+              ...(edge === "start"
+                ? {
+                    trimStart: clamp(
+                      value,
+                      0,
+                      clip.trimEnd - MIN_TAKE_DURATION,
+                    ),
+                  }
+                : {
+                    trimEnd: clamp(
+                      value,
+                      clip.trimStart + MIN_TAKE_DURATION,
+                      clip.duration,
+                    ),
+                  }),
+            };
+          }),
+        );
+        const audioTracksToSync = audioTracks.filter(
+          (track, index) => track !== state.audioTracks[index],
+        );
+        if (audioTracksToSync.length === 0) {
+          throw new Error("Recorder clip state is missing.");
+        }
+        this.store.update({ audioTracks });
+        for (const track of audioTracksToSync) {
+          this.syncAudioTrackPlayback(track);
+        }
         break;
       }
       case "take": {
@@ -497,13 +515,9 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = state.audioTracks.map((track) => {
-      const clips = track.clips.filter((clip) => !audioIds.has(clip.id));
-      if (clips.length === track.clips.length) {
-        return track;
-      }
-      return resolveTrackRegions({ ...track, clips });
-    });
+    const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
+      clips.filter((clip) => !audioIds.has(clip.id)),
+    );
     const audioTracksToSync = audioTracks.filter(
       (track, index) => track !== state.audioTracks[index],
     );
@@ -567,25 +581,6 @@ export class RecorderRuntime {
       },
     });
     this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
-  }
-
-  // Single-clip trim publishes and syncs playback here. Future bulk trim should
-  // batch edits, publish once, and sync each affected track once, like move/delete.
-  private updateAudioClip(
-    id: string,
-    update: (clip: AudioClip) => AudioClip,
-  ): void {
-    const owner = this.store
-      .get()
-      .audioTracks.find((track) => track.clips.some((clip) => clip.id === id));
-    if (!owner) {
-      throw new Error("Recorder clip state is missing.");
-    }
-    const track = this.updateAudioTrack(owner.id, (track) => ({
-      ...track,
-      clips: track.clips.map((clip) => (clip.id === id ? update(clip) : clip)),
-    }));
-    this.syncAudioTrackPlayback(track);
   }
 
   private updateAudioTrack(
@@ -1190,6 +1185,18 @@ export class RecorderRuntime {
     this.captureTrack!.setSources(getClipSources(takeRegions));
     this.syncTrackMix();
   }
+}
+
+function updateAudioTrackClips(
+  tracks: AudioTrackState[],
+  update: (clips: AudioClip[]) => AudioClip[],
+): AudioTrackState[] {
+  return tracks.map((track) => {
+    const clips = update(track.clips);
+    return shallowEqual(clips, track.clips)
+      ? track
+      : resolveTrackRegions({ ...track, clips });
+  });
 }
 
 function resolveTrackRegions(
