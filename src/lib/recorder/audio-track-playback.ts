@@ -4,7 +4,7 @@ import { AudioChannel } from "./audio-channel.ts";
 import { PlaybackBus } from "./playback-bus.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
-type AudioPlaybackRegion = {
+export type AudioPlaybackRegion = {
   buffer: AudioBuffer;
   timelineOffset: number;
   timelineStart: number;

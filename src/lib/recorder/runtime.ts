@@ -10,7 +10,10 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import { AudioTrackPlayback } from "./audio-track-playback.ts";
+import {
+  type AudioPlaybackRegion,
+  AudioTrackPlayback,
+} from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
@@ -1203,7 +1206,7 @@ export class RecorderRuntime {
   }
 }
 
-function getAudioTrackRegions(track: AudioTrackState) {
+function getAudioTrackRegions(track: AudioTrackState): AudioPlaybackRegion[] {
   return track.clip
     ? [
         {
