@@ -10,8 +10,8 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
-import { AudioChannel } from "./audio-channel.ts";
+import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
+import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
@@ -40,7 +40,7 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-interface AudioTrackState {
+export interface AudioTrackState {
   eq: EqParameters;
   id: string;
   height: number;
@@ -206,14 +206,8 @@ export class RecorderRuntime {
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
-  private audioTracks = new Map<
-    string,
-    { playback: AudioBufferPlayback; channel: AudioChannel }
-  >();
-  private captureChannel?: AudioChannel;
-  /** Silences existing takes during recording while live monitoring stays audible. */
-  private readonly takePlaybackGain: GainNode;
-  private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private audioTracks = new Map<string, AudioTrackPlayback>();
+  private captureTrack?: AudioTrackPlayback;
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -224,7 +218,6 @@ export class RecorderRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    this.takePlaybackGain = this.context.createGain();
     this.transport = new AudioContextTransport(this.context);
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
@@ -243,14 +236,13 @@ export class RecorderRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
     ]);
-    if (!this.captureChannel) {
-      this.captureChannel = new AudioChannel({
-        context: this.context,
+    if (!this.captureTrack) {
+      this.captureTrack = new AudioTrackPlayback({
+        transport: this.transport,
         output: this.masterOutput,
         eq: this.store.get().recordingTrack.eq,
         gain: deriveTrackMix(this.store.get()).recordingGain,
       });
-      this.takePlaybackGain.connect(this.captureChannel.input);
     }
   }
 
@@ -265,7 +257,7 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.captureChannel!.input,
+      output: this.captureTrack!.channel.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -342,9 +334,6 @@ export class RecorderRuntime {
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
-    const playback = this.getAudioTrackPlayback(id);
-    playback.stop();
-    playback.setBuffer(buffer);
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: 0,
@@ -518,9 +507,7 @@ export class RecorderRuntime {
       this.pause();
     }
     for (const id of audioIds) {
-      const playback = this.audioTracks.get(id)?.playback;
-      playback?.stop();
-      playback?.setBuffer(undefined);
+      this.audioTracks.get(id)?.setSources([]);
     }
     const audioTracks = state.audioTracks.map((track) =>
       audioIds.has(track.id)
@@ -558,9 +545,7 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    const track = this.audioTracks.get(id);
-    track?.playback.dispose();
-    track?.channel.dispose();
+    this.audioTracks.get(id)?.dispose();
     this.audioTracks.delete(id);
     this.store.update({
       audioTracks: this.store
@@ -592,7 +577,7 @@ export class RecorderRuntime {
         eq: { ...track.eq, ...update },
       },
     });
-    this.captureChannel?.setEq(this.store.get().recordingTrack.eq);
+    this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
   }
 
   private updateAudioTrack(
@@ -610,8 +595,8 @@ export class RecorderRuntime {
     return audioTracks[index]!;
   }
 
-  private getAudioTrackPlayback(id: string): AudioBufferPlayback {
-    let playback = this.audioTracks.get(id)?.playback;
+  private getAudioTrackPlayback(id: string): AudioTrackPlayback {
+    let playback = this.audioTracks.get(id);
     if (!playback) {
       const track = this.store
         .get()
@@ -619,18 +604,13 @@ export class RecorderRuntime {
       if (!track) {
         throw new Error("Audio track state is missing.");
       }
-      const channel = new AudioChannel({
-        context: this.context,
+      playback = new AudioTrackPlayback({
+        transport: this.transport,
         output: this.masterOutput,
         eq: track.eq,
         gain: 0,
       });
-      playback = new AudioBufferPlayback({
-        transport: this.transport,
-        output: channel.input,
-      });
-      playback.setBufferTimelineOffset(track.timelineOffset);
-      this.audioTracks.set(id, { playback, channel });
+      this.audioTracks.set(id, playback);
       this.syncTrackMix();
     }
     return playback;
@@ -642,11 +622,7 @@ export class RecorderRuntime {
       this.pause();
     }
     const playback = this.getAudioTrackPlayback(track.id);
-    playback.setBufferTimelineOffset(track.timelineOffset);
-    playback.setTimelineRange({
-      start: track.timelineOffset + track.trimStart,
-      end: track.timelineOffset + track.trimEnd,
-    });
+    playback.setSources(getAudioTrackSources(track));
     if (wasPlaying) {
       this.transport.play();
     }
@@ -751,7 +727,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.takePlaybackGain.gain.setValueAtTime(0, context.currentTime);
+    this.captureTrack!.setPlaybackGain(0);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport.playbackAnchor!.contextTime * context.sampleRate;
@@ -1018,9 +994,8 @@ export class RecorderRuntime {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
-    for (const { playback, channel } of this.audioTracks.values()) {
+    for (const playback of this.audioTracks.values()) {
       playback.dispose();
-      channel.dispose();
     }
     this.audioTracks.clear();
     for (const track of project.audioTracks) {
@@ -1028,23 +1003,14 @@ export class RecorderRuntime {
       if (!buffer) {
         continue;
       }
-      const channel = new AudioChannel({
-        context: this.context,
+      const playback = new AudioTrackPlayback({
+        transport: this.transport,
         output: this.masterOutput,
         eq: track.eq,
         gain: 0,
       });
-      const playback = new AudioBufferPlayback({
-        transport: this.transport,
-        output: channel.input,
-      });
-      playback.setBuffer(buffer);
-      playback.setBufferTimelineOffset(track.timelineOffset);
-      playback.setTimelineRange({
-        start: track.timelineOffset + track.trimStart,
-        end: track.timelineOffset + track.trimEnd,
-      });
-      this.audioTracks.set(track.id, { playback, channel });
+      playback.setSources(getAudioTrackSources(track));
+      this.audioTracks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
@@ -1056,7 +1022,7 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(project.recordingTrack.height),
       },
     });
-    this.captureChannel!.setEq(project.recordingTrack.eq);
+    this.captureTrack!.channel.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
     this.transport.seek(0);
     this.metronome.setTempo(project.tempo);
@@ -1098,12 +1064,11 @@ export class RecorderRuntime {
     for (const [index, track] of audioTracks.entries()) {
       this.audioTracks.get(track.id)?.channel.setGain(audioTrackGains[index]!);
     }
-    this.captureChannel?.setGain(recordingGain);
+    this.captureTrack?.channel.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = this.store.get();
-    this.takePlaybackGain.gain.setValueAtTime(
+    this.captureTrack?.setPlaybackGain(
       captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
-      this.context.currentTime,
     );
   }
 
@@ -1221,27 +1186,7 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.dispose();
-    }
-    this.recordingTrackPlaybacks = [];
-    for (const region of takeRegions) {
-      const { take } = region;
-      if (!take.buffer) {
-        continue;
-      }
-      const playback = new AudioBufferPlayback({
-        transport: this.transport,
-        output: this.takePlaybackGain,
-      });
-      playback.setBuffer(take.buffer);
-      playback.setBufferTimelineOffset(take.timelineOffset);
-      playback.setTimelineRange({
-        start: region.timelineStart,
-        end: region.timelineEnd,
-      });
-      this.recordingTrackPlaybacks.push(playback);
-    }
+    this.captureTrack!.setSources(getTakeSources(takeRegions));
     this.syncTrackMix();
   }
 }

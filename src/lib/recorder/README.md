@@ -9,24 +9,22 @@ flowchart LR
     captureWorklet --> analyser["captureInput.analyser.node"]
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
-    takeSource["recordingTrackPlaybacks[i].source"] --> takePitchShifter["recordingTrackPlaybacks[i].pitchShifter (optional)"]
-    takePitchShifter --> takePlaybackGain["takePlaybackGain"]
-    takePlaybackGain --> captureInput
 
-    subgraph captureChannel["captureChannel: AudioChannel"]
-        captureInput["input"] --> captureEqualizer["equalizer"]
-        captureEqualizer --> captureGain["gain"]
-    end
-
-    audioSource["audioTracks.get(id).playback.source"] --> audioPitchShifter["audioTracks.get(id).playback.pitchShifter (optional)"]
-    audioPitchShifter --> trackInput
-    subgraph audioChannel["audioTracks.get(id).channel: AudioChannel"]
-        trackInput["input"] --> trackEqualizer["equalizer"]
-        trackEqualizer --> trackGain["gain"]
+    subgraph captureTrack["captureTrack: AudioTrackPlayback"]
+        takeSource["playbacks[i].source"] --> takeBusInput
+        subgraph takePitchShiftBus["bus: PitchShiftBus"]
+            takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
+        end
+        takePitchShifter --> takePlaybackGain["playbackGain"]
+        takePlaybackGain --> captureInput
+        subgraph captureChannel["channel: AudioChannel"]
+            captureInput["input"] --> captureEqualizer["equalizer"]
+            captureEqualizer --> captureGain["gain"]
+        end
     end
 
     captureGain --> masterOutput["masterOutput"]
-    trackGain --> masterOutput
+    audioTrack["audioTracks.get(id): AudioTrackPlayback"] --> masterOutput
     oscillator["oscillator"] --> envelope["envelope"]
     envelope --> metronomeOutput["metronome.output"]
     metronomeOutput --> masterOutput
