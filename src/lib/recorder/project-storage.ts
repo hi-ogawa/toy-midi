@@ -14,7 +14,7 @@ type StoredRecorderProject = {
   updatedAt: number;
 } & (
   | { version: 2; content: SerializedRecorderRuntimeState }
-  | { version?: 1; content: SerializedRecorderRuntimeStateV1 }
+  | { version?: undefined; content: SerializedRecorderRuntimeStateV1 }
 );
 
 export interface RecorderProjectMetadata {
@@ -71,8 +71,7 @@ export const recorderProjectStorage = {
       throw new Error(`Recorder project ${id} not found.`);
     }
     switch (project.version) {
-      case undefined:
-      case 1: {
+      case undefined: {
         return migrateRecorderProject(project.content);
       }
       case 2: {
