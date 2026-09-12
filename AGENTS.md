@@ -16,7 +16,7 @@
 - File names: kebab-case
 - Prefer the smallest correct change, and avoid speculative abstractions or compatibility paths
 - When an existing test fails, first verify from first principles whether its expectation is correct. Do not compensate in the implementation merely to preserve an incorrect test.
-- For visual changes, run the relevant E2E tests with `pnpm test-e2e-review <test-file>` and provide a link to `test-results/trace-pack.html` for review. Normal E2E runs leave tracing off.
+- `pnpm test-e2e-review <test-file>` records DOM traces for visual review and generates `test-results/trace-pack.html`. Normal E2E runs leave tracing off.
 - Add short narrative comments before each logical phase of an E2E test, describing the user action and expected behavior so the comments alone convey the scenario. Use direct, verb-led wording for actions, such as “Load a backing track.”
 - Before adding or increasing an E2E timeout, measure the relevant wait with `createCheckpoint()` from `e2e/helpers.ts`. Prefer Playwright's default timeout when it comfortably covers the measured duration. If a custom timeout is needed, allow reasonable headroom and document the measured duration beside it.
 - Organize code into chunks with one primary reasoning domain, but do not equate a reasoning boundary with code or file extraction. Keep cohesive chunks together unless they form a clear module boundary
