@@ -9,8 +9,10 @@ flowchart LR
     captureWorklet --> analyser["captureInput.analyser.node"]
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
-    takeSource["recordingTrackPlaybacks[i].source"] --> takeBusInput["takePlaybackBus.input"]
-    takeBusInput --> takePitchShifter["takePlaybackBus.pitchShifter (optional)"]
+    takeSource["recordingTrackPlaybacks[i].source"] --> takeBusInput
+    subgraph takePlaybackBus["takePlaybackBus: PlaybackBus"]
+        takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
+    end
     takePitchShifter --> takePlaybackGain["takePlaybackGain"]
     takePlaybackGain --> captureInput
 
@@ -19,8 +21,10 @@ flowchart LR
         captureEqualizer --> captureGain["gain"]
     end
 
-    audioSource["audioTracks.get(id).playback.source"] --> audioBusInput["audioTracks.get(id).bus.input"]
-    audioBusInput --> audioPitchShifter["audioTracks.get(id).bus.pitchShifter (optional)"]
+    audioSource["audioTracks.get(id).playback.source"] --> audioBusInput
+    subgraph audioPlaybackBus["audioTracks.get(id).bus: PlaybackBus"]
+        audioBusInput["input"] --> audioPitchShifter["pitchShifter (optional)"]
+    end
     audioPitchShifter --> trackInput
     subgraph audioChannel["audioTracks.get(id).channel: AudioChannel"]
         trackInput["input"] --> trackEqualizer["equalizer"]
