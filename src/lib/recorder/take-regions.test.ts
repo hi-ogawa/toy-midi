@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveTakeRegions } from "./take-regions.ts";
+import { deriveTakeRegions, deriveActiveTakes } from "./take-regions.ts";
 import type { TakeState } from "./take.ts";
 
 describe(deriveTakeRegions, () => {
@@ -63,6 +63,19 @@ describe(deriveTakeRegions, () => {
       { take: trimmed, timelineStart: 4, timelineEnd: 8 },
     ]);
   });
+});
+
+it("filters mute and solo before resolving the committed comp", () => {
+  const older = take("older", 0, 10);
+  const newer = { ...take("newer", 3, 4), muted: true };
+  expect(deriveTakeRegions(deriveActiveTakes([older, newer]))).toEqual([
+    { take: older, timelineStart: 0, timelineEnd: 10 },
+  ]);
+  const soloed = { ...newer, muted: false, soloed: true };
+  expect(deriveTakeRegions(deriveActiveTakes([older, soloed]))).toEqual([
+    { take: soloed, timelineStart: 3, timelineEnd: 7 },
+  ]);
+  expect(deriveActiveTakes([older, { ...soloed, muted: true }])).toEqual([]);
 });
 
 function take(id: string, timelineOffset: number, duration: number): TakeState {

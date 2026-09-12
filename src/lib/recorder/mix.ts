@@ -4,6 +4,7 @@ import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
+import { deriveTakeRegions, deriveActiveTakes } from "./take-regions.ts";
 
 interface RecorderMix {
   tracks: {
@@ -28,7 +29,9 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   tracks.push({
     eq: state.recordingTrack.eq,
     gain: recordingGain,
-    regions: getTakeSources(state.takeRegions),
+    regions: getTakeSources(
+      deriveTakeRegions(deriveActiveTakes(state.recordingTrack.takes)),
+    ),
   });
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;

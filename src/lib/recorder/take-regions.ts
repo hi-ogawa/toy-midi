@@ -61,3 +61,8 @@ export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
 
   return regions.sort((a, b) => a.timelineStart - b.timelineStart);
 }
+
+export function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
+  const anyTakeSoloed = takes.some((take) => take.soloed);
+  return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
+}

@@ -25,7 +25,7 @@ import {
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
 import { ActiveRecording } from "./recording.ts";
-import { deriveTakeRegions } from "./take-regions.ts";
+import { deriveTakeRegions, deriveActiveTakes } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
 import { AudioContextTransport } from "./transport.ts";
 import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
@@ -134,7 +134,6 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
-  takeRegions: TakeRegion[];
   previewTakeRegions?: TakeRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -190,7 +189,6 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     metronomeGain: 0.5,
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
-    takeRegions: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -1165,7 +1163,7 @@ export class RecorderRuntime {
     const takeRegions = deriveTakeRegions(
       deriveActiveTakes(recordingTrack.takes),
     );
-    this.store.update({ ...update, takeRegions });
+    this.store.update(update);
     this.syncTakePlayback(takeRegions);
   }
 
@@ -1183,11 +1181,6 @@ export class RecorderRuntime {
     this.captureTrack!.setSources(getTakeSources(takeRegions));
     this.syncTrackMix();
   }
-}
-
-function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
-  const anyTakeSoloed = takes.some((take) => take.soloed);
-  return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
 }
 
 function pendingRecordingToTake(

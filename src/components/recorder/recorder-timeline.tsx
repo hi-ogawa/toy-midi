@@ -19,6 +19,7 @@ import type {
   RecorderPunchState,
   ReferenceVideoState,
 } from "../../lib/recorder/runtime";
+import type { TakeRegion } from "../../lib/recorder/take";
 import { formatTimeMinutes } from "../../lib/time-format";
 import {
   beatsToSeconds,
@@ -423,7 +424,7 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["takes"];
-  regions: RecorderRuntimeState["takeRegions"];
+  regions: TakeRegion[];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;

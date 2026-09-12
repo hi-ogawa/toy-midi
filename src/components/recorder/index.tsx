@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { Mic2Icon } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { resolveAudioFiles } from "../../lib/audio-files";
@@ -11,6 +11,10 @@ import {
 } from "../../lib/keyboard";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
+import {
+  deriveTakeRegions,
+  deriveActiveTakes,
+} from "../../lib/recorder/take-regions";
 import { routes } from "../../lib/routes";
 import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
@@ -127,6 +131,10 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.takes;
+  const takeRegions = useMemo(
+    () => deriveTakeRegions(deriveActiveTakes(takes)),
+    [takes],
+  );
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
@@ -479,7 +487,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewTakeRegions ?? state.takeRegions}
+                regions={state.previewTakeRegions ?? takeRegions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>
