@@ -24,6 +24,7 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
+import { PlaybackBus } from "./playback-bus.ts";
 import { ActiveRecording } from "./recording.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -208,11 +209,12 @@ export class RecorderRuntime {
   captureInput?: CaptureInput;
   private audioTracks = new Map<
     string,
-    { playback: AudioBufferPlayback; channel: AudioChannel }
+    { playback: AudioBufferPlayback; bus: PlaybackBus; channel: AudioChannel }
   >();
   private captureChannel?: AudioChannel;
   /** Silences existing takes during recording while live monitoring stays audible. */
   private readonly takePlaybackGain: GainNode;
+  private readonly takePlaybackBus: PlaybackBus;
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -226,6 +228,10 @@ export class RecorderRuntime {
     this.masterOutput.connect(this.context.destination);
     this.takePlaybackGain = this.context.createGain();
     this.transport = new AudioContextTransport(this.context);
+    this.takePlaybackBus = new PlaybackBus({
+      transport: this.transport,
+      output: this.takePlaybackGain,
+    });
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -560,6 +566,7 @@ export class RecorderRuntime {
   removeAudioTrack(id: string): void {
     const track = this.audioTracks.get(id);
     track?.playback.dispose();
+    track?.bus.dispose();
     track?.channel.dispose();
     this.audioTracks.delete(id);
     this.store.update({
@@ -625,12 +632,16 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      playback = new AudioBufferPlayback({
+      const bus = new PlaybackBus({
         transport: this.transport,
         output: channel.input,
       });
+      playback = new AudioBufferPlayback({
+        transport: this.transport,
+        output: bus.input,
+      });
       playback.setBufferTimelineOffset(track.timelineOffset);
-      this.audioTracks.set(id, { playback, channel });
+      this.audioTracks.set(id, { playback, bus, channel });
       this.syncTrackMix();
     }
     return playback;
@@ -1018,8 +1029,9 @@ export class RecorderRuntime {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
-    for (const { playback, channel } of this.audioTracks.values()) {
+    for (const { playback, bus, channel } of this.audioTracks.values()) {
       playback.dispose();
+      bus.dispose();
       channel.dispose();
     }
     this.audioTracks.clear();
@@ -1034,9 +1046,13 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      const playback = new AudioBufferPlayback({
+      const bus = new PlaybackBus({
         transport: this.transport,
         output: channel.input,
+      });
+      const playback = new AudioBufferPlayback({
+        transport: this.transport,
+        output: bus.input,
       });
       playback.setBuffer(buffer);
       playback.setBufferTimelineOffset(track.timelineOffset);
@@ -1044,7 +1060,7 @@ export class RecorderRuntime {
         start: track.timelineOffset + track.trimStart,
         end: track.timelineOffset + track.trimEnd,
       });
-      this.audioTracks.set(track.id, { playback, channel });
+      this.audioTracks.set(track.id, { playback, bus, channel });
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
@@ -1232,7 +1248,7 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.takePlaybackGain,
+        output: this.takePlaybackBus.input,
       });
       playback.setBuffer(take.buffer);
       playback.setBufferTimelineOffset(take.timelineOffset);

@@ -1,4 +1,3 @@
-import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
@@ -10,7 +9,6 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
-  private pitchShifter?: AudioWorkletNode;
   /** Transport timeline time corresponding to source-buffer time zero. */
   private bufferTimelineOffset = 0;
   private timelineRange?: { start: number; end: number };
@@ -63,23 +61,12 @@ export class AudioBufferPlayback implements TransportParticipant {
     }
     const source = this.transport.context.createBufferSource();
     source.buffer = buffer;
-    const playbackRate = this.transport.playbackRate;
-    source.playbackRate.value = playbackRate;
-    let sourceOutput: AudioNode = source;
-    if (playbackRate !== 1) {
-      const pitchShifter = createPitchShifterNode({
-        context: this.transport.context,
-        channelCount: buffer.numberOfChannels,
-        pitchRatio: 1 / playbackRate,
-      });
-      source.connect(pitchShifter);
-      sourceOutput = pitchShifter;
-      this.pitchShifter = pitchShifter;
-    }
-    sourceOutput.connect(this.output);
+    source.playbackRate.value = this.transport.playbackRate;
+    source.connect(this.output);
     source.start(
       playbackAnchor.contextTime +
-        Math.max(0, timelineStart - playbackAnchor.position),
+        Math.max(0, timelineStart - playbackAnchor.position) /
+          this.transport.playbackRate,
       timelineStart - this.bufferTimelineOffset + elapsed,
       duration - elapsed,
     );
@@ -89,9 +76,7 @@ export class AudioBufferPlayback implements TransportParticipant {
   stop(): void {
     this.source?.stop();
     this.source?.disconnect();
-    this.pitchShifter?.disconnect();
     this.source = undefined;
-    this.pitchShifter = undefined;
   }
 
   dispose(): void {
