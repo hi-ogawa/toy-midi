@@ -52,7 +52,6 @@ export function RecorderEffects({
   onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
-  const [slidersOpen, setSlidersOpen] = useState(false);
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -61,53 +60,92 @@ export function RecorderEffects({
       testId="recorder-effects-panel"
       className="pointer-events-auto w-96 shrink-0"
     >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-medium">Peaking EQ</h3>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={eq.bypass}
-                onChange={(event) => onChange({ bypass: event.target.checked })}
-              />
-              Bypass
-            </label>
-            <button
-              onClick={() => onChange(createDefaultEq())}
-              className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              title={slidersOpen ? "Hide sliders" : "Show sliders"}
-              aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
-              aria-expanded={slidersOpen}
-              onClick={() => setSlidersOpen((open) => !open)}
-              className="flex size-7 items-center justify-center rounded border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100 aria-expanded:bg-neutral-600 aria-expanded:text-neutral-100 focus-visible:outline-2 focus-visible:outline-blue-300"
-            >
-              <SlidersHorizontal className="size-4" aria-hidden="true" />
-            </button>
-          </div>
+      <RecorderEffectsContent eq={eq} onChange={onChange} />
+    </RecorderPanel>
+  );
+}
+
+export function RecorderEffectsContent({
+  eq,
+  onChange,
+}: {
+  eq: EqParameters;
+  onChange: (update: Partial<EqParameters>) => void;
+}) {
+  const [slidersOpen, setSlidersOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium">Peaking EQ</h3>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={eq.bypass}
+              onChange={(event) => onChange({ bypass: event.target.checked })}
+            />
+            Bypass
+          </label>
+          <button
+            onClick={() => onChange(createDefaultEq())}
+            className="rounded border border-neutral-600 px-2 py-1 text-xs hover:bg-neutral-700"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            title={slidersOpen ? "Hide sliders" : "Show sliders"}
+            aria-label={slidersOpen ? "Hide sliders" : "Show sliders"}
+            aria-expanded={slidersOpen}
+            onClick={() => setSlidersOpen((open) => !open)}
+            className="flex size-7 items-center justify-center rounded border border-neutral-600 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-100 aria-expanded:bg-neutral-600 aria-expanded:text-neutral-100 focus-visible:outline-2 focus-visible:outline-blue-300"
+          >
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+          </button>
         </div>
-        <EqResponseGraph eq={eq} onChange={onChange} />
-        <div className="grid grid-cols-3 gap-3">
-          <EqNumericInput
+      </div>
+      <EqResponseGraph eq={eq} onChange={onChange} />
+      <div className="grid grid-cols-3 gap-3">
+        <EqNumericInput
+          label="Frequency"
+          unit="Hz"
+          limits={EQ_CONTROL_LIMITS.frequency}
+          value={eq.frequency}
+          onChange={(frequency) => onChange({ frequency })}
+        />
+        <EqNumericInput
+          label="Gain"
+          unit="dB"
+          limits={EQ_CONTROL_LIMITS.gainDb}
+          value={gainToDb(eq.gain)}
+          onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
+        />
+        <EqNumericInput
+          label="Q"
+          unit=""
+          limits={EQ_CONTROL_LIMITS.q}
+          value={eq.q}
+          onChange={(q) => onChange({ q })}
+        />
+      </div>
+      {slidersOpen && (
+        <div className="space-y-4 border-t border-neutral-700 pt-4">
+          <EqSlider
             label="Frequency"
             unit="Hz"
             limits={EQ_CONTROL_LIMITS.frequency}
+            scale="logarithmic"
             value={eq.frequency}
             onChange={(frequency) => onChange({ frequency })}
           />
-          <EqNumericInput
+          <EqSlider
             label="Gain"
             unit="dB"
             limits={EQ_CONTROL_LIMITS.gainDb}
             value={gainToDb(eq.gain)}
             onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
           />
-          <EqNumericInput
+          <EqSlider
             label="Q"
             unit=""
             limits={EQ_CONTROL_LIMITS.q}
@@ -115,34 +153,8 @@ export function RecorderEffects({
             onChange={(q) => onChange({ q })}
           />
         </div>
-        {slidersOpen && (
-          <div className="space-y-4 border-t border-neutral-700 pt-4">
-            <EqSlider
-              label="Frequency"
-              unit="Hz"
-              limits={EQ_CONTROL_LIMITS.frequency}
-              scale="logarithmic"
-              value={eq.frequency}
-              onChange={(frequency) => onChange({ frequency })}
-            />
-            <EqSlider
-              label="Gain"
-              unit="dB"
-              limits={EQ_CONTROL_LIMITS.gainDb}
-              value={gainToDb(eq.gain)}
-              onChange={(gainDb) => onChange({ gain: dbToGain(gainDb) })}
-            />
-            <EqSlider
-              label="Q"
-              unit=""
-              limits={EQ_CONTROL_LIMITS.q}
-              value={eq.q}
-              onChange={(q) => onChange({ q })}
-            />
-          </div>
-        )}
-      </div>
-    </RecorderPanel>
+      )}
+    </div>
   );
 }
 
