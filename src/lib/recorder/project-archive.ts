@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 import {
   migrateRecorderProject,
+  type LegacyRecorderProject,
   type RecorderProjectInput,
 } from "./project-migration.ts";
 
@@ -33,6 +34,43 @@ export async function exportRecorderProjectArchive(
   };
   zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
   zip.file(PROJECT_PATH, JSON.stringify(writeProjectContent(zip, content)));
+  return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+}
+
+export async function exportRecorderProjectArchiveV1(
+  content: LegacyRecorderProject,
+): Promise<Blob> {
+  const zip = new JSZip();
+  const manifest: RecorderProjectManifest = {
+    formatVersion: 1,
+    projectType: "recorder",
+    exportedAt: new Date().toISOString(),
+  };
+  const project: LegacyRecorderProject<string> = {
+    ...content,
+    audioTracks: content.audioTracks.map((track, trackIndex) => ({
+      ...track,
+      clip: track.clip
+        ? {
+            ...track.clip,
+            pcm: writeProjectPcm(
+              zip,
+              track.clip.pcm,
+              `audio/tracks/${trackIndex}`,
+            ),
+          }
+        : undefined,
+    })),
+    recordingTrack: {
+      ...content.recordingTrack,
+      takes: content.recordingTrack.takes.map((take, takeIndex) => ({
+        ...take,
+        pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${takeIndex}`),
+      })),
+    },
+  };
+  zip.file(MANIFEST_PATH, JSON.stringify(manifest, undefined, 2));
+  zip.file(PROJECT_PATH, JSON.stringify(project));
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 

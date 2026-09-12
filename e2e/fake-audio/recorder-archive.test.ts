@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import { exportRecorderProjectArchiveV1 } from "../../src/lib/recorder/project-archive";
+import type { LegacyRecorderProject } from "../../src/lib/recorder/project-migration";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
@@ -82,65 +84,49 @@ async function getRecorderClipGeometry(page: Page) {
 }
 
 test("imports a legacy recorder archive", async ({ page }) => {
-  const { default: JSZip } = await import("jszip");
-  const zip = new JSZip();
-  const paths = [
-    "audio/tracks/0/channel-0.f32",
-    "audio/tracks/0/channel-1.f32",
-    "audio/takes/0/channel-0.f32",
-  ];
-  // Build a v1 archive with audible PCM, legacy channel paths, and edited clips.
-  const pcm = await readFile("e2e/fixtures/test-tones.pcm");
-  for (const path of paths) {
-    zip.file(path, pcm);
-  }
-  zip.file(
-    "manifest.json",
-    JSON.stringify({ formatVersion: 1, projectType: "recorder" }),
-  );
-  zip.file(
-    "project.json",
-    JSON.stringify({
-      title: "Legacy archive",
-      tempo: 120,
-      timeSignature: { numerator: 4, denominator: 4 },
-      latencyCompensation: 0,
-      audioTracks: [
-        {
-          id: "backing",
-          height: 72,
-          gain: 0.5,
-          muted: false,
-          soloed: false,
-          timelineOffset: 2,
-          trimStart: 0.5,
-          trimEnd: 3,
-          clip: {
-            name: "stereo.wav",
-            pcm: { sampleRate: 22050, channels: paths.slice(0, 2) },
-          },
-        },
-      ],
-      recordingTrack: {
-        height: 116,
-        gain: 0.8,
+  // Export a typed legacy project using the v1 archive writer.
+  const bytes = await readFile("e2e/fixtures/test-tones.pcm");
+  const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
+  const project: LegacyRecorderProject = {
+    title: "Legacy archive",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    latencyCompensation: 0,
+    audioTracks: [
+      {
+        id: "backing",
+        height: 72,
+        gain: 0.5,
         muted: false,
         soloed: false,
-        nextTakeNumber: 9,
-        takes: [
-          {
-            id: "retained",
-            number: 8,
-            timelineOffset: 3,
-            trimStart: 0.25,
-            trimEnd: 2,
-            pcm: { sampleRate: 22050, channels: paths.slice(2) },
-          },
-        ],
+        timelineOffset: 2,
+        trimStart: 0.5,
+        trimEnd: 3,
+        clip: {
+          name: "stereo.wav",
+          pcm: { sampleRate: 22050, channels: [pcm, pcm] },
+        },
       },
-    }),
-  );
-  const archive = await zip.generateAsync({ type: "nodebuffer" });
+    ],
+    recordingTrack: {
+      height: 116,
+      gain: 0.8,
+      muted: false,
+      soloed: false,
+      nextTakeNumber: 9,
+      takes: [
+        {
+          id: "retained",
+          number: 8,
+          timelineOffset: 3,
+          trimStart: 0.25,
+          trimEnd: 2,
+          pcm: { sampleRate: 22050, channels: [pcm] },
+        },
+      ],
+    },
+  };
+  const archive = await exportRecorderProjectArchiveV1(project);
 
   // Import through the Recorder project list and open the migrated recorder.
   await page.goto("/");
@@ -152,7 +138,7 @@ test("imports a legacy recorder archive", async ({ page }) => {
   ).setFiles({
     name: "legacy.toymidi.zip",
     mimeType: "application/zip",
-    buffer: archive,
+    buffer: Buffer.from(await archive.arrayBuffer()),
   });
   await expect(page.getByTestId("recorder-project-name")).toHaveText(
     "Legacy archive",

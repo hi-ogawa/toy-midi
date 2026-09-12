@@ -65,7 +65,7 @@ export function migrateRecorderProject<Channel>(
   };
 }
 
-interface LegacyRecorderProject<Channel> {
+export interface LegacyRecorderProject<Channel = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
