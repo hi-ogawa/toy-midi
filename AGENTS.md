@@ -16,7 +16,7 @@
 - Prefer the smallest correct change, and avoid speculative abstractions or compatibility paths
 - When an existing test fails, first verify from first principles whether its expectation is correct. Do not compensate in the implementation merely to preserve an incorrect test.
 - Add short narrative comments before each logical phase of an E2E test, describing the user action and expected behavior so the comments alone convey the scenario. Use direct, verb-led wording for actions, such as “Load a backing track.”
-- Before adding or increasing an E2E timeout, instrument the focused test with `createCheckpoint()` from `e2e/helpers.ts` and run it repeatedly (for example, `pnpm test-e2e e2e/example.spec.ts --repeat-each=10`). Prefer Playwright's existing auto-waiting when measurements fit comfortably within its timeout; derive any custom timeout from the observed range with reasonable headroom.
+- Before adding or increasing an E2E timeout, measure the relevant wait with `createCheckpoint()` from `e2e/helpers.ts`. Prefer Playwright's default timeout when it comfortably covers the measured duration. If a custom timeout is needed, allow reasonable headroom and document the measured duration beside it.
 - Organize code into chunks with one primary reasoning domain, but do not equate a reasoning boundary with code or file extraction. Keep cohesive chunks together unless they form a clear module boundary
 - Order functions by reading flow, with primary entry points and callers before their implementation helpers
 - Prefer `undefined` over `null`
