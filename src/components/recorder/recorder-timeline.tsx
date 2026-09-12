@@ -202,7 +202,6 @@ function TimelineRuler({
           range={punch.range}
           enabled={punch.enabled}
           label="Punch"
-          testIdPrefix="recorder-punch"
           activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
           clearHoverClassName="hover:bg-amber-200/20"
           pixelsPerBeat={pixelsPerBeat}
@@ -250,7 +249,6 @@ function LoopRange({
       range={range}
       enabled={enabled}
       label="Loop"
-      testIdPrefix="recorder-loop"
       activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
       clearHoverClassName="hover:bg-violet-200/20"
       pixelsPerBeat={pixelsPerBeat}
@@ -266,7 +264,6 @@ function TimelineRange({
   range,
   enabled,
   label,
-  testIdPrefix,
   activeClassName,
   clearHoverClassName,
   pixelsPerBeat,
@@ -278,7 +275,6 @@ function TimelineRange({
   range: RecorderLoopRange | RecorderPunchRange;
   enabled: boolean;
   label: string;
-  testIdPrefix: "recorder-loop" | "recorder-punch";
   activeClassName: string;
   clearHoverClassName: string;
   pixelsPerBeat: number;
@@ -287,6 +283,7 @@ function TimelineRange({
   onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
 }) {
+  const testIdPrefix = `recorder-${label.toLowerCase()}`;
   const minimumLength = 1 / subdivisionsPerBeat;
   const dragRef = usePointerGesture({
     onStart: (event) => {
