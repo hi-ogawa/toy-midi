@@ -110,7 +110,7 @@ export function useRecorderInput({
             label: `${selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
             needsSetup: false,
           }
-        : { label: "No input configured · Set up", needsSetup: true };
+        : { label: "No input configured", needsSetup: true };
 
   return {
     active,
