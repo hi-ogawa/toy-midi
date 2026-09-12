@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { recorderProjectStorage } from "../../lib/recorder/project-storage";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
@@ -22,19 +21,21 @@ export function useRecorderProject({
     retry: false,
     staleTime: Infinity,
     queryFn: async () => {
-      try {
-        const project = await recorderProjectStorage.load(projectId);
-        runtime.deserializeProject(project);
-        return true;
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Unknown error");
-        throw error;
-      }
+      const [, project] = await Promise.all([
+        runtime.init(),
+        recorderProjectStorage.load(projectId),
+      ]);
+      runtime.deserializeProject(project);
+      return true;
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Never write default state over a project that did not initialize.
+      if (!projectQuery.isSuccess) {
+        throw new Error("Cannot save before the project has initialized.");
+      }
       const revision = revisionRef.current;
       await recorderProjectStorage.save({
         id: projectId,
@@ -72,8 +73,8 @@ export function useRecorderProject({
         : "saved";
   return {
     dirty,
-    error: projectQuery.error ?? saveMutation.error,
-    ready: projectQuery.isSuccess || projectQuery.isError,
+    initError: projectQuery.error ?? undefined,
+    ready: projectQuery.isSuccess,
     save: saveMutation.mutate,
     saveStatus,
     saving: saveMutation.isPending,
