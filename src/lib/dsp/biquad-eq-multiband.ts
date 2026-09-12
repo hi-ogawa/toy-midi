@@ -41,12 +41,6 @@ export class MultibandEq {
     if (parameters.bands.length > MAX_EQ_BANDS) {
       throw new RangeError(`EQ supports at most ${MAX_EQ_BANDS} bands`);
     }
-    if (
-      new Set(parameters.bands.map((band) => band.id)).size !==
-      parameters.bands.length
-    ) {
-      throw new RangeError("EQ band IDs must be unique");
-    }
     const previous = new Map(this.active.map((slot) => [slot.id, slot]));
     const retained = new Set(
       parameters.bands.flatMap((band) => {
