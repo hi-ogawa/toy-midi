@@ -1180,7 +1180,6 @@ export class RecorderRuntime {
   }
 }
 
-/** Publish clips and their audible comp together at the runtime boundary. */
 function resolveTrackRegions(
   track: Omit<AudioTrackState, "regions">,
 ): AudioTrackState;
