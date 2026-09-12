@@ -52,7 +52,6 @@ export function RecorderEffects({
   onChange: (update: Partial<EqParameters>) => void;
   onClose: () => void;
 }) {
-  const [slidersOpen, setSlidersOpen] = useState(false);
   return (
     <RecorderPanel
       title={`${label} Effects`}
@@ -61,6 +60,21 @@ export function RecorderEffects({
       testId="recorder-effects-panel"
       className="pointer-events-auto w-96 shrink-0"
     >
+      <RecorderEffectsContent eq={eq} onChange={onChange} />
+    </RecorderPanel>
+  );
+}
+
+export function RecorderEffectsContent({
+  eq,
+  onChange,
+}: {
+  eq: EqParameters;
+  onChange: (update: Partial<EqParameters>) => void;
+}) {
+  const [slidersOpen, setSlidersOpen] = useState(false);
+  return (
+    <>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Peaking EQ</h3>
@@ -142,7 +156,7 @@ export function RecorderEffects({
           </div>
         )}
       </div>
-    </RecorderPanel>
+    </>
   );
 }
 
