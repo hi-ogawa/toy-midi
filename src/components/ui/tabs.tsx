@@ -6,13 +6,11 @@ export function Tabs<T extends string>({
   options,
   value,
   onValueChange,
-  children,
 }: {
   label: string;
-  options: readonly { value: T; label: ReactNode }[];
+  options: readonly { value: T; label: ReactNode; content: ReactNode }[];
   value: T;
   onValueChange: (value: T) => void;
-  children: ReactNode;
 }) {
   return (
     <TabsPrimitive.Root
@@ -40,7 +38,7 @@ export function Tabs<T extends string>({
       </TabsPrimitive.List>
       {options.map((option) => (
         <TabsPrimitive.Content key={option.value} value={option.value}>
-          {value === option.value && children}
+          {option.content}
         </TabsPrimitive.Content>
       ))}
     </TabsPrimitive.Root>

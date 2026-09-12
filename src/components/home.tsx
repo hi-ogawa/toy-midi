@@ -78,6 +78,7 @@ export function Home() {
             options={[
               {
                 value: "midi",
+                content: <MidiProjectList />,
                 label: (
                   <>
                     <PianoIcon aria-hidden="true" className="size-4" />
@@ -87,6 +88,7 @@ export function Home() {
               },
               {
                 value: "recorder",
+                content: <RecorderProjectList />,
                 label: (
                   <>
                     <Mic2Icon aria-hidden="true" className="size-4" />
@@ -95,13 +97,7 @@ export function Home() {
                 ),
               },
             ]}
-          >
-            {projectType === "midi" ? (
-              <MidiProjectList />
-            ) : (
-              <RecorderProjectList />
-            )}
-          </Tabs>
+          />
         </main>
       </div>
     </div>
