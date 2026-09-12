@@ -61,7 +61,7 @@ export function RecorderEffects({
       title={`${label} Effects`}
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
-      testId="recorder-effects-panel"
+      data-testid="recorder-effects-panel"
       className="pointer-events-auto w-96 shrink-0"
     >
       <RecorderEffectsContent eq={eq} onChange={onChange} />
