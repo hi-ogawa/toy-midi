@@ -1,4 +1,4 @@
-import type { MultibandEqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/multiband-eq.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";

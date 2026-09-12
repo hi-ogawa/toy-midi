@@ -3,7 +3,8 @@ import {
   createDefaultEqBand,
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters, MultibandEqParameters } from "../dsp/biquad-eq.ts";
+import type { EqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/multiband-eq.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,

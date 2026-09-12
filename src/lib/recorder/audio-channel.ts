@@ -1,5 +1,5 @@
 import { BiquadEqNode } from "../dsp/biquad-eq-node.ts";
-import type { MultibandEqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/multiband-eq.ts";
 
 /** Persistent stereo processing shared by all sources in a mixer channel. */
 export class AudioChannel {

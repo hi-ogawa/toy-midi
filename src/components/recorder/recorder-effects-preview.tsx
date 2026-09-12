@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { MultibandEqParameters } from "../../lib/dsp/biquad-eq";
+import type { MultibandEqParameters } from "../../lib/dsp/multiband-eq";
 import { dbToGain } from "../../lib/music";
 import { RecorderEffectsContent } from "./recorder-effects";
 

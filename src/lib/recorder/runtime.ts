@@ -5,7 +5,7 @@ import {
   createDefaultMultibandEq,
   ensureBiquadEqWorklet,
 } from "../dsp/biquad-eq-node.ts";
-import type { MultibandEqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/multiband-eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";

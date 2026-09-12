@@ -5,9 +5,8 @@ import {
   calculateBiquadEqResponse,
   type EqParameters,
   BiquadEq,
-  MAX_EQ_BANDS,
-  MultibandEq,
 } from "./biquad-eq";
+import { MAX_EQ_BANDS, MultibandEq } from "./multiband-eq";
 
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {
