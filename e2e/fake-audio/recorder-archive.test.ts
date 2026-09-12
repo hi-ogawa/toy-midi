@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
@@ -80,7 +81,7 @@ async function getRecorderClipGeometry(page: Page) {
   return geometry;
 }
 
-test("loads legacy channel paths and rewrites them as uniform track clips", async ({
+test("imports a legacy recorder archive and saves the migrated project", async ({
   page,
 }) => {
   const { default: JSZip } = await import("jszip");
@@ -90,12 +91,11 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
     "audio/tracks/0/channel-1.f32",
     "audio/takes/0/channel-0.f32",
   ];
-  paths.forEach((path, index) =>
-    zip.file(
-      path,
-      new Uint8Array(new Float32Array([index + 1, index + 2]).buffer),
-    ),
-  );
+  // Build a v1 archive with audible PCM, legacy channel paths, and edited clips.
+  const pcm = await readFile("e2e/fixtures/test-tones.pcm");
+  for (const path of paths) {
+    zip.file(path, pcm);
+  }
   zip.file(
     "manifest.json",
     JSON.stringify({ formatVersion: 1, projectType: "recorder" }),
@@ -115,9 +115,11 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
           muted: false,
           soloed: false,
           timelineOffset: 2,
+          trimStart: 0.5,
+          trimEnd: 3,
           clip: {
             name: "stereo.wav",
-            pcm: { sampleRate: 48000, channels: paths.slice(0, 2) },
+            pcm: { sampleRate: 22050, channels: paths.slice(0, 2) },
           },
         },
       ],
@@ -132,70 +134,93 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
             id: "retained",
             number: 8,
             timelineOffset: 3,
-            pcm: { sampleRate: 48000, channels: paths.slice(2) },
+            trimStart: 0.25,
+            trimEnd: 2,
+            pcm: { sampleRate: 22050, channels: paths.slice(2) },
           },
         ],
       },
     }),
   );
-  const encoded = await zip.generateAsync({ type: "base64" });
+  const archive = await zip.generateAsync({ type: "nodebuffer" });
+
+  // Import through the Recorder project list and open the migrated recorder.
   await page.goto("/");
-  const result = await page.evaluate(async (encoded) => {
-    const moduleUrl = "/src/lib/recorder/project-archive.ts";
-    const {
-      parseRecorderProjectArchive,
-      exportRecorderProjectArchive,
-    }: typeof import("../../src/lib/recorder/project-archive") = await import(
-      moduleUrl
-    );
-    const legacy = new File(
-      [Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))],
-      "legacy.toymidi.zip",
-    );
-    const project = await parseRecorderProjectArchive(legacy);
-    const rewritten = await exportRecorderProjectArchive(project);
-    const restored = await parseRecorderProjectArchive(
-      new File([rewritten], "current.toymidi.zip"),
-    );
-    return {
-      version: restored.version,
-      armedTrack: restored.audioTracks.findIndex(
-        (track) => track.id === restored.armedTrackId,
-      ),
-      tracks: restored.audioTracks.map((track) => ({
-        gain: track.gain,
-        nextTakeNumber: track.nextTakeNumber,
-        clips: track.clips.map((clip) => ({
-          name: clip.name,
-          timelineOffset: clip.timelineOffset,
-          channels: clip.pcm.channels.map((channel) => Array.from(channel)),
-        })),
-      })),
-    };
-  }, encoded);
-  expect(result).toEqual({
-    version: 2,
-    armedTrack: 1,
-    tracks: [
+  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("import-recorder-project").click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "legacy.toymidi.zip",
+    mimeType: "application/zip",
+    buffer: archive,
+  });
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Legacy archive",
+  );
+  await verifyMigratedClips(page);
+
+  // Rename and save the migrated project, then reload its current-format data.
+  page.once("dialog", (dialog) => dialog.accept("Migrated archive"));
+  await page.getByTestId("recorder-project-name").click();
+  const save = page.getByTestId("recorder-save-button");
+  await expect(save).toHaveAttribute("data-status", "unsaved");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Migrated archive",
+  );
+  await verifyMigratedClips(page);
+});
+
+async function verifyMigratedClips(page: Page) {
+  const audio = page.getByTestId("recorder-clip-audio");
+  const take = page.getByTestId("recorder-clip-comp");
+  await expect(audio).toContainText("stereo.wav");
+  await expect(take).toContainText("Take 8");
+  await expect(audio.locator("svg")).toBeVisible();
+  await expect(take.locator("svg")).toBeVisible();
+  // At 120 BPM each source second spans two beats, including the saved trims.
+  const pixelsPerSecond = 2 * DEFAULT_PIXELS_PER_BEAT;
+  await expect
+    .poll(() => getRecorderClipGeometry(page))
+    .toEqual([
       {
-        gain: 0.5,
-        nextTakeNumber: 1,
+        variant: "audio",
         clips: [
           {
-            name: "stereo.wav",
-            timelineOffset: 2,
-            channels: [
-              [1, 2],
-              [2, 3],
-            ],
+            left: `${2.5 * pixelsPerSecond}px`,
+            width: `${2.5 * pixelsPerSecond}px`,
           },
         ],
       },
       {
-        gain: 0.8,
-        nextTakeNumber: 9,
-        clips: [{ name: "Take 8", timelineOffset: 3, channels: [[3, 4]] }],
+        variant: "take",
+        clips: [
+          {
+            left: `${3.25 * pixelsPerSecond}px`,
+            width: `${1.75 * pixelsPerSecond}px`,
+          },
+        ],
       },
-    ],
-  });
-});
+      {
+        variant: "comp",
+        clips: [
+          {
+            left: `${3.25 * pixelsPerSecond}px`,
+            width: `${1.75 * pixelsPerSecond}px`,
+          },
+        ],
+      },
+    ]);
+  await page.getByTestId("recorder-mixer-button").click();
+  await expect(
+    page.getByRole("textbox", { name: "Audio 1 level in dB", exact: true }),
+  ).toHaveValue("-6.0");
+  await expect(
+    page.getByRole("textbox", { name: "Capture level in dB", exact: true }),
+  ).toHaveValue("-1.9");
+  await page.getByRole("button", { name: "Close Mixer" }).click();
+}
