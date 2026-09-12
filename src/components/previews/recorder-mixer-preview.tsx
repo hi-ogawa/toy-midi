@@ -1,25 +1,49 @@
-import { useState, useSyncExternalStore } from "react";
-import { RecorderRuntime } from "../../lib/recorder/runtime";
-import { RecorderMixer } from "../recorder/recorder-mixer";
+import { useState } from "react";
+import {
+  RecorderMixer,
+  type RecorderMixerState,
+} from "../recorder/recorder-mixer";
 
 export function RecorderMixerPreview() {
-  const [runtime] = useState(() => {
-    const runtime = new RecorderRuntime();
-    runtime.addAudioTrack();
-    runtime.addAudioTrack();
-    return runtime;
+  const [state, setState] = useState<RecorderMixerState>({
+    masterGain: 1,
+    metronomeGain: 1,
+    metronomeEnabled: false,
+    audioTracks: [
+      { id: "audio-1", gain: 1, muted: false, soloed: false },
+      { id: "audio-2", gain: 1, muted: false, soloed: false },
+    ],
+    recordingTrack: { gain: 1, muted: false, soloed: false },
   });
-  const state = useSyncExternalStore(
-    runtime.store.subscribe,
-    runtime.store.get,
-  );
   const [openEffects, setOpenEffects] = useState<ReadonlySet<string>>(
     new Set(),
   );
 
   return (
     <RecorderMixer
-      runtime={runtime}
+      onMasterGainChange={(masterGain) =>
+        setState((current) => ({ ...current, masterGain }))
+      }
+      onMetronomeGainChange={(metronomeGain) =>
+        setState((current) => ({ ...current, metronomeGain }))
+      }
+      onMetronomeEnabledChange={(metronomeEnabled) =>
+        setState((current) => ({ ...current, metronomeEnabled }))
+      }
+      onAudioTrackMixChange={({ id, update }) =>
+        setState((current) => ({
+          ...current,
+          audioTracks: current.audioTracks.map((track) =>
+            track.id === id ? { ...track, ...update } : track,
+          ),
+        }))
+      }
+      onRecordingTrackMixChange={(update) =>
+        setState((current) => ({
+          ...current,
+          recordingTrack: { ...current.recordingTrack, ...update },
+        }))
+      }
       state={state}
       openEffects={openEffects}
       onEffectsToggle={(id) =>

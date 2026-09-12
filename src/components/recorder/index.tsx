@@ -668,7 +668,17 @@ export function Recorder({ projectId }: { projectId: string }) {
             className="pointer-events-auto min-w-80 flex-1"
           >
             <RecorderMixer
-              runtime={runtime}
+              onMasterGainChange={(gain) => runtime.setMasterGain(gain)}
+              onMetronomeGainChange={(gain) => runtime.setMetronomeGain(gain)}
+              onMetronomeEnabledChange={(enabled) =>
+                runtime.setMetronomeEnabled(enabled)
+              }
+              onAudioTrackMixChange={({ id, update }) =>
+                runtime.setAudioTrackMix(id, update)
+              }
+              onRecordingTrackMixChange={(update) =>
+                runtime.setRecordingTrackMix(update)
+              }
               state={state}
               openEffects={effects.openEffects}
               onEffectsToggle={effects.toggleEffects}
