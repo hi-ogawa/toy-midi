@@ -2,8 +2,7 @@ import type { AudioView } from "../audio-view.ts";
 
 export interface AudioClip {
   id: string;
-  number?: number;
-  name?: string;
+  name: string;
   muted: boolean;
   soloed: boolean;
   duration: number;

@@ -12,7 +12,7 @@ it("resolves imported and recorded clips with the same trimmed comp precedence",
   });
   const recorded = clip({
     id: "recorded",
-    number: 2,
+    name: "Take 2",
     timelineOffset: 2,
     trimStart: 1,
     trimEnd: 3,
@@ -57,6 +57,7 @@ it("applies clip mute and solo within each track", () => {
 
 function clip(update: Partial<AudioClip> & Pick<AudioClip, "id">): AudioClip {
   return {
+    name: update.id,
     muted: false,
     soloed: false,
     timelineOffset: 0,

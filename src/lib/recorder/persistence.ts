@@ -82,6 +82,7 @@ interface SerializedAudioClip {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  name?: string;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;
@@ -112,7 +113,7 @@ export function serializeRecorderRuntimeState(
         soloed: track.soloed,
         clip: clip?.buffer
           ? {
-              name: clip.name ?? "Audio",
+              name: clip.name,
               pcm: serializeAudioBuffer(clip.buffer),
             }
           : undefined,
@@ -134,7 +135,7 @@ export function serializeRecorderRuntimeState(
         }
         return {
           id: take.id,
-          number: take.number,
+          name: take.name,
           muted: take.muted,
           soloed: take.soloed,
           timelineOffset: take.timelineOffset,
@@ -213,7 +214,7 @@ export function deserializeRecorderRuntimeState({
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
           id: take.id ?? crypto.randomUUID(),
-          number: take.number ?? index + 1,
+          name: take.name ?? `Take ${take.number ?? index + 1}`,
           muted: take.muted ?? false,
           soloed: take.soloed ?? false,
           duration: buffer.duration,

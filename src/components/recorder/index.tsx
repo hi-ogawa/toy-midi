@@ -400,7 +400,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       clip
                         ? {
                             duration: clip.trimEnd - clip.trimStart,
-                            label: clip.name ?? "Audio",
+                            label: clip.name,
                             offset: clip.timelineOffset + clip.trimStart,
                             testId: "audio",
                             audioView: clip.audioView,
@@ -526,7 +526,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
-                  number={take.number!}
+                  label={take.name}
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>
@@ -541,7 +541,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 >
                   <TimelineLane
                     clip={{
-                      label: `Take ${take.number}`,
+                      label: take.name,
                       duration: take.trimEnd - take.trimStart,
                       offset: take.timelineOffset + take.trimStart,
                       testId: "take-lane",

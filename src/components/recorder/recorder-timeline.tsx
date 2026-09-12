@@ -486,7 +486,7 @@ export function TakeTimelineLane({
                   ? captureStatus === "processing"
                     ? "Finalizing..."
                     : "Recording..."
-                  : `Take ${take.number}`,
+                  : take.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset,
@@ -508,7 +508,7 @@ export function TakeTimelineLane({
         <TimelineClip
           key={take.id}
           clip={{
-            label: `Take ${take.number}`,
+            label: take.name,
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
             testId: "take",
