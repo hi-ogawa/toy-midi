@@ -12,11 +12,11 @@ import {
   type RecorderLocator,
 } from "./runtime.ts";
 
-export interface SerializedRecorderRuntimeState {
+export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
-  audioTracks: SerializedAudioTrackState[];
+  audioTracks: SerializedAudioTrackState<Channel>[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -24,7 +24,7 @@ export interface SerializedRecorderRuntimeState {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState[];
+    takes: SerializedTakeState<Channel>[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -60,14 +60,14 @@ export interface SerializedRecorderRuntimeState {
   };
 }
 
-interface SerializedAudioTrackState {
+interface SerializedAudioTrackState<Channel> {
   // Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm;
+    pcm: RecorderPcm<Channel>;
   };
   gain: number;
   muted: boolean;
@@ -78,7 +78,7 @@ interface SerializedAudioTrackState {
   trimEnd?: number;
 }
 
-interface SerializedTakeState {
+interface SerializedTakeState<Channel> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -87,12 +87,12 @@ interface SerializedTakeState {
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm;
+  pcm: RecorderPcm<Channel>;
 }
 
-interface RecorderPcm {
+interface RecorderPcm<Channel> {
   sampleRate: number;
-  channels: Float32Array[];
+  channels: Channel[];
 }
 
 export function serializeRecorderRuntimeState(
@@ -245,7 +245,7 @@ function deserializeEq(
   };
 }
 
-function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {
+function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
   return {
     sampleRate: buffer.sampleRate,
     channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
@@ -256,7 +256,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {
 
 function deserializeAudioBuffer(
   context: AudioContext,
-  pcm: RecorderPcm,
+  pcm: RecorderPcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
     throw new Error("Recorder audio has an invalid sample rate.");

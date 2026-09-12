@@ -19,37 +19,7 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
-interface RecorderProjectFileContent extends Omit<
-  SerializedRecorderRuntimeState,
-  "audioTracks" | "recordingTrack"
-> {
-  audioTracks: RecorderProjectAudioTrack[];
-  recordingTrack: RecorderProjectRecordingTrack;
-}
-
-interface RecorderProjectAudioTrack extends Omit<
-  SerializedRecorderRuntimeState["audioTracks"][number],
-  "clip"
-> {
-  clip?: {
-    name: string;
-    pcm: RecorderProjectPcm;
-  };
-}
-
-interface RecorderProjectRecordingTrack extends Omit<
-  SerializedRecorderRuntimeState["recordingTrack"],
-  "takes"
-> {
-  takes: RecorderProjectTake[];
-}
-
-interface RecorderProjectTake extends Omit<
-  SerializedRecorderRuntimeState["recordingTrack"]["takes"][number],
-  "pcm"
-> {
-  pcm: RecorderProjectPcm;
-}
+type RecorderProjectFileContent = SerializedRecorderRuntimeState<string>;
 
 interface RecorderProjectPcm {
   sampleRate: number;
