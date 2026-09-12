@@ -1,6 +1,4 @@
-import type { ReactNode } from "react";
 import { routes } from "../lib/routes";
-import { EqResponseGraphPreview } from "./previews/eq-response-graph-preview";
 import { RecorderEffectsPreview } from "./previews/recorder-effects-preview";
 
 export function ComponentPreview() {
@@ -16,40 +14,9 @@ export function ComponentPreview() {
         </a>
       </header>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <PreviewCard
-          title="EQ response graph"
-          description="Drag to change frequency and gain. Scroll over the graph to change Q."
-        >
-          <EqResponseGraphPreview />
-        </PreviewCard>
-        <PreviewCard
-          title="Recorder effects panel"
-          description="Exercise the complete track effects surface without recorder or audio setup."
-        >
-          <RecorderEffectsPreview />
-        </PreviewCard>
+      <div className="mx-auto flex max-w-6xl items-start gap-6">
+        <RecorderEffectsPreview />
       </div>
     </main>
-  );
-}
-
-function PreviewCard({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-neutral-700 bg-neutral-800 shadow-2xl">
-      <header className="border-b border-neutral-700 px-4 py-3">
-        <h2 className="text-sm font-medium">{title}</h2>
-        <p className="mt-1 text-xs text-neutral-400">{description}</p>
-      </header>
-      <div className="p-4">{children}</div>
-    </section>
   );
 }
