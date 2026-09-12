@@ -13,7 +13,7 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://localhost:5183",
-    trace: "retain-on-failure",
+    trace: { mode: "retain-on-failure", screenshots: false },
   },
   forbidOnly: !!process.env.CI,
   reporter: [
