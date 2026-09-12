@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
@@ -18,27 +17,10 @@ const PREVIEWS = [
 }));
 
 export function Preview() {
-  const [previewId, setPreviewId] = useState(readPreviewId);
-  const preview = PREVIEWS.find((entry) => entry.id === previewId)!;
+  const previewId = new URL(window.location.href).searchParams.get("component");
+  const preview =
+    PREVIEWS.find((entry) => entry.id === previewId) ?? PREVIEWS[0];
   const SelectedPreview = preview.component;
-
-  useEffect(() => {
-    const initialUrl = new URL(window.location.href);
-    if (initialUrl.searchParams.get("component") !== previewId) {
-      initialUrl.searchParams.set("component", previewId);
-      window.history.replaceState({}, "", initialUrl);
-    }
-    const syncPreview = () => setPreviewId(readPreviewId());
-    window.addEventListener("popstate", syncPreview);
-    return () => window.removeEventListener("popstate", syncPreview);
-  }, []);
-
-  function selectPreview(id: string) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("component", id);
-    window.history.pushState({}, "", url);
-    setPreviewId(id);
-  }
 
   return (
     <main className="min-h-screen bg-neutral-950 px-8 py-10 text-neutral-100">
@@ -61,23 +43,8 @@ export function Preview() {
             <a
               key={entry.id}
               href={`${routes.preview.href()}?component=${encodeURIComponent(entry.id)}`}
-              aria-current={entry.id === previewId ? "page" : undefined}
+              aria-current={entry.id === preview.id ? "page" : undefined}
               className="rounded px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100 aria-[current=page]:bg-neutral-800 aria-[current=page]:text-neutral-100"
-              onClick={(event) => {
-                if (
-                  event.button !== 0 ||
-                  event.metaKey ||
-                  event.ctrlKey ||
-                  event.shiftKey ||
-                  event.altKey
-                ) {
-                  return;
-                }
-                event.preventDefault();
-                if (entry.id !== previewId) {
-                  selectPreview(entry.id);
-                }
-              }}
             >
               {entry.label}
             </a>
@@ -89,9 +56,4 @@ export function Preview() {
       </div>
     </main>
   );
-}
-
-function readPreviewId(): string {
-  const value = new URL(window.location.href).searchParams.get("component");
-  return PREVIEWS.find((entry) => entry.id === value)?.id ?? PREVIEWS[0].id;
 }
