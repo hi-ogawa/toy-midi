@@ -1,12 +1,16 @@
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getAudioTrackSources } from "./audio-sources.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface RecorderMix {
-  tracks: { eq: EqParameters; gain: number; regions: AudioPlaybackSource[] }[];
+  tracks: {
+    eq: MultibandEqParameters;
+    gain: number;
+    regions: AudioPlaybackSource[];
+  }[];
   masterGain: number;
   duration: number;
 }
