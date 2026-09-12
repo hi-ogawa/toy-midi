@@ -318,13 +318,13 @@ function IconButton({
   );
 }
 
-const formatParameter = (value: number) => String(Number(value.toFixed(2)));
-
 function formatFrequency(value: number): string {
   return value >= 1000
     ? `${Number((value / 1000).toFixed(1))}k`
     : String(Math.round(value));
 }
+
+const formatParameter = (value: number) => String(Number(value.toFixed(2)));
 
 function EqNumericInput({
   label,
@@ -380,16 +380,23 @@ function EqSlider({
 }) {
   let config = {
     ...limits,
-    toSliderValue: (entry: number) => entry,
-    toParameterValue: (entry: number) => entry,
+    toSliderValue: (value: number) => value,
+    toParameterValue: (value: number) => value,
   };
   if (scale === "logarithmic") {
     const logRange = Math.log(limits.max / limits.min);
     config = {
       min: 0,
       max: 1,
+      // 1,000 steps across 20–20,000 Hz gives about 100 steps per octave.
+      // With frequency = min * (max / min)^position, n steps multiply it by
+      // (max / min)^(n * step). Doubling therefore requires
+      // (max / min)^(n * step) = 2, so n * step * log(max / min) = log(2).
+      // Thus n = log(2) / (0.001 * log(20000 / 20)) ≈ 100.
       step: 0.001,
-      toSliderValue: (entry: number) => Math.log(entry / limits.min) / logRange,
+      // (log(value) - log(min)) / (log(max) - log(min))
+      // = log(value / min) / log(max / min); solve for value for the inverse.
+      toSliderValue: (value: number) => Math.log(value / limits.min) / logRange,
       toParameterValue: (position: number) =>
         Number((limits.min * Math.exp(position * logRange)).toFixed(2)),
     };
