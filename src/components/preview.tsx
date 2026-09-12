@@ -1,16 +1,7 @@
-import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
-import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 
 const PREVIEWS = [
   {
@@ -51,28 +42,8 @@ export function Preview() {
 
   return (
     <main className="min-h-screen bg-neutral-950 px-8 py-10 text-neutral-100">
-      <header className="mx-auto mb-8 flex max-w-6xl items-baseline gap-4 border-b border-neutral-800 pb-4">
+      <header className="mx-auto mb-8 flex max-w-[1600px] items-baseline gap-4 border-b border-neutral-800 pb-4">
         <h1 className="text-lg font-semibold">Preview</h1>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="gap-2 px-3 py-1.5 text-xs hover:bg-neutral-800">
-              {preview.label}
-              <ChevronDownIcon className="size-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuRadioGroup
-              value={previewId}
-              onValueChange={selectPreview}
-            >
-              {PREVIEWS.map((entry) => (
-                <DropdownMenuRadioItem key={entry.id} value={entry.id}>
-                  {entry.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
         <a
           href={routes.home.href()}
           className="ml-auto text-xs text-neutral-500 hover:text-neutral-300"
@@ -81,8 +52,40 @@ export function Preview() {
         </a>
       </header>
 
-      <div className="mx-auto flex max-w-6xl items-start gap-6">
-        <SelectedPreview />
+      <div className="mx-auto flex max-w-[1600px] items-start gap-6">
+        <nav
+          aria-label="Previews"
+          className="flex w-52 shrink-0 flex-col gap-1"
+        >
+          {PREVIEWS.map((entry) => (
+            <a
+              key={entry.id}
+              href={`${routes.preview.href()}?component=${encodeURIComponent(entry.id)}`}
+              aria-current={entry.id === previewId ? "page" : undefined}
+              className="rounded px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100 aria-[current=page]:bg-neutral-800 aria-[current=page]:text-neutral-100"
+              onClick={(event) => {
+                if (
+                  event.button !== 0 ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                if (entry.id !== previewId) {
+                  selectPreview(entry.id);
+                }
+              }}
+            >
+              {entry.label}
+            </a>
+          ))}
+        </nav>
+        <div className="min-w-0 flex-1">
+          <SelectedPreview />
+        </div>
       </div>
     </main>
   );
