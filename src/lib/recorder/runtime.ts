@@ -421,14 +421,9 @@ export class RecorderRuntime {
     if (referenceOffset !== undefined && !referenceVideo) {
       throw new Error("Recorder clip state is missing.");
     }
+    this.store.update({ recordingTrack, audioTracks, referenceVideo });
     if (takeOffsets.size > 0) {
-      this.updateRecordingTrack({
-        recordingTrack,
-        audioTracks,
-        referenceVideo,
-      });
-    } else {
-      this.store.update({ audioTracks, referenceVideo });
+      this.syncTakePlayback(recordingTrack.regions);
     }
     if (referenceOffset !== undefined) {
       this.syncYouTubePlayer();
@@ -508,20 +503,19 @@ export class RecorderRuntime {
           })
         : track,
     );
+    const recordingTrack =
+      takeIds.size > 0
+        ? resolveTrackRegions({
+            ...state.recordingTrack,
+            clips: state.recordingTrack.clips.filter(
+              (take) => !takeIds.has(take.id),
+            ),
+          })
+        : state.recordingTrack;
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
+    this.store.update({ recordingTrack, audioTracks, referenceVideo });
     if (takeIds.size > 0) {
-      this.updateRecordingTrack({
-        audioTracks,
-        referenceVideo,
-        recordingTrack: resolveTrackRegions({
-          ...state.recordingTrack,
-          clips: state.recordingTrack.clips.filter(
-            (take) => !takeIds.has(take.id),
-          ),
-        }),
-      });
-    } else {
-      this.store.update({ audioTracks, referenceVideo });
+      this.syncTakePlayback(recordingTrack.regions);
     }
     for (const track of audioTracks) {
       if (
