@@ -13,11 +13,13 @@ import {
 
 const PREVIEWS = [
   {
-    id: "recorder-effects",
     label: "Recorder effects",
     component: RecorderEffectsPreview,
   },
-] as const;
+].map((entry) => ({
+  ...entry,
+  id: entry.label.toLowerCase().replaceAll(" ", "-"),
+}));
 
 export function Preview() {
   const [previewId, setPreviewId] = useState(readPreviewId);
