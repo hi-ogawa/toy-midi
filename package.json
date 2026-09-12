@@ -17,6 +17,7 @@
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
     "test-e2e": "playwright test",
+    "test-e2e-trace": "E2E_TRACE=1 playwright test",
     "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@hiogawa/playwright-trace-pack": "https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@f8c02de",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^25.0.3",
