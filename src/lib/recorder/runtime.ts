@@ -509,6 +509,7 @@ export class RecorderRuntime {
       audioTracksToSync.push(next);
       return next;
     });
+    const referenceVideo = removeReference ? undefined : state.referenceVideo;
     const recordingTrack =
       takeIds.size > 0
         ? resolveTrackRegions({
@@ -518,7 +519,6 @@ export class RecorderRuntime {
             ),
           })
         : state.recordingTrack;
-    const referenceVideo = removeReference ? undefined : state.referenceVideo;
     this.store.update({ recordingTrack, audioTracks, referenceVideo });
     if (takeIds.size > 0) {
       this.syncTakePlayback(recordingTrack.regions);
