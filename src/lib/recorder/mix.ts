@@ -1,7 +1,7 @@
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
-import type { AudioPlaybackSource } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { AudioPlaybackSource } from "./audio-sources.ts";
 import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 

@@ -1,10 +1,8 @@
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
-import {
-  AudioBufferPlayback,
-  type AudioPlaybackSource,
-} from "./audio-buffer-playback.ts";
+import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
+import type { AudioPlaybackSource } from "./audio-sources.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
