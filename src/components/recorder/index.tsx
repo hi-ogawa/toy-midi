@@ -29,6 +29,7 @@ import {
   ReferenceTimelineRow,
   TimelineHeader,
   TimelineLane,
+  AudioTimelineLane,
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
@@ -393,7 +394,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 }
               >
-                <TimelineLane
+                <AudioTimelineLane
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
@@ -526,15 +527,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                 >
                   <TimelineLane
-                    clips={[take]}
-                    regions={[
-                      {
-                        clip: take,
-                        timelineStart: take.timelineOffset + take.trimStart,
-                        timelineEnd: take.timelineOffset + take.trimEnd,
-                      },
-                    ]}
-                    testId="take-lane"
+                    clip={{
+                      label: take.name,
+                      duration: take.trimEnd - take.trimStart,
+                      offset: take.timelineOffset + take.trimStart,
+                      testId: "take-lane",
+                      audioView: take.audioView,
+                      audioOffset: take.trimStart,
+                    }}
                     pixelsPerBeat={timeline.pixelsPerBeat}
                     beatsPerBar={timeline.beatsPerBar}
                     subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -542,25 +542,26 @@ export function Recorder({ projectId }: { projectId: string }) {
                     tempo={timeline.tempo}
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
-                    isClipSelected={(id) =>
-                      clipInteraction.isSelected({
-                        type: "take",
-                        id,
-                      })
+                    selected={clipInteraction.isSelected({
+                      type: "take",
+                      id: take.id,
+                    })}
+                    onClipClick={(additive) =>
+                      clipInteraction.select(
+                        { type: "take", id: take.id },
+                        additive,
+                      )
                     }
-                    onClipClick={(id, additive) =>
-                      clipInteraction.select({ type: "take", id }, additive)
-                    }
-                    onTrimStart={(id, edge) =>
+                    onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "take", id },
+                        clip: { type: "take", id: take.id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
-                    onClipDragStart={(id, additive) =>
+                    onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "take", id },
+                        clip: { type: "take", id: take.id },
                         additive,
                       })
                     }
