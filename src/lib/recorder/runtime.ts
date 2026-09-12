@@ -389,12 +389,15 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
-      clips.map((clip) =>
-        audioOffsets.has(clip.id)
-          ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
-          : clip,
-      ),
+    const audioTracks = updateAudioTrackClips(
+      state.audioTracks,
+      new Set(audioOffsets.keys()),
+      (clips) =>
+        clips.map((clip) =>
+          audioOffsets.has(clip.id)
+            ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
+            : clip,
+        ),
     );
     const audioTracksToSync = audioTracks.filter(
       (track, index) => track !== state.audioTracks[index],
@@ -438,30 +441,33 @@ export class RecorderRuntime {
     switch (type) {
       case "audio": {
         const state = this.store.get();
-        const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
-          clips.map((clip) => {
-            if (clip.id !== id) {
-              return clip;
-            }
-            return {
-              ...clip,
-              ...(edge === "start"
-                ? {
-                    trimStart: clamp(
-                      value,
-                      0,
-                      clip.trimEnd - MIN_TAKE_DURATION,
-                    ),
-                  }
-                : {
-                    trimEnd: clamp(
-                      value,
-                      clip.trimStart + MIN_TAKE_DURATION,
-                      clip.duration,
-                    ),
-                  }),
-            };
-          }),
+        const audioTracks = updateAudioTrackClips(
+          state.audioTracks,
+          new Set([id]),
+          (clips) =>
+            clips.map((clip) => {
+              if (clip.id !== id) {
+                return clip;
+              }
+              return {
+                ...clip,
+                ...(edge === "start"
+                  ? {
+                      trimStart: clamp(
+                        value,
+                        0,
+                        clip.trimEnd - MIN_TAKE_DURATION,
+                      ),
+                    }
+                  : {
+                      trimEnd: clamp(
+                        value,
+                        clip.trimStart + MIN_TAKE_DURATION,
+                        clip.duration,
+                      ),
+                    }),
+              };
+            }),
         );
         const audioTracksToSync = audioTracks.filter(
           (track, index) => track !== state.audioTracks[index],
@@ -515,8 +521,10 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = updateAudioTrackClips(state.audioTracks, (clips) =>
-      clips.filter((clip) => !audioIds.has(clip.id)),
+    const audioTracks = updateAudioTrackClips(
+      state.audioTracks,
+      audioIds,
+      (clips) => clips.filter((clip) => !audioIds.has(clip.id)),
     );
     const audioTracksToSync = audioTracks.filter(
       (track, index) => track !== state.audioTracks[index],
@@ -1189,14 +1197,14 @@ export class RecorderRuntime {
 
 function updateAudioTrackClips(
   tracks: AudioTrackState[],
+  clipIds: ReadonlySet<string>,
   update: (clips: AudioClip[]) => AudioClip[],
 ): AudioTrackState[] {
-  return tracks.map((track) => {
-    const clips = update(track.clips);
-    return shallowEqual(clips, track.clips)
-      ? track
-      : resolveTrackRegions({ ...track, clips });
-  });
+  return tracks.map((track) =>
+    track.clips.some((clip) => clipIds.has(clip.id))
+      ? resolveTrackRegions({ ...track, clips: update(track.clips) })
+      : track,
+  );
 }
 
 function resolveTrackRegions(
