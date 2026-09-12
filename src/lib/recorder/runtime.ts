@@ -512,11 +512,8 @@ export class RecorderRuntime {
             ),
           })
         : state.recordingTrack;
-    this.store.update({
-      recordingTrack,
-      audioTracks,
-      referenceVideo: removeReference ? undefined : state.referenceVideo,
-    });
+    const referenceVideo = removeReference ? undefined : state.referenceVideo;
+    this.store.update({ recordingTrack, audioTracks, referenceVideo });
     if (takeIds.size > 0) {
       this.syncTakePlayback(recordingTrack.regions);
     }
