@@ -1161,7 +1161,7 @@ export class RecorderRuntime {
   ): void {
     const recordingTrack = resolveTrackRegions(update.recordingTrack);
     this.store.update({ ...update, recordingTrack });
-    this.syncTakePlayback(recordingTrack);
+    this.syncTakePlayback(recordingTrack.regions);
   }
 
   private updatePendingRecording(
@@ -1174,8 +1174,8 @@ export class RecorderRuntime {
     this.store.update({ pendingRecording, previewClipRegions });
   }
 
-  private syncTakePlayback(track: RecordingTrackState): void {
-    this.captureTrack!.setSources(getClipSources(track.regions));
+  private syncTakePlayback(takeRegions: ClipRegion[]): void {
+    this.captureTrack!.setSources(getClipSources(takeRegions));
     this.syncTrackMix();
   }
 }
