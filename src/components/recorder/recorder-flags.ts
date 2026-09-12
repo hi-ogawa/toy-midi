@@ -14,16 +14,16 @@ export function deriveRecorderFlags({
   project,
 }: {
   captureStatus: RecorderRuntimeState["captureStatus"];
-  project: Pick<RecorderProject, "loaded" | "dirty" | "saving">;
+  project: Pick<RecorderProject, "ready" | "dirty" | "saving">;
 }): RecorderFlags {
   const isRecording =
     captureStatus === "recording" || captureStatus === "processing";
   return {
     isRecording,
     // Play and record stay enabled while recording because both act as stop.
-    playDisabled: !project.loaded,
-    recordDisabled: !project.loaded || captureStatus === "disabled",
+    playDisabled: !project.ready,
+    recordDisabled: !project.ready || captureStatus === "disabled",
     saveDisabled:
-      !project.loaded || !project.dirty || project.saving || isRecording,
+      !project.ready || !project.dirty || project.saving || isRecording,
   };
 }
