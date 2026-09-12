@@ -1,11 +1,22 @@
+import type {
+  MultibandEqBand,
+  MultibandEqParameters,
+} from "./biquad-eq-multiband.ts";
 import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
-import type { EqParameters } from "./biquad-eq.ts";
+import { DEFAULT_PARAMETERS } from "./biquad-eq.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
-export function createDefaultEq(): EqParameters {
-  return { frequency: 1000, gain: 1, q: 1, bypass: false };
+export function createDefaultEqBand(): MultibandEqBand {
+  return {
+    id: crypto.randomUUID(),
+    ...DEFAULT_PARAMETERS,
+  };
+}
+
+export function createDefaultMultibandEq(): MultibandEqParameters {
+  return { bypass: false, bands: [createDefaultEqBand()] };
 }
 
 export class BiquadEqNode extends AudioWorkletNode {
@@ -16,7 +27,7 @@ export class BiquadEqNode extends AudioWorkletNode {
   }: {
     context: BaseAudioContext;
     channelCount: number;
-    parameters: EqParameters;
+    parameters: MultibandEqParameters;
   }) {
     super(context, PROCESSOR_NAME, {
       numberOfInputs: 1,
@@ -28,7 +39,7 @@ export class BiquadEqNode extends AudioWorkletNode {
     });
   }
 
-  setParameters(parameters: Partial<EqParameters>): void {
+  setParameters(parameters: MultibandEqParameters): void {
     this.port.postMessage(parameters);
   }
 }

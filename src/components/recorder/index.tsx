@@ -643,8 +643,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                     key={track.id}
                     label={`Audio ${index + 1}`}
                     eq={track.eq}
-                    onChange={(update) =>
-                      runtime.setAudioTrackEq({ id: track.id, update })
+                    onChange={(eq) =>
+                      runtime.setAudioTrackEq({ id: track.id, eq })
                     }
                     onClose={() => effects.closeEffects(track.id)}
                   />

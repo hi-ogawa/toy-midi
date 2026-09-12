@@ -1,4 +1,4 @@
-import type { EqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
@@ -25,7 +25,7 @@ export class AudioTrackPlayback {
   }: {
     transport: AudioContextTransport;
     output: AudioNode;
-    eq: EqParameters;
+    eq: MultibandEqParameters;
     gain: number;
   }) {
     this.transport = transport;
