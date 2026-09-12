@@ -238,7 +238,7 @@ export function RecorderHeader({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="recorder-playback-rate"
-            disabled={flags.captureBusy}
+            disabled={flags.isRecording}
             className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
           >
             {playbackRate}x
@@ -396,7 +396,7 @@ export function RecorderHeader({
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={flags.captureBusy}
+            disabled={flags.isRecording}
             onSelect={onExportAudio}
           >
             <DownloadIcon />
@@ -404,7 +404,7 @@ export function RecorderHeader({
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={flags.captureBusy || isExporting}
+            disabled={flags.isRecording || isExporting}
             onSelect={(event) => {
               event.preventDefault();
               onExportProject();

@@ -195,7 +195,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       : matchKeyboardEvent(event, "ArrowRight")
         ? 1
         : 0;
-    if (seekDirection !== 0 && !flags.captureBusy) {
+    if (seekDirection !== 0 && !flags.isRecording) {
       event.preventDefault();
       const position = Math.max(0, state.position + seekDirection * 5);
       runtime.seek(position);
@@ -447,7 +447,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputToggleDisabled={
                 input.mutationPending ||
                 !input.initialized ||
-                flags.captureBusy ||
+                flags.isRecording ||
                 (!input.active && input.route.needsSetup)
               }
               muted={state.recordingTrack.muted}
@@ -586,7 +586,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           state={state}
           isOpen={isAudioExportOpen}
           onClose={() => setIsAudioExportOpen(false)}
-          disabled={!project.loaded || flags.captureBusy}
+          disabled={!project.loaded || flags.isRecording}
         />
         <Dialog
           isOpen={isInputSetupOpen}
@@ -601,7 +601,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputActive={input.active}
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
-            captureBusy={flags.captureBusy}
+            isRecording={flags.isRecording}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}

@@ -1,10 +1,8 @@
 import type { RecorderRuntimeState } from "../../lib/recorder/runtime";
 
 export interface RecorderFlags {
+  /** Covers the stop tail too, since the take lands only after the worklet finalizes. */
   isRecording: boolean;
-  isProcessing: boolean;
-  /** Capture owns the transport, so seeking, transport edits, and input changes wait. */
-  captureBusy: boolean;
   playDisabled: boolean;
   recordDisabled: boolean;
   saveDisabled: boolean;
@@ -17,18 +15,14 @@ export function deriveRecorderFlags({
   captureStatus: RecorderRuntimeState["captureStatus"];
   project: { loaded: boolean; dirty: boolean; saving: boolean };
 }): RecorderFlags {
-  const isRecording = captureStatus === "recording";
-  const isProcessing = captureStatus === "processing";
-  const captureBusy = isRecording || isProcessing;
+  const isRecording =
+    captureStatus === "recording" || captureStatus === "processing";
   return {
     isRecording,
-    isProcessing,
-    captureBusy,
-    // Play stays enabled while recording because it doubles as stop.
-    playDisabled: !project.loaded || isProcessing,
-    recordDisabled:
-      !project.loaded || isProcessing || captureStatus === "disabled",
+    // Play and record stay enabled while recording because both act as stop.
+    playDisabled: !project.loaded,
+    recordDisabled: !project.loaded || captureStatus === "disabled",
     saveDisabled:
-      !project.loaded || !project.dirty || project.saving || captureBusy,
+      !project.loaded || !project.dirty || project.saving || isRecording,
   };
 }
