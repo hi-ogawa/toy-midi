@@ -389,18 +389,24 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = state.audioTracks.map((track) =>
-      track.clips.some((clip) => audioOffsets.has(clip.id))
-        ? resolveTrackRegions({
-            ...track,
-            clips: track.clips.map((clip) =>
-              audioOffsets.has(clip.id)
-                ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
-                : clip,
-            ),
-          })
-        : track,
-    );
+    const audioTracksToSync: AudioTrackState[] = [];
+    const audioTracks = state.audioTracks.map((track) => {
+      let changed = false;
+      const clips = track.clips.map((clip) => {
+        const timelineOffset = audioOffsets.get(clip.id);
+        if (timelineOffset === undefined) {
+          return clip;
+        }
+        changed = true;
+        return { ...clip, timelineOffset };
+      });
+      if (!changed) {
+        return track;
+      }
+      const next = resolveTrackRegions({ ...track, clips });
+      audioTracksToSync.push(next);
+      return next;
+    });
     const recordingTrack =
       takeOffsets.size > 0
         ? resolveTrackRegions({
@@ -428,10 +434,8 @@ export class RecorderRuntime {
     if (referenceOffset !== undefined) {
       this.syncYouTubePlayer();
     }
-    for (const track of audioTracks) {
-      if (track.clips.some((clip) => audioOffsets.has(clip.id))) {
-        this.syncAudioTrackPlayback(track);
-      }
+    for (const track of audioTracksToSync) {
+      this.syncAudioTrackPlayback(track);
     }
     if (wasPlaying) {
       this.transport.play();
@@ -495,14 +499,16 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = state.audioTracks.map((track) =>
-      track.clips.some((clip) => audioIds.has(clip.id))
-        ? resolveTrackRegions({
-            ...track,
-            clips: track.clips.filter((clip) => !audioIds.has(clip.id)),
-          })
-        : track,
-    );
+    const audioTracksToSync: AudioTrackState[] = [];
+    const audioTracks = state.audioTracks.map((track) => {
+      const clips = track.clips.filter((clip) => !audioIds.has(clip.id));
+      if (clips.length === track.clips.length) {
+        return track;
+      }
+      const next = resolveTrackRegions({ ...track, clips });
+      audioTracksToSync.push(next);
+      return next;
+    });
     const recordingTrack =
       takeIds.size > 0
         ? resolveTrackRegions({
@@ -517,10 +523,8 @@ export class RecorderRuntime {
     if (takeIds.size > 0) {
       this.syncTakePlayback(recordingTrack.regions);
     }
-    for (const [index, track] of audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncAudioTrackPlayback(track);
-      }
+    for (const track of audioTracksToSync) {
+      this.syncAudioTrackPlayback(track);
     }
     if (removeReference) {
       this.syncYouTubePlayer();
