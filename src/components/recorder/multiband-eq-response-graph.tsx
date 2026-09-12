@@ -7,10 +7,10 @@ import {
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
+  type MultibandEqBand,
 } from "../../lib/dsp/biquad-eq";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
-import type { MultibandEqBand } from "./recorder-multiband-effects";
 
 const GRAPH_SAMPLE_RATE = 48000;
 const FREQUENCY_TICKS = [20, 100, 1000, 10000, 20000];

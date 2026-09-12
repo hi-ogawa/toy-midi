@@ -1,6 +1,9 @@
 import { createAudioView } from "../audio-view.ts";
-import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
+import {
+  createDefaultEqBand,
+  createDefaultMultibandEq,
+} from "../dsp/biquad-eq-node.ts";
+import type { EqParameters, MultibandEqParameters } from "../dsp/biquad-eq.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
@@ -15,7 +18,7 @@ export interface SerializedRecorderRuntimeState {
   audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: EqParameters;
+    eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -58,7 +61,7 @@ export interface SerializedRecorderRuntimeState {
 
 interface SerializedAudioTrackState {
   // Optional for projects saved before track EQ support.
-  eq?: EqParameters;
+  eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
@@ -177,7 +180,7 @@ export function deserializeRecorderRuntimeState({
                 ),
               }
             : undefined,
-        eq: track.eq ?? createDefaultEq(),
+        eq: deserializeEq(track.eq),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
@@ -188,7 +191,7 @@ export function deserializeRecorderRuntimeState({
     }),
     recordingTrack: {
       height: project.recordingTrack.height,
-      eq: project.recordingTrack.eq ?? createDefaultEq(),
+      eq: deserializeEq(project.recordingTrack.eq),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
@@ -223,6 +226,21 @@ export function deserializeRecorderRuntimeState({
     tempo: project.tempo,
     timeSignature: project.timeSignature,
     referenceVideo: project.referenceVideo,
+  };
+}
+
+function deserializeEq(
+  eq?: MultibandEqParameters | EqParameters,
+): MultibandEqParameters {
+  if (!eq) {
+    return createDefaultMultibandEq();
+  }
+  if ("bands" in eq) {
+    return eq;
+  }
+  return {
+    bypass: false,
+    bands: [{ ...createDefaultEqBand(), ...eq }],
   };
 }
 

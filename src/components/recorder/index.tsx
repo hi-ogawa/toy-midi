@@ -16,13 +16,14 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
-import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
+import { useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
+import { RecorderMultibandEffectsPanel } from "./recorder-multiband-effects";
 import { RecorderPanel } from "./recorder-panel";
 import {
   TakeTimelineLane,
@@ -639,19 +640,19 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.audioTracks.map(
               (track, index) =>
                 effects.openEffects.has(track.id) && (
-                  <RecorderEffects
+                  <RecorderMultibandEffectsPanel
                     key={track.id}
                     label={`Audio ${index + 1}`}
                     eq={track.eq}
-                    onChange={(update) =>
-                      runtime.setAudioTrackEq({ id: track.id, update })
+                    onChange={(eq) =>
+                      runtime.setAudioTrackEq({ id: track.id, eq })
                     }
                     onClose={() => effects.closeEffects(track.id)}
                   />
                 ),
             )}
             {effects.openEffects.has("capture") && (
-              <RecorderEffects
+              <RecorderMultibandEffectsPanel
                 label="Capture"
                 eq={state.recordingTrack.eq}
                 onChange={(update) => runtime.setRecordingTrackEq(update)}

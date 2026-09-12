@@ -1,8 +1,15 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import type { EqParameters } from "../../lib/dsp/biquad-eq";
-import { createDefaultEq } from "../../lib/dsp/biquad-eq-node";
+import {
+  MAX_EQ_BANDS,
+  type MultibandEqBand,
+  type MultibandEqParameters,
+} from "../../lib/dsp/biquad-eq";
+import {
+  createDefaultEq,
+  createDefaultEqBand,
+} from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
@@ -10,22 +17,38 @@ import {
   EQ_BAND_COLORS,
   MultibandEqResponseGraph,
 } from "./multiband-eq-response-graph";
+import { RecorderPanel } from "./recorder-panel";
 
-const MAX_EQ_BANDS = 8;
-
-export type MultibandEqBand = EqParameters & { id: string };
-
-export interface MultibandEqState {
-  bypass: boolean;
-  bands: MultibandEqBand[];
+export function RecorderMultibandEffectsPanel({
+  label,
+  eq,
+  onChange,
+  onClose,
+}: {
+  label: string;
+  eq: MultibandEqParameters;
+  onChange: (eq: MultibandEqParameters) => void;
+  onClose: () => void;
+}) {
+  return (
+    <RecorderPanel
+      title={`${label} Effects`}
+      closeLabel={`Close ${label} Effects`}
+      onClose={onClose}
+      testId="recorder-effects-panel"
+      className="pointer-events-auto w-96 shrink-0"
+    >
+      <RecorderMultibandEffects eq={eq} onChange={onChange} />
+    </RecorderPanel>
+  );
 }
 
 export function RecorderMultibandEffects({
   eq,
   onChange,
 }: {
-  eq: MultibandEqState;
-  onChange: (eq: MultibandEqState) => void;
+  eq: MultibandEqParameters;
+  onChange: (eq: MultibandEqParameters) => void;
 }) {
   const [selectedBandId, setSelectedBandId] = useState(eq.bands[0]?.id);
   const [slidersOpen, setSlidersOpen] = useState(false);
@@ -49,13 +72,13 @@ export function RecorderMultibandEffects({
     if (eq.bands.length >= MAX_EQ_BANDS) {
       return;
     }
-    const band = createEqBand();
+    const band = createDefaultEqBand();
     onChange({ ...eq, bands: [...eq.bands, band] });
     setSelectedBandId(band.id);
   };
 
   const resetEq = () => {
-    const band = createEqBand();
+    const band = createDefaultEqBand();
     onChange({ bypass: false, bands: [band] });
     setSelectedBandId(band.id);
   };
@@ -244,10 +267,6 @@ export function RecorderMultibandEffects({
       )}
     </div>
   );
-}
-
-function createEqBand(): MultibandEqBand {
-  return { id: crypto.randomUUID(), ...createDefaultEq() };
 }
 
 function IconButton({
