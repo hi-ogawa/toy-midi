@@ -24,7 +24,7 @@ export interface SerializedRecorderRuntimeState {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState[];
+    takes: SerializedAudioClip[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -78,7 +78,7 @@ interface SerializedAudioTrackState {
   trimEnd?: number;
 }
 
-interface SerializedTakeState {
+interface SerializedAudioClip {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
