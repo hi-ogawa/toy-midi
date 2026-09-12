@@ -1,19 +1,17 @@
 import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
-import type {
-  EqParameters,
-  MultibandEqBand,
-  MultibandEqParameters,
-} from "./biquad-eq.ts";
+import type { MultibandEqBand, MultibandEqParameters } from "./biquad-eq.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
 
-export function createDefaultEq(): EqParameters {
-  return { frequency: 1000, gain: 1, q: 1, bypass: false };
-}
-
 export function createDefaultEqBand(): MultibandEqBand {
-  return { id: crypto.randomUUID(), ...createDefaultEq() };
+  return {
+    id: crypto.randomUUID(),
+    frequency: 1000,
+    gain: 1,
+    q: 1,
+    bypass: false,
+  };
 }
 
 export function createDefaultMultibandEq(): MultibandEqParameters {

@@ -6,10 +6,7 @@ import {
   type MultibandEqBand,
   type MultibandEqParameters,
 } from "../../lib/dsp/biquad-eq";
-import {
-  createDefaultEq,
-  createDefaultEqBand,
-} from "../../lib/dsp/biquad-eq-node";
+import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
@@ -92,7 +89,7 @@ export function RecorderEffectsContent({
     onChange({
       ...eq,
       bands: eq.bands.map((band) =>
-        band.id === id ? { ...band, ...update } : band,
+        band.id === id ? { ...band, ...update, id: band.id } : band,
       ),
     });
   };
@@ -217,7 +214,7 @@ export function RecorderEffectsContent({
             </label>
             <IconButton
               label="Reset band"
-              onClick={() => updateBand(selectedBand.id, createDefaultEq())}
+              onClick={() => updateBand(selectedBand.id, createDefaultEqBand())}
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
             </IconButton>
