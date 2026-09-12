@@ -32,6 +32,10 @@ export function useRecorderProject({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Never write default state over a project that did not initialize.
+      if (!projectQuery.isSuccess) {
+        throw new Error("Cannot save before the project has initialized.");
+      }
       const revision = revisionRef.current;
       await recorderProjectStorage.save({
         id: projectId,
