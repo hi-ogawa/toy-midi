@@ -201,9 +201,9 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
 export class RecorderRuntime {
   readonly store = createStore(createDefaultRecorderRuntimeState);
 
-  private context?: AudioContext;
-  private masterOutput?: GainNode;
-  private transport?: AudioContextTransport;
+  private readonly context = new AudioContext();
+  private readonly masterOutput: GainNode;
+  private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
@@ -212,20 +212,36 @@ export class RecorderRuntime {
     player: YouTubePlayerApi;
     playback: YouTubePlayerPlayback;
   };
-  private metronome?: RecorderMetronome;
+  private readonly metronome: RecorderMetronome;
+
+  constructor() {
+    this.masterOutput = this.context.createGain();
+    this.masterOutput.connect(this.context.destination);
+    this.transport = new AudioContextTransport(this.context);
+    this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
+    this.masterOutput.gain.value = this.store.get().masterGain;
+    this.syncMetronomeGain();
+    this.metronome.setTempo(this.store.get().tempo);
+    this.metronome.setTimeSignature(this.store.get().timeSignature);
+    this.syncLoopRange();
+    this.transport.store.subscribe(() => {
+      const { position, isPlaying } = this.transport.store.get();
+      this.store.update({ isPlaying, position });
+    });
+  }
 
   async startInput({
     deviceId,
   }: {
     deviceId: string;
   }): Promise<{ channelCount: number }> {
-    const context = this.ensureContext();
+    const context = this.context;
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.masterOutput!,
+      output: this.masterOutput,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -298,8 +314,7 @@ export class RecorderRuntime {
   }
 
   async setAudioTrack(id: string, file: File): Promise<void> {
-    const context = this.ensureContext();
-    const buffer = await context.decodeAudioData(await file.arrayBuffer());
+    const buffer = await this.context.decodeAudioData(await file.arrayBuffer());
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
@@ -407,7 +422,7 @@ export class RecorderRuntime {
       );
     }
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -507,7 +522,7 @@ export class RecorderRuntime {
       this.syncYouTubePlayer();
     }
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -574,10 +589,9 @@ export class RecorderRuntime {
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
-      this.ensureContext();
       playback = new AudioBufferPlayback({
-        transport: this.transport!,
-        output: this.masterOutput!,
+        transport: this.transport,
+        output: this.masterOutput,
       });
       const track = this.store
         .get()
@@ -605,7 +619,7 @@ export class RecorderRuntime {
       end: track.timelineOffset + track.trimEnd,
     });
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
@@ -681,34 +695,32 @@ export class RecorderRuntime {
       },
     });
     if (wasPlaying) {
-      this.transport!.play();
+      this.transport.play();
     }
   }
 
   async play(): Promise<void> {
-    const context = this.ensureContext();
     await Promise.all([
-      ensurePitchShifterWorklet(context),
-      ensureBiquadEqWorklet(context),
+      ensurePitchShifterWorklet(this.context),
+      ensureBiquadEqWorklet(this.context),
     ]);
-    await context.resume();
-    this.transport!.play();
+    await this.context.resume();
+    this.transport.play();
   }
 
   pause(): void {
-    this.transport?.pause();
+    this.transport.pause();
   }
 
   seek(position: number): void {
-    this.ensureContext();
-    this.transport!.seek(position);
+    this.transport.seek(position);
   }
 
   async startRecording(): Promise<void> {
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }
-    const context = this.ensureContext();
+    const context = this.context;
     await context.resume();
     const captureStartFrame = await this.captureInput.startCapture();
     if (!this.store.get().isPlaying) {
@@ -719,10 +731,10 @@ export class RecorderRuntime {
     }
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
-      this.transport!.playbackAnchor!.contextTime * context.sampleRate;
+      this.transport.playbackAnchor!.contextTime * context.sampleRate;
     const startFrame = Math.max(captureStartFrame, playbackStartFrame);
     const timelineOffset =
-      this.transport!.getPlaybackPositionByContextTime(
+      this.transport.getPlaybackPositionByContextTime(
         startFrame / context.sampleRate,
       ) - this.store.get().latencyCompensation;
     const id = crypto.randomUUID();
@@ -771,22 +783,21 @@ export class RecorderRuntime {
 
   setTempo(tempo: number): void {
     this.store.update({ tempo });
-    this.metronome?.setTempo(tempo);
+    this.metronome.setTempo(tempo);
     this.syncLoopRange();
   }
 
   async setPlaybackRate(playbackRate: number): Promise<void> {
-    const context = this.ensureContext();
-    await ensurePitchShifterWorklet(context);
-    this.transport!.setPlaybackRate(playbackRate);
+    await ensurePitchShifterWorklet(this.context);
+    this.transport.setPlaybackRate(playbackRate);
     this.store.update({ playbackRate });
   }
 
   setMasterGain(masterGain: number): void {
     this.store.update({ masterGain });
-    this.masterOutput?.gain.setTargetAtTime(
+    this.masterOutput.gain.setTargetAtTime(
       masterGain,
-      this.context!.currentTime,
+      this.context.currentTime,
       0.01,
     );
   }
@@ -816,7 +827,7 @@ export class RecorderRuntime {
 
   setTimeSignature(timeSignature: TimeSignature): void {
     this.store.update({ timeSignature });
-    this.metronome?.setTimeSignature(timeSignature);
+    this.metronome.setTimeSignature(timeSignature);
   }
 
   setTitle(title: string): void {
@@ -861,7 +872,6 @@ export class RecorderRuntime {
     videoId: string;
     player: YouTubePlayerApi;
   }): () => void {
-    this.ensureContext();
     const duration = player.getDuration();
     if (!Number.isFinite(duration) || duration <= 0) {
       throw new Error("YouTube player returned an invalid duration.");
@@ -869,7 +879,7 @@ export class RecorderRuntime {
 
     this.detachYouTubePlayer();
     const playback = new YouTubePlayerPlayback({
-      transport: this.transport!,
+      transport: this.transport,
       duration,
       player,
     });
@@ -970,7 +980,7 @@ export class RecorderRuntime {
   deserializeProject(project: SerializedRecorderRuntimeState): void {
     this.replacePersistableState(
       deserializeRecorderRuntimeState({
-        context: this.ensureContext(),
+        context: this.context,
         project,
       }),
     );
@@ -985,7 +995,6 @@ export class RecorderRuntime {
     ) {
       throw new Error("Cannot load a project while recording.");
     }
-    this.ensureContext();
     this.pause();
     for (const playback of this.audioTrackPlaybacks.values()) {
       playback.dispose();
@@ -997,8 +1006,8 @@ export class RecorderRuntime {
         continue;
       }
       const playback = new AudioBufferPlayback({
-        transport: this.transport!,
-        output: this.masterOutput!,
+        transport: this.transport,
+        output: this.masterOutput,
       });
       playback.setBuffer(buffer);
       playback.setEq(track.eq);
@@ -1020,11 +1029,11 @@ export class RecorderRuntime {
       },
     });
     this.syncYouTubePlayer();
-    this.transport!.seek(0);
-    this.metronome!.setTempo(project.tempo);
-    this.metronome!.setTimeSignature(project.timeSignature);
+    this.transport.seek(0);
+    this.metronome.setTempo(project.tempo);
+    this.metronome.setTimeSignature(project.timeSignature);
     this.syncLoopRange();
-    this.masterOutput!.gain.value = project.masterGain;
+    this.masterOutput.gain.value = project.masterGain;
     this.syncMetronomeGain();
     this.syncTrackMix();
   }
@@ -1051,26 +1060,6 @@ export class RecorderRuntime {
     });
   }
 
-  private ensureContext(): AudioContext {
-    if (!this.context) {
-      this.context = new AudioContext();
-      this.masterOutput = this.context.createGain();
-      this.masterOutput.connect(this.context.destination);
-      this.transport = new AudioContextTransport(this.context);
-      this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
-      this.masterOutput.gain.value = this.store.get().masterGain;
-      this.syncMetronomeGain();
-      this.metronome.setTempo(this.store.get().tempo);
-      this.metronome.setTimeSignature(this.store.get().timeSignature);
-      this.syncLoopRange();
-      this.transport.store.subscribe(() => {
-        const { position, isPlaying } = this.transport!.store.get();
-        this.store.update({ isPlaying, position });
-      });
-    }
-    return this.context;
-  }
-
   private syncTrackMix(): void {
     const { audioTracks, recordingTrack } = this.store.get();
     const { audioTrackGains, recordingGain } = deriveTrackMix({
@@ -1087,13 +1076,13 @@ export class RecorderRuntime {
 
   private syncMetronomeGain(): void {
     const state = this.store.get();
-    this.metronome?.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
+    this.metronome.setGain(state.metronomeEnabled ? state.metronomeGain : 0);
   }
 
   private syncLoopRange(): void {
     const state = this.store.get();
     const loopRange = state.loop.enabled ? state.loop.range : undefined;
-    this.transport?.setLoopRange(
+    this.transport.setLoopRange(
       loopRange
         ? {
             start: beatsToSeconds(loopRange.startBeat, state.tempo),
@@ -1106,7 +1095,7 @@ export class RecorderRuntime {
   private finishRecording(stopFrame: number): void {
     const context = this.context;
     const pendingRecording = this.store.get().pendingRecording;
-    if (!context || !pendingRecording) {
+    if (!pendingRecording) {
       throw new Error("Recording state is incomplete.");
     }
     const samples = pendingRecording.recording.finish(stopFrame);
@@ -1199,7 +1188,6 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    this.ensureContext();
     for (const playback of this.recordingTrackPlaybacks) {
       playback.dispose();
     }
@@ -1210,8 +1198,8 @@ export class RecorderRuntime {
         continue;
       }
       const playback = new AudioBufferPlayback({
-        transport: this.transport!,
-        output: this.masterOutput!,
+        transport: this.transport,
+        output: this.masterOutput,
       });
       playback.setBuffer(take.buffer);
       playback.setEq(this.store.get().recordingTrack.eq);
