@@ -18,7 +18,7 @@ export type AudioPlaybackRegion = {
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
   private playbacks: AudioBufferPlayback[] = [];
-  private readonly bus: PitchShiftBus;
+  private readonly pitchShiftBus: PitchShiftBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
   readonly channel: AudioChannel;
@@ -43,7 +43,10 @@ export class AudioTrackPlayback {
     });
     this.playbackGain = transport.context.createGain();
     this.playbackGain.connect(this.channel.input);
-    this.bus = new PitchShiftBus({ transport, output: this.playbackGain });
+    this.pitchShiftBus = new PitchShiftBus({
+      transport,
+      output: this.playbackGain,
+    });
   }
 
   setRegions(regions: readonly AudioPlaybackRegion[]): void {
@@ -53,7 +56,7 @@ export class AudioTrackPlayback {
     this.playbacks = regions.map((region) => {
       const playback = new AudioBufferPlayback({
         transport: this.transport,
-        output: this.bus.input,
+        output: this.pitchShiftBus.input,
       });
       playback.setBuffer(region.buffer);
       playback.setBufferTimelineOffset(region.timelineOffset);
@@ -74,7 +77,7 @@ export class AudioTrackPlayback {
 
   dispose(): void {
     this.setRegions([]);
-    this.bus.dispose();
+    this.pitchShiftBus.dispose();
     this.playbackGain.disconnect();
     this.channel.dispose();
   }
