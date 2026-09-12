@@ -19,15 +19,7 @@ import { Button } from "./ui/button";
 
 type ProjectType = "midi" | "recorder";
 
-type ProjectListViewProps = {
-  onSelectProject: (projectId: string) => void;
-  onNewProject: () => void;
-};
-
-export function ProjectListView({
-  onSelectProject,
-  onNewProject,
-}: ProjectListViewProps) {
+export function ProjectListView() {
   const [projectType, setProjectType] = useState<ProjectType>(() =>
     localStorage.getItem("toy-midi-project-type") === "recorder"
       ? "recorder"
@@ -146,10 +138,7 @@ export function ProjectListView({
               }
             >
               {projectType === "midi" ? (
-                <MidiProjectList
-                  onSelectProject={onSelectProject}
-                  onNewProject={onNewProject}
-                />
+                <MidiProjectList />
               ) : (
                 <RecorderProjectList />
               )}
@@ -161,10 +150,7 @@ export function ProjectListView({
   );
 }
 
-function MidiProjectList({
-  onSelectProject,
-  onNewProject,
-}: ProjectListViewProps) {
+function MidiProjectList() {
   const [renamingProjectId, setRenamingProjectId] = useState<string>();
   const [projects, setProjects] = useState(projectStorage.listMetadata());
 
@@ -180,7 +166,7 @@ function MidiProjectList({
     },
     onSuccess: (newProjectId) => {
       // Select the newly imported project
-      onSelectProject(newProjectId);
+      openMidiProject(newProjectId);
     },
     onError: (error) => {
       console.error("Failed to import project:", error);
@@ -261,7 +247,7 @@ function MidiProjectList({
           <Button
             data-testid="new-project-button"
             disabled={isLoading}
-            onClick={onNewProject}
+            onClick={() => openMidiProject(projectStorage.createNew())}
             className={`px-4 py-2 text-sm ${
               hasProjects
                 ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-600"
@@ -284,6 +270,10 @@ function MidiProjectList({
       </section>
     </>
   );
+}
+
+function openMidiProject(projectId: string) {
+  window.location.href = routes.project.href({ projectId });
 }
 
 type ProjectListItemProps = {
