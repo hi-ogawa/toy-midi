@@ -2,6 +2,7 @@ import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
+import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -15,6 +16,10 @@ const PREVIEWS = [
   {
     label: "Recorder effects",
     component: RecorderEffectsPreview,
+  },
+  {
+    label: "Recorder help dialog",
+    component: RecorderHelpPreview,
   },
 ].map((entry) => ({
   ...entry,
