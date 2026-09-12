@@ -14,7 +14,7 @@ export type AudioPlaybackRegion = {
 /** Owns region playback and a channel that also accepts independently routed input for capture monitoring. */
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
-  private readonly playbacks: AudioBufferPlayback[] = [];
+  private playbacks: AudioBufferPlayback[] = [];
   private readonly bus: PlaybackBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
@@ -47,8 +47,7 @@ export class AudioTrackPlayback {
     for (const playback of this.playbacks) {
       playback.dispose();
     }
-    this.playbacks.length = 0;
-    for (const region of regions) {
+    this.playbacks = regions.map((region) => {
       const playback = new AudioBufferPlayback({
         transport: this.transport,
         output: this.bus.input,
@@ -59,8 +58,8 @@ export class AudioTrackPlayback {
         start: region.timelineStart,
         end: region.timelineEnd,
       });
-      this.playbacks.push(playback);
-    }
+      return playback;
+    });
   }
 
   setPlaybackGain(gain: number): void {
