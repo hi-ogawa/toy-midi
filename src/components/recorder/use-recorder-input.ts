@@ -107,7 +107,7 @@ export function useRecorderInput({
       ? { label: "Microphone access required", needsSetup: true }
       : selectedDevice
         ? {
-            label: `${selectedDevice.label || "Audio input"} · Input ${state.selectedChannel + 1}`,
+            label: `${selectedDevice.label || "Unnamed input"} · Channel ${state.selectedChannel + 1}`,
             needsSetup: false,
           }
         : { label: "No input configured", needsSetup: true };
