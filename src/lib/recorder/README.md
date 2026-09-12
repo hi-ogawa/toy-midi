@@ -9,26 +9,31 @@ flowchart LR
     captureWorklet --> analyser["captureInput.analyser.node"]
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
-    takeSource["recordingTrackPlaybacks[i].source"] --> takeBusInput
-    subgraph takePlaybackBus["takePlaybackBus: PlaybackBus"]
-        takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
-    end
-    takePitchShifter --> takePlaybackGain["takePlaybackGain"]
-    takePlaybackGain --> captureInput
 
-    subgraph captureChannel["captureChannel: AudioChannel"]
-        captureInput["input"] --> captureEqualizer["equalizer"]
-        captureEqualizer --> captureGain["gain"]
+    subgraph captureTrack["captureTrack: AudioTrackPlayback"]
+        takeSource["playbacks[i].source"] --> takeBusInput
+        subgraph takePlaybackBus["bus: PlaybackBus"]
+            takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
+        end
+        takePitchShifter --> takePlaybackGain["playbackGain"]
+        takePlaybackGain --> captureInput
+        subgraph captureChannel["channel: AudioChannel"]
+            captureInput["input"] --> captureEqualizer["equalizer"]
+            captureEqualizer --> captureGain["gain"]
+        end
     end
 
-    audioSource["audioTracks.get(id).playback.source"] --> audioBusInput
-    subgraph audioPlaybackBus["audioTracks.get(id).bus: PlaybackBus"]
-        audioBusInput["input"] --> audioPitchShifter["pitchShifter (optional)"]
-    end
-    audioPitchShifter --> trackInput
-    subgraph audioChannel["audioTracks.get(id).channel: AudioChannel"]
-        trackInput["input"] --> trackEqualizer["equalizer"]
-        trackEqualizer --> trackGain["gain"]
+    subgraph audioTrack["audioTracks.get(id): AudioTrackPlayback"]
+        audioSource["playbacks[i].source"] --> audioBusInput
+        subgraph audioPlaybackBus["bus: PlaybackBus"]
+            audioBusInput["input"] --> audioPitchShifter["pitchShifter (optional)"]
+        end
+        audioPitchShifter --> audioPlaybackGain["playbackGain"]
+        audioPlaybackGain --> trackInput
+        subgraph audioChannel["channel: AudioChannel"]
+            trackInput["input"] --> trackEqualizer["equalizer"]
+            trackEqualizer --> trackGain["gain"]
+        end
     end
 
     captureGain --> masterOutput["masterOutput"]
