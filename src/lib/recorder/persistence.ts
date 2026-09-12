@@ -6,10 +6,6 @@ import {
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
-  migrateRecorderProject,
-  type AnySerializedRecorderRuntimeState,
-} from "./project-migration.ts";
-import {
   type PersistableRecorderRuntimeState,
   type RecorderLocator,
 } from "./runtime.ts";
@@ -19,7 +15,6 @@ import {
  * path (`string`) in project archives.
  */
 export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
-  version: 2;
   title: string;
   locators?: RecorderLocator[];
   armedTrackId: string;
@@ -83,7 +78,6 @@ export function serializeRecorderRuntimeState(
   state: PersistableRecorderRuntimeState,
 ): SerializedRecorderRuntimeState {
   return {
-    version: 2,
     title: state.title,
     locators: state.locators,
     armedTrackId: state.armedTrackId,
@@ -124,12 +118,11 @@ export function serializeRecorderRuntimeState(
 
 export function deserializeRecorderRuntimeState({
   context,
-  project: input,
+  project,
 }: {
   context: Pick<AudioContext, "createBuffer">;
-  project: AnySerializedRecorderRuntimeState;
+  project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
-  const project = migrateRecorderProject(input);
   if (!project.audioTracks.some((track) => track.id === project.armedTrackId)) {
     throw new Error("Recorder project has no recording destination.");
   }

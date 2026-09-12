@@ -6,25 +6,14 @@ import type {
 } from "./persistence.ts";
 import type { RecorderLocator } from "./runtime.ts";
 
-export type AnySerializedRecorderRuntimeState =
-  | SerializedRecorderRuntimeState
-  | SerializedRecorderRuntimeStateV1;
-
 /** Normalize legacy track structure before restoring runtime state. */
 export function migrateRecorderProject(
-  project: AnySerializedRecorderRuntimeState,
+  project: SerializedRecorderRuntimeStateV1,
 ): SerializedRecorderRuntimeState {
-  if ("version" in project) {
-    if (project.version !== 2) {
-      throw new Error("Recorder project requires a newer app version.");
-    }
-    return project;
-  }
   const { audioTracks, recordingTrack, ...settings } = project;
   const armedTrackId = crypto.randomUUID();
   return {
     ...settings,
-    version: 2,
     armedTrackId,
     audioTracks: [
       ...audioTracks.map(

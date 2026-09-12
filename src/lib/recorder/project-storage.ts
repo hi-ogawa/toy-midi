@@ -5,15 +5,17 @@ import {
 } from "./persistence.ts";
 import {
   migrateRecorderProject,
-  type AnySerializedRecorderRuntimeState,
+  type SerializedRecorderRuntimeStateV1,
 } from "./project-migration.ts";
 import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 
-interface StoredRecorderProject {
+type StoredRecorderProject = {
   id: string;
   updatedAt: number;
-  content: AnySerializedRecorderRuntimeState;
-}
+} & (
+  | { version: 2; content: SerializedRecorderRuntimeState }
+  | { version?: 1; content: SerializedRecorderRuntimeStateV1 }
+);
 
 export interface RecorderProjectMetadata {
   id: string;
@@ -53,6 +55,7 @@ export const recorderProjectStorage = {
   ): Promise<string> {
     const id = crypto.randomUUID();
     const project: StoredRecorderProject = {
+      version: 2,
       id,
       updatedAt: Date.now(),
       content,
@@ -67,7 +70,18 @@ export const recorderProjectStorage = {
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
     }
-    return migrateRecorderProject(project.content);
+    switch (project.version) {
+      case undefined:
+      case 1: {
+        return migrateRecorderProject(project.content);
+      }
+      case 2: {
+        return project.content;
+      }
+      default: {
+        throw new Error("Recorder project requires a newer app version.");
+      }
+    }
   },
 
   async save({
@@ -78,6 +92,7 @@ export const recorderProjectStorage = {
     content: SerializedRecorderRuntimeState;
   }): Promise<void> {
     const project: StoredRecorderProject = {
+      version: 2,
       id,
       updatedAt: Date.now(),
       content,
