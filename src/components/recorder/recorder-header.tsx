@@ -424,13 +424,7 @@ export function RecorderHeader({
           <DropdownMenuItem asChild>
             <a href={routes.home.href()}>
               <HouseIcon />
-              Home
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={routes.recorder.href()}>
-              <Mic2Icon />
-              Recorder projects
+              Projects
             </a>
           </DropdownMenuItem>
         </DropdownMenuContent>
