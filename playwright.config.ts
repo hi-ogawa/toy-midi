@@ -13,7 +13,10 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://localhost:5183",
-    trace: { mode: "retain-on-failure", screenshots: false },
+    trace:
+      process.env.PLAYWRIGHT_REVIEW === "1"
+        ? { mode: "on", screenshots: false }
+        : "off",
   },
   forbidOnly: !!process.env.CI,
   reporter: [

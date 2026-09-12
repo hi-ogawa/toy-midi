@@ -1,0 +1,47 @@
+name: E2E visual review
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit to review (defaults to the selected workflow branch)
+        type: string
+        required: false
+      grep:
+        description: Test title regex (empty runs all tests)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-review:
+    name: review (${{ matrix.shard }}/2)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+      - run: corepack enable
+      - run: pnpm i
+      - run: pnpm build-wasm
+      - run: pnpm exec playwright install chromium --with-deps --no-shell
+      - run: pnpm test-e2e-review --shard=${{ matrix.shard }}/2 --grep "$TEST_GREP" --pass-with-no-tests
+        env:
+          TEST_GREP: ${{ inputs.grep }}
+      - run: mv test-results/trace-pack.html test-results/trace-pack-${{ matrix.shard }}.html
+        if: always() && hashFiles('test-results/trace-pack.html') != ''
+      - uses: actions/upload-artifact@v7
+        if: always() && hashFiles(format('test-results/trace-pack-{0}.html', matrix.shard)) != ''
+        with:
+          path: test-results/trace-pack-${{ matrix.shard }}.html
+          archive: false
+          retention-days: 7

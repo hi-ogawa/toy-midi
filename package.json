@@ -17,6 +17,7 @@
     "lint-dead-code": "fallow dead-code --unused-exports --unused-types",
     "test": "vitest",
     "test-e2e": "playwright test",
+    "test-e2e-review": "PLAYWRIGHT_REVIEW=1 playwright test",
     "wsola": "tsx tools/wsola.ts"
   },
   "dependencies": {
