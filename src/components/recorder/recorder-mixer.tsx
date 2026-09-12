@@ -46,7 +46,6 @@ export function RecorderMixer({
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
           label={`Audio ${index + 1}`}
-          labelTitle={track.clips[0]?.name}
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
@@ -94,7 +93,6 @@ export function RecorderMixer({
 
 function RecorderTrackChannel({
   label,
-  labelTitle,
   gain,
   muted,
   soloed,
@@ -106,7 +104,6 @@ function RecorderTrackChannel({
   onEffectsToggle,
 }: {
   label: string;
-  labelTitle?: string;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -122,7 +119,6 @@ function RecorderTrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      labelTitle={labelTitle}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
@@ -172,7 +168,6 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 function MixerChannel({
   icon,
   label,
-  labelTitle,
   gain,
   onGainChange,
   inputProps,
@@ -181,7 +176,6 @@ function MixerChannel({
 }: {
   icon: ReactNode;
   label: string;
-  labelTitle?: string;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
@@ -195,10 +189,7 @@ function MixerChannel({
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span
-          className="max-w-24 truncate text-xs font-medium text-neutral-300"
-          title={labelTitle}
-        >
+        <span className="max-w-24 truncate text-xs font-medium text-neutral-300">
           {label}
         </span>
       </div>
