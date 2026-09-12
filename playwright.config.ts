@@ -1,3 +1,4 @@
+import type { TracePackReporterOptions } from "@hiogawa/playwright-trace-pack/reporter";
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
@@ -18,7 +19,13 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["json", { outputFile: "test-results/report.json" }],
-    ["@hiogawa/playwright-trace-pack/reporter"],
+    [
+      "@hiogawa/playwright-trace-pack/reporter",
+      {
+        excludeResponseBody: ({ url }) =>
+          new URL(url).pathname.endsWith(".sf2"),
+      } satisfies TracePackReporterOptions,
+    ],
     ...(process.env.CI ? [["github"] as const] : []),
   ],
   projects: [
