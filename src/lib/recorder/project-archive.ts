@@ -8,10 +8,18 @@ import {
   type LegacyRecorderProject,
 } from "./project-migration.ts";
 
-// Audio channels are stored at audio/tracks/<track>/clips/<clip>/channel-<channel>.f32.
+// .toymidi.zip
+// ├── manifest.json  { formatVersion: 2, projectType: "recorder", ... }
+// ├── project.json   { audioTracks: [{ clips: [{ pcm: { channels:
+// │                    ["audio/tracks/0/clips/0/channel-0.f32"] } }] }], ... }
+// └── audio/tracks/
+//     ├── 0/clips/0/channel-0.f32
+//     └── 1/clips/0/channel-0.f32
+//
 // project.json serializes SerializedRecorderRuntimeState<string>, replacing
 // each PCM channel's Float32Array with its ZIP entry path. The samples are
 // stored separately in the referenced .f32 files.
+
 const CURRENT_FORMAT_VERSION = 2;
 const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
