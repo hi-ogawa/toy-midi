@@ -21,9 +21,9 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
         ? [
             {
               buffer: track.clip.buffer,
-              start: track.timelineOffset + track.trimStart,
-              offset: track.trimStart,
-              duration: track.trimEnd - track.trimStart,
+              timelineOffset: track.timelineOffset,
+              timelineStart: track.timelineOffset + track.trimStart,
+              timelineEnd: track.timelineOffset + track.trimEnd,
             },
           ]
         : [],
@@ -37,9 +37,9 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
         ? [
             {
               buffer: region.take.buffer,
-              start: region.timelineStart,
-              offset: region.timelineStart - region.take.timelineOffset,
-              duration: region.timelineEnd - region.timelineStart,
+              timelineOffset: region.take.timelineOffset,
+              timelineStart: region.timelineStart,
+              timelineEnd: region.timelineEnd,
             },
           ]
         : [],
@@ -50,12 +50,8 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   for (const track of tracks) {
     for (const region of track.regions) {
       // Crop pre-zero audio without shifting the region's timeline end.
-      if (region.start < 0) {
-        region.offset -= region.start;
-        region.duration += region.start;
-        region.start = 0;
-      }
-      duration = Math.max(duration, region.start + region.duration);
+      region.timelineStart = Math.max(0, region.timelineStart);
+      duration = Math.max(duration, region.timelineEnd);
     }
   }
   return { tracks, masterGain: state.masterGain, duration };
@@ -95,7 +91,11 @@ export async function renderRecorderMix({
       const source = context.createBufferSource();
       source.buffer = region.buffer;
       source.connect(channel.input);
-      source.start(region.start, region.offset, region.duration);
+      source.start(
+        region.timelineStart,
+        region.timelineStart - region.timelineOffset,
+        region.timelineEnd - region.timelineStart,
+      );
     }
   }
   return context.startRendering();

@@ -1192,9 +1192,9 @@ export class RecorderRuntime {
           ? [
               {
                 buffer: take.buffer,
-                start: timelineStart,
-                offset: timelineStart - take.timelineOffset,
-                duration: timelineEnd - timelineStart,
+                timelineOffset: take.timelineOffset,
+                timelineStart,
+                timelineEnd,
               },
             ]
           : [],
@@ -1209,9 +1209,9 @@ function getAudioTrackSources(track: AudioTrackState): AudioPlaybackSource[] {
     ? [
         {
           buffer: track.clip.buffer,
-          start: track.timelineOffset + track.trimStart,
-          offset: track.trimStart,
-          duration: track.trimEnd - track.trimStart,
+          timelineOffset: track.timelineOffset,
+          timelineStart: track.timelineOffset + track.trimStart,
+          timelineEnd: track.timelineOffset + track.trimEnd,
         },
       ]
     : [];

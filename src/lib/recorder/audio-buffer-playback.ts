@@ -6,11 +6,10 @@ import type {
 /** A buffer slice placed on the timeline, with all times in seconds. */
 export interface AudioPlaybackSource {
   buffer: AudioBuffer;
-  /** Timeline position where the slice starts. */
-  start: number;
-  /** Position within the buffer where the slice starts. */
-  offset: number;
-  duration: number;
+  /** Timeline position corresponding to buffer time zero. */
+  timelineOffset: number;
+  timelineStart: number;
+  timelineEnd: number;
 }
 
 export class AudioBufferPlayback implements TransportParticipant {
@@ -43,8 +42,10 @@ export class AudioBufferPlayback implements TransportParticipant {
       return;
     }
     const playbackAnchor = this.transport.playbackAnchor!;
-    const { buffer, start, offset, duration } = playbackSource;
-    const elapsed = Math.max(0, playbackAnchor.position - start);
+    const { buffer, timelineOffset, timelineStart, timelineEnd } =
+      playbackSource;
+    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
+    const duration = timelineEnd - timelineStart;
     if (elapsed >= duration) {
       return;
     }
@@ -54,9 +55,9 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.connect(this.output);
     source.start(
       playbackAnchor.contextTime +
-        Math.max(0, start - playbackAnchor.position) /
+        Math.max(0, timelineStart - playbackAnchor.position) /
           this.transport.playbackRate,
-      offset + elapsed,
+      timelineStart - timelineOffset + elapsed,
       duration - elapsed,
     );
     this.source = source;
