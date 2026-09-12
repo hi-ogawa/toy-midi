@@ -4,10 +4,10 @@ test("iterates the multiband recorder EQ preview", async ({
   page,
 }, testInfo) => {
   // Open the preview with three bands and Band 1 selected.
-  await page.goto("/_preview?component=recorder-multiband-effects");
-  const panel = page.getByTestId("recorder-multiband-effects-panel");
+  await page.goto("/_preview?component=recorder-effects");
+  const panel = page.getByTestId("recorder-effects-panel");
   await expect(panel).toBeVisible();
-  await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(3);
+  await expect(panel.getByTestId("eq-response-point")).toHaveCount(3);
   await expect(panel.getByRole("heading", { name: "Band 1" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("multiband-eq.png") });
 
@@ -18,7 +18,7 @@ test("iterates the multiband recorder EQ preview", async ({
   const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
   await expect(frequencyInput).toHaveValue("850");
   const point = await panel
-    .getByTestId("multiband-eq-response-point")
+    .getByTestId("eq-response-point")
     .nth(1)
     .boundingBox();
   expect(point).toBeTruthy();
@@ -52,13 +52,15 @@ test("iterates the multiband recorder EQ preview", async ({
 
   // Per-band and global bypass states update their response curves.
   await panel.getByRole("checkbox", { name: "Bypass" }).last().check();
-  await expect(
-    panel.getByTestId("multiband-eq-band-curve").nth(1),
-  ).toHaveAttribute("stroke-dasharray", "3 3");
+  await expect(panel.getByTestId("eq-band-curve").nth(1)).toHaveAttribute(
+    "stroke-dasharray",
+    "3 3",
+  );
   await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
-  await expect(
-    panel.getByTestId("multiband-eq-combined-curve"),
-  ).toHaveAttribute("stroke-opacity", "0.25");
+  await expect(panel.getByTestId("eq-combined-curve")).toHaveAttribute(
+    "stroke-opacity",
+    "0.25",
+  );
   await panel.getByRole("checkbox", { name: "Bypass" }).first().uncheck();
 
   // Optional sliders can be shown and hidden beside the graph controls.
@@ -74,15 +76,15 @@ test("iterates the multiband recorder EQ preview", async ({
 
   // Add a fourth band and verify that it becomes the selected band.
   await panel.getByRole("button", { name: "Add band" }).click();
-  await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(4);
+  await expect(panel.getByTestId("eq-response-point")).toHaveCount(4);
   await expect(panel.getByRole("heading", { name: "Band 4" })).toBeVisible();
 
   // Delete the selected band to return to three bands.
   await panel.getByRole("button", { name: "Delete band" }).click();
-  await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(3);
+  await expect(panel.getByTestId("eq-response-point")).toHaveCount(3);
 
   // Reset the EQ to a single selected band.
   await panel.getByRole("button", { name: "Reset EQ" }).click();
-  await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(1);
+  await expect(panel.getByTestId("eq-response-point")).toHaveCount(1);
   await expect(panel.getByRole("heading", { name: "Band 1" })).toBeVisible();
 });

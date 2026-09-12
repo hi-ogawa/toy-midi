@@ -61,7 +61,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
-  await expect(audio.getByTestId("multiband-eq-response-point")).toHaveCount(2);
+  await expect(audio.getByTestId("eq-response-point")).toHaveCount(2);
   await audio.getByRole("button", { name: "Select band 1" }).click();
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
