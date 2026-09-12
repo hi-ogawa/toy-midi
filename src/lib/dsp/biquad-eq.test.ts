@@ -171,19 +171,16 @@ describe(MultibandEq, () => {
         bands: ["a", "b"].map((id) => ({
           id,
           ...DEFAULT_PARAMETERS,
-          gain: dbToGain(6),
+          gain: 2,
         })),
       },
     });
     const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
     const output = process(eq, input);
     expect(
-      10 *
-        Math.log10(
-          measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
-            measureEnergy(input.subarray(SAMPLE_RATE / 2)),
-        ),
-    ).toBeCloseTo(12, 3);
+      measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+        measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+    ).toBeCloseTo(16, 3);
   });
 
   it("reconciles updates by band ID without resetting its ramp", () => {
