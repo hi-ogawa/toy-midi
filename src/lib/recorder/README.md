@@ -1,5 +1,7 @@
 # Recorder signal flow
 
+The diagram shows how audio flows from sources through processing to recording and output.
+
 ```mermaid
 flowchart LR
     captureSource["captureInput.source"] --> captureWorklet["captureInput.worklet.node"]
