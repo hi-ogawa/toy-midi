@@ -46,7 +46,7 @@ export function RecorderMixer({
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
           label={`Audio ${index + 1}`}
-          labelTitle={track.clips[0]?.name}
+          labelTitle={track.clip?.name}
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}

@@ -1,6 +1,6 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
-import { createAudioView } from "../audio-view.ts";
+import { type AudioView, createAudioView } from "../audio-view.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
@@ -44,10 +44,18 @@ export interface AudioTrackState {
   eq: MultibandEqParameters;
   id: string;
   height: number;
-  clips: AudioClip[];
+  clip?: {
+    name: string;
+    buffer: AudioBuffer;
+    audioView: AudioView;
+  };
   gain: number;
   muted: boolean;
   soloed: boolean;
+  timelineOffset: number;
+  /** Audible source-buffer interval [trimStart, trimEnd), in seconds. */
+  trimStart: number;
+  trimEnd: number;
 }
 
 interface RecordingTrackState {
@@ -56,7 +64,7 @@ interface RecordingTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
-  clips: AudioClip[];
+  takes: AudioClip[];
   nextTakeNumber: number;
 }
 
@@ -328,24 +336,17 @@ export class RecorderRuntime {
     }
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
-      clips: [
-        {
-          id: crypto.randomUUID(),
-          name: file.name,
-          muted: false,
-          soloed: false,
-          timelineOffset: track.clips[0]?.timelineOffset ?? 0,
-          trimStart: 0,
-          trimEnd: buffer.duration,
-          duration: buffer.duration,
-          buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
-          ),
-        },
-      ],
+      trimStart: 0,
+      trimEnd: buffer.duration,
+      clip: {
+        name: file.name,
+        buffer,
+        audioView: createAudioView(
+          buffer.getChannelData(0),
+          buffer.sampleRate,
+          WAVEFORM_POINTS_PER_SECOND,
+        ),
+      },
     }));
     this.syncAudioTrackPlayback(track);
   }
@@ -387,7 +388,7 @@ export class RecorderRuntime {
         (id) => !state.audioTracks.some((track) => track.id === id),
       ) ||
       [...takeOffsets.keys()].some(
-        (id) => !state.recordingTrack.clips.some((take) => take.id === id),
+        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
       )
     ) {
       throw new Error("Recorder clip state is missing.");
@@ -398,14 +399,11 @@ export class RecorderRuntime {
     }
     const audioTracks = state.audioTracks.map((track) => ({
       ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        timelineOffset: audioOffsets.get(track.id) ?? clip.timelineOffset,
-      })),
+      timelineOffset: audioOffsets.get(track.id) ?? track.timelineOffset,
     }));
     const recordingTrack = {
       ...state.recordingTrack,
-      clips: state.recordingTrack.clips.map((take) => ({
+      takes: state.recordingTrack.takes.map((take) => ({
         ...take,
         timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
       })),
@@ -465,10 +463,7 @@ export class RecorderRuntime {
   private setAudioTrackTrimStart(id: string, trimStart: number): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        trimStart: clamp(trimStart, 0, clip.trimEnd - MIN_TAKE_DURATION),
-      })),
+      trimStart: clamp(trimStart, 0, track.trimEnd - MIN_TAKE_DURATION),
     }));
     this.syncAudioTrackPlayback(track);
   }
@@ -476,14 +471,11 @@ export class RecorderRuntime {
   private setAudioTrackTrimEnd(id: string, trimEnd: number): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        trimEnd: clamp(
-          trimEnd,
-          clip.trimStart + MIN_TAKE_DURATION,
-          clip.duration,
-        ),
-      })),
+      trimEnd: clamp(
+        trimEnd,
+        track.trimStart + MIN_TAKE_DURATION,
+        track.clip?.buffer.duration ?? 0,
+      ),
     }));
     this.syncAudioTrackPlayback(track);
   }
@@ -505,7 +497,7 @@ export class RecorderRuntime {
         (id) => !state.audioTracks.some((track) => track.id === id),
       ) ||
       [...takeIds].some(
-        (id) => !state.recordingTrack.clips.some((take) => take.id === id),
+        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
       )
     ) {
       throw new Error("Recorder clip state is missing.");
@@ -518,7 +510,9 @@ export class RecorderRuntime {
       this.audioTracks.get(id)?.setSources([]);
     }
     const audioTracks = state.audioTracks.map((track) =>
-      audioIds.has(track.id) ? { ...track, clips: [] } : track,
+      audioIds.has(track.id)
+        ? { ...track, clip: undefined, trimStart: 0, trimEnd: 0 }
+        : track,
     );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     if (takeIds.size > 0) {
@@ -527,7 +521,7 @@ export class RecorderRuntime {
         referenceVideo,
         recordingTrack: {
           ...state.recordingTrack,
-          clips: state.recordingTrack.clips.filter(
+          takes: state.recordingTrack.takes.filter(
             (take) => !takeIds.has(take.id),
           ),
         },
@@ -696,7 +690,7 @@ export class RecorderRuntime {
     this.updateRecordingTrack({
       recordingTrack: {
         ...recordingTrack,
-        clips: updateFn(recordingTrack.clips),
+        takes: updateFn(recordingTrack.takes),
       },
     });
     if (wasPlaying) {
@@ -999,7 +993,7 @@ export class RecorderRuntime {
     }
     this.audioTracks.clear();
     for (const track of project.audioTracks) {
-      const buffer = track.clips[0]?.buffer;
+      const buffer = track.clip?.buffer;
       if (!buffer) {
         continue;
       }
@@ -1135,8 +1129,8 @@ export class RecorderRuntime {
       recordingTrack: {
         ...recordingTrack,
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
-        clips: [
-          ...recordingTrack.clips,
+        takes: [
+          ...recordingTrack.takes,
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
@@ -1168,7 +1162,7 @@ export class RecorderRuntime {
       Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     const { recordingTrack } = update;
-    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.clips));
+    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.takes));
     this.store.update({ ...update, takeRegions });
     this.syncTakePlayback(takeRegions);
   }
@@ -1177,7 +1171,7 @@ export class RecorderRuntime {
     pendingRecording: PendingRecordingState,
   ): void {
     const previewClipRegions = deriveClipRegions([
-      ...getActiveClips(this.store.get().recordingTrack.clips),
+      ...getActiveClips(this.store.get().recordingTrack.takes),
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
@@ -1257,7 +1251,9 @@ function createAudioTrackState(): AudioTrackState {
     gain: 1,
     muted: false,
     soloed: false,
-    clips: [],
+    timelineOffset: 0,
+    trimStart: 0,
+    trimEnd: 0,
   };
 }
 
@@ -1268,7 +1264,7 @@ function createRecordingTrackState(): RecordingTrackState {
     gain: 1,
     muted: false,
     soloed: false,
-    clips: [],
+    takes: [],
     nextTakeNumber: 1,
   };
 }

@@ -38,7 +38,7 @@ export function useRecorderClipInteraction({
       audioTracks: state.audioTracks.filter((track) =>
         selectedKeys.has(getKey({ type: "audio", id: track.id })),
       ),
-      takes: state.recordingTrack.clips.filter((take) =>
+      takes: state.recordingTrack.takes.filter((take) =>
         selectedKeys.has(getKey({ type: "take", id: take.id })),
       ),
       referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
@@ -50,9 +50,9 @@ export function useRecorderClipInteraction({
   useEffect(() => {
     const available = new Set([
       ...state.audioTracks
-        .filter((track) => track.clips[0])
+        .filter((track) => track.clip)
         .map((track) => getKey({ type: "audio", id: track.id })),
-      ...state.recordingTrack.clips.map((take) =>
+      ...state.recordingTrack.takes.map((take) =>
         getKey({ type: "take", id: take.id }),
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
@@ -61,7 +61,7 @@ export function useRecorderClipInteraction({
       const next = new Set([...current].filter((key) => available.has(key)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
+  }, [state.audioTracks, state.recordingTrack.takes, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
     onSelect();
@@ -102,7 +102,7 @@ export function useRecorderClipInteraction({
       ...selected.audioTracks.map((track) => ({
         type: "audio" as const,
         id: track.id,
-        timelineOffset: track.clips[0]!.timelineOffset,
+        timelineOffset: track.timelineOffset,
       })),
       ...selected.takes.map((take) => ({
         type: "take" as const,
@@ -122,7 +122,7 @@ export function useRecorderClipInteraction({
       clips,
       minimumVisibleStart: Math.min(
         ...selected.audioTracks.map(
-          (track) => track.clips[0]!.timelineOffset + track.clips[0]!.trimStart,
+          (track) => track.timelineOffset + track.trimStart,
         ),
         ...selected.takes.map((take) => take.timelineOffset + take.trimStart),
         ...(selected.referenceVideo
@@ -159,9 +159,9 @@ export function useRecorderClipInteraction({
   }): RecorderClipTrimSnapshot {
     const selected =
       clip.type === "audio"
-        ? state.audioTracks.find((track) => track.id === clip.id)?.clips[0]
+        ? state.audioTracks.find((track) => track.id === clip.id)
         : clip.type === "take"
-          ? state.recordingTrack.clips.find((take) => take.id === clip.id)
+          ? state.recordingTrack.takes.find((take) => take.id === clip.id)
           : undefined;
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
