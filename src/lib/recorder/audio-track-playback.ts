@@ -11,7 +11,7 @@ export type AudioPlaybackRegion = {
   timelineEnd: number;
 };
 
-/** Owns region playback and a channel that also accepts independently routed input. */
+/** Owns region playback and a channel that also accepts independently routed input for capture monitoring. */
 export class AudioTrackPlayback {
   private readonly transport: AudioContextTransport;
   private readonly playbacks: AudioBufferPlayback[] = [];
