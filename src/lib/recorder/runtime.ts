@@ -389,7 +389,7 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = updateAudioTrackClips(
+    const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
       state.audioTracks,
       new Set(audioOffsets.keys()),
       (clips) =>
@@ -398,9 +398,6 @@ export class RecorderRuntime {
             ? { ...clip, timelineOffset: audioOffsets.get(clip.id)! }
             : clip,
         ),
-    );
-    const audioTracksToSync = audioTracks.filter(
-      (track, index) => track !== state.audioTracks[index],
     );
     const recordingTrack =
       takeOffsets.size > 0
@@ -441,7 +438,7 @@ export class RecorderRuntime {
     switch (type) {
       case "audio": {
         const state = this.store.get();
-        const audioTracks = updateAudioTrackClips(
+        const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
           state.audioTracks,
           new Set([id]),
           (clips) =>
@@ -468,9 +465,6 @@ export class RecorderRuntime {
                     }),
               };
             }),
-        );
-        const audioTracksToSync = audioTracks.filter(
-          (track, index) => track !== state.audioTracks[index],
         );
         if (audioTracksToSync.length === 0) {
           throw new Error("Recorder clip state is missing.");
@@ -521,13 +515,10 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = updateAudioTrackClips(
+    const { audioTracks, audioTracksToSync } = updateAudioTrackClips(
       state.audioTracks,
       audioIds,
       (clips) => clips.filter((clip) => !audioIds.has(clip.id)),
-    );
-    const audioTracksToSync = audioTracks.filter(
-      (track, index) => track !== state.audioTracks[index],
     );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     const recordingTrack =
@@ -1199,12 +1190,17 @@ function updateAudioTrackClips(
   tracks: AudioTrackState[],
   clipIds: ReadonlySet<string>,
   update: (clips: AudioClip[]) => AudioClip[],
-): AudioTrackState[] {
-  return tracks.map((track) =>
-    track.clips.some((clip) => clipIds.has(clip.id))
-      ? resolveTrackRegions({ ...track, clips: update(track.clips) })
-      : track,
-  );
+): { audioTracks: AudioTrackState[]; audioTracksToSync: AudioTrackState[] } {
+  const audioTracksToSync: AudioTrackState[] = [];
+  const audioTracks = tracks.map((track) => {
+    if (!track.clips.some((clip) => clipIds.has(clip.id))) {
+      return track;
+    }
+    const next = resolveTrackRegions({ ...track, clips: update(track.clips) });
+    audioTracksToSync.push(next);
+    return next;
+  });
+  return { audioTracks, audioTracksToSync };
 }
 
 function resolveTrackRegions(
