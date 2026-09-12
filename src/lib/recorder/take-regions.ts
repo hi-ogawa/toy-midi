@@ -1,7 +1,7 @@
-import type { TakeRegion, TakeState } from "./take.ts";
+import type { TakeRegion, AudioClip } from "./audio-clip.ts";
 
 /** Resolves overlapping takes so later array entries win their timeline range. */
-export function deriveTakeRegions(takes: readonly TakeState[]): TakeRegion[] {
+export function deriveTakeRegions(takes: readonly AudioClip[]): TakeRegion[] {
   let regions: TakeRegion[] = [];
 
   // Apply takes oldest to newest. Each new take subtracts its interval from

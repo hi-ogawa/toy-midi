@@ -97,23 +97,26 @@ export function serializeRecorderRuntimeState(
   return {
     title: state.title,
     locators: state.locators,
-    audioTracks: state.audioTracks.map((track) => ({
-      id: track.id,
-      height: track.height,
-      clip: track.clip
-        ? {
-            name: track.clip.name,
-            pcm: serializeAudioBuffer(track.clip.buffer),
-          }
-        : undefined,
-      eq: track.eq,
-      gain: track.gain,
-      muted: track.muted,
-      soloed: track.soloed,
-      timelineOffset: track.timelineOffset,
-      trimStart: track.trimStart,
-      trimEnd: track.trimEnd,
-    })),
+    audioTracks: state.audioTracks.map((track) => {
+      const clip = track.clips[0];
+      return {
+        id: track.id,
+        height: track.height,
+        eq: track.eq,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
+        clip: clip?.buffer
+          ? {
+              name: clip.name ?? "Audio",
+              pcm: serializeAudioBuffer(clip.buffer),
+            }
+          : undefined,
+        timelineOffset: clip?.timelineOffset ?? 0,
+        trimStart: clip?.trimStart ?? 0,
+        trimEnd: clip?.trimEnd ?? 0,
+      };
+    }),
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -121,7 +124,7 @@ export function serializeRecorderRuntimeState(
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
       nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.takes.map((take) => {
+      takes: state.recordingTrack.clips.map((take) => {
         if (!take.buffer) {
           throw new Error("Recording take has no loaded buffer.");
         }
@@ -165,25 +168,31 @@ export function deserializeRecorderRuntimeState({
       return {
         id: track.id,
         height: track.height,
-        clip:
+        clips:
           track.clip && buffer
-            ? {
-                name: track.clip.name,
-                buffer,
-                audioView: createAudioView(
-                  buffer.getChannelData(0),
-                  buffer.sampleRate,
-                  WAVEFORM_POINTS_PER_SECOND,
-                ),
-              }
-            : undefined,
+            ? [
+                {
+                  id: crypto.randomUUID(),
+                  name: track.clip.name,
+                  muted: false,
+                  soloed: false,
+                  timelineOffset: track.timelineOffset,
+                  trimStart: track.trimStart ?? 0,
+                  trimEnd: track.trimEnd ?? buffer.duration,
+                  duration: buffer.duration,
+                  buffer,
+                  audioView: createAudioView(
+                    buffer.getChannelData(0),
+                    buffer.sampleRate,
+                    WAVEFORM_POINTS_PER_SECOND,
+                  ),
+                },
+              ]
+            : [],
         eq: track.eq ?? createDefaultEq(),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
-        timelineOffset: track.timelineOffset,
-        trimStart: track.trimStart ?? 0,
-        trimEnd: track.trimEnd ?? buffer?.duration ?? 0,
       };
     }),
     recordingTrack: {
@@ -195,7 +204,7 @@ export function deserializeRecorderRuntimeState({
       nextTakeNumber:
         project.recordingTrack.nextTakeNumber ??
         project.recordingTrack.takes.length + 1,
-      takes: project.recordingTrack.takes.map((take, index) => {
+      clips: project.recordingTrack.takes.map((take, index) => {
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
           id: take.id ?? crypto.randomUUID(),

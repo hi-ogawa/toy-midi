@@ -425,7 +425,7 @@ export function TakeTimelineLane({
   onTakeTrimStart,
   onTakeTrimMove,
 }: {
-  takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  takes: RecorderRuntimeState["recordingTrack"]["clips"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];

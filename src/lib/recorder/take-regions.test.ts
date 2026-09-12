@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { AudioClip } from "./audio-clip.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
-import type { TakeState } from "./take.ts";
 
 describe(deriveTakeRegions, () => {
   it("keeps disjoint takes in timeline order", () => {
@@ -65,7 +65,7 @@ describe(deriveTakeRegions, () => {
   });
 });
 
-function take(id: string, timelineOffset: number, duration: number): TakeState {
+function take(id: string, timelineOffset: number, duration: number): AudioClip {
   return {
     id,
     number: 1,
