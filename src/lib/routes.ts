@@ -6,7 +6,7 @@ import { createMultiMatcher, type Match } from "@remix-run/route-pattern/match";
 
 export const routes = route({
   home: "/",
-  componentPreview: "/_preview",
+  preview: "/_preview",
   recorderProject: "/recorder/:projectId",
   latencyChecker: "/latency-checker",
   scoreViewer: "/score-viewer",

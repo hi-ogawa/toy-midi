@@ -27,7 +27,7 @@ const PREVIEWS = [
 
 type PreviewId = (typeof PREVIEWS)[number]["id"];
 
-export function ComponentPreview() {
+export function Preview() {
   const [previewId, setPreviewId] = useState(readPreviewId);
   const preview = PREVIEWS.find((entry) => entry.id === previewId)!;
   const SelectedPreview = preview.component;
@@ -53,7 +53,7 @@ export function ComponentPreview() {
   return (
     <main className="min-h-screen bg-neutral-950 px-8 py-10 text-neutral-100">
       <header className="mx-auto mb-8 flex max-w-6xl items-baseline gap-4 border-b border-neutral-800 pb-4">
-        <h1 className="text-lg font-semibold">Component Preview</h1>
+        <h1 className="text-lg font-semibold">Preview</h1>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button className="gap-2 px-3 py-1.5 text-xs hover:bg-neutral-800">
