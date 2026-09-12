@@ -298,14 +298,8 @@ export function CaptureTrackRow({
             <HeadphonesIcon className="size-3.5" />
           </button>
         </div>
-        <div
-          className="col-span-2 flex items-center gap-2"
-          title="Input level before FX and volume"
-        >
-          <span className="text-[10px] text-neutral-400">Input</span>
-          <div className="min-w-0 flex-1">
-            <InputMeter active={inputActive} analyser={inputAnalyser} compact />
-          </div>
+        <div className="col-span-2">
+          <InputMeter active={inputActive} analyser={inputAnalyser} compact />
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
