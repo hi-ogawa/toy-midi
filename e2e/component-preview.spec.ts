@@ -23,8 +23,6 @@ test("iterates the multiband recorder EQ preview", async ({
   await panel.getByRole("button", { name: "Add band" }).click();
   await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(4);
   await expect(panel.getByRole("heading", { name: "Band 4" })).toBeVisible();
-  await panel.getByRole("button", { name: "Move band left" }).click();
-  await expect(panel.getByRole("heading", { name: "Band 3" })).toBeVisible();
   await panel.getByRole("button", { name: "Delete band" }).click();
   await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(3);
 

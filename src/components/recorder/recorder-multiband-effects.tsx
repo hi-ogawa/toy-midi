@@ -1,11 +1,4 @@
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  RotateCcw,
-  SlidersHorizontal,
-  Trash2,
-} from "lucide-react";
+import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import type { EqParameters } from "../../lib/dsp/biquad-eq";
@@ -75,22 +68,6 @@ export function RecorderMultibandEffects({
     const nextSelection = bands[Math.min(selectedIndex, bands.length - 1)];
     onChange({ ...eq, bands });
     setSelectedBandId(nextSelection?.id);
-  };
-
-  const moveSelectedBand = (offset: -1 | 1) => {
-    if (!selectedBand) {
-      return;
-    }
-    const nextIndex = selectedIndex + offset;
-    if (nextIndex < 0 || nextIndex >= eq.bands.length) {
-      return;
-    }
-    const bands = eq.bands.slice();
-    [bands[selectedIndex], bands[nextIndex]] = [
-      bands[nextIndex]!,
-      bands[selectedIndex]!,
-    ];
-    onChange({ ...eq, bands });
   };
 
   return (
@@ -186,20 +163,6 @@ export function RecorderMultibandEffects({
               />
               Bypass
             </label>
-            <IconButton
-              label="Move band left"
-              disabled={selectedIndex === 0}
-              onClick={() => moveSelectedBand(-1)}
-            >
-              <ChevronLeft className="size-4" aria-hidden="true" />
-            </IconButton>
-            <IconButton
-              label="Move band right"
-              disabled={selectedIndex === eq.bands.length - 1}
-              onClick={() => moveSelectedBand(1)}
-            >
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </IconButton>
             <IconButton
               label="Reset band"
               onClick={() => updateBand(selectedBand.id, createDefaultEq())}
