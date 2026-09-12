@@ -70,9 +70,6 @@ export function Home() {
         </header>
 
         <main className="mt-14 min-h-0 flex-1">
-          <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-400">
-            Your Projects
-          </h2>
           <div
             role="tablist"
             aria-label="Project type"
