@@ -1,8 +1,6 @@
 # Recorder signal flow
 
-Capture combines live monitoring and recorded take playback into one mixer channel, so both share the same sound and level controls. Recording preserves the dry input so processing can be adjusted afterward.
-
-Playback speed correction applies only to recorded audio. Live monitoring stays at the input's original pitch and timing. During recording, existing takes are silenced independently of monitoring.
+The diagram shows how audio flows from sources through processing to recording and output.
 
 ```mermaid
 flowchart LR
