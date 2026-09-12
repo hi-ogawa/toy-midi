@@ -227,6 +227,32 @@ export function CaptureTrackRow({
           >
             R
           </Button>
+          <button
+            type="button"
+            data-testid="recorder-input-monitor"
+            disabled={!inputActive}
+            aria-label={
+              inputMonitoring
+                ? "Disable input monitoring"
+                : "Enable input monitoring"
+            }
+            aria-pressed={inputMonitoring}
+            title={
+              inputActive
+                ? inputMonitoring
+                  ? "Disable input monitoring"
+                  : "Enable input monitoring (use headphones to avoid feedback)"
+                : "Enable input first to monitor"
+            }
+            onClick={() => onInputMonitoringChange(!inputMonitoring)}
+            className={cn(
+              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
+              inputMonitoring &&
+                "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
+            )}
+          >
+            <HeadphonesIcon className="size-3.5" />
+          </button>
           <RecorderMixToggle
             active={muted}
             kind="mute"
@@ -271,39 +297,19 @@ export function CaptureTrackRow({
           >
             <Settings2Icon className="size-3.5" />
           </button>
-          <button
-            type="button"
-            data-testid="recorder-input-monitor"
-            disabled={!inputActive}
-            aria-label={
-              inputMonitoring
-                ? "Disable input monitoring"
-                : "Enable input monitoring"
-            }
-            aria-pressed={inputMonitoring}
-            title={
-              inputActive
-                ? inputMonitoring
-                  ? "Disable input monitoring"
-                  : "Enable input monitoring (use headphones to avoid feedback)"
-                : "Enable input first to monitor"
-            }
-            onClick={() => onInputMonitoringChange(!inputMonitoring)}
-            className={cn(
-              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-30",
-              inputMonitoring &&
-                "bg-sky-500/25 text-sky-300 hover:bg-sky-500/35",
-            )}
-          >
-            <HeadphonesIcon className="size-3.5" />
-          </button>
         </div>
-        <div className="col-span-2">
-          <InputMeter active={inputActive} analyser={inputAnalyser} compact />
+        <div
+          className="col-span-2 flex items-center gap-2"
+          title="Input level before FX and volume"
+        >
+          <span className="text-[10px] text-neutral-400">Input</span>
+          <div className="min-w-0 flex-1">
+            <InputMeter active={inputActive} analyser={inputAnalyser} compact />
+          </div>
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
-            label="Capture gain"
+            label="Capture volume"
             gain={gain}
             onGainChange={onGainChange}
           />

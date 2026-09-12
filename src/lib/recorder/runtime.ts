@@ -1,16 +1,14 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
-import {
-  createDefaultEq,
-  ensureBiquadEqWorklet,
-} from "../dsp/biquad-eq-node.ts";
+import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
+import { AudioChannel } from "./audio-channel.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
@@ -206,6 +204,9 @@ export class RecorderRuntime {
   private transport?: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
+  private audioChannels = new Map<string, AudioChannel>();
+  private captureChannel?: AudioChannel;
+  private takePlaybackGate?: GainNode;
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -220,12 +221,13 @@ export class RecorderRuntime {
     deviceId: string;
   }): Promise<{ channelCount: number }> {
     const context = this.ensureContext();
+    await this.captureChannel!.prepare();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.masterOutput!,
+      output: this.captureChannel!.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -306,6 +308,10 @@ export class RecorderRuntime {
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
     playback.setBuffer(buffer);
+    await this.audioChannels.get(id)!.prepare();
+    if (this.audioTrackPlaybacks.get(id) !== playback) {
+      return;
+    }
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: 0,
@@ -521,6 +527,8 @@ export class RecorderRuntime {
   removeAudioTrack(id: string): void {
     this.audioTrackPlaybacks.get(id)?.dispose();
     this.audioTrackPlaybacks.delete(id);
+    this.audioChannels.get(id)?.dispose();
+    this.audioChannels.delete(id);
     this.store.update({
       audioTracks: this.store
         .get()
@@ -540,7 +548,7 @@ export class RecorderRuntime {
       ...track,
       eq: { ...track.eq, ...update },
     }));
-    this.audioTrackPlaybacks.get(id)?.setEq(track.eq);
+    this.audioChannels.get(id)?.setEq(track.eq);
   }
 
   setRecordingTrackEq(update: Partial<EqParameters>): void {
@@ -551,9 +559,7 @@ export class RecorderRuntime {
         eq: { ...track.eq, ...update },
       },
     });
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.setEq(this.store.get().recordingTrack.eq);
-    }
+    this.captureChannel?.setEq(this.store.get().recordingTrack.eq);
   }
 
   private updateAudioTrack(
@@ -575,18 +581,24 @@ export class RecorderRuntime {
     let playback = this.audioTrackPlaybacks.get(id);
     if (!playback) {
       this.ensureContext();
-      playback = new AudioBufferPlayback({
-        transport: this.transport!,
-        output: this.masterOutput!,
-      });
       const track = this.store
         .get()
         .audioTracks.find((entry) => entry.id === id);
       if (!track) {
         throw new Error("Audio track state is missing.");
       }
+      const channel = new AudioChannel({
+        context: this.context!,
+        output: this.masterOutput!,
+        eq: track.eq,
+        gain: 0,
+      });
+      this.audioChannels.set(id, channel);
+      playback = new AudioBufferPlayback({
+        transport: this.transport!,
+        output: channel.input,
+      });
       playback.setBufferTimelineOffset(track.timelineOffset);
-      playback.setEq(track.eq);
       this.audioTrackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
@@ -689,7 +701,10 @@ export class RecorderRuntime {
     const context = this.ensureContext();
     await Promise.all([
       ensurePitchShifterWorklet(context),
-      ensureBiquadEqWorklet(context),
+      this.captureChannel!.prepare(),
+      ...Array.from(this.audioChannels.values(), (channel) =>
+        channel.prepare(),
+      ),
     ]);
     await context.resume();
     this.transport!.play();
@@ -714,9 +729,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.setGain(0);
-    }
+    this.takePlaybackGate!.gain.setValueAtTime(0, context.currentTime);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport!.playbackAnchor!.contextTime * context.sampleRate;
@@ -991,17 +1004,27 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTrackPlaybacks.clear();
+    for (const channel of this.audioChannels.values()) {
+      channel.dispose();
+    }
+    this.audioChannels.clear();
     for (const track of project.audioTracks) {
       const buffer = track.clip?.buffer;
       if (!buffer) {
         continue;
       }
+      const channel = new AudioChannel({
+        context: this.context!,
+        output: this.masterOutput!,
+        eq: track.eq,
+        gain: 0,
+      });
+      this.audioChannels.set(track.id, channel);
       const playback = new AudioBufferPlayback({
         transport: this.transport!,
-        output: this.masterOutput!,
+        output: channel.input,
       });
       playback.setBuffer(buffer);
-      playback.setEq(track.eq);
       playback.setBufferTimelineOffset(track.timelineOffset);
       playback.setTimelineRange({
         start: track.timelineOffset + track.trimStart,
@@ -1019,6 +1042,7 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(project.recordingTrack.height),
       },
     });
+    this.captureChannel!.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
     this.transport!.seek(0);
     this.metronome!.setTempo(project.tempo);
@@ -1056,6 +1080,14 @@ export class RecorderRuntime {
       this.context = new AudioContext();
       this.masterOutput = this.context.createGain();
       this.masterOutput.connect(this.context.destination);
+      this.captureChannel = new AudioChannel({
+        context: this.context,
+        output: this.masterOutput,
+        eq: this.store.get().recordingTrack.eq,
+        gain: deriveTrackMix(this.store.get()).recordingGain,
+      });
+      this.takePlaybackGate = this.context.createGain();
+      this.takePlaybackGate.connect(this.captureChannel.input);
       this.transport = new AudioContextTransport(this.context);
       this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
       this.masterOutput.gain.value = this.store.get().masterGain;
@@ -1078,11 +1110,15 @@ export class RecorderRuntime {
       recordingTrack,
     });
     for (const [index, track] of audioTracks.entries()) {
-      this.audioTrackPlaybacks.get(track.id)?.setGain(audioTrackGains[index]!);
+      this.audioChannels.get(track.id)?.setGain(audioTrackGains[index]!);
     }
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.setGain(recordingGain);
-    }
+    this.captureChannel?.setGain(recordingGain);
+    // Suppress take playback independently so channel mix edits cannot unmute it.
+    const { captureStatus } = this.store.get();
+    this.takePlaybackGate?.gain.setValueAtTime(
+      captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
+      this.context!.currentTime,
+    );
   }
 
   private syncMetronomeGain(): void {
@@ -1211,10 +1247,9 @@ export class RecorderRuntime {
       }
       const playback = new AudioBufferPlayback({
         transport: this.transport!,
-        output: this.masterOutput!,
+        output: this.takePlaybackGate!,
       });
       playback.setBuffer(take.buffer);
-      playback.setEq(this.store.get().recordingTrack.eq);
       playback.setBufferTimelineOffset(take.timelineOffset);
       playback.setTimelineRange({
         start: region.timelineStart,

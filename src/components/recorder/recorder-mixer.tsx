@@ -203,7 +203,11 @@ function MixerChannel({
         </span>
       </div>
       <RecorderGainSlider
-        label={`${label === "Metro" ? "Metronome" : label} gain`}
+        label={
+          label === "Capture"
+            ? "Capture volume"
+            : `${label === "Metro" ? "Metronome" : label} gain`
+        }
         gain={gain}
         onGainChange={onGainChange}
         orientation="vertical"

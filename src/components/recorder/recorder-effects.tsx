@@ -62,6 +62,11 @@ export function RecorderEffects({
       className="pointer-events-auto w-96 shrink-0"
     >
       <div className="flex flex-col gap-4">
+        {label === "Capture" && (
+          <p className="text-xs text-neutral-400">
+            Applies to monitoring and playback. Takes are recorded dry.
+          </p>
+        )}
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium">Peaking EQ</h3>
           <div className="flex items-center gap-3">
