@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("iterates the multiband recorder EQ preview", async ({
   page,
 }, testInfo) => {
-  await page.goto("/_preview?component=recorder-effects");
+  await page.goto("/_preview?component=recorder-multiband-effects");
   const panel = page.getByTestId("recorder-multiband-effects-panel");
   await expect(panel).toBeVisible();
   await expect(panel.getByTestId("multiband-eq-response-point")).toHaveCount(3);

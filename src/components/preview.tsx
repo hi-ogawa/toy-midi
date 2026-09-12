@@ -1,11 +1,16 @@
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
+import { RecorderMultibandEffectsPreview } from "./recorder/recorder-multiband-effects-preview";
 
 const PREVIEWS = [
   {
     label: "Recorder effects",
     component: RecorderEffectsPreview,
+  },
+  {
+    label: "Recorder multiband effects",
+    component: RecorderMultibandEffectsPreview,
   },
   {
     label: "Recorder help dialog",

@@ -65,7 +65,7 @@ export function RecorderEffects({
   );
 }
 
-function RecorderEffectsContent({
+export function RecorderEffectsContent({
   eq,
   onChange,
 }: {
