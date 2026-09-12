@@ -1084,9 +1084,9 @@ export class RecorderRuntime {
 }
 
 /** Publish clips and their audible comp together at the runtime boundary. */
-function resolveTrackRegions<T extends { clips: AudioClip[] }>(
-  track: T,
-): T & { regions: ClipRegion[] } {
+function resolveTrackRegions(
+  track: Omit<AudioTrackState, "regions">,
+): AudioTrackState {
   return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
 }
 
