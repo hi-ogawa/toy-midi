@@ -5,7 +5,7 @@ import type {
 } from "./persistence.ts";
 import {
   migrateRecorderProject,
-  type LegacyRecorderProject,
+  type SerializedRecorderRuntimeStateV1,
 } from "./project-migration.ts";
 
 // .toymidi.zip
@@ -45,7 +45,7 @@ export async function exportRecorderProjectArchive(
 }
 
 export async function exportRecorderProjectArchiveV1(
-  content: LegacyRecorderProject,
+  content: SerializedRecorderRuntimeStateV1,
 ): Promise<Blob> {
   const zip = new JSZip();
   const manifest: RecorderProjectManifest = {
@@ -53,7 +53,7 @@ export async function exportRecorderProjectArchiveV1(
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
   };
-  const project: LegacyRecorderProject<string> = {
+  const project: SerializedRecorderRuntimeStateV1<string> = {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
@@ -107,7 +107,7 @@ export async function parseRecorderProjectArchive(
     );
   }
   if (formatVersion === 1) {
-    const project = await readJson<LegacyRecorderProject<string>>(
+    const project = await readJson<SerializedRecorderRuntimeStateV1<string>>(
       zip,
       PROJECT_PATH,
     );
@@ -162,8 +162,8 @@ async function readProjectContent(
 
 async function readProjectContentV1(
   zip: JSZip,
-  content: LegacyRecorderProject<string>,
-): Promise<LegacyRecorderProject> {
+  content: SerializedRecorderRuntimeStateV1<string>,
+): Promise<SerializedRecorderRuntimeStateV1> {
   return {
     ...content,
     audioTracks: await Promise.all(

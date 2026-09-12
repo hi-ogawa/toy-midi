@@ -7,7 +7,7 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
   migrateRecorderProject,
-  type RecorderProjectInput,
+  type AnySerializedRecorderRuntimeState,
 } from "./project-migration.ts";
 import {
   type PersistableRecorderRuntimeState,
@@ -127,7 +127,7 @@ export function deserializeRecorderRuntimeState({
   project: input,
 }: {
   context: Pick<AudioContext, "createBuffer">;
-  project: RecorderProjectInput;
+  project: AnySerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
   const project = migrateRecorderProject(input);
   if (!project.audioTracks.some((track) => track.id === project.armedTrackId)) {

@@ -6,13 +6,13 @@ import type {
 } from "./persistence.ts";
 import type { RecorderLocator } from "./runtime.ts";
 
-export type RecorderProjectInput =
+export type AnySerializedRecorderRuntimeState =
   | SerializedRecorderRuntimeState
-  | LegacyRecorderProject;
+  | SerializedRecorderRuntimeStateV1;
 
 /** Normalize legacy track structure before restoring runtime state. */
 export function migrateRecorderProject(
-  project: RecorderProjectInput,
+  project: AnySerializedRecorderRuntimeState,
 ): SerializedRecorderRuntimeState {
   if ("version" in project) {
     if (project.version !== 2) {
@@ -68,7 +68,7 @@ export function migrateRecorderProject(
   };
 }
 
-export interface LegacyRecorderProject<ChannelData = Float32Array> {
+export interface SerializedRecorderRuntimeStateV1<ChannelData = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];

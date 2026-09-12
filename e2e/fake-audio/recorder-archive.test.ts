@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
 import { exportRecorderProjectArchiveV1 } from "../../src/lib/recorder/project-archive";
-import type { LegacyRecorderProject } from "../../src/lib/recorder/project-migration";
+import type { SerializedRecorderRuntimeStateV1 } from "../../src/lib/recorder/project-migration";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
@@ -87,7 +87,7 @@ test("imports a legacy recorder archive", async ({ page }) => {
   // Export a typed legacy project using the v1 archive writer.
   const bytes = await readFile("e2e/fixtures/test-tones.pcm");
   const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
-  const project: LegacyRecorderProject = {
+  const project: SerializedRecorderRuntimeStateV1 = {
     title: "Legacy archive",
     tempo: 120,
     timeSignature: { numerator: 4, denominator: 4 },

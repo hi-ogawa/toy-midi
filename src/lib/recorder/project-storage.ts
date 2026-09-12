@@ -5,14 +5,14 @@ import {
 } from "./persistence.ts";
 import {
   migrateRecorderProject,
-  type RecorderProjectInput,
+  type AnySerializedRecorderRuntimeState,
 } from "./project-migration.ts";
 import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 
 interface StoredRecorderProject {
   id: string;
   updatedAt: number;
-  content: RecorderProjectInput;
+  content: AnySerializedRecorderRuntimeState;
 }
 
 export interface RecorderProjectMetadata {
