@@ -359,7 +359,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
             {state.audioTracks.map((track, index) => {
-              const clip = track.clips[0];
+              const region = track.regions[0];
+              const clip = region?.clip;
               return (
                 <TrackRow
                   key={track.id}
@@ -397,14 +398,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 >
                   <TimelineLane
                     clip={
-                      clip
+                      region && clip
                         ? {
-                            duration: clip.trimEnd - clip.trimStart,
+                            duration: region.timelineEnd - region.timelineStart,
                             label: clip.name,
-                            offset: clip.timelineOffset + clip.trimStart,
+                            offset: region.timelineStart,
                             testId: "audio",
                             audioView: clip.audioView,
-                            audioOffset: clip.trimStart,
+                            audioOffset:
+                              region.timelineStart - clip.timelineOffset,
                           }
                         : undefined
                     }
@@ -482,7 +484,9 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewClipRegions ?? state.takeRegions}
+                regions={
+                  state.previewClipRegions ?? state.recordingTrack.regions
+                }
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>

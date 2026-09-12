@@ -11,7 +11,7 @@ import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import type { ClipRegion, AudioClip } from "./audio-clip.ts";
-import { getAudioTrackSources } from "./audio-sources.ts";
+import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
@@ -47,6 +47,7 @@ export interface AudioTrackState {
   // The ordinary-track UI currently keeps zero or one imported clip and has
   // no clip-level mute/solo controls. Imported clips initialize both flags to false.
   clips: AudioClip[];
+  regions: ClipRegion[];
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -59,6 +60,7 @@ interface RecordingTrackState {
   muted: boolean;
   soloed: boolean;
   clips: AudioClip[];
+  regions: ClipRegion[];
   nextTakeNumber: number;
 }
 
@@ -128,7 +130,6 @@ export interface RecorderRuntimeState {
   // Tracks
   audioTracks: AudioTrackState[];
   recordingTrack: RecordingTrackState;
-  takeRegions: ClipRegion[];
   previewClipRegions?: ClipRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -149,11 +150,12 @@ export type PersistableRecorderRuntimeState = Pick<
   | "metronomeGain"
   | "loop"
   | "punch"
-  | "audioTracks"
-  | "recordingTrack"
   | "latencyCompensation"
   | "referenceVideo"
->;
+> & {
+  audioTracks: Omit<AudioTrackState, "regions">[];
+  recordingTrack: Omit<RecordingTrackState, "regions">;
+};
 
 export type RecorderClipId =
   | { type: "audio" | "take"; id: string }
@@ -184,7 +186,6 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     metronomeGain: 0.5,
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
-    takeRegions: [],
     captureStatus: "disabled",
     inputChannelCount: 0,
     selectedChannel: 0,
@@ -398,13 +399,17 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const audioTracks = state.audioTracks.map((track) => ({
-      ...track,
-      clips: track.clips.map((clip) => ({
-        ...clip,
-        timelineOffset: audioOffsets.get(track.id) ?? clip.timelineOffset,
-      })),
-    }));
+    const audioTracks = state.audioTracks.map((track) =>
+      audioOffsets.has(track.id)
+        ? resolveTrackRegions({
+            ...track,
+            clips: track.clips.map((clip) => ({
+              ...clip,
+              timelineOffset: audioOffsets.get(track.id)!,
+            })),
+          })
+        : track,
+    );
     const recordingTrack = {
       ...state.recordingTrack,
       clips: state.recordingTrack.clips.map((take) => ({
@@ -520,7 +525,7 @@ export class RecorderRuntime {
       this.audioTracks.get(id)?.setSources([]);
     }
     const audioTracks = state.audioTracks.map((track) =>
-      audioIds.has(track.id) ? { ...track, clips: [] } : track,
+      audioIds.has(track.id) ? { ...track, clips: [], regions: [] } : track,
     );
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     if (takeIds.size > 0) {
@@ -592,7 +597,9 @@ export class RecorderRuntime {
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
-    audioTracks[index] = update(track);
+    const next = update(track);
+    audioTracks[index] =
+      next.clips === track.clips ? next : resolveTrackRegions(next);
     this.store.update({ audioTracks });
     return audioTracks[index]!;
   }
@@ -624,7 +631,7 @@ export class RecorderRuntime {
       this.pause();
     }
     const playback = this.getAudioTrackPlayback(track.id);
-    playback.setSources(getAudioTrackSources(track));
+    playback.setSources(getClipSources(track.regions));
     if (wasPlaying) {
       this.transport.play();
     }
@@ -1000,7 +1007,8 @@ export class RecorderRuntime {
       playback.dispose();
     }
     this.audioTracks.clear();
-    for (const track of project.audioTracks) {
+    const audioTracks = project.audioTracks.map(resolveTrackRegions);
+    for (const track of audioTracks) {
       if (track.clips.length === 0) {
         continue;
       }
@@ -1010,13 +1018,14 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      playback.setSources(getAudioTrackSources(track));
+      playback.setSources(getClipSources(track.regions));
       this.audioTracks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
     this.updateRecordingTrack({
       ...project,
+      audioTracks,
       position: 0,
       recordingTrack: {
         ...project.recordingTrack,
@@ -1165,12 +1174,12 @@ export class RecorderRuntime {
   }
 
   private updateRecordingTrack(
-    update: Partial<RecorderRuntimeState> &
-      Pick<RecorderRuntimeState, "recordingTrack">,
+    update: Omit<Partial<RecorderRuntimeState>, "recordingTrack"> & {
+      recordingTrack: Omit<RecordingTrackState, "regions">;
+    },
   ): void {
-    const { recordingTrack } = update;
-    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.clips));
-    this.store.update({ ...update, takeRegions });
+    const recordingTrack = resolveTrackRegions(update.recordingTrack);
+    this.store.update({ ...update, recordingTrack });
     this.syncTakePlayback(recordingTrack);
   }
 
@@ -1185,9 +1194,16 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(track: RecordingTrackState): void {
-    this.captureTrack!.setSources(getAudioTrackSources(track));
+    this.captureTrack!.setSources(getClipSources(track.regions));
     this.syncTrackMix();
   }
+}
+
+/** Publish clips and their audible comp together at the runtime boundary. */
+function resolveTrackRegions<T extends { clips: AudioClip[] }>(
+  track: T,
+): T & { regions: ClipRegion[] } {
+  return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
 }
 
 function pendingRecordingToTake(
@@ -1254,6 +1270,7 @@ function createAudioTrackState(): AudioTrackState {
     muted: false,
     soloed: false,
     clips: [],
+    regions: [],
   };
 }
 
@@ -1265,6 +1282,7 @@ function createRecordingTrackState(): RecordingTrackState {
     muted: false,
     soloed: false,
     clips: [],
+    regions: [],
     nextTakeNumber: 1,
   };
 }
