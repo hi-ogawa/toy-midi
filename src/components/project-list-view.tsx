@@ -17,6 +17,10 @@ export function MidiProjectList() {
   const hasProjects = projects.length > 0;
   const lastProjectId = projectStorage.getLastProjectId();
 
+  function openMidiProject(projectId: string) {
+    window.location.href = routes.project.href({ projectId });
+  }
+
   const importProjectMutation = useMutation({
     mutationFn: async (file: File) => {
       const parsed = await parseProjectFile(file);
@@ -120,10 +124,6 @@ export function MidiProjectList() {
       </div>
     </section>
   );
-}
-
-function openMidiProject(projectId: string) {
-  window.location.href = routes.project.href({ projectId });
 }
 
 type ProjectListItemProps = {
