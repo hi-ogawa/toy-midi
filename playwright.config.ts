@@ -14,7 +14,7 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5183",
     trace:
-      process.env.PLAYWRIGHT_REVIEW === "1"
+      process.env.E2E_TRACE === "1"
         ? { mode: "on", screenshots: false }
         : "off",
   },
