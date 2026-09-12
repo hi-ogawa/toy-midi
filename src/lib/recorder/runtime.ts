@@ -1,6 +1,5 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
-import { createAudioView } from "../audio-view.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultMultibandEq,
@@ -10,7 +9,12 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import type { ClipRegion, AudioClip } from "./audio-clip.ts";
+import {
+  createAudioClip,
+  WAVEFORM_POINTS_PER_SECOND,
+  type ClipRegion,
+  type AudioClip,
+} from "./audio-clip.ts";
 import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
@@ -32,7 +36,6 @@ import { YouTubePlayerPlayback } from "./youtube-player-playback.ts";
 
 const MAX_RECORDING_SECONDS = 5 * 60;
 const MIN_TAKE_DURATION = 0.01;
-export const WAVEFORM_POINTS_PER_SECOND = 800;
 const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MAX_TRACK_HEIGHT = 300;
@@ -316,22 +319,11 @@ export class RecorderRuntime {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       clips: [
-        {
-          id: crypto.randomUUID(),
-          name: file.name,
-          muted: false,
-          soloed: false,
-          timelineOffset: track.clips[0]?.timelineOffset ?? 0,
-          trimStart: 0,
-          trimEnd: buffer.duration,
-          duration: buffer.duration,
+        createAudioClip({
           buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
-          ),
-        },
+          name: file.name,
+          timelineOffset: track.clips[0]?.timelineOffset ?? 0,
+        }),
       ],
     }));
     this.syncAudioTrackPlayback(track);
@@ -1043,22 +1035,12 @@ export class RecorderRuntime {
               nextTakeNumber: recordingTrack.nextTakeNumber + 1,
               clips: [
                 ...recordingTrack.clips,
-                {
+                createAudioClip({
                   id: pendingRecording.id,
                   name: pendingRecording.name,
-                  muted: false,
-                  soloed: false,
                   buffer: takeBuffer,
-                  duration: takeBuffer.duration,
-                  trimStart: 0,
-                  trimEnd: takeBuffer.duration,
                   timelineOffset,
-                  audioView: createAudioView(
-                    slice.samples,
-                    context.sampleRate,
-                    WAVEFORM_POINTS_PER_SECOND,
-                  ),
-                },
+                }),
               ],
             }),
       ),

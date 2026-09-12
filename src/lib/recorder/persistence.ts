@@ -1,16 +1,15 @@
-import { createAudioView } from "../audio-view.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { createAudioClip } from "./audio-clip.ts";
 import {
   migrateRecorderProject,
   type RecorderProjectInput,
 } from "./project-migration.ts";
 import {
-  WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
   type RecorderLocator,
 } from "./runtime.ts";
@@ -135,16 +134,16 @@ export function deserializeRecorderRuntimeState({
       clips: track.clips.map(({ pcm, ...clip }) => {
         const buffer = deserializeAudioBuffer(context, pcm);
         return {
-          ...clip,
-          duration: buffer.duration,
+          ...createAudioClip({
+            id: clip.id,
+            name: clip.name,
+            buffer,
+            timelineOffset: clip.timelineOffset,
+          }),
+          muted: clip.muted,
+          soloed: clip.soloed,
           trimStart: clip.trimStart ?? 0,
           trimEnd: clip.trimEnd ?? buffer.duration,
-          buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
-          ),
         };
       }),
     })),
