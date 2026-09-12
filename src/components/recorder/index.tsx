@@ -238,7 +238,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       className="flex h-screen flex-col overflow-hidden bg-neutral-900 text-neutral-100"
     >
       <RecorderHeader
-        title={state.title}
+        title={project.ready ? state.title : undefined}
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
