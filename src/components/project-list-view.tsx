@@ -6,7 +6,7 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDraftTextInput } from "../hooks/use-draft-text-input";
 import { matchKeyboardEvent } from "../lib/keyboard";
@@ -132,17 +132,11 @@ export function ProjectListView() {
             aria-labelledby={`project-tab-${projectType}`}
             tabIndex={0}
           >
-            <Suspense
-              fallback={
-                <p className="p-8 text-neutral-400">Loading projects...</p>
-              }
-            >
-              {projectType === "midi" ? (
-                <MidiProjectList />
-              ) : (
-                <RecorderProjectList />
-              )}
-            </Suspense>
+            {projectType === "midi" ? (
+              <MidiProjectList />
+            ) : (
+              <RecorderProjectList />
+            )}
           </div>
         </main>
       </div>
