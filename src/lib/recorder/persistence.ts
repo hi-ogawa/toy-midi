@@ -12,6 +12,10 @@ import {
   type RecorderLocator,
 } from "./runtime.ts";
 
+/**
+ * @typeParam Channel - PCM samples (`Float32Array`) by default, or a ZIP entry
+ * path (`string`) in project archives.
+ */
 export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
