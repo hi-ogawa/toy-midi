@@ -1,5 +1,6 @@
-import { ensureBiquadEqWorklet, BiquadEqNode } from "../dsp/biquad-eq-node.ts";
+import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { AudioChannel } from "./audio-channel.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
 interface MixRegion {
@@ -90,19 +91,16 @@ export async function renderRecorderMix({
   master.connect(context.destination);
   await ensureBiquadEqWorklet(context);
   for (const track of mix.tracks) {
-    const gain = context.createGain();
-    gain.gain.value = track.gain;
-    gain.connect(master);
-    const equalizer = new BiquadEqNode({
+    const channel = new AudioChannel({
       context,
-      channelCount: 2,
-      parameters: track.eq,
+      output: master,
+      eq: track.eq,
+      gain: track.gain,
     });
-    equalizer.connect(gain);
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
-      source.connect(equalizer);
+      source.connect(channel.input);
       source.start(region.start, region.offset, region.duration);
     }
   }

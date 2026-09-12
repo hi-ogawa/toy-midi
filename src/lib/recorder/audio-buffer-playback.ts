@@ -1,5 +1,3 @@
-import { BiquadEqNode } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
 import type {
   AudioContextTransport,
@@ -8,13 +6,11 @@ import type {
 
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
-  private readonly gain: GainNode;
+  private readonly output: AudioNode;
   private readonly unregister: () => void;
   private buffer?: AudioBuffer;
   private source?: AudioBufferSourceNode;
   private pitchShifter?: AudioWorkletNode;
-  private eqParameters?: EqParameters;
-  private equalizer?: BiquadEqNode;
   /** Transport timeline time corresponding to source-buffer time zero. */
   private bufferTimelineOffset = 0;
   private timelineRange?: { start: number; end: number };
@@ -27,26 +23,12 @@ export class AudioBufferPlayback implements TransportParticipant {
     output: AudioNode;
   }) {
     this.transport = transport;
-    this.gain = transport.context.createGain();
-    this.gain.connect(output);
+    this.output = output;
     this.unregister = transport.register(this);
   }
 
   setBuffer(buffer?: AudioBuffer): void {
     this.buffer = buffer;
-  }
-
-  setGain(gain: number): void {
-    this.gain.gain.setTargetAtTime(
-      gain,
-      this.transport.context.currentTime,
-      0.01,
-    );
-  }
-
-  setEq(parameters: EqParameters): void {
-    this.eqParameters = parameters;
-    this.equalizer?.setParameters(parameters);
   }
 
   setBufferTimelineOffset(offset: number): void {
@@ -94,17 +76,7 @@ export class AudioBufferPlayback implements TransportParticipant {
       sourceOutput = pitchShifter;
       this.pitchShifter = pitchShifter;
     }
-    if (this.eqParameters) {
-      const equalizer = new BiquadEqNode({
-        context: this.transport.context,
-        channelCount: buffer.numberOfChannels,
-        parameters: this.eqParameters,
-      });
-      sourceOutput.connect(equalizer);
-      sourceOutput = equalizer;
-      this.equalizer = equalizer;
-    }
-    sourceOutput.connect(this.gain);
+    sourceOutput.connect(this.output);
     source.start(
       playbackAnchor.contextTime +
         Math.max(0, timelineStart - playbackAnchor.position),
@@ -118,14 +90,11 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.source?.stop();
     this.source?.disconnect();
     this.pitchShifter?.disconnect();
-    this.equalizer?.disconnect();
     this.source = undefined;
     this.pitchShifter = undefined;
-    this.equalizer = undefined;
   }
 
   dispose(): void {
     this.unregister();
-    this.gain.disconnect();
   }
 }
