@@ -1,8 +1,4 @@
-import {
-  BiquadEq,
-  DEFAULT_PARAMETERS,
-  type EqParameters,
-} from "./biquad-eq.ts";
+import { BiquadEq, type EqParameters } from "./biquad-eq.ts";
 
 export const MAX_EQ_BANDS = 8;
 
@@ -14,8 +10,9 @@ export interface MultibandEqParameters {
 }
 
 export class MultibandEq {
-  private readonly slots: { id?: string; eq: BiquadEq }[];
-  private active: { id?: string; eq: BiquadEq }[] = [];
+  private readonly sampleRate: number;
+  private readonly channelCount: number;
+  private bands: { id: string; eq: BiquadEq }[] = [];
 
   constructor({
     sampleRate,
@@ -26,14 +23,8 @@ export class MultibandEq {
     channelCount: number;
     parameters: MultibandEqParameters;
   }) {
-    this.slots = Array.from({ length: MAX_EQ_BANDS }, () => ({
-      eq: new BiquadEq({
-        sampleRate,
-        channelCount,
-        ...DEFAULT_PARAMETERS,
-        bypass: true,
-      }),
-    }));
+    this.sampleRate = sampleRate;
+    this.channelCount = channelCount;
     this.setParameters(parameters);
   }
 
@@ -41,29 +32,21 @@ export class MultibandEq {
     if (parameters.bands.length > MAX_EQ_BANDS) {
       throw new RangeError(`EQ supports at most ${MAX_EQ_BANDS} bands`);
     }
-    const previous = new Map(this.active.map((slot) => [slot.id, slot]));
-    const retained = new Set(
-      parameters.bands.flatMap((band) => {
-        const slot = previous.get(band.id);
-        return slot ? [slot] : [];
-      }),
-    );
-    const used = new Set<{ id?: string; eq: BiquadEq }>();
-    this.active = parameters.bands.map((band) => {
-      const existing = previous.get(band.id);
-      const slot =
-        existing ??
-        this.slots.find((entry) => !retained.has(entry) && !used.has(entry))!;
-      used.add(slot);
-      slot.eq.setParameters({
-        ...band,
-        bypass: parameters.bypass || band.bypass,
-      });
-      if (!existing) {
-        slot.id = band.id;
-        slot.eq.reset();
+    this.bands = parameters.bands.map((band) => {
+      const next = { ...band, bypass: parameters.bypass || band.bypass };
+      const existing = this.bands.find((entry) => entry.id === band.id);
+      if (existing) {
+        existing.eq.setParameters(next);
+        return existing;
       }
-      return slot;
+      return {
+        id: band.id,
+        eq: new BiquadEq({
+          sampleRate: this.sampleRate,
+          channelCount: this.channelCount,
+          ...next,
+        }),
+      };
     });
   }
 
@@ -77,8 +60,8 @@ export class MultibandEq {
     for (let channel = 0; channel < input.length; channel++) {
       output[channel].set(input[channel]);
     }
-    for (const slot of this.active) {
-      slot.eq.process({ input: output, output });
+    for (const band of this.bands) {
+      band.eq.process({ input: output, output });
     }
   }
 }

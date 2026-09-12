@@ -162,7 +162,7 @@ describe(calculateBiquadEqResponse, () => {
 });
 
 describe(MultibandEq, () => {
-  it("cascades bands in one fixed-capacity processor", () => {
+  it("cascades band gains", () => {
     const eq = new MultibandEq({
       sampleRate: SAMPLE_RATE,
       channelCount: 1,
