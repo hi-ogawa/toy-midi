@@ -20,14 +20,12 @@ import { Button } from "./ui/button";
 type ProjectType = "midi" | "recorder";
 
 export function ProjectListView() {
-  const [projectType, setProjectType] = useState<ProjectType>(() =>
-    localStorage.getItem("toy-midi-project-type") === "recorder"
-      ? "recorder"
-      : "midi",
+  const [projectType, setProjectType] = useState<ProjectType>(
+    () => projectStorage.readPreferences().projectType,
   );
 
   const selectProjectType = (type: ProjectType) => {
-    localStorage.setItem("toy-midi-project-type", type);
+    projectStorage.updatePreferences({ projectType: type });
     setProjectType(type);
   };
 
