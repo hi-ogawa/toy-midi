@@ -107,7 +107,7 @@ export function ReferenceVideoPanel({
       }
       closeLabel="Close Reference Video"
       onClose={onClose}
-      testId="recorder-youtube-reference"
+      data-testid="recorder-youtube-reference"
       className="pointer-events-auto relative flex shrink-0 flex-col overflow-hidden"
       contentClassName="min-h-0 flex-1 p-0"
       style={size}

@@ -21,6 +21,13 @@ export type EqParameters = {
   bypass: boolean;
 };
 
+export const DEFAULT_PARAMETERS: EqParameters = {
+  frequency: 1000,
+  gain: 1,
+  q: 1,
+  bypass: false,
+};
+
 export type BiquadEqCoefficients = {
   b0: number;
   b1: number;
