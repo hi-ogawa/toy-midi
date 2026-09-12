@@ -230,6 +230,13 @@ export class RecorderRuntime {
     });
   }
 
+  async init(): Promise<void> {
+    await Promise.all([
+      ensurePitchShifterWorklet(this.context),
+      ensureBiquadEqWorklet(this.context),
+    ]);
+  }
+
   async startInput({
     deviceId,
   }: {
@@ -700,10 +707,6 @@ export class RecorderRuntime {
   }
 
   async play(): Promise<void> {
-    await Promise.all([
-      ensurePitchShifterWorklet(this.context),
-      ensureBiquadEqWorklet(this.context),
-    ]);
     await this.context.resume();
     this.transport.play();
   }
@@ -787,8 +790,7 @@ export class RecorderRuntime {
     this.syncLoopRange();
   }
 
-  async setPlaybackRate(playbackRate: number): Promise<void> {
-    await ensurePitchShifterWorklet(this.context);
+  setPlaybackRate(playbackRate: number): void {
     this.transport.setPlaybackRate(playbackRate);
     this.store.update({ playbackRate });
   }
