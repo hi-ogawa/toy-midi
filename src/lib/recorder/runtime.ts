@@ -1,7 +1,10 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { type AudioView, createAudioView } from "../audio-view.ts";
-import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
+import {
+  createDefaultEq,
+  ensureBiquadEqWorklet,
+} from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
@@ -221,7 +224,8 @@ export class RecorderRuntime {
     deviceId: string;
   }): Promise<{ channelCount: number }> {
     const context = this.ensureContext();
-    await this.captureChannel!.prepare();
+    await ensureBiquadEqWorklet(context);
+    this.captureChannel!.prepare();
     // Open the replacement completely before closing the current input so a
     // permission or device error leaves the existing route usable.
     const { input, channelCount } = await CaptureInput.open({
@@ -302,16 +306,14 @@ export class RecorderRuntime {
   async setAudioTrack(id: string, file: File): Promise<void> {
     const context = this.ensureContext();
     const buffer = await context.decodeAudioData(await file.arrayBuffer());
+    await ensureBiquadEqWorklet(context);
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
     const playback = this.getAudioTrackPlayback(id);
     playback.stop();
     playback.setBuffer(buffer);
-    await this.audioChannels.get(id)!.prepare();
-    if (this.audioTrackPlaybacks.get(id) !== playback) {
-      return;
-    }
+    this.audioChannels.get(id)!.prepare();
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: 0,
@@ -701,12 +703,13 @@ export class RecorderRuntime {
     const context = this.ensureContext();
     await Promise.all([
       ensurePitchShifterWorklet(context),
-      this.captureChannel!.prepare(),
-      ...Array.from(this.audioChannels.values(), (channel) =>
-        channel.prepare(),
-      ),
+      ensureBiquadEqWorklet(context),
     ]);
     await context.resume();
+    this.captureChannel!.prepare();
+    for (const channel of this.audioChannels.values()) {
+      channel.prepare();
+    }
     this.transport!.play();
   }
 

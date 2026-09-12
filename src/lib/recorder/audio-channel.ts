@@ -1,4 +1,4 @@
-import { BiquadEqNode, ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
+import { BiquadEqNode } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 
 /** Persistent stereo processing shared by all sources in a mixer channel. */
@@ -7,7 +7,6 @@ export class AudioChannel {
   private readonly gain: GainNode;
   private equalizer?: BiquadEqNode;
   private eq: EqParameters;
-  private disposed = false;
 
   constructor({
     context,
@@ -27,10 +26,9 @@ export class AudioChannel {
     this.gain.connect(output);
   }
 
-  /** Sources remain silent until the worklet is ready. Safe to call repeatedly. */
-  async prepare(): Promise<void> {
-    await ensureBiquadEqWorklet(this.input.context);
-    if (this.disposed || this.equalizer) {
+  /** Connect processing after the caller has registered the EQ worklet. */
+  prepare(): void {
+    if (this.equalizer) {
       return;
     }
     this.equalizer = new BiquadEqNode({
@@ -51,7 +49,6 @@ export class AudioChannel {
   }
 
   dispose(): void {
-    this.disposed = true;
     this.input.disconnect();
     this.equalizer?.disconnect();
     this.gain.disconnect();

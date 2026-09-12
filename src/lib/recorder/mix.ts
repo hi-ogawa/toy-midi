@@ -1,3 +1,4 @@
+import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
@@ -88,6 +89,7 @@ export async function renderRecorderMix({
   master.channelCountMode = "explicit";
   master.channelInterpretation = "speakers";
   master.connect(context.destination);
+  await ensureBiquadEqWorklet(context);
   for (const track of mix.tracks) {
     const channel = new AudioChannel({
       context,
@@ -95,7 +97,7 @@ export async function renderRecorderMix({
       eq: track.eq,
       gain: track.gain,
     });
-    await channel.prepare();
+    channel.prepare();
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
