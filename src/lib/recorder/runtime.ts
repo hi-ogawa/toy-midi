@@ -10,10 +10,8 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import {
-  type AudioPlaybackSource,
-  AudioTrackPlayback,
-} from "./audio-track-playback.ts";
+import type { AudioPlaybackSource } from "./audio-buffer-playback.ts";
+import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
@@ -1194,9 +1192,9 @@ export class RecorderRuntime {
           ? [
               {
                 buffer: take.buffer,
-                timelineOffset: take.timelineOffset,
-                timelineStart,
-                timelineEnd,
+                start: timelineStart,
+                offset: timelineStart - take.timelineOffset,
+                duration: timelineEnd - timelineStart,
               },
             ]
           : [],
@@ -1211,9 +1209,9 @@ function getAudioTrackSources(track: AudioTrackState): AudioPlaybackSource[] {
     ? [
         {
           buffer: track.clip.buffer,
-          timelineOffset: track.timelineOffset,
-          timelineStart: track.timelineOffset + track.trimStart,
-          timelineEnd: track.timelineOffset + track.trimEnd,
+          start: track.timelineOffset + track.trimStart,
+          offset: track.trimStart,
+          duration: track.trimEnd - track.trimStart,
         },
       ]
     : [];

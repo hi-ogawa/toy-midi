@@ -1,18 +1,14 @@
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createPitchShifterNode } from "../dsp/pitch-shifter-node.ts";
-import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
+import {
+  AudioBufferPlayback,
+  type AudioPlaybackSource,
+} from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type {
   AudioContextTransport,
   TransportParticipant,
 } from "./transport.ts";
-
-export type AudioPlaybackSource = {
-  buffer: AudioBuffer;
-  timelineOffset: number;
-  timelineStart: number;
-  timelineEnd: number;
-};
 
 /** Owns region playback and a channel that also accepts independently routed input for capture monitoring. */
 export class AudioTrackPlayback {
@@ -59,10 +55,10 @@ export class AudioTrackPlayback {
         output: this.pitchShiftBus.input,
       });
       playback.setBuffer(source.buffer);
-      playback.setBufferTimelineOffset(source.timelineOffset);
+      playback.setBufferTimelineOffset(source.start - source.offset);
       playback.setTimelineRange({
-        start: source.timelineStart,
-        end: source.timelineEnd,
+        start: source.start,
+        end: source.start + source.duration,
       });
       return playback;
     });

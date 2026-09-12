@@ -3,6 +3,16 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
+/** A buffer slice placed on the timeline, with all times in seconds. */
+export interface AudioPlaybackSource {
+  buffer: AudioBuffer;
+  /** Timeline position where the slice starts. */
+  start: number;
+  /** Position within the buffer where the slice starts. */
+  offset: number;
+  duration: number;
+}
+
 export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;

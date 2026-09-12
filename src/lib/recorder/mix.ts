@@ -1,17 +1,11 @@
 import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import type { AudioPlaybackSource } from "./audio-buffer-playback.ts";
 import { AudioChannel } from "./audio-channel.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
-interface MixRegion {
-  buffer: AudioBuffer;
-  start: number;
-  offset: number;
-  duration: number;
-}
-
 interface RecorderMix {
-  tracks: { eq: EqParameters; gain: number; regions: MixRegion[] }[];
+  tracks: { eq: EqParameters; gain: number; regions: AudioPlaybackSource[] }[];
   masterGain: number;
   duration: number;
 }
