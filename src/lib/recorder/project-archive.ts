@@ -22,7 +22,8 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
-type RecorderProjectArchiveContent = SerializedRecorderRuntimeState<string>;
+type SerializedRecorderRuntimeStateWithZipChannelPaths =
+  SerializedRecorderRuntimeState<string>;
 
 export async function exportRecorderProjectArchive(
   content: SerializedRecorderRuntimeState,
@@ -63,17 +64,18 @@ export async function parseRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  const project = await readJson<RecorderProjectArchiveContent>(
-    zip,
-    PROJECT_PATH,
-  );
+  const project =
+    await readJson<SerializedRecorderRuntimeStateWithZipChannelPaths>(
+      zip,
+      PROJECT_PATH,
+    );
   return readProjectContent(zip, project);
 }
 
 function writeProjectContent(
   zip: JSZip,
   content: SerializedRecorderRuntimeState,
-): RecorderProjectArchiveContent {
+): SerializedRecorderRuntimeStateWithZipChannelPaths {
   return {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
@@ -101,7 +103,7 @@ function writeProjectContent(
 
 async function readProjectContent(
   zip: JSZip,
-  content: RecorderProjectArchiveContent,
+  content: SerializedRecorderRuntimeStateWithZipChannelPaths,
 ): Promise<SerializedRecorderRuntimeState> {
   return {
     ...content,
