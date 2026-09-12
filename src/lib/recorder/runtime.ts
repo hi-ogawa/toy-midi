@@ -206,8 +206,10 @@ export class RecorderRuntime {
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
-  private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
-  private audioChannels = new Map<string, AudioChannel>();
+  private audioTracks = new Map<
+    string,
+    { playback: AudioBufferPlayback; channel: AudioChannel }
+  >();
   private captureChannel?: AudioChannel;
   /** Silences existing takes during recording while live monitoring stays audible. */
   private readonly takePlaybackGain: GainNode;
@@ -516,7 +518,7 @@ export class RecorderRuntime {
       this.pause();
     }
     for (const id of audioIds) {
-      const playback = this.audioTrackPlaybacks.get(id);
+      const playback = this.audioTracks.get(id)?.playback;
       playback?.stop();
       playback?.setBuffer(undefined);
     }
@@ -556,10 +558,10 @@ export class RecorderRuntime {
   }
 
   removeAudioTrack(id: string): void {
-    this.audioTrackPlaybacks.get(id)?.dispose();
-    this.audioTrackPlaybacks.delete(id);
-    this.audioChannels.get(id)?.dispose();
-    this.audioChannels.delete(id);
+    const track = this.audioTracks.get(id);
+    track?.playback.dispose();
+    track?.channel.dispose();
+    this.audioTracks.delete(id);
     this.store.update({
       audioTracks: this.store
         .get()
@@ -579,7 +581,7 @@ export class RecorderRuntime {
       ...track,
       eq: { ...track.eq, ...update },
     }));
-    this.audioChannels.get(id)?.setEq(track.eq);
+    this.audioTracks.get(id)?.channel.setEq(track.eq);
   }
 
   setRecordingTrackEq(update: Partial<EqParameters>): void {
@@ -609,7 +611,7 @@ export class RecorderRuntime {
   }
 
   private getAudioTrackPlayback(id: string): AudioBufferPlayback {
-    let playback = this.audioTrackPlaybacks.get(id);
+    let playback = this.audioTracks.get(id)?.playback;
     if (!playback) {
       const track = this.store
         .get()
@@ -623,13 +625,12 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      this.audioChannels.set(id, channel);
       playback = new AudioBufferPlayback({
         transport: this.transport,
         output: channel.input,
       });
       playback.setBufferTimelineOffset(track.timelineOffset);
-      this.audioTrackPlaybacks.set(id, playback);
+      this.audioTracks.set(id, { playback, channel });
       this.syncTrackMix();
     }
     return playback;
@@ -1017,14 +1018,11 @@ export class RecorderRuntime {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
-    for (const playback of this.audioTrackPlaybacks.values()) {
+    for (const { playback, channel } of this.audioTracks.values()) {
       playback.dispose();
-    }
-    this.audioTrackPlaybacks.clear();
-    for (const channel of this.audioChannels.values()) {
       channel.dispose();
     }
-    this.audioChannels.clear();
+    this.audioTracks.clear();
     for (const track of project.audioTracks) {
       const buffer = track.clip?.buffer;
       if (!buffer) {
@@ -1036,7 +1034,6 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      this.audioChannels.set(track.id, channel);
       const playback = new AudioBufferPlayback({
         transport: this.transport,
         output: channel.input,
@@ -1047,7 +1044,7 @@ export class RecorderRuntime {
         start: track.timelineOffset + track.trimStart,
         end: track.timelineOffset + track.trimEnd,
       });
-      this.audioTrackPlaybacks.set(track.id, playback);
+      this.audioTracks.set(track.id, { playback, channel });
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
@@ -1099,7 +1096,7 @@ export class RecorderRuntime {
       recordingTrack,
     });
     for (const [index, track] of audioTracks.entries()) {
-      this.audioChannels.get(track.id)?.setGain(audioTrackGains[index]!);
+      this.audioTracks.get(track.id)?.channel.setGain(audioTrackGains[index]!);
     }
     this.captureChannel?.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
