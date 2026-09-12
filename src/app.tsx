@@ -1,3 +1,4 @@
+import { ComponentPreview } from "./components/component-preview";
 import { Editor } from "./components/editor";
 import { Home } from "./components/home";
 import { LatencyChecker } from "./components/latency-checker";
@@ -11,6 +12,9 @@ export function App() {
   const match = matchRoute(window.location.href);
 
   switch (match?.data) {
+    case "componentPreview": {
+      return <ComponentPreview />;
+    }
     case "recorderProject": {
       return <Recorder projectId={match.params.projectId} />;
     }
