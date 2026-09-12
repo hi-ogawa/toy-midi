@@ -1183,9 +1183,9 @@ export class RecorderRuntime {
   }
 }
 
-function getActiveClips(takes: readonly AudioClip[]): AudioClip[] {
-  const anyTakeSoloed = takes.some((take) => take.soloed);
-  return takes.filter((take) => !take.muted && (!anyTakeSoloed || take.soloed));
+function getActiveClips(clips: readonly AudioClip[]): AudioClip[] {
+  const anyClipSoloed = clips.some((clip) => clip.soloed);
+  return clips.filter((clip) => !clip.muted && (!anyClipSoloed || clip.soloed));
 }
 
 function pendingRecordingToTake(
