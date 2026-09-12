@@ -44,6 +44,8 @@ export interface AudioTrackState {
   eq: MultibandEqParameters;
   id: string;
   height: number;
+  // The ordinary-track UI currently keeps zero or one imported clip and has
+  // no clip-level mute/solo controls. Imported clips initialize both flags to false.
   clips: AudioClip[];
   gain: number;
   muted: boolean;
