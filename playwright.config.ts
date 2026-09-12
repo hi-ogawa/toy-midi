@@ -12,11 +12,13 @@ export default defineConfig({
   },
   use: {
     baseURL: "http://localhost:5183",
+    trace: "retain-on-failure",
   },
   forbidOnly: !!process.env.CI,
   reporter: [
     ["list"],
     ["json", { outputFile: "test-results/report.json" }],
+    ["@hiogawa/playwright-trace-pack/reporter"],
     ...(process.env.CI ? [["github"] as const] : []),
   ],
   projects: [

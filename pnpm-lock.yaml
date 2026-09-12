@@ -66,6 +66,9 @@ importers:
         specifier: ^5.0.9
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)
     devDependencies:
+      '@hiogawa/playwright-trace-pack':
+        specifier: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@main
+        version: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@main(@playwright/test@1.62.1)
       '@playwright/test':
         specifier: ^1.60.0
         version: 1.62.1
@@ -335,6 +338,17 @@ packages:
   '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732':
     resolution: {integrity: sha512-of+7YyBs8soni4hgHLoi0SOpjRmkZCQWhUFhNfqYBBccQol6pcn1UIOf33d4a/WuTWdW/RlhaRQh/BV0iMVgag==, tarball: https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732}
     version: 0.0.0
+
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@main':
+    resolution: {integrity: sha512-bO2ktoTMDlj4hNKjunFISYRHaF1zGwZrhqoUIIMSehrrlMjLGotS3qKw309WGN8h51iVpkmTQ9ZduzdlUbDKhQ==, tarball: https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@main}
+    version: 0.0.0
+    engines: {node: '>=20'}
+    hasBin: true
+    peerDependencies:
+      '@playwright/test': '>=1.40.0'
+    peerDependenciesMeta:
+      '@playwright/test':
+        optional: true
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -2399,6 +2413,10 @@ snapshots:
   '@floating-ui/utils@0.2.12': {}
 
   '@hiogawa/bass-pitch-wasm@https://pkg.pr.new/hi-ogawa/toy-midi/@hiogawa/bass-pitch-wasm@1361732': {}
+
+  '@hiogawa/playwright-trace-pack@https://pkg.pr.new/hi-ogawa/playwright-trace-pack/@hiogawa/playwright-trace-pack@main(@playwright/test@1.62.1)':
+    optionalDependencies:
+      '@playwright/test': 1.62.1
 
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
