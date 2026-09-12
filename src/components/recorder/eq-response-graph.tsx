@@ -222,7 +222,7 @@ export function EqResponseGraph({
 }
 
 function createResponsePath(bands: MultibandEqBand[]): string {
-  const coefficients = bands.map((band) =>
+  const bandCoefficients = bands.map((band) =>
     calculateBiquadEqCoefficients({
       sampleRate: GRAPH_SAMPLE_RATE,
       frequency: band.frequency,
@@ -233,19 +233,16 @@ function createResponsePath(bands: MultibandEqBand[]): string {
   return Array.from({ length: 161 }, (_, index) => {
     const x = index / 160;
     const frequency = graphXToFrequency(x);
-    const gainDb = coefficients.reduce(
-      (sum, entry) =>
-        sum +
-        gainToDb(
-          calculateBiquadEqResponse({
-            coefficients: entry,
-            sampleRate: GRAPH_SAMPLE_RATE,
-            frequency,
-          }),
-        ),
-      0,
-    );
-    return `${index === 0 ? "M" : "L"}${x.toFixed(5)},${gainDbToGraphY(gainDb).toFixed(5)}`;
+    let totalGainDb = 0;
+    for (const coefficients of bandCoefficients) {
+      const bandGain = calculateBiquadEqResponse({
+        coefficients,
+        sampleRate: GRAPH_SAMPLE_RATE,
+        frequency,
+      });
+      totalGainDb += gainToDb(bandGain);
+    }
+    return `${index === 0 ? "M" : "L"}${x.toFixed(5)},${gainDbToGraphY(totalGainDb).toFixed(5)}`;
   }).join(" ");
 }
 
