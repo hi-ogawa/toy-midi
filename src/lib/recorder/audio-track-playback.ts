@@ -13,12 +13,12 @@ export type AudioPlaybackRegion = {
 
 /** Owns region playback and a channel that also accepts independently routed input. */
 export class AudioTrackPlayback {
-  readonly channel: AudioChannel;
   private readonly transport: AudioContextTransport;
   private readonly playbacks: AudioBufferPlayback[] = [];
   private readonly bus: PlaybackBus;
   /** Mutes region playback without muting other sources connected to channel.input. */
   private readonly playbackGain: GainNode;
+  readonly channel: AudioChannel;
 
   constructor({
     transport,
