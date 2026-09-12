@@ -669,7 +669,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
-          testId="recorder-input-setup"
+          data-testid="recorder-input-setup"
         >
           <InputSetup
             devices={input.devices}
@@ -711,8 +711,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                     key={track.id}
                     label={`Audio ${index + 1}`}
                     eq={track.eq}
-                    onChange={(update) =>
-                      runtime.setAudioTrackEq({ id: track.id, update })
+                    onChange={(eq) =>
+                      runtime.setAudioTrackEq({ id: track.id, eq })
                     }
                     onClose={() => effects.closeEffects(track.id)}
                   />
@@ -722,8 +722,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               <RecorderEffects
                 label="Capture"
                 eq={recordingTrack.eq}
-                onChange={(update) =>
-                  runtime.setAudioTrackEq({ id: recordingTrack.id, update })
+                onChange={(eq) =>
+                  runtime.setAudioTrackEq({ id: recordingTrack.id, eq })
                 }
                 onClose={() => effects.closeEffects("capture")}
               />
@@ -735,7 +735,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             closeLabel="Close Mixer"
             onClose={() => setIsMixerOpen(false)}
             title="Mixer"
-            testId="recorder-mixer-panel"
+            data-testid="recorder-mixer-panel"
             className="pointer-events-auto min-w-80 flex-1"
           >
             <RecorderMixer

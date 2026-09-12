@@ -1,5 +1,9 @@
 import { createAudioView } from "../audio-view.ts";
-import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
+import {
+  createDefaultEqBand,
+  createDefaultMultibandEq,
+} from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import {
   migrateRecorderProject,
@@ -19,7 +23,7 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
   armedTrackId: string;
   audioTracks: {
     id: string;
-    eq?: EqParameters;
+    eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -130,7 +134,7 @@ export function deserializeRecorderRuntimeState({
     armedTrackId: project.armedTrackId,
     audioTracks: project.audioTracks.map((track) => ({
       ...track,
-      eq: track.eq ?? createDefaultEq(),
+      eq: deserializeEq(track.eq),
       clips: track.clips.map(({ pcm, ...clip }) => {
         const buffer = deserializeAudioBuffer(context, pcm);
         return {
@@ -157,6 +161,22 @@ export function deserializeRecorderRuntimeState({
     referenceVideo: project.referenceVideo,
   };
 }
+
+function deserializeEq(
+  eq?: MultibandEqParameters | EqParameters,
+): MultibandEqParameters {
+  if (!eq) {
+    return createDefaultMultibandEq();
+  }
+  if ("bands" in eq) {
+    return eq;
+  }
+  return {
+    bypass: false,
+    bands: [{ ...createDefaultEqBand(), ...eq }],
+  };
+}
+
 function serializeAudioBuffer(buffer: AudioBuffer): {
   sampleRate: number;
   channels: Float32Array[];

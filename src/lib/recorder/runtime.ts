@@ -1,11 +1,11 @@
 import { DEFAULT_TIME_SIGNATURE, type TimeSignature } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
 import { createAudioView } from "../audio-view.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
-  createDefaultEq,
+  createDefaultMultibandEq,
   ensureBiquadEqWorklet,
 } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
@@ -40,7 +40,7 @@ const MAX_TRACK_HEIGHT = 300;
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 export interface AudioTrackState {
-  eq: EqParameters;
+  eq: MultibandEqParameters;
   id: string;
   height: number;
   clips: AudioClip[];
@@ -460,16 +460,10 @@ export class RecorderRuntime {
     );
   }
 
-  setAudioTrackEq({
-    id,
-    update,
-  }: {
-    id: string;
-    update: Partial<EqParameters>;
-  }): void {
+  setAudioTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
-      eq: { ...track.eq, ...update },
+      eq,
     }));
     this.trackPlaybacks.get(id)?.channel.setEq(track.eq);
   }
@@ -1141,7 +1135,7 @@ function sliceRecordingSamples({
 
 function createAudioTrackState(): AudioTrackState {
   return {
-    eq: createDefaultEq(),
+    eq: createDefaultMultibandEq(),
     id: crypto.randomUUID(),
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,

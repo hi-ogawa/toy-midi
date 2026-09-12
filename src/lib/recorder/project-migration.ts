@@ -1,3 +1,4 @@
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 import type { RecorderLocator } from "./runtime.ts";
@@ -71,7 +72,7 @@ interface LegacyRecorderProject<Channel> {
   audioTracks: SerializedAudioTrackState<Channel>[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: EqParameters;
+    eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
@@ -114,7 +115,7 @@ interface LegacyRecorderProject<Channel> {
 
 interface SerializedAudioTrackState<Channel> {
   // Optional for projects saved before track EQ support.
-  eq?: EqParameters;
+  eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {

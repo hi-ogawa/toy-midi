@@ -7,7 +7,7 @@ export function RecorderPanel({
   closeLabel,
   onClose,
   children,
-  testId,
+  "data-testid": testId,
   className,
   contentClassName,
   style,
@@ -16,7 +16,7 @@ export function RecorderPanel({
   closeLabel: string;
   onClose: () => void;
   children: ReactNode;
-  testId?: string;
+  "data-testid"?: string;
   className?: string;
   contentClassName?: string;
   style?: CSSProperties;

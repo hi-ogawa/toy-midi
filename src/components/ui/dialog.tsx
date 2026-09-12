@@ -7,7 +7,7 @@ type DialogProps = {
   onClose: () => void;
   title: string;
   children: ReactNode;
-  testId?: string;
+  "data-testid"?: string;
   size?: "default" | "wide";
 };
 
@@ -16,7 +16,7 @@ export function Dialog({
   onClose,
   title,
   children,
-  testId,
+  "data-testid": testId,
   size = "default",
 }: DialogProps) {
   if (!isOpen) {

@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import { DEFAULT_PARAMETERS } from "../dsp/biquad-eq.ts";
 import { getAudioTrackSources } from "./audio-sources.ts";
 import {
   deserializeRecorderRuntimeState,
@@ -98,6 +99,37 @@ it("supplies defaults for projects saved before take identity and trimming", () 
     trimEnd: 4,
   });
   expect(restored.audioTracks[1]!.nextTakeNumber).toBe(3);
+});
+
+it("preserves multiband EQ while migrating single-band EQ on either track", () => {
+  const project = legacyProject();
+  const single = { ...DEFAULT_PARAMETERS, bypass: true, gain: 6 };
+  const multiband = {
+    bypass: true,
+    bands: [
+      { ...DEFAULT_PARAMETERS, id: "low", frequency: 200, gain: 3 },
+      { ...DEFAULT_PARAMETERS, id: "high", frequency: 4000, gain: -4 },
+    ],
+  };
+  project.audioTracks[0]!.eq = single;
+  project.recordingTrack.eq = multiband;
+  const migrated = deserializeRecorderRuntimeState({ context, project });
+  expect(migrated.audioTracks[0]!.eq).toMatchObject({
+    bypass: false,
+    bands: [single],
+  });
+  expect(migrated.audioTracks[1]!.eq).toEqual(multiband);
+  const saved = serializeRecorderRuntimeState({
+    ...createDefaultRecorderRuntimeState(),
+    ...migrated,
+  });
+  // Also accept uniform-track projects written before multiband EQ was merged.
+  saved.audioTracks[1]!.eq = single;
+  const restored = deserializeRecorderRuntimeState({ context, project: saved });
+  expect(restored.audioTracks[1]!.eq).toMatchObject({
+    bypass: false,
+    bands: [single],
+  });
 });
 
 function legacyProject(): Extract<

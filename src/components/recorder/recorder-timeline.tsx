@@ -203,7 +203,6 @@ function TimelineRuler({
           range={punch.range}
           enabled={punch.enabled}
           label="Punch"
-          testId="recorder-punch"
           activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
           clearHoverClassName="hover:bg-amber-200/20"
           pixelsPerBeat={pixelsPerBeat}
@@ -251,7 +250,6 @@ function LoopRange({
       range={range}
       enabled={enabled}
       label="Loop"
-      testId="recorder-loop"
       activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
       clearHoverClassName="hover:bg-violet-200/20"
       pixelsPerBeat={pixelsPerBeat}
@@ -267,7 +265,6 @@ function TimelineRange({
   range,
   enabled,
   label,
-  testId,
   activeClassName,
   clearHoverClassName,
   pixelsPerBeat,
@@ -279,7 +276,6 @@ function TimelineRange({
   range: RecorderLoopRange | RecorderPunchRange;
   enabled: boolean;
   label: string;
-  testId: "recorder-loop" | "recorder-punch";
   activeClassName: string;
   clearHoverClassName: string;
   pixelsPerBeat: number;
@@ -288,6 +284,7 @@ function TimelineRange({
   onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
 }) {
+  const testIdPrefix = `recorder-${label.toLowerCase()}`;
   const minimumLength = 1 / subdivisionsPerBeat;
   const dragRef = usePointerGesture({
     onStart: (event) => {
@@ -338,7 +335,7 @@ function TimelineRange({
   });
   return (
     <div
-      data-testid={`${testId}-range`}
+      data-testid={`${testIdPrefix}-range`}
       className={cn(
         "pointer-events-none absolute inset-y-0 z-10 border-x select-none",
         enabled
@@ -364,18 +361,18 @@ function TimelineRange({
       </span>
       <div
         ref={startRef}
-        data-testid={`${testId}-start`}
+        data-testid={`${testIdPrefix}-start`}
         className="pointer-events-auto absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
       />
       <div
         ref={endRef}
-        data-testid={`${testId}-end`}
+        data-testid={`${testIdPrefix}-end`}
         className="pointer-events-auto absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
       />
       <button
         type="button"
         title={`Clear ${label.toLowerCase()} range`}
-        data-testid={`${testId}-clear`}
+        data-testid={`${testIdPrefix}-clear`}
         className={cn(
           "pointer-events-auto absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
           enabled ? clearHoverClassName : "hover:bg-neutral-400/20",
