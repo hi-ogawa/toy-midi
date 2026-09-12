@@ -10,7 +10,7 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import type { AudioPlaybackSource } from "./audio-buffer-playback.ts";
+import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -40,7 +40,7 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-interface AudioTrackState {
+export interface AudioTrackState {
   eq: EqParameters;
   id: string;
   height: number;
@@ -1186,35 +1186,9 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    this.captureTrack!.setSources(
-      takeRegions.flatMap(({ take, timelineStart, timelineEnd }) =>
-        take.buffer
-          ? [
-              {
-                buffer: take.buffer,
-                timelineOffset: take.timelineOffset,
-                timelineStart,
-                timelineEnd,
-              },
-            ]
-          : [],
-      ),
-    );
+    this.captureTrack!.setSources(getTakeSources(takeRegions));
     this.syncTrackMix();
   }
-}
-
-function getAudioTrackSources(track: AudioTrackState): AudioPlaybackSource[] {
-  return track.clip
-    ? [
-        {
-          buffer: track.clip.buffer,
-          timelineOffset: track.timelineOffset,
-          timelineStart: track.timelineOffset + track.trimStart,
-          timelineEnd: track.timelineOffset + track.trimEnd,
-        },
-      ]
-    : [];
 }
 
 function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
