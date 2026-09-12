@@ -520,10 +520,8 @@ export class RecorderRuntime {
     if (takeIds.size > 0) {
       this.syncTakePlayback(recordingTrack.regions);
     }
-    for (const track of audioTracks) {
-      if (
-        track !== state.audioTracks.find((previous) => previous.id === track.id)
-      ) {
+    for (const [index, track] of audioTracks.entries()) {
+      if (track !== state.audioTracks[index]) {
         this.syncAudioTrackPlayback(track);
       }
     }
