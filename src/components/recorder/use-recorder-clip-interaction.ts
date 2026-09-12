@@ -38,7 +38,7 @@ export function useRecorderClipInteraction({
       audioTracks: state.audioTracks.filter((track) =>
         selectedKeys.has(getKey({ type: "audio", id: track.id })),
       ),
-      takes: state.recordingTrack.takes.filter((take) =>
+      takes: state.recordingTrack.clips.filter((take) =>
         selectedKeys.has(getKey({ type: "take", id: take.id })),
       ),
       referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
@@ -52,7 +52,7 @@ export function useRecorderClipInteraction({
       ...state.audioTracks
         .filter((track) => track.clip)
         .map((track) => getKey({ type: "audio", id: track.id })),
-      ...state.recordingTrack.takes.map((take) =>
+      ...state.recordingTrack.clips.map((take) =>
         getKey({ type: "take", id: take.id }),
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
@@ -61,7 +61,7 @@ export function useRecorderClipInteraction({
       const next = new Set([...current].filter((key) => available.has(key)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.takes, state.referenceVideo]);
+  }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
     onSelect();
@@ -161,7 +161,7 @@ export function useRecorderClipInteraction({
       clip.type === "audio"
         ? state.audioTracks.find((track) => track.id === clip.id)
         : clip.type === "take"
-          ? state.recordingTrack.takes.find((take) => take.id === clip.id)
+          ? state.recordingTrack.clips.find((take) => take.id === clip.id)
           : undefined;
     if (!selected) {
       throw new Error("Recorder clip state is missing.");

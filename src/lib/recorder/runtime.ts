@@ -64,7 +64,7 @@ interface RecordingTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
-  takes: AudioClip[];
+  clips: AudioClip[];
   nextTakeNumber: number;
 }
 
@@ -388,7 +388,7 @@ export class RecorderRuntime {
         (id) => !state.audioTracks.some((track) => track.id === id),
       ) ||
       [...takeOffsets.keys()].some(
-        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
+        (id) => !state.recordingTrack.clips.some((take) => take.id === id),
       )
     ) {
       throw new Error("Recorder clip state is missing.");
@@ -403,7 +403,7 @@ export class RecorderRuntime {
     }));
     const recordingTrack = {
       ...state.recordingTrack,
-      takes: state.recordingTrack.takes.map((take) => ({
+      clips: state.recordingTrack.clips.map((take) => ({
         ...take,
         timelineOffset: takeOffsets.get(take.id) ?? take.timelineOffset,
       })),
@@ -497,7 +497,7 @@ export class RecorderRuntime {
         (id) => !state.audioTracks.some((track) => track.id === id),
       ) ||
       [...takeIds].some(
-        (id) => !state.recordingTrack.takes.some((take) => take.id === id),
+        (id) => !state.recordingTrack.clips.some((take) => take.id === id),
       )
     ) {
       throw new Error("Recorder clip state is missing.");
@@ -521,7 +521,7 @@ export class RecorderRuntime {
         referenceVideo,
         recordingTrack: {
           ...state.recordingTrack,
-          takes: state.recordingTrack.takes.filter(
+          clips: state.recordingTrack.clips.filter(
             (take) => !takeIds.has(take.id),
           ),
         },
@@ -690,7 +690,7 @@ export class RecorderRuntime {
     this.updateRecordingTrack({
       recordingTrack: {
         ...recordingTrack,
-        takes: updateFn(recordingTrack.takes),
+        clips: updateFn(recordingTrack.clips),
       },
     });
     if (wasPlaying) {
@@ -1129,8 +1129,8 @@ export class RecorderRuntime {
       recordingTrack: {
         ...recordingTrack,
         nextTakeNumber: recordingTrack.nextTakeNumber + 1,
-        takes: [
-          ...recordingTrack.takes,
+        clips: [
+          ...recordingTrack.clips,
           {
             id: pendingRecording.id,
             number: pendingRecording.number,
@@ -1162,7 +1162,7 @@ export class RecorderRuntime {
       Pick<RecorderRuntimeState, "recordingTrack">,
   ): void {
     const { recordingTrack } = update;
-    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.takes));
+    const takeRegions = deriveClipRegions(getActiveClips(recordingTrack.clips));
     this.store.update({ ...update, takeRegions });
     this.syncTakePlayback(takeRegions);
   }
@@ -1171,7 +1171,7 @@ export class RecorderRuntime {
     pendingRecording: PendingRecordingState,
   ): void {
     const previewClipRegions = deriveClipRegions([
-      ...getActiveClips(this.store.get().recordingTrack.takes),
+      ...getActiveClips(this.store.get().recordingTrack.clips),
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
@@ -1264,7 +1264,7 @@ function createRecordingTrackState(): RecordingTrackState {
     gain: 1,
     muted: false,
     soloed: false,
-    takes: [],
+    clips: [],
     nextTakeNumber: 1,
   };
 }

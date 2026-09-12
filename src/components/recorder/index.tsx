@@ -126,7 +126,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const takes = state.recordingTrack.takes;
+  const takes = state.recordingTrack.clips;
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
