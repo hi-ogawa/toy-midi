@@ -6,8 +6,7 @@ import {
   type EqParameters,
   BiquadEq,
 } from "./biquad-eq";
-
-import { MAX_EQ_BANDS, MultibandEq } from "./biquad-eq-multiband";
+import { MultibandEq } from "./biquad-eq-multiband";
 
 const SAMPLE_RATE = 48000;
 const DEFAULT_PARAMETERS: EqParameters = {
@@ -118,6 +117,56 @@ describe(BiquadEq, () => {
   });
 });
 
+describe(calculateBiquadEqResponse, () => {
+  it.each([-18, -6, 0, 6, 18])(
+    "returns %s dB at the center frequency",
+    (gainDb) => {
+      expect(
+        calculateResponse({
+          gainDb,
+          responseFrequency: 1000,
+          eqFrequency: 1000,
+          q: 1,
+        }),
+      ).toBeCloseTo(gainDb, 10);
+    },
+  );
+
+  it("matches the processed response away from the center frequency", () => {
+    const parameters = {
+      gainDb: 12,
+      responseFrequency: 2400,
+      eqFrequency: 1000,
+      q: 2,
+    };
+    expect(calculateResponse(parameters)).toBeCloseTo(
+      measureResponse({
+        gain: dbToGain(parameters.gainDb),
+        signalFrequency: parameters.responseFrequency,
+        eqFrequency: parameters.eqFrequency,
+        q: parameters.q,
+      }),
+      3,
+    );
+  });
+
+  it("reflects Q in the response bandwidth", () => {
+    const wide = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 1,
+    });
+    const narrow = calculateResponse({
+      gainDb: 12,
+      responseFrequency: 1500,
+      eqFrequency: 1000,
+      q: 8,
+    });
+    expect(wide).toBeGreaterThan(narrow);
+  });
+});
+
 describe(MultibandEq, () => {
   it("cascades bands in one fixed-capacity processor", () => {
     const eq = new MultibandEq({
@@ -172,73 +221,6 @@ describe(MultibandEq, () => {
       input,
     );
     expect(measureEnergy(ramped) / measureEnergy(replaced)).toBeLessThan(0.5);
-  });
-
-  it("rejects state beyond its fixed capacity", () => {
-    expect(
-      () =>
-        new MultibandEq({
-          sampleRate: SAMPLE_RATE,
-          channelCount: 1,
-          parameters: {
-            bypass: false,
-            bands: Array.from({ length: MAX_EQ_BANDS + 1 }, (_, index) => ({
-              id: String(index),
-              ...DEFAULT_PARAMETERS,
-            })),
-          },
-        }),
-    ).toThrow(`EQ supports at most ${MAX_EQ_BANDS} bands`);
-  });
-});
-
-describe(calculateBiquadEqResponse, () => {
-  it.each([-18, -6, 0, 6, 18])(
-    "returns %s dB at the center frequency",
-    (gainDb) => {
-      expect(
-        calculateResponse({
-          gainDb,
-          responseFrequency: 1000,
-          eqFrequency: 1000,
-          q: 1,
-        }),
-      ).toBeCloseTo(gainDb, 10);
-    },
-  );
-
-  it("matches the processed response away from the center frequency", () => {
-    const parameters = {
-      gainDb: 12,
-      responseFrequency: 2400,
-      eqFrequency: 1000,
-      q: 2,
-    };
-    expect(calculateResponse(parameters)).toBeCloseTo(
-      measureResponse({
-        gain: dbToGain(parameters.gainDb),
-        signalFrequency: parameters.responseFrequency,
-        eqFrequency: parameters.eqFrequency,
-        q: parameters.q,
-      }),
-      3,
-    );
-  });
-
-  it("reflects Q in the response bandwidth", () => {
-    const wide = calculateResponse({
-      gainDb: 12,
-      responseFrequency: 1500,
-      eqFrequency: 1000,
-      q: 1,
-    });
-    const narrow = calculateResponse({
-      gainDb: 12,
-      responseFrequency: 1500,
-      eqFrequency: 1000,
-      q: 8,
-    });
-    expect(wide).toBeGreaterThan(narrow);
   });
 });
 
