@@ -4,11 +4,14 @@ import { AudioChannel } from "./audio-channel.ts";
 import { PlaybackBus } from "./playback-bus.ts";
 import type { AudioContextTransport } from "./transport.ts";
 
-/** Owns an audio track's source, playback processing, and mixer channel. */
+/** Owns region playback and a channel that also accepts independently routed input. */
 export class AudioTrackPlayback {
-  private readonly playback: AudioBufferPlayback;
+  readonly channel: AudioChannel;
+  private readonly transport: AudioContextTransport;
+  private readonly playbacks: AudioBufferPlayback[] = [];
   private readonly bus: PlaybackBus;
-  private readonly channel: AudioChannel;
+  /** Mutes region playback without muting other sources connected to channel.input. */
+  private readonly playbackGain: GainNode;
 
   constructor({
     transport,
@@ -21,43 +24,56 @@ export class AudioTrackPlayback {
     eq: EqParameters;
     gain: number;
   }) {
+    this.transport = transport;
     this.channel = new AudioChannel({
       context: transport.context,
       output,
       eq,
       gain,
     });
-    this.bus = new PlaybackBus({ transport, output: this.channel.input });
-    this.playback = new AudioBufferPlayback({
-      transport,
-      output: this.bus.input,
-    });
+    this.playbackGain = transport.context.createGain();
+    this.playbackGain.connect(this.channel.input);
+    this.bus = new PlaybackBus({ transport, output: this.playbackGain });
   }
 
-  setBuffer(buffer?: AudioBuffer): void {
-    this.playback.stop();
-    this.playback.setBuffer(buffer);
+  setRegions(
+    regions: readonly {
+      buffer: AudioBuffer;
+      timelineOffset: number;
+      timelineStart: number;
+      timelineEnd: number;
+    }[],
+  ): void {
+    for (const playback of this.playbacks) {
+      playback.dispose();
+    }
+    this.playbacks.length = 0;
+    for (const region of regions) {
+      const playback = new AudioBufferPlayback({
+        transport: this.transport,
+        output: this.bus.input,
+      });
+      playback.setBuffer(region.buffer);
+      playback.setBufferTimelineOffset(region.timelineOffset);
+      playback.setTimelineRange({
+        start: region.timelineStart,
+        end: region.timelineEnd,
+      });
+      this.playbacks.push(playback);
+    }
   }
 
-  setBufferTimelineOffset(offset: number): void {
-    this.playback.setBufferTimelineOffset(offset);
-  }
-
-  setTimelineRange(range: { start: number; end: number }): void {
-    this.playback.setTimelineRange(range);
-  }
-
-  setEq(eq: EqParameters): void {
-    this.channel.setEq(eq);
-  }
-
-  setGain(gain: number): void {
-    this.channel.setGain(gain);
+  setPlaybackMuted(muted: boolean): void {
+    this.playbackGain.gain.setValueAtTime(
+      muted ? 0 : 1,
+      this.transport.context.currentTime,
+    );
   }
 
   dispose(): void {
-    this.playback.dispose();
+    this.setRegions([]);
     this.bus.dispose();
+    this.playbackGain.disconnect();
     this.channel.dispose();
   }
 }

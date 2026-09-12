@@ -10,8 +10,6 @@ import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
-import { AudioBufferPlayback } from "./audio-buffer-playback.ts";
-import { AudioChannel } from "./audio-channel.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { RecorderMetronome } from "./metronome.ts";
@@ -25,7 +23,6 @@ import {
   type SerializedRecorderRuntimeState,
   serializeRecorderRuntimeState,
 } from "./persistence.ts";
-import { PlaybackBus } from "./playback-bus.ts";
 import { ActiveRecording } from "./recording.ts";
 import { deriveTakeRegions } from "./take-regions.ts";
 import type { TakeRegion, TakeState } from "./take.ts";
@@ -209,11 +206,7 @@ export class RecorderRuntime {
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
   private audioTracks = new Map<string, AudioTrackPlayback>();
-  private captureChannel?: AudioChannel;
-  /** Silences existing takes during recording while live monitoring stays audible. */
-  private readonly takePlaybackGain: GainNode;
-  private readonly takePlaybackBus: PlaybackBus;
-  private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
+  private captureTrack?: AudioTrackPlayback;
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -224,12 +217,7 @@ export class RecorderRuntime {
   constructor() {
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
-    this.takePlaybackGain = this.context.createGain();
     this.transport = new AudioContextTransport(this.context);
-    this.takePlaybackBus = new PlaybackBus({
-      transport: this.transport,
-      output: this.takePlaybackGain,
-    });
     this.metronome = new RecorderMetronome(this.transport, this.masterOutput);
     this.masterOutput.gain.value = this.store.get().masterGain;
     this.syncMetronomeGain();
@@ -247,14 +235,13 @@ export class RecorderRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
     ]);
-    if (!this.captureChannel) {
-      this.captureChannel = new AudioChannel({
-        context: this.context,
+    if (!this.captureTrack) {
+      this.captureTrack = new AudioTrackPlayback({
+        transport: this.transport,
         output: this.masterOutput,
         eq: this.store.get().recordingTrack.eq,
         gain: deriveTrackMix(this.store.get()).recordingGain,
       });
-      this.takePlaybackGain.connect(this.captureChannel.input);
     }
   }
 
@@ -269,7 +256,7 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.captureChannel!.input,
+      output: this.captureTrack!.channel.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -346,8 +333,6 @@ export class RecorderRuntime {
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
-    const playback = this.getAudioTrackPlayback(id);
-    playback.setBuffer(buffer);
     const track = this.updateAudioTrack(id, (track) => ({
       ...track,
       trimStart: 0,
@@ -521,7 +506,7 @@ export class RecorderRuntime {
       this.pause();
     }
     for (const id of audioIds) {
-      this.audioTracks.get(id)?.setBuffer(undefined);
+      this.audioTracks.get(id)?.setRegions([]);
     }
     const audioTracks = state.audioTracks.map((track) =>
       audioIds.has(track.id)
@@ -580,7 +565,7 @@ export class RecorderRuntime {
       ...track,
       eq: { ...track.eq, ...update },
     }));
-    this.audioTracks.get(id)?.setEq(track.eq);
+    this.audioTracks.get(id)?.channel.setEq(track.eq);
   }
 
   setRecordingTrackEq(update: Partial<EqParameters>): void {
@@ -591,7 +576,7 @@ export class RecorderRuntime {
         eq: { ...track.eq, ...update },
       },
     });
-    this.captureChannel?.setEq(this.store.get().recordingTrack.eq);
+    this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
   }
 
   private updateAudioTrack(
@@ -624,7 +609,6 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      playback.setBufferTimelineOffset(track.timelineOffset);
       this.audioTracks.set(id, playback);
       this.syncTrackMix();
     }
@@ -637,11 +621,7 @@ export class RecorderRuntime {
       this.pause();
     }
     const playback = this.getAudioTrackPlayback(track.id);
-    playback.setBufferTimelineOffset(track.timelineOffset);
-    playback.setTimelineRange({
-      start: track.timelineOffset + track.trimStart,
-      end: track.timelineOffset + track.trimEnd,
-    });
+    playback.setRegions(getAudioTrackRegions(track));
     if (wasPlaying) {
       this.transport.play();
     }
@@ -746,7 +726,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.takePlaybackGain.gain.setValueAtTime(0, context.currentTime);
+    this.captureTrack!.setPlaybackMuted(true);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport.playbackAnchor!.contextTime * context.sampleRate;
@@ -1028,12 +1008,7 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      playback.setBuffer(buffer);
-      playback.setBufferTimelineOffset(track.timelineOffset);
-      playback.setTimelineRange({
-        start: track.timelineOffset + track.trimStart,
-        end: track.timelineOffset + track.trimEnd,
-      });
+      playback.setRegions(getAudioTrackRegions(track));
       this.audioTracks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
@@ -1046,7 +1021,7 @@ export class RecorderRuntime {
         height: clampRecordingTrackHeight(project.recordingTrack.height),
       },
     });
-    this.captureChannel!.setEq(project.recordingTrack.eq);
+    this.captureTrack!.channel.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
     this.transport.seek(0);
     this.metronome.setTempo(project.tempo);
@@ -1086,14 +1061,13 @@ export class RecorderRuntime {
       recordingTrack,
     });
     for (const [index, track] of audioTracks.entries()) {
-      this.audioTracks.get(track.id)?.setGain(audioTrackGains[index]!);
+      this.audioTracks.get(track.id)?.channel.setGain(audioTrackGains[index]!);
     }
-    this.captureChannel?.setGain(recordingGain);
+    this.captureTrack?.channel.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
     const { captureStatus } = this.store.get();
-    this.takePlaybackGain.gain.setValueAtTime(
-      captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
-      this.context.currentTime,
+    this.captureTrack?.setPlaybackMuted(
+      captureStatus === "recording" || captureStatus === "processing",
     );
   }
 
@@ -1211,29 +1185,35 @@ export class RecorderRuntime {
   }
 
   private syncTakePlayback(takeRegions: TakeRegion[]): void {
-    for (const playback of this.recordingTrackPlaybacks) {
-      playback.dispose();
-    }
-    this.recordingTrackPlaybacks = [];
-    for (const region of takeRegions) {
-      const { take } = region;
-      if (!take.buffer) {
-        continue;
-      }
-      const playback = new AudioBufferPlayback({
-        transport: this.transport,
-        output: this.takePlaybackBus.input,
-      });
-      playback.setBuffer(take.buffer);
-      playback.setBufferTimelineOffset(take.timelineOffset);
-      playback.setTimelineRange({
-        start: region.timelineStart,
-        end: region.timelineEnd,
-      });
-      this.recordingTrackPlaybacks.push(playback);
-    }
+    this.captureTrack!.setRegions(
+      takeRegions.flatMap(({ take, timelineStart, timelineEnd }) =>
+        take.buffer
+          ? [
+              {
+                buffer: take.buffer,
+                timelineOffset: take.timelineOffset,
+                timelineStart,
+                timelineEnd,
+              },
+            ]
+          : [],
+      ),
+    );
     this.syncTrackMix();
   }
+}
+
+function getAudioTrackRegions(track: AudioTrackState) {
+  return track.clip
+    ? [
+        {
+          buffer: track.clip.buffer,
+          timelineOffset: track.timelineOffset,
+          timelineStart: track.timelineOffset + track.trimStart,
+          timelineEnd: track.timelineOffset + track.trimEnd,
+        },
+      ]
+    : [];
 }
 
 function deriveActiveTakes(takes: readonly TakeState[]): TakeState[] {
