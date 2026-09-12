@@ -18,7 +18,7 @@ import {
 import { getClipSources } from "./audio-sources.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
-import { deriveClipRegions, getActiveClips } from "./clip-regions.ts";
+import { deriveClipRegions } from "./clip-regions.ts";
 import { RecorderMetronome } from "./metronome.ts";
 import {
   deriveTrackMix,
@@ -1197,6 +1197,11 @@ function resolveTrackRegions(
     | Omit<RecordingTrackState, "regions">,
 ): AudioTrackState | RecordingTrackState {
   return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
+}
+
+function getActiveClips(clips: readonly AudioClip[]): AudioClip[] {
+  const anyClipSoloed = clips.some((clip) => clip.soloed);
+  return clips.filter((clip) => !clip.muted && (!anyClipSoloed || clip.soloed));
 }
 
 function pendingRecordingToTake(
