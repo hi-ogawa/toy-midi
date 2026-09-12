@@ -27,7 +27,7 @@ interface RecorderProjectPcm {
 }
 
 export async function exportRecorderProjectArchive(
-  content: SerializedRecorderRuntimeState<Float32Array>,
+  content: SerializedRecorderRuntimeState,
 ): Promise<Blob> {
   const zip = new JSZip();
   const manifest: RecorderProjectManifest = {
@@ -42,7 +42,7 @@ export async function exportRecorderProjectArchive(
 
 export async function parseRecorderProjectArchive(
   file: File,
-): Promise<SerializedRecorderRuntimeState<Float32Array>> {
+): Promise<SerializedRecorderRuntimeState> {
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(file);
@@ -71,7 +71,7 @@ export async function parseRecorderProjectArchive(
 
 function writeProjectContent(
   zip: JSZip,
-  content: SerializedRecorderRuntimeState<Float32Array>,
+  content: SerializedRecorderRuntimeState,
 ): RecorderProjectFileContent {
   return {
     ...content,
@@ -101,7 +101,7 @@ function writeProjectContent(
 async function readProjectContent(
   zip: JSZip,
   content: RecorderProjectFileContent,
-): Promise<SerializedRecorderRuntimeState<Float32Array>> {
+): Promise<SerializedRecorderRuntimeState> {
   return {
     ...content,
     audioTracks: await Promise.all(

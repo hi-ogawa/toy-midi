@@ -8,7 +8,7 @@ import { createDefaultRecorderRuntimeState } from "./runtime.ts";
 interface StoredRecorderProject {
   id: string;
   updatedAt: number;
-  content: SerializedRecorderRuntimeState<Float32Array>;
+  content: SerializedRecorderRuntimeState;
 }
 
 export interface RecorderProjectMetadata {
@@ -45,7 +45,7 @@ export const recorderProjectStorage = {
   },
 
   async createWithContent(
-    content: SerializedRecorderRuntimeState<Float32Array>,
+    content: SerializedRecorderRuntimeState,
   ): Promise<string> {
     const id = crypto.randomUUID();
     const project: StoredRecorderProject = {
@@ -58,9 +58,7 @@ export const recorderProjectStorage = {
     return id;
   },
 
-  async load(
-    id: string,
-  ): Promise<SerializedRecorderRuntimeState<Float32Array>> {
+  async load(id: string): Promise<SerializedRecorderRuntimeState> {
     const project = await projects.get(id);
     if (!project) {
       throw new Error(`Recorder project ${id} not found.`);
@@ -73,7 +71,7 @@ export const recorderProjectStorage = {
     content,
   }: {
     id: string;
-    content: SerializedRecorderRuntimeState<Float32Array>;
+    content: SerializedRecorderRuntimeState;
   }): Promise<void> {
     const project: StoredRecorderProject = {
       id,

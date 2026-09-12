@@ -12,7 +12,7 @@ import {
   type RecorderLocator,
 } from "./runtime.ts";
 
-export interface SerializedRecorderRuntimeState<Channel> {
+export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
@@ -97,7 +97,7 @@ interface RecorderPcm<Channel> {
 
 export function serializeRecorderRuntimeState(
   state: RecorderRuntimeState,
-): SerializedRecorderRuntimeState<Float32Array> {
+): SerializedRecorderRuntimeState {
   return {
     title: state.title,
     locators: state.locators,
@@ -157,7 +157,7 @@ export function deserializeRecorderRuntimeState({
   project,
 }: {
   context: AudioContext;
-  project: SerializedRecorderRuntimeState<Float32Array>;
+  project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
   return {
     title: project.title,
