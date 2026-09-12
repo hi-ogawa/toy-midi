@@ -17,11 +17,8 @@ export class AudioBufferPlayback implements TransportParticipant {
   private readonly transport: AudioContextTransport;
   private readonly output: AudioNode;
   private readonly unregister: () => void;
-  private buffer?: AudioBuffer;
+  private playbackSource?: AudioPlaybackSource;
   private source?: AudioBufferSourceNode;
-  /** Transport timeline time corresponding to source-buffer time zero. */
-  private bufferTimelineOffset = 0;
-  private timelineRange?: { start: number; end: number };
 
   constructor({
     transport,
@@ -35,37 +32,19 @@ export class AudioBufferPlayback implements TransportParticipant {
     this.unregister = transport.register(this);
   }
 
-  setBuffer(buffer?: AudioBuffer): void {
-    this.buffer = buffer;
+  setSource(source: AudioPlaybackSource): void {
+    this.playbackSource = source;
   }
 
-  setBufferTimelineOffset(offset: number): void {
-    this.bufferTimelineOffset = offset;
-  }
-
-  setTimelineRange(range: { start: number; end: number }): void {
-    this.timelineRange = range;
-  }
-
-  /**
-   * Starts this buffer from the transport's shared context and timeline anchor.
-   *
-   * The buffer's sample zero belongs at its configured offset on the transport
-   * timeline. If that point has passed, playback seeks into the buffer. If it is
-   * ahead, playback delays the buffer start.
-   */
+  /** Schedules the slice from the transport anchor, seeking or delaying as needed. */
   start(): void {
-    const buffer = this.buffer;
-    if (!buffer) {
+    const playbackSource = this.playbackSource;
+    if (!playbackSource) {
       return;
     }
     const playbackAnchor = this.transport.playbackAnchor!;
-    const timelineStart =
-      this.timelineRange?.start ?? this.bufferTimelineOffset;
-    const timelineEnd =
-      this.timelineRange?.end ?? this.bufferTimelineOffset + buffer.duration;
-    const elapsed = Math.max(0, playbackAnchor.position - timelineStart);
-    const duration = timelineEnd - timelineStart;
+    const { buffer, start, offset, duration } = playbackSource;
+    const elapsed = Math.max(0, playbackAnchor.position - start);
     if (elapsed >= duration) {
       return;
     }
@@ -75,9 +54,9 @@ export class AudioBufferPlayback implements TransportParticipant {
     source.connect(this.output);
     source.start(
       playbackAnchor.contextTime +
-        Math.max(0, timelineStart - playbackAnchor.position) /
+        Math.max(0, start - playbackAnchor.position) /
           this.transport.playbackRate,
-      timelineStart - this.bufferTimelineOffset + elapsed,
+      offset + elapsed,
       duration - elapsed,
     );
     this.source = source;

@@ -54,12 +54,7 @@ export class AudioTrackPlayback {
         transport: this.transport,
         output: this.pitchShiftBus.input,
       });
-      playback.setBuffer(source.buffer);
-      playback.setBufferTimelineOffset(source.start - source.offset);
-      playback.setTimelineRange({
-        start: source.start,
-        end: source.start + source.duration,
-      });
+      playback.setSource(source);
       return playback;
     });
   }
