@@ -8,7 +8,7 @@ import {
 import { useState } from "react";
 import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
-import { MidiProjectList } from "./midi-project-list";
+import { MidiProjectList } from "./project-list-view";
 import { RecorderProjectList } from "./recorder/project-list";
 
 type ProjectType = "midi" | "recorder";
