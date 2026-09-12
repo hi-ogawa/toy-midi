@@ -96,7 +96,7 @@ export async function enableInput(page: Page) {
   await expect(page.getByLabel("Channel")).toContainText("Channel 1");
   await page.getByRole("button", { name: "Close" }).click();
   await expect(
-    page.getByText("Fake Default Audio Input · Input 1"),
+    page.getByText("Fake Default Audio Input · Channel 1"),
   ).toBeVisible();
   await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
     "aria-pressed",

@@ -1,16 +1,12 @@
-import { ensureBiquadEqWorklet, BiquadEqNode } from "../dsp/biquad-eq-node.ts";
+import { ensureBiquadEqWorklet } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { AudioChannel } from "./audio-channel.ts";
+import type { AudioPlaybackSource } from "./audio-sources.ts";
+import { getAudioTrackSources, getTakeSources } from "./audio-sources.ts";
 import type { RecorderRuntimeState } from "./runtime.ts";
 
-interface MixRegion {
-  buffer: AudioBuffer;
-  start: number;
-  offset: number;
-  duration: number;
-}
-
 interface RecorderMix {
-  tracks: { eq: EqParameters; gain: number; regions: MixRegion[] }[];
+  tracks: { eq: EqParameters; gain: number; regions: AudioPlaybackSource[] }[];
   masterGain: number;
   duration: number;
 }
@@ -22,45 +18,21 @@ export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
     (track, index) => ({
       eq: track.eq,
       gain: audioTrackGains[index]!,
-      regions: track.clip
-        ? [
-            {
-              buffer: track.clip.buffer,
-              start: track.timelineOffset + track.trimStart,
-              offset: track.trimStart,
-              duration: track.trimEnd - track.trimStart,
-            },
-          ]
-        : [],
+      regions: getAudioTrackSources(track),
     }),
   );
   tracks.push({
     eq: state.recordingTrack.eq,
     gain: recordingGain,
-    regions: state.takeRegions.flatMap((region) =>
-      region.take.buffer
-        ? [
-            {
-              buffer: region.take.buffer,
-              start: region.timelineStart,
-              offset: region.timelineStart - region.take.timelineOffset,
-              duration: region.timelineEnd - region.timelineStart,
-            },
-          ]
-        : [],
-    ),
+    regions: getTakeSources(state.takeRegions),
   });
   // Mixer toggles change sound, not the committed arrangement's extent.
   let duration = 0;
   for (const track of tracks) {
     for (const region of track.regions) {
       // Crop pre-zero audio without shifting the region's timeline end.
-      if (region.start < 0) {
-        region.offset -= region.start;
-        region.duration += region.start;
-        region.start = 0;
-      }
-      duration = Math.max(duration, region.start + region.duration);
+      region.timelineStart = Math.max(0, region.timelineStart);
+      duration = Math.max(duration, region.timelineEnd);
     }
   }
   return { tracks, masterGain: state.masterGain, duration };
@@ -90,20 +62,21 @@ export async function renderRecorderMix({
   master.connect(context.destination);
   await ensureBiquadEqWorklet(context);
   for (const track of mix.tracks) {
-    const gain = context.createGain();
-    gain.gain.value = track.gain;
-    gain.connect(master);
-    const equalizer = new BiquadEqNode({
+    const channel = new AudioChannel({
       context,
-      channelCount: 2,
-      parameters: track.eq,
+      output: master,
+      eq: track.eq,
+      gain: track.gain,
     });
-    equalizer.connect(gain);
     for (const region of track.regions) {
       const source = context.createBufferSource();
       source.buffer = region.buffer;
-      source.connect(equalizer);
-      source.start(region.start, region.offset, region.duration);
+      source.connect(channel.input);
+      source.start(
+        region.timelineStart,
+        region.timelineStart - region.timelineOffset,
+        region.timelineEnd - region.timelineStart,
+      );
     }
   }
   return context.startRendering();
