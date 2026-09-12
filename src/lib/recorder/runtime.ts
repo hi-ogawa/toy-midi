@@ -965,11 +965,13 @@ export class RecorderRuntime {
     });
   }
 
-  serializeProject(): SerializedRecorderRuntimeState {
+  serializeProject(): SerializedRecorderRuntimeState<Float32Array> {
     return serializeRecorderRuntimeState(this.store.get());
   }
 
-  deserializeProject(project: SerializedRecorderRuntimeState): void {
+  deserializeProject(
+    project: SerializedRecorderRuntimeState<Float32Array>,
+  ): void {
     this.replacePersistableState(
       deserializeRecorderRuntimeState({
         context: this.context,
