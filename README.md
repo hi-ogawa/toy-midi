@@ -13,4 +13,4 @@ pnpm install
 pnpm dev
 ```
 
-Open `/components` for isolated component previews.
+Open `/_preview` for isolated component previews.
