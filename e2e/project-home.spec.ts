@@ -30,6 +30,14 @@ test("project tabs persist across reloads and visits with keyboard selection", a
   await recorder.focus();
   await recorder.press("Home");
   await expect(midi).toBeFocused();
+  await midi.press("ArrowLeft");
+  await expect(recorder).toBeFocused();
+  await recorder.press("ArrowRight");
+  await expect(midi).toBeFocused();
+  await midi.press("End");
+  await expect(recorder).toBeFocused();
+  await recorder.press("Home");
+  await expect(midi).toBeFocused();
   await page.reload();
   await expect(midi).toHaveAttribute("aria-selected", "true");
   await page.screenshot({ path: test.info().outputPath("midi-home.png") });

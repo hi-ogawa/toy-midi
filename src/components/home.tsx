@@ -10,6 +10,7 @@ import { projectStorage } from "../lib/project-storage";
 import { routes } from "../lib/routes";
 import { MidiProjectList } from "./midi-project-list";
 import { RecorderProjectList } from "./recorder/project-list";
+import { Tabs } from "./ui/tabs";
 
 type ProjectType = "midi" | "recorder";
 
@@ -70,68 +71,37 @@ export function Home() {
         </header>
 
         <main className="mt-14 min-h-0 flex-1">
-          <div
-            role="tablist"
-            aria-label="Project type"
-            className="mb-5 flex gap-2 border-b border-neutral-700/70"
-          >
-            {(["midi", "recorder"] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                role="tab"
-                id={`project-tab-${type}`}
-                aria-controls="project-panel"
-                aria-selected={projectType === type}
-                tabIndex={projectType === type ? 0 : -1}
-                onClick={() => selectProjectType(type)}
-                onKeyDown={(event) => {
-                  let nextType: ProjectType;
-                  switch (event.key) {
-                    case "ArrowLeft":
-                    case "ArrowRight": {
-                      nextType = type === "midi" ? "recorder" : "midi";
-                      break;
-                    }
-                    case "Home": {
-                      nextType = "midi";
-                      break;
-                    }
-                    case "End": {
-                      nextType = "recorder";
-                      break;
-                    }
-                    default: {
-                      return;
-                    }
-                  }
-                  event.preventDefault();
-                  selectProjectType(nextType);
-                  document.getElementById(`project-tab-${nextType}`)?.focus();
-                }}
-                className="relative -mb-px inline-flex min-w-36 items-center justify-center gap-2.5 rounded-t-lg border-b-2 border-transparent px-5 py-3 text-sm font-medium text-neutral-400 transition-colors hover:bg-neutral-800/50 hover:text-neutral-200 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400 aria-selected:border-emerald-400 aria-selected:bg-emerald-400/5 aria-selected:text-emerald-300"
-              >
-                {type === "midi" ? (
-                  <PianoIcon aria-hidden="true" className="size-4" />
-                ) : (
-                  <Mic2Icon aria-hidden="true" className="size-4" />
-                )}
-                {type === "midi" ? "MIDI" : "Recorder"}
-              </button>
-            ))}
-          </div>
-          <div
-            role="tabpanel"
-            id="project-panel"
-            aria-labelledby={`project-tab-${projectType}`}
-            tabIndex={0}
+          <Tabs
+            label="Project type"
+            value={projectType}
+            onValueChange={selectProjectType}
+            options={[
+              {
+                value: "midi",
+                label: (
+                  <>
+                    <PianoIcon aria-hidden="true" className="size-4" />
+                    MIDI
+                  </>
+                ),
+              },
+              {
+                value: "recorder",
+                label: (
+                  <>
+                    <Mic2Icon aria-hidden="true" className="size-4" />
+                    Recorder
+                  </>
+                ),
+              },
+            ]}
           >
             {projectType === "midi" ? (
               <MidiProjectList />
             ) : (
               <RecorderProjectList />
             )}
-          </div>
+          </Tabs>
         </main>
       </div>
     </div>
