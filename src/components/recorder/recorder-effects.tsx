@@ -7,7 +7,6 @@ import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EqResponseGraph } from "./eq-response-graph";
-import { RecorderPanel } from "./recorder-panel";
 
 export function useRecorderEffectsUi() {
   // Audio track UUIDs and the singleton Capture channel identify panels.
@@ -39,30 +38,6 @@ export function useRecorderEffectsUi() {
   }
 
   return { openEffects, toggleEffects, closeEffects };
-}
-
-export function RecorderEffects({
-  label,
-  eq,
-  onChange,
-  onClose,
-}: {
-  label: string;
-  eq: EqParameters;
-  onChange: (update: Partial<EqParameters>) => void;
-  onClose: () => void;
-}) {
-  return (
-    <RecorderPanel
-      title={`${label} Effects`}
-      closeLabel={`Close ${label} Effects`}
-      onClose={onClose}
-      testId="recorder-effects-panel"
-      className="pointer-events-auto w-96 shrink-0"
-    >
-      <RecorderEffectsContent eq={eq} onChange={onChange} />
-    </RecorderPanel>
-  );
 }
 
 export function RecorderEffectsContent({

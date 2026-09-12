@@ -1,5 +1,5 @@
 import { BiquadEqNode } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq.ts";
 
 /** Persistent stereo processing shared by all sources in a mixer channel. */
 export class AudioChannel {
@@ -15,7 +15,7 @@ export class AudioChannel {
   }: {
     context: BaseAudioContext;
     output: AudioNode;
-    eq: EqParameters;
+    eq: MultibandEqParameters;
     gain: number;
   }) {
     this.input = context.createGain();
@@ -29,7 +29,7 @@ export class AudioChannel {
     this.input.connect(this.equalizer).connect(this.gain).connect(output);
   }
 
-  setEq(eq: EqParameters): void {
+  setEq(eq: MultibandEqParameters): void {
     this.equalizer.setParameters(eq);
   }
 

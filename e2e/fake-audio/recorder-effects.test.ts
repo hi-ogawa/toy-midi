@@ -31,7 +31,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
   await expect(
-    audio.getByRole("checkbox", { name: "Bypass" }),
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
 
   // Set different EQ values for Audio and Capture.
@@ -43,7 +43,10 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     .press("Enter");
   await audio.getByRole("textbox", { name: "Q", exact: true }).fill("2");
   await audio.getByRole("textbox", { name: "Q", exact: true }).press("Enter");
-  await audio.getByRole("checkbox", { name: "Bypass" }).check();
+  await audio.getByRole("button", { name: "Add band" }).click();
+  await audio.getByRole("textbox", { name: "Frequency" }).fill("3000");
+  await audio.getByRole("textbox", { name: "Frequency" }).press("Enter");
+  await audio.getByRole("checkbox", { name: "Bypass" }).first().check();
   await capture.getByRole("textbox", { name: "Gain", exact: true }).fill("-4");
   await capture
     .getByRole("textbox", { name: "Gain", exact: true })
@@ -58,6 +61,8 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await page
     .getByRole("button", { name: "Audio 1 effects", exact: true })
     .click();
+  await expect(audio.getByTestId("multiband-eq-response-point")).toHaveCount(2);
+  await audio.getByRole("button", { name: "Select band 1" }).click();
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
@@ -70,14 +75,20 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
   await expect(
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("2");
-  await expect(audio.getByRole("checkbox", { name: "Bypass" })).toBeChecked();
+  await expect(
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
+  ).toBeChecked();
+  await audio.getByRole("button", { name: "Select band 2" }).click();
+  await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
+    "3000",
+  );
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "saved");
 
   // Resetting Audio leaves Capture unchanged and dirties the project.
-  await audio.getByRole("button", { name: "Reset" }).click();
+  await audio.getByRole("button", { name: "Reset EQ" }).click();
   await expect(audio.getByRole("textbox", { name: "Frequency" })).toHaveValue(
     "1000",
   );
@@ -88,7 +99,7 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     audio.getByRole("textbox", { name: "Q", exact: true }),
   ).toHaveValue("1");
   await expect(
-    audio.getByRole("checkbox", { name: "Bypass" }),
+    audio.getByRole("checkbox", { name: "Bypass" }).first(),
   ).not.toBeChecked();
   await expect(
     capture.getByRole("textbox", { name: "Gain", exact: true }),
@@ -104,12 +115,21 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
   const panel = page.getByTestId("recorder-effects-panel");
-  await expect(panel.getByTestId("eq-response-graph")).toBeVisible();
+  await expect(panel.getByTestId("multiband-eq-response-graph")).toBeVisible();
 
   // Click above and to the right of the point to increase frequency and gain.
-  const point = await panel.getByTestId("eq-response-point").boundingBox();
+  const point = await panel
+    .getByTestId("multiband-eq-response-point")
+    .boundingBox();
   expect(point).toBeTruthy();
-  await page.mouse.click(point!.x + point!.width / 2 + 30, point!.y - 20);
+  const pointCenter = {
+    x: point!.x + point!.width / 2,
+    y: point!.y + point!.height / 2,
+  };
+  await page.mouse.move(pointCenter.x, pointCenter.y);
+  await page.mouse.down();
+  await page.mouse.move(pointCenter.x + 30, pointCenter.y - 20);
+  await page.mouse.up();
   const frequencyInput = panel.getByRole("textbox", { name: "Frequency" });
   const gainInput = panel.getByRole("textbox", { name: "Gain", exact: true });
   await expect
@@ -133,11 +153,11 @@ test("edits EQ with graph clicks and wheel gestures", async ({ page }) => {
   await expect(gainInput).toHaveValue(gain);
 
   // Bypass dims the configured response curve.
-  await panel.getByRole("checkbox", { name: "Bypass" }).check();
-  await expect(panel.getByTestId("eq-response-curve")).toHaveClass(
-    /stroke-blue-400\/35/,
-  );
-  await panel.getByRole("checkbox", { name: "Bypass" }).uncheck();
+  await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
+  await expect(
+    panel.getByTestId("multiband-eq-combined-curve"),
+  ).toHaveAttribute("stroke-opacity", "0.25");
+  await panel.getByRole("checkbox", { name: "Bypass" }).first().uncheck();
 
   // Optional sliders can be shown and hidden beside the graph controls.
   await expect(panel.getByRole("slider")).toHaveCount(0);

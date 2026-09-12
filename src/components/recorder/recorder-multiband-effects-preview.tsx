@@ -1,11 +1,9 @@
 import { useState } from "react";
+import type { MultibandEqParameters } from "../../lib/dsp/biquad-eq";
 import { dbToGain } from "../../lib/music";
-import {
-  type MultibandEqState,
-  RecorderMultibandEffects,
-} from "./recorder-multiband-effects";
+import { RecorderMultibandEffects } from "./recorder-multiband-effects";
 
-const INITIAL_EQ: MultibandEqState = {
+const INITIAL_EQ: MultibandEqParameters = {
   bypass: false,
   bands: [
     {
