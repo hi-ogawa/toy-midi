@@ -13,14 +13,14 @@ import {
 } from "./runtime.ts";
 
 /**
- * @typeParam Channel - PCM samples (`Float32Array`) by default, or a ZIP entry
+ * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
  * path (`string`) in project archives.
  */
-export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
+export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
-  audioTracks: SerializedAudioTrackState<Channel>[];
+  audioTracks: SerializedAudioTrackState<ChannelData>[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -28,7 +28,7 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState<Channel>[];
+    takes: SerializedTakeState<ChannelData>[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -64,14 +64,14 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
   };
 }
 
-interface SerializedAudioTrackState<Channel> {
+interface SerializedAudioTrackState<ChannelData> {
   // Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm<Channel>;
+    pcm: RecorderPcm<ChannelData>;
   };
   gain: number;
   muted: boolean;
@@ -82,7 +82,7 @@ interface SerializedAudioTrackState<Channel> {
   trimEnd?: number;
 }
 
-interface SerializedTakeState<Channel> {
+interface SerializedTakeState<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -91,12 +91,12 @@ interface SerializedTakeState<Channel> {
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm<Channel>;
+  pcm: RecorderPcm<ChannelData>;
 }
 
-export interface RecorderPcm<Channel> {
+export interface RecorderPcm<ChannelData> {
   sampleRate: number;
-  channels: Channel[];
+  channels: ChannelData[];
 }
 
 export function serializeRecorderRuntimeState(
