@@ -21,13 +21,12 @@ export class AudioChannel {
     this.input = context.createGain();
     this.gain = context.createGain();
     this.gain.gain.value = gain;
-    this.gain.connect(output);
     this.equalizer = new BiquadEqNode({
       context,
       channelCount: 2,
       parameters: eq,
     });
-    this.input.connect(this.equalizer).connect(this.gain);
+    this.input.connect(this.equalizer).connect(this.gain).connect(output);
   }
 
   setEq(eq: EqParameters): void {
