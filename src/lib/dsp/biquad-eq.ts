@@ -21,15 +21,6 @@ export type EqParameters = {
   bypass: boolean;
 };
 
-export const MAX_EQ_BANDS = 8;
-
-export type MultibandEqBand = EqParameters & { id: string };
-
-export interface MultibandEqParameters {
-  bypass: boolean;
-  bands: MultibandEqBand[];
-}
-
 export type BiquadEqCoefficients = {
   b0: number;
   b1: number;
@@ -194,7 +185,75 @@ export class BiquadEq {
   }
 }
 
-/** Fixed-capacity ordered cascade that preserves each band's state by ID. */
+export function calculateBiquadEqCoefficients({
+  sampleRate,
+  frequency,
+  gain,
+  q,
+  output,
+}: {
+  sampleRate: number;
+  frequency: number;
+  gain: number;
+  q: number;
+  output?: BiquadEqCoefficients;
+}): BiquadEqCoefficients {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const amplitude = Math.sqrt(gain);
+  const alpha = Math.sin(omega) / (2 * q);
+  const a0 = 1 + alpha / amplitude;
+  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
+  result.b0 = (1 + alpha * amplitude) / a0;
+  result.b1 = (-2 * Math.cos(omega)) / a0;
+  result.b2 = (1 - alpha * amplitude) / a0;
+  result.a1 = result.b1;
+  result.a2 = (1 - alpha / amplitude) / a0;
+  return result;
+}
+
+/**
+ * Evaluate the general biquad magnitude response using the supplied coefficients.
+ * H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2) = N/D.
+ * On the frequency circle, z = exp(i*omega), so z^-k = cos(k*omega) - i*sin(k*omega).
+ * Expanding N and D into real and imaginary parts gives
+ * |H|^2 = |N|^2 / |D|^2 = (Nr^2 + Ni^2) / (Dr^2 + Di^2).
+ * Take the square root to return the amplitude ratio |H|.
+ */
+export function calculateBiquadEqResponse({
+  coefficients,
+  sampleRate,
+  frequency,
+}: {
+  coefficients: BiquadEqCoefficients;
+  sampleRate: number;
+  frequency: number;
+}): number {
+  const { b0, b1, b2, a1, a2 } = coefficients;
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cos1 = Math.cos(omega);
+  const sin1 = Math.sin(omega);
+  const cos2 = Math.cos(2 * omega);
+  const sin2 = Math.sin(2 * omega);
+  const nr = b0 + b1 * cos1 + b2 * cos2;
+  const ni = -b1 * sin1 - b2 * sin2;
+  const dr = 1 + a1 * cos1 + a2 * cos2;
+  const di = -a1 * sin1 - a2 * sin2;
+  return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
+}
+
+//
+// multiband mode
+//
+
+export const MAX_EQ_BANDS = 8;
+
+export type MultibandEqBand = EqParameters & { id: string };
+
+export interface MultibandEqParameters {
+  bypass: boolean;
+  bands: MultibandEqBand[];
+}
+
 export class MultibandEq {
   private readonly slots: { id?: string; eq: BiquadEq }[];
   private active: { id?: string; eq: BiquadEq }[] = [];
@@ -271,60 +330,4 @@ export class MultibandEq {
       slot.eq.process({ input: output, output });
     }
   }
-}
-
-export function calculateBiquadEqCoefficients({
-  sampleRate,
-  frequency,
-  gain,
-  q,
-  output,
-}: {
-  sampleRate: number;
-  frequency: number;
-  gain: number;
-  q: number;
-  output?: BiquadEqCoefficients;
-}): BiquadEqCoefficients {
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const amplitude = Math.sqrt(gain);
-  const alpha = Math.sin(omega) / (2 * q);
-  const a0 = 1 + alpha / amplitude;
-  const result = output ?? { b0: 0, b1: 0, b2: 0, a1: 0, a2: 0 };
-  result.b0 = (1 + alpha * amplitude) / a0;
-  result.b1 = (-2 * Math.cos(omega)) / a0;
-  result.b2 = (1 - alpha * amplitude) / a0;
-  result.a1 = result.b1;
-  result.a2 = (1 - alpha / amplitude) / a0;
-  return result;
-}
-
-/**
- * Evaluate the general biquad magnitude response using the supplied coefficients.
- * H(z) = (b0 + b1*z^-1 + b2*z^-2) / (1 + a1*z^-1 + a2*z^-2) = N/D.
- * On the frequency circle, z = exp(i*omega), so z^-k = cos(k*omega) - i*sin(k*omega).
- * Expanding N and D into real and imaginary parts gives
- * |H|^2 = |N|^2 / |D|^2 = (Nr^2 + Ni^2) / (Dr^2 + Di^2).
- * Take the square root to return the amplitude ratio |H|.
- */
-export function calculateBiquadEqResponse({
-  coefficients,
-  sampleRate,
-  frequency,
-}: {
-  coefficients: BiquadEqCoefficients;
-  sampleRate: number;
-  frequency: number;
-}): number {
-  const { b0, b1, b2, a1, a2 } = coefficients;
-  const omega = (2 * Math.PI * frequency) / sampleRate;
-  const cos1 = Math.cos(omega);
-  const sin1 = Math.sin(omega);
-  const cos2 = Math.cos(2 * omega);
-  const sin2 = Math.sin(2 * omega);
-  const nr = b0 + b1 * cos1 + b2 * cos2;
-  const ni = -b1 * sin1 - b2 * sin2;
-  const dr = 1 + a1 * cos1 + a2 * cos2;
-  const di = -a1 * sin1 - a2 * sin2;
-  return Math.sqrt((nr ** 2 + ni ** 2) / (dr ** 2 + di ** 2));
 }
