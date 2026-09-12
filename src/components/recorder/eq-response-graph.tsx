@@ -77,22 +77,21 @@ export function EqResponseGraph({
       return;
     }
     event.preventDefault();
-    onBandChange(selectedBandId, {
-      q: clamp(
-        band.q * Math.exp(event.deltaY * 0.002),
-        EQ_CONTROL_LIMITS.q.min,
-        EQ_CONTROL_LIMITS.q.max,
-      ),
-    });
+    const q = clamp(
+      band.q * Math.exp(event.deltaY * 0.002),
+      EQ_CONTROL_LIMITS.q.min,
+      EQ_CONTROL_LIMITS.q.max,
+    );
+    onBandChange(selectedBandId, { q });
   });
-  const plotRef = useCallback(
-    (plot: HTMLDivElement | null) => {
-      if (!plot) {
+  const graphRef = useCallback(
+    (graph: HTMLDivElement | null) => {
+      if (!graph) {
         return;
       }
       // A non-passive listener consumes Q gestures without scrolling the panel.
-      plot.addEventListener("wheel", handleWheel, { passive: false });
-      return () => plot.removeEventListener("wheel", handleWheel);
+      graph.addEventListener("wheel", handleWheel, { passive: false });
+      return () => graph.removeEventListener("wheel", handleWheel);
     },
     [handleWheel],
   );
@@ -115,7 +114,7 @@ export function EqResponseGraph({
           </span>
         ))}
       </div>
-      <div ref={plotRef} className="relative min-h-0 min-w-0 touch-none">
+      <div ref={graphRef} className="relative min-h-0 min-w-0 touch-none">
         <svg
           viewBox="0 0 1 1"
           preserveAspectRatio="none"
