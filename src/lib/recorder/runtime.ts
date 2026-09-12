@@ -230,10 +230,6 @@ export class RecorderRuntime {
     });
   }
 
-  /**
-   * Registers the worklets that playback nodes construct synchronously. The
-   * recorder page awaits this once before enabling any other interaction.
-   */
   async init(): Promise<void> {
     await Promise.all([
       ensurePitchShifterWorklet(this.context),
