@@ -14,7 +14,7 @@ import {
   type RecorderLocator,
 } from "./runtime.ts";
 
-export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
+export interface SerializedRecorderRuntimeState {
   version: 2;
   title: string;
   locators?: RecorderLocator[];
@@ -35,7 +35,7 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
       timelineOffset: number;
       trimStart?: number;
       trimEnd?: number;
-      pcm: { sampleRate: number; channels: Channel[] };
+      pcm: { sampleRate: number; channels: Float32Array[] };
     }[];
   }[];
   latencyCompensation: number;

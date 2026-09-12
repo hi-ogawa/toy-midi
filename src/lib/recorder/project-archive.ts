@@ -3,7 +3,6 @@ import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 import {
   migrateRecorderProject,
   type LegacyRecorderProject,
-  type RecorderProjectInput,
 } from "./project-migration.ts";
 
 // Audio channels are stored at audio/tracks/<track>/clips/<clip>/channel-<channel>.f32.
@@ -17,7 +16,56 @@ interface RecorderProjectManifest {
   exportedAt: string;
 }
 
-type RecorderProjectFileContent = SerializedRecorderRuntimeState<string>;
+interface RecorderProjectFileContent extends Omit<
+  SerializedRecorderRuntimeState,
+  "audioTracks"
+> {
+  audioTracks: RecorderProjectAudioTrack[];
+}
+
+interface RecorderProjectAudioTrack extends Omit<
+  SerializedRecorderRuntimeState["audioTracks"][number],
+  "clips"
+> {
+  clips: RecorderProjectClip[];
+}
+
+interface RecorderProjectClip extends Omit<
+  SerializedRecorderRuntimeState["audioTracks"][number]["clips"][number],
+  "pcm"
+> {
+  pcm: RecorderProjectPcm;
+}
+
+interface RecorderProjectFileContentV1 extends Omit<
+  LegacyRecorderProject,
+  "audioTracks" | "recordingTrack"
+> {
+  audioTracks: RecorderProjectAudioTrackV1[];
+  recordingTrack: RecorderProjectRecordingTrackV1;
+}
+
+interface RecorderProjectAudioTrackV1 extends Omit<
+  LegacyRecorderProject["audioTracks"][number],
+  "clip"
+> {
+  clip?: { name: string; pcm: RecorderProjectPcm };
+}
+
+interface RecorderProjectRecordingTrackV1 extends Omit<
+  LegacyRecorderProject["recordingTrack"],
+  "takes"
+> {
+  takes: RecorderProjectTakeV1[];
+}
+
+interface RecorderProjectTakeV1 extends Omit<
+  LegacyRecorderProject["recordingTrack"]["takes"][number],
+  "pcm"
+> {
+  pcm: RecorderProjectPcm;
+}
+
 interface RecorderProjectPcm {
   sampleRate: number;
   channels: string[];
@@ -46,7 +94,7 @@ export async function exportRecorderProjectArchiveV1(
     projectType: "recorder",
     exportedAt: new Date().toISOString(),
   };
-  const project: LegacyRecorderProject<string> = {
+  const project: RecorderProjectFileContentV1 = {
     ...content,
     audioTracks: content.audioTracks.map((track, trackIndex) => ({
       ...track,
@@ -99,11 +147,15 @@ export async function parseRecorderProjectArchive(
       `Recorder project archive requires a newer app version (format v${String(manifest.formatVersion)}).`,
     );
   }
-  const project = await readJson<RecorderProjectInput<string>>(
-    zip,
-    PROJECT_PATH,
-  );
-  return readProjectContent(zip, migrateRecorderProject(project));
+  if (formatVersion === 1) {
+    const project = await readJson<RecorderProjectFileContentV1>(
+      zip,
+      PROJECT_PATH,
+    );
+    return migrateRecorderProject(await readProjectContentV1(zip, project));
+  }
+  const project = await readJson<RecorderProjectFileContent>(zip, PROJECT_PATH);
+  return readProjectContent(zip, project);
 }
 
 function writeProjectContent(
@@ -143,6 +195,32 @@ async function readProjectContent(
         ),
       })),
     ),
+  };
+}
+
+async function readProjectContentV1(
+  zip: JSZip,
+  content: RecorderProjectFileContentV1,
+): Promise<LegacyRecorderProject> {
+  return {
+    ...content,
+    audioTracks: await Promise.all(
+      content.audioTracks.map(async (track) => ({
+        ...track,
+        clip: track.clip
+          ? { ...track.clip, pcm: await readProjectPcm(zip, track.clip.pcm) }
+          : undefined,
+      })),
+    ),
+    recordingTrack: {
+      ...content.recordingTrack,
+      takes: await Promise.all(
+        content.recordingTrack.takes.map(async (take) => ({
+          ...take,
+          pcm: await readProjectPcm(zip, take.pcm),
+        })),
+      ),
+    },
   };
 }
 

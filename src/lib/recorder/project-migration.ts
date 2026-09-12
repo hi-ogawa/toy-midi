@@ -3,14 +3,14 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import type { SerializedRecorderRuntimeState } from "./persistence.ts";
 import type { RecorderLocator } from "./runtime.ts";
 
-export type RecorderProjectInput<Channel = Float32Array> =
-  | SerializedRecorderRuntimeState<Channel>
-  | LegacyRecorderProject<Channel>;
+export type RecorderProjectInput =
+  | SerializedRecorderRuntimeState
+  | LegacyRecorderProject;
 
-/** Normalize project structure before decoding PCM, including channel paths in old archives. */
-export function migrateRecorderProject<Channel>(
-  project: RecorderProjectInput<Channel>,
-): SerializedRecorderRuntimeState<Channel> {
+/** Normalize legacy track structure before restoring runtime state. */
+export function migrateRecorderProject(
+  project: RecorderProjectInput,
+): SerializedRecorderRuntimeState {
   if ("version" in project) {
     if (project.version !== 2) {
       throw new Error("Recorder project requires a newer app version.");
@@ -65,11 +65,11 @@ export function migrateRecorderProject<Channel>(
   };
 }
 
-export interface LegacyRecorderProject<Channel = Float32Array> {
+export interface LegacyRecorderProject {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
-  audioTracks: SerializedAudioTrackState<Channel>[];
+  audioTracks: SerializedAudioTrackState[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -77,7 +77,7 @@ export interface LegacyRecorderProject<Channel = Float32Array> {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState<Channel>[];
+    takes: SerializedTakeState[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -113,14 +113,14 @@ export interface LegacyRecorderProject<Channel = Float32Array> {
   };
 }
 
-interface SerializedAudioTrackState<Channel> {
+interface SerializedAudioTrackState {
   // Optional for projects saved before track EQ support.
   eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm<Channel>;
+    pcm: RecorderPcm;
   };
   gain: number;
   muted: boolean;
@@ -131,7 +131,7 @@ interface SerializedAudioTrackState<Channel> {
   trimEnd?: number;
 }
 
-interface SerializedTakeState<Channel> {
+interface SerializedTakeState {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -141,10 +141,10 @@ interface SerializedTakeState<Channel> {
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm<Channel>;
+  pcm: RecorderPcm;
 }
 
-interface RecorderPcm<Channel> {
+interface RecorderPcm {
   sampleRate: number;
-  channels: Channel[];
+  channels: Float32Array[];
 }
