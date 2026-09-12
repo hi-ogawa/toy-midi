@@ -8,7 +8,7 @@ import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
 } from "../../lib/dsp/biquad-eq";
-import { type MultibandEqBand } from "../../lib/dsp/multiband-eq";
+import { type MultibandEqBand } from "../../lib/dsp/biquad-eq-multiband";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 

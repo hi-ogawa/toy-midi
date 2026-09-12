@@ -1,10 +1,10 @@
 import { createAudioView } from "../audio-view.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
-import type { MultibandEqParameters } from "../dsp/multiband-eq.ts";
 import {
   WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,

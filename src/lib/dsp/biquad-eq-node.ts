@@ -1,5 +1,8 @@
+import type {
+  MultibandEqBand,
+  MultibandEqParameters,
+} from "./biquad-eq-multiband.ts";
 import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
-import type { MultibandEqBand, MultibandEqParameters } from "./multiband-eq.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();

@@ -1,4 +1,7 @@
-import { type MultibandEqParameters, MultibandEq } from "./multiband-eq.ts";
+import {
+  type MultibandEqParameters,
+  MultibandEq,
+} from "./biquad-eq-multiband.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 

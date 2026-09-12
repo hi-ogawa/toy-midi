@@ -1,12 +1,12 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
-import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import {
   MAX_EQ_BANDS,
   type MultibandEqBand,
   type MultibandEqParameters,
-} from "../../lib/dsp/multiband-eq";
+} from "../../lib/dsp/biquad-eq-multiband";
+import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import { dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
