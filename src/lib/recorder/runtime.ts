@@ -209,7 +209,7 @@ export class RecorderRuntime {
   private audioTrackPlaybacks = new Map<string, AudioBufferPlayback>();
   private audioChannels = new Map<string, AudioChannel>();
   private captureChannel?: AudioChannel;
-  private readonly takePlaybackGain = this.context.createGain();
+  private readonly takePlaybackGain: GainNode;
   private recordingTrackPlaybacks: AudioBufferPlayback[] = [];
   private attachedYouTubePlayer?: {
     videoId: string;
@@ -219,6 +219,7 @@ export class RecorderRuntime {
   private readonly metronome: RecorderMetronome;
 
   constructor() {
+    this.takePlaybackGain = this.context.createGain();
     this.masterOutput = this.context.createGain();
     this.masterOutput.connect(this.context.destination);
     this.transport = new AudioContextTransport(this.context);
