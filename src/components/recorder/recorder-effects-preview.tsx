@@ -3,8 +3,7 @@ import { dbToGain } from "../../lib/music";
 import {
   type MultibandEqState,
   RecorderMultibandEffects,
-} from "../recorder/recorder-multiband-effects";
-import { Button } from "../ui/button";
+} from "./recorder-multiband-effects";
 
 const INITIAL_EQ: MultibandEqState = {
   bypass: false,
@@ -34,26 +33,14 @@ const INITIAL_EQ: MultibandEqState = {
 };
 
 export function RecorderEffectsPreview() {
-  const [open, setOpen] = useState(true);
   const [eq, setEq] = useState(INITIAL_EQ);
 
-  if (!open) {
-    return (
-      <Button
-        className="px-3 py-2 text-xs hover:bg-neutral-700"
-        onClick={() => setOpen(true)}
-      >
-        Open Audio 1 Effects
-      </Button>
-    );
-  }
-
   return (
-    <RecorderMultibandEffects
-      label="Audio 1"
-      eq={eq}
-      onChange={setEq}
-      onClose={() => setOpen(false)}
-    />
+    <div
+      data-testid="recorder-multiband-effects-panel"
+      className="w-96 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl"
+    >
+      <RecorderMultibandEffects eq={eq} onChange={setEq} />
+    </div>
   );
 }
