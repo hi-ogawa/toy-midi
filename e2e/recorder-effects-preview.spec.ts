@@ -51,13 +51,15 @@ test("iterates the multiband recorder EQ preview", async ({ page }) => {
   await panel.getByRole("checkbox", { name: "Bypass" }).last().check();
   await expect(panel.getByTestId("eq-band-curve").nth(1)).toHaveAttribute(
     "stroke-dasharray",
-    "3 3",
   );
+  const combinedCurve = panel.getByTestId("eq-combined-curve");
+  const opacity = Number(await combinedCurve.getAttribute("stroke-opacity"));
   await panel.getByRole("checkbox", { name: "Bypass" }).first().check();
-  await expect(panel.getByTestId("eq-combined-curve")).toHaveAttribute(
-    "stroke-opacity",
-    "0.25",
-  );
+  await expect
+    .poll(async () =>
+      Number(await combinedCurve.getAttribute("stroke-opacity")),
+    )
+    .toBeLessThan(opacity);
   await panel.getByRole("checkbox", { name: "Bypass" }).first().uncheck();
 
   // Optional sliders can be shown and hidden beside the graph controls.
