@@ -9,7 +9,6 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
-import { getAudioClipLabel } from "../../lib/recorder/audio-clip";
 import {
   deriveClipRegions,
   getActiveClips,
@@ -415,7 +414,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                       clip
                         ? {
                             duration: clip.trimEnd - clip.trimStart,
-                            label: getAudioClipLabel(clip),
+                            label: clip.name,
                             offset: clip.timelineOffset + clip.trimStart,
                             testId: "audio",
                             audioView: clip.audioView,
@@ -564,7 +563,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
-                  label={getAudioClipLabel(take)}
+                  label={take.name}
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>
@@ -593,7 +592,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 >
                   <TimelineLane
                     clip={{
-                      label: getAudioClipLabel(take),
+                      label: take.name,
                       duration: take.trimEnd - take.trimStart,
                       offset: take.timelineOffset + take.trimStart,
                       testId: "take-lane",

@@ -53,10 +53,10 @@ export function migrateRecorderProject<Channel>(
         soloed: recordingTrack.soloed,
         nextTakeNumber:
           recordingTrack.nextTakeNumber ?? recordingTrack.takes.length + 1,
-        clips: recordingTrack.takes.map((take, index) => ({
+        clips: recordingTrack.takes.map(({ number, ...take }, index) => ({
           ...take,
           id: take.id ?? crypto.randomUUID(),
-          number: take.number ?? index + 1,
+          name: take.name ?? `Take ${number ?? index + 1}`,
           muted: take.muted ?? false,
           soloed: take.soloed ?? false,
         })),
@@ -135,6 +135,7 @@ interface SerializedTakeState<Channel> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  name?: string;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;

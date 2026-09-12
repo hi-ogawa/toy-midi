@@ -167,7 +167,6 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
         nextTakeNumber: track.nextTakeNumber,
         clips: track.clips.map((clip) => ({
           name: clip.name,
-          number: clip.number,
           timelineOffset: clip.timelineOffset,
           channels: clip.pcm.channels.map((channel) => Array.from(channel)),
         })),
@@ -184,7 +183,6 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
         clips: [
           {
             name: "stereo.wav",
-            number: undefined,
             timelineOffset: 2,
             channels: [
               [1, 2],
@@ -196,9 +194,7 @@ test("loads legacy channel paths and rewrites them as uniform track clips", asyn
       {
         gain: 0.8,
         nextTakeNumber: 9,
-        clips: [
-          { name: undefined, number: 8, timelineOffset: 3, channels: [[3, 4]] },
-        ],
+        clips: [{ name: "Take 8", timelineOffset: 3, channels: [[3, 4]] }],
       },
     ],
   });

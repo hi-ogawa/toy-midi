@@ -39,9 +39,9 @@ it("preserves legacy clip placement, stereo PCM, mix, take numbering, and comp p
   ]);
   expect(capture!.id).toBe(restored.armedTrackId);
   expect(capture).toMatchObject({ gain: 0.8, nextTakeNumber: 12 });
-  expect(capture!.clips.map((clip) => [clip.id, clip.number])).toEqual([
-    ["older", 8],
-    ["newer", 3],
+  expect(capture!.clips.map((clip) => [clip.id, clip.name])).toEqual([
+    ["older", "Take 8"],
+    ["newer", "Take 3"],
   ]);
   expect(
     getAudioTrackSources(capture!).map((source) => [
@@ -92,7 +92,7 @@ it("supplies defaults for projects saved before take identity and trimming", () 
   delete project.recordingTrack.nextTakeNumber;
   const restored = deserializeRecorderRuntimeState({ context, project });
   expect(restored.audioTracks[1]!.clips[0]).toMatchObject({
-    number: 1,
+    name: "Take 1",
     muted: false,
     soloed: false,
     trimStart: 0,
@@ -130,6 +130,24 @@ it("preserves multiband EQ while migrating single-band EQ on either track", () =
     bypass: false,
     bands: [single],
   });
+});
+
+it("retains saved clip names and the next take number after deletion", () => {
+  const project = legacyProject();
+  project.recordingTrack.takes[0]!.name = "Verse lead";
+  project.recordingTrack.takes.splice(1, 1);
+  const restored = deserializeRecorderRuntimeState({ context, project });
+  expect(restored.audioTracks[1]!.clips[0]!.name).toBe("Verse lead");
+  expect(restored.audioTracks[1]!.nextTakeNumber).toBe(12);
+  const saved = serializeRecorderRuntimeState({
+    ...createDefaultRecorderRuntimeState(),
+    ...restored,
+  });
+  expect(saved.audioTracks[1]!.clips[0]).not.toHaveProperty("number");
+  expect(
+    deserializeRecorderRuntimeState({ context, project: saved }).audioTracks[1]!
+      .clips[0]!.name,
+  ).toBe("Verse lead");
 });
 
 function legacyProject(): Extract<

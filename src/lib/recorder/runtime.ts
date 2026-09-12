@@ -74,10 +74,9 @@ export interface RecorderPunchState {
 
 interface PendingRecordingState extends Pick<
   AudioClip,
-  "id" | "duration" | "timelineOffset"
+  "id" | "name" | "duration" | "timelineOffset"
 > {
   trackId: string;
-  number: number;
   recording: ActiveRecording;
   punchRange?: { start: number; end: number };
 }
@@ -657,7 +656,7 @@ export class RecorderRuntime {
       const pendingRecording: PendingRecordingState = {
         trackId,
         id,
-        number,
+        name: `Take ${number}`,
         duration: 0,
         timelineOffset,
         punchRange,
@@ -1042,7 +1041,7 @@ export class RecorderRuntime {
                 ...recordingTrack.clips,
                 {
                   id: pendingRecording.id,
-                  number: pendingRecording.number,
+                  name: pendingRecording.name,
                   muted: false,
                   soloed: false,
                   buffer: takeBuffer,
@@ -1090,7 +1089,7 @@ function pendingRecordingToTake(
   });
   return {
     id: pendingRecording.id,
-    number: pendingRecording.number,
+    name: pendingRecording.name,
     muted: false,
     soloed: false,
     duration: pendingRecording.duration,

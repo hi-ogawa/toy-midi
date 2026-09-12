@@ -31,8 +31,7 @@ export interface SerializedRecorderRuntimeState<Channel = Float32Array> {
     nextTakeNumber: number;
     clips: {
       id: string;
-      name?: string;
-      number?: number;
+      name: string;
       muted: boolean;
       soloed: boolean;
       timelineOffset: number;
@@ -96,7 +95,6 @@ export function serializeRecorderRuntimeState(
         return {
           id: clip.id,
           name: clip.name,
-          number: clip.number,
           muted: clip.muted,
           soloed: clip.soloed,
           timelineOffset: clip.timelineOffset,

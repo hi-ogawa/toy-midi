@@ -2,8 +2,7 @@ import type { AudioView } from "../audio-view.ts";
 
 export interface AudioClip {
   id: string;
-  number?: number;
-  name?: string;
+  name: string;
   muted: boolean;
   soloed: boolean;
   duration: number;
@@ -19,10 +18,4 @@ export interface ClipRegion {
   clip: AudioClip;
   timelineStart: number;
   timelineEnd: number;
-}
-
-export function getAudioClipLabel(clip: AudioClip): string {
-  return (
-    clip.name ?? (clip.number === undefined ? "Audio" : `Take ${clip.number}`)
-  );
 }
