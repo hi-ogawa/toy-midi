@@ -1,7 +1,7 @@
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { routes } from "../lib/routes";
-import { RecorderEffectsPreview } from "./previews/recorder-effects-preview";
+import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,

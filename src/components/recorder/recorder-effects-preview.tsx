@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { EqParameters } from "../../lib/dsp/biquad-eq";
 import { dbToGain } from "../../lib/music";
-import { RecorderEffectsContent } from "../recorder/recorder-effects";
+import { RecorderEffectsContent } from "./recorder-effects";
 
 const INITIAL_EQ: EqParameters = {
   frequency: 800,
