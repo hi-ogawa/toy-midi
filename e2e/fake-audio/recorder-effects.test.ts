@@ -105,7 +105,6 @@ test("edits and persists independent Audio and Capture EQ settings", async ({
     capture.getByRole("textbox", { name: "Gain", exact: true }),
   ).toHaveValue("-4");
   await expect(save).toHaveAttribute("data-status", "unsaved");
-  await page.screenshot({ path: test.info().outputPath("effects.png") });
 });
 
 test("keeps the mixer usable with many effects panels open", async ({

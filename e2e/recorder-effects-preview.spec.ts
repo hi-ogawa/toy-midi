@@ -1,15 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test("iterates the multiband recorder EQ preview", async ({
-  page,
-}, testInfo) => {
+test("iterates the multiband recorder EQ preview", async ({ page }) => {
   // Open the preview with three bands and Band 1 selected.
   await page.goto("/_preview?component=recorder-effects");
   const panel = page.getByTestId("recorder-effects-panel");
   await expect(panel).toBeVisible();
   await expect(panel.getByTestId("eq-response-point")).toHaveCount(3);
   await expect(panel.getByRole("heading", { name: "Band 1" })).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath("multiband-eq.png") });
 
   // Select Band 2, then drag its handle to increase frequency and gain.
   await panel.getByRole("button", { name: "Select band 2" }).click();
