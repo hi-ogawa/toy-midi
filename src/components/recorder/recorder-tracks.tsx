@@ -309,7 +309,7 @@ export function CaptureTrackRow({
         </div>
         <label className="col-span-2 grid grid-cols-[1fr_3.5rem] items-center gap-2 text-[10px] text-neutral-400">
           <RecorderGainSlider
-            label="Capture volume"
+            label="Capture gain"
             gain={gain}
             onGainChange={onGainChange}
           />
