@@ -122,17 +122,15 @@ test("routes monitoring and recording to an ordinary track and reconnects after 
             source.timelineEnd === region.timelineEnd
           );
         });
-      runtime.setClipMuted({ trackId: secondId, id: recorded.id, muted: true });
+      runtime.setClipMuted({ id: recorded.id, muted: true });
       const mutedComp = destination().regions.every(
         (region) => region.clip.id !== recorded.id,
       );
       runtime.setClipMuted({
-        trackId: secondId,
         id: recorded.id,
         muted: false,
       });
       runtime.setClipSoloed({
-        trackId: secondId,
         id: recorded.id,
         soloed: true,
       });
@@ -140,7 +138,6 @@ test("routes monitoring and recording to an ordinary track and reconnects after 
         destination().regions.length === 1 &&
         destination().regions[0]!.clip.id === recorded.id;
       runtime.setClipSoloed({
-        trackId: secondId,
         id: recorded.id,
         soloed: false,
       });

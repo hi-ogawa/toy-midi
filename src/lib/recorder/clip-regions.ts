@@ -61,8 +61,3 @@ export function deriveClipRegions(clips: readonly AudioClip[]): ClipRegion[] {
 
   return regions.sort((a, b) => a.timelineStart - b.timelineStart);
 }
-
-export function getActiveClips(clips: readonly AudioClip[]): AudioClip[] {
-  const anyClipSoloed = clips.some((clip) => clip.soloed);
-  return clips.filter((clip) => !clip.muted && (!anyClipSoloed || clip.soloed));
-}

@@ -11,6 +11,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
+import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -532,13 +533,15 @@ export function TakeTimelineLane({
 
 export function TimelineLane({
   beatsPerBar,
-  clip,
+  clips,
+  regions,
+  testId,
   emptyLabel,
   pixelsPerBeat,
   viewportStartBeat,
   tempo,
   viewportWidth,
-  selected,
+  isClipSelected,
   onClipDragStart,
   onClipClick,
   onClipDragMove,
@@ -548,18 +551,20 @@ export function TimelineLane({
   onSeek,
 }: {
   beatsPerBar: number;
-  clip?: RecorderTimelineClip;
+  clips: readonly AudioClip[];
+  regions: readonly ClipRegion[];
+  testId: RecorderTimelineClip["testId"];
   emptyLabel: string;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   tempo: number;
   viewportWidth: number;
-  selected: boolean;
-  onClipDragStart: (additive: boolean) => RecorderClipMoveSnapshot;
-  onClipClick: (additive: boolean) => void;
+  isClipSelected: (id: string) => boolean;
+  onClipDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (id: string, additive: boolean) => void;
   onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
-  onTrimStart?: (edge: "start" | "end") => RecorderClipTrimSnapshot;
-  onTrimMove?: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  onTrimStart: (id: string, edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
   subdivisionsPerBeat: number;
   onSeek: (position: number) => void;
 }) {
@@ -575,25 +580,37 @@ export function TimelineLane({
         subdivisionsPerBeat,
       })}
     >
-      {clip ? (
-        <TimelineClip
-          clip={clip}
-          pixelsPerBeat={pixelsPerBeat}
-          viewportStartBeat={viewportStartBeat}
-          tempo={tempo}
-          viewportWidth={viewportWidth}
-          selected={selected}
-          onClipDragStart={onClipDragStart}
-          onClipClick={onClipClick}
-          onClipDragMove={onClipDragMove}
-          onTrimStart={onTrimStart}
-          onTrimMove={onTrimMove}
-        />
-      ) : (
+      {clips.length === 0 && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           {emptyLabel}
         </div>
       )}
+      {regions.map((region, index) => {
+        const { clip } = region;
+        return (
+          <TimelineClip
+            key={`${clip.id}:${index}`}
+            clip={{
+              label: clip.name,
+              duration: region.timelineEnd - region.timelineStart,
+              offset: region.timelineStart,
+              audioOffset: region.timelineStart - clip.timelineOffset,
+              audioView: clip.audioView,
+              testId,
+            }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            selected={isClipSelected(clip.id)}
+            onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
+            onClipClick={(additive) => onClipClick(clip.id, additive)}
+            onClipDragMove={onClipDragMove}
+            onTrimStart={(edge) => onTrimStart(clip.id, edge)}
+            onTrimMove={onTrimMove}
+          />
+        );
+      })}
     </div>
   );
 }

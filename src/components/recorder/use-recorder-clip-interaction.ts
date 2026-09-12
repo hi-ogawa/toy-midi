@@ -30,18 +30,14 @@ export function useRecorderClipInteraction({
   const [keys, setKeys] = useState(() => new Set<string>());
 
   function getKey(clip: RecorderClipId): string {
-    return clip.type === "reference" ? clip.type : `${clip.trackId}:${clip.id}`;
+    return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
   }
 
   function getSelectedClips(selectedKeys: ReadonlySet<string>) {
     return {
       audioClips: state.audioTracks.flatMap((track) =>
-        track.clips.flatMap((clip) =>
-          selectedKeys.has(
-            getKey({ type: "audio", trackId: track.id, id: clip.id }),
-          )
-            ? [{ trackId: track.id, clip }]
-            : [],
+        track.clips.filter((clip) =>
+          selectedKeys.has(getKey({ type: "audio", id: clip.id })),
         ),
       ),
       referenceVideo: selectedKeys.has(getKey({ type: "reference" }))
@@ -53,9 +49,7 @@ export function useRecorderClipInteraction({
   useEffect(() => {
     const available = new Set([
       ...state.audioTracks.flatMap((track) =>
-        track.clips.map((clip) =>
-          getKey({ type: "audio", trackId: track.id, id: clip.id }),
-        ),
+        track.clips.map((clip) => getKey({ type: "audio", id: clip.id })),
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
     ]);
@@ -101,9 +95,8 @@ export function useRecorderClipInteraction({
     setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
     const clips = [
-      ...selected.audioClips.map(({ trackId, clip }) => ({
+      ...selected.audioClips.map((clip) => ({
         type: "audio" as const,
-        trackId,
         id: clip.id,
         timelineOffset: clip.timelineOffset,
       })),
@@ -120,7 +113,7 @@ export function useRecorderClipInteraction({
       clips,
       minimumVisibleStart: Math.min(
         ...selected.audioClips.map(
-          ({ clip }) => clip.timelineOffset + clip.trimStart,
+          (clip) => clip.timelineOffset + clip.trimStart,
         ),
         ...(selected.referenceVideo
           ? [selected.referenceVideo.timelineStart]
@@ -140,7 +133,6 @@ export function useRecorderClipInteraction({
             }
           : {
               type: clip.type,
-              trackId: clip.trackId,
               id: clip.id,
               timelineOffset: clip.timelineOffset + clampedDelta,
             },
@@ -158,8 +150,8 @@ export function useRecorderClipInteraction({
     const selected =
       clip.type === "audio"
         ? state.audioTracks
-            .find((track) => track.id === clip.trackId)
-            ?.clips.find((entry) => entry.id === clip.id)
+            .flatMap((track) => track.clips)
+            .find((audio) => audio.id === clip.id)
         : undefined;
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
@@ -186,9 +178,8 @@ export function useRecorderClipInteraction({
   function removeSelected(): void {
     const selected = getSelectedClips(keys);
     runtime.removeClips([
-      ...selected.audioClips.map(({ trackId, clip }) => ({
+      ...selected.audioClips.map((clip) => ({
         type: "audio" as const,
-        trackId,
         id: clip.id,
       })),
       ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
