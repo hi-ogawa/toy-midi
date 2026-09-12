@@ -43,12 +43,9 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-export interface AudioTrackState {
+interface BaseAudioTrackState {
   eq: MultibandEqParameters;
-  id: string;
   height: number;
-  // The ordinary-track UI currently keeps zero or one imported clip and has
-  // no clip-level mute/solo controls. Imported clips initialize both flags to false.
   clips: AudioClip[];
   regions: ClipRegion[];
   gain: number;
@@ -56,14 +53,13 @@ export interface AudioTrackState {
   soloed: boolean;
 }
 
-interface RecordingTrackState {
-  eq: MultibandEqParameters;
-  height: number;
-  gain: number;
-  muted: boolean;
-  soloed: boolean;
-  clips: AudioClip[];
-  regions: ClipRegion[];
+// The ordinary-track UI currently keeps zero or one imported clip and has
+// no clip-level mute/solo controls. Imported clips initialize both flags to false.
+export interface AudioTrackState extends BaseAudioTrackState {
+  id: string;
+}
+
+interface RecordingTrackState extends BaseAudioTrackState {
   nextTakeNumber: number;
 }
 
