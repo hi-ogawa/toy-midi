@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
 import type { SaveStatus } from "./use-recorder-project";
@@ -55,8 +56,7 @@ export function RecorderHeader({
   saveStatus,
   referenceVideoOpen,
   isPlaying,
-  isProcessing,
-  isRecording,
+  flags,
   isExporting,
   metronomeEnabled,
   masterGain,
@@ -67,8 +67,6 @@ export function RecorderHeader({
   tempo,
   timeSignature,
   gridDivision,
-  playDisabled,
-  recordDisabled,
   autoScrollEnabled,
   onPlayToggle,
   onTitleChange,
@@ -94,8 +92,7 @@ export function RecorderHeader({
   saveStatus: SaveStatus;
   referenceVideoOpen: boolean;
   isPlaying: boolean;
-  isProcessing: boolean;
-  isRecording: boolean;
+  flags: RecorderFlags;
   isExporting: boolean;
   metronomeEnabled: boolean;
   masterGain: number;
@@ -106,8 +103,6 @@ export function RecorderHeader({
   tempo: number;
   timeSignature: TimeSignature;
   gridDivision: GridDivision;
-  playDisabled: boolean;
-  recordDisabled: boolean;
   autoScrollEnabled: boolean;
   onPlayToggle: () => void;
   onTitleChange: (title: string) => void;
@@ -149,7 +144,7 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-play-button"
         onClick={onPlayToggle}
-        disabled={playDisabled || isProcessing}
+        disabled={flags.playDisabled}
         aria-pressed={isPlaying}
         className={cn(
           "size-9",
@@ -157,7 +152,9 @@ export function RecorderHeader({
             ? "bg-primary text-primary-foreground hover:bg-primary/90"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isRecording || isPlaying ? "Pause (Space)" : "Play (Space)"}
+        title={
+          flags.isRecording || isPlaying ? "Pause (Space)" : "Play (Space)"
+        }
       >
         {isPlaying ? (
           <PauseIcon className="size-5" />
@@ -168,17 +165,17 @@ export function RecorderHeader({
       <Button
         data-testid="recorder-record-button"
         onClick={onRecordToggle}
-        disabled={recordDisabled || isProcessing}
-        aria-pressed={isRecording}
+        disabled={flags.recordDisabled}
+        aria-pressed={flags.isRecording}
         className={cn(
           "size-9",
-          isRecording
+          flags.isRecording
             ? "border-red-500/60 bg-red-500/20 text-red-200 hover:bg-red-500/30"
             : "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
         )}
-        title={isRecording ? "Stop recording (R)" : "Record (R)"}
+        title={flags.isRecording ? "Stop recording (R)" : "Record (R)"}
       >
-        {isRecording ? (
+        {flags.isRecording ? (
           <CircleStopIcon className="size-5" />
         ) : (
           <CircleIcon className="size-4 fill-current" />
@@ -241,7 +238,7 @@ export function RecorderHeader({
         <DropdownMenuTrigger asChild>
           <Button
             data-testid="recorder-playback-rate"
-            disabled={isRecording || isProcessing}
+            disabled={flags.captureBusy}
             className="h-8 gap-2 border-neutral-600 bg-neutral-900 px-3 font-mono hover:bg-neutral-800"
           >
             {playbackRate}x
@@ -399,7 +396,7 @@ export function RecorderHeader({
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={isRecording || isProcessing}
+            disabled={flags.captureBusy}
             onSelect={onExportAudio}
           >
             <DownloadIcon />
@@ -407,7 +404,7 @@ export function RecorderHeader({
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={isRecording || isProcessing || isExporting}
+            disabled={flags.captureBusy || isExporting}
             onSelect={(event) => {
               event.preventDefault();
               onExportProject();

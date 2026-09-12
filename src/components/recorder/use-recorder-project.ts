@@ -76,7 +76,7 @@ export function useRecorderProject({
   return {
     dirty,
     error: projectQuery.error ?? saveMutation.error,
-    ready: projectQuery.isSuccess || projectQuery.isError,
+    loaded: projectQuery.isSuccess,
     save: saveMutation.mutate,
     saveStatus,
     saving: saveMutation.isPending,

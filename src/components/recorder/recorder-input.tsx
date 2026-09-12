@@ -13,8 +13,7 @@ export function InputSetup({
   inputActive,
   inputAnalyser,
   inputsInitialized,
-  isProcessing,
-  isRecording,
+  captureBusy,
   selectedDevice,
   selectedChannel,
   inputChannelCount,
@@ -32,8 +31,7 @@ export function InputSetup({
   inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
   inputsInitialized: boolean;
-  isProcessing: boolean;
-  isRecording: boolean;
+  captureBusy: boolean;
   selectedDevice?: MediaDeviceInfo;
   selectedChannel: number;
   inputChannelCount: number;
@@ -45,7 +43,7 @@ export function InputSetup({
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
-  const disabled = mutationPending || isRecording || isProcessing;
+  const disabled = mutationPending || captureBusy;
   const latencyInput = useDraftInput({
     value: latencyCompensation * 1000,
     onCommit: (milliseconds) =>

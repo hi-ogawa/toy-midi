@@ -15,6 +15,7 @@ import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
+import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
@@ -123,14 +124,16 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.takes;
-  const isRecording = state.captureStatus === "recording";
-  const isProcessing = state.captureStatus === "processing";
+  const flags = deriveRecorderFlags({
+    captureStatus: state.captureStatus,
+    project,
+  });
 
   function togglePlay() {
-    if (!project.ready || isProcessing) {
+    if (flags.playDisabled) {
       return;
     }
-    if (isRecording) {
+    if (flags.isRecording) {
       recordMutation.mutate("stop");
     } else if (state.isPlaying) {
       runtime.pause();
@@ -140,18 +143,11 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (!project.ready || isProcessing || state.captureStatus === "disabled") {
+    if (flags.recordDisabled) {
       return;
     }
-    recordMutation.mutate(isRecording ? "stop" : "start");
+    recordMutation.mutate(flags.isRecording ? "stop" : "start");
   }
-
-  const saveDisabled =
-    !project.ready ||
-    !project.dirty ||
-    project.saving ||
-    isRecording ||
-    isProcessing;
 
   useWindowEvent("keydown", (event) => {
     if (isHelpOpen) {
@@ -169,7 +165,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
-      if (!saveDisabled) {
+      if (!flags.saveDisabled) {
         project.save();
       }
       return;
@@ -199,7 +195,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       : matchKeyboardEvent(event, "ArrowRight")
         ? 1
         : 0;
-    if (seekDirection !== 0 && !isRecording && !isProcessing) {
+    if (seekDirection !== 0 && !flags.captureBusy) {
       event.preventDefault();
       const position = Math.max(0, state.position + seekDirection * 5);
       runtime.seek(position);
@@ -237,8 +233,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         saveStatus={project.saveStatus}
         referenceVideoOpen={isReferenceVideoOpen}
         isPlaying={state.isPlaying}
-        isProcessing={isProcessing}
-        isRecording={isRecording}
+        flags={flags}
         isExporting={exportProjectMutation.isPending}
         autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
@@ -250,8 +245,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         tempo={timeline.tempo}
         timeSignature={timeline.timeSignature}
         gridDivision={timeline.gridDivision}
-        playDisabled={!project.ready}
-        recordDisabled={!project.ready || state.captureStatus === "disabled"}
         onPlayToggle={togglePlay}
         onTitleChange={(nextTitle) => {
           runtime.setTitle(nextTitle);
@@ -454,8 +447,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputToggleDisabled={
                 input.mutationPending ||
                 !input.initialized ||
-                isRecording ||
-                isProcessing ||
+                flags.captureBusy ||
                 (!input.active && input.route.needsSetup)
               }
               muted={state.recordingTrack.muted}
@@ -594,7 +586,7 @@ export function Recorder({ projectId }: { projectId: string }) {
           state={state}
           isOpen={isAudioExportOpen}
           onClose={() => setIsAudioExportOpen(false)}
-          disabled={!project.ready || isRecording || isProcessing}
+          disabled={!project.loaded || flags.captureBusy}
         />
         <Dialog
           isOpen={isInputSetupOpen}
@@ -609,8 +601,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputActive={input.active}
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
-            isProcessing={isProcessing}
-            isRecording={isRecording}
+            captureBusy={flags.captureBusy}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
