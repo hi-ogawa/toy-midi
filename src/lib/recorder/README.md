@@ -4,41 +4,42 @@ Update this document in the same PR when changing routing, control scope, or gra
 
 ## Signal flow
 
-Solid arrows carry audio. The dotted arrow carries recorded PCM from the capture worklet to the recording accumulator.
+Labels use implementation field names, with AudioChannel fields scoped by their subgraph. `i` denotes a take-region playback, `id` denotes an audio track, and `pendingRecording` comes from runtime state. `oscillator` and `envelope` are locals in `scheduleOscillatorClick()`. Solid arrows carry audio. The dotted arrow carries recorded PCM from the capture worklet to the recording accumulator. When `pitchShifter` is absent, `source` connects directly to the next node.
 
 ```mermaid
 flowchart LR
-    Device["Input device"] --> Worklet["Capture worklet / channel selection"]
-    Worklet -.-> Recording["Dry recording PCM"]
-    Worklet --> Meter["Input analyser"]
-    Meter --> Monitor["monitorGain"]
-    Monitor --> CaptureInput
-    Takes["Take region sources"] --> TakeSpeed["Optional speed processing"]
-    TakeSpeed --> TakeGain["takePlaybackGain"]
-    TakeGain --> CaptureInput
+    captureSource["captureInput.source"] --> captureWorklet["captureInput.worklet.node"]
+    captureWorklet -.-> recording["pendingRecording.recording"]
+    captureWorklet --> analyser["captureInput.analyser.node"]
+    analyser --> monitorGain["captureInput.monitorGain"]
+    monitorGain --> captureInput
+    takeSource["recordingTrackPlaybacks[i].source"] --> takePitchShifter["recordingTrackPlaybacks[i].pitchShifter (optional)"]
+    takePitchShifter --> takePlaybackGain["takePlaybackGain"]
+    takePlaybackGain --> captureInput
 
-    subgraph CaptureChannel["Capture AudioChannel"]
-        CaptureInput["input"] --> CaptureEQ["EQ"]
-        CaptureEQ --> CaptureGain["Channel gain"]
+    subgraph captureChannel["captureChannel: AudioChannel"]
+        captureInput["input"] --> captureEqualizer["equalizer"]
+        captureEqualizer --> captureGain["gain"]
     end
 
-    Audio["Audio track source"] --> AudioSpeed["Optional speed processing"]
-    AudioSpeed --> TrackInput
-    subgraph TrackChannel["AudioChannel per audio track"]
-        TrackInput["input"] --> TrackEQ["EQ"]
-        TrackEQ --> TrackGain["Channel gain"]
+    audioSource["audioTracks.get(id).playback.source"] --> audioPitchShifter["audioTracks.get(id).playback.pitchShifter (optional)"]
+    audioPitchShifter --> trackInput
+    subgraph audioChannel["audioTracks.get(id).channel: AudioChannel"]
+        trackInput["input"] --> trackEqualizer["equalizer"]
+        trackEqualizer --> trackGain["gain"]
     end
 
-    CaptureGain --> Master["masterOutput gain"]
-    TrackGain --> Master
-    Metro["Metronome clicks"] --> MetroGain["Metronome gain"]
-    MetroGain --> Master
-    Master --> Destination["AudioContext destination"]
+    captureGain --> masterOutput["masterOutput"]
+    trackGain --> masterOutput
+    oscillator["oscillator"] --> envelope["envelope"]
+    envelope --> metronomeOutput["metronome.output"]
+    metronomeOutput --> masterOutput
+    masterOutput --> destination["context.destination"]
 ```
 
 [CaptureInput](capture-input.ts) connects the device, capture worklet, analyser, and monitor gain. [The worklet](capture-worklet.ts) selects one input channel and sends samples to [ActiveRecording](recording.ts) when recording is active. Its audio output continues independently of recording, so monitoring and metering also work while stopped.
 
-[AudioBufferPlayback](audio-buffer-playback.ts) schedules each source. At playback rates other than 1, it adds pitch correction before the channel input. [AudioChannel](audio-channel.ts) constructs the complete stereo `input → EQ → gain → output` graph. [RecorderRuntime](runtime.ts) connects the sources and channels to Master, and [RecorderMetronome](metronome.ts) supplies clicks through its own gain.
+[AudioBufferPlayback](audio-buffer-playback.ts) schedules each source. At playback rates other than 1, it adds pitch correction before the channel input. [AudioChannel](audio-channel.ts) constructs the complete stereo `input → equalizer → gain → output` graph. [RecorderRuntime](runtime.ts) connects the sources and channels to Master, and [RecorderMetronome](metronome.ts) supplies clicks through its own gain.
 
 Reference video audio is separate. [YouTubePlayerPlayback](youtube-player-playback.ts) follows the transport through the player API, but its audio does not enter this Web Audio graph or pass through Master.
 
