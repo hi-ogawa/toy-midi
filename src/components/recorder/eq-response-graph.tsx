@@ -14,15 +14,16 @@ import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 const GRAPH_SAMPLE_RATE = 48000;
 const FREQUENCY_TICKS = [20, 100, 1000, 10000, 20000];
 const GAIN_TICKS = [-18, -12, -6, 0, 6, 12, 18];
+// Tailwind v3's 400 shades distinguish bands against the dark graph background.
 export const EQ_BAND_COLORS = [
-  "#60a5fa",
-  "#f472b6",
-  "#fbbf24",
-  "#34d399",
-  "#a78bfa",
-  "#fb7185",
-  "#22d3ee",
-  "#a3e635",
+  "#60a5fa", // blue
+  "#f472b6", // pink
+  "#fbbf24", // amber
+  "#34d399", // emerald
+  "#a78bfa", // violet
+  "#fb7185", // rose
+  "#22d3ee", // cyan
+  "#a3e635", // lime
 ];
 
 export function EqResponseGraph({
