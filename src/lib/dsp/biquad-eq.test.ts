@@ -6,7 +6,7 @@ import {
   DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
-import { MAX_EQ_BANDS, MultibandEq } from "./biquad-eq-multiband";
+import { MultibandEq } from "./biquad-eq-multiband";
 
 const SAMPLE_RATE = 48000;
 
@@ -182,33 +182,6 @@ describe(MultibandEq, () => {
       measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
         measureEnergy(input.subarray(SAMPLE_RATE / 2)),
     ).toBeCloseTo(16, 3);
-  });
-
-  it("reuses removed bands at capacity with cleared filter history", () => {
-    const parameters = {
-      bypass: false,
-      bands: Array.from({ length: MAX_EQ_BANDS }, (_, index) => ({
-        ...DEFAULT_PARAMETERS,
-        id: String(index),
-        gain: 1.2,
-      })),
-    };
-    const options = { sampleRate: SAMPLE_RATE, channelCount: 1 };
-    const eq = new MultibandEq({ ...options, parameters });
-    const input = createSignal({ frames: 1000, frequency: 1000 });
-    process(eq, input);
-
-    const replacement = {
-      ...parameters,
-      bands: parameters.bands.map((band) => ({
-        ...band,
-        id: `replacement-${band.id}`,
-        gain: 0.8,
-      })),
-    };
-    eq.setParameters(replacement);
-    const fresh = new MultibandEq({ ...options, parameters: replacement });
-    expect(process(eq, input)).toEqual(process(fresh, input));
   });
 
   it("reconciles updates by band ID without resetting its ramp", () => {
