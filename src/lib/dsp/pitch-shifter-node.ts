@@ -1,7 +1,7 @@
 import pitchShifterWorkletUrl from "./pitch-shifter-worklet.ts?worker&url";
 
 const PROCESSOR_NAME = "pitch-shifter";
-const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
+const registrations = new WeakMap<AudioContext, Promise<void>>();
 
 export type PitchShifterCommand =
   | { type: "setPitchRatio"; pitchRatio: number }
@@ -13,7 +13,7 @@ export class PitchShifterNode extends AudioWorkletNode {
     channelCount,
     pitchRatio,
   }: {
-    context: BaseAudioContext;
+    context: AudioContext;
     channelCount: number;
     pitchRatio: number;
   }) {
@@ -42,7 +42,7 @@ export class PitchShifterNode extends AudioWorkletNode {
 }
 
 export async function ensurePitchShifterWorklet(
-  context: BaseAudioContext,
+  context: AudioContext,
 ): Promise<void> {
   let registration = registrations.get(context);
   if (!registration) {
