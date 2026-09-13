@@ -44,32 +44,38 @@ export async function loadAudioFile(
   fileName = "test-audio.wav",
   fixtureName = "test-audio.wav",
 ): Promise<void> {
-  await test.step(`Load audio: ${fileName}`, async () => {
-    // Open settings dialog
-    await page.getByTestId("settings-button").click();
+  await test.step(
+    `Load audio: ${fileName}`,
+    async () => {
+      // Open settings dialog
+      await page.getByTestId("settings-button").click();
 
-    // Find audio file input within settings dialog
-    const fileInput = page.getByTestId("audio-file-input");
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const testAudioPath = path.join(
-      import.meta.dirname,
-      "fixtures",
-      fixtureName,
-    );
-    await fileInput.setInputFiles({
-      name: fileName,
-      mimeType: "audio/wav",
-      buffer: await fs.readFile(testAudioPath),
-    });
-    await expect(
-      page.getByTestId("settings-dialog").getByText(fileName, { exact: true }),
-    ).toBeVisible();
+      // Find audio file input within settings dialog
+      const fileInput = page.getByTestId("audio-file-input");
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const testAudioPath = path.join(
+        import.meta.dirname,
+        "fixtures",
+        fixtureName,
+      );
+      await fileInput.setInputFiles({
+        name: fileName,
+        mimeType: "audio/wav",
+        buffer: await fs.readFile(testAudioPath),
+      });
+      await expect(
+        page
+          .getByTestId("settings-dialog")
+          .getByText(fileName, { exact: true }),
+      ).toBeVisible();
 
-    // Close settings dialog
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("settings-dialog")).toBeHidden();
-  });
+      // Close settings dialog
+      await page.keyboard.press("Escape");
+      await expect(page.getByTestId("settings-dialog")).toBeHidden();
+    },
+    { box: true },
+  );
 }
 
 /**
