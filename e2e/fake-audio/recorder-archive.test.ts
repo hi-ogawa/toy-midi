@@ -1,4 +1,7 @@
+import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
+import type { SerializedRecorderRuntimeState } from "../../src/lib/recorder/persistence";
+import { exportRecorderProjectArchive } from "../../src/lib/recorder/project-archive";
 import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
@@ -79,3 +82,73 @@ async function getRecorderClipGeometry(page: Page) {
   );
   return geometry;
 }
+
+test("imports a legacy recorder archive", async ({ page }) => {
+  // Export a typed legacy project using the archive writer.
+  const bytes = await readFile("e2e/fixtures/test-tones.pcm");
+  const pcm = new Float32Array(Uint8Array.from(bytes).buffer);
+  const project: SerializedRecorderRuntimeState = {
+    title: "Legacy archive",
+    tempo: 120,
+    timeSignature: { numerator: 4, denominator: 4 },
+    latencyCompensation: 0,
+    audioTracks: [
+      {
+        id: "backing",
+        height: 72,
+        gain: 0.5,
+        muted: false,
+        soloed: false,
+        timelineOffset: 2,
+        trimStart: 0.5,
+        trimEnd: 3,
+        clip: {
+          name: "stereo.wav",
+          pcm: { sampleRate: 22050, channels: [pcm, pcm] },
+        },
+      },
+    ],
+    recordingTrack: {
+      height: 116,
+      gain: 0.8,
+      muted: false,
+      soloed: false,
+      nextTakeNumber: 9,
+      takes: [
+        {
+          id: "retained",
+          number: 8,
+          timelineOffset: 3,
+          trimStart: 0.25,
+          trimEnd: 2,
+          pcm: { sampleRate: 22050, channels: [pcm] },
+        },
+      ],
+    },
+  };
+  const archive = await exportRecorderProjectArchive(project);
+
+  // Import through the Recorder project list and open the migrated recorder.
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("import-recorder-project").click();
+  await (
+    await chooserPromise
+  ).setFiles({
+    name: "legacy.toymidi.zip",
+    mimeType: "application/zip",
+    buffer: Buffer.from(await archive.arrayBuffer()),
+  });
+  await expect(page.getByTestId("recorder-project-name")).toHaveText(
+    "Legacy archive",
+  );
+
+  // Verify legacy backing audio and the retained take appear with decoded waveforms.
+  const audio = page.getByTestId("recorder-clip-audio");
+  const take = page.getByTestId("recorder-clip-comp");
+  await expect(audio).toContainText("stereo.wav");
+  await expect(take).toContainText("Take 8");
+  await expect(audio.locator("svg")).toBeVisible();
+  await expect(take.locator("svg")).toBeVisible();
+});

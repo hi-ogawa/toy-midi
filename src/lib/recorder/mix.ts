@@ -18,10 +18,7 @@ interface RecorderMix {
 /** Snapshot committed audio at 1x, independent of transport and reference audio. */
 export function resolveRecorderMix(state: RecorderRuntimeState): RecorderMix {
   const gains = deriveTrackMix(state);
-  const tracks: RecorderMix["tracks"] = [
-    ...state.audioTracks,
-    state.recordingTrack,
-  ].map((track) => ({
+  const tracks: RecorderMix["tracks"] = state.audioTracks.map((track) => ({
     eq: track.eq,
     gain: gains.get(track.id)!,
     regions: getClipSources(track.regions),
@@ -85,15 +82,10 @@ export async function renderRecorderMix({
 /** Effective channel gain per track id after mute and solo. */
 export function deriveTrackMix({
   audioTracks,
-  recordingTrack,
-}: Pick<RecorderRuntimeState, "audioTracks" | "recordingTrack">): Map<
-  string,
-  number
-> {
-  const tracks = [...audioTracks, recordingTrack];
-  const anyTrackSoloed = tracks.some((track) => track.soloed);
+}: Pick<RecorderRuntimeState, "audioTracks">): Map<string, number> {
+  const anyTrackSoloed = audioTracks.some((track) => track.soloed);
   return new Map(
-    tracks.map((track) => [
+    audioTracks.map((track) => [
       track.id,
       track.muted || (anyTrackSoloed && !track.soloed) ? 0 : track.gain,
     ]),
