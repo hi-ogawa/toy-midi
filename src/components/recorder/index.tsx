@@ -181,11 +181,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (
-      (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) &&
-      !event.isComposing
-    ) {
-      if (flags.isRecording || isInputSetupOpen) {
+    if (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) {
+      if (flags.isRecording) {
         return;
       }
       event.preventDefault();
