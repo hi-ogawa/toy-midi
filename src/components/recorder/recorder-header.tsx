@@ -144,12 +144,7 @@ export function RecorderHeader({
     onTempoChange,
   });
   return (
-    <header
-      className={cn(
-        "flex h-[53px] shrink-0 items-center border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm",
-        inputAccessRequired ? "gap-1" : "gap-2",
-      )}
-    >
+    <header className="flex h-[53px] shrink-0 items-center gap-1 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Mic2Icon className="size-4 text-emerald-400" />
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
