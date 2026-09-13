@@ -10,6 +10,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Dialog } from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../ui/dropdown-menu";
 
 type MockTrack = {
   id: number;
@@ -148,9 +154,22 @@ export function RecorderTracksPreview() {
           Evening practice
         </span>
         <span className="mr-2 text-[10px] text-neutral-500">Saved</span>
-        <button aria-label="Project actions" className="text-neutral-400">
-          <MoreVerticalIcon className="size-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button aria-label="More" className="text-neutral-400">
+              <MoreVerticalIcon className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              disabled={recording}
+              onSelect={() => setInputModalOpen(true)}
+            >
+              <Mic2Icon />
+              Audio input…
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <button aria-label="Help" className="text-neutral-400">
           <CircleHelpIcon className="size-4" />
         </button>
@@ -158,26 +177,6 @@ export function RecorderTracksPreview() {
           <HouseIcon className="size-4" />
         </button>
       </header>
-      {!inputReady && (
-        <div className="flex shrink-0 items-center gap-4 border-b border-orange-300/20 bg-orange-300/10 px-4 py-3">
-          <div className="mr-auto text-xs">
-            <span className="font-semibold text-orange-200">
-              Enable audio input to record
-            </span>
-            <span className="ml-3 text-neutral-400">
-              {permissionGranted
-                ? "Choose and enable your input."
-                : "Allow microphone access and choose your input."}
-            </span>
-          </div>
-          <button
-            className="rounded border border-orange-300/40 bg-orange-300/10 px-3 py-1.5 text-xs font-semibold text-orange-200 hover:bg-orange-300/20"
-            onClick={() => setInputModalOpen(true)}
-          >
-            Set up input
-          </button>
-        </div>
-      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div>
           <div className="grid h-8 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800/40 text-[10px] text-neutral-500">
@@ -373,18 +372,6 @@ export function RecorderTracksPreview() {
         </div>
       </div>
       <footer className="flex h-9 shrink-0 items-center gap-3 border-t border-neutral-700 bg-neutral-800/50 px-3 text-[11px] text-neutral-500">
-        <button
-          disabled={recording}
-          className="text-neutral-300 hover:text-white"
-          onClick={() => setInputModalOpen(true)}
-        >
-          {inputReady
-            ? `${inputDevice} · Input ${inputChannel}`
-            : "Audio input settings"}
-        </button>
-        {inputReady && (
-          <span className="size-1.5 rounded-full bg-emerald-400" />
-        )}
         <span>
           {armedTrack
             ? `${recording ? "Recording into" : "Armed"} ${armedTrack.name}`
