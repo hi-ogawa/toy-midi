@@ -158,10 +158,10 @@ export function CaptureTrackRow({
   routeNeedsSetup,
   height,
   gain,
-  recordingArmed,
+  inputActive,
   inputAnalyser,
   inputMonitoring,
-  armDisabled,
+  inputToggleDisabled,
   muted,
   soloed,
   effectsOpen,
@@ -169,7 +169,7 @@ export function CaptureTrackRow({
   onGainChange,
   onInputSetup,
   onInputMonitoringChange,
-  onArmToggle,
+  onInputToggle,
   onMutedChange,
   onSoloedChange,
   onHeightChange,
@@ -179,10 +179,10 @@ export function CaptureTrackRow({
   routeNeedsSetup: boolean;
   height: number;
   gain: number;
-  recordingArmed: boolean;
+  inputActive: boolean;
   inputAnalyser?: AudioAnalyser;
   inputMonitoring: boolean;
-  armDisabled: boolean;
+  inputToggleDisabled: boolean;
   muted: boolean;
   soloed: boolean;
   effectsOpen: boolean;
@@ -190,7 +190,7 @@ export function CaptureTrackRow({
   onGainChange: (gain: number) => void;
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
-  onArmToggle: () => void;
+  onInputToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   onHeightChange: (height: number) => void;
@@ -213,17 +213,17 @@ export function CaptureTrackRow({
         </div>
         <div className="flex self-center gap-1">
           <Button
-            data-testid="recorder-arm-toggle"
-            disabled={armDisabled}
-            onClick={onArmToggle}
+            data-testid="recorder-input-toggle"
+            disabled={inputToggleDisabled}
+            onClick={onInputToggle}
             className={
-              recordingArmed
+              inputActive
                 ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
                 : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
             }
-            title={recordingArmed ? "Disarm capture" : "Arm capture"}
-            aria-label={recordingArmed ? "Disarm capture" : "Arm capture"}
-            aria-pressed={recordingArmed}
+            title={inputActive ? "Disarm capture" : "Arm capture"}
+            aria-label={inputActive ? "Disarm capture" : "Arm capture"}
+            aria-pressed={inputActive}
           >
             R
           </Button>
@@ -248,7 +248,7 @@ export function CaptureTrackRow({
             className="size-7"
           />
         </div>
-        {recordingArmed && (
+        {inputActive && (
           <>
             <div className="col-span-2 flex min-w-0 items-center gap-1">
               <span
@@ -299,7 +299,7 @@ export function CaptureTrackRow({
             </div>
             <div className="col-span-2">
               <InputMeter
-                active={recordingArmed}
+                active={inputActive}
                 analyser={inputAnalyser}
                 compact
               />

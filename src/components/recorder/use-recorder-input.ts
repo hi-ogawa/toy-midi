@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -18,6 +18,8 @@ export function useRecorderInput({
   state: RecorderRuntimeState;
 }) {
   const active = state.captureStatus !== "disabled";
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const startAfterGrant = useRef(false);
   const [preference, setPreference] = useState(() =>
     recorderStorage.readPreferences(),
   );
@@ -27,14 +29,13 @@ export function useRecorderInput({
   async function refresh() {
     const nextDevices = await getCaptureInputs();
     setDevices(nextDevices);
-    selectDevice(
-      nextDevices.some(
-        (device) => device.deviceId === preference.input?.deviceId,
-      )
-        ? preference.input?.deviceId
-        : nextDevices[0]?.deviceId,
-      { remember: false },
-    );
+    const nextDeviceId = nextDevices.some(
+      (device) => device.deviceId === preference.input?.deviceId,
+    )
+      ? preference.input?.deviceId
+      : nextDevices[0]?.deviceId;
+    selectDevice(nextDeviceId, { remember: false });
+    return nextDeviceId;
   }
 
   function selectDevice(
@@ -57,31 +58,62 @@ export function useRecorderInput({
     }
   }
 
-  function stop() {
-    runtime.stopInput();
-    startMutation.reset();
+  function openSetup() {
+    startAfterGrant.current = false;
+    setIsSetupOpen(true);
   }
 
-  const grantMutation = useMutation({
-    mutationFn: async () => {
-      await requestCaptureAccess();
-      await refresh();
-    },
-  });
+  function closeSetup() {
+    // Closing setup cancels R's continuation even if the browser prompt is open.
+    startAfterGrant.current = false;
+    setIsSetupOpen(false);
+  }
+
+  function stop() {
+    runtime.stopInput();
+    inputMutation.reset();
+  }
 
   const refreshMutation = useMutation({ mutationFn: refresh });
 
-  const startMutation = useMutation({
-    mutationFn: async (nextDeviceId: string) => {
+  const inputMutation = useMutation({
+    mutationFn: async (action: "grant" | "start") => {
+      let nextDeviceId = deviceId;
+      if (action === "grant") {
+        await requestCaptureAccess();
+        // Use the refreshed device directly because React has not necessarily
+        // rendered the new selection before R's continuation runs.
+        nextDeviceId = await refresh();
+        if (!startAfterGrant.current) {
+          setIsSetupOpen(false);
+          return;
+        }
+      }
+      if (!nextDeviceId) {
+        throw new Error("Choose an audio input before enabling capture.");
+      }
       const { channelCount } = await runtime.startInput({
         deviceId: nextDeviceId,
       });
+      if (action === "grant" && !startAfterGrant.current) {
+        runtime.stopInput();
+        return;
+      }
       runtime.selectChannel(
         Math.min(preference.input?.channel ?? 0, channelCount - 1),
       );
       runtime.setLatencyCompensation(
         preference.input?.latencyCompensation ?? 0,
       );
+      startAfterGrant.current = false;
+      if (action === "grant") {
+        setIsSetupOpen(false);
+      }
+    },
+    onError: (_error, action) => {
+      if (action === "start") {
+        setIsSetupOpen(true);
+      }
     },
   });
 
@@ -96,10 +128,7 @@ export function useRecorderInput({
 
   // The initial device enumeration has settled, so the UI can leave loading state.
   const initialized = refreshMutation.isSuccess || refreshMutation.isError;
-  // Optimistically treat a pending grant as access so the UI does not flash
-  // the permission callout between a successful prompt and device refresh.
-  const hasAccess =
-    grantMutation.isPending || devices.some((device) => device.label);
+  const hasAccess = devices.some((device) => device.label);
   const selectedDevice = devices.find((device) => device.deviceId === deviceId);
   const route = !initialized
     ? { label: "Loading audio inputs…", needsSetup: false }
@@ -115,13 +144,14 @@ export function useRecorderInput({
   return {
     active,
     devices,
-    error: grantMutation.error ?? refreshMutation.error ?? startMutation.error,
+    error: inputMutation.error ?? refreshMutation.error,
     hasAccess,
     initialized,
-    mutationPending:
-      refreshMutation.isPending ||
-      grantMutation.isPending ||
-      startMutation.isPending,
+    mutationPending: refreshMutation.isPending || inputMutation.isPending,
+    isSetupOpen,
+    openSetup,
+    closeSetup,
+    grantAccess: () => inputMutation.mutate("grant"),
     route,
     selectedDevice,
     selectDevice,
@@ -149,13 +179,18 @@ export function useRecorderInput({
       setPreference(nextPreference);
       recorderStorage.writePreferences(nextPreference);
     },
-    grantAccess: () => grantMutation.mutate(),
-    start: () => {
-      if (selectedDevice) {
-        startMutation.mutate(selectedDevice.deviceId);
+    toggle: () => {
+      if (active) {
+        stop();
+      } else if (!hasAccess) {
+        startAfterGrant.current = true;
+        setIsSetupOpen(true);
+      } else if (selectedDevice) {
+        inputMutation.mutate("start");
+      } else {
+        openSetup();
       }
     },
-    stop,
-    togglePending: grantMutation.isPending || startMutation.isPending,
+    togglePending: inputMutation.isPending,
   };
 }

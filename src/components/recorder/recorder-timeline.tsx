@@ -461,7 +461,7 @@ export function TakeTimelineLane({
     >
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
-          Arm Capture with R, place the playhead, then record
+          Enable input, place the playhead, then record
         </div>
       )}
       <div className="pointer-events-none absolute inset-0">

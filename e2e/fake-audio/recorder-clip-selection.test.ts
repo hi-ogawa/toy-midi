@@ -3,7 +3,7 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
   createRecorderProject,
-  enableAndArmCapture,
+  enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -16,7 +16,7 @@ test("selects and moves audio and take clips together", async ({ page }) => {
   const audio = page.getByTestId("recorder-clip-audio");
 
   // Record a take away from zero.
-  await enableAndArmCapture(page);
+  await enableInput(page);
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 2);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
