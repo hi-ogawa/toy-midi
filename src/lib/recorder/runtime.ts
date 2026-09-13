@@ -348,9 +348,6 @@ export class RecorderRuntime {
   }
 
   moveClips(updates: readonly RecorderClipMove[]): void {
-    if (updates.length === 0) {
-      return;
-    }
     const state = this.store.get();
     const offsets = new Map(
       updates.flatMap((update) =>
@@ -359,20 +356,9 @@ export class RecorderRuntime {
           : [],
       ),
     );
-    const clipIds = new Set(offsets.keys());
     const referenceOffset = updates.find(
       (update) => update.type === "reference",
     )?.timelineOffset;
-    if (
-      [...clipIds].some(
-        (id) =>
-          ![...state.audioTracks, state.recordingTrack].some((track) =>
-            track.clips.some((clip) => clip.id === id),
-          ),
-      )
-    ) {
-      throw new Error("Recorder clip state is missing.");
-    }
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -418,13 +404,6 @@ export class RecorderRuntime {
 
   trimClip({ id, edge, value }: RecorderClipTrim): void {
     const state = this.store.get();
-    if (
-      ![...state.audioTracks, state.recordingTrack].some((track) =>
-        track.clips.some((clip) => clip.id === id),
-      )
-    ) {
-      throw new Error("Recorder clip state is missing.");
-    }
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -475,24 +454,11 @@ export class RecorderRuntime {
   }
 
   removeClips(clips: readonly RecorderClipId[]): void {
-    if (clips.length === 0) {
-      return;
-    }
     const state = this.store.get();
     const clipIds = new Set(
       clips.flatMap((clip) => (clip.type === "clip" ? [clip.id] : [])),
     );
     const removeReference = clips.some((clip) => clip.type === "reference");
-    if (
-      [...clipIds].some(
-        (id) =>
-          ![...state.audioTracks, state.recordingTrack].some((track) =>
-            track.clips.some((clip) => clip.id === id),
-          ),
-      )
-    ) {
-      throw new Error("Recorder clip state is missing.");
-    }
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
@@ -507,8 +473,11 @@ export class RecorderRuntime {
       removeTrackClips(track),
     );
     const recordingTrack = removeTrackClips(state.recordingTrack);
-    const referenceVideo = removeReference ? undefined : state.referenceVideo;
-    this.store.update({ recordingTrack, audioTracks, referenceVideo });
+    this.store.update({
+      recordingTrack,
+      audioTracks,
+      ...(removeReference ? { referenceVideo: undefined } : {}),
+    });
     if (recordingTrack !== state.recordingTrack) {
       this.syncTakePlayback(recordingTrack.regions);
     }
