@@ -2,9 +2,10 @@ type ShortcutKey = ({ code: string } | { key: string }) & {
   ignoreShift?: boolean;
 };
 
-type ParsedShortcut = ShortcutKey & {
+type ParsedShortcut = ({ code: string } | { key: string }) & {
   modifiers: {
-    shift: boolean;
+    /** Undefined accepts either Shift state. */
+    shift?: boolean;
     alt: boolean;
     ctrl: boolean;
   };
@@ -53,7 +54,7 @@ const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
  * Throws for unknown keys or multiple key tokens.
  */
 export function parseShortcut(shortcut: string): ParsedShortcut {
-  const modifiers = {
+  const modifiers: ParsedShortcut["modifiers"] = {
     shift: false,
     alt: false,
     ctrl: false,
@@ -86,13 +87,19 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
-  const match = CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
+  const match: ShortcutKey =
+    CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
   if (!match) {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
+  const { ignoreShift, ...key } = match;
+  // An explicit Shift modifier overrides the key's default policy.
+  if (ignoreShift && !modifiers.shift) {
+    delete modifiers.shift;
+  }
   return {
-    ...match,
+    ...key,
     modifiers,
   };
 }
@@ -109,9 +116,8 @@ export function matchKeyboardEvent(
   if (e.ctrlKey && e.metaKey) {
     return false;
   }
-  // An explicit Shift modifier overrides the key's default policy.
   if (
-    (!parsed.ignoreShift || parsed.modifiers.shift) &&
+    parsed.modifiers.shift !== undefined &&
     e.shiftKey !== parsed.modifiers.shift
   ) {
     return false;
