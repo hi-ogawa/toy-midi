@@ -110,16 +110,16 @@ export function serializeRecorderRuntimeState(
       return {
         id: track.id,
         height: track.height,
-        eq: track.eq,
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
         clip: clip?.buffer
           ? {
               name: clip.name,
               pcm: serializeAudioBuffer(clip.buffer),
             }
           : undefined,
+        eq: track.eq,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
         timelineOffset: clip?.timelineOffset ?? 0,
         trimStart: clip?.trimStart ?? 0,
         trimEnd: clip?.trimEnd ?? 0,
@@ -192,7 +192,6 @@ export function deserializeRecorderRuntimeState({
               ]
             : [],
         eq: deserializeEq(track.eq),
-
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,

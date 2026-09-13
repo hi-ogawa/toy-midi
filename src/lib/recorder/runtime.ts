@@ -50,14 +50,14 @@ type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 // through recordingTrack rather than looked up by id.
 export interface AudioTrackState {
   id: string;
-  nextTakeNumber: number;
   eq: MultibandEqParameters;
   height: number;
-  clips: AudioClip[];
-  regions: ClipRegion[];
   gain: number;
   muted: boolean;
   soloed: boolean;
+  clips: AudioClip[];
+  regions: ClipRegion[];
+  nextTakeNumber: number;
 }
 
 export interface RecorderLoopRange {
