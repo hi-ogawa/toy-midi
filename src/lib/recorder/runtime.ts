@@ -627,13 +627,13 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const recordingTrack = this.store.get().recordingTrack;
-    this.updateRecordingTrack({
-      recordingTrack: resolveTrackRegions({
-        ...recordingTrack,
-        clips: updateFn(recordingTrack.clips),
-      }),
+    const previousTrack = this.store.get().recordingTrack;
+    const recordingTrack = resolveTrackRegions({
+      ...previousTrack,
+      clips: updateFn(previousTrack.clips),
     });
+    this.store.update({ recordingTrack });
+    this.syncTakePlayback(recordingTrack.regions);
     if (wasPlaying) {
       this.transport.play();
     }
@@ -951,15 +951,17 @@ export class RecorderRuntime {
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls.
-    this.updateRecordingTrack({
+    const recordingTrack = resolveTrackRegions({
+      ...project.recordingTrack,
+      height: clampRecordingTrackHeight(project.recordingTrack.height),
+    });
+    this.store.update({
       ...project,
       audioTracks,
       position: 0,
-      recordingTrack: resolveTrackRegions({
-        ...project.recordingTrack,
-        height: clampRecordingTrackHeight(project.recordingTrack.height),
-      }),
+      recordingTrack,
     });
+    this.syncTakePlayback(recordingTrack.regions);
     this.captureTrack!.channel.setEq(project.recordingTrack.eq);
     this.syncYouTubePlayer();
     this.transport.seek(0);
@@ -1065,40 +1067,34 @@ export class RecorderRuntime {
     );
     takeBuffer.getChannelData(0).set(slice.samples);
     const timelineOffset = pendingRecording.timelineOffset + slice.startOffset;
-    const recordingTrack = this.store.get().recordingTrack;
-    this.updateRecordingTrack({
+    const previousTrack = this.store.get().recordingTrack;
+    const recordingTrack = resolveTrackRegions({
+      ...previousTrack,
+      nextTakeNumber: previousTrack.nextTakeNumber + 1,
+      clips: [
+        ...previousTrack.clips,
+        {
+          ...createAudioClip({
+            id: pendingRecording.id,
+            name: pendingRecording.name,
+            buffer: takeBuffer,
+          }),
+          timelineOffset,
+        },
+      ],
+    });
+    this.store.update({
       captureStatus: "ready",
       pendingRecording: undefined,
       previewClipRegions: undefined,
-      recordingTrack: resolveTrackRegions({
-        ...recordingTrack,
-        nextTakeNumber: recordingTrack.nextTakeNumber + 1,
-        clips: [
-          ...recordingTrack.clips,
-          {
-            ...createAudioClip({
-              id: pendingRecording.id,
-              name: pendingRecording.name,
-              buffer: takeBuffer,
-            }),
-            timelineOffset,
-          },
-        ],
-      }),
+      recordingTrack,
     });
+    this.syncTakePlayback(recordingTrack.regions);
   }
 
   private closeInput(): void {
     this.captureInput?.dispose();
     this.captureInput = undefined;
-  }
-
-  private updateRecordingTrack(
-    update: Partial<RecorderRuntimeState> &
-      Pick<RecorderRuntimeState, "recordingTrack">,
-  ): void {
-    this.store.update(update);
-    this.syncTakePlayback(update.recordingTrack.regions);
   }
 
   private updatePendingRecording(
