@@ -171,7 +171,7 @@ export function RecorderTracksPreview() {
         {!permissionGranted && (
           <button
             className="rounded border border-orange-300/40 bg-orange-300/10 px-2 py-1 text-[11px] font-semibold text-orange-200 hover:bg-orange-300/20"
-            onClick={grantPermission}
+            onClick={() => setInputModalOpen(true)}
           >
             Allow microphone access
           </button>
