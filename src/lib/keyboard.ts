@@ -1,6 +1,7 @@
 type ParsedShortcut = {
   code?: string;
   key?: string;
+  ignoreShift?: boolean;
   modifiers: {
     shift: boolean;
     alt: boolean;
@@ -17,9 +18,12 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
-const SPECIAL_KEYS: Record<string, { code?: string; key: string }> = {
-  "<": { key: "<" },
-  ">": { key: ">" },
+const SPECIAL_KEYS: Record<
+  string,
+  { code?: string; key: string; ignoreShift?: boolean }
+> = {
+  "<": { key: "<", ignoreShift: true },
+  ">": { key: ">", ignoreShift: true },
   Space: { code: "Space", key: " " },
   Escape: { code: "Escape", key: "Escape" },
   Enter: { code: "Enter", key: "Enter" },
@@ -98,10 +102,9 @@ export function matchKeyboardEvent(
   if (e.ctrlKey && e.metaKey) {
     return false;
   }
-  // Literal characters already encode Shift's effect on the active keyboard layout.
-  // An explicit Shift modifier still requires it to be held.
+  // An explicit Shift modifier overrides the key's default policy.
   if (
-    (parsed.code || parsed.modifiers.shift) &&
+    (!parsed.ignoreShift || parsed.modifiers.shift) &&
     e.shiftKey !== parsed.modifiers.shift
   ) {
     return false;
