@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getCaptureInputs,
   requestCaptureAccess,
@@ -19,7 +19,6 @@ export function useRecorderInput({
 }) {
   const active = state.captureStatus !== "disabled";
   const [isSetupOpen, setIsSetupOpen] = useState(false);
-  const startAfterGrant = useRef(false);
   const [preference, setPreference] = useState(() =>
     recorderStorage.readPreferences(),
   );
@@ -35,7 +34,6 @@ export function useRecorderInput({
       ? preference.input?.deviceId
       : nextDevices[0]?.deviceId;
     selectDevice(nextDeviceId, { remember: false });
-    return nextDeviceId;
   }
 
   function selectDevice(
@@ -59,13 +57,10 @@ export function useRecorderInput({
   }
 
   function openSetup() {
-    startAfterGrant.current = false;
     setIsSetupOpen(true);
   }
 
   function closeSetup() {
-    // Closing setup cancels R's continuation even if the browser prompt is open.
-    startAfterGrant.current = false;
     setIsSetupOpen(false);
   }
 
@@ -78,42 +73,22 @@ export function useRecorderInput({
 
   const inputMutation = useMutation({
     mutationFn: async (action: "grant" | "start") => {
-      let nextDeviceId = deviceId;
       if (action === "grant") {
         await requestCaptureAccess();
-        // Use the refreshed device directly because React has not necessarily
-        // rendered the new selection before R's continuation runs.
-        nextDeviceId = await refresh();
-        if (!startAfterGrant.current) {
-          setIsSetupOpen(false);
-          return;
-        }
-      }
-      if (!nextDeviceId) {
-        throw new Error("Choose an audio input before enabling capture.");
-      }
-      const { channelCount } = await runtime.startInput({
-        deviceId: nextDeviceId,
-      });
-      if (action === "grant" && !startAfterGrant.current) {
-        runtime.stopInput();
+        await refresh();
+        setIsSetupOpen(false);
         return;
       }
+      if (!deviceId) {
+        throw new Error("Choose an audio input before enabling capture.");
+      }
+      const { channelCount } = await runtime.startInput({ deviceId });
       runtime.selectChannel(
         Math.min(preference.input?.channel ?? 0, channelCount - 1),
       );
       runtime.setLatencyCompensation(
         preference.input?.latencyCompensation ?? 0,
       );
-      startAfterGrant.current = false;
-      if (action === "grant") {
-        setIsSetupOpen(false);
-      }
-    },
-    onError: (_error, action) => {
-      if (action === "start") {
-        setIsSetupOpen(true);
-      }
     },
   });
 
@@ -182,13 +157,8 @@ export function useRecorderInput({
     toggle: () => {
       if (active) {
         stop();
-      } else if (!hasAccess) {
-        startAfterGrant.current = true;
-        setIsSetupOpen(true);
-      } else if (selectedDevice) {
+      } else if (hasAccess && selectedDevice) {
         inputMutation.mutate("start");
-      } else {
-        openSetup();
       }
     },
     togglePending: inputMutation.isPending,

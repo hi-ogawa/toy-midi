@@ -196,6 +196,12 @@ export function CaptureTrackRow({
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
+  const inputToggleTitle =
+    !inputActive && routeNeedsSetup
+      ? `${route}. Configure input first.`
+      : inputActive
+        ? "Disarm capture"
+        : "Arm capture";
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
@@ -212,21 +218,23 @@ export function CaptureTrackRow({
           Capture
         </div>
         <div className="flex self-center gap-1">
-          <Button
-            data-testid="recorder-input-toggle"
-            disabled={inputToggleDisabled}
-            onClick={onInputToggle}
-            className={
-              inputActive
-                ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
-                : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
-            }
-            title={inputActive ? "Disarm capture" : "Arm capture"}
-            aria-label={inputActive ? "Disarm capture" : "Arm capture"}
-            aria-pressed={inputActive}
-          >
-            R
-          </Button>
+          <span title={inputToggleTitle} className="inline-flex">
+            <Button
+              data-testid="recorder-input-toggle"
+              disabled={inputToggleDisabled}
+              onClick={onInputToggle}
+              className={
+                inputActive
+                  ? "size-7 border-neutral-600 bg-red-500/35 text-xs font-semibold text-neutral-300 hover:!bg-red-500/40 hover:!text-red-300"
+                  : "size-7 border-neutral-600 text-xs font-semibold text-neutral-300 hover:bg-neutral-700"
+              }
+              title={inputToggleTitle}
+              aria-label={inputActive ? "Disarm capture" : "Arm capture"}
+              aria-pressed={inputActive}
+            >
+              R
+            </Button>
+          </span>
           <RecorderMixToggle
             active={muted}
             kind="mute"

@@ -449,6 +449,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputAnalyser={runtime.captureInput?.analyser}
               inputMonitoring={state.inputMonitoring}
               inputToggleDisabled={
+                !input.initialized ||
+                (!input.active && input.route.needsSetup) ||
                 input.mutationPending ||
                 flags.isRecording ||
                 recordMutation.isPending

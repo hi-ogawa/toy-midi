@@ -26,6 +26,14 @@ test("header permission setup leaves input closed and R opens the selected devic
   const record = page.getByTestId("recorder-record-button");
   const setup = page.getByTestId("recorder-input-setup");
 
+  // Keep R disabled with a setup hint until microphone access is granted.
+  await expect(inputToggle).toBeDisabled();
+  await expect(inputToggle).toHaveAttribute(
+    "title",
+    "Microphone access required. Configure input first.",
+  );
+  await expect(setup).toHaveCount(0);
+
   // Grant permission from the header without enabling Capture.
   await page
     .getByRole("button", { name: "Allow microphone access", exact: true })
@@ -82,7 +90,7 @@ test("header permission setup leaves input closed and R opens the selected devic
   await expect(inputToggle).toBeEnabled();
 });
 
-test("R continues opening input after permission succeeds, including a retry", async ({
+test("permission retry leaves input closed until R is clicked", async ({
   page,
 }) => {
   // Deny the first permission request, then allow real fake-device setup on retry.
@@ -109,8 +117,11 @@ test("R continues opening input after permission succeeds, including a retry", a
   const record = page.getByTestId("recorder-record-button");
   const setup = page.getByTestId("recorder-input-setup");
 
-  // R opens the same setup modal and displays denial without enabling recording.
-  await inputToggle.click();
+  // Open setup from the header and report denied access without enabling R.
+  await expect(inputToggle).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Allow microphone access", exact: true })
+    .click();
   await setup
     .getByRole("button", { name: "Allow microphone access", exact: true })
     .click();
@@ -120,69 +131,20 @@ test("R continues opening input after permission succeeds, including a retry", a
   await expect(inputToggle).toHaveAttribute("aria-pressed", "false");
   await expect(record).toBeDisabled();
 
-  // Retry and continue R's original action using the newly discovered device.
+  // Retry permission without opening input automatically.
   await setup
     .getByRole("button", { name: "Allow microphone access", exact: true })
     .click();
   await expect(setup).toHaveCount(0);
+  await expect(inputToggle).toBeEnabled();
+  await expect(inputToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(record).toBeDisabled();
+
+  // Open the input explicitly with R after permission is available.
+  await inputToggle.click();
   await expect(inputToggle).toHaveAttribute("aria-pressed", "true");
   await expect(record).toBeEnabled();
   await expect(
     page.getByText("Fake Default Audio Input · Channel 1"),
   ).toBeVisible();
-});
-
-test("closing setup cancels R's continuation while permission is pending", async ({
-  page,
-}) => {
-  // Hold the permission request so setup can be closed before it resolves.
-  await page.addInitScript(() => {
-    const media = navigator.mediaDevices;
-    const enumerateDevices = media.enumerateDevices.bind(media);
-    const getUserMedia = media.getUserMedia.bind(media);
-    let access = false;
-    let requests = 0;
-    media.enumerateDevices = () =>
-      access ? enumerateDevices() : Promise.resolve([]);
-    media.getUserMedia = async (constraints) => {
-      document.documentElement.dataset.inputRequests = String(++requests);
-      await new Promise<void>((resolve) =>
-        document.addEventListener("resolve-permission", () => resolve(), {
-          once: true,
-        }),
-      );
-      const stream = await getUserMedia(constraints);
-      access = true;
-      return stream;
-    };
-  });
-  await createRecorderProject(page);
-  const setup = page.getByTestId("recorder-input-setup");
-  await page.getByTestId("recorder-input-toggle").click();
-  await setup
-    .getByRole("button", { name: "Allow microphone access", exact: true })
-    .click();
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-input-requests",
-    "1",
-  );
-
-  // Dismiss setup, then grant permission without opening a capture stream afterward.
-  await page.keyboard.press("Escape");
-  await page.evaluate(() =>
-    document.dispatchEvent(new Event("resolve-permission")),
-  );
-  await expect(
-    page.getByRole("button", { name: "Allow microphone access", exact: true }),
-  ).toHaveCount(0);
-  await expect(setup).toHaveCount(0);
-  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  await expect(page.getByTestId("recorder-record-button")).toBeDisabled();
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-input-requests",
-    "1",
-  );
 });
