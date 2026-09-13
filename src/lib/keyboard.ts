@@ -1,8 +1,10 @@
-type ShortcutKey = ({ code: string } | { key: string }) & {
+type ShortcutKey = {
+  code?: string;
+  key?: string;
   ignoreShift?: boolean;
 };
 
-type ParsedShortcut = ({ code: string } | { key: string }) & {
+type ParsedShortcut = ShortcutKey & {
   modifiers: {
     /** Undefined accepts either Shift state. */
     shift?: boolean;
@@ -126,9 +128,9 @@ export function matchKeyboardEvent(
     return false;
   }
 
-  return "code" in parsed
+  return parsed.code !== undefined
     ? e.code === parsed.code
-    : e.key.toLowerCase() === parsed.key.toLowerCase();
+    : e.key.toLowerCase() === parsed.key?.toLowerCase();
 }
 
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
