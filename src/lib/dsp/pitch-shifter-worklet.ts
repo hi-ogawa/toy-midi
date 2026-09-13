@@ -24,9 +24,16 @@ declare function registerProcessor(
 class PitchShifterProcessor extends AudioWorkletProcessor {
   private readonly shifter: StreamingPitchShifter;
   private readonly silence: Float32Array[];
+  private disposed = false;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
+    this.port.onmessage = (event: MessageEvent<{ type: "dispose" }>) => {
+      if (event.data.type === "dispose") {
+        this.disposed = true;
+        this.port.close();
+      }
+    };
     const { channelCount, pitchRatio } = options!
       .processorOptions as ProcessorOptions;
     this.silence = Array.from(
@@ -44,6 +51,9 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.disposed) {
+      return false;
+    }
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (output.length === 0) {

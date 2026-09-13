@@ -109,6 +109,8 @@ class PitchShiftBus implements TransportParticipant {
 
   stop(): void {
     this.input.disconnect();
+    // Disconnecting alone leaves the processor running on the audio thread.
+    this.pitchShifter?.port.postMessage({ type: "dispose" });
     this.pitchShifter?.disconnect();
     this.pitchShifter = undefined;
   }
