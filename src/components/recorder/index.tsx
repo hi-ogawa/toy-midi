@@ -19,7 +19,7 @@ import { RecorderHelp } from "./help";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
-import { RecorderHeader } from "./recorder-header";
+import { PLAYBACK_RATES, RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
@@ -178,6 +178,30 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    // Match the characters so keyboard layouts can choose how to type < and >.
+    if (
+      (event.key === "<" || event.key === ">") &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.isComposing
+    ) {
+      if (flags.isRecording || isInputSetupOpen) {
+        return;
+      }
+      event.preventDefault();
+      const rates =
+        event.key === ">" ? PLAYBACK_RATES : [...PLAYBACK_RATES].reverse();
+      const rate = rates.find((rate) =>
+        event.key === ">"
+          ? rate > state.playbackRate
+          : rate < state.playbackRate,
+      );
+      if (rate !== undefined) {
+        runtime.setPlaybackRate(rate);
+      }
       return;
     }
     if (matchKeyboardEvent(event, "L")) {

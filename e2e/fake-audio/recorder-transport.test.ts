@@ -103,3 +103,58 @@ for (const playbackRate of [0.5, 1.5]) {
     expect(observedRate).toBeCloseTo(playbackRate, 1);
   });
 }
+
+test("steps playback speed with angle brackets", async ({ page }) => {
+  // Open a recorder and step through the same rates as the dropdown, stopping at each end.
+  await createRecorderProject(page);
+  const rate = page.getByTestId("recorder-playback-rate");
+  for (const expected of [1.25, 1.5, 1.5]) {
+    await page.keyboard.press("Shift+>");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+  for (const expected of [1.25, 1, 0.75, 0.5, 0.5]) {
+    await page.keyboard.press("Shift+<");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+
+  // Keep ordinary punctuation, modified shortcuts, and key repeats from changing speed.
+  await page.keyboard.press(".");
+  await page.keyboard.press(",");
+  await page.keyboard.press("Control+Shift+>");
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: ">", shiftKey: true, repeat: true }),
+    ),
+  );
+  await expect(rate).toHaveText("0.5x");
+
+  // Type in the tempo field and use help without changing the underlying transport speed.
+  const tempo = page.getByTestId("recorder-tempo-input");
+  await tempo.focus();
+  await page.keyboard.press("Shift+>");
+  await expect(rate).toHaveText("0.5x");
+  await page.keyboard.press("Escape");
+  await tempo.blur();
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Help & Shortcuts" }).click();
+  await page.keyboard.press("Shift+>");
+  await expect(rate).toHaveText("0.5x");
+  await page.keyboard.press("Escape");
+
+  // Change speed while playing and keep playback running.
+  const play = page.getByTestId("recorder-play-button");
+  await play.click();
+  await page.keyboard.press("Shift+>");
+  await expect(rate).toHaveText("0.75x");
+  await expect(play).toHaveAttribute("aria-pressed", "true");
+  await play.click();
+
+  // Start recording and preserve its fixed transport speed.
+  await enableInput(page);
+  const record = page.getByTestId("recorder-record-button");
+  await record.click();
+  await expect(record).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Shift+>");
+  await expect(rate).toHaveText("0.75x");
+  await record.click();
+});
