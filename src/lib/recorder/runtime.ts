@@ -389,7 +389,7 @@ export class RecorderRuntime {
           ),
       });
     }
-    const audioTracks = state.audioTracks.map(moveTrackClips);
+    const audioTracks = state.audioTracks.map((track) => moveTrackClips(track));
     const recordingTrack = moveTrackClips(state.recordingTrack);
     const referenceVideo = state.referenceVideo
       ? {
@@ -460,7 +460,7 @@ export class RecorderRuntime {
           ),
       });
     }
-    const audioTracks = state.audioTracks.map(trimTrackClips);
+    const audioTracks = state.audioTracks.map((track) => trimTrackClips(track));
     const recordingTrack = trimTrackClips(state.recordingTrack);
     this.store.update({ recordingTrack, audioTracks });
     if (recordingTrack !== state.recordingTrack) {
@@ -506,7 +506,9 @@ export class RecorderRuntime {
         update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
       });
     }
-    const audioTracks = state.audioTracks.map(removeTrackClips);
+    const audioTracks = state.audioTracks.map((track) =>
+      removeTrackClips(track),
+    );
     const recordingTrack = removeTrackClips(state.recordingTrack);
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
     this.store.update({ recordingTrack, audioTracks, referenceVideo });
