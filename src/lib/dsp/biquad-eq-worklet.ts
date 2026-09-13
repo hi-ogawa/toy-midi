@@ -22,6 +22,18 @@ declare function registerProcessor(
 ): void;
 
 class BiquadEqProcessor extends AudioWorkletProcessor {
+  static get parameterDescriptors() {
+    return [
+      {
+        name: "disposed",
+        defaultValue: 0,
+        minValue: 0,
+        maxValue: 1,
+        automationRate: "k-rate",
+      },
+    ];
+  }
+
   private readonly eq: MultibandEq;
 
   constructor(options?: AudioWorkletNodeOptions) {
@@ -34,7 +46,14 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     };
   }
 
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+  process(
+    inputs: Float32Array[][],
+    outputs: Float32Array[][],
+    parameters: Record<string, Float32Array>,
+  ): boolean {
+    if (parameters.disposed[0] >= 0.5) {
+      return false;
+    }
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (input.length === 0 || output.length === 0) {
