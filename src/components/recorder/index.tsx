@@ -506,12 +506,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
-            <TakesDisclosureRow
-              expanded={takesExpanded}
-              takeCount={takes.length}
-              onExpandedChange={setTakesExpanded}
-            />
-            {takesExpanded &&
+            {takes.length > 0 && (
+              <TakesDisclosureRow
+                expanded={takesExpanded}
+                takeCount={takes.length}
+                onExpandedChange={setTakesExpanded}
+              />
+            )}
+            {takes.length > 0 &&
+              takesExpanded &&
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}

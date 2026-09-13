@@ -29,8 +29,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const recordButton = page.getByTestId("recorder-record-button");
   const playButton = page.getByTestId("recorder-play-button");
   const takesToggle = page.getByTestId("recorder-takes-toggle");
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(takesToggle).toContainText("0");
+  await expect(takesToggle).toHaveCount(0);
   await recordButton.click();
   await expect(monitorButton).toHaveAttribute("aria-pressed", "true");
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");
@@ -155,6 +154,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await take.nth(0).click();
   await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
+  await expect(takesToggle).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
 });
