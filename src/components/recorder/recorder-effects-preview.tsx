@@ -36,7 +36,7 @@ export function RecorderEffectsPreview() {
   return (
     <div
       data-testid="recorder-effects-panel"
-      className="w-96 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl"
+      className="h-128 w-96 overflow-auto rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3 shadow-2xl"
     >
       <RecorderEffectsContent eq={eq} onChange={setEq} />
     </div>
