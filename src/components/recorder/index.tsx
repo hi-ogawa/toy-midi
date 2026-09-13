@@ -280,6 +280,8 @@ export function Recorder({ projectId }: { projectId: string }) {
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
+        inputAccessRequired={input.initialized && !input.hasAccess}
+        onInputSetup={() => setIsInputSetupOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">

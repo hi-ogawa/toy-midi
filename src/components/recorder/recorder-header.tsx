@@ -86,6 +86,8 @@ export function RecorderHeader({
   onReferenceVideoOpenChange,
   onMixerToggle,
   onHelpOpen,
+  inputAccessRequired,
+  onInputSetup,
   mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -123,6 +125,8 @@ export function RecorderHeader({
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   onHelpOpen: () => void;
+  inputAccessRequired: boolean;
+  onInputSetup: () => void;
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -138,7 +142,7 @@ export function RecorderHeader({
     onTempoChange,
   });
   return (
-    <header className="flex h-[53px] shrink-0 items-center gap-2 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
+    <header className="flex h-[53px] shrink-0 items-center gap-1 border-b border-neutral-700 bg-neutral-800 px-4 shadow-sm">
       <Mic2Icon className="size-4 text-emerald-400" />
       <span className="mr-2 text-sm font-medium">Recorder</span>
       <div className="h-5 w-px bg-neutral-600" />
@@ -337,6 +341,14 @@ export function RecorderHeader({
         </span>
       </label>
       <div className="flex-1" />
+      {inputAccessRequired && (
+        <Button
+          onClick={onInputSetup}
+          className="border-orange-300/40 bg-orange-300/10 px-2 py-1.5 text-xs leading-tight text-orange-200 hover:bg-orange-300/20"
+        >
+          Allow microphone access
+        </Button>
+      )}
       <RecorderSaveButton status={saveStatus} onSave={onSave} />
       <button
         type="button"
@@ -398,6 +410,10 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onInputSetup}>
+            <Mic2Icon />
+            Configure input…
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
             Help & Shortcuts
