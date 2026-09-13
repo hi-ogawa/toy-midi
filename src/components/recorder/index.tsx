@@ -287,7 +287,6 @@ export function Recorder({ projectId }: { projectId: string }) {
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
         inputAccessRequired={input.initialized && !input.hasAccess}
-        inputPending={input.mutationPending}
         onInputSetup={input.openSetup}
       />
 

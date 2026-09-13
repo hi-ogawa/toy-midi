@@ -87,7 +87,6 @@ export function RecorderHeader({
   onMixerToggle,
   onHelpOpen,
   inputAccessRequired,
-  inputPending,
   onInputSetup,
   mixerOpen,
 }: {
@@ -127,7 +126,6 @@ export function RecorderHeader({
   onMixerToggle: () => void;
   onHelpOpen: () => void;
   inputAccessRequired: boolean;
-  inputPending: boolean;
   onInputSetup: () => void;
   mixerOpen: boolean;
 }) {
@@ -345,7 +343,6 @@ export function RecorderHeader({
       <div className="flex-1" />
       {inputAccessRequired && (
         <Button
-          disabled={inputPending}
           onClick={onInputSetup}
           className="border-orange-300/40 bg-orange-300/10 px-2 py-1.5 text-xs leading-tight text-orange-200 hover:bg-orange-300/20"
         >
@@ -413,7 +410,7 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem disabled={inputPending} onSelect={onInputSetup}>
+          <DropdownMenuItem onSelect={onInputSetup}>
             <Mic2Icon />
             Configure input…
           </DropdownMenuItem>
