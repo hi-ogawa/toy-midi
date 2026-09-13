@@ -45,7 +45,6 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
     });
   }
 
-  // PitchShiftBus disposes each stopped run and creates a new node on start.
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     if (this.isDisposed()) {
       return false;

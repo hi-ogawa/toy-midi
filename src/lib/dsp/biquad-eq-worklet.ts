@@ -36,7 +36,6 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     };
   }
 
-  // AudioChannel keeps this EQ through pauses and disposes it with the channel.
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     if (this.isDisposed()) {
       return false;
