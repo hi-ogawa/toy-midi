@@ -181,7 +181,12 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    if (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) {
+    if (
+      (event.key === "<" || event.key === ">") &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
       if (flags.isRecording) {
         return;
       }
