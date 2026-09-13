@@ -469,6 +469,10 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
+                onResetTakeMix={(id) => {
+                  runtime.setClipMuted({ id, muted: false });
+                  runtime.setClipSoloed({ id, soloed: false });
+                }}
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
@@ -506,12 +510,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
-            <TakesDisclosureRow
-              expanded={takesExpanded}
-              takeCount={takes.length}
-              onExpandedChange={setTakesExpanded}
-            />
-            {takesExpanded &&
+            {takes.length >= 2 && (
+              <TakesDisclosureRow
+                expanded={takesExpanded}
+                takeCount={takes.length}
+                onExpandedChange={setTakesExpanded}
+              />
+            )}
+            {takes.length >= 2 &&
+              takesExpanded &&
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
