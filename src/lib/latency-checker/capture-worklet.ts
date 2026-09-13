@@ -82,6 +82,7 @@ export class CaptureWorkletClient {
       pending.reject(error);
     }
     this.pendingActiveChanges.clear();
+    this.node.port.close();
     this.node.disconnect();
   }
 
