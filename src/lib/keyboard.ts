@@ -18,6 +18,12 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
+/**
+ * `code` matches a physical key and takes precedence over `key`.
+ * Without `code`, `key` matches the character produced by the keyboard layout.
+ * `ignoreShift` allows either Shift state for that key, while an explicit
+ * `Shift+` in the shortcut still requires Shift to be held.
+ */
 const SPECIAL_KEYS: Record<
   string,
   { code?: string; key: string; ignoreShift?: boolean }
