@@ -418,16 +418,19 @@ export class RecorderRuntime {
 
   trimClip({ id, edge, value }: RecorderClipTrim): void {
     const state = this.store.get();
-    if (state.recordingTrack.clips.some((clip) => clip.id === id)) {
-      if (edge === "start") {
-        this.setTakeTrimStart(id, value);
-      } else {
-        this.setTakeTrimEnd(id, value);
-      }
-      return;
+    if (
+      ![...state.audioTracks, state.recordingTrack].some((track) =>
+        track.clips.some((clip) => clip.id === id),
+      )
+    ) {
+      throw new Error("Recorder clip state is missing.");
+    }
+    const wasPlaying = state.isPlaying;
+    if (wasPlaying) {
+      this.pause();
     }
     const clipIds = new Set([id]);
-    const audioTracks = state.audioTracks.map((track) =>
+    const trimTrackClips = (track: AudioTrackState) =>
       updateTrackClips({
         track,
         clipIds,
@@ -454,17 +457,20 @@ export class RecorderRuntime {
                 }
               : clip,
           ),
-      }),
-    );
-    const audioTracksToSync = audioTracks.filter(
-      (track, index) => track !== state.audioTracks[index],
-    );
-    if (audioTracksToSync.length === 0) {
-      throw new Error("Recorder clip state is missing.");
+      });
+    const audioTracks = state.audioTracks.map(trimTrackClips);
+    const recordingTrack = trimTrackClips(state.recordingTrack);
+    this.store.update({ recordingTrack, audioTracks });
+    if (recordingTrack !== state.recordingTrack) {
+      this.syncTakePlayback(recordingTrack.regions);
     }
-    this.store.update({ audioTracks });
-    for (const track of audioTracksToSync) {
-      this.syncAudioTrackPlayback(track);
+    for (const [index, track] of audioTracks.entries()) {
+      if (track !== state.audioTracks[index]) {
+        this.syncAudioTrackPlayback(track);
+      }
+    }
+    if (wasPlaying) {
+      this.transport.play();
     }
   }
 
@@ -627,24 +633,6 @@ export class RecorderRuntime {
 
   setTakeSoloed(id: string, soloed: boolean): void {
     this.updateTake(id, (take) => ({ ...take, soloed }));
-  }
-
-  private setTakeTrimStart(id: string, trimStart: number): void {
-    this.updateTake(id, (take) => ({
-      ...take,
-      trimStart: clamp(trimStart, 0, take.trimEnd - MIN_TAKE_DURATION),
-    }));
-  }
-
-  private setTakeTrimEnd(id: string, trimEnd: number): void {
-    this.updateTake(id, (take) => ({
-      ...take,
-      trimEnd: clamp(
-        trimEnd,
-        take.trimStart + MIN_TAKE_DURATION,
-        take.duration,
-      ),
-    }));
   }
 
   private updateTake(
