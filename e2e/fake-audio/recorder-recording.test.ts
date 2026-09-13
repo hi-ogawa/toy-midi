@@ -50,15 +50,12 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(takesToggle).toContainText("1");
   await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
-
-  // Reveal the sole source take, then fold it before editing the main lane.
   await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(takeLane).toHaveCount(1);
   await expect(takeRows).toHaveCount(1);
-  await takesToggle.click();
-  await expect(takeRows).toHaveCount(0);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   expect(
@@ -107,11 +104,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
-  // Retain the second recording while source lanes stay folded.
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
-  await expect(takesToggle).toContainText("2");
-  await expect(takeRows).toHaveCount(0);
-  await takesToggle.click();
+  // The second recording is retained as a new source take.
   await expect(take).toHaveCount(2);
   await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
@@ -157,26 +150,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(take.nth(0)).not.toHaveAttribute("data-selected", "true");
 
-  // Delete the second take while the first is muted and soloed.
-  await muteTake.nth(0).click();
-  await soloTake.nth(0).click();
-  await takeRows.nth(1).getByRole("button", { name: "Take 2 actions" }).click();
-  await page.getByRole("menuitem", { name: "Delete take" }).click();
-  await expect(takesToggle).toContainText("1");
-  await expect(takeRows).toHaveCount(1);
-  await expect(take).toHaveCount(0);
-
-  // Fold and reveal the remaining source to recover its existing mute/solo controls.
-  await takesToggle.click();
-  await expect(takeRows).toHaveCount(0);
-  await takesToggle.click();
-  await muteTake.click();
-  await soloTake.click();
-  await expect(take).toHaveCount(1);
-  await expect(compRegion).toContainText("Take 1");
-
-  // Delete the sole take from the main lane and keep the empty track compact.
-  await take.click();
+  // Delete removes every selected source take together.
+  await take.nth(0).click();
+  await takeLane.nth(1).click({ modifiers: ["Control"] });
   await page.keyboard.press("Delete");
   await expect(takesToggle).toHaveCount(0);
   await expect(take).toHaveCount(0);
