@@ -172,4 +172,15 @@ test("resizes an effects panel", async ({ page }) => {
   const resized = (await panel.boundingBox())!;
   expect(resized.width).toBeCloseTo(initial.width + 100, 0);
   expect(resized.height).toBeCloseTo(initial.height + 100, 0);
+
+  // Shorten the panel and check that the graph shrinks with it.
+  const graph = panel.getByTestId("eq-response-graph");
+  const before = (await graph.boundingBox())!;
+  await dragBy(
+    page,
+    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    0,
+    { deltaY: 150 },
+  );
+  expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
 });

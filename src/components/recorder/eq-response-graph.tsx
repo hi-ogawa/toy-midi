@@ -102,7 +102,7 @@ export function EqResponseGraph({
     <div
       data-testid="eq-response-graph"
       aria-label="Multiband EQ response graph"
-      className="grid aspect-[8/5] min-h-[180px] w-full flex-1 grid-cols-[34px_1fr] grid-rows-[1fr_22px] rounded border border-neutral-700 bg-neutral-900 pt-2 pr-2 text-[9px] text-neutral-500 select-none"
+      className="grid aspect-[8/5] min-h-[100px] w-full flex-auto grid-cols-[34px_1fr] grid-rows-[1fr_22px] rounded border border-neutral-700 bg-neutral-900 pt-2 pr-2 text-[9px] text-neutral-500 select-none"
     >
       <div className="relative">
         {GAIN_TICKS.map((gainDb) => (

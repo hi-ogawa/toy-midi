@@ -57,11 +57,17 @@ export function RecorderEffects({
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState(() =>
-    clampEffectsSize({ width: 384, height: 440 }),
-  );
+  const [size, setSize] = useState<{ width: number; height?: number }>({
+    width: 384,
+  });
   const resizeHandleRef = usePointerDrag({
-    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
+    onStart: (event) => ({
+      x: event.clientX,
+      y: event.clientY,
+      size: (event.currentTarget as HTMLElement)
+        .closest("section")!
+        .getBoundingClientRect(),
+    }),
     onMove: (event, drag) => {
       setSize(
         clampEffectsSize({
@@ -78,7 +84,7 @@ export function RecorderEffects({
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
       data-testid="recorder-effects-panel"
-      className="pointer-events-auto relative flex shrink-0 flex-col"
+      className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
       contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
       style={size}
     >
@@ -159,8 +165,8 @@ export function RecorderEffectsContent({
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 [&>*]:shrink-0">
-      <div className="flex items-center gap-2">
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex shrink-0 items-center gap-2">
         <h3 className="mr-auto text-sm font-medium">Parametric EQ</h3>
         <label className="flex items-center gap-1.5 text-xs">
           <input
@@ -192,7 +198,7 @@ export function RecorderEffectsContent({
         onBandChange={updateBand}
       />
 
-      <div className="flex min-w-0 gap-1 overflow-x-auto pb-1">
+      <div className="flex min-w-0 shrink-0 gap-1 overflow-x-auto pb-1">
         {eq.bands.map((band, index) => {
           const selected = band.id === selectedBand?.id;
           return (
@@ -223,7 +229,7 @@ export function RecorderEffectsContent({
       </div>
 
       {selectedBand && (
-        <div className="space-y-4 border-t border-neutral-700 pt-4">
+        <div className="shrink-0 space-y-4 border-t border-neutral-700 pt-4">
           <div className="flex items-center gap-2">
             <span
               className="size-2.5 rounded-full"
