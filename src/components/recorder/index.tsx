@@ -369,17 +369,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 soloed={track.soloed}
                 effectsOpen={effects.openEffects.has(track.id)}
                 onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onGainChange={(gain) =>
-                  runtime.setAudioTrackMix(track.id, { gain })
-                }
+                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
                 onMutedChange={(muted) =>
-                  runtime.setAudioTrackMix(track.id, { muted })
+                  runtime.setTrackMix(track.id, { muted })
                 }
                 onSoloedChange={(soloed) =>
-                  runtime.setAudioTrackMix(track.id, { soloed })
+                  runtime.setTrackMix(track.id, { soloed })
                 }
                 onHeightChange={(height) =>
-                  runtime.setAudioTrackHeight(track.id, height)
+                  runtime.setTrackHeight(track.id, height)
                 }
                 action={
                   <AudioTrackActions
@@ -451,18 +449,22 @@ export function Recorder({ projectId }: { projectId: string }) {
               soloed={state.recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
               onEffectsToggle={() => effects.toggleEffects("capture")}
-              onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
+              onGainChange={(gain) =>
+                runtime.setTrackMix(state.recordingTrack.id, { gain })
+              }
               onInputSetup={() => setIsInputSetupOpen(true)}
               onInputMonitoringChange={(monitoring) =>
                 runtime.setInputMonitoring(monitoring)
               }
               onInputToggle={input.toggle}
-              onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
+              onMutedChange={(muted) =>
+                runtime.setTrackMix(state.recordingTrack.id, { muted })
+              }
               onSoloedChange={(soloed) =>
-                runtime.setRecordingTrackMix({ soloed })
+                runtime.setTrackMix(state.recordingTrack.id, { soloed })
               }
               onHeightChange={(height) =>
-                runtime.setRecordingTrackHeight(height)
+                runtime.setTrackHeight(state.recordingTrack.id, height)
               }
             >
               <TakeTimelineLane
@@ -517,10 +519,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>
-                    runtime.setTakeMuted(take.id, muted)
+                    runtime.setClipMuted({ id: take.id, muted })
                   }
                   onSoloedChange={(soloed) =>
-                    runtime.setTakeSoloed(take.id, soloed)
+                    runtime.setClipSoloed({ id: take.id, soloed })
                   }
                   onDelete={() =>
                     runtime.removeClips([{ type: "clip", id: take.id }])
@@ -633,9 +635,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     key={track.id}
                     label={`Audio ${index + 1}`}
                     eq={track.eq}
-                    onChange={(eq) =>
-                      runtime.setAudioTrackEq({ id: track.id, eq })
-                    }
+                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
                     onClose={() => effects.closeEffects(track.id)}
                   />
                 ),
@@ -644,7 +644,9 @@ export function Recorder({ projectId }: { projectId: string }) {
               <RecorderEffects
                 label="Capture"
                 eq={state.recordingTrack.eq}
-                onChange={(update) => runtime.setRecordingTrackEq(update)}
+                onChange={(eq) =>
+                  runtime.setTrackEq({ id: state.recordingTrack.id, eq })
+                }
                 onClose={() => effects.closeEffects("capture")}
               />
             )}

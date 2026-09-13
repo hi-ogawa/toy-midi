@@ -49,13 +49,9 @@ export function RecorderMixer({
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
-          onGainChange={(gain) => runtime.setAudioTrackMix(track.id, { gain })}
-          onMutedChange={(muted) =>
-            runtime.setAudioTrackMix(track.id, { muted })
-          }
-          onSoloedChange={(soloed) =>
-            runtime.setAudioTrackMix(track.id, { soloed })
-          }
+          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         />
       ))}
       <RecorderTrackChannel
@@ -66,9 +62,15 @@ export function RecorderMixer({
         muted={state.recordingTrack.muted}
         soloed={state.recordingTrack.soloed}
         icon={<Mic2Icon className="size-4 text-muted-foreground" />}
-        onGainChange={(gain) => runtime.setRecordingTrackMix({ gain })}
-        onMutedChange={(muted) => runtime.setRecordingTrackMix({ muted })}
-        onSoloedChange={(soloed) => runtime.setRecordingTrackMix({ soloed })}
+        onGainChange={(gain) =>
+          runtime.setTrackMix(state.recordingTrack.id, { gain })
+        }
+        onMutedChange={(muted) =>
+          runtime.setTrackMix(state.recordingTrack.id, { muted })
+        }
+        onSoloedChange={(soloed) =>
+          runtime.setTrackMix(state.recordingTrack.id, { soloed })
+        }
       />
       <MixerChannel
         icon={<MetronomeIcon className="size-4 text-muted-foreground" />}
