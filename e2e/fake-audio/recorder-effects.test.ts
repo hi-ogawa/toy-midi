@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { addRecorderAudio, createRecorderProject } from "./recorder-helpers";
+import {
+  addRecorderAudio,
+  createRecorderProject,
+  dragBy,
+} from "./recorder-helpers";
 
 test("edits and persists independent Audio and Capture EQ settings", async ({
   page,
@@ -146,4 +150,37 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(page.getByTestId("recorder-effects-panel")).toHaveCount(0);
   await mixer.getByRole("button", { name: "Close Mixer", exact: true }).click();
   await expect(mixer).toHaveCount(0);
+});
+
+test("resizes an effects panel", async ({ page }) => {
+  // Open Capture effects with room to grow the panel.
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await createRecorderProject(page);
+  await page
+    .getByRole("button", { name: "Capture effects", exact: true })
+    .click();
+  const panel = page.getByTestId("recorder-effects-panel");
+  const initial = (await panel.boundingBox())!;
+
+  // Drag the top-left corner to increase the panel's width and height.
+  await dragBy(
+    page,
+    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    -100,
+    { deltaY: -100 },
+  );
+  const resized = (await panel.boundingBox())!;
+  expect(resized.width).toBeCloseTo(initial.width + 100, 0);
+  expect(resized.height).toBeCloseTo(initial.height + 100, 0);
+
+  // Shorten the panel and check that the graph shrinks with it.
+  const graph = panel.getByTestId("eq-response-graph");
+  const before = (await graph.boundingBox())!;
+  await dragBy(
+    page,
+    panel.getByRole("button", { name: "Resize Capture Effects" }),
+    0,
+    { deltaY: 150 },
+  );
+  expect((await graph.boundingBox())!.height).toBeLessThan(before.height);
 });
