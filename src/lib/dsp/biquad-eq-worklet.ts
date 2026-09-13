@@ -46,15 +46,20 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     };
   }
 
-  // Chromium stops invoking this processor without a true return value.
-  // Keep it alive through pauses so the same EQ can process resumed playback.
+  // Keep returning true through pauses because AudioChannel reuses this EQ.
+  // The spec allows false/undefined to let active inputs determine lifetime,
+  // but our Chromium 151 probe stopped after one callback when the return was
+  // omitted, before any explicit disconnection. Input gaps must not terminate
+  // a processor that the owner still intends to use.
+  // Conversely, disconnecting while returning true leaves the processor active.
+  // On permanent teardown, the owner sets the disposed AudioParam and disconnects
+  // the node, so this callback skips DSP and returns false to release activity.
+  // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
   process(
     inputs: Float32Array[][],
     outputs: Float32Array[][],
     parameters: Record<string, Float32Array>,
   ): boolean {
-    // End forced activity on permanent teardown.
-    // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
     if (parameters.disposed[0] >= 0.5) {
       return false;
     }
