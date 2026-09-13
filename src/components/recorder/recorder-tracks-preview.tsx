@@ -2,6 +2,8 @@ import {
   HeadphonesIcon,
   Mic2Icon,
   PlayIcon,
+  PlusIcon,
+  UploadIcon,
   HouseIcon,
   CircleHelpIcon,
   MoreVerticalIcon,
@@ -166,7 +168,7 @@ export function RecorderTracksPreview() {
               onSelect={() => setInputModalOpen(true)}
             >
               <Mic2Icon />
-              Audio input…
+              Configure input…
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -192,9 +194,32 @@ export function RecorderTracksPreview() {
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-[15rem_1fr] border-b border-neutral-700 text-[10px] text-neutral-500">
-            <div className="px-4 py-2">
-              TRACKS <span className="float-right">MAIN / TAKES</span>
+          <div className="grid h-10 grid-cols-[15rem_1fr] border-b border-neutral-700 bg-neutral-800 text-[10px] text-neutral-500">
+            <div className="flex items-center border-r border-neutral-700 bg-neutral-800 px-3 text-xs font-semibold text-neutral-100">
+              <span className="mr-auto">Tracks</span>
+              <button
+                className="grid size-7 place-items-center hover:bg-neutral-700"
+                title="Add empty audio track"
+                onClick={() =>
+                  setTracks([
+                    ...tracks,
+                    {
+                      id: Math.max(...tracks.map((track) => track.id)) + 1,
+                      name: `Audio ${tracks.length + 1}`,
+                      color: "#60a5fa",
+                      takes: [],
+                    },
+                  ])
+                }
+              >
+                <PlusIcon className="size-3.5" />
+              </button>
+              <button
+                title="Add audio tracks from file"
+                className="grid size-7 place-items-center hover:bg-neutral-700"
+              >
+                <UploadIcon className="size-3.5" />
+              </button>
             </div>
             <div className="flex justify-between px-2 py-2 font-mono">
               {[1, 3, 5, 7, 9, 11, 13, 15, 17].map((bar) => (
@@ -352,24 +377,6 @@ export function RecorderTracksPreview() {
             );
           })}
         </div>
-        <div className="px-3 py-3">
-          <button
-            className={buttonClass}
-            onClick={() =>
-              setTracks([
-                ...tracks,
-                {
-                  id: Math.max(...tracks.map((track) => track.id)) + 1,
-                  name: `Audio ${tracks.length + 1}`,
-                  color: "#60a5fa",
-                  takes: [],
-                },
-              ])
-            }
-          >
-            + Add audio track
-          </button>
-        </div>
       </div>
       <footer className="flex h-9 shrink-0 items-center gap-3 border-t border-neutral-700 bg-neutral-800/50 px-3 text-[11px] text-neutral-500">
         <span>
@@ -485,7 +492,7 @@ function MockInputModal({
   children: React.ReactNode;
 }) {
   return (
-    <Dialog isOpen onClose={onClose} title="Audio input">
+    <Dialog isOpen onClose={onClose} title="Configure input">
       {children}
     </Dialog>
   );
