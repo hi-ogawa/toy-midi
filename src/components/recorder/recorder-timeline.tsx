@@ -406,7 +406,6 @@ const TIMELINE_EPSILON = 1e-6;
 
 export function TakeTimelineLane({
   takes,
-  onResetTakeMix,
   regions,
   pendingRecording,
   captureStatus,
@@ -425,7 +424,6 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["clips"];
-  onResetTakeMix: (id: string) => void;
   regions: RecorderRuntimeState["recordingTrack"]["regions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
@@ -446,7 +444,6 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
-  const singleTake = takes.length === 1 ? takes[0] : undefined;
   const activeTakeIds = new Set(regions.map(({ clip: take }) => take.id));
   const activeTakes = takes.filter((take) => activeTakeIds.has(take.id));
 
@@ -462,19 +459,6 @@ export function TakeTimelineLane({
         subdivisionsPerBeat,
       })}
     >
-      {singleTake && (singleTake.muted || singleTake.soloed) && (
-        <button
-          type="button"
-          className="absolute top-2 left-2 z-20 rounded border border-neutral-600 bg-neutral-800 px-2 py-1 text-xs text-neutral-300 hover:bg-neutral-700"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onResetTakeMix(singleTake.id);
-          }}
-        >
-          {singleTake.name} · Reset take mute/solo
-        </button>
-      )}
       {takes.length === 0 && !pendingRecording && (
         <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
           Enable input, place the playhead, then record

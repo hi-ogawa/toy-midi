@@ -49,9 +49,16 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     .getByTestId("recorder-clip-take-lane");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
-  await expect(takesToggle).toHaveCount(0);
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takesToggle).toContainText("1");
   await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
+
+  // Reveal the sole source take, then fold it before editing the main lane.
+  await takesToggle.click();
+  await expect(takeRows).toHaveCount(1);
+  await takesToggle.click();
+  await expect(takeRows).toHaveCount(0);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   expect(
@@ -100,7 +107,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
-  // The second recording reveals the disclosure while source lanes stay folded.
+  // Retain the second recording while source lanes stay folded.
   await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
   await expect(takesToggle).toContainText("2");
   await expect(takeRows).toHaveCount(0);
@@ -155,14 +162,16 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await soloTake.nth(0).click();
   await takeRows.nth(1).getByRole("button", { name: "Take 2 actions" }).click();
   await page.getByRole("menuitem", { name: "Delete take" }).click();
-  await expect(takesToggle).toHaveCount(0);
-  await expect(takeRows).toHaveCount(0);
+  await expect(takesToggle).toContainText("1");
+  await expect(takeRows).toHaveCount(1);
   await expect(take).toHaveCount(0);
 
-  // Restore the remaining source from the main lane without a hidden mute state.
-  await page
-    .getByRole("button", { name: "Take 1 · Reset take mute/solo" })
-    .click();
+  // Fold and reveal the remaining source to recover its existing mute/solo controls.
+  await takesToggle.click();
+  await expect(takeRows).toHaveCount(0);
+  await takesToggle.click();
+  await muteTake.click();
+  await soloTake.click();
   await expect(take).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
 
