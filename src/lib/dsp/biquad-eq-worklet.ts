@@ -2,6 +2,7 @@ import {
   type MultibandEqParameters,
   MultibandEq,
 } from "./biquad-eq-multiband.ts";
+import { watchWorkletDisposal } from "./worklet-disposal.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 
@@ -22,18 +23,7 @@ declare function registerProcessor(
 ): void;
 
 class BiquadEqProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [
-      {
-        name: "disposed",
-        defaultValue: 0,
-        minValue: 0,
-        maxValue: 1,
-        automationRate: "k-rate",
-      },
-    ];
-  }
-
+  private readonly isDisposed = watchWorkletDisposal(this.port);
   private readonly eq: MultibandEq;
 
   constructor(options?: AudioWorkletNodeOptions) {
@@ -46,21 +36,9 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     };
   }
 
-  // Keep returning true through pauses because AudioChannel reuses this EQ.
-  // The spec allows false/undefined to let active inputs determine lifetime,
-  // but our Chromium 151 probe stopped after one callback when the return was
-  // omitted, before any explicit disconnection. Input gaps must not terminate
-  // a processor that the owner still intends to use.
-  // Conversely, disconnecting while returning true leaves the processor active.
-  // On permanent teardown, the owner sets the disposed AudioParam and disconnects
-  // the node, so this callback skips DSP and returns false to release activity.
-  // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-  process(
-    inputs: Float32Array[][],
-    outputs: Float32Array[][],
-    parameters: Record<string, Float32Array>,
-  ): boolean {
-    if (parameters.disposed[0] >= 0.5) {
+  // AudioChannel keeps this EQ through pauses and disposes it with the channel.
+  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
       return false;
     }
     const input = inputs[0] ?? [];

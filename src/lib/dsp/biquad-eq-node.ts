@@ -4,6 +4,7 @@ import type {
 } from "./biquad-eq-multiband.ts";
 import biquadEqWorkletUrl from "./biquad-eq-worklet.ts?worker&url";
 import { DEFAULT_PARAMETERS } from "./biquad-eq.ts";
+import { disposeWorklet } from "./worklet-disposal.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 const registrations = new WeakMap<BaseAudioContext, Promise<void>>();
@@ -44,9 +45,7 @@ export class BiquadEqNode extends AudioWorkletNode {
   }
 
   dispose(): void {
-    this.parameters.get("disposed")!.value = 1;
-    this.port.close();
-    this.disconnect();
+    disposeWorklet(this);
   }
 }
 

@@ -1,4 +1,5 @@
 import { StreamingPitchShifter } from "./pitch-shifter.ts";
+import { watchWorkletDisposal } from "./worklet-disposal.ts";
 
 const PROCESSOR_NAME = "pitch-shifter";
 const BLOCK_FRAMES = 128;
@@ -22,18 +23,7 @@ declare function registerProcessor(
 ): void;
 
 class PitchShifterProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [
-      {
-        name: "disposed",
-        defaultValue: 0,
-        minValue: 0,
-        maxValue: 1,
-        automationRate: "k-rate",
-      },
-    ];
-  }
-
+  private readonly isDisposed = watchWorkletDisposal(this.port);
   private readonly shifter: StreamingPitchShifter;
   private readonly silence: Float32Array[];
 
@@ -55,21 +45,9 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
     });
   }
 
-  // Keep returning true through input gaps for the lifetime of this playback run.
-  // The spec allows false/undefined to let active inputs determine lifetime,
-  // but our Chromium 151 EQ probe stopped after one callback when the return was
-  // omitted, before any explicit disconnection. Use the same explicit lifetime
-  // policy here so temporary gaps cannot terminate playback processing.
-  // Conversely, disconnecting while returning true leaves DSP running on silence.
-  // On stop, PitchShiftBus sets the disposed AudioParam and disconnects this node,
-  // so this callback skips DSP and returns false. The next run creates a new node.
-  // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-  process(
-    inputs: Float32Array[][],
-    outputs: Float32Array[][],
-    parameters: Record<string, Float32Array>,
-  ): boolean {
-    if (parameters.disposed[0] >= 0.5) {
+  // PitchShiftBus disposes each stopped run and creates a new node on start.
+  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
       return false;
     }
     const input = inputs[0] ?? [];
