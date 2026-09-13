@@ -175,6 +175,7 @@ export function deserializeRecorderRuntimeState({
         : undefined;
       return {
         id: track.id,
+        nextTakeNumber: 1,
         height: track.height,
         clips:
           track.clip && buffer
@@ -198,6 +199,7 @@ export function deserializeRecorderRuntimeState({
       };
     }),
     recordingTrack: {
+      id: crypto.randomUUID(),
       height: project.recordingTrack.height,
       eq: deserializeEq(project.recordingTrack.eq),
       gain: project.recordingTrack.gain,

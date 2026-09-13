@@ -43,7 +43,14 @@ const MAX_TRACK_HEIGHT = 300;
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
-interface BaseAudioTrackState {
+// The ordinary-track UI currently keeps zero or one imported clip and has
+// no clip-level mute/solo controls. Imported clips initialize both flags to false.
+// Ordinary tracks leave nextTakeNumber at 1 because only the recording track
+// creates takes. The recording track has an id, but is still addressed directly
+// through recordingTrack rather than looked up by id.
+export interface AudioTrackState {
+  id: string;
+  nextTakeNumber: number;
   eq: MultibandEqParameters;
   height: number;
   clips: AudioClip[];
@@ -51,16 +58,6 @@ interface BaseAudioTrackState {
   gain: number;
   muted: boolean;
   soloed: boolean;
-}
-
-// The ordinary-track UI currently keeps zero or one imported clip and has
-// no clip-level mute/solo controls. Imported clips initialize both flags to false.
-export interface AudioTrackState extends BaseAudioTrackState {
-  id: string;
-}
-
-interface RecordingTrackState extends BaseAudioTrackState {
-  nextTakeNumber: number;
 }
 
 export interface RecorderLoopRange {
@@ -128,7 +125,7 @@ export interface RecorderRuntimeState {
   metronomeGain: number;
   // Tracks
   audioTracks: AudioTrackState[];
-  recordingTrack: RecordingTrackState;
+  recordingTrack: AudioTrackState;
   previewClipRegions?: ClipRegion[];
   pendingRecording?: PendingRecordingState;
   // Capture
@@ -153,7 +150,7 @@ export type PersistableRecorderRuntimeState = Pick<
   | "referenceVideo"
 > & {
   audioTracks: Omit<AudioTrackState, "regions">[];
-  recordingTrack: Omit<RecordingTrackState, "regions">;
+  recordingTrack: Omit<AudioTrackState, "regions">;
 };
 
 export type RecorderClipId =
@@ -633,7 +630,7 @@ export class RecorderRuntime {
   }
 
   setRecordingTrackMix(
-    update: Partial<Pick<RecordingTrackState, "gain" | "muted" | "soloed">>,
+    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
   ): void {
     const recordingTrack = { ...this.store.get().recordingTrack, ...update };
     this.store.update({ recordingTrack });
@@ -1205,15 +1202,7 @@ function updateAudioTrackClips(
 
 function resolveTrackRegions(
   track: Omit<AudioTrackState, "regions">,
-): AudioTrackState;
-function resolveTrackRegions(
-  track: Omit<RecordingTrackState, "regions">,
-): RecordingTrackState;
-function resolveTrackRegions(
-  track:
-    | Omit<AudioTrackState, "regions">
-    | Omit<RecordingTrackState, "regions">,
-): AudioTrackState | RecordingTrackState {
+): AudioTrackState {
   return { ...track, regions: deriveClipRegions(getActiveClips(track.clips)) };
 }
 
@@ -1281,6 +1270,7 @@ function createAudioTrackState(): AudioTrackState {
   return {
     eq: createDefaultMultibandEq(),
     id: crypto.randomUUID(),
+    nextTakeNumber: 1,
     height: DEFAULT_TRACK_HEIGHT,
     gain: 1,
     muted: false,
@@ -1290,8 +1280,9 @@ function createAudioTrackState(): AudioTrackState {
   };
 }
 
-function createRecordingTrackState(): RecordingTrackState {
+function createRecordingTrackState(): AudioTrackState {
   return {
+    id: crypto.randomUUID(),
     eq: createDefaultMultibandEq(),
     height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,
