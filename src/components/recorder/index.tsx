@@ -126,7 +126,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     },
   });
 
-  const takes = state.recordingTrack.takes;
+  const takes = state.recordingTrack.clips;
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
@@ -479,7 +479,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewTakeRegions ?? state.takeRegions}
+                regions={state.previewClipRegions ?? state.takeRegions}
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>

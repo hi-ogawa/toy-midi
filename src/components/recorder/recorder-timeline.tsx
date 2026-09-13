@@ -422,7 +422,7 @@ export function TakeTimelineLane({
   onTakeTrimStart,
   onTakeTrimMove,
 }: {
-  takes: RecorderRuntimeState["recordingTrack"]["takes"];
+  takes: RecorderRuntimeState["recordingTrack"]["clips"];
   regions: RecorderRuntimeState["takeRegions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
@@ -443,7 +443,7 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
-  const activeTakeIds = new Set(regions.map(({ take }) => take.id));
+  const activeTakeIds = new Set(regions.map(({ clip: take }) => take.id));
   const activeTakes = takes.filter((take) => activeTakeIds.has(take.id));
 
   return (
@@ -465,7 +465,7 @@ export function TakeTimelineLane({
       )}
       <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
-          const { take } = region;
+          const { clip: take } = region;
           const isPendingRecording = take.id === pendingRecording?.id;
           const audioOffset = region.timelineStart - take.timelineOffset;
           const previous = regions[index - 1];

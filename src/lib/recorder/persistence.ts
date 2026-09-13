@@ -28,7 +28,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState<ChannelData>[];
+    takes: SerializedAudioClip<ChannelData>[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -82,7 +82,7 @@ interface SerializedAudioTrackState<ChannelData> {
   trimEnd?: number;
 }
 
-interface SerializedTakeState<ChannelData> {
+interface SerializedAudioClip<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
@@ -129,7 +129,7 @@ export function serializeRecorderRuntimeState(
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
       nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.takes.map((take) => {
+      takes: state.recordingTrack.clips.map((take) => {
         if (!take.buffer) {
           throw new Error("Recording take has no loaded buffer.");
         }
@@ -203,7 +203,7 @@ export function deserializeRecorderRuntimeState({
       nextTakeNumber:
         project.recordingTrack.nextTakeNumber ??
         project.recordingTrack.takes.length + 1,
-      takes: project.recordingTrack.takes.map((take, index) => {
+      clips: project.recordingTrack.takes.map((take, index) => {
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
           id: take.id ?? crypto.randomUUID(),

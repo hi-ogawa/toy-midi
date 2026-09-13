@@ -1,6 +1,6 @@
 import type { AudioView } from "../audio-view.ts";
 
-export interface TakeState {
+export interface AudioClip {
   id: string;
   number: number;
   muted: boolean;
@@ -14,8 +14,8 @@ export interface TakeState {
   audioView?: AudioView;
 }
 
-export interface TakeRegion {
-  take: TakeState;
+export interface ClipRegion {
+  clip: AudioClip;
   timelineStart: number;
   timelineEnd: number;
 }
