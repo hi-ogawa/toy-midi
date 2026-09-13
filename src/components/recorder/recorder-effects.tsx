@@ -57,17 +57,11 @@ export function RecorderEffects({
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
-  const [size, setSize] = useState<{ width: number; height?: number }>({
-    width: 384,
-  });
+  const [size, setSize] = useState(() =>
+    clampEffectsSize({ width: 384, height: 512 }),
+  );
   const resizeHandleRef = usePointerDrag({
-    onStart: (event) => ({
-      x: event.clientX,
-      y: event.clientY,
-      size: (event.currentTarget as HTMLElement)
-        .closest("section")!
-        .getBoundingClientRect(),
-    }),
+    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
     onMove: (event, drag) => {
       setSize(
         clampEffectsSize({
