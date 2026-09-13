@@ -109,14 +109,7 @@ class PitchShiftBus implements TransportParticipant {
 
   stop(): void {
     this.input.disconnect();
-    // The spec uses process()'s return value to control the processor lifetime.
-    // This processor returns true through input gaps, so disconnecting alone
-    // keeps it active. Dispose explicitly so process() returns false.
-    // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-    if (this.pitchShifter) {
-      this.pitchShifter.parameters.get("disposed")!.value = 1;
-      this.pitchShifter.disconnect();
-    }
+    this.pitchShifter?.disconnect();
     this.pitchShifter = undefined;
   }
 

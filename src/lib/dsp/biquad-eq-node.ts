@@ -42,15 +42,6 @@ export class BiquadEqNode extends AudioWorkletNode {
   setParameters(parameters: MultibandEqParameters): void {
     this.port.postMessage(parameters);
   }
-
-  dispose(): void {
-    // Returning true keeps the processor active even after disconnection.
-    // Signal disposal so process() returns false and close the message port.
-    // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-    this.parameters.get("disposed")!.value = 1;
-    this.port.close();
-    this.disconnect();
-  }
 }
 
 export async function ensureBiquadEqWorklet(

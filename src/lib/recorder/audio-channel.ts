@@ -39,7 +39,7 @@ export class AudioChannel {
 
   dispose(): void {
     this.input.disconnect();
-    this.equalizer.dispose();
+    this.equalizer.disconnect();
     this.gain.disconnect();
   }
 }
