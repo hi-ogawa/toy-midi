@@ -3,7 +3,7 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
-  enableInput,
+  enableAndArmCapture,
   getRecorderPosition,
   seekRecorderByPixels,
   waitForRecordingSamples,
@@ -13,7 +13,7 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await createRecorderProject(page);
 
   // Connect the browser input before recording is available.
-  await enableInput(page);
+  await enableAndArmCapture(page);
 
   // Input monitoring can be enabled before recording starts.
   const monitorButton = page.getByTestId("recorder-input-monitor");
@@ -49,13 +49,9 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
     .getByTestId("recorder-clip-take-lane");
   const takeRows = page.getByTestId("recorder-take-row");
   const compRegion = page.getByTestId("recorder-clip-comp");
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await expect(takesToggle).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
   await expect(take).toHaveCount(1);
-  await takesToggle.click();
-  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
-  await expect(takeLane).toHaveCount(1);
-  await expect(takeRows).toHaveCount(1);
   await expect(compRegion).toContainText("Take 1");
   await expect(compRegion.locator("svg")).toBeVisible();
   expect(
@@ -104,8 +100,11 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await waitForRecordingSamples(secondRecording);
   await recordButton.click();
 
-  // The second recording is retained as a new source take.
+  // The second recording exposes disclosure for the retained source takes.
   await expect(take).toHaveCount(2);
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "false");
+  await takesToggle.click();
+  await expect(takesToggle).toHaveAttribute("aria-expanded", "true");
   await expect(takeLane).toHaveCount(2);
   await expect(takeRows).toHaveCount(2);
   expect(
@@ -157,4 +156,57 @@ test("records, plays, and manages multiple takes", async ({ page }) => {
   await expect(takesToggle).toHaveCount(0);
   await expect(take).toHaveCount(0);
   await expect(takeRows).toHaveCount(0);
+});
+
+test("keeps source controls reachable for a lone muted or soloed take", async ({
+  page,
+}) => {
+  // Record two sources so their independent mute and solo controls are available.
+  await createRecorderProject(page);
+  await enableAndArmCapture(page);
+  const record = page.getByTestId("recorder-record-button");
+  for (const beat of [2, 4]) {
+    await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
+    await record.click();
+    await waitForRecordingSamples(page.getByTestId("recorder-clip-recording"));
+    await record.click();
+  }
+  const disclosure = page.getByTestId("recorder-takes-toggle");
+  await disclosure.click();
+
+  // Leave a muted, soloed source by removing the other take.
+  await page.getByTestId("recorder-take-mute").first().click();
+  await page.getByTestId("recorder-take-solo").first().click();
+  await page
+    .getByRole("button", { name: "Take 2 actions", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Delete take", exact: true })
+    .click();
+  await expect(page.getByTestId("recorder-take-row")).toHaveCount(1);
+  await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(0);
+
+  // Save and reload the project, retaining a way to recover the inaudible lone source.
+  await page.getByTestId("recorder-save-button").click();
+  await expect(page.getByTestId("recorder-save-button")).toHaveAttribute(
+    "data-status",
+    "saved",
+  );
+  await page.reload();
+  await disclosure.click();
+  await expect(page.getByTestId("recorder-take-mute")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByTestId("recorder-take-mute").click();
+  await expect(page.getByTestId("recorder-clip-comp")).toBeVisible();
+  await expect(disclosure).toBeVisible();
+
+  // Clear solo to hide the redundant lane, then delete the take from the main lane.
+  await page.getByTestId("recorder-take-solo").click();
+  await expect(disclosure).toHaveCount(0);
+  await expect(page.getByTestId("recorder-take-row")).toHaveCount(0);
+  await page.getByTestId("recorder-clip-take").click();
+  await page.keyboard.press("Delete");
+  await expect(page.getByTestId("recorder-clip-comp")).toHaveCount(0);
 });

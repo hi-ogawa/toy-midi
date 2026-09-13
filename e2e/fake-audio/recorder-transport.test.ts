@@ -3,7 +3,7 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import { createCheckpoint } from "../helpers";
 import {
   createRecorderProject,
-  enableInput,
+  enableAndArmCapture,
   getRecorderBeat,
   getRecorderPosition,
   seekRecorderByPixels,
@@ -61,7 +61,7 @@ test("seeks the recorder by five seconds with arrow keys", async ({ page }) => {
   await expect.poll(() => getRecorderPosition(page)).toBeGreaterThan(5);
 
   // Recording owns transport timing, so arrows cannot seek an active capture.
-  await enableInput(page);
+  await enableAndArmCapture(page);
   const recordButton = page.getByTestId("recorder-record-button");
   await recordButton.click();
   await expect(recordButton).toHaveAttribute("aria-pressed", "true");

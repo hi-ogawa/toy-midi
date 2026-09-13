@@ -100,36 +100,40 @@ export async function waitForRecordingSamples(recording: Locator) {
     .toBeGreaterThan(initialWidth);
 }
 
-export async function enableInput(page: Page) {
+export async function enableAndArmCapture(page: Page) {
   await test.step(
-    "Enable audio input",
+    "Set up input and arm Capture",
     async () => {
       // Fake audio still exercises permission, device discovery, and channel setup.
-      const inputSetupButton = page.getByRole("button", {
-        name: "Configure audio input",
-      });
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+      await expect(page.getByTestId("recorder-arm-toggle")).toHaveAttribute(
         "aria-pressed",
         "false",
       );
-      await inputSetupButton.click();
+      await page.getByRole("button", { name: "More", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Audio input…" }).click();
       await expect(
         page.getByRole("heading", { name: "Audio Input Setup" }),
       ).toBeVisible();
       const setup = page.getByTestId("recorder-input-setup");
       await setup.getByRole("button", { name: "Enable input" }).click();
       await expect(
-        setup.getByRole("button", { name: "Disable input" }),
+        setup.getByRole("button", { name: "Close input" }),
       ).toBeVisible();
       await expect(page.getByLabel("Device")).toContainText(
         "Fake Default Audio Input",
       );
       await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await page.getByRole("button", { name: "Close" }).click();
+      await expect(page.getByTestId("recorder-arm-toggle")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      await expect(page.getByTestId("recorder-record-button")).toBeDisabled();
+      await page.getByRole("button", { name: "Close", exact: true }).click();
+      await page.getByTestId("recorder-arm-toggle").click();
       await expect(
         page.getByText("Fake Default Audio Input · Channel 1"),
       ).toBeVisible();
-      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+      await expect(page.getByTestId("recorder-arm-toggle")).toHaveAttribute(
         "aria-pressed",
         "true",
       );

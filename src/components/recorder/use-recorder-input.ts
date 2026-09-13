@@ -149,15 +149,13 @@ export function useRecorderInput({
       setPreference(nextPreference);
       recorderStorage.writePreferences(nextPreference);
     },
-    toggle: () => {
-      if (!hasAccess) {
-        grantMutation.mutate();
-      } else if (active) {
-        stop();
-      } else if (selectedDevice) {
+    grantAccess: () => grantMutation.mutate(),
+    start: () => {
+      if (selectedDevice) {
         startMutation.mutate(selectedDevice.deviceId);
       }
     },
+    stop,
     togglePending: grantMutation.isPending || startMutation.isPending,
   };
 }

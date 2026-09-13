@@ -128,8 +128,13 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.clips;
+  // A lone take is editable in the main lane, but retain source controls when
+  // its mute/solo state needs to be cleared, including after deleting other takes.
+  const showTakes =
+    takes.length >= 2 || takes.some((take) => take.muted || take.soloed);
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
+    recordingArmed: state.recordingArmed,
     project,
   });
 
@@ -147,7 +152,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (flags.recordDisabled) {
+    if (flags.recordDisabled || recordMutation.isPending) {
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
@@ -164,6 +169,13 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       if (matchKeyboardEvent(event, "Ctrl+S")) {
         event.preventDefault();
+      }
+      return;
+    }
+    if (isInputSetupOpen) {
+      if (matchKeyboardEvent(event, "Escape")) {
+        event.preventDefault();
+        setIsInputSetupOpen(false);
       }
       return;
     }
@@ -280,6 +292,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
+        onInputSetup={() => setIsInputSetupOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -436,14 +449,13 @@ export function Recorder({ projectId }: { projectId: string }) {
               routeNeedsSetup={input.route.needsSetup}
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
-              inputActive={input.active}
+              recordingArmed={state.recordingArmed}
               inputAnalyser={runtime.captureInput?.analyser}
               inputMonitoring={state.inputMonitoring}
-              inputToggleDisabled={
+              armDisabled={
                 input.mutationPending ||
-                !input.initialized ||
                 flags.isRecording ||
-                (!input.active && input.route.needsSetup)
+                recordMutation.isPending
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
@@ -456,7 +468,13 @@ export function Recorder({ projectId }: { projectId: string }) {
               onInputMonitoringChange={(monitoring) =>
                 runtime.setInputMonitoring(monitoring)
               }
-              onInputToggle={input.toggle}
+              onArmToggle={() => {
+                if (!input.active) {
+                  setIsInputSetupOpen(true);
+                } else {
+                  runtime.setRecordingArmed(!state.recordingArmed);
+                }
+              }}
               onMutedChange={(muted) =>
                 runtime.setTrackMix(state.recordingTrack.id, { muted })
               }
@@ -506,14 +524,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
-            {takes.length > 0 && (
+            {showTakes && (
               <TakesDisclosureRow
                 expanded={takesExpanded}
                 takeCount={takes.length}
                 onExpandedChange={setTakesExpanded}
               />
             )}
-            {takes.length > 0 &&
+            {showTakes &&
               takesExpanded &&
               takes.map((take) => (
                 <TakeTrackRow
@@ -605,7 +623,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputActive={input.active}
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
-            isRecording={flags.isRecording}
+            isRecording={flags.isRecording || recordMutation.isPending}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
@@ -613,7 +631,9 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputTogglePending={input.togglePending}
             mutationPending={input.mutationPending}
             onDeviceChange={input.selectDevice}
-            onInputToggle={input.toggle}
+            onGrantAccess={input.grantAccess}
+            onStartInput={input.start}
+            onStopInput={input.stop}
             onChannelChange={input.selectChannel}
             onLatencyCompensationChange={(compensation) => {
               const wasPlaying = state.isPlaying;

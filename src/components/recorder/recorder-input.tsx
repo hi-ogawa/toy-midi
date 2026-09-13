@@ -21,7 +21,9 @@ export function InputSetup({
   inputTogglePending,
   mutationPending,
   onDeviceChange,
-  onInputToggle,
+  onGrantAccess,
+  onStartInput,
+  onStopInput,
   onChannelChange,
   onLatencyCompensationChange,
 }: {
@@ -39,7 +41,9 @@ export function InputSetup({
   inputTogglePending: boolean;
   mutationPending: boolean;
   onDeviceChange: (deviceId?: string) => void;
-  onInputToggle: () => void;
+  onGrantAccess: () => void;
+  onStartInput: () => void;
+  onStopInput: () => void;
   onChannelChange: (channel: number) => void;
   onLatencyCompensationChange: (compensation: number) => void;
 }) {
@@ -108,7 +112,13 @@ export function InputSetup({
           disabled={
             disabled || !inputsInitialized || (hasAccess && !selectedDevice)
           }
-          onClick={onInputToggle}
+          onClick={
+            !hasAccess
+              ? onGrantAccess
+              : inputActive
+                ? onStopInput
+                : onStartInput
+          }
           className="h-8 w-full justify-start gap-2 border-neutral-600 bg-neutral-900 px-2 text-xs text-neutral-200 hover:bg-neutral-700"
         >
           <Mic2Icon className="size-3.5" />
@@ -118,7 +128,7 @@ export function InputSetup({
               ? "Enable input"
               : hasAccess
                 ? inputActive
-                  ? "Disable input"
+                  ? "Close input"
                   : "Enable input"
                 : "Grant access"}
         </Button>

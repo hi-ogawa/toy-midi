@@ -4,14 +4,14 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
-  enableInput,
+  enableAndArmCapture,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
 
 test("records only the punched interval into the comp", async ({ page }) => {
   await createRecorderProject(page);
-  await enableInput(page);
+  await enableAndArmCapture(page);
 
   const recordButton = page.getByTestId("recorder-record-button");
   const take = page.getByTestId("recorder-clip-take");

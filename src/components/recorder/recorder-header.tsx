@@ -86,6 +86,7 @@ export function RecorderHeader({
   onReferenceVideoOpenChange,
   onMixerToggle,
   onHelpOpen,
+  onInputSetup,
   mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -123,6 +124,7 @@ export function RecorderHeader({
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
   onHelpOpen: () => void;
+  onInputSetup: () => void;
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -398,6 +400,10 @@ export function RecorderHeader({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onInputSetup}>
+            <Mic2Icon />
+            Audio input…
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={onHelpOpen}>
             <CircleHelpIcon />
             Help & Shortcuts

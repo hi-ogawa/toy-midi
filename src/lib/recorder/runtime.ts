@@ -134,6 +134,7 @@ export interface RecorderRuntimeState {
   pendingRecording?: PendingRecordingState;
   // Capture
   captureStatus: CaptureStatus;
+  recordingArmed: boolean;
   inputChannelCount: number;
   selectedChannel: number;
   latencyCompensation: number;
@@ -187,6 +188,7 @@ export function createDefaultRecorderRuntimeState(): RecorderRuntimeState {
     audioTracks: [],
     recordingTrack: createRecordingTrackState(),
     captureStatus: "disabled",
+    recordingArmed: false,
     inputChannelCount: 0,
     selectedChannel: 0,
     latencyCompensation: 0,
@@ -277,6 +279,7 @@ export class RecorderRuntime {
 
     this.store.update({
       captureStatus: "ready",
+      recordingArmed: false,
       inputChannelCount: channelCount,
       selectedChannel: 0,
       inputMonitoring: false,
@@ -288,6 +291,7 @@ export class RecorderRuntime {
     this.closeInput();
     this.store.update({
       captureStatus: "disabled",
+      recordingArmed: false,
       inputChannelCount: 0,
       selectedChannel: 0,
       inputMonitoring: false,
@@ -299,8 +303,25 @@ export class RecorderRuntime {
     this.store.update({ selectedChannel: channel });
   }
 
+  setRecordingArmed(recordingArmed: boolean): void {
+    const { captureStatus } = this.store.get();
+    if (captureStatus === "recording" || captureStatus === "processing") {
+      return;
+    }
+    if (recordingArmed && captureStatus !== "ready") {
+      return;
+    }
+    if (!recordingArmed) {
+      this.setInputMonitoring(false);
+    }
+    this.store.update({ recordingArmed });
+  }
+
   setInputMonitoring(inputMonitoring: boolean): void {
-    if (inputMonitoring && !this.captureInput) {
+    if (
+      inputMonitoring &&
+      (!this.captureInput || !this.store.get().recordingArmed)
+    ) {
       return;
     }
     this.captureInput?.setMonitoring(inputMonitoring);
@@ -590,6 +611,9 @@ export class RecorderRuntime {
   }
 
   async startRecording(): Promise<void> {
+    if (!this.store.get().recordingArmed) {
+      throw new Error("Arm Capture before recording.");
+    }
     if (!this.captureInput) {
       throw new Error("Enable an audio input before recording.");
     }

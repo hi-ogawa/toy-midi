@@ -3,7 +3,7 @@ import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
 import {
   addRecorderAudio,
   createRecorderProject,
-  enableInput,
+  enableAndArmCapture,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
@@ -14,7 +14,7 @@ test("exports and imports a recorder project archive", async ({ page }) => {
   // Build an editable project with backing audio and two retained takes.
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
 
-  await enableInput(page);
+  await enableAndArmCapture(page);
   const recordButton = page.getByTestId("recorder-record-button");
   for (const beat of [2, 4]) {
     await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * beat);
