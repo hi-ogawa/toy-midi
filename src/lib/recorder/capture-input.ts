@@ -105,6 +105,12 @@ export class CaptureInput {
     this.worklet.setChannel(channel);
   }
 
+  /** Re-points monitoring at another channel without reopening the device. */
+  setMonitorOutput(output: AudioNode): void {
+    this.monitorGain.disconnect();
+    this.monitorGain.connect(output);
+  }
+
   setMonitoring(enabled: boolean): void {
     this.monitorGain.gain.setTargetAtTime(
       enabled ? 1 : 0,

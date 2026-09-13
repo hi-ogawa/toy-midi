@@ -40,14 +40,18 @@ const DEFAULT_TRACK_HEIGHT = 72;
 const MIN_TRACK_HEIGHT = DEFAULT_TRACK_HEIGHT;
 const MIN_RECORDING_TRACK_HEIGHT = 116;
 const MAX_TRACK_HEIGHT = 300;
+// The recording track keeps a fixed id so its playback can live in the shared
+// track playback map while its state still lives outside audioTracks.
+const RECORDING_TRACK_ID = "__capture__";
 
 type CaptureStatus = "disabled" | "ready" | "recording" | "processing";
 
 // The ordinary-track UI currently keeps zero or one imported clip and has
 // no clip-level mute/solo controls. Imported clips initialize both flags to false.
 // Ordinary tracks leave nextTakeNumber at 1 because only the recording track
-// creates takes. The recording track has an id, but is still addressed directly
-// through recordingTrack rather than looked up by id.
+// creates takes. The recording track uses RECORDING_TRACK_ID. Its state is still
+// stored in recordingTrack rather than audioTracks, but its playback shares
+// trackPlaybacks with ordinary tracks.
 export interface AudioTrackState {
   id: string;
   eq: MultibandEqParameters;
@@ -197,8 +201,7 @@ export class RecorderRuntime {
   private readonly masterOutput: GainNode;
   private readonly transport: AudioContextTransport;
   captureInput?: CaptureInput;
-  private audioTracks = new Map<string, AudioTrackPlayback>();
-  private captureTrack?: AudioTrackPlayback;
+  private trackPlaybacks = new Map<string, AudioTrackPlayback>();
   private attachedYouTubePlayer?: {
     videoId: string;
     player: YouTubePlayerApi;
@@ -227,14 +230,6 @@ export class RecorderRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
     ]);
-    if (!this.captureTrack) {
-      this.captureTrack = new AudioTrackPlayback({
-        transport: this.transport,
-        output: this.masterOutput,
-        eq: this.store.get().recordingTrack.eq,
-        gain: deriveTrackMix(this.store.get()).recordingGain,
-      });
-    }
   }
 
   async startInput({
@@ -248,7 +243,7 @@ export class RecorderRuntime {
     const { input, channelCount } = await CaptureInput.open({
       context,
       deviceId,
-      output: this.captureTrack!.channel.input,
+      output: this.getTrackPlayback(RECORDING_TRACK_ID).channel.input,
       onNotification: (message) => {
         switch (message.type) {
           case "samples": {
@@ -325,7 +320,7 @@ export class RecorderRuntime {
     if (!this.store.get().audioTracks.some((track) => track.id === id)) {
       return;
     }
-    const track = this.updateAudioTrack(id, (track) => ({
+    const track = this.updateTrack(id, (track) => ({
       ...track,
       clips: [
         createAudioClip({
@@ -334,16 +329,21 @@ export class RecorderRuntime {
         }),
       ],
     }));
-    this.syncAudioTrackPlayback(track);
+    const wasPlaying = this.store.get().isPlaying;
+    if (wasPlaying) {
+      this.pause();
+    }
+    this.syncTrackPlayback(track);
+    if (wasPlaying) {
+      this.transport.play();
+    }
   }
 
-  setAudioTrackMix(
+  setTrackMix(
     id: string,
     update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
   ): void {
-    this.updateAudioTrack(id, (track) => {
-      return { ...track, ...update };
-    });
+    this.updateTrack(id, (track) => ({ ...track, ...update }));
     this.syncTrackMix();
   }
 
@@ -387,14 +387,14 @@ export class RecorderRuntime {
     }
     this.store.update({ recordingTrack, audioTracks, referenceVideo });
     if (recordingTrack !== state.recordingTrack) {
-      this.syncTakePlayback(recordingTrack.regions);
+      this.syncTrackPlayback(recordingTrack);
     }
     if (referenceOffset !== undefined) {
       this.syncYouTubePlayer();
     }
     for (const [index, track] of audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
-        this.syncAudioTrackPlayback(track);
+        this.syncTrackPlayback(track);
       }
     }
     if (wasPlaying) {
@@ -403,49 +403,50 @@ export class RecorderRuntime {
   }
 
   trimClip({ id, edge, value }: RecorderClipTrim): void {
+    this.updateClip(id, (clip) => ({
+      ...clip,
+      ...(edge === "start"
+        ? { trimStart: clamp(value, 0, clip.trimEnd - MIN_TAKE_DURATION) }
+        : {
+            trimEnd: clamp(
+              value,
+              clip.trimStart + MIN_TAKE_DURATION,
+              clip.duration,
+            ),
+          }),
+    }));
+  }
+
+  setClipMuted({ id, muted }: { id: string; muted: boolean }): void {
+    this.updateClip(id, (clip) => ({ ...clip, muted }));
+  }
+
+  setClipSoloed({ id, soloed }: { id: string; soloed: boolean }): void {
+    this.updateClip(id, (clip) => ({ ...clip, soloed }));
+  }
+
+  private updateClip(id: string, update: (clip: AudioClip) => AudioClip): void {
     const state = this.store.get();
     const wasPlaying = state.isPlaying;
     if (wasPlaying) {
       this.pause();
     }
-    const clipIds = new Set([id]);
-    function trimTrackClips(track: AudioTrackState): AudioTrackState {
+    function updateClips(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
         update: (clips) =>
-          clips.map((clip) =>
-            clipIds.has(clip.id)
-              ? {
-                  ...clip,
-                  ...(edge === "start"
-                    ? {
-                        trimStart: clamp(
-                          value,
-                          0,
-                          clip.trimEnd - MIN_TAKE_DURATION,
-                        ),
-                      }
-                    : {
-                        trimEnd: clamp(
-                          value,
-                          clip.trimStart + MIN_TAKE_DURATION,
-                          clip.duration,
-                        ),
-                      }),
-                }
-              : clip,
-          ),
+          clips.map((clip) => (clip.id === id ? update(clip) : clip)),
       });
     }
-    const audioTracks = state.audioTracks.map((track) => trimTrackClips(track));
-    const recordingTrack = trimTrackClips(state.recordingTrack);
+    const audioTracks = state.audioTracks.map((track) => updateClips(track));
+    const recordingTrack = updateClips(state.recordingTrack);
     this.store.update({ recordingTrack, audioTracks });
     if (recordingTrack !== state.recordingTrack) {
-      this.syncTakePlayback(recordingTrack.regions);
+      this.syncTrackPlayback(recordingTrack);
     }
     for (const [index, track] of audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
-        this.syncAudioTrackPlayback(track);
+        this.syncTrackPlayback(track);
       }
     }
     if (wasPlaying) {
@@ -479,11 +480,11 @@ export class RecorderRuntime {
       ...(removeReference ? { referenceVideo: undefined } : {}),
     });
     if (recordingTrack !== state.recordingTrack) {
-      this.syncTakePlayback(recordingTrack.regions);
+      this.syncTrackPlayback(recordingTrack);
     }
     for (const [index, track] of audioTracks.entries()) {
       if (track !== state.audioTracks[index]) {
-        this.syncAudioTrackPlayback(track);
+        this.syncTrackPlayback(track);
       }
     }
     if (removeReference) {
@@ -494,16 +495,23 @@ export class RecorderRuntime {
     }
   }
 
-  setAudioTrackHeight(id: string, height: number): void {
-    this.updateAudioTrack(id, (track) => ({
+  setTrackHeight(id: string, height: number): void {
+    this.updateTrack(id, (track) => ({
       ...track,
-      height: clampTrackHeight(height),
+      // The Capture row carries input controls and needs more room.
+      height:
+        id === RECORDING_TRACK_ID
+          ? clampRecordingTrackHeight(height)
+          : clampTrackHeight(height),
     }));
   }
 
   removeAudioTrack(id: string): void {
-    this.audioTracks.get(id)?.dispose();
-    this.audioTracks.delete(id);
+    if (id === RECORDING_TRACK_ID) {
+      throw new Error("The recording track cannot be removed.");
+    }
+    this.trackPlaybacks.get(id)?.dispose();
+    this.trackPlaybacks.delete(id);
     this.store.update({
       audioTracks: this.store
         .get()
@@ -512,48 +520,43 @@ export class RecorderRuntime {
     this.syncTrackMix();
   }
 
-  setAudioTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
-    const track = this.updateAudioTrack(id, (track) => ({
-      ...track,
-      eq,
-    }));
-    this.audioTracks.get(id)?.channel.setEq(track.eq);
+  setTrackEq({ id, eq }: { id: string; eq: MultibandEqParameters }): void {
+    this.updateTrack(id, (track) => ({ ...track, eq }));
+    this.trackPlaybacks.get(id)?.channel.setEq(eq);
   }
 
-  setRecordingTrackEq(eq: MultibandEqParameters): void {
-    const track = this.store.get().recordingTrack;
-    this.store.update({
-      recordingTrack: {
-        ...track,
-        eq,
-      },
-    });
-    this.captureTrack?.channel.setEq(this.store.get().recordingTrack.eq);
-  }
-
-  private updateAudioTrack(
+  private updateTrack(
     id: string,
     update: (track: AudioTrackState) => AudioTrackState,
   ): AudioTrackState {
-    const audioTracks = this.store.get().audioTracks.slice();
+    const apply = (track: AudioTrackState): AudioTrackState => {
+      const next = update(track);
+      return next.clips === track.clips ? next : resolveTrackRegions(next);
+    };
+    const state = this.store.get();
+    if (id === RECORDING_TRACK_ID) {
+      const recordingTrack = apply(state.recordingTrack);
+      this.store.update({ recordingTrack });
+      return recordingTrack;
+    }
+    const audioTracks = state.audioTracks.slice();
     const index = audioTracks.findIndex((track) => track.id === id);
     const track = audioTracks[index];
     if (!track) {
       throw new Error("Audio track state is missing.");
     }
-    const next = update(track);
-    audioTracks[index] =
-      next.clips === track.clips ? next : resolveTrackRegions(next);
+    audioTracks[index] = apply(track);
     this.store.update({ audioTracks });
     return audioTracks[index]!;
   }
 
-  private getAudioTrackPlayback(id: string): AudioTrackPlayback {
-    let playback = this.audioTracks.get(id);
+  private getTrackPlayback(id: string): AudioTrackPlayback {
+    let playback = this.trackPlaybacks.get(id);
     if (!playback) {
-      const track = this.store
-        .get()
-        .audioTracks.find((entry) => entry.id === id);
+      const { audioTracks, recordingTrack } = this.store.get();
+      const track = [...audioTracks, recordingTrack].find(
+        (entry) => entry.id === id,
+      );
       if (!track) {
         throw new Error("Audio track state is missing.");
       }
@@ -563,80 +566,14 @@ export class RecorderRuntime {
         eq: track.eq,
         gain: 0,
       });
-      this.audioTracks.set(id, playback);
+      this.trackPlaybacks.set(id, playback);
       this.syncTrackMix();
     }
     return playback;
   }
 
-  private syncAudioTrackPlayback(track: AudioTrackState): void {
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const playback = this.getAudioTrackPlayback(track.id);
-    playback.setSources(getClipSources(track.regions));
-    if (wasPlaying) {
-      this.transport.play();
-    }
-  }
-
-  setRecordingTrackMix(
-    update: Partial<Pick<AudioTrackState, "gain" | "muted" | "soloed">>,
-  ): void {
-    const recordingTrack = { ...this.store.get().recordingTrack, ...update };
-    this.store.update({ recordingTrack });
-    this.syncTrackMix();
-  }
-
-  setRecordingTrackHeight(height: number): void {
-    this.store.update({
-      recordingTrack: {
-        ...this.store.get().recordingTrack,
-        height: clampRecordingTrackHeight(height),
-      },
-    });
-  }
-
-  setTakeMuted(id: string, muted: boolean): void {
-    this.updateTake(id, (take) => ({ ...take, muted }));
-  }
-
-  setTakeSoloed(id: string, soloed: boolean): void {
-    this.updateTake(id, (take) => ({ ...take, soloed }));
-  }
-
-  private updateTake(
-    id: string,
-    updateFn: (take: AudioClip) => AudioClip,
-  ): void {
-    this.updateTakes((takes) => {
-      const index = takes.findIndex((take) => take.id === id);
-      const take = takes[index];
-      if (!take) {
-        throw new Error("Recording take state is missing.");
-      }
-      const nextTakes = takes.slice();
-      nextTakes[index] = updateFn(take);
-      return nextTakes;
-    });
-  }
-
-  private updateTakes(updateFn: (takes: AudioClip[]) => AudioClip[]): void {
-    const wasPlaying = this.store.get().isPlaying;
-    if (wasPlaying) {
-      this.pause();
-    }
-    const previousTrack = this.store.get().recordingTrack;
-    const recordingTrack = resolveTrackRegions({
-      ...previousTrack,
-      clips: updateFn(previousTrack.clips),
-    });
-    this.store.update({ recordingTrack });
-    this.syncTakePlayback(recordingTrack.regions);
-    if (wasPlaying) {
-      this.transport.play();
-    }
+  private syncTrackPlayback(track: AudioTrackState): void {
+    this.getTrackPlayback(track.id).setSources(getClipSources(track.regions));
   }
 
   async play(): Promise<void> {
@@ -662,7 +599,7 @@ export class RecorderRuntime {
     if (!this.store.get().isPlaying) {
       await this.play();
     }
-    this.captureTrack!.setPlaybackGain(0);
+    this.getTrackPlayback(RECORDING_TRACK_ID).setPlaybackGain(0);
     // Trim samples captured during playback lead time.
     const playbackStartFrame =
       this.transport.playbackAnchor!.contextTime * context.sampleRate;
@@ -929,10 +866,10 @@ export class RecorderRuntime {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
-    for (const playback of this.audioTracks.values()) {
+    for (const playback of this.trackPlaybacks.values()) {
       playback.dispose();
     }
-    this.audioTracks.clear();
+    this.trackPlaybacks.clear();
     const audioTracks = project.audioTracks.map((track) =>
       resolveTrackRegions(track),
     );
@@ -947,12 +884,14 @@ export class RecorderRuntime {
         gain: 0,
       });
       playback.setSources(getClipSources(track.regions));
-      this.audioTracks.set(track.id, playback);
+      this.trackPlaybacks.set(track.id, playback);
     }
     // Clamp loaded external state at the runtime boundary so older projects
-    // cannot restore a Capture row too short for its current controls.
+    // cannot restore a Capture row too short for its current controls, and pin
+    // the recording track id that persistence does not preserve.
     const recordingTrack = resolveTrackRegions({
       ...project.recordingTrack,
+      id: RECORDING_TRACK_ID,
       height: clampRecordingTrackHeight(project.recordingTrack.height),
     });
     this.store.update({
@@ -961,8 +900,12 @@ export class RecorderRuntime {
       position: 0,
       recordingTrack,
     });
-    this.syncTakePlayback(recordingTrack.regions);
-    this.captureTrack!.channel.setEq(project.recordingTrack.eq);
+    this.syncTrackPlayback(recordingTrack);
+    // The recording playback was recreated above, so point the open input at
+    // its new channel.
+    this.captureInput?.setMonitorOutput(
+      this.getTrackPlayback(RECORDING_TRACK_ID).channel.input,
+    );
     this.syncYouTubePlayer();
     this.transport.seek(0);
     this.metronome.setTempo(project.tempo);
@@ -996,20 +939,17 @@ export class RecorderRuntime {
   }
 
   private syncTrackMix(): void {
-    const { audioTracks, recordingTrack } = this.store.get();
-    const { audioTrackGains, recordingGain } = deriveTrackMix({
-      audioTracks,
-      recordingTrack,
-    });
-    for (const [index, track] of audioTracks.entries()) {
-      this.audioTracks.get(track.id)?.channel.setGain(audioTrackGains[index]!);
+    const state = this.store.get();
+    for (const [id, gain] of deriveTrackMix(state)) {
+      this.trackPlaybacks.get(id)?.channel.setGain(gain);
     }
-    this.captureTrack?.channel.setGain(recordingGain);
     // Suppress take playback independently so channel mix edits cannot unmute it.
-    const { captureStatus } = this.store.get();
-    this.captureTrack?.setPlaybackGain(
-      captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
-    );
+    const { captureStatus } = state;
+    this.trackPlaybacks
+      .get(RECORDING_TRACK_ID)
+      ?.setPlaybackGain(
+        captureStatus === "recording" || captureStatus === "processing" ? 0 : 1,
+      );
   }
 
   private syncMetronomeGain(): void {
@@ -1089,7 +1029,8 @@ export class RecorderRuntime {
       previewClipRegions: undefined,
       recordingTrack,
     });
-    this.syncTakePlayback(recordingTrack.regions);
+    this.syncTrackPlayback(recordingTrack);
+    this.syncTrackMix();
   }
 
   private closeInput(): void {
@@ -1105,11 +1046,6 @@ export class RecorderRuntime {
       pendingRecordingToTake(pendingRecording),
     ]);
     this.store.update({ pendingRecording, previewClipRegions });
-  }
-
-  private syncTakePlayback(takeRegions: ClipRegion[]): void {
-    this.captureTrack!.setSources(getClipSources(takeRegions));
-    this.syncTrackMix();
   }
 }
 
@@ -1219,7 +1155,7 @@ function createAudioTrackState(): AudioTrackState {
 
 function createRecordingTrackState(): AudioTrackState {
   return {
-    id: crypto.randomUUID(),
+    id: RECORDING_TRACK_ID,
     eq: createDefaultMultibandEq(),
     height: MIN_RECORDING_TRACK_HEIGHT,
     gain: 1,

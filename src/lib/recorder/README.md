@@ -10,7 +10,7 @@ flowchart LR
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
 
-    subgraph captureTrack["captureTrack: AudioTrackPlayback"]
+    subgraph captureTrack["trackPlaybacks.get(RECORDING_TRACK_ID): AudioTrackPlayback"]
         takeSource["playbacks[i].source"] --> takeBusInput
         subgraph takePitchShiftBus["bus: PitchShiftBus"]
             takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]
@@ -24,7 +24,7 @@ flowchart LR
     end
 
     captureGain --> masterOutput["masterOutput"]
-    audioTrack["audioTracks.get(id): AudioTrackPlayback"] --> masterOutput
+    audioTrack["trackPlaybacks.get(id): AudioTrackPlayback"] --> masterOutput
     oscillator["oscillator"] --> envelope["envelope"]
     envelope --> metronomeOutput["metronome.output"]
     metronomeOutput --> masterOutput
