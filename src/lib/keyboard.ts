@@ -45,6 +45,13 @@ const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
   ..."0123456789".split("").map((char) => [char, { code: `Digit${char}` }]),
 ]);
 
+/**
+ * Parses a key with optional `Ctrl+`, `Alt+`, and `Shift+` modifiers, such as
+ * `Ctrl+S`, `Shift+1`, or `>`. `Ctrl` matches either Control or Command.
+ * Letters and digits match physical keys; other keys use `SPECIAL_KEYS`.
+ * Unlisted modifiers must be released, except Shift when `ignoreShift` is set.
+ * Throws for unknown keys or multiple key tokens.
+ */
 export function parseShortcut(shortcut: string): ParsedShortcut {
   const modifiers = {
     shift: false,
