@@ -42,11 +42,6 @@ export class BiquadEqNode extends AudioWorkletNode {
   setParameters(parameters: MultibandEqParameters): void {
     this.port.postMessage(parameters);
   }
-
-  dispose(): void {
-    this.port.close();
-    this.disconnect();
-  }
 }
 
 export async function ensureBiquadEqWorklet(

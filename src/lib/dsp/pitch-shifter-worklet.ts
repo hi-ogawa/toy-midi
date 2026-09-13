@@ -43,20 +43,19 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
     });
   }
 
-  // Omit a return value so active inputs determine the processor lifetime.
-  // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): void {
+  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (output.length === 0) {
-      return;
+      return true;
     }
-    // Supply silence for callbacks without active input.
+    // Keep the stream clock advancing and drain buffered audio between sources.
     this.shifter.push(input.length > 0 ? input : this.silence);
     const written = this.shifter.pull(output);
     for (const channel of output) {
       channel.fill(0, written);
     }
+    return true;
   }
 }
 
