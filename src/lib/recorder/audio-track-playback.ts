@@ -113,8 +113,10 @@ class PitchShiftBus implements TransportParticipant {
     // This processor returns true through input gaps, so disconnecting alone
     // keeps it active. Dispose explicitly so process() returns false.
     // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-    this.pitchShifter?.port.postMessage({ type: "dispose" });
-    this.pitchShifter?.disconnect();
+    if (this.pitchShifter) {
+      this.pitchShifter.parameters.get("disposed")!.value = 1;
+      this.pitchShifter.disconnect();
+    }
     this.pitchShifter = undefined;
   }
 
