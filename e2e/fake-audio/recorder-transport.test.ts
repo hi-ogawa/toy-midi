@@ -103,3 +103,17 @@ for (const playbackRate of [0.5, 1.5]) {
     expect(observedRate).toBeCloseTo(playbackRate, 1);
   });
 }
+
+test("steps playback speed with angle brackets", async ({ page }) => {
+  // Open a recorder and step through the same rates as the dropdown, stopping at each end.
+  await createRecorderProject(page);
+  const rate = page.getByTestId("recorder-playback-rate");
+  for (const expected of [1.25, 1.5, 1.5]) {
+    await page.keyboard.press("Shift+>");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+  for (const expected of [1.25, 1, 0.75, 0.5, 0.5]) {
+    await page.keyboard.press("Shift+<");
+    await expect(rate).toHaveText(`${expected}x`);
+  }
+});
