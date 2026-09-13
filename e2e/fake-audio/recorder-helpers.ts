@@ -1,32 +1,50 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 /** Create a recorder project from its index and wait for the recorder app. */
 export async function createRecorderProject(page: Page): Promise<void> {
-  await page.goto("/");
-  await page.getByRole("tab", { name: "Recorder", exact: true }).click();
-  await page.getByTestId("new-recorder-project-button").click();
-  await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
-  await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+  await test.step(
+    "Create recorder project",
+    async () => {
+      await page.goto("/");
+      await page.getByRole("tab", { name: "Recorder", exact: true }).click();
+      await page.getByTestId("new-recorder-project-button").click();
+      await expect(page).toHaveURL(/\/recorder\/[^/]+$/);
+      await expect(page.getByTestId("recorder-project-name")).toBeVisible();
+    },
+    { box: true },
+  );
 }
 
 export async function addRecorderAudio(
   page: Page,
   filePath: string,
 ): Promise<void> {
-  const clips = page.getByTestId("recorder-clip-audio");
-  const count = await clips.count();
-  const fileChooser = page.waitForEvent("filechooser");
-  await page.getByTestId("recorder-add-audio-file").click();
-  await (await fileChooser).setFiles(filePath);
-  await expect(clips).toHaveCount(count + 1);
-  await expect(clips.nth(count).locator("svg")).toBeVisible();
+  await test.step(
+    "Add recorder audio",
+    async () => {
+      const clips = page.getByTestId("recorder-clip-audio");
+      const count = await clips.count();
+      const fileChooser = page.waitForEvent("filechooser");
+      await page.getByTestId("recorder-add-audio-file").click();
+      await (await fileChooser).setFiles(filePath);
+      await expect(clips).toHaveCount(count + 1);
+      await expect(clips.nth(count).locator("svg")).toBeVisible();
+    },
+    { box: true },
+  );
 }
 
 export async function seekRecorderByPixels(page: Page, pixels: number) {
-  const ruler = page.getByTestId("recorder-timeline-ruler");
-  const box = await ruler.boundingBox();
-  expect(box).not.toBeNull();
-  await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+  await test.step(
+    `Seek recorder to ${pixels}px`,
+    async () => {
+      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const box = await ruler.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+    },
+    { box: true },
+  );
 }
 
 export async function getRecorderPosition(page: Page): Promise<number> {
@@ -50,15 +68,25 @@ export async function dragBy(
     anchorXOffset,
   }: { deltaY?: number; anchorXOffset?: number } = {},
 ) {
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-  const startX = box!.x + (anchorXOffset ?? box!.width / 2);
-  await page.mouse.move(startX, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {
-    steps: 4,
-  });
-  await page.mouse.up();
+  await test.step(
+    `Drag by ${deltaX}px, ${deltaY}px`,
+    async () => {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      const startX = box!.x + (anchorXOffset ?? box!.width / 2);
+      await page.mouse.move(startX, box!.y + box!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(
+        startX + deltaX,
+        box!.y + box!.height / 2 + deltaY,
+        {
+          steps: 4,
+        },
+      );
+      await page.mouse.up();
+    },
+    { box: true },
+  );
 }
 
 export async function waitForRecordingSamples(recording: Locator) {
@@ -73,33 +101,39 @@ export async function waitForRecordingSamples(recording: Locator) {
 }
 
 export async function enableInput(page: Page) {
-  // Fake audio still exercises permission, device discovery, and channel setup.
-  const inputSetupButton = page.getByRole("button", {
-    name: "Configure audio input",
-  });
-  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  await inputSetupButton.click();
-  await expect(
-    page.getByRole("heading", { name: "Audio Input Setup" }),
-  ).toBeVisible();
-  const setup = page.getByTestId("recorder-input-setup");
-  await setup.getByRole("button", { name: "Enable input" }).click();
-  await expect(
-    setup.getByRole("button", { name: "Disable input" }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Device")).toContainText(
-    "Fake Default Audio Input",
-  );
-  await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-  await page.getByRole("button", { name: "Close" }).click();
-  await expect(
-    page.getByText("Fake Default Audio Input · Channel 1"),
-  ).toBeVisible();
-  await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
-    "aria-pressed",
-    "true",
+  await test.step(
+    "Enable audio input",
+    async () => {
+      // Fake audio still exercises permission, device discovery, and channel setup.
+      const inputSetupButton = page.getByRole("button", {
+        name: "Configure audio input",
+      });
+      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      await inputSetupButton.click();
+      await expect(
+        page.getByRole("heading", { name: "Audio Input Setup" }),
+      ).toBeVisible();
+      const setup = page.getByTestId("recorder-input-setup");
+      await setup.getByRole("button", { name: "Enable input" }).click();
+      await expect(
+        setup.getByRole("button", { name: "Disable input" }),
+      ).toBeVisible();
+      await expect(page.getByLabel("Device")).toContainText(
+        "Fake Default Audio Input",
+      );
+      await expect(page.getByLabel("Channel")).toContainText("Channel 1");
+      await page.getByRole("button", { name: "Close" }).click();
+      await expect(
+        page.getByText("Fake Default Audio Input · Channel 1"),
+      ).toBeVisible();
+      await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    },
+    { box: true },
   );
 }
