@@ -9,6 +9,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -19,7 +20,7 @@ import { RecorderHelp } from "./help";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
-import { PLAYBACK_RATES, RecorderHeader } from "./recorder-header";
+import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
@@ -192,13 +193,10 @@ export function Recorder({ projectId }: { projectId: string }) {
         return;
       }
       event.preventDefault();
-      const rates =
-        event.key === ">" ? PLAYBACK_RATES : [...PLAYBACK_RATES].reverse();
-      const rate = rates.find((rate) =>
-        event.key === ">"
-          ? rate > state.playbackRate
-          : rate < state.playbackRate,
-      );
+      const rate = getNextPlaybackRate({
+        rate: state.playbackRate,
+        direction: event.key === ">" ? "increase" : "decrease",
+      });
       if (rate !== undefined) {
         runtime.setPlaybackRate(rate);
       }

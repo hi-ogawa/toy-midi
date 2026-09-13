@@ -20,6 +20,7 @@ import {
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
+import { PLAYBACK_RATES } from "../../lib/recorder/playback-rate";
 import type {
   RecorderLoopState,
   RecorderPunchState,
@@ -48,8 +49,6 @@ import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
 import type { SaveStatus } from "./use-recorder-project";
-
-export const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5];
 
 export function RecorderHeader({
   title,
