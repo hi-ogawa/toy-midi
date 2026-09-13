@@ -71,7 +71,7 @@ test("header permission setup leaves input closed and R opens the selected devic
   await setup
     .getByLabel("Device")
     .selectOption({ label: "Fake Audio Input 1" });
-  await page.keyboard.press("Escape");
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
 
   // Open the chosen input directly with R, then enable monitoring.
   await inputToggle.click();
@@ -99,7 +99,7 @@ test("header permission setup leaves input closed and R opens the selected devic
   await expect(
     setup.getByRole("button", { name: "Disable input", exact: true }),
   ).toBeDisabled();
-  await page.keyboard.press("Escape");
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
   await record.click();
   await expect(inputToggle).toBeEnabled();
 });

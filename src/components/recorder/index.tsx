@@ -167,13 +167,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       return;
     }
-    if (isInputSetupOpen) {
-      if (matchKeyboardEvent(event, "Escape")) {
-        event.preventDefault();
-        setIsInputSetupOpen(false);
-      }
-      return;
-    }
     if (isAudioExportOpen) {
       return;
     }
