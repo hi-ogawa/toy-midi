@@ -18,12 +18,6 @@ const recorderPreferencesSchema = z.object({
       height: z.number().positive(),
     })
     .optional(),
-  effectsSize: z
-    .object({
-      width: z.number().positive(),
-      height: z.number().positive(),
-    })
-    .optional(),
   input: z
     .object({
       deviceId: z.string(),

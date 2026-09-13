@@ -152,7 +152,7 @@ test("keeps the mixer usable with many effects panels open", async ({
   await expect(mixer).toHaveCount(0);
 });
 
-test("resizes effects panels and remembers the preferred size", async ({
+test("resizes effects panels without persisting their size", async ({
   page,
 }) => {
   // Open Audio and Capture effects with room to compare their sizes.
@@ -201,14 +201,14 @@ test("resizes effects panels and remembers the preferred size", async ({
   expect(graph.width).toBeGreaterThan(initialGraph.width);
   expect(graph.height).toBeGreaterThan(initialGraph.height);
 
-  // Reload and reopen Capture to restore its saved dimensions.
+  // Reload and reopen Capture to return to its default dimensions.
   await page.reload();
   await page
     .getByRole("button", { name: "Capture effects", exact: true })
     .click();
-  const restored = (await capture.boundingBox())!;
-  expect(restored.width).toBeCloseTo(resized.width, 0);
-  expect(restored.height).toBeCloseTo(resized.height, 0);
+  const reopened = (await capture.boundingBox())!;
+  expect(reopened.width).toBeCloseTo(initial.width, 0);
+  expect(reopened.height).toBeCloseTo(initial.height, 0);
 
   // Shrink to the minimum size and scroll to edit the controls below the graph.
   await dragBy(

@@ -9,7 +9,6 @@ import {
 } from "../../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
 import { clamp, dbToGain, gainToDb } from "../../lib/music";
-import { recorderStorage } from "../../lib/recorder/storage";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
@@ -59,12 +58,7 @@ export function RecorderEffects({
   onClose: () => void;
 }) {
   const [size, setSize] = useState(() =>
-    clampEffectsSize(
-      recorderStorage.readPreferences().effectsSize ?? {
-        width: 384,
-        height: 440,
-      },
-    ),
+    clampEffectsSize({ width: 384, height: 440 }),
   );
   const resizeHandleRef = usePointerDrag({
     onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
@@ -75,9 +69,6 @@ export function RecorderEffects({
           height: drag.size.height + drag.y - event.clientY,
         }),
       );
-    },
-    onEnd: () => {
-      recorderStorage.updatePreferences({ effectsSize: size });
     },
   });
 
