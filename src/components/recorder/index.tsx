@@ -25,7 +25,6 @@ import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
-  TakeTimelineLane,
   ReferenceTimelineRow,
   TimelineHeader,
   TimelineLane,
@@ -33,7 +32,6 @@ import {
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
-  CaptureTrackRow,
   TakesDisclosureRow,
   TakeTrackRow,
   TrackRow,
@@ -362,6 +360,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.audioTracks.map((track, index) => (
               <TrackRow
                 key={track.id}
+                data-testid="recorder-audio-track-row"
                 title={`Audio ${index + 1}`}
                 height={track.height}
                 gain={track.gain}
@@ -396,6 +395,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
+                  editSourceClips={false}
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -431,20 +431,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               </TrackRow>
             ))}
 
-            <CaptureTrackRow
-              route={input.route.label}
-              routeNeedsSetup={input.route.needsSetup}
+            <TrackRow
+              title="Capture"
               gain={state.recordingTrack.gain}
               height={state.recordingTrack.height}
-              inputActive={input.active}
-              inputAnalyser={runtime.captureInput?.analyser}
-              inputMonitoring={state.inputMonitoring}
-              inputToggleDisabled={
-                input.mutationPending ||
-                !input.initialized ||
-                flags.isRecording ||
-                (!input.active && input.route.needsSetup)
-              }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
@@ -452,11 +442,6 @@ export function Recorder({ projectId }: { projectId: string }) {
               onGainChange={(gain) =>
                 runtime.setTrackMix(state.recordingTrack.id, { gain })
               }
-              onInputSetup={() => setIsInputSetupOpen(true)}
-              onInputMonitoringChange={(monitoring) =>
-                runtime.setInputMonitoring(monitoring)
-              }
-              onInputToggle={input.toggle}
               onMutedChange={(muted) =>
                 runtime.setTrackMix(state.recordingTrack.id, { muted })
               }
@@ -466,15 +451,43 @@ export function Recorder({ projectId }: { projectId: string }) {
               onHeightChange={(height) =>
                 runtime.setTrackHeight(state.recordingTrack.id, height)
               }
+              input={{
+                route: input.route.label,
+                routeNeedsSetup: input.route.needsSetup,
+                inputActive: input.active,
+                inputAnalyser: runtime.captureInput?.analyser,
+                inputMonitoring: state.inputMonitoring,
+                inputToggleDisabled:
+                  input.mutationPending ||
+                  !input.initialized ||
+                  flags.isRecording ||
+                  (!input.active && input.route.needsSetup),
+                onInputSetup: () => setIsInputSetupOpen(true),
+                onInputMonitoringChange: (monitoring) =>
+                  runtime.setInputMonitoring(monitoring),
+                onInputToggle: input.toggle,
+              }}
             >
-              <TakeTimelineLane
-                takes={takes}
+              <AudioTimelineLane
+                clips={takes}
+                testId="comp"
+                editSourceClips
+                emptyLabel="Enable input, place the playhead, then record"
                 regions={
                   state.previewClipRegions ?? state.recordingTrack.regions
                 }
-                pendingRecording={state.pendingRecording}
-                captureStatus={state.captureStatus}
-                isTakeSelected={(id) =>
+                recordingPreview={
+                  state.pendingRecording
+                    ? {
+                        id: state.pendingRecording.id,
+                        label:
+                          state.captureStatus === "processing"
+                            ? "Finalizing..."
+                            : "Recording...",
+                      }
+                    : undefined
+                }
+                isClipSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
                 }
                 beatsPerBar={timeline.beatsPerBar}
@@ -487,25 +500,25 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clipInteraction.clear();
                   runtime.seek(position);
                 }}
-                onTakeDragStart={(id, additive) =>
+                onClipDragStart={(id, additive) =>
                   clipInteraction.startMove({
                     clip: { type: "clip", id },
                     additive,
                   })
                 }
-                onTakeClick={(id, additive) =>
+                onClipClick={(id, additive) =>
                   clipInteraction.select({ type: "clip", id }, additive)
                 }
-                onTakeDragMove={clipInteraction.move}
-                onTakeTrimStart={(id, edge) =>
+                onClipDragMove={clipInteraction.move}
+                onTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
                     clip: { type: "clip", id },
                     edge,
                   })
                 }
-                onTakeTrimMove={clipInteraction.trim}
+                onTrimMove={clipInteraction.trim}
               />
-            </CaptureTrackRow>
+            </TrackRow>
             {takes.length > 0 && (
               <TakesDisclosureRow
                 expanded={takesExpanded}
