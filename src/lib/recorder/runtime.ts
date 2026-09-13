@@ -380,7 +380,6 @@ export class RecorderRuntime {
     function moveTrackClips(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
-        clipIds,
         update: (clips) =>
           clips.map((clip) =>
             offsets.has(clip.id)
@@ -434,7 +433,6 @@ export class RecorderRuntime {
     function trimTrackClips(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
-        clipIds,
         update: (clips) =>
           clips.map((clip) =>
             clipIds.has(clip.id)
@@ -502,7 +500,6 @@ export class RecorderRuntime {
     function removeTrackClips(track: AudioTrackState): AudioTrackState {
       return updateTrackClips({
         track,
-        clipIds,
         update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
       });
     }
@@ -1153,17 +1150,19 @@ export class RecorderRuntime {
 
 function updateTrackClips({
   track,
-  clipIds,
   update,
 }: {
   track: AudioTrackState;
-  clipIds: ReadonlySet<string>;
   update: (clips: AudioClip[]) => AudioClip[];
 }): AudioTrackState {
-  if (!track.clips.some((clip) => clipIds.has(clip.id))) {
+  const clips = update(track.clips);
+  if (
+    clips.length === track.clips.length &&
+    clips.every((clip, index) => clip === track.clips[index])
+  ) {
     return track;
   }
-  return resolveTrackRegions({ ...track, clips: update(track.clips) });
+  return resolveTrackRegions({ ...track, clips });
 }
 
 function resolveTrackRegions(
