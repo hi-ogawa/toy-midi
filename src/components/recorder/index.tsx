@@ -615,15 +615,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputTogglePending={input.togglePending}
             mutationPending={input.mutationPending}
             onDeviceChange={input.selectDevice}
-            onInputToggle={() => {
-              if (input.hasAccess) {
-                input.toggle();
-              } else {
-                input.grantAccess(undefined, {
-                  onSuccess: () => setIsInputSetupOpen(false),
-                });
-              }
-            }}
+            onInputToggle={input.toggle}
             onChannelChange={input.selectChannel}
             onLatencyCompensationChange={(compensation) => {
               const wasPlaying = state.isPlaying;

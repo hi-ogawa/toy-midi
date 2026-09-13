@@ -55,6 +55,10 @@ test("header permission setup leaves input closed and R opens the selected devic
   await setup
     .getByRole("button", { name: "Allow microphone access", exact: true })
     .click();
+  await expect(
+    setup.getByRole("button", { name: "Enable input", exact: true }),
+  ).toBeEnabled();
+  await setup.getByRole("button", { name: "Close", exact: true }).click();
   await expect(setup).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Allow microphone access", exact: true }),
