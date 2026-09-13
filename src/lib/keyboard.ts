@@ -17,7 +17,9 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
-const SPECIAL_KEYS: Record<string, { code: string; key: string }> = {
+const SPECIAL_KEYS: Record<string, { code?: string; key: string }> = {
+  "<": { key: "<" },
+  ">": { key: ">" },
   Space: { code: "Space", key: " " },
   Escape: { code: "Escape", key: "Escape" },
   Enter: { code: "Enter", key: "Enter" },
@@ -70,10 +72,7 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
-  const match =
-    CHAR_KEYS[keyToken.toUpperCase()] ||
-    SPECIAL_KEYS[keyToken] ||
-    (["<", ">"].includes(keyToken) ? { key: keyToken } : undefined);
+  const match = CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
   if (!match) {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
