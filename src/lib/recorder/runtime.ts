@@ -1117,6 +1117,13 @@ export class RecorderRuntime {
   }
 }
 
+/**
+ * Transform clips without mutating the input array or its clips. Preserve object
+ * references for unchanged clips and return new objects for edited clips.
+ * Returns the original track when clip references and order are unchanged,
+ * otherwise rebuilds regions. Callers use track identity to decide whether
+ * playback needs synchronization.
+ */
 function updateTrackClips({
   track,
   update,
