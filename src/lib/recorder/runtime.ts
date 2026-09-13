@@ -377,17 +377,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const moveTrackClips = (track: AudioTrackState) =>
-      updateTrackClips({
-        track,
-        clipIds,
-        update: (clips) =>
-          clips.map((clip) =>
-            offsets.has(clip.id)
-              ? { ...clip, timelineOffset: offsets.get(clip.id)! }
-              : clip,
-          ),
-      });
     const audioTracks = state.audioTracks.map(moveTrackClips);
     const recordingTrack = moveTrackClips(state.recordingTrack);
     const referenceVideo = state.referenceVideo
@@ -414,6 +403,19 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.transport.play();
     }
+
+    function moveTrackClips(track: AudioTrackState): AudioTrackState {
+      return updateTrackClips({
+        track,
+        clipIds,
+        update: (clips) =>
+          clips.map((clip) =>
+            offsets.has(clip.id)
+              ? { ...clip, timelineOffset: offsets.get(clip.id)! }
+              : clip,
+          ),
+      });
+    }
   }
 
   trimClip({ id, edge, value }: RecorderClipTrim): void {
@@ -430,8 +432,23 @@ export class RecorderRuntime {
       this.pause();
     }
     const clipIds = new Set([id]);
-    const trimTrackClips = (track: AudioTrackState) =>
-      updateTrackClips({
+    const audioTracks = state.audioTracks.map(trimTrackClips);
+    const recordingTrack = trimTrackClips(state.recordingTrack);
+    this.store.update({ recordingTrack, audioTracks });
+    if (recordingTrack !== state.recordingTrack) {
+      this.syncTakePlayback(recordingTrack.regions);
+    }
+    for (const [index, track] of audioTracks.entries()) {
+      if (track !== state.audioTracks[index]) {
+        this.syncAudioTrackPlayback(track);
+      }
+    }
+    if (wasPlaying) {
+      this.transport.play();
+    }
+
+    function trimTrackClips(track: AudioTrackState): AudioTrackState {
+      return updateTrackClips({
         track,
         clipIds,
         update: (clips) =>
@@ -458,19 +475,6 @@ export class RecorderRuntime {
               : clip,
           ),
       });
-    const audioTracks = state.audioTracks.map(trimTrackClips);
-    const recordingTrack = trimTrackClips(state.recordingTrack);
-    this.store.update({ recordingTrack, audioTracks });
-    if (recordingTrack !== state.recordingTrack) {
-      this.syncTakePlayback(recordingTrack.regions);
-    }
-    for (const [index, track] of audioTracks.entries()) {
-      if (track !== state.audioTracks[index]) {
-        this.syncAudioTrackPlayback(track);
-      }
-    }
-    if (wasPlaying) {
-      this.transport.play();
     }
   }
 
@@ -497,12 +501,6 @@ export class RecorderRuntime {
     if (wasPlaying) {
       this.pause();
     }
-    const removeTrackClips = (track: AudioTrackState) =>
-      updateTrackClips({
-        track,
-        clipIds,
-        update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
-      });
     const audioTracks = state.audioTracks.map(removeTrackClips);
     const recordingTrack = removeTrackClips(state.recordingTrack);
     const referenceVideo = removeReference ? undefined : state.referenceVideo;
@@ -520,6 +518,14 @@ export class RecorderRuntime {
     }
     if (wasPlaying) {
       this.transport.play();
+    }
+
+    function removeTrackClips(track: AudioTrackState): AudioTrackState {
+      return updateTrackClips({
+        track,
+        clipIds,
+        update: (clips) => clips.filter((clip) => !clipIds.has(clip.id)),
+      });
     }
   }
 
