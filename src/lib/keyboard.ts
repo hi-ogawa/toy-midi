@@ -1,7 +1,8 @@
-type ParsedShortcut = {
-  code?: string;
-  key?: string;
+type ShortcutKey = ({ code: string } | { key: string }) & {
   ignoreShift?: boolean;
+};
+
+type ParsedShortcut = ShortcutKey & {
   modifiers: {
     shift: boolean;
     alt: boolean;
@@ -19,26 +20,22 @@ type KeyboardLikeEvent = {
 };
 
 /**
- * `code` matches a physical key and takes precedence over `key`.
- * Without `code`, `key` matches the character produced by the keyboard layout.
+ * Use `code` for a physical key or `key` for a character produced by the layout.
  * `ignoreShift` allows either Shift state for that key, while an explicit
  * `Shift+` in the shortcut still requires Shift to be held.
  */
-const SPECIAL_KEYS: Record<
-  string,
-  { code?: string; key: string; ignoreShift?: boolean }
-> = {
+const SPECIAL_KEYS: Record<string, ShortcutKey> = {
   "<": { key: "<", ignoreShift: true },
   ">": { key: ">", ignoreShift: true },
-  Space: { code: "Space", key: " " },
-  Escape: { code: "Escape", key: "Escape" },
-  Enter: { code: "Enter", key: "Enter" },
-  ArrowLeft: { code: "ArrowLeft", key: "ArrowLeft" },
-  ArrowRight: { code: "ArrowRight", key: "ArrowRight" },
-  ArrowUp: { code: "ArrowUp", key: "ArrowUp" },
-  ArrowDown: { code: "ArrowDown", key: "ArrowDown" },
-  Delete: { code: "Delete", key: "Delete" },
-  Backspace: { code: "Backspace", key: "Backspace" },
+  Space: { code: "Space" },
+  Escape: { code: "Escape" },
+  Enter: { code: "Enter" },
+  ArrowLeft: { code: "ArrowLeft" },
+  ArrowRight: { code: "ArrowRight" },
+  ArrowUp: { code: "ArrowUp" },
+  ArrowDown: { code: "ArrowDown" },
+  Delete: { code: "Delete" },
+  Backspace: { code: "Backspace" },
 };
 
 const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
@@ -98,9 +95,6 @@ export function matchKeyboardEvent(
   shortcut: string,
 ): boolean {
   const parsed = parseShortcut(shortcut);
-  if (!parsed.code && !parsed.key) {
-    return false;
-  }
 
   if ((e.ctrlKey || e.metaKey) !== parsed.modifiers.ctrl) {
     return false;
@@ -119,14 +113,9 @@ export function matchKeyboardEvent(
     return false;
   }
 
-  if (parsed.code) {
-    return e.code === parsed.code;
-  }
-  if (parsed.key) {
-    return e.key.toLowerCase() === parsed.key.toLowerCase();
-  }
-
-  return false;
+  return "code" in parsed
+    ? e.code === parsed.code
+    : e.key.toLowerCase() === parsed.key.toLowerCase();
 }
 
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {
