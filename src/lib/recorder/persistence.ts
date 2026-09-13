@@ -1,12 +1,11 @@
-import { createAudioView } from "../audio-view.ts";
 import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
   createDefaultEqBand,
   createDefaultMultibandEq,
 } from "../dsp/biquad-eq-node.ts";
 import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { createAudioClip } from "./audio-clip.ts";
 import {
-  WAVEFORM_POINTS_PER_SECOND,
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
   type RecorderLocator,
@@ -86,6 +85,7 @@ interface SerializedAudioClip<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  name?: string;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;
@@ -105,23 +105,26 @@ export function serializeRecorderRuntimeState(
   return {
     title: state.title,
     locators: state.locators,
-    audioTracks: state.audioTracks.map((track) => ({
-      id: track.id,
-      height: track.height,
-      clip: track.clip
-        ? {
-            name: track.clip.name,
-            pcm: serializeAudioBuffer(track.clip.buffer),
-          }
-        : undefined,
-      eq: track.eq,
-      gain: track.gain,
-      muted: track.muted,
-      soloed: track.soloed,
-      timelineOffset: track.timelineOffset,
-      trimStart: track.trimStart,
-      trimEnd: track.trimEnd,
-    })),
+    audioTracks: state.audioTracks.map((track) => {
+      const clip = track.clips[0];
+      return {
+        id: track.id,
+        height: track.height,
+        clip: clip?.buffer
+          ? {
+              name: clip.name,
+              pcm: serializeAudioBuffer(clip.buffer),
+            }
+          : undefined,
+        eq: track.eq,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
+        timelineOffset: clip?.timelineOffset ?? 0,
+        trimStart: clip?.trimStart ?? 0,
+        trimEnd: clip?.trimEnd ?? 0,
+      };
+    }),
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -135,7 +138,7 @@ export function serializeRecorderRuntimeState(
         }
         return {
           id: take.id,
-          number: take.number,
+          name: take.name,
           muted: take.muted,
           soloed: take.soloed,
           timelineOffset: take.timelineOffset,
@@ -172,29 +175,30 @@ export function deserializeRecorderRuntimeState({
         : undefined;
       return {
         id: track.id,
+        nextTakeNumber: 1,
         height: track.height,
-        clip:
+        clips:
           track.clip && buffer
-            ? {
-                name: track.clip.name,
-                buffer,
-                audioView: createAudioView(
-                  buffer.getChannelData(0),
-                  buffer.sampleRate,
-                  WAVEFORM_POINTS_PER_SECOND,
-                ),
-              }
-            : undefined,
+            ? [
+                {
+                  ...createAudioClip({
+                    buffer,
+                    name: track.clip.name,
+                  }),
+                  timelineOffset: track.timelineOffset,
+                  trimStart: track.trimStart ?? 0,
+                  trimEnd: track.trimEnd ?? buffer.duration,
+                },
+              ]
+            : [],
         eq: deserializeEq(track.eq),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
-        timelineOffset: track.timelineOffset,
-        trimStart: track.trimStart ?? 0,
-        trimEnd: track.trimEnd ?? buffer?.duration ?? 0,
       };
     }),
     recordingTrack: {
+      id: crypto.randomUUID(),
       height: project.recordingTrack.height,
       eq: deserializeEq(project.recordingTrack.eq),
       gain: project.recordingTrack.gain,
@@ -206,20 +210,16 @@ export function deserializeRecorderRuntimeState({
       clips: project.recordingTrack.takes.map((take, index) => {
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
-          id: take.id ?? crypto.randomUUID(),
-          number: take.number ?? index + 1,
+          ...createAudioClip({
+            id: take.id,
+            buffer,
+            name: take.name ?? `Take ${take.number ?? index + 1}`,
+          }),
+          timelineOffset: take.timelineOffset,
           muted: take.muted ?? false,
           soloed: take.soloed ?? false,
-          duration: buffer.duration,
-          timelineOffset: take.timelineOffset,
           trimStart: take.trimStart ?? 0,
           trimEnd: take.trimEnd ?? buffer.duration,
-          buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
-          ),
         };
       }),
     },

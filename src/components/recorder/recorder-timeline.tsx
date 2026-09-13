@@ -11,6 +11,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
+import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -423,7 +424,7 @@ export function TakeTimelineLane({
   onTakeTrimMove,
 }: {
   takes: RecorderRuntimeState["recordingTrack"]["clips"];
-  regions: RecorderRuntimeState["takeRegions"];
+  regions: RecorderRuntimeState["recordingTrack"]["regions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;
@@ -486,7 +487,7 @@ export function TakeTimelineLane({
                   ? captureStatus === "processing"
                     ? "Finalizing..."
                     : "Recording..."
-                  : `Take ${take.number}`,
+                  : take.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset,
@@ -508,7 +509,7 @@ export function TakeTimelineLane({
         <TimelineClip
           key={take.id}
           clip={{
-            label: `Take ${take.number}`,
+            label: take.name,
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
             testId: "take",
@@ -526,6 +527,90 @@ export function TakeTimelineLane({
           hidePresentation
         />
       ))}
+    </div>
+  );
+}
+
+export function AudioTimelineLane({
+  beatsPerBar,
+  clips,
+  regions,
+  testId,
+  emptyLabel,
+  pixelsPerBeat,
+  viewportStartBeat,
+  tempo,
+  viewportWidth,
+  isClipSelected,
+  onClipDragStart,
+  onClipClick,
+  onClipDragMove,
+  onTrimStart,
+  onTrimMove,
+  subdivisionsPerBeat,
+  onSeek,
+}: {
+  beatsPerBar: number;
+  clips: readonly AudioClip[];
+  regions: readonly ClipRegion[];
+  testId: RecorderTimelineClip["testId"];
+  emptyLabel: string;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  tempo: number;
+  viewportWidth: number;
+  isClipSelected: (id: string) => boolean;
+  onClipDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (id: string, additive: boolean) => void;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  onTrimStart: (id: string, edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  subdivisionsPerBeat: number;
+  onSeek: (position: number) => void;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden bg-neutral-900"
+      {...getTimelineSurfaceProps({
+        beatsPerBar,
+        onSeek,
+        pixelsPerBeat,
+        tempo,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
+    >
+      {clips.length === 0 && (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+      {regions.map((region, index) => {
+        const { clip } = region;
+        return (
+          <TimelineClip
+            key={`${clip.id}:${index}`}
+            clip={{
+              label: clip.name,
+              duration: region.timelineEnd - region.timelineStart,
+              offset: region.timelineStart,
+              audioOffset: region.timelineStart - clip.timelineOffset,
+              audioView: clip.audioView,
+              testId,
+            }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            selected={isClipSelected(clip.id)}
+            onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
+            onClipClick={(additive) => onClipClick(clip.id, additive)}
+            onClipDragMove={onClipDragMove}
+            onTrimStart={(edge) => onTrimStart(clip.id, edge)}
+            onTrimMove={onTrimMove}
+          />
+        );
+      })}
     </div>
   );
 }

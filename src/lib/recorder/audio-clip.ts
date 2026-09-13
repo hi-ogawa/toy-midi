@@ -1,8 +1,8 @@
-import type { AudioView } from "../audio-view.ts";
+import { createAudioView, type AudioView } from "../audio-view.ts";
 
 export interface AudioClip {
   id: string;
-  number: number;
+  name: string;
   muted: boolean;
   soloed: boolean;
   duration: number;
@@ -18,4 +18,33 @@ export interface ClipRegion {
   clip: AudioClip;
   timelineStart: number;
   timelineEnd: number;
+}
+
+export const WAVEFORM_POINTS_PER_SECOND = 800;
+
+export function createAudioClip({
+  buffer,
+  name,
+  id = crypto.randomUUID(),
+}: {
+  buffer: AudioBuffer;
+  name: string;
+  id?: string;
+}): AudioClip {
+  return {
+    id,
+    name,
+    muted: false,
+    soloed: false,
+    timelineOffset: 0,
+    trimStart: 0,
+    trimEnd: buffer.duration,
+    duration: buffer.duration,
+    buffer,
+    audioView: createAudioView(
+      buffer.getChannelData(0),
+      buffer.sampleRate,
+      WAVEFORM_POINTS_PER_SECOND,
+    ),
+  };
 }

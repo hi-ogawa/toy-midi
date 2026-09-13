@@ -29,6 +29,7 @@ import {
   ReferenceTimelineRow,
   TimelineHeader,
   TimelineLane,
+  AudioTimelineLane,
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
@@ -393,19 +394,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 }
               >
-                <TimelineLane
-                  clip={
-                    track.clip
-                      ? {
-                          duration: track.trimEnd - track.trimStart,
-                          label: track.clip.name,
-                          offset: track.timelineOffset + track.trimStart,
-                          testId: "audio",
-                          audioView: track.clip.audioView,
-                          audioOffset: track.trimStart,
-                        }
-                      : undefined
-                  }
+                <AudioTimelineLane
+                  clips={track.clips}
+                  regions={track.regions}
+                  testId="audio"
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -413,26 +405,22 @@ export function Recorder({ projectId }: { projectId: string }) {
                   tempo={timeline.tempo}
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
-                  selected={clipInteraction.isSelected({
-                    type: "audio",
-                    id: track.id,
-                  })}
-                  onClipClick={(additive) =>
-                    clipInteraction.select(
-                      { type: "audio", id: track.id },
-                      additive,
-                    )
+                  isClipSelected={(id) =>
+                    clipInteraction.isSelected({ type: "clip", id })
                   }
-                  onTrimStart={(edge) =>
+                  onClipClick={(id, additive) =>
+                    clipInteraction.select({ type: "clip", id }, additive)
+                  }
+                  onTrimStart={(id, edge) =>
                     clipInteraction.startTrim({
-                      clip: { type: "audio", id: track.id },
+                      clip: { type: "clip", id },
                       edge,
                     })
                   }
                   onTrimMove={clipInteraction.trim}
-                  onClipDragStart={(additive) =>
+                  onClipDragStart={(id, additive) =>
                     clipInteraction.startMove({
-                      clip: { type: "audio", id: track.id },
+                      clip: { type: "clip", id },
                       additive,
                     })
                   }
@@ -479,11 +467,13 @@ export function Recorder({ projectId }: { projectId: string }) {
             >
               <TakeTimelineLane
                 takes={takes}
-                regions={state.previewClipRegions ?? state.takeRegions}
+                regions={
+                  state.previewClipRegions ?? state.recordingTrack.regions
+                }
                 pendingRecording={state.pendingRecording}
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>
-                  clipInteraction.isSelected({ type: "take", id })
+                  clipInteraction.isSelected({ type: "clip", id })
                 }
                 beatsPerBar={timeline.beatsPerBar}
                 subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -497,17 +487,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }}
                 onTakeDragStart={(id, additive) =>
                   clipInteraction.startMove({
-                    clip: { type: "take", id },
+                    clip: { type: "clip", id },
                     additive,
                   })
                 }
                 onTakeClick={(id, additive) =>
-                  clipInteraction.select({ type: "take", id }, additive)
+                  clipInteraction.select({ type: "clip", id }, additive)
                 }
                 onTakeDragMove={clipInteraction.move}
                 onTakeTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
-                    clip: { type: "take", id },
+                    clip: { type: "clip", id },
                     edge,
                   })
                 }
@@ -523,7 +513,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
-                  number={take.number}
+                  label={take.name}
                   muted={take.muted}
                   soloed={take.soloed}
                   onMutedChange={(muted) =>
@@ -533,12 +523,12 @@ export function Recorder({ projectId }: { projectId: string }) {
                     runtime.setTakeSoloed(take.id, soloed)
                   }
                   onDelete={() =>
-                    runtime.removeClips([{ type: "take", id: take.id }])
+                    runtime.removeClips([{ type: "clip", id: take.id }])
                   }
                 >
                   <TimelineLane
                     clip={{
-                      label: `Take ${take.number}`,
+                      label: take.name,
                       duration: take.trimEnd - take.trimStart,
                       offset: take.timelineOffset + take.trimStart,
                       testId: "take-lane",
@@ -553,25 +543,25 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
                     selected={clipInteraction.isSelected({
-                      type: "take",
+                      type: "clip",
                       id: take.id,
                     })}
                     onClipClick={(additive) =>
                       clipInteraction.select(
-                        { type: "take", id: take.id },
+                        { type: "clip", id: take.id },
                         additive,
                       )
                     }
                     onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "take", id: take.id },
+                        clip: { type: "clip", id: take.id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
                     onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "take", id: take.id },
+                        clip: { type: "clip", id: take.id },
                         additive,
                       })
                     }

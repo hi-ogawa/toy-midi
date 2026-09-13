@@ -68,7 +68,7 @@ describe(deriveClipRegions, () => {
 function clip(id: string, timelineOffset: number, duration: number): AudioClip {
   return {
     id,
-    number: 1,
+    name: id,
     muted: false,
     soloed: false,
     timelineOffset,
