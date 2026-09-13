@@ -352,7 +352,7 @@ export function RecorderHeader({
         <Button
           disabled={inputPending}
           onClick={onInputSetup}
-          className="max-w-28 border-orange-300/40 bg-orange-300/10 px-2 py-1 text-[11px] leading-tight text-orange-200 hover:bg-orange-300/20"
+          className="border-orange-300/40 bg-orange-300/10 px-2 py-1.5 text-xs leading-tight text-orange-200 hover:bg-orange-300/20"
         >
           Allow microphone access
         </Button>
