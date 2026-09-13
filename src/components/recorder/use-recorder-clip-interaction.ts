@@ -35,7 +35,7 @@ export function useRecorderClipInteraction({
 
   function getSelectedClips(selectedKeys: ReadonlySet<string>) {
     return {
-      clips: [...state.audioTracks, state.recordingTrack].flatMap((track) =>
+      clips: state.audioTracks.flatMap((track) =>
         track.clips.filter((clip) =>
           selectedKeys.has(getKey({ type: "clip", id: clip.id })),
         ),
@@ -48,7 +48,7 @@ export function useRecorderClipInteraction({
 
   useEffect(() => {
     const available = new Set([
-      ...[...state.audioTracks, state.recordingTrack].flatMap((track) =>
+      ...state.audioTracks.flatMap((track) =>
         track.clips.map((clip) => getKey({ type: "clip", id: clip.id })),
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
@@ -57,7 +57,7 @@ export function useRecorderClipInteraction({
       const next = new Set([...current].filter((key) => available.has(key)));
       return next.size === current.size ? current : next;
     });
-  }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
+  }, [state.audioTracks, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
     onSelect();
@@ -147,7 +147,7 @@ export function useRecorderClipInteraction({
   }): RecorderClipTrimSnapshot {
     const selected =
       clip.type === "clip"
-        ? [...state.audioTracks, state.recordingTrack]
+        ? state.audioTracks
             .flatMap((track) => track.clips)
             .find((entry) => entry.id === clip.id)
         : undefined;

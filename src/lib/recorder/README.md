@@ -1,6 +1,6 @@
 # Recorder signal flow
 
-The diagram shows how audio flows from sources through processing to recording and output.
+The diagram shows how audio flows from sources through processing to recording and output. Every audio track uses the same playback and channel structure. The shared capture input monitors through the armed track's channel, and the armed track stays fixed from the moment a recording starts until it finishes processing.
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
     analyser --> monitorGain["captureInput.monitorGain"]
     monitorGain --> captureInput
 
-    subgraph captureTrack["trackPlaybacks.get(RECORDING_TRACK_ID): AudioTrackPlayback"]
+    subgraph captureTrack["trackPlaybacks.get(armedTrackId): AudioTrackPlayback"]
         takeSource["playbacks[i].source"] --> takeBusInput
         subgraph takePitchShiftBus["bus: PitchShiftBus"]
             takeBusInput["input"] --> takePitchShifter["pitchShifter (optional)"]

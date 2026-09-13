@@ -7,7 +7,6 @@ import type { EqParameters } from "../dsp/biquad-eq.ts";
 import { createAudioClip } from "./audio-clip.ts";
 import {
   type PersistableRecorderRuntimeState,
-  type RecorderRuntimeState,
   type RecorderLocator,
 } from "./runtime.ts";
 
@@ -17,19 +16,16 @@ import {
  */
 export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
-  // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
+  // Optional for projects saved before track unification.
+  armedTrackId?: string;
   audioTracks: SerializedAudioTrackState<ChannelData>[];
-  recordingTrack: {
-    // Optional for projects saved before track EQ support.
-    eq?: MultibandEqParameters | EqParameters;
-    height: number;
-    gain: number;
-    muted: boolean;
-    soloed: boolean;
+  // Retained for projects saved with a separate recording track.
+  recordingTrack?: Pick<
+    SerializedAudioTrackState<ChannelData>,
+    "eq" | "height" | "gain" | "muted" | "soloed" | "nextTakeNumber"
+  > & {
     takes: SerializedAudioClip<ChannelData>[];
-    // Optional for recorder projects saved before multi-take support.
-    nextTakeNumber?: number;
   };
   latencyCompensation: number;
   // Optional for recorder projects saved before mixer support.
@@ -64,28 +60,25 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
 }
 
 interface SerializedAudioTrackState<ChannelData> {
-  // Optional for projects saved before track EQ support.
-  eq?: MultibandEqParameters | EqParameters;
   id: string;
+  eq?: MultibandEqParameters | EqParameters;
   height: number;
-  clip?: {
-    name: string;
-    pcm: RecorderPcm<ChannelData>;
-  };
   gain: number;
   muted: boolean;
   soloed: boolean;
-  timelineOffset: number;
-  // optional for back compat
+  nextTakeNumber?: number;
+  clips?: SerializedAudioClip<ChannelData>[];
+  // Retained for ordinary tracks saved with a single imported clip.
+  clip?: { name: string; pcm: RecorderPcm<ChannelData> };
+  timelineOffset?: number;
   trimStart?: number;
   trimEnd?: number;
 }
 
 interface SerializedAudioClip<ChannelData> {
-  // Optional for recorder projects saved before multi-take support.
   id?: string;
-  number?: number;
   name?: string;
+  number?: number;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;
@@ -100,54 +93,36 @@ export interface RecorderPcm<ChannelData> {
 }
 
 export function serializeRecorderRuntimeState(
-  state: RecorderRuntimeState,
+  state: PersistableRecorderRuntimeState,
 ): SerializedRecorderRuntimeState {
   return {
     title: state.title,
     locators: state.locators,
-    audioTracks: state.audioTracks.map((track) => {
-      const clip = track.clips[0];
-      return {
-        id: track.id,
-        height: track.height,
-        clip: clip?.buffer
-          ? {
-              name: clip.name,
-              pcm: serializeAudioBuffer(clip.buffer),
-            }
-          : undefined,
-        eq: track.eq,
-        gain: track.gain,
-        muted: track.muted,
-        soloed: track.soloed,
-        timelineOffset: clip?.timelineOffset ?? 0,
-        trimStart: clip?.trimStart ?? 0,
-        trimEnd: clip?.trimEnd ?? 0,
-      };
-    }),
-    recordingTrack: {
-      height: state.recordingTrack.height,
-      eq: state.recordingTrack.eq,
-      gain: state.recordingTrack.gain,
-      muted: state.recordingTrack.muted,
-      soloed: state.recordingTrack.soloed,
-      nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.clips.map((take) => {
-        if (!take.buffer) {
-          throw new Error("Recording take has no loaded buffer.");
+    armedTrackId: state.armedTrackId,
+    audioTracks: state.audioTracks.map((track) => ({
+      id: track.id,
+      height: track.height,
+      eq: track.eq,
+      gain: track.gain,
+      muted: track.muted,
+      soloed: track.soloed,
+      nextTakeNumber: track.nextTakeNumber,
+      clips: track.clips.map((clip) => {
+        if (!clip.buffer) {
+          throw new Error("Audio clip has no loaded buffer.");
         }
         return {
-          id: take.id,
-          name: take.name,
-          muted: take.muted,
-          soloed: take.soloed,
-          timelineOffset: take.timelineOffset,
-          trimStart: take.trimStart,
-          trimEnd: take.trimEnd,
-          pcm: serializeAudioBuffer(take.buffer),
+          id: clip.id,
+          name: clip.name,
+          muted: clip.muted,
+          soloed: clip.soloed,
+          timelineOffset: clip.timelineOffset,
+          trimStart: clip.trimStart,
+          trimEnd: clip.trimEnd,
+          pcm: serializeAudioBuffer(clip.buffer),
         };
       }),
-    },
+    })),
     latencyCompensation: state.latencyCompensation,
     masterGain: state.masterGain,
     metronomeGain: state.metronomeGain,
@@ -163,66 +138,70 @@ export function deserializeRecorderRuntimeState({
   context,
   project,
 }: {
-  context: AudioContext;
+  context: Pick<AudioContext, "createBuffer">;
   project: SerializedRecorderRuntimeState;
 }): PersistableRecorderRuntimeState {
+  // Fold the old singleton recording track into the track list before decoding.
+  const armedTrackId = project.armedTrackId ?? crypto.randomUUID();
+  const tracks: SerializedAudioTrackState<Float32Array>[] =
+    project.recordingTrack
+      ? [
+          ...project.audioTracks,
+          {
+            ...project.recordingTrack,
+            id: armedTrackId,
+            clips: project.recordingTrack.takes,
+            nextTakeNumber:
+              project.recordingTrack.nextTakeNumber ??
+              project.recordingTrack.takes.length + 1,
+          },
+        ]
+      : project.audioTracks;
+  if (!tracks.some((track) => track.id === armedTrackId)) {
+    throw new Error("Recorder project has no recording destination.");
+  }
   return {
     title: project.title,
     locators: project.locators ?? [],
-    audioTracks: project.audioTracks.map((track) => {
-      const buffer = track.clip
-        ? deserializeAudioBuffer(context, track.clip.pcm)
-        : undefined;
+    armedTrackId,
+    audioTracks: tracks.map((track) => {
+      const clips: SerializedAudioClip<Float32Array>[] =
+        track.clips ??
+        (track.clip
+          ? [
+              {
+                ...track.clip,
+                timelineOffset: track.timelineOffset ?? 0,
+                trimStart: track.trimStart,
+                trimEnd: track.trimEnd,
+              },
+            ]
+          : []);
       return {
         id: track.id,
-        nextTakeNumber: 1,
         height: track.height,
-        clips:
-          track.clip && buffer
-            ? [
-                {
-                  ...createAudioClip({
-                    buffer,
-                    name: track.clip.name,
-                  }),
-                  timelineOffset: track.timelineOffset,
-                  trimStart: track.trimStart ?? 0,
-                  trimEnd: track.trimEnd ?? buffer.duration,
-                },
-              ]
-            : [],
-        eq: deserializeEq(track.eq),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
+        eq: deserializeEq(track.eq),
+        nextTakeNumber: track.nextTakeNumber ?? 1,
+        clips: clips.map((clip, index) => {
+          const buffer = deserializeAudioBuffer(context, clip.pcm);
+          return {
+            ...createAudioClip({
+              id: clip.id,
+              name: clip.name ?? `Take ${clip.number ?? index + 1}`,
+              buffer,
+            }),
+            timelineOffset: clip.timelineOffset,
+            muted: clip.muted ?? false,
+            soloed: clip.soloed ?? false,
+            trimStart: clip.trimStart ?? 0,
+            trimEnd: clip.trimEnd ?? buffer.duration,
+          };
+        }),
       };
     }),
-    recordingTrack: {
-      id: crypto.randomUUID(),
-      height: project.recordingTrack.height,
-      eq: deserializeEq(project.recordingTrack.eq),
-      gain: project.recordingTrack.gain,
-      muted: project.recordingTrack.muted,
-      soloed: project.recordingTrack.soloed,
-      nextTakeNumber:
-        project.recordingTrack.nextTakeNumber ??
-        project.recordingTrack.takes.length + 1,
-      clips: project.recordingTrack.takes.map((take, index) => {
-        const buffer = deserializeAudioBuffer(context, take.pcm);
-        return {
-          ...createAudioClip({
-            id: take.id,
-            buffer,
-            name: take.name ?? `Take ${take.number ?? index + 1}`,
-          }),
-          timelineOffset: take.timelineOffset,
-          muted: take.muted ?? false,
-          soloed: take.soloed ?? false,
-          trimStart: take.trimStart ?? 0,
-          trimEnd: take.trimEnd ?? buffer.duration,
-        };
-      }),
-    },
     latencyCompensation: project.latencyCompensation,
     masterGain: project.masterGain ?? 1,
     metronomeGain: project.metronomeGain ?? 0.5,
@@ -259,7 +238,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
 }
 
 function deserializeAudioBuffer(
-  context: AudioContext,
+  context: Pick<AudioContext, "createBuffer">,
   pcm: RecorderPcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
