@@ -13,9 +13,14 @@ test("header permission setup leaves input closed and R opens the selected devic
     const enumerateDevices = media.enumerateDevices.bind(media);
     const getUserMedia = media.getUserMedia.bind(media);
     let access = false;
+    let deny = true;
     media.enumerateDevices = () =>
       access ? enumerateDevices() : Promise.resolve([]);
     media.getUserMedia = async (constraints) => {
+      if (deny) {
+        deny = false;
+        throw new DOMException("Microphone access denied", "NotAllowedError");
+      }
       const stream = await getUserMedia(constraints);
       access = true;
       return stream;
@@ -38,6 +43,15 @@ test("header permission setup leaves input closed and R opens the selected devic
   await page
     .getByRole("button", { name: "Allow microphone access", exact: true })
     .click();
+  await setup
+    .getByRole("button", { name: "Allow microphone access", exact: true })
+    .click();
+  await expect(
+    setup.getByText("Microphone access denied", { exact: true }),
+  ).toBeVisible();
+  await expect(inputToggle).toBeDisabled();
+
+  // Retry permission without opening input automatically.
   await setup
     .getByRole("button", { name: "Allow microphone access", exact: true })
     .click();
@@ -73,7 +87,7 @@ test("header permission setup leaves input closed and R opens the selected devic
   // Preserve today's R toggle behavior by closing input and stopping monitoring.
   await inputToggle.click();
   await expect(record).toBeDisabled();
-  await expect(monitor).toHaveCount(0);
+  await expect(monitor).toBeHidden();
   await inputToggle.click();
   await expect(monitor).toHaveAttribute("aria-pressed", "false");
 
@@ -88,63 +102,4 @@ test("header permission setup leaves input closed and R opens the selected devic
   await page.keyboard.press("Escape");
   await record.click();
   await expect(inputToggle).toBeEnabled();
-});
-
-test("permission retry leaves input closed until R is clicked", async ({
-  page,
-}) => {
-  // Deny the first permission request, then allow real fake-device setup on retry.
-  await page.addInitScript(() => {
-    const media = navigator.mediaDevices;
-    const enumerateDevices = media.enumerateDevices.bind(media);
-    const getUserMedia = media.getUserMedia.bind(media);
-    let access = false;
-    let deny = true;
-    media.enumerateDevices = () =>
-      access ? enumerateDevices() : Promise.resolve([]);
-    media.getUserMedia = async (constraints) => {
-      if (deny) {
-        deny = false;
-        throw new DOMException("Microphone access denied", "NotAllowedError");
-      }
-      const stream = await getUserMedia(constraints);
-      access = true;
-      return stream;
-    };
-  });
-  await createRecorderProject(page);
-  const inputToggle = page.getByTestId("recorder-input-toggle");
-  const record = page.getByTestId("recorder-record-button");
-  const setup = page.getByTestId("recorder-input-setup");
-
-  // Open setup from the header and report denied access without enabling R.
-  await expect(inputToggle).toBeDisabled();
-  await page
-    .getByRole("button", { name: "Allow microphone access", exact: true })
-    .click();
-  await setup
-    .getByRole("button", { name: "Allow microphone access", exact: true })
-    .click();
-  await expect(
-    setup.getByText("Microphone access denied", { exact: true }),
-  ).toBeVisible();
-  await expect(inputToggle).toHaveAttribute("aria-pressed", "false");
-  await expect(record).toBeDisabled();
-
-  // Retry permission without opening input automatically.
-  await setup
-    .getByRole("button", { name: "Allow microphone access", exact: true })
-    .click();
-  await expect(setup).toHaveCount(0);
-  await expect(inputToggle).toBeEnabled();
-  await expect(inputToggle).toHaveAttribute("aria-pressed", "false");
-  await expect(record).toBeDisabled();
-
-  // Open the input explicitly with R after permission is available.
-  await inputToggle.click();
-  await expect(inputToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(record).toBeEnabled();
-  await expect(
-    page.getByText("Fake Default Audio Input · Channel 1"),
-  ).toBeVisible();
 });

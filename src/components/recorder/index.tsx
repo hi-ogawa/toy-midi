@@ -46,6 +46,7 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
@@ -146,7 +147,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   }
 
   function toggleRecord() {
-    if (flags.recordDisabled || recordMutation.isPending) {
+    if (flags.recordDisabled) {
       return;
     }
     recordMutation.mutate(flags.isRecording ? "stop" : "start");
@@ -166,10 +167,10 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       return;
     }
-    if (input.isSetupOpen) {
+    if (isInputSetupOpen) {
       if (matchKeyboardEvent(event, "Escape")) {
         event.preventDefault();
-        input.closeSetup();
+        setIsInputSetupOpen(false);
       }
       return;
     }
@@ -287,7 +288,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
         onHelpOpen={() => setIsHelpOpen(true)}
         inputAccessRequired={input.initialized && !input.hasAccess}
-        onInputSetup={input.openSetup}
+        onInputSetup={() => setIsInputSetupOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -448,11 +449,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               inputAnalyser={runtime.captureInput?.analyser}
               inputMonitoring={state.inputMonitoring}
               inputToggleDisabled={
-                !input.initialized ||
-                (!input.active && input.route.needsSetup) ||
                 input.mutationPending ||
+                !input.initialized ||
                 flags.isRecording ||
-                recordMutation.isPending
+                (!input.active && input.route.needsSetup)
               }
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
@@ -461,7 +461,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               onGainChange={(gain) =>
                 runtime.setTrackMix(state.recordingTrack.id, { gain })
               }
-              onInputSetup={input.openSetup}
+              onInputSetup={() => setIsInputSetupOpen(true)}
               onInputMonitoringChange={(monitoring) =>
                 runtime.setInputMonitoring(monitoring)
               }
@@ -602,8 +602,8 @@ export function Recorder({ projectId }: { projectId: string }) {
           disabled={!project.ready || flags.isRecording}
         />
         <Dialog
-          isOpen={input.isSetupOpen}
-          onClose={input.closeSetup}
+          isOpen={isInputSetupOpen}
+          onClose={() => setIsInputSetupOpen(false)}
           title="Audio Input Setup"
           data-testid="recorder-input-setup"
         >
@@ -614,7 +614,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputActive={input.active}
             inputAnalyser={runtime.captureInput?.analyser}
             inputsInitialized={input.initialized}
-            isRecording={flags.isRecording || recordMutation.isPending}
+            isRecording={flags.isRecording}
             selectedDevice={input.selectedDevice}
             selectedChannel={state.selectedChannel}
             inputChannelCount={state.inputChannelCount}
@@ -622,7 +622,15 @@ export function Recorder({ projectId }: { projectId: string }) {
             inputTogglePending={input.togglePending}
             mutationPending={input.mutationPending}
             onDeviceChange={input.selectDevice}
-            onInputToggle={input.hasAccess ? input.toggle : input.grantAccess}
+            onInputToggle={() => {
+              if (input.hasAccess) {
+                input.toggle();
+              } else {
+                input.grantAccess(undefined, {
+                  onSuccess: () => setIsInputSetupOpen(false),
+                });
+              }
+            }}
             onChannelChange={input.selectChannel}
             onLatencyCompensationChange={(compensation) => {
               const wasPlaying = state.isPlaying;
