@@ -230,9 +230,6 @@ export class RecorderRuntime {
       ensurePitchShifterWorklet(this.context),
       ensureBiquadEqWorklet(this.context),
     ]);
-    // Create the recording playback eagerly because startInput routes the
-    // capture input into its channel.
-    this.getTrackPlayback(RECORDING_TRACK_ID);
   }
 
   async startInput({
@@ -930,14 +927,10 @@ export class RecorderRuntime {
       throw new Error("Cannot load a project while recording.");
     }
     this.pause();
-    // Keep the recording playback because the open capture input is routed
-    // into its channel.
-    for (const [id, playback] of this.trackPlaybacks) {
-      if (id !== RECORDING_TRACK_ID) {
-        playback.dispose();
-        this.trackPlaybacks.delete(id);
-      }
+    for (const playback of this.trackPlaybacks.values()) {
+      playback.dispose();
     }
+    this.trackPlaybacks.clear();
     const audioTracks = project.audioTracks.map((track) =>
       resolveTrackRegions(track),
     );
@@ -969,7 +962,11 @@ export class RecorderRuntime {
       recordingTrack,
     });
     this.syncTrackPlayback(recordingTrack);
-    this.getTrackPlayback(RECORDING_TRACK_ID).channel.setEq(recordingTrack.eq);
+    // The recording playback was recreated above, so point the open input at
+    // its new channel.
+    this.captureInput?.setMonitorOutput(
+      this.getTrackPlayback(RECORDING_TRACK_ID).channel.input,
+    );
     this.syncYouTubePlayer();
     this.transport.seek(0);
     this.metronome.setTempo(project.tempo);
