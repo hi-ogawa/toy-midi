@@ -35,10 +35,16 @@ export async function addRecorderAudio(
 }
 
 export async function seekRecorderByPixels(page: Page, pixels: number) {
-  const ruler = page.getByTestId("recorder-timeline-ruler");
-  const box = await ruler.boundingBox();
-  expect(box).not.toBeNull();
-  await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+  await test.step(
+    `Seek recorder to ${pixels}px`,
+    async () => {
+      const ruler = page.getByTestId("recorder-timeline-ruler");
+      const box = await ruler.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.click(box!.x + pixels, box!.y + box!.height / 2);
+    },
+    { box: true },
+  );
 }
 
 export async function getRecorderPosition(page: Page): Promise<number> {
@@ -62,15 +68,25 @@ export async function dragBy(
     anchorXOffset,
   }: { deltaY?: number; anchorXOffset?: number } = {},
 ) {
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-  const startX = box!.x + (anchorXOffset ?? box!.width / 2);
-  await page.mouse.move(startX, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(startX + deltaX, box!.y + box!.height / 2 + deltaY, {
-    steps: 4,
-  });
-  await page.mouse.up();
+  await test.step(
+    `Drag by ${deltaX}px, ${deltaY}px`,
+    async () => {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      const startX = box!.x + (anchorXOffset ?? box!.width / 2);
+      await page.mouse.move(startX, box!.y + box!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(
+        startX + deltaX,
+        box!.y + box!.height / 2 + deltaY,
+        {
+          steps: 4,
+        },
+      );
+      await page.mouse.up();
+    },
+    { box: true },
+  );
 }
 
 export async function waitForRecordingSamples(recording: Locator) {
