@@ -44,6 +44,7 @@ export class BiquadEqNode extends AudioWorkletNode {
   }
 
   dispose(): void {
+    this.parameters.get("disposed")!.value = 1;
     this.port.close();
     this.disconnect();
   }

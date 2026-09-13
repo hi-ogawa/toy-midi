@@ -109,7 +109,10 @@ class PitchShiftBus implements TransportParticipant {
 
   stop(): void {
     this.input.disconnect();
-    this.pitchShifter?.disconnect();
+    if (this.pitchShifter) {
+      this.pitchShifter.parameters.get("disposed")!.value = 1;
+      this.pitchShifter.disconnect();
+    }
     this.pitchShifter = undefined;
   }
 
