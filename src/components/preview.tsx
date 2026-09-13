@@ -1,8 +1,13 @@
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
+import { RecorderTracksPreview } from "./recorder/recorder-tracks-preview";
 
 const PREVIEWS = [
+  {
+    label: "Recorder tracks",
+    component: RecorderTracksPreview,
+  },
   {
     label: "Recorder effects",
     component: RecorderEffectsPreview,
