@@ -1,13 +1,14 @@
 import { Plus, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import {
   MAX_EQ_BANDS,
   type MultibandEqBand,
   type MultibandEqParameters,
 } from "../../lib/dsp/biquad-eq-multiband";
 import { createDefaultEqBand } from "../../lib/dsp/biquad-eq-node";
-import { dbToGain, gainToDb } from "../../lib/music";
+import { clamp, dbToGain, gainToDb } from "../../lib/music";
 import { Slider } from "../ui/slider";
 import { EQ_CONTROL_LIMITS } from "./eq-control-limits";
 import { EQ_BAND_COLORS, EqResponseGraph } from "./eq-response-graph";
@@ -56,17 +57,55 @@ export function RecorderEffects({
   onChange: (eq: MultibandEqParameters) => void;
   onClose: () => void;
 }) {
+  const [size, setSize] = useState(() =>
+    clampEffectsSize({ width: 384, height: 512 }),
+  );
+  const resizeHandleRef = usePointerDrag({
+    onStart: (event) => ({ x: event.clientX, y: event.clientY, size }),
+    onMove: (event, drag) => {
+      setSize(
+        clampEffectsSize({
+          width: drag.size.width + drag.x - event.clientX,
+          height: drag.size.height + drag.y - event.clientY,
+        }),
+      );
+    },
+  });
+
   return (
     <RecorderPanel
       title={`${label} Effects`}
       closeLabel={`Close ${label} Effects`}
       onClose={onClose}
       data-testid="recorder-effects-panel"
-      className="pointer-events-auto w-96 shrink-0"
+      className="pointer-events-auto relative flex max-h-[calc(100vh-48px)] shrink-0 flex-col"
+      contentClassName="min-h-0 flex-1 overflow-auto px-4 py-3"
+      style={size}
     >
+      <button
+        ref={resizeHandleRef}
+        type="button"
+        aria-label={`Resize ${label} Effects`}
+        className="group absolute top-0 left-0 z-10 flex size-5 cursor-nwse-resize touch-none items-start justify-start p-1"
+      >
+        <span className="pointer-events-none size-2.5 border-t-2 border-l-2 border-neutral-500 transition-colors group-hover:border-neutral-200 group-active:border-emerald-400" />
+      </button>
       <RecorderEffectsContent eq={eq} onChange={onChange} />
     </RecorderPanel>
   );
+}
+
+function clampEffectsSize({
+  width,
+  height,
+}: {
+  width: number;
+  height: number;
+}) {
+  return {
+    width: clamp(width, 384, window.innerWidth - 32),
+    height: clamp(height, 300, window.innerHeight - 48),
+  };
 }
 
 export function RecorderEffectsContent({
@@ -120,8 +159,8 @@ export function RecorderEffectsContent({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex shrink-0 items-center gap-2">
         <h3 className="mr-auto text-sm font-medium">Parametric EQ</h3>
         <label className="flex items-center gap-1.5 text-xs">
           <input
@@ -153,7 +192,7 @@ export function RecorderEffectsContent({
         onBandChange={updateBand}
       />
 
-      <div className="flex min-w-0 gap-1 overflow-x-auto pb-1">
+      <div className="flex min-w-0 shrink-0 gap-1 overflow-x-auto pb-1">
         {eq.bands.map((band, index) => {
           const selected = band.id === selectedBand?.id;
           return (
@@ -184,7 +223,7 @@ export function RecorderEffectsContent({
       </div>
 
       {selectedBand && (
-        <div className="space-y-4 border-t border-neutral-700 pt-4">
+        <div className="shrink-0 space-y-4 border-t border-neutral-700 pt-4">
           <div className="flex items-center gap-2">
             <span
               className="size-2.5 rounded-full"
