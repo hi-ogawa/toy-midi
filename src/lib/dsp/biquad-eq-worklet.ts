@@ -1,10 +1,13 @@
-import { type EqParameters, BiquadEq } from "./biquad-eq.ts";
+import {
+  type MultibandEqParameters,
+  MultibandEq,
+} from "./biquad-eq-multiband.ts";
 
 const PROCESSOR_NAME = "biquad-eq";
 
 type ProcessorOptions = {
   channelCount: number;
-  parameters: EqParameters;
+  parameters: MultibandEqParameters;
 };
 
 declare const AudioWorkletProcessor: new (
@@ -19,14 +22,14 @@ declare function registerProcessor(
 ): void;
 
 class BiquadEqProcessor extends AudioWorkletProcessor {
-  private readonly eq: BiquadEq;
+  private readonly eq: MultibandEq;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
     const { channelCount, parameters } = options!
       .processorOptions as ProcessorOptions;
-    this.eq = new BiquadEq({ sampleRate, channelCount, ...parameters });
-    this.port.onmessage = (event: MessageEvent<Partial<EqParameters>>) => {
+    this.eq = new MultibandEq({ sampleRate, channelCount, parameters });
+    this.port.onmessage = (event: MessageEvent<MultibandEqParameters>) => {
       this.eq.setParameters(event.data);
     };
   }

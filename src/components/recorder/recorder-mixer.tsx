@@ -38,7 +38,7 @@ export function RecorderMixer({
         gain={state.masterGain}
         onGainChange={(gain) => runtime.setMasterGain(gain)}
         inputProps={masterInput.props}
-        testId="recorder-mixer-master"
+        data-testid="recorder-mixer-master"
       />
       {state.audioTracks.map((track, index) => (
         <RecorderTrackChannel
@@ -46,7 +46,6 @@ export function RecorderMixer({
           effectsOpen={openEffects.has(track.id)}
           onEffectsToggle={() => onEffectsToggle(track.id)}
           label={`Audio ${index + 1}`}
-          labelTitle={track.clip?.name}
           gain={track.gain}
           muted={track.muted}
           soloed={track.soloed}
@@ -77,7 +76,7 @@ export function RecorderMixer({
         gain={state.metronomeGain}
         onGainChange={(gain) => runtime.setMetronomeGain(gain)}
         inputProps={metronomeInput.props}
-        testId="recorder-mixer-metro"
+        data-testid="recorder-mixer-metro"
         action={
           <RecorderMixToggle
             active={!state.metronomeEnabled}
@@ -94,7 +93,6 @@ export function RecorderMixer({
 
 function RecorderTrackChannel({
   label,
-  labelTitle,
   gain,
   muted,
   soloed,
@@ -106,7 +104,6 @@ function RecorderTrackChannel({
   onEffectsToggle,
 }: {
   label: string;
-  labelTitle?: string;
   gain: number;
   muted: boolean;
   soloed: boolean;
@@ -122,11 +119,10 @@ function RecorderTrackChannel({
     <MixerChannel
       icon={icon}
       label={label}
-      labelTitle={labelTitle}
       gain={gain}
       onGainChange={onGainChange}
       inputProps={input.props}
-      testId={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
+      data-testid={`recorder-mixer-${label.toLowerCase().replace(" ", "-")}`}
       action={
         <div className="flex flex-col gap-1">
           <RecorderMixToggle
@@ -172,20 +168,18 @@ function useGainInput(gain: number, onGainChange: (gain: number) => void) {
 function MixerChannel({
   icon,
   label,
-  labelTitle,
   gain,
   onGainChange,
   inputProps,
-  testId,
+  "data-testid": testId,
   action,
 }: {
   icon: ReactNode;
   label: string;
-  labelTitle?: string;
   gain: number;
   onGainChange: (gain: number) => void;
   inputProps: ComponentProps<"input">;
-  testId: string;
+  "data-testid": string;
   action?: ReactNode;
 }) {
   return (
@@ -195,10 +189,7 @@ function MixerChannel({
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span
-          className="max-w-24 truncate text-xs font-medium text-neutral-300"
-          title={labelTitle}
-        >
+        <span className="max-w-24 truncate text-xs font-medium text-neutral-300">
           {label}
         </span>
       </div>

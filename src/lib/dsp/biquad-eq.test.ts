@@ -3,17 +3,12 @@ import { dbToGain, gainToDb } from "../music";
 import {
   calculateBiquadEqCoefficients,
   calculateBiquadEqResponse,
-  type EqParameters,
+  DEFAULT_PARAMETERS,
   BiquadEq,
 } from "./biquad-eq";
+import { MultibandEq } from "./biquad-eq-multiband";
 
 const SAMPLE_RATE = 48000;
-const DEFAULT_PARAMETERS: EqParameters = {
-  frequency: 1000,
-  gain: 1,
-  q: 1,
-  bypass: false,
-};
 
 describe(BiquadEq, () => {
   it.each([-18, -6, 6, 18])(
@@ -166,6 +161,61 @@ describe(calculateBiquadEqResponse, () => {
   });
 });
 
+describe(MultibandEq, () => {
+  it("cascades band gains", () => {
+    const eq = new MultibandEq({
+      sampleRate: SAMPLE_RATE,
+      channelCount: 1,
+      parameters: {
+        bypass: false,
+        bands: ["a", "b"].map((id) => ({
+          id,
+          ...DEFAULT_PARAMETERS,
+          gain: 2,
+        })),
+      },
+    });
+    const input = createSignal({ frames: SAMPLE_RATE, frequency: 1000 });
+    const output = process(eq, input);
+    // Two bands double amplitude twice, so the energy ratio is (2 * 2) ** 2 = 16.
+    expect(
+      measureEnergy(output.subarray(SAMPLE_RATE / 2)) /
+        measureEnergy(input.subarray(SAMPLE_RATE / 2)),
+    ).toBeCloseTo(16, 3);
+  });
+
+  it("reconciles updates by band ID without resetting its ramp", () => {
+    const eq = new MultibandEq({
+      sampleRate: SAMPLE_RATE,
+      channelCount: 1,
+      parameters: {
+        bypass: false,
+        bands: [{ id: "band", ...DEFAULT_PARAMETERS }],
+      },
+    });
+    eq.setParameters({
+      bypass: false,
+      bands: [{ id: "band", ...DEFAULT_PARAMETERS, gain: dbToGain(18) }],
+    });
+    const input = createSignal({ frames: 100, frequency: 1000 });
+    const ramped = process(eq, input);
+    const replaced = process(
+      new MultibandEq({
+        sampleRate: SAMPLE_RATE,
+        channelCount: 1,
+        parameters: {
+          bypass: false,
+          bands: [
+            { id: "replacement", ...DEFAULT_PARAMETERS, gain: dbToGain(18) },
+          ],
+        },
+      }),
+      input,
+    );
+    expect(measureEnergy(ramped) / measureEnergy(replaced)).toBeLessThan(0.5);
+  });
+});
+
 function calculateResponse({
   gainDb,
   responseFrequency,
@@ -204,7 +254,10 @@ function createSignal({
   );
 }
 
-function process(eq: BiquadEq, input: Float32Array): Float32Array {
+function process(
+  eq: Pick<BiquadEq, "process">,
+  input: Float32Array,
+): Float32Array {
   const output = new Float32Array(input.length);
   eq.process({ input: [input], output: [output] });
   return output;

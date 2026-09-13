@@ -1,26 +1,33 @@
-import { createAudioView } from "../audio-view.ts";
-import { createDefaultEq } from "../dsp/biquad-eq-node.ts";
-import type { EqParameters } from "../dsp/biquad-eq.ts";
+import type { MultibandEqParameters } from "../dsp/biquad-eq-multiband.ts";
 import {
-  WAVEFORM_POINTS_PER_SECOND,
+  createDefaultEqBand,
+  createDefaultMultibandEq,
+} from "../dsp/biquad-eq-node.ts";
+import type { EqParameters } from "../dsp/biquad-eq.ts";
+import { createAudioClip } from "./audio-clip.ts";
+import {
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
   type RecorderLocator,
 } from "./runtime.ts";
 
-export interface SerializedRecorderRuntimeState {
+/**
+ * @typeParam ChannelData - PCM samples (`Float32Array`) by default, or a ZIP entry
+ * path (`string`) in project archives.
+ */
+export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   title: string;
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
-  audioTracks: SerializedAudioTrackState[];
+  audioTracks: SerializedAudioTrackState<ChannelData>[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
-    eq?: EqParameters;
+    eq?: MultibandEqParameters | EqParameters;
     height: number;
     gain: number;
     muted: boolean;
     soloed: boolean;
-    takes: SerializedTakeState[];
+    takes: SerializedAudioClip<ChannelData>[];
     // Optional for recorder projects saved before multi-take support.
     nextTakeNumber?: number;
   };
@@ -56,14 +63,14 @@ export interface SerializedRecorderRuntimeState {
   };
 }
 
-interface SerializedAudioTrackState {
+interface SerializedAudioTrackState<ChannelData> {
   // Optional for projects saved before track EQ support.
-  eq?: EqParameters;
+  eq?: MultibandEqParameters | EqParameters;
   id: string;
   height: number;
   clip?: {
     name: string;
-    pcm: RecorderPcm;
+    pcm: RecorderPcm<ChannelData>;
   };
   gain: number;
   muted: boolean;
@@ -74,21 +81,22 @@ interface SerializedAudioTrackState {
   trimEnd?: number;
 }
 
-interface SerializedTakeState {
+interface SerializedAudioClip<ChannelData> {
   // Optional for recorder projects saved before multi-take support.
   id?: string;
   number?: number;
+  name?: string;
   muted?: boolean;
   soloed?: boolean;
   timelineOffset: number;
   trimStart?: number;
   trimEnd?: number;
-  pcm: RecorderPcm;
+  pcm: RecorderPcm<ChannelData>;
 }
 
-interface RecorderPcm {
+export interface RecorderPcm<ChannelData> {
   sampleRate: number;
-  channels: Float32Array[];
+  channels: ChannelData[];
 }
 
 export function serializeRecorderRuntimeState(
@@ -97,23 +105,26 @@ export function serializeRecorderRuntimeState(
   return {
     title: state.title,
     locators: state.locators,
-    audioTracks: state.audioTracks.map((track) => ({
-      id: track.id,
-      height: track.height,
-      clip: track.clip
-        ? {
-            name: track.clip.name,
-            pcm: serializeAudioBuffer(track.clip.buffer),
-          }
-        : undefined,
-      eq: track.eq,
-      gain: track.gain,
-      muted: track.muted,
-      soloed: track.soloed,
-      timelineOffset: track.timelineOffset,
-      trimStart: track.trimStart,
-      trimEnd: track.trimEnd,
-    })),
+    audioTracks: state.audioTracks.map((track) => {
+      const clip = track.clips[0];
+      return {
+        id: track.id,
+        height: track.height,
+        clip: clip?.buffer
+          ? {
+              name: clip.name,
+              pcm: serializeAudioBuffer(clip.buffer),
+            }
+          : undefined,
+        eq: track.eq,
+        gain: track.gain,
+        muted: track.muted,
+        soloed: track.soloed,
+        timelineOffset: clip?.timelineOffset ?? 0,
+        trimStart: clip?.trimStart ?? 0,
+        trimEnd: clip?.trimEnd ?? 0,
+      };
+    }),
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -121,13 +132,13 @@ export function serializeRecorderRuntimeState(
       muted: state.recordingTrack.muted,
       soloed: state.recordingTrack.soloed,
       nextTakeNumber: state.recordingTrack.nextTakeNumber,
-      takes: state.recordingTrack.takes.map((take) => {
+      takes: state.recordingTrack.clips.map((take) => {
         if (!take.buffer) {
           throw new Error("Recording take has no loaded buffer.");
         }
         return {
           id: take.id,
-          number: take.number,
+          name: take.name,
           muted: take.muted,
           soloed: take.soloed,
           timelineOffset: take.timelineOffset,
@@ -164,54 +175,51 @@ export function deserializeRecorderRuntimeState({
         : undefined;
       return {
         id: track.id,
+        nextTakeNumber: 1,
         height: track.height,
-        clip:
+        clips:
           track.clip && buffer
-            ? {
-                name: track.clip.name,
-                buffer,
-                audioView: createAudioView(
-                  buffer.getChannelData(0),
-                  buffer.sampleRate,
-                  WAVEFORM_POINTS_PER_SECOND,
-                ),
-              }
-            : undefined,
-        eq: track.eq ?? createDefaultEq(),
+            ? [
+                {
+                  ...createAudioClip({
+                    buffer,
+                    name: track.clip.name,
+                  }),
+                  timelineOffset: track.timelineOffset,
+                  trimStart: track.trimStart ?? 0,
+                  trimEnd: track.trimEnd ?? buffer.duration,
+                },
+              ]
+            : [],
+        eq: deserializeEq(track.eq),
         gain: track.gain,
         muted: track.muted,
         soloed: track.soloed,
-        timelineOffset: track.timelineOffset,
-        trimStart: track.trimStart ?? 0,
-        trimEnd: track.trimEnd ?? buffer?.duration ?? 0,
       };
     }),
     recordingTrack: {
+      id: crypto.randomUUID(),
       height: project.recordingTrack.height,
-      eq: project.recordingTrack.eq ?? createDefaultEq(),
+      eq: deserializeEq(project.recordingTrack.eq),
       gain: project.recordingTrack.gain,
       muted: project.recordingTrack.muted,
       soloed: project.recordingTrack.soloed,
       nextTakeNumber:
         project.recordingTrack.nextTakeNumber ??
         project.recordingTrack.takes.length + 1,
-      takes: project.recordingTrack.takes.map((take, index) => {
+      clips: project.recordingTrack.takes.map((take, index) => {
         const buffer = deserializeAudioBuffer(context, take.pcm);
         return {
-          id: take.id ?? crypto.randomUUID(),
-          number: take.number ?? index + 1,
+          ...createAudioClip({
+            id: take.id,
+            buffer,
+            name: take.name ?? `Take ${take.number ?? index + 1}`,
+          }),
+          timelineOffset: take.timelineOffset,
           muted: take.muted ?? false,
           soloed: take.soloed ?? false,
-          duration: buffer.duration,
-          timelineOffset: take.timelineOffset,
           trimStart: take.trimStart ?? 0,
           trimEnd: take.trimEnd ?? buffer.duration,
-          buffer,
-          audioView: createAudioView(
-            buffer.getChannelData(0),
-            buffer.sampleRate,
-            WAVEFORM_POINTS_PER_SECOND,
-          ),
         };
       }),
     },
@@ -226,7 +234,22 @@ export function deserializeRecorderRuntimeState({
   };
 }
 
-function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {
+function deserializeEq(
+  eq?: MultibandEqParameters | EqParameters,
+): MultibandEqParameters {
+  if (!eq) {
+    return createDefaultMultibandEq();
+  }
+  if ("bands" in eq) {
+    return eq;
+  }
+  return {
+    bypass: false,
+    bands: [{ ...createDefaultEqBand(), ...eq }],
+  };
+}
+
+function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
   return {
     sampleRate: buffer.sampleRate,
     channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
@@ -237,7 +260,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm {
 
 function deserializeAudioBuffer(
   context: AudioContext,
-  pcm: RecorderPcm,
+  pcm: RecorderPcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
     throw new Error("Recorder audio has an invalid sample rate.");

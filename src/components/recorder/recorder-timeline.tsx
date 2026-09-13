@@ -11,6 +11,7 @@ import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
+import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
 import type {
   RecorderRuntimeState,
   RecorderLoopRange,
@@ -202,7 +203,6 @@ function TimelineRuler({
           range={punch.range}
           enabled={punch.enabled}
           label="Punch"
-          testId="recorder-punch"
           activeClassName="border-amber-300 bg-amber-400/20 text-amber-100"
           clearHoverClassName="hover:bg-amber-200/20"
           pixelsPerBeat={pixelsPerBeat}
@@ -250,7 +250,6 @@ function LoopRange({
       range={range}
       enabled={enabled}
       label="Loop"
-      testId="recorder-loop"
       activeClassName="border-violet-300 bg-violet-400/20 text-violet-100"
       clearHoverClassName="hover:bg-violet-200/20"
       pixelsPerBeat={pixelsPerBeat}
@@ -266,7 +265,6 @@ function TimelineRange({
   range,
   enabled,
   label,
-  testId,
   activeClassName,
   clearHoverClassName,
   pixelsPerBeat,
@@ -278,7 +276,6 @@ function TimelineRange({
   range: RecorderLoopRange | RecorderPunchRange;
   enabled: boolean;
   label: string;
-  testId: "recorder-loop" | "recorder-punch";
   activeClassName: string;
   clearHoverClassName: string;
   pixelsPerBeat: number;
@@ -287,6 +284,7 @@ function TimelineRange({
   onChange: (range: RecorderLoopRange) => void;
   onClear: () => void;
 }) {
+  const testIdPrefix = `recorder-${label.toLowerCase()}`;
   const minimumLength = 1 / subdivisionsPerBeat;
   const dragRef = usePointerGesture({
     onStart: (event) => {
@@ -337,7 +335,7 @@ function TimelineRange({
   });
   return (
     <div
-      data-testid={`${testId}-range`}
+      data-testid={`${testIdPrefix}-range`}
       className={cn(
         "pointer-events-none absolute inset-y-0 z-10 border-x select-none",
         enabled
@@ -363,18 +361,18 @@ function TimelineRange({
       </span>
       <div
         ref={startRef}
-        data-testid={`${testId}-start`}
+        data-testid={`${testIdPrefix}-start`}
         className="pointer-events-auto absolute inset-y-0 -left-1 w-2 cursor-ew-resize"
       />
       <div
         ref={endRef}
-        data-testid={`${testId}-end`}
+        data-testid={`${testIdPrefix}-end`}
         className="pointer-events-auto absolute inset-y-0 -right-1 w-2 cursor-ew-resize"
       />
       <button
         type="button"
         title={`Clear ${label.toLowerCase()} range`}
-        data-testid={`${testId}-clear`}
+        data-testid={`${testIdPrefix}-clear`}
         className={cn(
           "pointer-events-auto absolute right-0.5 top-0.5 grid size-4 place-items-center rounded",
           enabled ? clearHoverClassName : "hover:bg-neutral-400/20",
@@ -425,8 +423,8 @@ export function TakeTimelineLane({
   onTakeTrimStart,
   onTakeTrimMove,
 }: {
-  takes: RecorderRuntimeState["recordingTrack"]["takes"];
-  regions: RecorderRuntimeState["takeRegions"];
+  takes: RecorderRuntimeState["recordingTrack"]["clips"];
+  regions: RecorderRuntimeState["recordingTrack"]["regions"];
   pendingRecording: RecorderRuntimeState["pendingRecording"];
   captureStatus: RecorderRuntimeState["captureStatus"];
   isTakeSelected: (id: string) => boolean;
@@ -446,7 +444,7 @@ export function TakeTimelineLane({
   ) => RecorderClipTrimSnapshot;
   onTakeTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
 }) {
-  const activeTakeIds = new Set(regions.map(({ take }) => take.id));
+  const activeTakeIds = new Set(regions.map(({ clip: take }) => take.id));
   const activeTakes = takes.filter((take) => activeTakeIds.has(take.id));
 
   return (
@@ -468,7 +466,7 @@ export function TakeTimelineLane({
       )}
       <div className="pointer-events-none absolute inset-0">
         {regions.map((region, index) => {
-          const { take } = region;
+          const { clip: take } = region;
           const isPendingRecording = take.id === pendingRecording?.id;
           const audioOffset = region.timelineStart - take.timelineOffset;
           const previous = regions[index - 1];
@@ -489,7 +487,7 @@ export function TakeTimelineLane({
                   ? captureStatus === "processing"
                     ? "Finalizing..."
                     : "Recording..."
-                  : `Take ${take.number}`,
+                  : take.name,
                 duration: region.timelineEnd - region.timelineStart,
                 offset: region.timelineStart,
                 audioOffset,
@@ -511,7 +509,7 @@ export function TakeTimelineLane({
         <TimelineClip
           key={take.id}
           clip={{
-            label: `Take ${take.number}`,
+            label: take.name,
             duration: take.trimEnd - take.trimStart,
             offset: take.timelineOffset + take.trimStart,
             testId: "take",
@@ -529,6 +527,90 @@ export function TakeTimelineLane({
           hidePresentation
         />
       ))}
+    </div>
+  );
+}
+
+export function AudioTimelineLane({
+  beatsPerBar,
+  clips,
+  regions,
+  testId,
+  emptyLabel,
+  pixelsPerBeat,
+  viewportStartBeat,
+  tempo,
+  viewportWidth,
+  isClipSelected,
+  onClipDragStart,
+  onClipClick,
+  onClipDragMove,
+  onTrimStart,
+  onTrimMove,
+  subdivisionsPerBeat,
+  onSeek,
+}: {
+  beatsPerBar: number;
+  clips: readonly AudioClip[];
+  regions: readonly ClipRegion[];
+  testId: RecorderTimelineClip["testId"];
+  emptyLabel: string;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  tempo: number;
+  viewportWidth: number;
+  isClipSelected: (id: string) => boolean;
+  onClipDragStart: (id: string, additive: boolean) => RecorderClipMoveSnapshot;
+  onClipClick: (id: string, additive: boolean) => void;
+  onClipDragMove: (snapshot: RecorderClipMoveSnapshot, delta: number) => void;
+  onTrimStart: (id: string, edge: "start" | "end") => RecorderClipTrimSnapshot;
+  onTrimMove: (snapshot: RecorderClipTrimSnapshot, delta: number) => void;
+  subdivisionsPerBeat: number;
+  onSeek: (position: number) => void;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden bg-neutral-900"
+      {...getTimelineSurfaceProps({
+        beatsPerBar,
+        onSeek,
+        pixelsPerBeat,
+        tempo,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
+    >
+      {clips.length === 0 && (
+        <div className="absolute inset-0 grid place-items-center text-xs text-neutral-600">
+          {emptyLabel}
+        </div>
+      )}
+      {regions.map((region, index) => {
+        const { clip } = region;
+        return (
+          <TimelineClip
+            key={`${clip.id}:${index}`}
+            clip={{
+              label: clip.name,
+              duration: region.timelineEnd - region.timelineStart,
+              offset: region.timelineStart,
+              audioOffset: region.timelineStart - clip.timelineOffset,
+              audioView: clip.audioView,
+              testId,
+            }}
+            pixelsPerBeat={pixelsPerBeat}
+            viewportStartBeat={viewportStartBeat}
+            tempo={tempo}
+            viewportWidth={viewportWidth}
+            selected={isClipSelected(clip.id)}
+            onClipDragStart={(additive) => onClipDragStart(clip.id, additive)}
+            onClipClick={(additive) => onClipClick(clip.id, additive)}
+            onClipDragMove={onClipDragMove}
+            onTrimStart={(edge) => onTrimStart(clip.id, edge)}
+            onTrimMove={onTrimMove}
+          />
+        );
+      })}
     </div>
   );
 }
