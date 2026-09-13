@@ -228,10 +228,7 @@ function deserializeEq(
   };
 }
 
-function serializeAudioBuffer(buffer: AudioBuffer): {
-  sampleRate: number;
-  channels: Float32Array[];
-} {
+function serializeAudioBuffer(buffer: AudioBuffer): RecorderPcm<Float32Array> {
   return {
     sampleRate: buffer.sampleRate,
     channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
@@ -242,7 +239,7 @@ function serializeAudioBuffer(buffer: AudioBuffer): {
 
 function deserializeAudioBuffer(
   context: Pick<AudioContext, "createBuffer">,
-  pcm: { sampleRate: number; channels: Float32Array[] },
+  pcm: RecorderPcm<Float32Array>,
 ): AudioBuffer {
   if (!Number.isFinite(pcm.sampleRate) || pcm.sampleRate <= 0) {
     throw new Error("Recorder audio has an invalid sample rate.");

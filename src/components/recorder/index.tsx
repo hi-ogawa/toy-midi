@@ -412,21 +412,21 @@ export function Recorder({ projectId }: { projectId: string }) {
                   viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   isClipSelected={(id) =>
-                    clipInteraction.isSelected({ type: "audio", id })
+                    clipInteraction.isSelected({ type: "clip", id })
                   }
                   onClipClick={(id, additive) =>
-                    clipInteraction.select({ type: "audio", id }, additive)
+                    clipInteraction.select({ type: "clip", id }, additive)
                   }
                   onTrimStart={(id, edge) =>
                     clipInteraction.startTrim({
-                      clip: { type: "audio", id },
+                      clip: { type: "clip", id },
                       edge,
                     })
                   }
                   onTrimMove={clipInteraction.trim}
                   onClipDragStart={(id, additive) =>
                     clipInteraction.startMove({
-                      clip: { type: "audio", id },
+                      clip: { type: "clip", id },
                       additive,
                     })
                   }
@@ -482,7 +482,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 captureStatus={state.captureStatus}
                 isTakeSelected={(id) =>
                   clipInteraction.isSelected({
-                    type: "audio",
+                    type: "clip",
                     id,
                   })
                 }
@@ -498,17 +498,17 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }}
                 onTakeDragStart={(id, additive) =>
                   clipInteraction.startMove({
-                    clip: { type: "audio", id },
+                    clip: { type: "clip", id },
                     additive,
                   })
                 }
                 onTakeClick={(id, additive) =>
-                  clipInteraction.select({ type: "audio", id }, additive)
+                  clipInteraction.select({ type: "clip", id }, additive)
                 }
                 onTakeDragMove={clipInteraction.move}
                 onTakeTrimStart={(id, edge) =>
                   clipInteraction.startTrim({
-                    clip: { type: "audio", id },
+                    clip: { type: "clip", id },
                     edge,
                   })
                 }
@@ -542,7 +542,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   onDelete={() =>
                     runtime.removeClips([
                       {
-                        type: "audio",
+                        type: "clip",
                         id: take.id,
                       },
                     ])
@@ -565,25 +565,25 @@ export function Recorder({ projectId }: { projectId: string }) {
                     viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
                     selected={clipInteraction.isSelected({
-                      type: "audio",
+                      type: "clip",
                       id: take.id,
                     })}
                     onClipClick={(additive) =>
                       clipInteraction.select(
-                        { type: "audio", id: take.id },
+                        { type: "clip", id: take.id },
                         additive,
                       )
                     }
                     onTrimStart={(edge) =>
                       clipInteraction.startTrim({
-                        clip: { type: "audio", id: take.id },
+                        clip: { type: "clip", id: take.id },
                         edge,
                       })
                     }
                     onTrimMove={clipInteraction.trim}
                     onClipDragStart={(additive) =>
                       clipInteraction.startMove({
-                        clip: { type: "audio", id: take.id },
+                        clip: { type: "clip", id: take.id },
                         additive,
                       })
                     }
