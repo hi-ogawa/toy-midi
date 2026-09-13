@@ -181,12 +181,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
       return;
     }
-    // Match the characters so keyboard layouts can choose how to type < and >.
     if (
-      (event.key === "<" || event.key === ">") &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey &&
+      (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) &&
       !event.isComposing
     ) {
       if (flags.isRecording || isInputSetupOpen) {

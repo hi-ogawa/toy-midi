@@ -70,7 +70,10 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
-  const match = CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
+  const match =
+    CHAR_KEYS[keyToken.toUpperCase()] ||
+    SPECIAL_KEYS[keyToken] ||
+    (["<", ">"].includes(keyToken) ? { key: keyToken } : undefined);
   if (!match) {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
@@ -96,7 +99,12 @@ export function matchKeyboardEvent(
   if (e.ctrlKey && e.metaKey) {
     return false;
   }
-  if (e.shiftKey !== parsed.modifiers.shift) {
+  // Literal characters already encode Shift's effect on the active keyboard layout.
+  // An explicit Shift modifier still requires it to be held.
+  if (
+    (parsed.code || parsed.modifiers.shift) &&
+    e.shiftKey !== parsed.modifiers.shift
+  ) {
     return false;
   }
   if (e.altKey !== parsed.modifiers.alt) {

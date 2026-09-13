@@ -134,3 +134,44 @@ describe("matchKeyboardEvent", () => {
     ).toBe(true);
   });
 });
+
+describe("literal character shortcuts", () => {
+  it.each(["<", ">"])(
+    "matches %s with or without Shift across layouts",
+    (key) => {
+      const event = {
+        key,
+        code: "IntlBackslash",
+        shiftKey: false,
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+      };
+      expect(matchKeyboardEvent(event, key)).toBe(true);
+      expect(matchKeyboardEvent({ ...event, shiftKey: true }, key)).toBe(true);
+      expect(matchKeyboardEvent({ ...event, key: "," }, key)).toBe(false);
+      for (const modifier of ["altKey", "ctrlKey", "metaKey"] as const) {
+        expect(matchKeyboardEvent({ ...event, [modifier]: true }, key)).toBe(
+          false,
+        );
+      }
+      expect(matchKeyboardEvent(event, `Shift+${key}`)).toBe(false);
+      expect(
+        matchKeyboardEvent({ ...event, shiftKey: true }, `Shift+${key}`),
+      ).toBe(true);
+    },
+  );
+
+  it("keeps exact Shift matching for physical keys", () => {
+    const event = {
+      key: "L",
+      code: "KeyL",
+      shiftKey: true,
+      altKey: false,
+      ctrlKey: false,
+      metaKey: false,
+    };
+    expect(matchKeyboardEvent(event, "L")).toBe(false);
+    expect(matchKeyboardEvent(event, "Shift+L")).toBe(true);
+  });
+});
