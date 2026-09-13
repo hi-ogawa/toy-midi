@@ -9,6 +9,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -178,6 +179,25 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    if (
+      (event.key === "<" || event.key === ">") &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      if (flags.isRecording) {
+        return;
+      }
+      event.preventDefault();
+      const rate = getNextPlaybackRate({
+        rate: state.playbackRate,
+        direction: event.key === ">" ? "increase" : "decrease",
+      });
+      if (rate !== undefined) {
+        runtime.setPlaybackRate(rate);
+      }
       return;
     }
     if (matchKeyboardEvent(event, "L")) {
