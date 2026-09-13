@@ -34,15 +34,16 @@ class BiquadEqProcessor extends AudioWorkletProcessor {
     };
   }
 
-  // Omit a return value so active inputs determine the processor lifetime.
-  // https://webaudio.github.io/web-audio-api/#callback-audioworketprocess-callback
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): void {
+  // Chromium stops invoking this processor without a true return value.
+  // Keep it alive through pauses so the same EQ can process resumed playback.
+  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (input.length === 0 || output.length === 0) {
-      return;
+      return true;
     }
     this.eq.process({ input, output });
+    return true;
   }
 }
 
