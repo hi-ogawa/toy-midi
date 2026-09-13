@@ -54,6 +54,7 @@ export function RecorderTracksPreview() {
   const [inputReady, setInputReady] = useState(false);
   const [inputModalOpen, setInputModalOpen] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [pendingArm, setPendingArm] = useState<number>();
   const [inputDevice, setInputDevice] = useState("USB Audio");
   const [inputChannel, setInputChannel] = useState("1");
   const [selected, setSelected] = useState(2);
@@ -62,6 +63,21 @@ export function RecorderTracksPreview() {
   const [recording, setRecording] = useState(false);
   const [playing, setPlaying] = useState(false);
   const armedTrack = tracks.find((track) => track.id === armed);
+
+  function grantPermission() {
+    setPermissionGranted(true);
+    if (pendingArm !== undefined) {
+      setInputReady(true);
+      setArmed(pendingArm);
+      setPendingArm(undefined);
+    }
+    setInputModalOpen(false);
+  }
+
+  function closeInputModal() {
+    setInputModalOpen(false);
+    setPendingArm(undefined);
+  }
 
   function toggleRecording() {
     if (recording) {
@@ -152,6 +168,14 @@ export function RecorderTracksPreview() {
         <button className={buttonClass}>1×</button>
         <MockToggle label="Loop" title="Loop" />
         <MockToggle label="Punch" title="Punch" />
+        {!permissionGranted && (
+          <button
+            className="rounded border border-orange-300/40 bg-orange-300/10 px-2 py-1 text-[11px] font-semibold text-orange-200 hover:bg-orange-300/20"
+            onClick={grantPermission}
+          >
+            Allow microphone access
+          </button>
+        )}
         <span className="ml-auto truncate text-xs text-neutral-300">
           Evening practice
         </span>
@@ -258,10 +282,12 @@ export function RecorderTracksPreview() {
                         aria-label={`Arm ${track.name}`}
                         aria-pressed={isArmed}
                         onClick={() => {
-                          if (!inputReady) {
+                          if (!permissionGranted) {
+                            setPendingArm(track.id);
                             setInputModalOpen(true);
                             return;
                           }
+                          setInputReady(true);
                           setArmed(isArmed ? undefined : track.id);
                         }}
                         className={`size-7 rounded border text-xs font-semibold disabled:opacity-50 ${isArmed ? "border-red-400/50 bg-red-500/20 text-red-300" : "border-neutral-700 text-neutral-500 hover:text-neutral-200"}`}
@@ -389,7 +415,7 @@ export function RecorderTracksPreview() {
         </span>
       </footer>
       {inputModalOpen && (
-        <MockInputModal onClose={() => setInputModalOpen(false)}>
+        <MockInputModal onClose={closeInputModal}>
           <p className="text-xs leading-relaxed text-neutral-400">
             One shared input for recording and monitoring on any track.
           </p>
@@ -403,7 +429,7 @@ export function RecorderTracksPreview() {
               </p>
               <button
                 className="mt-4 rounded bg-orange-200 px-3 py-2 text-xs font-semibold text-neutral-900"
-                onClick={() => setPermissionGranted(true)}
+                onClick={grantPermission}
               >
                 Allow microphone access
               </button>
@@ -416,7 +442,6 @@ export function RecorderTracksPreview() {
               <label className="block space-y-2 text-xs text-neutral-300">
                 <span>Input device</span>
                 <select
-                  disabled={inputReady}
                   value={inputDevice}
                   onChange={(event) => setInputDevice(event.target.value)}
                   className="block w-full rounded border border-neutral-600 bg-neutral-900 p-2 disabled:opacity-60"
@@ -428,7 +453,6 @@ export function RecorderTracksPreview() {
               <label className="block space-y-2 text-xs text-neutral-300">
                 <span>Channel</span>
                 <select
-                  disabled={inputReady}
                   value={inputChannel}
                   onChange={(event) => setInputChannel(event.target.value)}
                   className="block w-full rounded border border-neutral-600 bg-neutral-900 p-2 disabled:opacity-60"
@@ -437,14 +461,8 @@ export function RecorderTracksPreview() {
                   <option value="2">Channel 2</option>
                 </select>
               </label>
-              {inputReady && (
-                <p className="text-xs text-neutral-400">
-                  Input is open. Close input to change the device or channel in
-                  this mockup.
-                </p>
-              )}
               <div className="flex items-center justify-between border-t border-neutral-700 pt-4">
-                {inputReady ? (
+                {inputReady && (
                   <button
                     className={buttonClass}
                     onClick={() => {
@@ -455,22 +473,9 @@ export function RecorderTracksPreview() {
                   >
                     Close input
                   </button>
-                ) : (
-                  <button
-                    className="rounded bg-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-900"
-                    onClick={() => {
-                      setInputReady(true);
-                      setInputModalOpen(false);
-                    }}
-                  >
-                    Enable input
-                  </button>
                 )}
-                <button
-                  className={buttonClass}
-                  onClick={() => setInputModalOpen(false)}
-                >
-                  {inputReady ? "Done" : "Cancel"}
+                <button className={buttonClass} onClick={closeInputModal}>
+                  Done
                 </button>
               </div>
             </div>
