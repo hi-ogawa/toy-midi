@@ -15,7 +15,13 @@ export function RecorderTuner({
   analyser?: TunerAnalyser;
   onClose: () => void;
 }) {
-  const analysis = useTunerAnalysis(analyser);
+  const [analysis, setAnalysis] = useState<TunerAnalysis>(SILENT_ANALYSIS);
+
+  useEffect(() => {
+    setAnalysis(SILENT_ANALYSIS);
+    return analyser?.subscribe(setAnalysis);
+  }, [analyser]);
+
   return (
     <RecorderPanel
       title="Tuner"
@@ -27,17 +33,6 @@ export function RecorderTuner({
       <RecorderTunerContent analysis={analysis} />
     </RecorderPanel>
   );
-}
-
-function useTunerAnalysis(analyser?: TunerAnalyser) {
-  const [analysis, setAnalysis] = useState<TunerAnalysis>(SILENT_ANALYSIS);
-
-  useEffect(() => {
-    setAnalysis(SILENT_ANALYSIS);
-    return analyser?.subscribe(setAnalysis);
-  }, [analyser]);
-
-  return analysis;
 }
 
 export function RecorderTunerContent({
