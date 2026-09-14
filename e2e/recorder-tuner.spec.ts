@@ -3,7 +3,7 @@ import { useFakeAudioInput } from "./helpers";
 import { createRecorderProject, enableInput } from "./recorder-helpers";
 
 // Loop the 3-second 440 Hz fixture throughout the test.
-useFakeAudioInput({ filePath: "e2e/fixtures/test-audio.wav" });
+useFakeAudioInput({ audioFilePath: "e2e/fixtures/test-audio.wav" });
 
 test("opens the tuner and detects the input pitch", async ({ page }) => {
   // Open the tuner before enabling input and show the no-signal state.
