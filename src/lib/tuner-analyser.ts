@@ -57,13 +57,7 @@ export class TunerAnalyser {
 /**
  * Detects one monophonic fundamental from the latest input window.
  *
- * The analysis first removes DC offset and measures RMS level, returning
- * `silent` before attempting pitch detection when the signal is too quiet. It
- * then applies the YIN cumulative mean normalized difference function across
- * the supported period range and selects the first sufficiently deep trough.
- * Audible windows without a convincing period return `unstable`; otherwise,
- * parabolic interpolation refines the selected period to a fractional lag and
- * converts it to frequency.
+ * @see {@link file://./../../docs/concepts/tuner-pitch-detection.md} for the mathematical explanation.
  */
 export function analyzeTunerSamples({
   samples,
