@@ -42,30 +42,33 @@ export function RecorderTunerContent({
 }: {
   analysis: TunerAnalysis;
 }) {
-  const display = useTunerDisplay(analysis);
+  const frequencyHz = useDebouncedValue({
+    value: analysis.status === "pitched" ? analysis.frequencyHz : undefined,
+    delayMs:
+      analysis.status === "pitched"
+        ? 0
+        : analysis.status === "silent"
+          ? SILENCE_HOLD_MS
+          : UNSTABLE_HOLD_MS,
+  });
   const pitched =
-    display.status === "empty"
-      ? undefined
-      : frequencyToPitch(display.frequencyHz);
-  const tuningState =
-    display.status === "stale"
-      ? { label: "Unstable", className: "text-neutral-500" }
-      : pitched
-        ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
-          ? { label: "In tune", className: "text-emerald-400" }
-          : pitched.cents < 0
-            ? { label: "Flat", className: "text-neutral-400" }
-            : { label: "Sharp", className: "text-neutral-400" }
-        : {
-            label: analysis.status === "unstable" ? "Unstable" : "No signal",
-            className: "text-neutral-500",
-          };
+    frequencyHz === undefined ? undefined : frequencyToPitch(frequencyHz);
+  const tuningState = pitched
+    ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
+      ? { label: "In tune", className: "text-emerald-400" }
+      : pitched.cents < 0
+        ? { label: "Flat", className: "text-neutral-400" }
+        : { label: "Sharp", className: "text-neutral-400" }
+    : {
+        label: analysis.status === "unstable" ? "Unstable" : "No signal",
+        className: "text-neutral-500",
+      };
 
   return (
     <div
       className="space-y-5"
       data-testid="tuner-content"
-      data-status={display.status}
+      data-status={pitched ? "tracking" : "empty"}
     >
       <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
         <span className={`flex items-center gap-1.5 ${tuningState.className}`}>
@@ -75,9 +78,7 @@ export function RecorderTunerContent({
         <span>Chromatic</span>
       </div>
 
-      <div
-        className={`text-center ${display.status === "stale" ? "opacity-40" : ""}`}
-      >
+      <div className="text-center">
         <div className="font-mono text-7xl leading-none font-semibold tracking-tight text-neutral-50">
           {pitched ? (
             <>
@@ -119,7 +120,7 @@ export function RecorderTunerContent({
               </span>
             </div>
           ))}
-          {pitched && display.status === "tracking" && (
+          {pitched && (
             <div
               data-testid="tuner-cursor"
               className={`absolute top-0 h-1.5 w-2.5 -translate-x-1/2 ${
@@ -151,42 +152,26 @@ export function RecorderTunerContent({
   );
 }
 
-type TunerDisplay =
-  | { status: "empty" }
-  | { status: "tracking"; frequencyHz: number }
-  | { status: "stale"; frequencyHz: number };
-
-function useTunerDisplay(analysis: TunerAnalysis): TunerDisplay {
-  const frequencyHz =
-    analysis.status === "pitched" ? analysis.frequencyHz : undefined;
-  const [held, setHeld] = useState<TunerDisplay>(
-    frequencyHz === undefined
-      ? { status: "empty" }
-      : { status: "tracking", frequencyHz },
-  );
+/** Publish a value after it settles for the given delay, or immediately at zero. */
+function useDebouncedValue<T>({
+  value,
+  delayMs,
+}: {
+  value: T;
+  delayMs: number;
+}): T {
+  const [settled, setSettled] = useState<T>(() => value);
 
   useEffect(() => {
-    if (frequencyHz !== undefined) {
-      setHeld({ status: "tracking", frequencyHz });
+    if (delayMs === 0) {
+      setSettled(() => value);
       return;
     }
-
-    // Start one hold per status transition, so repeated analysis frames cannot
-    // postpone dimming or clearing indefinitely. New pitches cancel the hold.
-    const timeout = setTimeout(
-      () => {
-        setHeld((previous) =>
-          analysis.status === "silent" || previous.status === "empty"
-            ? { status: "empty" }
-            : { status: "stale", frequencyHz: previous.frequencyHz },
-        );
-      },
-      analysis.status === "silent" ? SILENCE_HOLD_MS : UNSTABLE_HOLD_MS,
-    );
+    const timeout = setTimeout(() => setSettled(() => value), delayMs);
     return () => clearTimeout(timeout);
-  }, [frequencyHz, analysis.status]);
+  }, [value, delayMs]);
 
-  return frequencyHz === undefined ? held : { status: "tracking", frequencyHz };
+  return delayMs === 0 ? value : settled;
 }
 
 function frequencyToPitch(frequencyHz: number) {

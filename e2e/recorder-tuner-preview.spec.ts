@@ -16,18 +16,18 @@ test("holds the tuner reading through brief input gaps", async ({ page }) => {
   await expect(cursor).toBeVisible();
   await expect(content.getByText("Finding pitch...")).toHaveCount(0);
 
-  // Recover immediately and cancel the pending dimming timer.
+  // Recover immediately and cancel the pending clearing timer.
   await page.getByRole("button", { name: "Sharp", exact: true }).click();
   await expect(content.getByText("+25 cents", { exact: true })).toBeVisible();
   await page.clock.runFor(100);
   await expect(content).toHaveAttribute("data-status", "tracking");
   await expect(cursor).toBeVisible();
 
-  // Dim a held note and hide its cursor when instability persists.
+  // Clear the held note and cursor when instability persists.
   await page.getByRole("button", { name: "Unstable", exact: true }).click();
   await page.clock.runFor(250);
-  await expect(content).toHaveAttribute("data-status", "stale");
-  await expect(content.getByText("E1", { exact: true })).toBeVisible();
+  await expect(content).toHaveAttribute("data-status", "empty");
+  await expect(content.getByText("E1", { exact: true })).toHaveCount(0);
   await expect(cursor).toBeHidden();
 
   // Restore a fresh pitch, hold through a short silence, then clear the note.
