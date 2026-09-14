@@ -3,25 +3,24 @@ import type {
   RecorderPcm,
   SerializedRecorderRuntimeState,
 } from "./persistence.ts";
-
 // .toymidi.zip
 // ├── manifest.json  { formatVersion: 1, projectType: "recorder", ... }
-// ├── project.json   { audioTracks: [{ clip: { pcm: { channels:
-// │                    ["audio/tracks/0/channel-0.f32"] } } }], ... }
-// └── audio/
-//     ├── tracks/0/channel-0.f32
-//     └── takes/0/channel-0.f32
+// ├── project.json   { audioTracks: [{ clips: [{ pcm: { channels:
+// │                    ["audio/tracks/0/clips/0/channel-0.f32"] } }] }], ... }
+// └── audio/tracks/
+//     ├── 0/clips/0/channel-0.f32
+//     └── 1/clips/0/channel-0.f32
 //
 // project.json serializes SerializedRecorderRuntimeState<string>, replacing
 // each PCM channel's Float32Array with its ZIP entry path. The samples are
 // stored separately in the referenced .f32 files.
 
-const CURRENT_FORMAT_VERSION: RecorderProjectManifest["formatVersion"] = 1;
+const CURRENT_FORMAT_VERSION = 1;
 const MANIFEST_PATH = "manifest.json";
 const PROJECT_PATH = "project.json";
 
 interface RecorderProjectManifest {
-  formatVersion: 1;
+  formatVersion: number;
   projectType: "recorder";
   exportedAt: string;
 }
@@ -90,14 +89,24 @@ function writeProjectContent(
             ),
           }
         : undefined,
-    })),
-    recordingTrack: {
-      ...content.recordingTrack,
-      takes: content.recordingTrack.takes.map((take, takeIndex) => ({
-        ...take,
-        pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${takeIndex}`),
+      clips: track.clips?.map((clip, clipIndex) => ({
+        ...clip,
+        pcm: writeProjectPcm(
+          zip,
+          clip.pcm,
+          `audio/tracks/${trackIndex}/clips/${clipIndex}`,
+        ),
       })),
-    },
+    })),
+    recordingTrack: content.recordingTrack
+      ? {
+          ...content.recordingTrack,
+          takes: content.recordingTrack.takes.map((take, index) => ({
+            ...take,
+            pcm: writeProjectPcm(zip, take.pcm, `audio/takes/${index}`),
+          })),
+        }
+      : undefined,
   };
 }
 
@@ -111,22 +120,29 @@ async function readProjectContent(
       content.audioTracks.map(async (track) => ({
         ...track,
         clip: track.clip
-          ? {
-              ...track.clip,
-              pcm: await readProjectPcm(zip, track.clip.pcm),
-            }
+          ? { ...track.clip, pcm: await readProjectPcm(zip, track.clip.pcm) }
           : undefined,
+        clips:
+          track.clips &&
+          (await Promise.all(
+            track.clips.map(async (clip) => ({
+              ...clip,
+              pcm: await readProjectPcm(zip, clip.pcm),
+            })),
+          )),
       })),
     ),
-    recordingTrack: {
-      ...content.recordingTrack,
-      takes: await Promise.all(
-        content.recordingTrack.takes.map(async (take) => ({
-          ...take,
-          pcm: await readProjectPcm(zip, take.pcm),
-        })),
-      ),
-    },
+    recordingTrack: content.recordingTrack
+      ? {
+          ...content.recordingTrack,
+          takes: await Promise.all(
+            content.recordingTrack.takes.map(async (take) => ({
+              ...take,
+              pcm: await readProjectPcm(zip, take.pcm),
+            })),
+          ),
+        }
+      : undefined,
   };
 }
 

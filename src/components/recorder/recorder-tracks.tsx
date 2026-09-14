@@ -196,13 +196,21 @@ export function CaptureTrackRow({
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
 }) {
+  // The current Capture controls need more space than an ordinary track row.
+  const minimumHeight = 116;
+  height = Math.max(minimumHeight, height);
   const resizeRef = usePointerDrag({
     onStart: (event) => {
       event.preventDefault();
       return { startClientY: event.clientY, startHeight: height };
     },
     onMove: (event, drag) => {
-      onHeightChange(drag.startHeight + event.clientY - drag.startClientY);
+      onHeightChange(
+        Math.max(
+          minimumHeight,
+          drag.startHeight + event.clientY - drag.startClientY,
+        ),
+      );
     },
   });
   return (
