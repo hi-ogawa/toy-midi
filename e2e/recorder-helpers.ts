@@ -105,14 +105,12 @@ export async function enableInput(page: Page) {
     "Enable audio input",
     async () => {
       // Fake audio still exercises permission, device discovery, and channel setup.
-      const inputSetupButton = page.getByRole("button", {
-        name: "Configure audio input",
-      });
       await expect(page.getByTestId("recorder-input-toggle")).toHaveAttribute(
         "aria-pressed",
         "false",
       );
-      await inputSetupButton.click();
+      await page.getByRole("button", { name: "More", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Configure input…" }).click();
       await expect(
         page.getByRole("heading", { name: "Audio Input Setup" }),
       ).toBeVisible();

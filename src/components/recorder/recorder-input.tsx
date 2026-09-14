@@ -120,7 +120,7 @@ export function InputSetup({
                 ? inputActive
                   ? "Disable input"
                   : "Enable input"
-                : "Grant access"}
+                : "Allow microphone access"}
         </Button>
         <label className="block text-[11px] font-medium text-neutral-400">
           Level
