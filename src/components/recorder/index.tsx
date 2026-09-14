@@ -676,7 +676,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isTunerOpen && (
           <RecorderTuner
-            result={{ status: "silent" }}
+            analyser={runtime.captureInput?.tunerAnalyser}
             referenceFrequencyHz={440}
             onClose={() => setIsTunerOpen(false)}
           />

@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { spellChromaticPitch } from "../../lib/pitch-spelling";
+import type { TunerAnalyser } from "../../lib/tuner-analyser";
+import type { TunerAnalysis } from "../../lib/tuner-analysis";
 import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
@@ -16,14 +20,15 @@ export type RecorderTunerResult =
     };
 
 export function RecorderTuner({
-  result,
+  analyser,
   referenceFrequencyHz,
   onClose,
 }: {
-  result: RecorderTunerResult;
+  analyser?: TunerAnalyser;
   referenceFrequencyHz: number;
   onClose: () => void;
 }) {
+  const result = useTunerResult({ analyser, referenceFrequencyHz });
   return (
     <RecorderPanel
       title="Tuner"
@@ -38,6 +43,52 @@ export function RecorderTuner({
       />
     </RecorderPanel>
   );
+}
+
+function useTunerResult({
+  analyser,
+  referenceFrequencyHz,
+}: {
+  analyser?: TunerAnalyser;
+  referenceFrequencyHz: number;
+}): RecorderTunerResult {
+  const [result, setResult] = useState<RecorderTunerResult>({
+    status: "silent",
+  });
+
+  useEffect(() => {
+    setResult({ status: "silent" });
+    return analyser?.subscribe((analysis) =>
+      setResult(toTunerResult({ analysis, referenceFrequencyHz })),
+    );
+  }, [analyser, referenceFrequencyHz]);
+
+  return result;
+}
+
+function toTunerResult({
+  analysis,
+  referenceFrequencyHz,
+}: {
+  analysis: TunerAnalysis;
+  referenceFrequencyHz: number;
+}): RecorderTunerResult {
+  if (analysis.status !== "pitched") {
+    return { status: analysis.status, levelDb: analysis.levelDb };
+  }
+
+  const fractionalMidi =
+    69 + 12 * Math.log2(analysis.frequencyHz / referenceFrequencyHz);
+  const midi = Math.round(fractionalMidi);
+  const { step, alter, octave } = spellChromaticPitch(midi);
+  return {
+    status: "pitched",
+    note: `${step}${alter === 1 ? "#" : alter === -1 ? "b" : ""}`,
+    octave,
+    cents: (fractionalMidi - midi) * 100,
+    frequencyHz: analysis.frequencyHz,
+    levelDb: analysis.levelDb,
+  };
 }
 
 export function RecorderTunerContent({

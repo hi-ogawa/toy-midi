@@ -1,0 +1,112 @@
+import { gainToDb } from "./music.ts";
+
+const MIN_FREQUENCY = 30;
+const MAX_FREQUENCY = 500;
+const MIN_LEVEL_DB = -50;
+const MAX_YIN_VALUE = 0.15;
+
+export type TunerAnalysis =
+  | { status: "silent"; levelDb: number }
+  | { status: "unstable"; levelDb: number; confidence: number }
+  | {
+      status: "pitched";
+      levelDb: number;
+      confidence: number;
+      frequencyHz: number;
+    };
+
+/** Detects one monophonic fundamental from the latest input window. */
+export function analyzeTunerSamples({
+  samples,
+  sampleRate,
+}: {
+  samples: Float32Array;
+  sampleRate: number;
+}): TunerAnalysis {
+  let mean = 0;
+  for (const sample of samples) {
+    mean += sample;
+  }
+  mean /= samples.length;
+
+  let squareSum = 0;
+  for (const sample of samples) {
+    squareSum += (sample - mean) ** 2;
+  }
+  const levelDb = gainToDb(Math.sqrt(squareSum / samples.length));
+  if (levelDb <= MIN_LEVEL_DB) {
+    return { status: "silent", levelDb };
+  }
+
+  const minLag = Math.floor(sampleRate / MAX_FREQUENCY);
+  const maxLag = Math.min(
+    Math.ceil(sampleRate / MIN_FREQUENCY),
+    Math.floor(samples.length / 2),
+  );
+  const comparisonLength = samples.length - maxLag;
+  const normalizedDifference = new Float32Array(maxLag + 1);
+  let runningDifference = 0;
+
+  for (let lag = 1; lag <= maxLag; lag++) {
+    let difference = 0;
+    for (let frame = 0; frame < comparisonLength; frame++) {
+      const delta = samples[frame] - samples[frame + lag];
+      difference += delta * delta;
+    }
+    runningDifference += difference;
+    normalizedDifference[lag] =
+      runningDifference === 0 ? 1 : (difference * lag) / runningDifference;
+  }
+
+  let bestLag = minLag;
+  for (let lag = minLag + 1; lag <= maxLag; lag++) {
+    if (normalizedDifference[lag] < normalizedDifference[bestLag]) {
+      bestLag = lag;
+    }
+    if (normalizedDifference[lag] < MAX_YIN_VALUE) {
+      while (
+        lag < maxLag &&
+        normalizedDifference[lag + 1] < normalizedDifference[lag]
+      ) {
+        lag++;
+      }
+      bestLag = lag;
+      break;
+    }
+  }
+
+  // A bass fundamental can be much weaker than its second harmonic. Prefer the
+  // octave-lower period only when it explains the waveform substantially better.
+  const octaveLag = bestLag * 2;
+  if (
+    normalizedDifference[bestLag] > 0.01 &&
+    octaveLag <= maxLag &&
+    normalizedDifference[octaveLag] < normalizedDifference[bestLag] * 0.5
+  ) {
+    bestLag = octaveLag;
+  }
+
+  const confidence = 1 - normalizedDifference[bestLag];
+  if (confidence < 1 - MAX_YIN_VALUE) {
+    return { status: "unstable", levelDb, confidence };
+  }
+
+  const refinedLag = interpolateMinimum(normalizedDifference, bestLag);
+  return {
+    status: "pitched",
+    levelDb,
+    confidence,
+    frequencyHz: sampleRate / refinedLag,
+  };
+}
+
+function interpolateMinimum(values: Float32Array, index: number): number {
+  if (index === 0 || index === values.length - 1) {
+    return index;
+  }
+  const previous = values[index - 1];
+  const current = values[index];
+  const next = values[index + 1];
+  const curvature = previous - 2 * current + next;
+  return curvature === 0 ? index : index + (previous - next) / (2 * curvature);
+}
