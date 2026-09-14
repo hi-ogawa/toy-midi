@@ -1,23 +1,12 @@
 import { useEffect, useState } from "react";
-import { A4_FREQUENCY_HZ, hzToMidi } from "../../lib/music";
+import { A4_FREQUENCY_HZ, hzToMidi, MIN_DB } from "../../lib/music";
 import { spellChromaticPitch } from "../../lib/pitch-spelling";
 import type { TunerAnalyser, TunerAnalysis } from "../../lib/tuner-analyser";
 import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
 const IN_TUNE_CENTS = 5;
-
-export type RecorderTunerResult =
-  | { status: "silent"; levelDb?: number }
-  | { status: "unstable"; levelDb: number }
-  | {
-      status: "pitched";
-      note: string;
-      octave: number;
-      cents: number;
-      frequencyHz: number;
-      levelDb: number;
-    };
+const SILENT_ANALYSIS: TunerAnalysis = { status: "silent", levelDb: MIN_DB };
 
 export function RecorderTuner({
   analyser,
@@ -26,7 +15,7 @@ export function RecorderTuner({
   analyser?: TunerAnalyser;
   onClose: () => void;
 }) {
-  const result = useTunerResult(analyser);
+  const analysis = useTunerAnalysis(analyser);
   return (
     <RecorderPanel
       title="Tuner"
@@ -35,62 +24,41 @@ export function RecorderTuner({
       data-testid="recorder-tuner-panel"
       className="pointer-events-auto w-80 shrink-0"
     >
-      <RecorderTunerContent result={result} />
+      <RecorderTunerContent analysis={analysis} />
     </RecorderPanel>
   );
 }
 
-function useTunerResult(analyser?: TunerAnalyser): RecorderTunerResult {
-  const [result, setResult] = useState<RecorderTunerResult>({
-    status: "silent",
-  });
+function useTunerAnalysis(analyser?: TunerAnalyser) {
+  const [analysis, setAnalysis] = useState<TunerAnalysis>(SILENT_ANALYSIS);
 
   useEffect(() => {
-    setResult({ status: "silent" });
-    return analyser?.subscribe((analysis) =>
-      setResult(toTunerResult(analysis)),
-    );
+    setAnalysis(SILENT_ANALYSIS);
+    return analyser?.subscribe(setAnalysis);
   }, [analyser]);
 
-  return result;
-}
-
-function toTunerResult(analysis: TunerAnalysis): RecorderTunerResult {
-  if (analysis.status !== "pitched") {
-    return { status: analysis.status, levelDb: analysis.levelDb };
-  }
-
-  const fractionalMidi = hzToMidi(analysis.frequencyHz);
-  const midi = Math.round(fractionalMidi);
-  const { step, alter, octave } = spellChromaticPitch(midi);
-  return {
-    status: "pitched",
-    note: `${step}${alter === 1 ? "#" : alter === -1 ? "b" : ""}`,
-    octave,
-    cents: (fractionalMidi - midi) * 100,
-    frequencyHz: analysis.frequencyHz,
-    levelDb: analysis.levelDb,
-  };
+  return analysis;
 }
 
 export function RecorderTunerContent({
-  result,
+  analysis,
 }: {
-  result: RecorderTunerResult;
+  analysis: TunerAnalysis;
 }) {
-  const pitched = result.status === "pitched" ? result : undefined;
-  const cents = pitched?.cents;
-  const roundedCents = cents === undefined ? undefined : Math.round(cents);
-  const tuningState =
-    cents === undefined
-      ? result.status === "silent"
-        ? { label: "No signal", className: "text-neutral-500" }
-        : { label: "Unstable", className: "text-orange-300" }
-      : Math.abs(cents) <= IN_TUNE_CENTS
-        ? { label: "In tune", className: "text-emerald-400" }
-        : cents < 0
-          ? { label: "Flat", className: "text-sky-300" }
-          : { label: "Sharp", className: "text-orange-300" };
+  const pitched =
+    analysis.status === "pitched"
+      ? frequencyToPitch(analysis.frequencyHz)
+      : undefined;
+  const silent = analysis.status === "silent";
+  const tuningState = pitched
+    ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
+      ? { label: "In tune", className: "text-emerald-400" }
+      : pitched.cents < 0
+        ? { label: "Flat", className: "text-sky-300" }
+        : { label: "Sharp", className: "text-orange-300" }
+    : silent
+      ? { label: "No signal", className: "text-neutral-500" }
+      : { label: "Unstable", className: "text-orange-300" };
 
   return (
     <div className="space-y-5">
@@ -118,11 +86,11 @@ export function RecorderTunerContent({
         <div
           className={`mt-2 font-mono text-sm tabular-nums ${tuningState.className}`}
         >
-          {roundedCents === undefined
-            ? result.status === "silent"
+          {pitched
+            ? `${pitched.roundedCents > 0 ? "+" : ""}${pitched.roundedCents} cents`
+            : silent
               ? "Play a note"
-              : "Finding pitch..."
-            : `${roundedCents > 0 ? "+" : ""}${roundedCents} cents`}
+              : "Finding pitch..."}
         </div>
       </div>
 
@@ -148,10 +116,12 @@ export function RecorderTunerContent({
               </span>
             </div>
           ))}
-          {cents !== undefined && (
+          {pitched && (
             <div
               className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${Math.max(0, Math.min(100, cents + 50))}%` }}
+              style={{
+                left: `${Math.max(0, Math.min(100, pitched.cents + 50))}%`,
+              }}
             >
               <div className="size-2 rotate-45 bg-neutral-50" />
             </div>
@@ -166,16 +136,26 @@ export function RecorderTunerContent({
         />
         <TunerReading
           label="Input"
-          value={
-            result.levelDb === undefined
-              ? "-- dBFS"
-              : `${result.levelDb.toFixed(1)} dBFS`
-          }
+          value={`${analysis.levelDb.toFixed(1)} dBFS`}
         />
         <TunerReading label="Reference" value={`A4 ${A4_FREQUENCY_HZ} Hz`} />
       </div>
     </div>
   );
+}
+
+function frequencyToPitch(frequencyHz: number) {
+  const fractionalMidi = hzToMidi(frequencyHz);
+  const midi = Math.round(fractionalMidi);
+  const { step, alter, octave } = spellChromaticPitch(midi);
+  const cents = (fractionalMidi - midi) * 100;
+  return {
+    frequencyHz,
+    note: `${step}${alter === 1 ? "#" : alter === -1 ? "b" : ""}`,
+    octave,
+    cents,
+    roundedCents: Math.round(cents),
+  };
 }
 
 function TunerReading({ label, value }: { label: string; value: string }) {
