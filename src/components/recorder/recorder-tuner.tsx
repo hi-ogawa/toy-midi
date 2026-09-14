@@ -6,8 +6,6 @@ import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
 const IN_TUNE_CENTS = 5;
-const UNSTABLE_HOLD_MS = 250;
-const SILENCE_HOLD_MS = 400;
 const SILENT_ANALYSIS: TunerAnalysis = { status: "silent", levelDb: MIN_DB };
 
 export function RecorderTuner({
@@ -48,8 +46,8 @@ export function RecorderTunerContent({
       analysis.status === "pitched"
         ? 0
         : analysis.status === "silent"
-          ? SILENCE_HOLD_MS
-          : UNSTABLE_HOLD_MS,
+          ? 400
+          : 250,
   });
   const pitched =
     frequencyHz !== undefined ? frequencyToPitch(frequencyHz) : undefined;
