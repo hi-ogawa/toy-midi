@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "@playwright/test";
-import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
 import {
   createRecorderProject,
   dragBy,
