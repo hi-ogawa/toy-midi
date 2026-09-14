@@ -48,6 +48,13 @@ export function midiToHz(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
+export function hzToMidi(
+  frequencyHz: number,
+  referenceFrequencyHz = 440,
+): number {
+  return 69 + 12 * Math.log2(frequencyHz / referenceFrequencyHz);
+}
+
 export function dbToGain(db: number): number {
   return Math.pow(10, db / 20);
 }

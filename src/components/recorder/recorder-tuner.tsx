@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { hzToMidi } from "../../lib/music";
 import { spellChromaticPitch } from "../../lib/pitch-spelling";
 import type { TunerAnalyser, TunerAnalysis } from "../../lib/tuner-analyser";
 import { RecorderPanel } from "./recorder-panel";
@@ -86,8 +87,7 @@ function toTunerResult({
     return { status: analysis.status, levelDb: analysis.levelDb };
   }
 
-  const fractionalMidi =
-    69 + 12 * Math.log2(analysis.frequencyHz / referenceFrequencyHz);
+  const fractionalMidi = hzToMidi(analysis.frequencyHz, referenceFrequencyHz);
   const midi = Math.round(fractionalMidi);
   const { step, alter, octave } = spellChromaticPitch(midi);
   return {
