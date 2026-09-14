@@ -674,15 +674,16 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
           </div>
         )}
-        <RecorderTuner
-          open={isTunerOpen}
-          analyser={
-            // TODO: Make the capture input reactive if compiler memoization can
-            // retain this mutable runtime field across input changes.
-            runtime.captureInput?.tunerAnalyser
-          }
-          onClose={() => setIsTunerOpen(false)}
-        />
+        {isTunerOpen && (
+          <RecorderTuner
+            analyser={
+              // TODO: Make the capture input reactive if compiler memoization can
+              // retain this mutable runtime field across input changes.
+              runtime.captureInput?.tunerAnalyser
+            }
+            onClose={() => setIsTunerOpen(false)}
+          />
+        )}
         {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"

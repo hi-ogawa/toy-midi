@@ -20,18 +20,13 @@ export type RecorderTunerResult =
     };
 
 export function RecorderTuner({
-  open,
   analyser,
   onClose,
 }: {
-  open: boolean;
   analyser?: TunerAnalyser;
   onClose: () => void;
 }) {
-  const result = useTunerResult({ open, analyser });
-  if (!open) {
-    return null;
-  }
+  const result = useTunerResult(analyser);
   return (
     <RecorderPanel
       title="Tuner"
@@ -45,26 +40,17 @@ export function RecorderTuner({
   );
 }
 
-function useTunerResult({
-  open,
-  analyser,
-}: {
-  open: boolean;
-  analyser?: TunerAnalyser;
-}): RecorderTunerResult {
+function useTunerResult(analyser?: TunerAnalyser): RecorderTunerResult {
   const [result, setResult] = useState<RecorderTunerResult>({
     status: "silent",
   });
 
   useEffect(() => {
     setResult({ status: "silent" });
-    if (!open) {
-      return;
-    }
     return analyser?.subscribe((analysis) =>
       setResult(toTunerResult(analysis)),
     );
-  }, [open, analyser]);
+  }, [analyser]);
 
   return result;
 }
