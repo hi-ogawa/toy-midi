@@ -125,7 +125,7 @@ export async function enableInput(page: Page) {
         "Fake Default Audio Input",
       );
       await expect(page.getByLabel("Channel")).toContainText("Channel 1");
-      await page.getByRole("button", { name: "Close" }).click();
+      await setup.getByRole("button", { name: "Close", exact: true }).click();
       await expect(
         page.getByText("Fake Default Audio Input · Channel 1"),
       ).toBeVisible();
