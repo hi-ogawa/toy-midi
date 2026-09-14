@@ -25,6 +25,8 @@ export class TunerAnalyser {
   private readonly sampleRate: number;
 
   constructor(context: BaseAudioContext) {
+    // Keep a longer time-domain window than the input meter. The browser
+    // supplies PCM here; pitch estimation below does not use its FFT bins.
     this.node = context.createAnalyser();
     this.node.fftSize = WINDOW_SIZE;
     this.sampleRate = context.sampleRate;
@@ -34,6 +36,8 @@ export class TunerAnalyser {
     return startThrottledAnimationFrameLoop({
       interval: UPDATE_INTERVAL_MS,
       callback: () => {
+        // Pull the latest overlapping waveform only while the tuner UI is
+        // subscribed, then publish one low-rate analysis result to that UI.
         this.node.getFloatTimeDomainData(this.samples);
         onAnalysis(
           analyzeTunerSamples({
@@ -58,6 +62,8 @@ export function analyzeTunerSamples({
   samples: Float32Array;
   sampleRate: number;
 }): TunerAnalysis {
+  // Measure AC signal energy after removing DC offset. Silence is decided from
+  // level independently of whether the remaining waveform has a clear period.
   let mean = 0;
   for (const sample of samples) {
     mean += sample;
@@ -73,6 +79,8 @@ export function analyzeTunerSamples({
     return { status: "silent", levelDb };
   }
 
+  // Convert the supported frequency range into candidate sample periods. Keep
+  // one fixed comparison span so every lag is evaluated from equal evidence.
   const minLag = Math.floor(sampleRate / MAX_FREQUENCY);
   const maxLag = Math.min(
     Math.ceil(sampleRate / MIN_FREQUENCY),
@@ -82,6 +90,8 @@ export function analyzeTunerSamples({
   const normalizedDifference = new Float32Array(maxLag + 1);
   let runningDifference = 0;
 
+  // YIN measures how poorly the waveform matches a lagged copy of itself. Its
+  // cumulative-mean normalization makes trough depth comparable across lags.
   for (let lag = 1; lag <= maxLag; lag++) {
     let difference = 0;
     for (let frame = 0; frame < comparisonLength; frame++) {
@@ -93,6 +103,8 @@ export function analyzeTunerSamples({
       runningDifference === 0 ? 1 : (difference * lag) / runningDifference;
   }
 
+  // Take the first sufficiently periodic trough, then follow it to the local
+  // minimum. This favors the shortest credible period over later multiples.
   let bestLag = minLag;
   for (let lag = minLag + 1; lag <= maxLag; lag++) {
     if (normalizedDifference[lag] < normalizedDifference[bestLag]) {
@@ -121,11 +133,15 @@ export function analyzeTunerSamples({
     bestLag = octaveLag;
   }
 
+  // Treat an audible but weakly periodic window as unstable instead of showing
+  // a guessed note. Confidence is the inverse normalized mismatch at the trough.
   const confidence = 1 - normalizedDifference[bestLag];
   if (confidence < 1 - MAX_YIN_VALUE) {
     return { status: "unstable", levelDb, confidence };
   }
 
+  // Refine the discrete trough with its neighbors so tuning precision is not
+  // limited to whole-sample periods, then convert that period to frequency.
   const refinedLag = interpolateMinimum(normalizedDifference, bestLag);
   return {
     status: "pitched",
