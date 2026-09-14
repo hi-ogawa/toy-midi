@@ -11,10 +11,6 @@ describe("pitch frequency conversion", () => {
   it.each([28, 40, 69, 81])("round-trips MIDI pitch %s through Hz", (midi) => {
     expect(hzToMidi(midiToHz(midi))).toBeCloseTo(midi, 10);
   });
-
-  it("supports an alternate reference frequency", () => {
-    expect(hzToMidi(442, 442)).toBe(69);
-  });
 });
 
 describe("volume fader mapping", () => {

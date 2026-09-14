@@ -12,7 +12,6 @@ export function RecorderTunerPreview() {
           frequencyHz: 41.28,
           levelDb: -18.4,
         }}
-        referenceFrequencyHz={440}
       />
     </div>
   );

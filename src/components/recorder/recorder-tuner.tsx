@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { hzToMidi } from "../../lib/music";
+import { A4_FREQUENCY_HZ, hzToMidi } from "../../lib/music";
 import { spellChromaticPitch } from "../../lib/pitch-spelling";
 import type { TunerAnalyser, TunerAnalysis } from "../../lib/tuner-analyser";
 import { RecorderPanel } from "./recorder-panel";
@@ -22,15 +22,13 @@ export type RecorderTunerResult =
 export function RecorderTuner({
   open,
   analyser,
-  referenceFrequencyHz,
   onClose,
 }: {
   open: boolean;
   analyser?: TunerAnalyser;
-  referenceFrequencyHz: number;
   onClose: () => void;
 }) {
-  const result = useTunerResult({ open, analyser, referenceFrequencyHz });
+  const result = useTunerResult({ open, analyser });
   if (!open) {
     return null;
   }
@@ -42,10 +40,7 @@ export function RecorderTuner({
       data-testid="recorder-tuner-panel"
       className="pointer-events-auto w-80 shrink-0"
     >
-      <RecorderTunerContent
-        result={result}
-        referenceFrequencyHz={referenceFrequencyHz}
-      />
+      <RecorderTunerContent result={result} />
     </RecorderPanel>
   );
 }
@@ -53,11 +48,9 @@ export function RecorderTuner({
 function useTunerResult({
   open,
   analyser,
-  referenceFrequencyHz,
 }: {
   open: boolean;
   analyser?: TunerAnalyser;
-  referenceFrequencyHz: number;
 }): RecorderTunerResult {
   const [result, setResult] = useState<RecorderTunerResult>({
     status: "silent",
@@ -69,25 +62,19 @@ function useTunerResult({
       return;
     }
     return analyser?.subscribe((analysis) =>
-      setResult(toTunerResult({ analysis, referenceFrequencyHz })),
+      setResult(toTunerResult(analysis)),
     );
-  }, [open, analyser, referenceFrequencyHz]);
+  }, [open, analyser]);
 
   return result;
 }
 
-function toTunerResult({
-  analysis,
-  referenceFrequencyHz,
-}: {
-  analysis: TunerAnalysis;
-  referenceFrequencyHz: number;
-}): RecorderTunerResult {
+function toTunerResult(analysis: TunerAnalysis): RecorderTunerResult {
   if (analysis.status !== "pitched") {
     return { status: analysis.status, levelDb: analysis.levelDb };
   }
 
-  const fractionalMidi = hzToMidi(analysis.frequencyHz, referenceFrequencyHz);
+  const fractionalMidi = hzToMidi(analysis.frequencyHz);
   const midi = Math.round(fractionalMidi);
   const { step, alter, octave } = spellChromaticPitch(midi);
   return {
@@ -102,10 +89,8 @@ function toTunerResult({
 
 export function RecorderTunerContent({
   result,
-  referenceFrequencyHz,
 }: {
   result: RecorderTunerResult;
-  referenceFrequencyHz: number;
 }) {
   const pitched = result.status === "pitched" ? result : undefined;
   const cents = pitched?.cents;
@@ -201,10 +186,7 @@ export function RecorderTunerContent({
               : `${result.levelDb.toFixed(1)} dBFS`
           }
         />
-        <TunerReading
-          label="Reference"
-          value={`A4 ${referenceFrequencyHz} Hz`}
-        />
+        <TunerReading label="Reference" value={`A4 ${A4_FREQUENCY_HZ} Hz`} />
       </div>
     </div>
   );

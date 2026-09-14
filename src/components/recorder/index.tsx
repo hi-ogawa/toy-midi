@@ -681,7 +681,6 @@ export function Recorder({ projectId }: { projectId: string }) {
             // retain this mutable runtime field across input changes.
             runtime.captureInput?.tunerAnalyser
           }
-          referenceFrequencyHz={440}
           onClose={() => setIsTunerOpen(false)}
         />
         {isMixerOpen && (

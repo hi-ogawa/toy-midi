@@ -9,6 +9,7 @@ export const MAX_PITCH = 127; // G9
 export const MIN_DB = -60;
 export const MAX_DB = 6;
 const LOG2 = Math.log(2);
+export const A4_FREQUENCY_HZ = 440;
 const MIN_GAIN = dbToGain(MIN_DB);
 const MAX_GAIN = dbToGain(MAX_DB);
 
@@ -45,14 +46,11 @@ export function parseMidiPitch(pitch: string): number {
 }
 
 export function midiToHz(midi: number): number {
-  return 440 * Math.pow(2, (midi - 69) / 12);
+  return A4_FREQUENCY_HZ * Math.pow(2, (midi - 69) / 12);
 }
 
-export function hzToMidi(
-  frequencyHz: number,
-  referenceFrequencyHz = 440,
-): number {
-  return 69 + 12 * Math.log2(frequencyHz / referenceFrequencyHz);
+export function hzToMidi(frequencyHz: number): number {
+  return 69 + 12 * Math.log2(frequencyHz / A4_FREQUENCY_HZ);
 }
 
 export function dbToGain(db: number): number {
