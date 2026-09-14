@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { A4_FREQUENCY_HZ, hzToMidi } from "../../lib/music";
 import { spellChromaticPitch } from "../../lib/pitch-spelling";
 import type { TunerAnalyser, TunerAnalysis } from "../../lib/tuner-analyser";
-import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
 const IN_TUNE_CENTS = 5;
@@ -19,25 +18,9 @@ export type RecorderTunerResult =
       levelDb: number;
     };
 
-export function RecorderTuner({
-  analyser,
-  onClose,
-}: {
-  analyser?: TunerAnalyser;
-  onClose: () => void;
-}) {
+export function RecorderTuner({ analyser }: { analyser?: TunerAnalyser }) {
   const result = useTunerResult(analyser);
-  return (
-    <RecorderPanel
-      title="Tuner"
-      closeLabel="Close Tuner"
-      onClose={onClose}
-      data-testid="recorder-tuner-panel"
-      className="pointer-events-auto w-80 shrink-0"
-    >
-      <RecorderTunerContent result={result} />
-    </RecorderPanel>
-  );
+  return <RecorderTunerContent result={result} />;
 }
 
 function useTunerResult(analyser?: TunerAnalyser): RecorderTunerResult {
