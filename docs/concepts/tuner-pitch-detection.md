@@ -2,6 +2,8 @@
 
 The recorder tuner estimates one fundamental frequency from the latest mono input window. Its implementation in `src/lib/tuner-analyser.ts` uses the core of YIN: compare the waveform with delayed copies of itself, normalize those comparisons, and interpret the first convincing match as the period.
 
+The detector as a whole is not a standard named algorithm or a known YIN variant. The difference function, cumulative mean normalization, first-threshold trough selection, and parabolic interpolation come from classic YIN. The surrounding policy is specific to this tuner: its window and update cadence, frequency range, silence and confidence states, and octave override are local design choices. Their current values are prototype starting points rather than parameters tuned against a representative recording corpus.
+
 The important shift in viewpoint is that the algorithm searches for a **period measured in samples**, not a frequency directly. If a waveform repeats after $\tau$ samples at sample rate $F_s$, then its frequency is
 
 $$
@@ -100,7 +102,7 @@ d'(\tau)>0.01,
 d'(2\tau)<0.5d'(\tau).
 $$
 
-The first condition leaves an already near-perfect shorter-period match alone. The second requires substantially stronger evidence before overriding YIN's normal preference for the first trough. This is a targeted bass heuristic, not part of classic YIN.
+The first condition leaves an already near-perfect shorter-period match alone. The second requires substantially stronger evidence before overriding YIN's normal preference for the first trough. Both the shape of this rule and its constants are project-specific prototype choices, not a published extension to YIN. The current synthetic harmonic test preserves the intended behavior but does not establish that these thresholds generalize to recorded instruments.
 
 ## Turn Trough Depth into Confidence
 
@@ -151,7 +153,7 @@ Note naming and cents offset happen outside the detector. The UI converts the re
 
 ## Scope and Tradeoffs
 
-This detector is intentionally small and frame-local. It assumes one dominant pitched source in the 30–500 Hz range and has no temporal model, pitch history, or polyphonic separation. The 4096-sample window supplies enough cycles for low bass, while the overlapping 50 ms update cadence keeps the display responsive.
+This detector is intentionally small and frame-local. It assumes one dominant pitched source in the 30–500 Hz range and has no temporal model, pitch history, or polyphonic separation. The 4096-sample window supplies enough cycles for low bass, while the overlapping 50 ms update cadence keeps the display responsive. These choices form a practical first implementation, not a claim that this particular combination is established or optimal.
 
 The direct difference calculation costs approximately $M\tau_{\max}$ sample comparisons per update. Computing the full curve keeps normalization, fallback selection, and the octave check straightforward. If profiling shows this work to be significant, the difference function can be accelerated with autocorrelation or coordinated with candidate selection without changing the mathematical decisions described here.
 

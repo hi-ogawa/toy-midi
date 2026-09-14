@@ -137,8 +137,9 @@ export function analyzeTunerSamples({
     }
   }
 
-  // A bass fundamental can be much weaker than its second harmonic. Prefer the
-  // octave-lower period only when it explains the waveform substantially better.
+  // Project-specific prototype heuristic: a bass fundamental can be much
+  // weaker than its second harmonic. Prefer the octave-lower period only when
+  // it explains the waveform substantially better.
   const octaveLag = selectedLag * 2;
   if (
     normalizedDifference[selectedLag] > 0.01 &&
