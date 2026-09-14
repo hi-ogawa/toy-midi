@@ -12,6 +12,7 @@
 
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
 - [Real-time tuner pitch detection](concepts/tuner-pitch-detection.md): YIN difference analysis, period selection, and frequency refinement.
+- [WSOLA time stretching](concepts/wsola-time-stretching.md): source-window alignment, waveform similarity, Hann overlap-add, and streaming boundaries.
 
 ## Bass Pitch
 

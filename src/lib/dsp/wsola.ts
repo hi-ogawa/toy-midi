@@ -42,6 +42,8 @@ import { PlanarStreamBuffer } from "./stream-buffer.ts";
  * `playbackRate` for each output frame without resampling, which changes
  * duration while preserving pitch. The final call may write fewer frames than
  * requested.
+ *
+ * @see {@link file://./../../../docs/concepts/wsola-time-stretching.md} for the mathematical explanation.
  */
 export class WsolaProcessor {
   readonly outputFrames: number;
@@ -200,6 +202,8 @@ export class WsolaProcessor {
  * sized output blocks. Complete source windows are retained until they can no
  * longer participate in the next natural continuation or candidate search.
  * Pull returns zero when more input is needed, not only at end of stream.
+ *
+ * @see {@link file://./../../../docs/concepts/wsola-time-stretching.md} for the mathematical explanation.
  */
 export class StreamingWsola {
   /** Input frames buffered before output starts to cover future hop lookahead. */
