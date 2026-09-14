@@ -1,10 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
+import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   enableInput,
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);
