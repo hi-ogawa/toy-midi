@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
-import { createCheckpoint } from "../helpers";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { createCheckpoint, useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   enableInput,
@@ -8,6 +8,8 @@ import {
   getRecorderPosition,
   seekRecorderByPixels,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("snaps recorder timeline seeking to the selected grid", async ({
   page,

@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { useFakeAudioInput } from "./helpers";
+
+useFakeAudioInput();
 
 test("completes the latency checker workflow with fake audio", async ({
   page,
