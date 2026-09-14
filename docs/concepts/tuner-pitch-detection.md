@@ -170,7 +170,7 @@ The direct difference calculation costs approximately $M\tau_{\max}$ sample comp
 ## References
 
 - A. de Cheveigne and H. Kawahara, [YIN, a fundamental frequency estimator for speech and music](https://doi.org/10.1121/1.1458024)
-- [pYIN algorithm breakdown](../bass-pitch/pyin.md), which explains how the offline transcription pipeline extends YIN with probabilistic thresholds and temporal decoding
+- [pYIN math](../bass-pitch/pyin-math.md), which explains how the offline transcription pipeline extends YIN with probabilistic thresholds and temporal decoding
 
 ## Appendix: Parabolic Interpolation Derivation
 
