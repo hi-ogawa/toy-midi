@@ -42,12 +42,7 @@ export function RecorderTunerContent({
 }) {
   const frequencyHz = useDebouncedValue({
     value: analysis.status === "pitched" ? analysis.frequencyHz : undefined,
-    delayMs:
-      analysis.status === "pitched"
-        ? 0
-        : analysis.status === "silent"
-          ? 400
-          : 250,
+    delayMs: analysis.status === "pitched" ? 0 : 300,
   });
   const pitched =
     frequencyHz !== undefined ? frequencyToPitch(frequencyHz) : undefined;
