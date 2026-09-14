@@ -37,7 +37,7 @@ $$
 Number the generated output hops with $k=0,1,2,\ldots$. Hop $k$ starts at output frame $kH$. Its **nominal source position** follows the requested playback rate:
 
 $$
-p_k=\operatorname{round}(rkH).
+p_k=\mathrm{round}(rkH).
 $$
 
 This is `nominalSourcePosition`. The difference between successive nominal positions is approximately $rH$, while each output hop always advances by $H$ frames.
@@ -67,7 +67,7 @@ Candidate starts are the integer frames from $a_k$ through $b_k-1$. The end $b_k
 If the natural continuation lies inside this interval, the implementation selects it directly:
 
 $$
-a_k\le n_k<b_k
+a_k\le n_k\lt b_k
 \quad\Longrightarrow\quad
 s_k=n_k.
 $$
@@ -109,7 +109,7 @@ Use a small illustrative sample rate of 1 kHz, with the same 20 ms window and 30
 
 The first six hops use natural continuation. At hop 6, frame 60 lies at the excluded end of the search interval, so a similarity search runs. Suppose the waveform makes frame 48 the selected candidate. This choice is illustrative because the actual winner depends on the audio.
 
-The next natural start becomes $48+10=58$, while the next nominal start is still $\operatorname{round}(0.75\times70)=53$. Moving back from the expected continuation of 60 to 48 revisits source material, extending its duration. At faster playback rates, alignment jumps generally skip source material instead.
+The next natural start becomes $48+10=58$, while the next nominal start is still $\mathrm{round}(0.75\times70)=53$. Moving back from the expected continuation of 60 to 48 revisits source material, extending its duration. At faster playback rates, alignment jumps generally skip source material instead.
 
 ## Join the Selected Windows
 
@@ -117,21 +117,21 @@ The implementation uses a periodic Hann window:
 
 $$
 w[j]=\frac{1}{2}\left(1-\cos\frac{2\pi j}{W}\right),
-\qquad 0\le j<W.
+\qquad 0\le j\lt W.
 $$
 
 With $H=W/2$, shifting the cosine by half a window adds $\pi$ to its phase and reverses its sign. Therefore
 
 $$
 w[j]+w[j+H]=1,
-\qquad 0\le j<H.
+\qquad 0\le j\lt H.
 $$
 
 For hop $k$, let $C_c[j]$ be the unweighted second half carried from the previous selected window. The next $H$ output samples are
 
 $$
 y_c[kH+j]=C_c[j]w[j+H]+x_c[s_k+j]w[j],
-\qquad 0\le j<H.
+\qquad 0\le j\lt H.
 $$
 
 The carry is then replaced with the new window's second half:
@@ -159,7 +159,7 @@ Let $L$ be the total number of source frames received so far, using an exclusive
 $$
 E_k=
 \begin{cases}
-n_k+W, & a_k\le n_k<b_k,\\
+n_k+W, & a_k\le n_k\lt b_k,\\
 \max(n_k+W,\ b_k-1+W), & \text{otherwise}.
 \end{cases}
 $$
