@@ -1,5 +1,20 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
+
+/** Call at file scope to enable a fake microphone for this test file. */
+export function useFakeAudioInput(): void {
+  test.use({
+    permissions: ["microphone"],
+    launchOptions: {
+      // launchOptions replaces the config value, so retain the autoplay flag.
+      args: [
+        "--autoplay-policy=no-user-gesture-required",
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+    },
+  });
+}
 
 /** Log elapsed checkpoints while investigating E2E timing. */
 export function createCheckpoint(): (label: string) => void {
