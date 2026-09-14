@@ -311,7 +311,7 @@ export function CaptureTrackRow({
             className={cn(
               "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
               tunerOpen &&
-                "bg-emerald-500/25 text-emerald-300 hover:bg-emerald-500/35",
+                "bg-neutral-700 text-neutral-200 hover:bg-neutral-600",
             )}
           >
             <AudioWaveformIcon className="size-3.5" />
