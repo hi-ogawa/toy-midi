@@ -309,9 +309,10 @@ export function CaptureTrackRow({
             title={tunerOpen ? "Close tuner" : "Open tuner"}
             onClick={onTunerToggle}
             className={cn(
-              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
-              tunerOpen &&
-                "bg-neutral-700 text-neutral-200 hover:bg-neutral-600",
+              "grid size-6 shrink-0 place-items-center rounded",
+              tunerOpen
+                ? "bg-neutral-700 text-neutral-200 hover:bg-neutral-700"
+                : "text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
             )}
           >
             <AudioWaveformIcon className="size-3.5" />
