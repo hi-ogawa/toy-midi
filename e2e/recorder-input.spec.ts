@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   waitForRecordingSamples,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("header permission setup leaves input closed and R opens the selected device", async ({
   page,

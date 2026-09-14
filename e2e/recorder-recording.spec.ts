@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { useFakeAudioInput } from "./helpers";
 import {
   createRecorderProject,
   dragBy,
@@ -8,6 +9,8 @@ import {
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("records, plays, and manages multiple takes", async ({ page }) => {
   await createRecorderProject(page);

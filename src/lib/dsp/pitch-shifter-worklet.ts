@@ -1,4 +1,5 @@
 import { StreamingPitchShifter } from "./pitch-shifter.ts";
+import { watchWorkletDisposal } from "./worklet-disposal.ts";
 
 const PROCESSOR_NAME = "pitch-shifter";
 const BLOCK_FRAMES = 128;
@@ -22,6 +23,7 @@ declare function registerProcessor(
 ): void;
 
 class PitchShifterProcessor extends AudioWorkletProcessor {
+  private readonly isDisposed = watchWorkletDisposal(this.port);
   private readonly shifter: StreamingPitchShifter;
   private readonly silence: Float32Array[];
 
@@ -44,12 +46,15 @@ class PitchShifterProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+    if (this.isDisposed()) {
+      return false;
+    }
     const input = inputs[0] ?? [];
     const output = outputs[0] ?? [];
     if (output.length === 0) {
       return true;
     }
-    // Keep the stream clock advancing and drain buffered audio between sources.
+    // Supply silence for callbacks without active input.
     this.shifter.push(input.length > 0 ? input : this.silence);
     const written = this.shifter.pull(output);
     for (const channel of output) {
