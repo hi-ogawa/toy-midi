@@ -24,7 +24,17 @@ $$
 \tau_{\max}=\min\left(\left\lceil\frac{F_s}{30}\right\rceil,\left\lfloor\frac{N}{2}\right\rfloor\right).
 $$
 
-At 48 kHz, this is 96 through 1600 samples. For comparison, A2 at 110 Hz has a period of about 436 samples, while E1 at 41.2 Hz has a period of about 1165 samples.
+At 48 kHz, the input contains 48,000 samples per second. Dividing samples per second by cycles per second gives samples per cycle, so the bounds are
+
+$$
+\tau_{\min}=\left\lfloor\frac{48000}{500}\right\rfloor=96,
+\qquad
+\tau_{\max}=\min\left(\left\lceil\frac{48000}{30}\right\rceil,\left\lfloor\frac{4096}{2}\right\rfloor\right)=\min(1600,2048)=1600.
+$$
+
+The candidate periods therefore run from 96 through 1600 samples. For comparison, A2 at 110 Hz has a period of about 436 samples, while E1 at 41.2 Hz has a period of about 1165 samples.
+
+Lower notes leave fewer waveform cycles inside the same window. At 30 Hz, the window contains only $4096/1600=2.56$ cycles, compared with about $4096/1165\approx3.52$ cycles at E1. This gives the detector only a few repetitions of a low note to establish periodicity. A longer window would supply more cycles, but would also retain older audio for longer after a note change.
 
 ## Separate Presence from Pitch Evidence
 
@@ -60,6 +70,10 @@ $$
 
 for every lag. This keeps each candidate based on the same amount of evidence. If $\tau$ matches the waveform's period, then $x_j\approx x_{j+\tau}$ and $d(\tau)$ forms a trough. Period multiples such as $2\tau$ and $3\tau$ can form troughs too.
 
+At 48 kHz, $M=4096-1600=2496$. For a shift of 1600 samples, the sum compares $x_0$ with $x_{1600}$, $x_1$ with $x_{1601}$, and so on through $x_{2495}$ with $x_{4095}$. Each shift therefore uses 2496 sample pairs, spanning $2496/1600=1.56$ cycles of a 30 Hz note in each compared segment.
+
+The $4096/1600$ ratio counts waveform cycles, rather than tested displacements. The implementation advances the displacement one sample at a time and computes differences for all lags from 1 through 1600. Lags below 96 contribute to normalization, while 96 through 1600 are eligible pitch candidates. Low notes have fewer repeated cycles available as evidence even though the detector still evaluates many closely spaced shifts.
+
 The raw difference is not directly useful for choosing a period. It scales with signal amplitude, and small lags tend to have small differences simply because nearby samples resemble each other. YIN compensates with the cumulative mean normalized difference:
 
 $$
@@ -72,7 +86,7 @@ This compares each lag's mismatch with the average mismatch up to that lag. Aper
 
 ## Select the First Convincing Trough
 
-Classic YIN does not select the global minimum. It scans upward from $\tau_{\min}$ and chooses the first trough that crosses a fixed threshold:
+Classic YIN does not select the global minimum. It scans upward through candidate lags and chooses the first trough that crosses a fixed threshold:
 
 $$
 d'(\tau)<\theta,
@@ -80,9 +94,11 @@ d'(\tau)<\theta,
 \theta=0.15.
 $$
 
-Once a value crosses the threshold, the scan follows the descending values to that trough's local minimum. It then stops even if a later trough is deeper. This is a semantic selection rule rather than a performance optimization because all difference values have already been computed.
+Once a value crosses the threshold, the scan follows the normalized difference $d'(\tau)$ downhill to the bottom of that trough. It stops when the next value is equal or larger, or when it reaches the maximum lag.
 
-Choosing the first credible trough favors the shortest period supported by the evidence. A later trough often represents a multiple of the period, which would turn $f$ into $f/2$ or $f/3$ and display a pitch one or more octaves too low.
+For example, for successive normalized values $0.20,0.12,0.06,0.08$, the threshold is first crossed at $0.12$, and the scan selects $0.06$ because the next value rises to $0.08$. It stops even if a later trough is deeper.
+
+Choosing the first convincing trough favors the shortest period supported by the evidence. If a waveform repeats every $T$ samples, shifts of $2T$ and $3T$ also align it with itself. Selecting those later matches would give $F_s/(2T)=f/2$ or $F_s/(3T)=f/3$. The first is one octave low, and the second is about 19 semitones low.
 
 If no trough crosses the threshold, the scan retains the lowest normalized difference as a fallback candidate. That candidate still has to pass the confidence check below.
 
