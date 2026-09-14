@@ -97,7 +97,6 @@ export function RecorderTunerContent({
       <div>
         <div className="relative h-12">
           <div className="absolute top-4 right-0 left-0 h-px bg-neutral-600" />
-          <div className="absolute top-2 left-1/2 h-5 w-10 -translate-x-1/2 rounded bg-emerald-500/10 ring-1 ring-emerald-500/25" />
           {CENT_TICKS.map((tick) => (
             <div
               key={tick}
@@ -118,13 +117,16 @@ export function RecorderTunerContent({
           ))}
           {pitched && (
             <div
-              className="absolute top-0 -translate-x-1/2"
+              className={`absolute top-0 h-1.5 w-2.5 -translate-x-1/2 ${
+                Math.abs(pitched.cents) <= IN_TUNE_CENTS
+                  ? "bg-emerald-400"
+                  : "bg-neutral-50"
+              }`}
               style={{
                 left: `${Math.max(0, Math.min(100, pitched.cents + 50))}%`,
+                clipPath: "polygon(0 0, 100% 0, 50% 100%)",
               }}
-            >
-              <div className="size-2 rotate-45 bg-neutral-50" />
-            </div>
+            />
           )}
         </div>
       </div>
