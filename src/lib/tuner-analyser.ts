@@ -115,8 +115,11 @@ export function analyzeTunerSamples({
       runningDifference === 0 ? 1 : (difference * lag) / runningDifference;
   }
 
-  // Take the first sufficiently periodic trough, then follow it to the local
-  // minimum. This favors the shortest credible period over later multiples.
+  // YIN deliberately selects the first sufficiently periodic trough, then
+  // follows it to the local minimum. Later troughs often represent period
+  // multiples that would produce octave-down errors. The break is therefore a
+  // selection rule, not an optimization; all differences were computed above.
+  // Until a qualifying trough appears, retain the lowest value as the fallback.
   let selectedLag = minLag;
   for (let lag = minLag + 1; lag <= maxLag; lag++) {
     if (normalizedDifference[lag] < normalizedDifference[selectedLag]) {
