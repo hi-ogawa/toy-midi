@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 import { analyzeTunerSamples } from "./tuner-analyser.ts";
 
 const SAMPLE_RATE = 48_000;
@@ -19,11 +19,9 @@ describe(analyzeTunerSamples, () => {
       samples: makeSignal((time) => Math.sin(2 * Math.PI * frequencyHz * time)),
       sampleRate: SAMPLE_RATE,
     });
-    expect(result.status).toBe("pitched");
-    if (result.status === "pitched") {
-      expect(result.frequencyHz).toBeCloseTo(frequencyHz, 1);
-      expect(result.confidence).toBeGreaterThan(0.9);
-    }
+    assert(result.status === "pitched");
+    expect(result.frequencyHz).toBeCloseTo(frequencyHz, 1);
+    expect(result.confidence).toBeGreaterThan(0.9);
   });
 
   it("detects the fundamental of a harmonic-rich bass signal", () => {
@@ -37,10 +35,8 @@ describe(analyzeTunerSamples, () => {
       ),
       sampleRate: SAMPLE_RATE,
     });
-    expect(result.status).toBe("pitched");
-    if (result.status === "pitched") {
-      expect(result.frequencyHz).toBeCloseTo(frequencyHz, 1);
-    }
+    assert(result.status === "pitched");
+    expect(result.frequencyHz).toBeCloseTo(frequencyHz, 1);
   });
 
   it("reports an audible aperiodic signal as unstable", () => {
