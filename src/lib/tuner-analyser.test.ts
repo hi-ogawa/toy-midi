@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeTunerSamples } from "./tuner-analysis.ts";
+import { analyzeTunerSamples } from "./tuner-analyser.ts";
 
 const SAMPLE_RATE = 48_000;
 const WINDOW_SIZE = 4096;

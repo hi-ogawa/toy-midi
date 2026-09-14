@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { spellChromaticPitch } from "../../lib/pitch-spelling";
-import type { TunerAnalyser } from "../../lib/tuner-analyser";
-import type { TunerAnalysis } from "../../lib/tuner-analysis";
+import type { TunerAnalyser, TunerAnalysis } from "../../lib/tuner-analyser";
 import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
