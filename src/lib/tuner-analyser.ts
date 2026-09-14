@@ -61,8 +61,6 @@ export class TunerAnalyser {
  * `silent` before attempting pitch detection when the signal is too quiet. It
  * then applies the YIN cumulative mean normalized difference function across
  * the supported period range and selects the first sufficiently deep trough.
- * A targeted octave check favors a weak bass fundamental over a dominant
- * second harmonic when the longer period is a substantially better match.
  * Audible windows without a convincing period return `unstable`; otherwise,
  * parabolic interpolation refines the selected period to a fractional lag and
  * converts it to frequency.
@@ -135,18 +133,6 @@ export function analyzeTunerSamples({
       selectedLag = lag;
       break;
     }
-  }
-
-  // Project-specific prototype heuristic: a bass fundamental can be much
-  // weaker than its second harmonic. Prefer the octave-lower period only when
-  // it explains the waveform substantially better.
-  const octaveLag = selectedLag * 2;
-  if (
-    normalizedDifference[selectedLag] > 0.01 &&
-    octaveLag <= maxLag &&
-    normalizedDifference[octaveLag] < normalizedDifference[selectedLag] * 0.5
-  ) {
-    selectedLag = octaveLag;
   }
 
   // Treat an audible but weakly periodic window as unstable instead of showing

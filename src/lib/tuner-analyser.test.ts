@@ -43,22 +43,6 @@ describe(analyzeTunerSamples, () => {
     }
   });
 
-  it("does not mistake a dominant second harmonic for the fundamental", () => {
-    const frequencyHz = 41.2;
-    const result = analyzeTunerSamples({
-      samples: makeSignal(
-        (time) =>
-          0.2 * Math.sin(2 * Math.PI * frequencyHz * time) +
-          Math.sin(2 * Math.PI * frequencyHz * 2 * time),
-      ),
-      sampleRate: SAMPLE_RATE,
-    });
-    expect(result.status).toBe("pitched");
-    if (result.status === "pitched") {
-      expect(result.frequencyHz).toBeCloseTo(frequencyHz, 1);
-    }
-  });
-
   it("reports an audible aperiodic signal as unstable", () => {
     let randomState = 1;
     const result = analyzeTunerSamples({
