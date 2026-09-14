@@ -20,19 +20,19 @@ test("holds the tuner reading through brief input gaps", async ({ page }) => {
   await page.getByRole("button", { name: "Sharp", exact: true }).click();
   await expect(content.getByText("+25 cents", { exact: true })).toBeVisible();
   await page.clock.runFor(100);
-  await expect(content).toHaveAttribute("data-dimmed", "false");
+  await expect(content).toHaveAttribute("data-status", "tracking");
   await expect(cursor).toBeVisible();
 
   // Dim a held note and hide its cursor when instability persists.
   await page.getByRole("button", { name: "Unstable", exact: true }).click();
   await page.clock.runFor(250);
-  await expect(content).toHaveAttribute("data-dimmed", "true");
+  await expect(content).toHaveAttribute("data-status", "stale");
   await expect(content.getByText("E1", { exact: true })).toBeVisible();
   await expect(cursor).toBeHidden();
 
   // Restore a fresh pitch, hold through a short silence, then clear the note.
   await page.getByRole("button", { name: "In tune", exact: true }).click();
-  await expect(content).toHaveAttribute("data-dimmed", "false");
+  await expect(content).toHaveAttribute("data-status", "tracking");
   await expect(cursor).toBeVisible();
   await page.getByRole("button", { name: "No signal", exact: true }).click();
   await page.clock.runFor(350);
@@ -40,6 +40,7 @@ test("holds the tuner reading through brief input gaps", async ({ page }) => {
   await page.clock.runFor(50);
   await expect(content.getByText("E1", { exact: true })).toHaveCount(0);
   await expect(content.getByText("No signal", { exact: true })).toBeVisible();
+  await expect(content).toHaveAttribute("data-status", "empty");
   await expect(content.getByText("Play a note", { exact: true })).toHaveCount(
     0,
   );

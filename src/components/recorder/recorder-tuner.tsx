@@ -44,27 +44,28 @@ export function RecorderTunerContent({
 }) {
   const display = useTunerDisplay(analysis);
   const pitched =
-    display.frequencyHz === undefined
+    display.status === "empty"
       ? undefined
       : frequencyToPitch(display.frequencyHz);
-  const tuningState = display.dimmed
-    ? { label: "Unstable", className: "text-neutral-500" }
-    : pitched
-      ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
-        ? { label: "In tune", className: "text-emerald-400" }
-        : pitched.cents < 0
-          ? { label: "Flat", className: "text-neutral-400" }
-          : { label: "Sharp", className: "text-neutral-400" }
-      : {
-          label: analysis.status === "unstable" ? "Unstable" : "No signal",
-          className: "text-neutral-500",
-        };
+  const tuningState =
+    display.status === "stale"
+      ? { label: "Unstable", className: "text-neutral-500" }
+      : pitched
+        ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
+          ? { label: "In tune", className: "text-emerald-400" }
+          : pitched.cents < 0
+            ? { label: "Flat", className: "text-neutral-400" }
+            : { label: "Sharp", className: "text-neutral-400" }
+        : {
+            label: analysis.status === "unstable" ? "Unstable" : "No signal",
+            className: "text-neutral-500",
+          };
 
   return (
     <div
       className="space-y-5"
       data-testid="tuner-content"
-      data-dimmed={display.dimmed}
+      data-status={display.status}
     >
       <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
         <span className={`flex items-center gap-1.5 ${tuningState.className}`}>
@@ -74,7 +75,9 @@ export function RecorderTunerContent({
         <span>Chromatic</span>
       </div>
 
-      <div className={`text-center ${display.dimmed ? "opacity-40" : ""}`}>
+      <div
+        className={`text-center ${display.status === "stale" ? "opacity-40" : ""}`}
+      >
         <div className="font-mono text-7xl leading-none font-semibold tracking-tight text-neutral-50">
           {pitched ? (
             <>
@@ -116,7 +119,7 @@ export function RecorderTunerContent({
               </span>
             </div>
           ))}
-          {pitched && !display.dimmed && (
+          {pitched && display.status === "tracking" && (
             <div
               data-testid="tuner-cursor"
               className={`absolute top-0 h-1.5 w-2.5 -translate-x-1/2 ${
@@ -148,17 +151,23 @@ export function RecorderTunerContent({
   );
 }
 
-function useTunerDisplay(analysis: TunerAnalysis) {
+type TunerDisplay =
+  | { status: "empty" }
+  | { status: "tracking"; frequencyHz: number }
+  | { status: "stale"; frequencyHz: number };
+
+function useTunerDisplay(analysis: TunerAnalysis): TunerDisplay {
   const frequencyHz =
     analysis.status === "pitched" ? analysis.frequencyHz : undefined;
-  const [held, setHeld] = useState<{ frequencyHz?: number; dimmed: boolean }>({
-    frequencyHz,
-    dimmed: false,
-  });
+  const [held, setHeld] = useState<TunerDisplay>(
+    frequencyHz === undefined
+      ? { status: "empty" }
+      : { status: "tracking", frequencyHz },
+  );
 
   useEffect(() => {
     if (frequencyHz !== undefined) {
-      setHeld({ frequencyHz, dimmed: false });
+      setHeld({ status: "tracking", frequencyHz });
       return;
     }
 
@@ -167,9 +176,9 @@ function useTunerDisplay(analysis: TunerAnalysis) {
     const timeout = setTimeout(
       () => {
         setHeld((previous) =>
-          analysis.status === "silent"
-            ? { dimmed: false }
-            : { ...previous, dimmed: previous.frequencyHz !== undefined },
+          analysis.status === "silent" || previous.status === "empty"
+            ? { status: "empty" }
+            : { status: "stale", frequencyHz: previous.frequencyHz },
         );
       },
       analysis.status === "silent" ? SILENCE_HOLD_MS : UNSTABLE_HOLD_MS,
@@ -177,7 +186,7 @@ function useTunerDisplay(analysis: TunerAnalysis) {
     return () => clearTimeout(timeout);
   }, [frequencyHz, analysis.status]);
 
-  return frequencyHz === undefined ? held : { frequencyHz, dimmed: false };
+  return frequencyHz === undefined ? held : { status: "tracking", frequencyHz };
 }
 
 function frequencyToPitch(frequencyHz: number) {
