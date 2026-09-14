@@ -16,10 +16,10 @@ A longer period therefore means a lower pitch. Doubling $\tau$ moves the result 
 
 Every update reads the latest $N=4096$ samples from a Web Audio `AnalyserNode`. Updates occur at most once every 50 ms. At 48 kHz, one window contains $4096/48000\approx0.085$ seconds, or about 85 ms, of audio, so windows overlap when updates run at the 50 ms interval.
 
-The tuner searches from 30 Hz to 500 Hz. That frequency range becomes a candidate-lag range:
+The tuner searches from 30 Hz to 2000 Hz. That frequency range becomes a candidate-lag range:
 
 $$
-\tau_{\min}=\left\lfloor\frac{F_s}{500}\right\rfloor,
+\tau_{\min}=\left\lfloor\frac{F_s}{2000}\right\rfloor,
 \qquad
 \tau_{\max}=\min\left(\left\lceil\frac{F_s}{30}\right\rceil,\left\lfloor\frac{N}{2}\right\rfloor\right).
 $$
@@ -29,12 +29,12 @@ The floor and ceiling operations round the frequency-derived bounds outward to w
 At 48 kHz, the input contains 48,000 samples per second. Dividing samples per second by cycles per second gives samples per cycle, so the bounds are
 
 $$
-\tau_{\min}=\left\lfloor\frac{48000}{500}\right\rfloor=96,
+\tau_{\min}=\left\lfloor\frac{48000}{2000}\right\rfloor=24,
 \qquad
 \tau_{\max}=\min\left(\left\lceil\frac{48000}{30}\right\rceil,\left\lfloor\frac{4096}{2}\right\rfloor\right)=\min(1600,2048)=1600.
 $$
 
-The candidate periods therefore run from 96 through 1600 samples. For comparison, A2 at 110 Hz has a period of about 436 samples, while E1 at 41.2 Hz has a period of about 1165 samples.
+The candidate periods therefore run from 24 through 1600 samples. For comparison, A2 at 110 Hz has a period of about 436 samples, while E1 at 41.2 Hz has a period of about 1165 samples.
 
 The number of cycles in the window depends on the note. At 30 Hz, it contains $4096/1600=2.56$ cycles, compared with about $4096/1165\approx3.52$ cycles at E1. A clean repeating waveform can produce a clear match within a few cycles. More cycles provide more repeated evidence when the signal is noisy or changing, but a longer window also retains older audio for longer after a note change.
 
@@ -74,7 +74,7 @@ for every lag, so each score includes the same number of sample pairs. This also
 
 At 48 kHz, $M=4096-1600=2496$. For a shift of 1600 samples, the sum compares $x_0$ with $x_{1600}$, $x_1$ with $x_{1601}$, and so on through $x_{2495}$ with $x_{4095}$. Each shift therefore uses 2496 sample pairs, spanning $2496/1600=1.56$ cycles of a 30 Hz note in each compared segment.
 
-Within each sum, $j$ advances one sample at a time while $\tau$ stays fixed. The detector then changes $\tau$ to obtain another score. At 48 kHz, it computes scores for every integer lag from 1 through 1600. Lags below 96 supply the normalization calculation below, while 96 through 1600 form the pitch candidate range.
+Within each sum, $j$ advances one sample at a time while $\tau$ stays fixed. The detector then changes $\tau$ to obtain another score. At 48 kHz, it computes scores for every integer lag from 1 through 1600. Lags below 24 supply the normalization calculation below, while 24 through 1600 form the pitch candidate range.
 
 ## Normalize the Mismatch
 
@@ -161,7 +161,7 @@ Note naming and cents offset happen outside the detector. The UI converts the re
 
 ## Scope and Tradeoffs
 
-The detector analyzes each window independently and assumes one dominant pitched source. Its configured range is 30–500 Hz, subject to the half-window lag cap at the actual sample rate. It has no pitch history or polyphonic separation, so transients, competing notes, and changing waveforms can affect individual estimates.
+The detector analyzes each window independently and assumes one dominant pitched source. Its configured range is 30–2000 Hz, subject to the half-window lag cap at the actual sample rate. It has no pitch history or polyphonic separation, so transients, competing notes, and changing waveforms can affect individual estimates.
 
 The window size, update interval, frequency range, and thresholds are prototype settings. Assessing their reliability requires testing representative recordings across notes and input conditions.
 

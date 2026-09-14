@@ -4,7 +4,11 @@ import { gainToDb } from "./music.ts";
 const WINDOW_SIZE = 4096;
 const UPDATE_INTERVAL_MS = 50;
 const MIN_FREQUENCY = 30;
-const MAX_FREQUENCY = 500;
+// Cover fretted guitar notes and tuning harmonics without adding difference calculations.
+// For context, BOSS TU-3 and Korg CA-50 specify upper limits around 4186 Hz:
+// https://www.boss.info/global/products/TU-3/
+// https://www.korg.com/se/products/tuners/ca_50/specifications.php
+const MAX_FREQUENCY = 2000;
 const MIN_LEVEL_DB = -50;
 const MAX_YIN_VALUE = 0.15;
 

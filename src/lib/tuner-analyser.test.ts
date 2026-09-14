@@ -24,6 +24,21 @@ describe(analyzeTunerSamples, () => {
     expect(result.confidence).toBeGreaterThan(0.9);
   });
 
+  it.each([659.25, 1318.51, 1760, 2000])(
+    "detects a %.2f Hz upper-register tone within 3 cents",
+    (frequencyHz) => {
+      const result = analyzeTunerSamples({
+        samples: makeSignal((time) =>
+          Math.sin(2 * Math.PI * frequencyHz * time),
+        ),
+        sampleRate: SAMPLE_RATE,
+      });
+      assert(result.status === "pitched");
+      const centsError = 1200 * Math.log2(result.frequencyHz / frequencyHz);
+      expect(Math.abs(centsError)).toBeLessThan(3);
+    },
+  );
+
   it("detects the fundamental of a harmonic-rich bass signal", () => {
     const frequencyHz = 41.2;
     const result = analyzeTunerSamples({
