@@ -54,7 +54,19 @@ export class TunerAnalyser {
   }
 }
 
-/** Detects one monophonic fundamental from the latest input window. */
+/**
+ * Detects one monophonic fundamental from the latest input window.
+ *
+ * The analysis first removes DC offset and measures RMS level, returning
+ * `silent` before attempting pitch detection when the signal is too quiet. It
+ * then applies the YIN cumulative mean normalized difference function across
+ * the supported period range and selects the first sufficiently deep trough.
+ * A targeted octave check favors a weak bass fundamental over a dominant
+ * second harmonic when the longer period is a substantially better match.
+ * Audible windows without a convincing period return `unstable`; otherwise,
+ * parabolic interpolation refines the selected period to a fractional lag and
+ * converts it to frequency.
+ */
 export function analyzeTunerSamples({
   samples,
   sampleRate,
