@@ -674,7 +674,13 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
           </div>
         )}
-        {isTunerOpen && <RecorderTuner onClose={() => setIsTunerOpen(false)} />}
+        {isTunerOpen && (
+          <RecorderTuner
+            result={{ status: "silent" }}
+            referenceFrequencyHz={440}
+            onClose={() => setIsTunerOpen(false)}
+          />
+        )}
         {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"

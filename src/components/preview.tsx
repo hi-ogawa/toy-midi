@@ -14,7 +14,20 @@ const PREVIEWS = [
   },
   {
     label: "Recorder tuner",
-    component: () => <RecorderTuner onClose={() => undefined} />,
+    component: () => (
+      <RecorderTuner
+        result={{
+          status: "pitched",
+          note: "E",
+          octave: 1,
+          cents: 3,
+          frequencyHz: 41.28,
+          levelDb: -18.4,
+        }}
+        referenceFrequencyHz={440}
+        onClose={() => undefined}
+      />
+    ),
   },
 ].map((entry) => ({
   ...entry,

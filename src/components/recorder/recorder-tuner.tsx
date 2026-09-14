@@ -1,9 +1,43 @@
 import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
-const PREVIEW_CENTS = 3;
+const IN_TUNE_CENTS = 5;
 
-export function RecorderTuner({ onClose }: { onClose: () => void }) {
+export type RecorderTunerResult =
+  | { status: "silent"; levelDb?: number }
+  | { status: "unstable"; levelDb: number }
+  | {
+      status: "pitched";
+      note: string;
+      octave: number;
+      cents: number;
+      frequencyHz: number;
+      levelDb: number;
+    };
+
+export function RecorderTuner({
+  result,
+  referenceFrequencyHz,
+  onClose,
+}: {
+  result: RecorderTunerResult;
+  referenceFrequencyHz: number;
+  onClose: () => void;
+}) {
+  const pitched = result.status === "pitched" ? result : undefined;
+  const cents = pitched?.cents;
+  const roundedCents = cents === undefined ? undefined : Math.round(cents);
+  const tuningState =
+    cents === undefined
+      ? result.status === "silent"
+        ? { label: "No signal", className: "text-neutral-500" }
+        : { label: "Unstable", className: "text-orange-300" }
+      : Math.abs(cents) <= IN_TUNE_CENTS
+        ? { label: "In tune", className: "text-emerald-400" }
+        : cents < 0
+          ? { label: "Flat", className: "text-sky-300" }
+          : { label: "Sharp", className: "text-orange-300" };
+
   return (
     <RecorderPanel
       title="Tuner"
@@ -14,19 +48,36 @@ export function RecorderTuner({ onClose }: { onClose: () => void }) {
     >
       <div className="space-y-5">
         <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
-          <span className="flex items-center gap-1.5 text-emerald-400">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
-            In tune
+          <span
+            className={`flex items-center gap-1.5 ${tuningState.className}`}
+          >
+            <span className="size-1.5 rounded-full bg-current" />
+            {tuningState.label}
           </span>
-          <span>Static preview</span>
+          <span>Chromatic</span>
         </div>
 
         <div className="text-center">
           <div className="font-mono text-7xl leading-none font-semibold tracking-tight text-neutral-50">
-            E<span className="ml-1 text-3xl text-neutral-400">1</span>
+            {pitched ? (
+              <>
+                {pitched.note}
+                <span className="ml-1 text-3xl text-neutral-400">
+                  {pitched.octave}
+                </span>
+              </>
+            ) : (
+              "--"
+            )}
           </div>
-          <div className="mt-2 font-mono text-sm tabular-nums text-emerald-300">
-            +{PREVIEW_CENTS} cents
+          <div
+            className={`mt-2 font-mono text-sm tabular-nums ${tuningState.className}`}
+          >
+            {roundedCents === undefined
+              ? result.status === "silent"
+                ? "Play a note"
+                : "Finding pitch..."
+              : `${roundedCents > 0 ? "+" : ""}${roundedCents} cents`}
           </div>
         </div>
 
@@ -52,19 +103,34 @@ export function RecorderTuner({ onClose }: { onClose: () => void }) {
                 </span>
               </div>
             ))}
-            <div
-              className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${PREVIEW_CENTS + 50}%` }}
-            >
-              <div className="size-2 rotate-45 bg-neutral-50" />
-            </div>
+            {cents !== undefined && (
+              <div
+                className="absolute top-0 -translate-x-1/2"
+                style={{ left: `${Math.max(0, Math.min(100, cents + 50))}%` }}
+              >
+                <div className="size-2 rotate-45 bg-neutral-50" />
+              </div>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-3 divide-x divide-neutral-700 border-t border-neutral-700 pt-3 text-center">
-          <TunerReading label="Frequency" value="41.28 Hz" />
-          <TunerReading label="Input" value="-18.4 dBFS" />
-          <TunerReading label="Reference" value="A4 440 Hz" />
+          <TunerReading
+            label="Frequency"
+            value={pitched ? `${pitched.frequencyHz.toFixed(2)} Hz` : "-- Hz"}
+          />
+          <TunerReading
+            label="Input"
+            value={
+              result.levelDb === undefined
+                ? "-- dBFS"
+                : `${result.levelDb.toFixed(1)} dBFS`
+            }
+          />
+          <TunerReading
+            label="Reference"
+            value={`A4 ${referenceFrequencyHz} Hz`}
+          />
         </div>
       </div>
     </RecorderPanel>
