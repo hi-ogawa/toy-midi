@@ -1,7 +1,7 @@
 import { routes } from "../lib/routes";
 import { RecorderEffectsPreview } from "./recorder/recorder-effects-preview";
 import { RecorderHelpPreview } from "./recorder/recorder-help-preview";
-import { RecorderTuner } from "./recorder/recorder-tuner";
+import { RecorderTunerPreview } from "./recorder/recorder-tuner-preview";
 
 const PREVIEWS = [
   {
@@ -14,20 +14,7 @@ const PREVIEWS = [
   },
   {
     label: "Recorder tuner",
-    component: () => (
-      <RecorderTuner
-        result={{
-          status: "pitched",
-          note: "E",
-          octave: 1,
-          cents: 3,
-          frequencyHz: 41.28,
-          levelDb: -18.4,
-        }}
-        referenceFrequencyHz={440}
-        onClose={() => undefined}
-      />
-    ),
+    component: RecorderTunerPreview,
   },
 ].map((entry) => ({
   ...entry,
