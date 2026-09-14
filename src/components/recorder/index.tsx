@@ -676,7 +676,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {isTunerOpen && (
           <RecorderTuner
-            analyser={runtime.captureInput?.tunerAnalyser}
+            analyser={
+              // TODO: Make the capture input reactive if compiler memoization
+              // can retain this mutable runtime field across input changes.
+              runtime.captureInput?.tunerAnalyser
+            }
             referenceFrequencyHz={440}
             onClose={() => setIsTunerOpen(false)}
           />
