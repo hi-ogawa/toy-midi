@@ -52,7 +52,7 @@ export function RecorderTunerContent({
           : UNSTABLE_HOLD_MS,
   });
   const pitched =
-    frequencyHz === undefined ? undefined : frequencyToPitch(frequencyHz);
+    frequencyHz !== undefined ? frequencyToPitch(frequencyHz) : undefined;
   const tuningState = pitched
     ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
       ? { label: "In tune", className: "text-emerald-400" }
