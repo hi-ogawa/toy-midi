@@ -137,43 +137,7 @@ $$
 =\tau+\frac{y_--y_+}{2(y_--2y_0+y_+)}.
 $$
 
-<details>
-<summary>Derive the parabolic interpolation formula</summary>
-
-Let $u$ measure the offset from the selected integer lag $\tau$. The three neighboring scores then have coordinates $(-1,y_-)$, $(0,y_0)$, and $(1,y_+)$. Approximate the curve between them with
-
-$$
-q(u)=Au^2+Bu+C.
-$$
-
-Substituting the three points gives
-
-$$
-y_-=A-B+C,\qquad y_0=C,\qquad y_+=A+B+C.
-$$
-
-Adding and subtracting these equations determines the coefficients:
-
-$$
-C=y_0,\qquad
-A=\frac{y_- -2y_0+y_+}{2},\qquad
-B=\frac{y_+-y_-}{2}.
-$$
-
-At a strict local trough, $A>0$, so the parabola opens upward. Its minimum occurs where the slope is zero:
-
-$$
-\frac{dq}{du}=2Au+B=0
-\quad\Longrightarrow\quad
-u=-\frac{B}{2A}
-=\frac{y_- -y_+}{2(y_- -2y_0+y_+)}.
-$$
-
-The refined lag is $\hat{\tau}=\tau+u$. When the two neighboring scores are equal, $y_-=y_+$, the offset is zero. When the right neighbor has a lower score than the left, the offset is positive, moving the estimated minimum toward the right.
-
-The parabola provides a local approximation to the trough, allowing an estimate between the sampled lag positions.
-
-</details>
+See the [appendix](#appendix-parabolic-interpolation-derivation) for the derivation.
 
 At an array boundary, or when the denominator is zero, the implementation keeps the integer lag. The final frequency estimate is then
 
@@ -207,3 +171,38 @@ The direct difference calculation costs approximately $M\tau_{\max}$ sample comp
 
 - A. de Cheveigne and H. Kawahara, [YIN, a fundamental frequency estimator for speech and music](https://doi.org/10.1121/1.1458024)
 - [pYIN algorithm breakdown](../bass-pitch/pyin.md), which explains how the offline transcription pipeline extends YIN with probabilistic thresholds and temporal decoding
+
+## Appendix: Parabolic Interpolation Derivation
+
+Let $u$ measure the offset from the selected integer lag $\tau$. The three neighboring scores then have coordinates $(-1,y_-)$, $(0,y_0)$, and $(1,y_+)$. Approximate the curve between them with
+
+$$
+q(u)=Au^2+Bu+C.
+$$
+
+Substituting the three points gives
+
+$$
+y_-=A-B+C,\qquad y_0=C,\qquad y_+=A+B+C.
+$$
+
+Adding and subtracting these equations determines the coefficients:
+
+$$
+C=y_0,\qquad
+A=\frac{y_- -2y_0+y_+}{2},\qquad
+B=\frac{y_+-y_-}{2}.
+$$
+
+At a strict local trough, $A>0$, so the parabola opens upward. Its minimum occurs where the slope is zero:
+
+$$
+\frac{dq}{du}=2Au+B=0
+\quad\Longrightarrow\quad
+u=-\frac{B}{2A}
+=\frac{y_- -y_+}{2(y_- -2y_0+y_+)}.
+$$
+
+The refined lag is $\hat{\tau}=\tau+u$. When the two neighboring scores are equal, $y_-=y_+$, the offset is zero. When the right neighbor has a lower score than the left, the offset is positive, moving the estimated minimum toward the right.
+
+The parabola provides a local approximation to the trough, allowing an estimate between the sampled lag positions.
