@@ -204,3 +204,7 @@ The WSOLA alignment search itself estimates which source segments join well. It 
 | Block-size independence and finite/streaming agreement | [`wsola.test.ts`](../../src/lib/dsp/wsola.test.ts)         |
 
 The implementation's opening comments document its relationship to Chromium's audio renderer and the choices made when adapting it. The [command-line renderer](../../tools/wsola.ts) supports listening experiments with playback rate, window length, and search length.
+
+## Visual Companion
+
+The [WSOLA visual explainer](https://gisthost.github.io/?109135460ad3d821bc7f7ce66278e0bb/wsola-explainer.html) introduces the algorithm through high-level visual intuition. It complements the equations and implementation details in this document.
