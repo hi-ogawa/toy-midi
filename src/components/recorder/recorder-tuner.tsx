@@ -19,15 +19,20 @@ export type RecorderTunerResult =
     };
 
 export function RecorderTuner({
+  open,
   analyser,
   referenceFrequencyHz,
   onClose,
 }: {
+  open: boolean;
   analyser?: TunerAnalyser;
   referenceFrequencyHz: number;
   onClose: () => void;
 }) {
-  const result = useTunerResult({ analyser, referenceFrequencyHz });
+  const result = useTunerResult({ open, analyser, referenceFrequencyHz });
+  if (!open) {
+    return null;
+  }
   return (
     <RecorderPanel
       title="Tuner"
@@ -45,9 +50,11 @@ export function RecorderTuner({
 }
 
 function useTunerResult({
+  open,
   analyser,
   referenceFrequencyHz,
 }: {
+  open: boolean;
   analyser?: TunerAnalyser;
   referenceFrequencyHz: number;
 }): RecorderTunerResult {
@@ -57,10 +64,13 @@ function useTunerResult({
 
   useEffect(() => {
     setResult({ status: "silent" });
+    if (!open) {
+      return;
+    }
     return analyser?.subscribe((analysis) =>
       setResult(toTunerResult({ analysis, referenceFrequencyHz })),
     );
-  }, [analyser, referenceFrequencyHz]);
+  }, [open, analyser, referenceFrequencyHz]);
 
   return result;
 }
