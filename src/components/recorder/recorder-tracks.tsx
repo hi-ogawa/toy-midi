@@ -1,4 +1,5 @@
 import {
+  AudioWaveformIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
@@ -162,6 +163,7 @@ export function CaptureTrackRow({
   inputAnalyser,
   inputMonitoring,
   inputToggleDisabled,
+  tunerOpen,
   muted,
   soloed,
   effectsOpen,
@@ -170,6 +172,7 @@ export function CaptureTrackRow({
   onInputSetup,
   onInputMonitoringChange,
   onInputToggle,
+  onTunerToggle,
   onMutedChange,
   onSoloedChange,
   onHeightChange,
@@ -183,6 +186,7 @@ export function CaptureTrackRow({
   inputAnalyser?: AudioAnalyser;
   inputMonitoring: boolean;
   inputToggleDisabled: boolean;
+  tunerOpen: boolean;
   muted: boolean;
   soloed: boolean;
   effectsOpen: boolean;
@@ -191,6 +195,7 @@ export function CaptureTrackRow({
   onInputSetup: () => void;
   onInputMonitoringChange: (monitoring: boolean) => void;
   onInputToggle: () => void;
+  onTunerToggle: () => void;
   onMutedChange: (muted: boolean) => void;
   onSoloedChange: (soloed: boolean) => void;
   onHeightChange: (height: number) => void;
@@ -296,6 +301,20 @@ export function CaptureTrackRow({
             )}
           >
             <HeadphonesIcon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label={tunerOpen ? "Close tuner" : "Open tuner"}
+            aria-pressed={tunerOpen}
+            title={tunerOpen ? "Close tuner" : "Open tuner"}
+            onClick={onTunerToggle}
+            className={cn(
+              "grid size-6 shrink-0 place-items-center rounded text-neutral-500 hover:bg-neutral-700 hover:text-neutral-200",
+              tunerOpen &&
+                "bg-emerald-500/25 text-emerald-300 hover:bg-emerald-500/35",
+            )}
+          >
+            <AudioWaveformIcon className="size-3.5" />
           </button>
         </div>
         <div className="col-span-2">

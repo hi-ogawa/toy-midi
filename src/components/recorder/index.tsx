@@ -39,6 +39,7 @@ import {
   TakeTrackRow,
   TrackRow,
 } from "./recorder-tracks";
+import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
@@ -51,6 +52,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
   const [isMixerOpen, setIsMixerOpen] = useState(false);
+  const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -460,6 +462,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 flags.isRecording ||
                 (!input.active && input.route.needsSetup)
               }
+              tunerOpen={isTunerOpen}
               muted={state.recordingTrack.muted}
               soloed={state.recordingTrack.soloed}
               effectsOpen={effects.openEffects.has("capture")}
@@ -472,6 +475,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 runtime.setInputMonitoring(monitoring)
               }
               onInputToggle={input.toggle}
+              onTunerToggle={() => setIsTunerOpen((open) => !open)}
               onMutedChange={(muted) =>
                 runtime.setTrackMix(state.recordingTrack.id, { muted })
               }
@@ -670,6 +674,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             )}
           </div>
         )}
+        {isTunerOpen && <RecorderTuner onClose={() => setIsTunerOpen(false)} />}
         {isMixerOpen && (
           <RecorderPanel
             closeLabel="Close Mixer"
