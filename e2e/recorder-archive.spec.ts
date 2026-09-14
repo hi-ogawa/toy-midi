@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { expect, type Page, test } from "@playwright/test";
-import type { SerializedRecorderRuntimeState } from "../../src/lib/recorder/persistence";
-import { exportRecorderProjectArchive } from "../../src/lib/recorder/project-archive";
-import { DEFAULT_PIXELS_PER_BEAT } from "../../src/lib/timeline";
+import type { SerializedRecorderRuntimeState } from "../src/lib/recorder/persistence";
+import { exportRecorderProjectArchive } from "../src/lib/recorder/project-archive";
+import { DEFAULT_PIXELS_PER_BEAT } from "../src/lib/timeline";
+import { useFakeAudioInput } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
@@ -10,6 +11,8 @@ import {
   seekRecorderByPixels,
   waitForRecordingSamples,
 } from "./recorder-helpers";
+
+useFakeAudioInput();
 
 test("exports and imports a recorder project archive", async ({ page }) => {
   await createRecorderProject(page);

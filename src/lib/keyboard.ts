@@ -1,8 +1,13 @@
-type ParsedShortcut = {
+type ShortcutKey = {
   code?: string;
   key?: string;
+  ignoreShift?: boolean;
+};
+
+type ParsedShortcut = ShortcutKey & {
   modifiers: {
-    shift: boolean;
+    /** Undefined accepts either Shift state. */
+    shift?: boolean;
     alt: boolean;
     ctrl: boolean;
   };
@@ -17,16 +22,23 @@ type KeyboardLikeEvent = {
   metaKey: boolean;
 };
 
-const SPECIAL_KEYS: Record<string, { code: string; key: string }> = {
-  Space: { code: "Space", key: " " },
-  Escape: { code: "Escape", key: "Escape" },
-  Enter: { code: "Enter", key: "Enter" },
-  ArrowLeft: { code: "ArrowLeft", key: "ArrowLeft" },
-  ArrowRight: { code: "ArrowRight", key: "ArrowRight" },
-  ArrowUp: { code: "ArrowUp", key: "ArrowUp" },
-  ArrowDown: { code: "ArrowDown", key: "ArrowDown" },
-  Delete: { code: "Delete", key: "Delete" },
-  Backspace: { code: "Backspace", key: "Backspace" },
+/**
+ * Use `code` for a physical key or `key` for a character produced by the layout.
+ * `ignoreShift` allows either Shift state for that key, while an explicit
+ * `Shift+` in the shortcut still requires Shift to be held.
+ */
+const SPECIAL_KEYS: Record<string, ShortcutKey> = {
+  "<": { key: "<", ignoreShift: true },
+  ">": { key: ">", ignoreShift: true },
+  Space: { code: "Space" },
+  Escape: { code: "Escape" },
+  Enter: { code: "Enter" },
+  ArrowLeft: { code: "ArrowLeft" },
+  ArrowRight: { code: "ArrowRight" },
+  ArrowUp: { code: "ArrowUp" },
+  ArrowDown: { code: "ArrowDown" },
+  Delete: { code: "Delete" },
+  Backspace: { code: "Backspace" },
 };
 
 const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
@@ -36,8 +48,15 @@ const CHAR_KEYS: Record<string, { code: string }> = Object.fromEntries([
   ..."0123456789".split("").map((char) => [char, { code: `Digit${char}` }]),
 ]);
 
+/**
+ * Parses a key with optional `Ctrl+`, `Alt+`, and `Shift+` modifiers, such as
+ * `Ctrl+S`, `Shift+1`, or `>`. `Ctrl` matches either Control or Command.
+ * Letters and digits match physical keys; other keys use `SPECIAL_KEYS`.
+ * Unlisted modifiers must be released, except Shift when `ignoreShift` is set.
+ * Throws for unknown keys or multiple key tokens.
+ */
 export function parseShortcut(shortcut: string): ParsedShortcut {
-  const modifiers = {
+  const modifiers: ParsedShortcut["modifiers"] = {
     shift: false,
     alt: false,
     ctrl: false,
@@ -70,13 +89,19 @@ export function parseShortcut(shortcut: string): ParsedShortcut {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
-  const match = CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
+  const match: ShortcutKey =
+    CHAR_KEYS[keyToken.toUpperCase()] || SPECIAL_KEYS[keyToken];
   if (!match) {
     throw new Error(`Invalid shortcut '${shortcut}'`);
   }
 
+  const { ignoreShift, ...key } = match;
+  // An explicit Shift modifier overrides the key's default policy.
+  if (ignoreShift && !modifiers.shift) {
+    delete modifiers.shift;
+  }
   return {
-    ...match,
+    ...key,
     modifiers,
   };
 }
@@ -86,9 +111,6 @@ export function matchKeyboardEvent(
   shortcut: string,
 ): boolean {
   const parsed = parseShortcut(shortcut);
-  if (!parsed.code && !parsed.key) {
-    return false;
-  }
 
   if ((e.ctrlKey || e.metaKey) !== parsed.modifiers.ctrl) {
     return false;
@@ -96,21 +118,19 @@ export function matchKeyboardEvent(
   if (e.ctrlKey && e.metaKey) {
     return false;
   }
-  if (e.shiftKey !== parsed.modifiers.shift) {
+  if (
+    parsed.modifiers.shift !== undefined &&
+    e.shiftKey !== parsed.modifiers.shift
+  ) {
     return false;
   }
   if (e.altKey !== parsed.modifiers.alt) {
     return false;
   }
 
-  if (parsed.code) {
-    return e.code === parsed.code;
-  }
-  if (parsed.key) {
-    return e.key.toLowerCase() === parsed.key.toLowerCase();
-  }
-
-  return false;
+  return parsed.code !== undefined
+    ? e.code === parsed.code
+    : e.key.toLowerCase() === parsed.key?.toLowerCase();
 }
 
 export function isShortcutTextInputTarget(target: EventTarget | null): boolean {

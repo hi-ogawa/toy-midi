@@ -12,6 +12,7 @@ const sections: HelpSectionData[] = [
       { action: "Play / pause", keys: "Space" },
       { action: "Start / stop recording", keys: "R" },
       { action: "Toggle metronome", keys: "M" },
+      { action: "Decrease / increase playback speed", keys: "< / >" },
     ],
   },
   {

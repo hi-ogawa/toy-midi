@@ -9,6 +9,7 @@ import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
 } from "../../lib/keyboard";
+import { getNextPlaybackRate } from "../../lib/recorder/playback-rate";
 import { exportRecorderProjectArchive } from "../../lib/recorder/project-archive";
 import { RecorderRuntime } from "../../lib/recorder/runtime";
 import { routes } from "../../lib/routes";
@@ -184,6 +185,20 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (isShortcutTextInputTarget(event.target) || event.repeat) {
+      return;
+    }
+    if (matchKeyboardEvent(event, "<") || matchKeyboardEvent(event, ">")) {
+      if (flags.isRecording) {
+        return;
+      }
+      event.preventDefault();
+      const rate = getNextPlaybackRate({
+        rate: state.playbackRate,
+        direction: event.key === ">" ? "increase" : "decrease",
+      });
+      if (rate !== undefined) {
+        runtime.setPlaybackRate(rate);
+      }
       return;
     }
     if (matchKeyboardEvent(event, "L")) {
@@ -510,12 +525,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onTakeTrimMove={clipInteraction.trim}
               />
             </CaptureTrackRow>
-            <TakesDisclosureRow
-              expanded={takesExpanded}
-              takeCount={takes.length}
-              onExpandedChange={setTakesExpanded}
-            />
-            {takesExpanded &&
+            {takes.length > 0 && (
+              <TakesDisclosureRow
+                expanded={takesExpanded}
+                takeCount={takes.length}
+                onExpandedChange={setTakesExpanded}
+              />
+            )}
+            {takes.length > 0 &&
+              takesExpanded &&
               takes.map((take) => (
                 <TakeTrackRow
                   key={take.id}
