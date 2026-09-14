@@ -108,7 +108,7 @@ For the two-trough example above, the configured threshold grid and priors give 
 Each trough is refined to a fractional lag $\hat\tau_i$ by parabolic interpolation, giving frequency $f_i=F_s/\hat\tau_i$. The decoder works on a grid with $B=10$ bins per semitone. Relative to the lowest frequency $f_{\min}$, a candidate maps to bin
 
 ```math
-n_i=\operatorname{round}\left(12B\log_2\frac{f_i}{f_{\min}}\right).
+n_i=\mathrm{round}\left(12B\log_2\frac{f_i}{f_{\min}}\right).
 ```
 
 There are
@@ -156,8 +156,8 @@ Here $T(n,m)$ is a row-normalized triangular distribution centered on the previo
 The code derives the triangle's width from the hop length $H$ and configured rate $R=35.92$ octaves/s:
 
 ```math
-a=\operatorname{round}\left(12R\frac{H}{F_s}\right)
-=\operatorname{round}\left(12\times35.92\times\frac{256}{22050}\right)=5,
+a=\mathrm{round}\left(12R\frac{H}{F_s}\right)
+=\mathrm{round}\left(12\times35.92\times\frac{256}{22050}\right)=5,
 \qquad L=aB+1=51.
 ```
 
@@ -179,7 +179,7 @@ At the pitch-range boundaries, the denominator renormalizes the part of the tria
 For a sequence of $M$ frames, the model scores a state path using the initial state distribution $\pi$, the observations, and the transitions:
 
 ```math
-\operatorname{score}(s_0,\ldots,s_{M-1})
+\mathrm{score}(s_0,\ldots,s_{M-1})
 =\pi(s_0)O_0(s_0)\prod_{t=1}^{M-1}A(s_{t-1},s_t)O_t(s_t).
 ```
 
@@ -196,11 +196,11 @@ For a small illustration, consider only two nearby voiced pitches, A and B, with
 Suppose both initial pitches are equally likely, staying on a pitch has probability 0.9, and switching has probability 0.1. These two-state probabilities are illustrative. Omitting a common initial weight, the paths score
 
 ```math
-\operatorname{score}(A,A,A)=0.9\times0.4\times0.9\times0.9^2=0.26244,
+\mathrm{score}(A,A,A)=0.9\times0.4\times0.9\times0.9^2=0.26244,
 ```
 
 ```math
-\operatorname{score}(A,B,A)=0.9\times0.6\times0.9\times0.1^2=0.00486.
+\mathrm{score}(A,B,A)=0.9\times0.6\times0.9\times0.1^2=0.00486.
 ```
 
 Although the middle frame favors B, staying on A produces the stronger sequence. In pYIN, this same tradeoff operates over all pitch and voicing states.
