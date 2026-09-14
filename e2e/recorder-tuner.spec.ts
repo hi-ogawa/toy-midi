@@ -1,20 +1,9 @@
-import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { useFakeAudioInput } from "./helpers";
 import { createRecorderProject, enableInput } from "./recorder-helpers";
 
-test.use({
-  launchOptions: {
-    args: [
-      "--autoplay-policy=no-user-gesture-required",
-      "--use-fake-device-for-media-stream",
-      "--use-fake-ui-for-media-stream",
-      // Chromium loops the WAV as microphone input by default (%noloop plays once),
-      // so the 3-second 440 Hz fixture remains available throughout the test.
-      // https://chromium.googlesource.com/chromium/src.git/+/cc79060bcce11b0cb6fafa673a2a20dcb12bd077/media/base/media_switches.cc
-      `--use-file-for-fake-audio-capture=${path.resolve("e2e/fixtures/test-audio.wav")}`,
-    ],
-  },
-});
+// Loop the 3-second 440 Hz fixture throughout the test.
+useFakeAudioInput({ filePath: "e2e/fixtures/test-audio.wav" });
 
 test("opens the tuner and detects the input pitch", async ({ page }) => {
   // Open the tuner before enabling input and show the no-signal state.

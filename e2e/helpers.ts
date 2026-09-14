@@ -1,5 +1,28 @@
+import path from "node:path";
 import { expect, type Page, test } from "@playwright/test";
 import type { useProjectStore } from "../src/lib/project-store";
+
+/** Call at file scope to enable a fake microphone for this test file. */
+export function useFakeAudioInput({
+  filePath,
+}: { filePath?: string } = {}): void {
+  test.use({
+    permissions: ["microphone"],
+    launchOptions: {
+      // launchOptions replaces the config value, so retain the autoplay flag.
+      args: [
+        "--autoplay-policy=no-user-gesture-required",
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+        // Chromium loops WAV input by default (%noloop plays once).
+        // https://chromium.googlesource.com/chromium/src.git/+/cc79060bcce11b0cb6fafa673a2a20dcb12bd077/media/base/media_switches.cc
+        ...(filePath
+          ? [`--use-file-for-fake-audio-capture=${path.resolve(filePath)}`]
+          : []),
+      ],
+    },
+  });
+}
 
 /** Log elapsed checkpoints while investigating E2E timing. */
 export function createCheckpoint(): (label: string) => void {
