@@ -117,10 +117,10 @@ export function analyzeTunerSamples({
 
   // Take the first sufficiently periodic trough, then follow it to the local
   // minimum. This favors the shortest credible period over later multiples.
-  let bestLag = minLag;
+  let selectedLag = minLag;
   for (let lag = minLag + 1; lag <= maxLag; lag++) {
-    if (normalizedDifference[lag] < normalizedDifference[bestLag]) {
-      bestLag = lag;
+    if (normalizedDifference[lag] < normalizedDifference[selectedLag]) {
+      selectedLag = lag;
     }
     if (normalizedDifference[lag] < MAX_YIN_VALUE) {
       while (
@@ -129,32 +129,32 @@ export function analyzeTunerSamples({
       ) {
         lag++;
       }
-      bestLag = lag;
+      selectedLag = lag;
       break;
     }
   }
 
   // A bass fundamental can be much weaker than its second harmonic. Prefer the
   // octave-lower period only when it explains the waveform substantially better.
-  const octaveLag = bestLag * 2;
+  const octaveLag = selectedLag * 2;
   if (
-    normalizedDifference[bestLag] > 0.01 &&
+    normalizedDifference[selectedLag] > 0.01 &&
     octaveLag <= maxLag &&
-    normalizedDifference[octaveLag] < normalizedDifference[bestLag] * 0.5
+    normalizedDifference[octaveLag] < normalizedDifference[selectedLag] * 0.5
   ) {
-    bestLag = octaveLag;
+    selectedLag = octaveLag;
   }
 
   // Treat an audible but weakly periodic window as unstable instead of showing
   // a guessed note. Confidence is the inverse normalized mismatch at the trough.
-  const confidence = 1 - normalizedDifference[bestLag];
+  const confidence = 1 - normalizedDifference[selectedLag];
   if (confidence < 1 - MAX_YIN_VALUE) {
     return { status: "unstable", levelDb, confidence };
   }
 
   // Refine the discrete trough with its neighbors so tuning precision is not
   // limited to whole-sample periods, then convert that period to frequency.
-  const refinedLag = interpolateMinimum(normalizedDifference, bestLag);
+  const refinedLag = interpolateMinimum(normalizedDifference, selectedLag);
   return {
     status: "pitched",
     levelDb,
