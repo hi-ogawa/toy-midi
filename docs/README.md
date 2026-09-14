@@ -11,6 +11,7 @@
 ## Concepts
 
 - [Audio time units](concepts/audio-time-units.md): relationships between beats, MIDI ticks, seconds, audio samples, and analysis frames.
+- [Real-time tuner pitch detection](concepts/tuner-pitch-detection.md): YIN difference analysis, period selection, octave correction, and frequency refinement.
 
 ## Bass Pitch
 
