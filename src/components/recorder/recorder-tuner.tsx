@@ -6,6 +6,8 @@ import { RecorderPanel } from "./recorder-panel";
 
 const CENT_TICKS = [-50, -25, 0, 25, 50];
 const IN_TUNE_CENTS = 5;
+const UNSTABLE_HOLD_MS = 250;
+const SILENCE_HOLD_MS = 400;
 const SILENT_ANALYSIS: TunerAnalysis = { status: "silent", levelDb: MIN_DB };
 
 export function RecorderTuner({
@@ -40,23 +42,30 @@ export function RecorderTunerContent({
 }: {
   analysis: TunerAnalysis;
 }) {
+  const display = useTunerDisplay(analysis);
   const pitched =
-    analysis.status === "pitched"
-      ? frequencyToPitch(analysis.frequencyHz)
-      : undefined;
-  const silent = analysis.status === "silent";
-  const tuningState = pitched
-    ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
-      ? { label: "In tune", className: "text-emerald-400" }
-      : pitched.cents < 0
-        ? { label: "Flat", className: "text-sky-300" }
-        : { label: "Sharp", className: "text-orange-300" }
-    : silent
-      ? { label: "No signal", className: "text-neutral-500" }
-      : { label: "Unstable", className: "text-orange-300" };
+    display.frequencyHz === undefined
+      ? undefined
+      : frequencyToPitch(display.frequencyHz);
+  const tuningState = display.dimmed
+    ? { label: "Unstable", className: "text-neutral-500" }
+    : pitched
+      ? Math.abs(pitched.cents) <= IN_TUNE_CENTS
+        ? { label: "In tune", className: "text-emerald-400" }
+        : pitched.cents < 0
+          ? { label: "Flat", className: "text-neutral-400" }
+          : { label: "Sharp", className: "text-neutral-400" }
+      : {
+          label: analysis.status === "unstable" ? "Unstable" : "No signal",
+          className: "text-neutral-500",
+        };
 
   return (
-    <div className="space-y-5">
+    <div
+      className="space-y-5"
+      data-testid="tuner-content"
+      data-dimmed={display.dimmed}
+    >
       <div className="flex items-center justify-between text-[10px] font-medium tracking-wide text-neutral-500 uppercase">
         <span className={`flex items-center gap-1.5 ${tuningState.className}`}>
           <span className="size-1.5 rounded-full bg-current" />
@@ -65,7 +74,7 @@ export function RecorderTunerContent({
         <span>Chromatic</span>
       </div>
 
-      <div className="text-center">
+      <div className={`text-center ${display.dimmed ? "opacity-40" : ""}`}>
         <div className="font-mono text-7xl leading-none font-semibold tracking-tight text-neutral-50">
           {pitched ? (
             <>
@@ -79,13 +88,10 @@ export function RecorderTunerContent({
           )}
         </div>
         <div
-          className={`mt-2 font-mono text-sm tabular-nums ${tuningState.className}`}
+          className={`mt-2 h-5 font-mono text-sm tabular-nums ${tuningState.className}`}
         >
-          {pitched
-            ? `${pitched.roundedCents > 0 ? "+" : ""}${pitched.roundedCents} cents`
-            : silent
-              ? "Play a note"
-              : "Finding pitch..."}
+          {pitched &&
+            `${pitched.roundedCents > 0 ? "+" : ""}${pitched.roundedCents} cents`}
         </div>
       </div>
 
@@ -110,8 +116,9 @@ export function RecorderTunerContent({
               </span>
             </div>
           ))}
-          {pitched && (
+          {pitched && !display.dimmed && (
             <div
+              data-testid="tuner-cursor"
               className={`absolute top-0 h-1.5 w-2.5 -translate-x-1/2 ${
                 Math.abs(pitched.cents) <= IN_TUNE_CENTS
                   ? "bg-emerald-400"
@@ -139,6 +146,38 @@ export function RecorderTunerContent({
       </div>
     </div>
   );
+}
+
+function useTunerDisplay(analysis: TunerAnalysis) {
+  const frequencyHz =
+    analysis.status === "pitched" ? analysis.frequencyHz : undefined;
+  const [held, setHeld] = useState<{ frequencyHz?: number; dimmed: boolean }>({
+    frequencyHz,
+    dimmed: false,
+  });
+
+  useEffect(() => {
+    if (frequencyHz !== undefined) {
+      setHeld({ frequencyHz, dimmed: false });
+      return;
+    }
+
+    // Start one hold per status transition, so repeated analysis frames cannot
+    // postpone dimming or clearing indefinitely. New pitches cancel the hold.
+    const timeout = setTimeout(
+      () => {
+        setHeld((previous) =>
+          analysis.status === "silent"
+            ? { dimmed: false }
+            : { ...previous, dimmed: previous.frequencyHz !== undefined },
+        );
+      },
+      analysis.status === "silent" ? SILENCE_HOLD_MS : UNSTABLE_HOLD_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [frequencyHz, analysis.status]);
+
+  return frequencyHz === undefined ? held : { frequencyHz, dimmed: false };
 }
 
 function frequencyToPitch(frequencyHz: number) {
