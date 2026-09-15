@@ -24,7 +24,6 @@ import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
   RecorderRuntime,
-  RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { InstrumentCombobox } from "../instrument-combobox";
@@ -38,14 +37,12 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { RecorderAudioToMidi } from "./recorder-audio-to-midi";
 import { TrackRow } from "./recorder-tracks";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
 
 export function MidiTrackRow({
-  state,
   track,
   runtime,
   pixelsPerBeat,
@@ -55,9 +52,9 @@ export function MidiTrackRow({
   effectsOpen,
   onEffectsToggle,
   onRemove,
+  onTranscribe,
   onFocus,
 }: {
-  state: RecorderRuntimeState;
   track: MidiTrackState;
   runtime: RecorderRuntime;
   pixelsPerBeat: number;
@@ -67,9 +64,9 @@ export function MidiTrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
+  onTranscribe: () => void;
   onFocus: () => void;
 }) {
-  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
   const [isProgramOpen, setIsProgramOpen] = useState(false);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
@@ -96,7 +93,7 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             onRemove={onRemove}
-            onTranscribe={() => setIsTranscribeOpen(true)}
+            onTranscribe={onTranscribe}
             onProgramSelect={() => setIsProgramOpen(true)}
           />
         }
@@ -122,15 +119,6 @@ export function MidiTrackRow({
           onValueChange={(program) => programMutation.mutate(program)}
         />
       </PortalDialog>
-      {isTranscribeOpen && (
-        <RecorderAudioToMidi
-          runtime={runtime}
-          state={state}
-          track={track}
-          cellsPerBeat={subdivisionsPerBeat}
-          onClose={() => setIsTranscribeOpen(false)}
-        />
-      )}
     </div>
   );
 }

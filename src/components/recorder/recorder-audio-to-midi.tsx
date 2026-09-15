@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
@@ -14,8 +13,8 @@ import type {
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { Button } from "../ui/button";
-import { FloatingPanel } from "../ui/floating-panel";
 import { Slider } from "../ui/slider";
+import { RecorderPanel } from "./recorder-panel";
 
 export function RecorderAudioToMidi({
   runtime,
@@ -110,10 +109,10 @@ export function RecorderAudioToMidi({
           ? `Created ${transcribeMutation.data} notes in ${track.name}.`
           : "";
 
-  return createPortal(
-    <FloatingPanel
+  return (
+    <RecorderPanel
       closeLabel="Close Audio to MIDI"
-      className="w-[440px]"
+      className="pointer-events-auto w-[440px] shrink-0"
       contentClassName="max-h-[calc(100vh-8rem)] overflow-y-auto px-4 py-3"
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
@@ -227,7 +226,6 @@ export function RecorderAudioToMidi({
           {status}
         </p>
       </div>
-    </FloatingPanel>,
-    document.body,
+    </RecorderPanel>
   );
 }
