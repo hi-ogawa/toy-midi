@@ -23,6 +23,7 @@ import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
+import { MidiTrackActions, MidiTimelineLane } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -31,12 +32,10 @@ import {
   TimelineHeader,
   TimelineLane,
   AudioTimelineLane,
-  MidiTimelineLane,
 } from "./recorder-timeline";
 import {
   AudioTrackActions,
   CaptureTrackRow,
-  MidiTrackActions,
   TakesDisclosureRow,
   TakeTrackRow,
   TrackRow,

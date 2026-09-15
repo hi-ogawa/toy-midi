@@ -64,33 +64,6 @@ export function AudioTrackActions({
   );
 }
 
-export function MidiTrackActions({
-  label,
-  onRemove,
-}: {
-  label: string;
-  onRemove: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
-          <Trash2Icon />
-          Remove track
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 export function TrackRow({
   title,
   "data-testid": testId,
