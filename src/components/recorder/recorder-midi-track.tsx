@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { MoreVerticalIcon, Settings2Icon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -15,9 +16,17 @@ import type {
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
-import { MidiTrackActions, TrackRow } from "./recorder-tracks";
+import { TrackRow } from "./recorder-tracks";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
@@ -122,6 +131,40 @@ export function MidiTrackRow({
           document.body,
         )}
     </div>
+  );
+}
+
+function MidiTrackActions({
+  label,
+  onRemove,
+  onProgramSelect,
+}: {
+  label: string;
+  onRemove: () => void;
+  onProgramSelect: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+          title={`${label} actions`}
+        >
+          <MoreVerticalIcon className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onProgramSelect}>
+          <Settings2Icon />
+          Select program
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+          <Trash2Icon />
+          Remove track
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
