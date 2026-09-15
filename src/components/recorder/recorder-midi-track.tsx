@@ -349,7 +349,7 @@ function MidiTrackEditor({
           onPointerDown={handleGridPointerDown}
         >
           {PITCHES.map((pitch) => (
-            <MidiPitchRow key={pitch} pitch={pitch} />
+            <MidiGridRow key={pitch} pitch={pitch} />
           ))}
           <div
             className="pointer-events-none absolute inset-0"
@@ -417,7 +417,7 @@ function MidiPianoKey({
   );
 }
 
-function MidiPitchRow({ pitch }: { pitch: number }) {
+function MidiGridRow({ pitch }: { pitch: number }) {
   return (
     <div
       className={cn(
