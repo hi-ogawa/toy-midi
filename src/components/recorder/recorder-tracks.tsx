@@ -93,7 +93,7 @@ export function MidiTrackActions({
 
 export function TrackRow({
   title,
-  testId = "recorder-audio-track-row",
+  "data-testid": testId = "recorder-audio-track-row",
   height,
   gain,
   muted,
@@ -108,7 +108,7 @@ export function TrackRow({
   children,
 }: {
   title: string;
-  testId?: string;
+  "data-testid"?: string;
   height: number;
   gain: number;
   muted: boolean;

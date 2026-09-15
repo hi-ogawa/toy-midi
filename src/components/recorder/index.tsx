@@ -457,7 +457,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.midiTracks.map((track) => (
               <TrackRow
                 key={track.id}
-                testId="recorder-midi-track-row"
+                data-testid="recorder-midi-track-row"
                 title={track.name}
                 height={track.height}
                 gain={track.gain}
