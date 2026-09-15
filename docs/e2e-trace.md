@@ -5,7 +5,7 @@ Run selected E2E tests on a branch, including `main` or a branch without a PR. T
 ```sh
 gh workflow run e2e-trace.yml --ref main \
   -f ref=recorder-midi-e2e \
-  -f tests=e2e/recorder-midi.spec.ts
+  -f tests='e2e/recorder-midi.spec.ts e2e/recorder-mix.spec.ts'
 ```
 
-Add `-f grep='transcribes'` to filter by test title. You can also run **E2E trace** from the repository's Actions tab.
+Separate test file filters with spaces. Add `-f grep='transcribes'` to filter by test title. You can also run **E2E trace** from the repository's Actions tab.

@@ -10,7 +10,7 @@ on:
         default: main
         type: string
       tests:
-        description: Playwright file filter (for example e2e/recorder-midi.spec.ts)
+        description: Space-separated Playwright file filters (for example e2e/recorder-midi.spec.ts e2e/recorder-mix.spec.ts)
         required: true
         type: string
       grep:
@@ -62,7 +62,13 @@ jobs:
           E2E_TRACE: "1"
           TEST_FILTER: ${{ inputs.tests }}
           TEST_GREP: ${{ inputs.grep }}
-        run: pnpm exec playwright test --grep "$TEST_GREP" -- "$TEST_FILTER"
+        run: |
+          read -r -a test_filters <<< "${TEST_FILTER//$'\n'/ }"
+          if (( ${#test_filters[@]} == 0 )); then
+            echo "::error::Provide at least one test filter."
+            exit 1
+          fi
+          pnpm exec playwright test --grep "$TEST_GREP" -- "${test_filters[@]}"
       - uses: actions/upload-artifact@v7
         id: upload
         if: always() && hashFiles('test-results/trace-pack.html') != ''
