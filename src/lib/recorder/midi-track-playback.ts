@@ -67,10 +67,10 @@ export class MidiTrackPlayback implements TransportParticipant {
       gain: 0,
     });
     synth.output.connect(this.channel.input);
-    this.notes = track.notes.toSorted((a, b) => a.start - b.start);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
+    this.setNotes(track.notes);
   }
 
   setNotes(notes: Note[]): void {
