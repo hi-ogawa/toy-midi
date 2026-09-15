@@ -111,9 +111,7 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   private refreshSchedule(): void {
     if (this.disposeScheduling !== undefined) {
-      this.synth.reset();
-      this.scheduledNotes.clear();
-      this.schedule();
+      this.start();
     }
   }
 
