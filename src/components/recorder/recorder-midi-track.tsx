@@ -92,7 +92,7 @@ export function MidiTrackRow({
         <MidiTrackEditor
           track={track}
           runtime={runtime}
-          height={Math.max(180, track.height) - 72}
+          height={Math.max(180, track.height)}
           pixelsPerBeat={pixelsPerBeat}
           beatsPerBar={beatsPerBar}
           subdivisionsPerBeat={subdivisionsPerBeat}
@@ -321,7 +321,7 @@ function MidiTrackEditor({
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       ref={scrollRef}
-      className="col-span-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
       style={{ height }}
       data-testid="recorder-midi-pitch-scroll"
     >
