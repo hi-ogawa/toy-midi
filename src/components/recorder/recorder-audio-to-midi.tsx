@@ -124,7 +124,7 @@ export function RecorderAudioToMidi({
         ? "No notes detected. Existing notes were kept. Try lowering the activity threshold."
         : transcribeMutation.data !== undefined
           ? `Created ${transcribeMutation.data} notes in ${track.name}.`
-          : "";
+          : "A successful conversion replaces all existing notes in this MIDI track.";
 
   return (
     <RecorderPanel
@@ -163,12 +163,6 @@ export function RecorderAudioToMidi({
               ))}
             </select>
           </label>
-          {track.notes.length > 0 && (
-            <p className="text-xs text-amber-300">
-              A successful conversion replaces {track.notes.length} existing
-              notes.
-            </p>
-          )}
           <section className="space-y-5 border-t border-neutral-700 pt-4">
             <ParamSlider
               label="Activity threshold"
