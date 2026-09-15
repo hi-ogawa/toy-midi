@@ -87,6 +87,14 @@ export class MidiTrackPlayback implements TransportParticipant {
     await this.synth.setProgram(program);
   }
 
+  noteOn(pitch: number): void {
+    this.synth.noteOn(pitch);
+  }
+
+  noteOff(pitch: number): void {
+    this.synth.noteOff(pitch);
+  }
+
   start(): void {
     this.stop();
     this.schedule();
@@ -207,6 +215,14 @@ class RecorderMidiSynth {
       throw new Error(`MIDI program ${program} is unavailable.`);
     }
     this.postMessage({ type: "setPreset", soundfontId, presetId: preset.id });
+  }
+
+  noteOn(pitch: number): void {
+    this.postMessage({ type: "noteOn", key: pitch, velocity: 100 });
+  }
+
+  noteOff(pitch: number): void {
+    this.postMessage({ type: "noteOff", key: pitch });
   }
 
   scheduleNoteOnOff({

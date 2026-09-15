@@ -17,13 +17,14 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
+import { RecorderAudioToMidi } from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
-import { MidiTrackActions, MidiTimelineLane } from "./recorder-midi-track";
+import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -49,6 +50,9 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
+  const [openTranscriptions, setOpenTranscriptions] = useState<
+    ReadonlySet<string>
+  >(new Set());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -139,6 +143,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     captureStatus: state.captureStatus,
     project,
   });
+
+  function closeTranscription(id: string) {
+    setOpenTranscriptions((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -454,46 +469,33 @@ export function Recorder({ projectId }: { projectId: string }) {
               </TrackRow>
             ))}
             {state.midiTracks.map((track) => (
-              <TrackRow
+              <MidiTrackRow
                 key={track.id}
-                data-testid="recorder-midi-track-row"
-                title={track.name}
-                height={track.height}
-                gain={track.gain}
-                muted={track.muted}
-                soloed={track.soloed}
+                track={track}
+                runtime={runtime}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
                 effectsOpen={effects.openEffects.has(track.id)}
                 onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-                onMutedChange={(muted) =>
-                  runtime.setTrackMix(track.id, { muted })
-                }
-                onSoloedChange={(soloed) =>
-                  runtime.setTrackMix(track.id, { soloed })
-                }
-                onHeightChange={(height) =>
-                  runtime.setTrackHeight(track.id, height)
-                }
-                action={
-                  <MidiTrackActions
-                    label={track.name}
-                    onRemove={() => {
-                      runtime.removeMidiTrack(track.id);
-                      effects.closeEffects(track.id);
-                    }}
-                  />
-                }
-              >
-                <MidiTimelineLane
-                  notes={track.notes}
-                  pixelsPerBeat={timeline.pixelsPerBeat}
-                  beatsPerBar={timeline.beatsPerBar}
-                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                  viewportStartBeat={timeline.viewportStartBeat}
-                  tempo={timeline.tempo}
-                  onSeek={(position) => runtime.seek(position)}
-                />
-              </TrackRow>
+                onRemove={() => {
+                  runtime.removeMidiTrack(track.id);
+                  effects.closeEffects(track.id);
+                  closeTranscription(track.id);
+                }}
+                onTranscribe={() => {
+                  setOpenTranscriptions((current) => {
+                    const next = new Set(current);
+                    next.add(track.id);
+                    return next;
+                  });
+                }}
+                onFocus={() => {
+                  clipInteraction.clear();
+                  locators.select(undefined);
+                }}
+              />
             ))}
 
             <CaptureTrackRow
@@ -733,6 +735,19 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
           </div>
+        )}
+        {state.midiTracks.map(
+          (track) =>
+            openTranscriptions.has(track.id) && (
+              <RecorderAudioToMidi
+                key={track.id}
+                runtime={runtime}
+                state={state}
+                track={track}
+                cellsPerBeat={timeline.subdivisionsPerBeat}
+                onClose={() => closeTranscription(track.id)}
+              />
+            ),
         )}
         {isTunerOpen && (
           <RecorderTuner

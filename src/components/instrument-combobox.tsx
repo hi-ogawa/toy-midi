@@ -35,8 +35,12 @@ const INSTRUMENT_GROUPS = [
 export function InstrumentCombobox({
   value,
   onValueChange,
+  disabled,
+  "aria-label": ariaLabel,
 }: {
   value: number;
+  disabled?: boolean;
+  "aria-label"?: string;
   onValueChange: (value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,6 +51,8 @@ export function InstrumentCombobox({
         <Button
           data-testid="instrument-select"
           role="combobox"
+          aria-label={ariaLabel}
+          disabled={disabled}
           aria-expanded={open}
           className="h-8 w-44 justify-between gap-1.5 border-neutral-600 bg-neutral-900 px-3 text-sm font-normal text-neutral-100 hover:border-neutral-500 hover:bg-neutral-900"
         >

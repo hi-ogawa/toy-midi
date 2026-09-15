@@ -67,6 +67,7 @@ export function AudioTrackActions({
 export function TrackRow({
   title,
   "data-testid": testId,
+  controlsClassName,
   height,
   gain,
   muted,
@@ -82,6 +83,7 @@ export function TrackRow({
 }: {
   title: string;
   "data-testid"?: string;
+  controlsClassName?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -110,7 +112,12 @@ export function TrackRow({
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div
+        className={cn(
+          "sticky left-0 z-20 col-start-1 row-start-1 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
+          controlsClassName,
+        )}
+      >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
