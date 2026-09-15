@@ -595,16 +595,17 @@ export class RecorderRuntime {
     }
   }
 
-  async setMidiTrackProgram(id: string, program: number): Promise<void> {
-    await this.midiTrackPlaybacks.get(id)?.setProgram(program);
-    this.updateMidiTrack(id, (track) => ({ ...track, program }));
-  }
+  // TODO: integrate UI
+  // async setMidiTrackProgram(id: string, program: number): Promise<void> {
+  //   await this.midiTrackPlaybacks.get(id)?.setProgram(program);
+  //   this.updateMidiTrack(id, (track) => ({ ...track, program }));
+  // }
 
-  setMidiTrackNotes(id: string, notes: Note[]): void {
-    const track = this.updateMidiTrack(id, (track) => ({ ...track, notes }));
-    this.midiTrackPlaybacks.get(id)?.setTrack(track, this.store.get().tempo);
-    this.restartTransportIfPlaying();
-  }
+  // setMidiTrackNotes(id: string, notes: Note[]): void {
+  //   const track = this.updateMidiTrack(id, (track) => ({ ...track, notes }));
+  //   this.midiTrackPlaybacks.get(id)?.setTrack(track, this.store.get().tempo);
+  //   this.restartTransportIfPlaying();
+  // }
 
   private updateTrack(
     id: string,
@@ -1297,6 +1298,7 @@ function createMidiTrackState(number: number): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
+    // TODO: integrate UI
     notes: [
       {
         id: crypto.randomUUID(),
