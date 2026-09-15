@@ -5,6 +5,8 @@ import {
   DEFAULT_GRID_ACTIVITY_DB,
   DEFAULT_GRID_SPLIT_THRESHOLD,
 } from "../../lib/bass-pitch/transcription";
+import { getClipSources } from "../../lib/recorder/audio-sources";
+import { transcribeRecorderAudio } from "../../lib/recorder/audio-to-midi";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -48,16 +50,50 @@ export function RecorderAudioToMidi({
   );
   const [progress, setProgress] = useState(0);
   const conversion = useMutation({
-    mutationFn: () =>
-      runtime.transcribeMidiTrack({
-        id: track.id,
-        sourceId,
-        mode,
+    mutationFn: async () => {
+      const state = runtime.store.get();
+      const destination = state.midiTracks.find(
+        (candidate) => candidate.id === track.id,
+      );
+      const source = [...state.audioTracks, state.recordingTrack].find(
+        (track) => track.id === sourceId,
+      );
+      if (!destination || !source) {
+        throw new Error("The source or destination track is missing.");
+      }
+      const notes = await transcribeRecorderAudio({
+        sources: getClipSources(source.regions),
+        tempo: state.tempo,
         cellsPerBeat,
         activityDb,
         splitThreshold,
         onProgress: setProgress,
-      }),
+      });
+      const current = runtime.store.get();
+      const target = current.midiTracks.find(
+        (candidate) => candidate.id === track.id,
+      );
+      if (!target) {
+        throw new Error("The destination MIDI track was removed.");
+      }
+      if (current.tempo !== state.tempo) {
+        throw new Error(
+          "The project tempo changed. Convert again with the new tempo.",
+        );
+      }
+      if (mode === "replace" && target.notes !== destination.notes) {
+        throw new Error(
+          "The MIDI notes changed during conversion. Convert again to replace them.",
+        );
+      }
+      if (notes.length > 0) {
+        runtime.setMidiTrackNotes(
+          track.id,
+          mode === "append" ? [...target.notes, ...notes] : notes,
+        );
+      }
+      return notes.length;
+    },
     onMutate: () => setProgress(0),
   });
 
