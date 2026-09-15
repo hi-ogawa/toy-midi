@@ -2,10 +2,8 @@ import type { Note } from "../../types.ts";
 import { bassPitchClient } from "../bass-pitch/client.ts";
 import { makeGridTranscribeParams } from "../bass-pitch/transcription.ts";
 import { secondsToBeats } from "../timeline.ts";
-import {
-  renderAudioSources,
-  type AudioPlaybackSource,
-} from "./audio-sources.ts";
+import type { AudioPlaybackSource } from "./audio-sources.ts";
+import { renderAudioSources } from "./mix.ts";
 
 /** Transcribe the committed arrangement before channel gain/EQ, keeping project timing. */
 export async function transcribeRecorderAudio({
