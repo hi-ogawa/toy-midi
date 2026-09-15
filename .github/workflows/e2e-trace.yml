@@ -1,0 +1,128 @@
+name: E2E trace
+run-name: "E2E trace for ${{ inputs.ref }} · ${{ inputs.tests }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to test
+        required: true
+        default: main
+        type: string
+      tests:
+        description: Space-separated Playwright file filters (for example e2e/recorder-midi.spec.ts e2e/recorder-mix.spec.ts)
+        required: true
+        type: string
+      grep:
+        description: Optional Playwright test-title regex
+        default: ".*"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.branch.outputs.sha }}
+    steps:
+      - uses: actions/github-script@v9
+        id: branch
+        env:
+          TEST_REF: ${{ inputs.ref }}
+        with:
+          script: |
+            const { data: branch } = await github.rest.git.getRef({
+              ...context.repo,
+              ref: `heads/${process.env.TEST_REF}`,
+            });
+            core.setOutput("sha", branch.object.sha);
+
+  trace:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      artifact-url: ${{ steps.upload.outputs.artifact-url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build-wasm
+      - run: pnpm exec playwright install chromium --with-deps --no-shell
+      - name: Run selected tests with tracing
+        env:
+          E2E_TRACE: "1"
+          TEST_FILTER: ${{ inputs.tests }}
+          TEST_GREP: ${{ inputs.grep }}
+        run: |
+          read -r -a test_filters <<< "${TEST_FILTER//$'\n'/ }"
+          if (( ${#test_filters[@]} == 0 )); then
+            echo "::error::Provide at least one test filter."
+            exit 1
+          fi
+          pnpm exec playwright test "${test_filters[@]}" --grep "$TEST_GREP"
+      - uses: actions/upload-artifact@v7
+        id: upload
+        if: always() && hashFiles('test-results/trace-pack.html') != ''
+        with:
+          path: test-results/trace-pack.html
+          archive: false
+          retention-days: 7
+
+  report:
+    needs: [resolve, trace]
+    if: always() && needs.resolve.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          TEST_REF: ${{ inputs.ref }}
+          TEST_FILTER: ${{ inputs.tests }}
+          TEST_GREP: ${{ inputs.grep }}
+          TEST_SHA: ${{ needs.resolve.outputs.sha }}
+          TEST_RESULT: ${{ needs.trace.result }}
+          ARTIFACT_URL: ${{ needs.trace.outputs.artifact-url }}
+        with:
+          script: |
+            const { TEST_REF, TEST_FILTER, TEST_GREP, TEST_SHA, TEST_RESULT, ARTIFACT_URL } = process.env;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/attempts/${process.env.GITHUB_RUN_ATTEMPT}`;
+            const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${TEST_SHA}`;
+            const escape = (value) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character]);
+            const body = [
+              `### E2E trace · ${TEST_RESULT}`,
+              "",
+              `Branch: <code>${escape(TEST_REF)}</code>`,
+              `Commit: [${TEST_SHA.slice(0, 8)}](${commitUrl})`,
+              `Tests: <code>${escape(TEST_FILTER)}</code>`,
+              `Title filter: <code>${escape(TEST_GREP)}</code>`,
+              "",
+              ARTIFACT_URL
+                ? `[View E2E trace](${ARTIFACT_URL}) · [Workflow run](${runUrl})`
+                : `No trace pack was produced. [Workflow run](${runUrl})`,
+            ].join("\n");
+            await core.summary.addRaw(body).write();
+            const prs = await github.paginate(github.rest.pulls.list, {
+              ...context.repo,
+              state: "open",
+              head: `${context.repo.owner}:${TEST_REF}`,
+            });
+            for (const pr of prs) {
+              if (pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+                continue;
+              }
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: pr.number,
+                body,
+              });
+            }
