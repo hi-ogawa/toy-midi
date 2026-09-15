@@ -55,7 +55,7 @@ export function RecorderAudioToMidi({
     };
   }, []);
 
-  const conversion = useMutation({
+  const transcribeMutation = useMutation({
     mutationFn: async () => {
       const state = runtime.store.get();
       const destination = state.midiTracks.find(
@@ -99,14 +99,14 @@ export function RecorderAudioToMidi({
 
   useEffect(() => bassPitchClient.warmUp(), []);
 
-  const status = conversion.isPending
+  const status = transcribeMutation.isPending
     ? `Converting ${Math.round(progress * 100)}%`
-    : conversion.error
-      ? conversion.error.message
-      : conversion.data === 0
+    : transcribeMutation.error
+      ? transcribeMutation.error.message
+      : transcribeMutation.data === 0
         ? "No notes detected. Existing notes were kept. Try lowering the activity threshold."
-        : conversion.data !== undefined
-          ? `Created ${conversion.data} notes in ${track.name}.`
+        : transcribeMutation.data !== undefined
+          ? `Created ${transcribeMutation.data} notes in ${track.name}.`
           : "";
 
   return (
@@ -122,7 +122,7 @@ export function RecorderAudioToMidi({
           tempo and grid.
         </p>
         <fieldset
-          disabled={conversion.isPending}
+          disabled={transcribeMutation.isPending}
           className="space-y-5 disabled:opacity-60"
         >
           <label className="block space-y-2 text-sm">
@@ -213,12 +213,12 @@ export function RecorderAudioToMidi({
         <Button
           className="h-9 w-full bg-primary text-primary-foreground hover:bg-primary/90"
           disabled={
-            conversion.isPending ||
+            transcribeMutation.isPending ||
             !sources.some(({ track }) => track.id === sourceId)
           }
-          onClick={() => conversion.mutate()}
+          onClick={() => transcribeMutation.mutate()}
         >
-          {conversion.isPending ? "Converting..." : "Convert to MIDI"}
+          {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
         </Button>
         <p role="status" className="min-h-4 text-xs text-neutral-300">
           {status}
