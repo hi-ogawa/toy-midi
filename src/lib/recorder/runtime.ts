@@ -992,24 +992,16 @@ export class RecorderRuntime {
       playback.setSources(getClipSources(track.regions));
       this.trackPlaybacks.set(track.id, playback);
     }
-    try {
-      for (const track of project.midiTracks) {
-        this.midiTrackPlaybacks.set(
-          track.id,
-          await MidiTrackPlayback.create({
-            transport: this.transport,
-            output: this.masterOutput,
-            track,
-            tempo: project.tempo,
-          }),
-        );
-      }
-    } catch (error) {
-      for (const playback of this.midiTrackPlaybacks.values()) {
-        playback.dispose();
-      }
-      this.midiTrackPlaybacks.clear();
-      throw error;
+    for (const track of project.midiTracks) {
+      this.midiTrackPlaybacks.set(
+        track.id,
+        await MidiTrackPlayback.create({
+          transport: this.transport,
+          output: this.masterOutput,
+          track,
+          tempo: project.tempo,
+        }),
+      );
     }
     // Clamp loaded external state at the runtime boundary so older projects
     // cannot restore a Capture row too short for its current controls, and pin
