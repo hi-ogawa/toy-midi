@@ -50,9 +50,9 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [openTranscriptions, setOpenTranscriptions] = useState(
-    new Set<string>(),
-  );
+  const [openTranscriptions, setOpenTranscriptions] = useState<
+    ReadonlySet<string>
+  >(new Set());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -143,6 +143,17 @@ export function Recorder({ projectId }: { projectId: string }) {
     captureStatus: state.captureStatus,
     project,
   });
+
+  function closeTranscription(id: string) {
+    setOpenTranscriptions((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -471,13 +482,15 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
-                  setOpenTranscriptions((ids) =>
-                    ids.difference(new Set([track.id])),
-                  );
+                  closeTranscription(track.id);
                 }}
-                onTranscribe={() =>
-                  setOpenTranscriptions((ids) => new Set(ids).add(track.id))
-                }
+                onTranscribe={() => {
+                  setOpenTranscriptions((current) => {
+                    const next = new Set(current);
+                    next.add(track.id);
+                    return next;
+                  });
+                }}
                 onFocus={() => {
                   clipInteraction.clear();
                   locators.select(undefined);
@@ -732,11 +745,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 state={state}
                 track={track}
                 cellsPerBeat={timeline.subdivisionsPerBeat}
-                onClose={() =>
-                  setOpenTranscriptions((ids) =>
-                    ids.difference(new Set([track.id])),
-                  )
-                }
+                onClose={() => closeTranscription(track.id)}
               />
             ),
         )}
