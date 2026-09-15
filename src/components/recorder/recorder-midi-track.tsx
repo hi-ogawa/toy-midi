@@ -349,17 +349,7 @@ function MidiTrackEditor({
           onPointerDown={handleGridPointerDown}
         >
           {PITCHES.map((pitch) => (
-            <div
-              key={pitch}
-              className={cn(
-                "pointer-events-none absolute inset-x-0 border-b border-neutral-800",
-                isBlackKey(pitch) ? "bg-neutral-950" : "bg-neutral-900",
-              )}
-              style={{
-                top: (127 - pitch) * KEY_HEIGHT,
-                height: KEY_HEIGHT,
-              }}
-            />
+            <MidiPitchRow key={pitch} pitch={pitch} />
           ))}
           <div
             className="pointer-events-none absolute inset-0"
@@ -377,22 +367,12 @@ function MidiTrackEditor({
             })}
           />
           {track.notes.map((note) => (
-            <div
+            <MidiNote
               key={note.id}
-              data-note-id={note.id}
-              aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
-              className={cn(
-                "absolute cursor-pointer rounded-sm border",
-                selectedId === note.id
-                  ? "border-violet-100 bg-violet-500"
-                  : "border-violet-400 bg-violet-700",
-              )}
-              style={{
-                left: (note.start - viewportStartBeat) * pixelsPerBeat,
-                top: (127 - note.pitch) * KEY_HEIGHT + 1,
-                width: Math.max(2, note.duration * pixelsPerBeat),
-                height: KEY_HEIGHT - 2,
-              }}
+              note={note}
+              selected={selectedId === note.id}
+              pixelsPerBeat={pixelsPerBeat}
+              viewportStartBeat={viewportStartBeat}
             />
           ))}
         </div>
@@ -434,5 +414,51 @@ function MidiPianoKey({
     >
       {formatChromaticPitch(pitch)}
     </button>
+  );
+}
+
+function MidiPitchRow({ pitch }: { pitch: number }) {
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 border-b border-neutral-800",
+        isBlackKey(pitch) ? "bg-neutral-950" : "bg-neutral-900",
+      )}
+      style={{
+        top: (127 - pitch) * KEY_HEIGHT,
+        height: KEY_HEIGHT,
+      }}
+    />
+  );
+}
+
+function MidiNote({
+  note,
+  selected,
+  pixelsPerBeat,
+  viewportStartBeat,
+}: {
+  note: MidiTrackState["notes"][number];
+  selected: boolean;
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+}) {
+  return (
+    <div
+      data-note-id={note.id}
+      aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
+      className={cn(
+        "absolute cursor-pointer rounded-sm border",
+        selected
+          ? "border-violet-100 bg-violet-500"
+          : "border-violet-400 bg-violet-700",
+      )}
+      style={{
+        left: (note.start - viewportStartBeat) * pixelsPerBeat,
+        top: (127 - note.pitch) * KEY_HEIGHT + 1,
+        width: Math.max(2, note.duration * pixelsPerBeat),
+        height: KEY_HEIGHT - 2,
+      }}
+    />
   );
 }
