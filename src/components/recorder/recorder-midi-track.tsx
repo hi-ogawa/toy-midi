@@ -344,9 +344,9 @@ function MidiTrackEditor({
           role="group"
           aria-label={`${track.name} notes`}
           tabIndex={0}
+          onPointerDown={handleGridPointerDown}
           onLostPointerCapture={stopPreview}
           className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-violet-400"
-          onPointerDown={handleGridPointerDown}
         >
           {PITCHES.map((pitch) => (
             <MidiGridRow key={pitch} pitch={pitch} />
