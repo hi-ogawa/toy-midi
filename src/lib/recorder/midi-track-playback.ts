@@ -131,7 +131,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       if (
         this.scheduledNotes.has(note.id) ||
         start < position ||
-        start > windowEnd
+        windowEnd < start
       ) {
         continue;
       }
