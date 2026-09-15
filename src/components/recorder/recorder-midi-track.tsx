@@ -32,6 +32,7 @@ export function MidiTrackRow({
   effectsOpen,
   onEffectsToggle,
   onRemove,
+  onTranscribe,
   onFocus,
 }: {
   track: MidiTrackState;
@@ -43,6 +44,7 @@ export function MidiTrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
+  onTranscribe: () => void;
   onFocus: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string>();
@@ -171,7 +173,13 @@ export function MidiTrackRow({
         onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
         onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
-        action={<MidiTrackActions label={track.name} onRemove={onRemove} />}
+        action={
+          <MidiTrackActions
+            label={track.name}
+            onRemove={onRemove}
+            onTranscribe={onTranscribe}
+          />
+        }
         editor={
           <div
             ref={scrollRef}

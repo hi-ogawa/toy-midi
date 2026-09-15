@@ -20,6 +20,7 @@ import {
   type AudioClip,
 } from "./audio-clip.ts";
 import { getClipSources } from "./audio-sources.ts";
+import { transcribeRecorderAudio } from "./audio-to-midi.ts";
 import { AudioTrackPlayback } from "./audio-track-playback.ts";
 import { CaptureInput } from "./capture-input.ts";
 import { deriveClipRegions } from "./clip-regions.ts";
@@ -621,6 +622,63 @@ export class RecorderRuntime {
   setMidiTrackNotes(id: string, notes: Note[]): void {
     this.updateMidiTrack(id, (track) => ({ ...track, notes }));
     this.midiTrackPlaybacks.get(id)?.setNotes(notes);
+  }
+
+  async transcribeMidiTrack({
+    id,
+    sourceId,
+    mode,
+    cellsPerBeat,
+    activityDb,
+    splitThreshold,
+    onProgress,
+  }: {
+    id: string;
+    sourceId: string;
+    mode: "append" | "replace";
+    cellsPerBeat: number;
+    activityDb: number;
+    splitThreshold: number;
+    onProgress: (fraction: number) => void;
+  }): Promise<number> {
+    const state = this.store.get();
+    const destination = state.midiTracks.find((track) => track.id === id);
+    const source = [...state.audioTracks, state.recordingTrack].find(
+      (track) => track.id === sourceId,
+    );
+    if (!destination || !source) {
+      throw new Error("The source or destination track is missing.");
+    }
+    const notes = await transcribeRecorderAudio({
+      sources: getClipSources(source.regions),
+      tempo: state.tempo,
+      cellsPerBeat,
+      activityDb,
+      splitThreshold,
+      onProgress,
+    });
+    const current = this.store.get();
+    const target = current.midiTracks.find((track) => track.id === id);
+    if (!target) {
+      throw new Error("The destination MIDI track was removed.");
+    }
+    if (current.tempo !== state.tempo) {
+      throw new Error(
+        "The project tempo changed. Convert again with the new tempo.",
+      );
+    }
+    if (mode === "replace" && target.notes !== destination.notes) {
+      throw new Error(
+        "The MIDI notes changed during conversion. Convert again to replace them.",
+      );
+    }
+    if (notes.length > 0) {
+      this.setMidiTrackNotes(
+        id,
+        mode === "append" ? [...target.notes, ...notes] : notes,
+      );
+    }
+    return notes.length;
   }
 
   private updateTrack(

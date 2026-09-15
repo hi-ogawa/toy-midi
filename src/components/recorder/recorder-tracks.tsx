@@ -1,5 +1,6 @@
 import {
   AudioWaveformIcon,
+  Music2Icon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
@@ -67,9 +68,11 @@ export function AudioTrackActions({
 export function MidiTrackActions({
   label,
   onRemove,
+  onTranscribe,
 }: {
   label: string;
   onRemove: () => void;
+  onTranscribe: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -82,6 +85,11 @@ export function MidiTrackActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onTranscribe}>
+          <Music2Icon />
+          Audio to MIDI
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
           <Trash2Icon />
           Remove track
