@@ -143,7 +143,7 @@ export function RecorderAudioToMidi({
           disabled={transcribeMutation.isPending}
           className="space-y-5 disabled:opacity-60"
         >
-          <label className="block space-y-2 text-sm">
+          <label className="flex flex-col gap-2 text-sm">
             <span>Source audio track</span>
             <select
               autoFocus
