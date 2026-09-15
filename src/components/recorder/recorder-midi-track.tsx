@@ -303,11 +303,11 @@ function MidiTrackEditor({
 
   return (
     <div
+      data-testid="recorder-midi-pitch-scroll"
+      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+      ref={scrollRef}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      ref={scrollRef}
-      className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
-      data-testid="recorder-midi-pitch-scroll"
     >
       <div
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
@@ -325,12 +325,12 @@ function MidiTrackEditor({
         </div>
         <div
           data-testid="recorder-midi-grid"
+          className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-400"
           role="group"
           aria-label={`${track.name} notes`}
           tabIndex={0}
           onPointerDown={handleGridPointerDown}
           onLostPointerCapture={stopPreview}
-          className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-400"
         >
           {PITCHES.map((pitch) => (
             <MidiGridRow key={pitch} pitch={pitch} />
