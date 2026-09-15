@@ -111,7 +111,7 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   private refreshSchedule(): void {
     if (this.disposeScheduling !== undefined) {
-      // Rebuild only this track. Sustained notes retrigger after a live edit.
+      // Rebuild this track's upcoming notes without restarting notes already underway.
       this.synth.reset();
       this.scheduledNotes.clear();
       this.schedule();
@@ -133,7 +133,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       const end = beatsToSeconds(note.start + note.duration, this.tempo);
       if (
         this.scheduledNotes.has(note.id) ||
-        end <= position ||
+        start < position ||
         start > windowEnd
       ) {
         continue;
@@ -141,11 +141,9 @@ export class MidiTrackPlayback implements TransportParticipant {
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
-        startTime: Math.max(
-          contextTime,
+        startTime:
           anchor.contextTime +
-            (start - anchor.position) / this.transport.playbackRate,
-        ),
+          (start - anchor.position) / this.transport.playbackRate,
         endTime:
           anchor.contextTime +
           (end - anchor.position) / this.transport.playbackRate,
