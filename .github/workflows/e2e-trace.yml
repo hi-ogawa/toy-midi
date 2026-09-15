@@ -107,7 +107,7 @@ jobs:
               `Title filter: <code>${escape(TEST_GREP)}</code>`,
               "",
               ARTIFACT_URL
-                ? `[View E2E trace](${ARTIFACT_URL}) · [Workflow run](${runUrl})\n\nTrace retained for 7 days.`
+                ? `[View E2E trace](${ARTIFACT_URL}) · [Workflow run](${runUrl})`
                 : `No trace pack was produced. [Workflow run](${runUrl})`,
             ].join("\n");
             await core.summary.addRaw(body).write();
