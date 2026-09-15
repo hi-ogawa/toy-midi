@@ -86,25 +86,22 @@ export async function renderRecorderMix({
 export async function renderAudioSources(
   sources: readonly AudioPlaybackSource[],
 ): Promise<{ buffer: AudioBuffer; offset: number }> {
-  const regions = sources.filter(
-    (source) => source.timelineEnd > Math.max(0, source.timelineStart),
-  );
   let offset = Infinity;
   let end = 0;
-  for (const region of regions) {
+  for (const region of sources) {
     offset = Math.min(offset, Math.max(0, region.timelineStart));
     end = Math.max(end, region.timelineEnd);
   }
   if (end <= offset) {
     throw new Error("No audio to render.");
   }
-  const sampleRate = regions[0]!.buffer.sampleRate;
+  const sampleRate = sources[0]!.buffer.sampleRate;
   const context = new OfflineAudioContext(
     1,
     Math.ceil((end - offset) * sampleRate),
     sampleRate,
   );
-  for (const region of regions) {
+  for (const region of sources) {
     const start = Math.max(0, region.timelineStart);
     const source = context.createBufferSource();
     source.buffer = region.buffer;
