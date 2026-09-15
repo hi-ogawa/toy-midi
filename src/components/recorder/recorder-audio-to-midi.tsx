@@ -42,7 +42,6 @@ export function RecorderAudioToMidi({
     ),
   );
   const [sourceId, setSourceId] = useState(sources[0]?.track.id ?? "");
-  const [mode, setMode] = useState<"append" | "replace">("append");
   const [activityDb, setActivityDb] = useState(DEFAULT_GRID_ACTIVITY_DB);
   const [splitThreshold, setSplitThreshold] = useState(
     DEFAULT_GRID_SPLIT_THRESHOLD,
@@ -91,10 +90,7 @@ export function RecorderAudioToMidi({
         throw new Error("The destination MIDI track was removed.");
       }
       if (notes.length > 0) {
-        runtime.setMidiTrackNotes(
-          track.id,
-          mode === "append" ? [...target.notes, ...notes] : notes,
-        );
+        runtime.setMidiTrackNotes(track.id, notes);
       }
       return notes.length;
     },
@@ -153,21 +149,7 @@ export function RecorderAudioToMidi({
             selection, before track volume and EQ. Moving the audio later does
             not move generated notes.
           </p>
-          <label className="block space-y-2 text-sm">
-            <span>Destination notes</span>
-            <select
-              aria-label="Destination notes"
-              value={mode}
-              onChange={(event) =>
-                setMode(event.target.value as "append" | "replace")
-              }
-              className="w-full rounded border border-neutral-600 bg-neutral-900 p-2"
-            >
-              <option value="append">Append to existing notes</option>
-              <option value="replace">Replace all notes in {track.name}</option>
-            </select>
-          </label>
-          {mode === "replace" && track.notes.length > 0 && (
+          {track.notes.length > 0 && (
             <p className="text-xs text-amber-300">
               A successful conversion replaces {track.notes.length} existing
               notes.
