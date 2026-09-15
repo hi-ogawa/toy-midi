@@ -523,7 +523,7 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
           initSync(msg.wasmBytes);
         }
         this.soundfontPlayer = SoundfontPlayer.new(sampleRate);
-        this.soundfontPlayer.set_gain(0.5);
+        this.soundfontPlayer.set_gain(1);
         this.port.postMessage({ type: "ready" });
         break;
       case "noteOn":
