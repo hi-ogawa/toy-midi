@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
@@ -49,6 +49,14 @@ export function RecorderAudioToMidi({
     DEFAULT_GRID_SPLIT_THRESHOLD,
   );
   const [progress, setProgress] = useState(0);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const conversion = useMutation({
     mutationFn: async () => {
       const state = runtime.store.get();
@@ -67,8 +75,15 @@ export function RecorderAudioToMidi({
         cellsPerBeat,
         activityDb,
         splitThreshold,
-        onProgress: setProgress,
+        onProgress: (progress) => {
+          if (mounted.current) {
+            setProgress(progress);
+          }
+        },
       });
+      if (!mounted.current) {
+        return;
+      }
       const current = runtime.store.get();
       const target = current.midiTracks.find(
         (candidate) => candidate.id === track.id,
