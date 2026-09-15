@@ -136,8 +136,8 @@ export function RecorderAudioToMidi({
     >
       <div className="space-y-5">
         <p className="text-sm text-neutral-400">
-          Transcribe a single bass line into this MIDI track using the project
-          tempo and grid.
+          Transcribe a selected audio track into this MIDI track using the
+          project tempo and grid.
         </p>
         <fieldset
           disabled={transcribeMutation.isPending}
@@ -162,11 +162,6 @@ export function RecorderAudioToMidi({
               ))}
             </select>
           </label>
-          <p className="text-xs text-neutral-400">
-            Uses the full committed arrangement, including trims, gaps, and take
-            selection, before track volume and EQ. Moving the audio later does
-            not move generated notes.
-          </p>
           {track.notes.length > 0 && (
             <p className="text-xs text-amber-300">
               A successful conversion replaces {track.notes.length} existing
