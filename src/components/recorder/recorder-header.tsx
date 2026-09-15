@@ -17,12 +17,12 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
-import { useRef } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
 import { PLAYBACK_RATES } from "../../lib/recorder/playback-rate";
 import type {
+  RecorderRuntime,
   RecorderLoopState,
   RecorderPunchState,
 } from "../../lib/recorder/runtime";
@@ -46,6 +46,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderHelp } from "./help";
+import { RecorderExportDialog } from "./recorder-export-dialog";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
@@ -82,10 +84,10 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
-  onExportAudio,
+  runtime,
+  exportAudioDisabled,
   onReferenceVideoOpenChange,
   onMixerToggle,
-  onHelpOpen,
   mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -119,14 +121,12 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
-  onExportAudio: () => void;
+  runtime: RecorderRuntime;
+  exportAudioDisabled: boolean;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
-  onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
-  const moreButtonRef = useRef<HTMLButtonElement>(null);
-  const pendingDialog = useRef<(() => void) | undefined>(undefined);
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -393,7 +393,6 @@ export function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            ref={moreButtonRef}
             title="More"
             aria-label="More"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -401,35 +400,28 @@ export function RecorderHeader({
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          onCloseAutoFocus={(event) => {
-            if (pendingDialog.current) {
-              // Hand focus from the menu trigger to the dialog after the menu closes.
-              event.preventDefault();
-              moreButtonRef.current?.focus();
-              pendingDialog.current();
-              pendingDialog.current = undefined;
+        <DropdownMenuContent align="end">
+          <RecorderHelp
+            trigger={
+              <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                <CircleHelpIcon />
+                Help & Shortcuts
+              </DropdownMenuItem>
             }
-          }}
-        >
-          <DropdownMenuItem
-            onSelect={() => {
-              pendingDialog.current = onHelpOpen;
-            }}
-          >
-            <CircleHelpIcon />
-            Help & Shortcuts
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={flags.isRecording}
-            onSelect={() => {
-              pendingDialog.current = onExportAudio;
-            }}
-          >
-            <DownloadIcon />
-            Export Audio
-          </DropdownMenuItem>
+          />
+          <RecorderExportDialog
+            runtime={runtime}
+            disabled={exportAudioDisabled}
+            trigger={
+              <DropdownMenuItem
+                disabled={exportAudioDisabled}
+                onSelect={(event) => event.preventDefault()}
+              >
+                <DownloadIcon />
+                Export Audio
+              </DropdownMenuItem>
+            }
+          />
           <DropdownMenuItem
             data-testid="recorder-export-project"
             disabled={flags.isRecording || isExporting}

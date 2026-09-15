@@ -16,9 +16,7 @@ import { routes } from "../../lib/routes";
 import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
-import { RecorderHelp } from "./help";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
-import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
@@ -54,8 +52,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const [isMixerOpen, setIsMixerOpen] = useState(false);
   const [isTunerOpen, setIsTunerOpen] = useState(false);
   const effects = useRecorderEffectsUi();
-  const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -279,11 +275,11 @@ export function Recorder({ projectId }: { projectId: string }) {
         }
         onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
-        onExportAudio={() => setIsAudioExportOpen(true)}
+        runtime={runtime}
+        exportAudioDisabled={!project.ready || flags.isRecording}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
         mixerOpen={isMixerOpen}
         onMixerToggle={() => setIsMixerOpen((open) => !open)}
-        onHelpOpen={() => setIsHelpOpen(true)}
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
@@ -587,17 +583,6 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
-        <RecorderHelp
-          isOpen={isHelpOpen}
-          onClose={() => setIsHelpOpen(false)}
-        />
-        <RecorderExportDialog
-          runtime={runtime}
-          state={state}
-          isOpen={isAudioExportOpen}
-          onClose={() => setIsAudioExportOpen(false)}
-          disabled={!project.ready || flags.isRecording}
-        />
         <Dialog
           isOpen={isInputSetupOpen}
           onClose={() => setIsInputSetupOpen(false)}
