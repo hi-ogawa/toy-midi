@@ -1031,7 +1031,7 @@ function getTimelineGridStyle({
   });
 }
 
-export function getTimelineSurfaceProps({
+function getTimelineSurfaceProps({
   beatsPerBar,
   onSeek,
   pixelsPerBeat,

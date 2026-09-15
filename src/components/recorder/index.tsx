@@ -23,7 +23,7 @@ import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
-import { MidiTrackActions, MidiTimelineLane } from "./recorder-midi-track";
+import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -454,46 +454,25 @@ export function Recorder({ projectId }: { projectId: string }) {
               </TrackRow>
             ))}
             {state.midiTracks.map((track) => (
-              <TrackRow
+              <MidiTrackRow
                 key={track.id}
-                data-testid="recorder-midi-track-row"
-                title={track.name}
-                height={track.height}
-                gain={track.gain}
-                muted={track.muted}
-                soloed={track.soloed}
+                track={track}
+                runtime={runtime}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
                 effectsOpen={effects.openEffects.has(track.id)}
                 onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-                onMutedChange={(muted) =>
-                  runtime.setTrackMix(track.id, { muted })
-                }
-                onSoloedChange={(soloed) =>
-                  runtime.setTrackMix(track.id, { soloed })
-                }
-                onHeightChange={(height) =>
-                  runtime.setTrackHeight(track.id, height)
-                }
-                action={
-                  <MidiTrackActions
-                    label={track.name}
-                    onRemove={() => {
-                      runtime.removeMidiTrack(track.id);
-                      effects.closeEffects(track.id);
-                    }}
-                  />
-                }
-              >
-                <MidiTimelineLane
-                  notes={track.notes}
-                  pixelsPerBeat={timeline.pixelsPerBeat}
-                  beatsPerBar={timeline.beatsPerBar}
-                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
-                  viewportStartBeat={timeline.viewportStartBeat}
-                  tempo={timeline.tempo}
-                  onSeek={(position) => runtime.seek(position)}
-                />
-              </TrackRow>
+                onRemove={() => {
+                  runtime.removeMidiTrack(track.id);
+                  effects.closeEffects(track.id);
+                }}
+                onFocus={() => {
+                  clipInteraction.clear();
+                  locators.select(undefined);
+                }}
+              />
             ))}
 
             <CaptureTrackRow
