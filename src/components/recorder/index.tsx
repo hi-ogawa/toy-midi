@@ -53,7 +53,6 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const transcriptions = useRecorderAudioToMidiUi();
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -90,6 +89,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
     onSelect: clipInteraction.clear,
   });
+  const transcriptions = useRecorderAudioToMidiUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
