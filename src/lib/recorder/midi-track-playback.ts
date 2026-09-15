@@ -18,7 +18,7 @@ const SCHEDULER_INTERVAL_MS = 25;
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
-  private readonly scheduledNotes = new Set<string>();
+  private nextNoteIndex = 0;
   private tempo = 120;
   private disposeScheduling?: () => void;
   private readonly synth: RecorderMidiSynth;
@@ -67,14 +67,14 @@ export class MidiTrackPlayback implements TransportParticipant {
       gain: 0,
     });
     synth.output.connect(this.channel.input);
-    this.notes = track.notes;
+    this.setNotes(track.notes);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
   }
 
   setNotes(notes: Note[]): void {
-    this.notes = notes;
+    this.notes = notes.toSorted((a, b) => a.start - b.start);
     this.refreshSchedule();
   }
 
@@ -100,7 +100,7 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.disposeScheduling?.();
     this.disposeScheduling = undefined;
     this.synth.reset();
-    this.scheduledNotes.clear();
+    this.nextNoteIndex = 0;
   }
 
   dispose(): void {
@@ -125,16 +125,17 @@ export class MidiTrackPlayback implements TransportParticipant {
       this.transport.getPlaybackPositionByContextTime(contextTime);
     const windowEnd =
       position + SCHEDULE_AHEAD_SECONDS * this.transport.playbackRate;
-    for (const note of this.notes) {
+    while (this.nextNoteIndex < this.notes.length) {
+      const note = this.notes[this.nextNoteIndex]!;
       const start = beatsToSeconds(note.start, this.tempo);
-      const end = beatsToSeconds(note.start + note.duration, this.tempo);
-      if (
-        this.scheduledNotes.has(note.id) ||
-        start < position ||
-        windowEnd < start
-      ) {
+      if (windowEnd < start) {
+        break;
+      }
+      this.nextNoteIndex++;
+      if (start < position) {
         continue;
       }
+      const end = beatsToSeconds(note.start + note.duration, this.tempo);
       this.synth.scheduleNoteOnOff({
         pitch: note.pitch,
         velocity: note.velocity,
@@ -145,7 +146,6 @@ export class MidiTrackPlayback implements TransportParticipant {
           anchor.contextTime +
           (end - anchor.position) / this.transport.playbackRate,
       });
-      this.scheduledNotes.add(note.id);
     }
   }
 }
