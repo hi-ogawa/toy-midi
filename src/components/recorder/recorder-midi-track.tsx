@@ -243,9 +243,12 @@ function MidiTrackEditor({
     if (event.button !== 0) {
       return;
     }
+    // Capture the pointer for preview release and focus the grid for shortcuts.
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     event.currentTarget.focus({ preventScroll: true });
+
+    // Select and preview an existing note when clicked.
     const target = (event.target as HTMLElement).closest<HTMLElement>(
       "[data-note-id]",
     );
@@ -257,12 +260,16 @@ function MidiTrackEditor({
       startPreview(existing.pitch);
       return;
     }
+
+    // Convert an empty-grid click to a pitch and beat.
     const rect = event.currentTarget.getBoundingClientRect();
     const pitch = clampPitch(
       127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
     );
     const beat =
       viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
+
+    // Add a note snapped down to the grid, then select and preview it.
     const note = {
       id: crypto.randomUUID(),
       pitch,
