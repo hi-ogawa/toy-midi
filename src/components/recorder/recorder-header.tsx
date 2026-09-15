@@ -17,6 +17,7 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
+import { useRef } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
@@ -124,6 +125,8 @@ export function RecorderHeader({
   onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const pendingDialog = useRef<(() => void) | undefined>(undefined);
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
   const tempoInput = useDraftInput({
     value: tempo,
@@ -390,6 +393,7 @@ export function RecorderHeader({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            ref={moreButtonRef}
             title="More"
             aria-label="More"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -397,14 +401,31 @@ export function RecorderHeader({
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onHelpOpen}>
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            if (pendingDialog.current) {
+              // Hand focus from the menu trigger to the dialog after the menu closes.
+              event.preventDefault();
+              moreButtonRef.current?.focus();
+              pendingDialog.current();
+              pendingDialog.current = undefined;
+            }
+          }}
+        >
+          <DropdownMenuItem
+            onSelect={() => {
+              pendingDialog.current = onHelpOpen;
+            }}
+          >
             <CircleHelpIcon />
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={flags.isRecording}
-            onSelect={onExportAudio}
+            onSelect={() => {
+              pendingDialog.current = onExportAudio;
+            }}
           >
             <DownloadIcon />
             Export Audio

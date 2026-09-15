@@ -160,19 +160,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (project.initError) {
       return;
     }
-    if (isHelpOpen) {
-      if (!event.repeat && matchKeyboardEvent(event, "Escape")) {
-        event.preventDefault();
-        setIsHelpOpen(false);
-      }
-      if (matchKeyboardEvent(event, "Ctrl+S")) {
-        event.preventDefault();
-      }
-      return;
-    }
-    if (isAudioExportOpen) {
-      return;
-    }
     if (matchKeyboardEvent(event, "Ctrl+S") && !event.repeat) {
       event.preventDefault();
       if (!flags.saveDisabled) {
