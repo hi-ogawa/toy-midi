@@ -72,7 +72,7 @@ export function MidiTrackRow({
         data-testid="recorder-midi-track-row"
         controlsClassName="h-fit"
         title={track.name}
-        height={Math.max(180, track.height)}
+        height={track.height}
         gain={track.gain}
         muted={track.muted}
         soloed={track.soloed}
