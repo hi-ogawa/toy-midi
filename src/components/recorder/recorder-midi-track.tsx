@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { MoreVerticalIcon, Settings2Icon, Trash2Icon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { GM_PROGRAMS } from "../../lib/general-midi";
@@ -17,7 +16,7 @@ import type {
 } from "../../lib/recorder/runtime";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
+import { PortalDialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,43 +92,30 @@ export function MidiTrackRow({
           viewportStartBeat={viewportStartBeat}
         />
       </TrackRow>
-      {isProgramOpen &&
-        createPortal(
-          <div
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Escape") {
-                setIsProgramOpen(false);
-              }
-            }}
+      <PortalDialog
+        isOpen={isProgramOpen}
+        title={`${track.name} program`}
+        onClose={() => setIsProgramOpen(false)}
+      >
+        <label className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
+          Program
+          <select
+            aria-label={`${track.name} program`}
+            value={track.program}
+            disabled={programMutation.isPending}
+            onChange={(event) =>
+              programMutation.mutate(Number(event.target.value))
+            }
+            className="max-w-64 rounded border border-neutral-600 bg-neutral-800 p-1 text-neutral-200"
           >
-            <Dialog
-              isOpen={isProgramOpen}
-              title={`${track.name} program`}
-              onClose={() => setIsProgramOpen(false)}
-            >
-              <label className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
-                Program
-                <select
-                  aria-label={`${track.name} program`}
-                  value={track.program}
-                  disabled={programMutation.isPending}
-                  onChange={(event) =>
-                    programMutation.mutate(Number(event.target.value))
-                  }
-                  className="max-w-64 rounded border border-neutral-600 bg-neutral-800 p-1 text-neutral-200"
-                >
-                  {GM_PROGRAMS.map((name, program) => (
-                    <option key={program} value={program}>
-                      {program}: {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </Dialog>
-          </div>,
-          document.body,
-        )}
+            {GM_PROGRAMS.map((name, program) => (
+              <option key={program} value={program}>
+                {program}: {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </PortalDialog>
     </div>
   );
 }
