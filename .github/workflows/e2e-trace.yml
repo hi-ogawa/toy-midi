@@ -1,0 +1,116 @@
+name: E2E trace
+run-name: "E2E trace for PR #${{ inputs.pr }} · ${{ inputs.tests }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number whose head commit to test
+        required: true
+        type: number
+      tests:
+        description: Playwright file filter (for example e2e/recorder-midi.spec.ts)
+        required: true
+        type: string
+      grep:
+        description: Optional Playwright test-title regex
+        default: ".*"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      sha: ${{ steps.pr.outputs.sha }}
+    steps:
+      - uses: actions/github-script@v9
+        id: pr
+        env:
+          PR_NUMBER: ${{ inputs.pr }}
+        with:
+          script: |
+            const pull_number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(pull_number) || pull_number <= 0) {
+              throw new Error("Provide a positive PR number.");
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number,
+            });
+            core.setOutput("sha", pr.head.sha);
+
+  trace:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      artifact-url: ${{ steps.upload.outputs.artifact-url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build-wasm
+      - run: pnpm exec playwright install chromium --with-deps --no-shell
+      - name: Run selected tests with tracing
+        env:
+          E2E_TRACE: "1"
+          TEST_FILTER: ${{ inputs.tests }}
+          TEST_GREP: ${{ inputs.grep }}
+        run: pnpm exec playwright test --grep "$TEST_GREP" -- "$TEST_FILTER"
+      - uses: actions/upload-artifact@v7
+        id: upload
+        if: always() && hashFiles('test-results/trace-pack.html') != ''
+        with:
+          path: test-results/trace-pack.html
+          archive: false
+          retention-days: 7
+
+  report:
+    needs: [resolve, trace]
+    if: always() && needs.resolve.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ inputs.pr }}
+          TEST_FILTER: ${{ inputs.tests }}
+          TEST_GREP: ${{ inputs.grep }}
+          TEST_SHA: ${{ needs.resolve.outputs.sha }}
+          TEST_RESULT: ${{ needs.trace.result }}
+          ARTIFACT_URL: ${{ needs.trace.outputs.artifact-url }}
+        with:
+          script: |
+            const { PR_NUMBER, TEST_FILTER, TEST_GREP, TEST_SHA, TEST_RESULT, ARTIFACT_URL } = process.env;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/attempts/${process.env.GITHUB_RUN_ATTEMPT}`;
+            const commitUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/commit/${TEST_SHA}`;
+            const escape = (value) => value.replace(/[&<>]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[character]);
+            const body = [
+              `### E2E trace · ${TEST_RESULT}`,
+              "",
+              `Commit: [${TEST_SHA.slice(0, 8)}](${commitUrl})`,
+              `Tests: <code>${escape(TEST_FILTER)}</code>`,
+              `Title filter: <code>${escape(TEST_GREP)}</code>`,
+              "",
+              ARTIFACT_URL
+                ? `[View E2E trace](${ARTIFACT_URL}) · [Workflow run](${runUrl})\n\nTrace retained for 7 days.`
+                : `No trace pack was produced. [Workflow run](${runUrl})`,
+            ].join("\n");
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: Number(PR_NUMBER),
+              body,
+            });
+            await core.summary.addRaw(body).write();
