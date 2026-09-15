@@ -13,6 +13,8 @@ type DialogProps = {
 };
 
 export function PortalDialog(props: DialogProps) {
+  // TODO: Move focus into the dialog, trap it, and restore it on close.
+  // Keyboard isolation currently only works while focus is inside the portal.
   if (!props.isOpen) {
     return;
   }

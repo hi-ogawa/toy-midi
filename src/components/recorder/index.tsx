@@ -17,6 +17,10 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
+import {
+  RecorderAudioToMidi,
+  useRecorderAudioToMidiUi,
+} from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
@@ -85,6 +89,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
     onSelect: clipInteraction.clear,
   });
+  const transcriptions = useRecorderAudioToMidiUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -467,7 +472,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
+                  transcriptions.closeTranscription(track.id);
                 }}
+                onTranscribe={() => transcriptions.openTranscription(track.id)}
                 onFocus={() => {
                   clipInteraction.clear();
                   locators.select(undefined);
@@ -712,6 +719,19 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
           </div>
+        )}
+        {state.midiTracks.map(
+          (track) =>
+            transcriptions.openTranscriptions.has(track.id) && (
+              <RecorderAudioToMidi
+                key={track.id}
+                runtime={runtime}
+                state={state}
+                track={track}
+                cellsPerBeat={timeline.subdivisionsPerBeat}
+                onClose={() => transcriptions.closeTranscription(track.id)}
+              />
+            ),
         )}
         {isTunerOpen && (
           <RecorderTuner
