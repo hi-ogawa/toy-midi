@@ -17,7 +17,6 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
-import { RecorderAudioToMidi } from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
@@ -50,7 +49,6 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [transcribeTrackId, setTranscribeTrackId] = useState<string>();
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -62,9 +60,6 @@ export function Recorder({ projectId }: { projectId: string }) {
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
-  );
-  const transcribeTrack = state.midiTracks.find(
-    (track) => track.id === transcribeTrackId,
   );
   const input = useRecorderInput({
     runtime,
@@ -176,13 +171,6 @@ export function Recorder({ projectId }: { projectId: string }) {
       }
       if (matchKeyboardEvent(event, "Ctrl+S")) {
         event.preventDefault();
-      }
-      return;
-    }
-    if (transcribeTrackId) {
-      if (matchKeyboardEvent(event, "Escape")) {
-        event.preventDefault();
-        setTranscribeTrackId(undefined);
       }
       return;
     }
@@ -476,7 +464,6 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 effectsOpen={effects.openEffects.has(track.id)}
                 onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onTranscribe={() => setTranscribeTrackId(track.id)}
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
@@ -640,16 +627,6 @@ export function Recorder({ projectId }: { projectId: string }) {
           </div>
         </section>
 
-        {transcribeTrack && (
-          <RecorderAudioToMidi
-            key={transcribeTrackId}
-            runtime={runtime}
-            state={state}
-            track={transcribeTrack}
-            cellsPerBeat={timeline.subdivisionsPerBeat}
-            onClose={() => setTranscribeTrackId(undefined)}
-          />
-        )}
         <RecorderHelp
           isOpen={isHelpOpen}
           onClose={() => setIsHelpOpen(false)}

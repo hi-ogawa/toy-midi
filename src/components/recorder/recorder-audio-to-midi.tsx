@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
@@ -8,25 +8,26 @@ import {
 import type {
   MidiTrackState,
   RecorderRuntime,
-  RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
+import { PortalDialog } from "../ui/dialog";
 import { Slider } from "../ui/slider";
 
 export function RecorderAudioToMidi({
   runtime,
-  state,
   track,
   cellsPerBeat,
   onClose,
 }: {
   runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
   track: MidiTrackState;
   cellsPerBeat: number;
   onClose: () => void;
 }) {
+  const state = useSyncExternalStore(
+    runtime.store.subscribe,
+    runtime.store.get,
+  );
   const sources = [
     ...state.audioTracks.map((source, index) => ({
       track: source,
@@ -73,7 +74,7 @@ export function RecorderAudioToMidi({
           : "";
 
   return (
-    <Dialog
+    <PortalDialog
       isOpen
       onClose={onClose}
       title={`Audio to MIDI · ${track.name}`}
@@ -201,6 +202,6 @@ export function RecorderAudioToMidi({
           {status}
         </p>
       </div>
-    </Dialog>
+    </PortalDialog>
   );
 }

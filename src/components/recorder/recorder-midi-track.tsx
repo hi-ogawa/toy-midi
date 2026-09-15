@@ -37,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderAudioToMidi } from "./recorder-audio-to-midi";
 import { TrackRow } from "./recorder-tracks";
 
 const KEY_HEIGHT = 18;
@@ -52,7 +53,6 @@ export function MidiTrackRow({
   effectsOpen,
   onEffectsToggle,
   onRemove,
-  onTranscribe,
   onFocus,
 }: {
   track: MidiTrackState;
@@ -64,9 +64,9 @@ export function MidiTrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
-  onTranscribe: () => void;
   onFocus: () => void;
 }) {
+  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
   const [isProgramOpen, setIsProgramOpen] = useState(false);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
@@ -76,6 +76,7 @@ export function MidiTrackRow({
     <div onFocus={onFocus}>
       <TrackRow
         data-testid="recorder-midi-track-row"
+        // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
         title={track.name}
         height={track.height}
@@ -92,7 +93,7 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             onRemove={onRemove}
-            onTranscribe={onTranscribe}
+            onTranscribe={() => setIsTranscribeOpen(true)}
             onProgramSelect={() => setIsProgramOpen(true)}
           />
         }
@@ -118,6 +119,14 @@ export function MidiTrackRow({
           onValueChange={(program) => programMutation.mutate(program)}
         />
       </PortalDialog>
+      {isTranscribeOpen && (
+        <RecorderAudioToMidi
+          runtime={runtime}
+          track={track}
+          cellsPerBeat={subdivisionsPerBeat}
+          onClose={() => setIsTranscribeOpen(false)}
+        />
+      )}
     </div>
   );
 }
