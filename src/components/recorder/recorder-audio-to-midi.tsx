@@ -90,16 +90,6 @@ export function RecorderAudioToMidi({
       if (!target) {
         throw new Error("The destination MIDI track was removed.");
       }
-      if (current.tempo !== state.tempo) {
-        throw new Error(
-          "The project tempo changed. Convert again with the new tempo.",
-        );
-      }
-      if (mode === "replace" && target.notes !== destination.notes) {
-        throw new Error(
-          "The MIDI notes changed during conversion. Convert again to replace them.",
-        );
-      }
       if (notes.length > 0) {
         runtime.setMidiTrackNotes(
           track.id,
@@ -180,7 +170,7 @@ export function RecorderAudioToMidi({
           {mode === "replace" && track.notes.length > 0 && (
             <p className="text-xs text-amber-300">
               A successful conversion replaces {track.notes.length} existing
-              notes. Undo is not available yet.
+              notes.
             </p>
           )}
           <div className="space-y-2">
