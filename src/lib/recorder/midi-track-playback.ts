@@ -117,12 +117,7 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   private schedule(): void {
     const anchor = this.transport.playbackAnchor!;
-    const contextTime = Math.max(
-      this.transport.context.currentTime,
-      anchor.contextTime,
-    );
-    const position =
-      this.transport.getPlaybackPositionByContextTime(contextTime);
+    const position = this.transport.getPublishedPlaybackPosition();
     const windowEnd =
       position + SCHEDULE_AHEAD_SECONDS * this.transport.playbackRate;
     while (this.nextNoteIndex < this.notes.length) {
