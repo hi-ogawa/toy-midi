@@ -316,15 +316,6 @@ function MidiTrackEditor({
     }
   }
 
-  const grid = getTimelineGridBackground({
-    beatsPerBar,
-    pixelsPerBeat,
-    viewportStartBeat,
-    subdivisionsPerBeat,
-    minimumPixelSpacing: 8,
-    colors: { bar: "#737373", beat: "#454545", subdivision: "#303030" },
-  });
-
   return (
     <div
       onBlur={handleBlur}
@@ -370,7 +361,21 @@ function MidiTrackEditor({
               }}
             />
           ))}
-          <div className="pointer-events-none absolute inset-0" style={grid} />
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={getTimelineGridBackground({
+              beatsPerBar,
+              pixelsPerBeat,
+              viewportStartBeat,
+              subdivisionsPerBeat,
+              minimumPixelSpacing: 8,
+              colors: {
+                bar: "#737373",
+                beat: "#454545",
+                subdivision: "#303030",
+              },
+            })}
+          />
           {track.notes.map((note) => (
             <div
               key={note.id}
