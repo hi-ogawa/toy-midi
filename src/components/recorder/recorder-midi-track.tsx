@@ -189,9 +189,10 @@ function MidiTrackEditor({
     previewMutation.mutate(pitch, { onError: stopPreview });
   }
 
-  useWindowEvent("pointerup", stopPreview);
-  useWindowEvent("pointercancel", stopPreview);
+  // Pointer capture handles release and cancellation. Also stop when the app loses focus.
   useWindowEvent("blur", stopPreview);
+
+  // Stop a held note if the editor unmounts or switches to another track/runtime.
   useEffect(
     () => () => {
       if (previewPitch.current !== undefined) {
