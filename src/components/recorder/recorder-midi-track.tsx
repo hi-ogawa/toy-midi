@@ -9,7 +9,6 @@ import {
   type FocusEvent,
   type KeyboardEvent,
 } from "react";
-import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import {
   isShortcutTextInputTarget,
@@ -179,15 +178,15 @@ function MidiTrackEditor({
     }
   }
 
+  const previewMutation = useMutation({
+    mutationFn: (pitch: number) =>
+      runtime.startMidiNotePreview({ id: track.id, pitch }),
+  });
+
   function startPreview(pitch: number) {
     stopPreview();
     previewPitch.current = pitch;
-    void runtime
-      .startMidiNotePreview({ id: track.id, pitch })
-      .catch((error: Error) => {
-        stopPreview();
-        toast.error(error.message);
-      });
+    previewMutation.mutate(pitch, { onError: stopPreview });
   }
 
   useWindowEvent("pointerup", stopPreview);
