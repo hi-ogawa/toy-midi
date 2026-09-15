@@ -46,15 +46,106 @@ export function MidiTrackRow({
   onFocus: () => void;
 }) {
   const [isProgramOpen, setIsProgramOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string>();
-  const selected = track.notes.find((note) => note.id === selectedId);
-  const previewPitch = useRef<number | undefined>(undefined);
-  const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
     onError: (error) => toast.error(error.message),
   });
+  return (
+    <div onFocus={onFocus}>
+      <TrackRow
+        data-testid="recorder-midi-track-row"
+        title={track.name}
+        height={Math.max(180, track.height)}
+        gain={track.gain}
+        muted={track.muted}
+        soloed={track.soloed}
+        effectsOpen={effectsOpen}
+        onEffectsToggle={onEffectsToggle}
+        onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+        onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
+        onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
+        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
+        action={
+          <MidiTrackActions
+            label={track.name}
+            onRemove={onRemove}
+            onProgramSelect={() => setIsProgramOpen(true)}
+          />
+        }
+      >
+        <MidiTrackEditor
+          track={track}
+          runtime={runtime}
+          height={Math.max(180, track.height) - 72}
+          pixelsPerBeat={pixelsPerBeat}
+          beatsPerBar={beatsPerBar}
+          subdivisionsPerBeat={subdivisionsPerBeat}
+          viewportStartBeat={viewportStartBeat}
+        />
+      </TrackRow>
+      {isProgramOpen &&
+        createPortal(
+          <div
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === "Escape") {
+                setIsProgramOpen(false);
+              }
+            }}
+          >
+            <Dialog
+              isOpen={isProgramOpen}
+              title={`${track.name} program`}
+              onClose={() => setIsProgramOpen(false)}
+            >
+              <label className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
+                Program
+                <select
+                  aria-label={`${track.name} program`}
+                  value={track.program}
+                  disabled={programMutation.isPending}
+                  onChange={(event) =>
+                    programMutation.mutate(Number(event.target.value))
+                  }
+                  className="max-w-64 rounded border border-neutral-600 bg-neutral-800 p-1 text-neutral-200"
+                >
+                  {GM_PROGRAMS.map((name, program) => (
+                    <option key={program} value={program}>
+                      {program}: {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </Dialog>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
+function MidiTrackEditor({
+  track,
+  runtime,
+  height,
+  pixelsPerBeat,
+  beatsPerBar,
+  subdivisionsPerBeat,
+  viewportStartBeat,
+}: {
+  track: MidiTrackState;
+  runtime: RecorderRuntime;
+  height: number;
+  pixelsPerBeat: number;
+  beatsPerBar: number;
+  subdivisionsPerBeat: number;
+  viewportStartBeat: number;
+}) {
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = track.notes.find((note) => note.id === selectedId);
+  const previewPitch = useRef<number | undefined>(undefined);
+  const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
 
   function stopPreview() {
     if (previewPitch.current !== undefined) {
@@ -135,7 +226,6 @@ export function MidiTrackRow({
 
   return (
     <div
-      onFocus={onFocus}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
           stopPreview();
@@ -158,210 +248,144 @@ export function MidiTrackRow({
           setSelectedId(undefined);
         }
       }}
+      ref={scrollRef}
+      className="col-span-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
+      style={{ height }}
+      data-testid="recorder-midi-pitch-scroll"
     >
-      <TrackRow
-        data-testid="recorder-midi-track-row"
-        title={track.name}
-        height={Math.max(180, track.height)}
-        gain={track.gain}
-        muted={track.muted}
-        soloed={track.soloed}
-        effectsOpen={effectsOpen}
-        onEffectsToggle={onEffectsToggle}
-        onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-        onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
-        onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
-        onHeightChange={(height) => runtime.setTrackHeight(track.id, height)}
-        action={
-          <MidiTrackActions
-            label={track.name}
-            onRemove={onRemove}
-            onProgramSelect={() => setIsProgramOpen(true)}
-          />
-        }
+      <div
+        className="grid grid-cols-[15rem_minmax(0,1fr)]"
+        style={{ height: 128 * KEY_HEIGHT }}
       >
-        <div
-          ref={scrollRef}
-          className="col-span-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
-          style={{ height: Math.max(180, track.height) - 72 }}
-          data-testid="recorder-midi-pitch-scroll"
-        >
-          <div
-            className="grid grid-cols-[15rem_minmax(0,1fr)]"
-            style={{ height: 128 * KEY_HEIGHT }}
-          >
-            <div className="relative border-r border-neutral-600 bg-neutral-900">
-              {PITCHES.map((pitch) => (
-                <button
-                  key={pitch}
-                  type="button"
-                  aria-label={`Preview ${formatChromaticPitch(pitch)}`}
-                  className={cn(
-                    "absolute right-0 border-b border-neutral-500 pr-2 text-right text-[10px] active:bg-violet-400",
-                    isBlackKey(pitch)
-                      ? "w-12 bg-neutral-800 text-neutral-300"
-                      : "w-16 bg-neutral-200 text-neutral-800",
-                  )}
-                  style={{
-                    top: (127 - pitch) * KEY_HEIGHT,
-                    height: KEY_HEIGHT,
-                  }}
-                  onPointerDown={(event) => {
-                    if (event.button === 0) {
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                      startPreview(pitch);
-                    }
-                  }}
-                  onLostPointerCapture={stopPreview}
-                  onKeyDown={(event) => {
-                    if (event.key === " " || event.key === "Enter") {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (!event.repeat) {
-                        startPreview(pitch);
-                      }
-                    }
-                  }}
-                  onKeyUp={(event) => {
-                    if (event.key === " " || event.key === "Enter") {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      stopPreview();
-                    }
-                  }}
-                >
-                  {formatChromaticPitch(pitch)}
-                </button>
-              ))}
-            </div>
-            <div
-              data-testid="recorder-midi-grid"
-              role="group"
-              aria-label={`${track.name} notes`}
-              tabIndex={0}
-              onLostPointerCapture={stopPreview}
-              className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-violet-400"
+        <div className="relative border-r border-neutral-600 bg-neutral-900">
+          {PITCHES.map((pitch) => (
+            <button
+              key={pitch}
+              type="button"
+              aria-label={`Preview ${formatChromaticPitch(pitch)}`}
+              className={cn(
+                "absolute right-0 border-b border-neutral-500 pr-2 text-right text-[10px] active:bg-violet-400",
+                isBlackKey(pitch)
+                  ? "w-12 bg-neutral-800 text-neutral-300"
+                  : "w-16 bg-neutral-200 text-neutral-800",
+              )}
+              style={{
+                top: (127 - pitch) * KEY_HEIGHT,
+                height: KEY_HEIGHT,
+              }}
               onPointerDown={(event) => {
-                if (event.button !== 0) {
-                  return;
+                if (event.button === 0) {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  startPreview(pitch);
                 }
-                event.preventDefault();
-                event.currentTarget.setPointerCapture(event.pointerId);
-                event.currentTarget.focus({ preventScroll: true });
-                const target = (
-                  event.target as HTMLElement
-                ).closest<HTMLElement>("[data-note-id]");
-                const existing = track.notes.find(
-                  (note) => note.id === target?.dataset.noteId,
-                );
-                if (existing) {
-                  setSelectedId(existing.id);
-                  startPreview(existing.pitch);
-                  return;
+              }}
+              onLostPointerCapture={stopPreview}
+              onKeyDown={(event) => {
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (!event.repeat) {
+                    startPreview(pitch);
+                  }
                 }
-                const rect = event.currentTarget.getBoundingClientRect();
-                const pitch = clampPitch(
-                  127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
-                );
-                const beat =
-                  viewportStartBeat +
-                  (event.clientX - rect.left) / pixelsPerBeat;
-                const note = {
-                  id: crypto.randomUUID(),
-                  pitch,
-                  start: Math.max(
-                    0,
-                    snapToGrid(beat, 1 / subdivisionsPerBeat, {
-                      floor: true,
-                    }),
-                  ),
-                  duration: 1 / subdivisionsPerBeat,
-                  velocity: 100,
-                };
-                runtime.setMidiTrackNotes(track.id, [...track.notes, note]);
-                setSelectedId(note.id);
-                startPreview(pitch);
+              }}
+              onKeyUp={(event) => {
+                if (event.key === " " || event.key === "Enter") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  stopPreview();
+                }
               }}
             >
-              {PITCHES.map((pitch) => (
-                <div
-                  key={pitch}
-                  className={cn(
-                    "pointer-events-none absolute inset-x-0 border-b border-neutral-800",
-                    isBlackKey(pitch) ? "bg-neutral-950" : "bg-neutral-900",
-                  )}
-                  style={{
-                    top: (127 - pitch) * KEY_HEIGHT,
-                    height: KEY_HEIGHT,
-                  }}
-                />
-              ))}
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={grid}
-              />
-              {track.notes.map((note) => (
-                <div
-                  key={note.id}
-                  data-note-id={note.id}
-                  aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
-                  className={cn(
-                    "absolute cursor-pointer overflow-hidden rounded-sm border px-1 text-[10px] text-violet-100",
-                    selectedId === note.id
-                      ? "border-violet-100 bg-violet-500"
-                      : "border-violet-400 bg-violet-700",
-                  )}
-                  style={{
-                    left: (note.start - viewportStartBeat) * pixelsPerBeat,
-                    top: (127 - note.pitch) * KEY_HEIGHT + 1,
-                    width: Math.max(2, note.duration * pixelsPerBeat),
-                    height: KEY_HEIGHT - 2,
-                  }}
-                >
-                  {formatChromaticPitch(note.pitch)}
-                </div>
-              ))}
-            </div>
-          </div>
+              {formatChromaticPitch(pitch)}
+            </button>
+          ))}
         </div>
-      </TrackRow>
-      {isProgramOpen &&
-        createPortal(
-          <div
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Escape") {
-                setIsProgramOpen(false);
-              }
-            }}
-          >
-            <Dialog
-              isOpen={isProgramOpen}
-              title={`${track.name} program`}
-              onClose={() => setIsProgramOpen(false)}
+        <div
+          data-testid="recorder-midi-grid"
+          role="group"
+          aria-label={`${track.name} notes`}
+          tabIndex={0}
+          onLostPointerCapture={stopPreview}
+          className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-violet-400"
+          onPointerDown={(event) => {
+            if (event.button !== 0) {
+              return;
+            }
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.currentTarget.focus({ preventScroll: true });
+            const target = (event.target as HTMLElement).closest<HTMLElement>(
+              "[data-note-id]",
+            );
+            const existing = track.notes.find(
+              (note) => note.id === target?.dataset.noteId,
+            );
+            if (existing) {
+              setSelectedId(existing.id);
+              startPreview(existing.pitch);
+              return;
+            }
+            const rect = event.currentTarget.getBoundingClientRect();
+            const pitch = clampPitch(
+              127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
+            );
+            const beat =
+              viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
+            const note = {
+              id: crypto.randomUUID(),
+              pitch,
+              start: Math.max(
+                0,
+                snapToGrid(beat, 1 / subdivisionsPerBeat, {
+                  floor: true,
+                }),
+              ),
+              duration: 1 / subdivisionsPerBeat,
+              velocity: 100,
+            };
+            runtime.setMidiTrackNotes(track.id, [...track.notes, note]);
+            setSelectedId(note.id);
+            startPreview(pitch);
+          }}
+        >
+          {PITCHES.map((pitch) => (
+            <div
+              key={pitch}
+              className={cn(
+                "pointer-events-none absolute inset-x-0 border-b border-neutral-800",
+                isBlackKey(pitch) ? "bg-neutral-950" : "bg-neutral-900",
+              )}
+              style={{
+                top: (127 - pitch) * KEY_HEIGHT,
+                height: KEY_HEIGHT,
+              }}
+            />
+          ))}
+          <div className="pointer-events-none absolute inset-0" style={grid} />
+          {track.notes.map((note) => (
+            <div
+              key={note.id}
+              data-note-id={note.id}
+              aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
+              className={cn(
+                "absolute cursor-pointer overflow-hidden rounded-sm border px-1 text-[10px] text-violet-100",
+                selectedId === note.id
+                  ? "border-violet-100 bg-violet-500"
+                  : "border-violet-400 bg-violet-700",
+              )}
+              style={{
+                left: (note.start - viewportStartBeat) * pixelsPerBeat,
+                top: (127 - note.pitch) * KEY_HEIGHT + 1,
+                width: Math.max(2, note.duration * pixelsPerBeat),
+                height: KEY_HEIGHT - 2,
+              }}
             >
-              <label className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
-                Program
-                <select
-                  aria-label={`${track.name} program`}
-                  value={track.program}
-                  disabled={programMutation.isPending}
-                  onChange={(event) =>
-                    programMutation.mutate(Number(event.target.value))
-                  }
-                  className="max-w-64 rounded border border-neutral-600 bg-neutral-800 p-1 text-neutral-200"
-                >
-                  {GM_PROGRAMS.map((name, program) => (
-                    <option key={program} value={program}>
-                      {program}: {name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </Dialog>
-          </div>,
-          document.body,
-        )}
+              {formatChromaticPitch(note.pitch)}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
