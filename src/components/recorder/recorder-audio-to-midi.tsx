@@ -64,20 +64,18 @@ export function RecorderAudioToMidi({
     DEFAULT_GRID_SPLIT_THRESHOLD,
   );
   const [progress, setProgress] = useState(0);
-  const controllerRef = useRef<AbortController>(undefined);
-  const [isCancelled, setIsCancelled] = useState(false);
-  useEffect(() => () => controllerRef.current?.abort(), []);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
-  function cancelConversion() {
-    controllerRef.current?.abort();
-    setIsCancelled(true);
-  }
-
+  // TODO: Support worker cancellation before adding Cancel so retries can start
+  // immediately instead of waiting behind the cancelled computation.
   const transcribeMutation = useMutation({
     mutationFn: async () => {
-      const controller = new AbortController();
-      controllerRef.current = controller;
-      const { signal } = controller;
       const state = runtime.store.get();
       const destination = state.midiTracks.find(
         (candidate) => candidate.id === track.id,
@@ -88,63 +86,47 @@ export function RecorderAudioToMidi({
       if (!destination || !source) {
         throw new Error("The source or destination track is missing.");
       }
-      // Settle immediately on cancel even though the worker may still be running.
-      const cancelled = Promise.withResolvers<undefined>();
-      const onAbort = () => cancelled.resolve(undefined);
-      signal.addEventListener("abort", onAbort, { once: true });
-      try {
-        const notes = await Promise.race([
-          transcribeRecorderAudio({
-            sources: getClipSources(source.regions),
-            tempo: state.tempo,
-            cellsPerBeat,
-            activityDb,
-            splitThreshold,
-            onProgress: (progress) => {
-              if (!signal.aborted) {
-                setProgress(progress);
-              }
-            },
-          }),
-          cancelled.promise,
-        ]);
-        if (signal.aborted || notes === undefined) {
-          return;
-        }
-        const current = runtime.store.get();
-        const target = current.midiTracks.find(
-          (candidate) => candidate.id === track.id,
-        );
-        if (!target) {
-          throw new Error("The destination MIDI track was removed.");
-        }
-        if (notes.length > 0) {
-          runtime.setMidiTrackNotes(track.id, notes);
-        }
-        return notes.length;
-      } finally {
-        signal.removeEventListener("abort", onAbort);
+      const notes = await transcribeRecorderAudio({
+        sources: getClipSources(source.regions),
+        tempo: state.tempo,
+        cellsPerBeat,
+        activityDb,
+        splitThreshold,
+        onProgress: (progress) => {
+          if (mounted.current) {
+            setProgress(progress);
+          }
+        },
+      });
+      if (!mounted.current) {
+        return;
       }
+      const current = runtime.store.get();
+      const target = current.midiTracks.find(
+        (candidate) => candidate.id === track.id,
+      );
+      if (!target) {
+        throw new Error("The destination MIDI track was removed.");
+      }
+      if (notes.length > 0) {
+        runtime.setMidiTrackNotes(track.id, notes);
+      }
+      return notes.length;
     },
-    onMutate: () => {
-      setProgress(0);
-      setIsCancelled(false);
-    },
+    onMutate: () => setProgress(0),
   });
 
   useEffect(() => bassPitchClient.warmUp(), []);
 
-  const status = isCancelled
-    ? "Cancelled."
-    : transcribeMutation.isPending
-      ? `Converting ${Math.round(progress * 100)}%`
-      : transcribeMutation.error
-        ? transcribeMutation.error.message
-        : transcribeMutation.data === 0
-          ? "No notes detected. Existing notes were kept. Try lowering the activity threshold."
-          : transcribeMutation.data !== undefined
-            ? `Created ${transcribeMutation.data} notes in ${track.name}.`
-            : "A successful conversion replaces all existing notes in this MIDI track.";
+  const status = transcribeMutation.isPending
+    ? `Converting ${Math.round(progress * 100)}%`
+    : transcribeMutation.error
+      ? transcribeMutation.error.message
+      : transcribeMutation.data === 0
+        ? "No notes detected. Existing notes were kept. Try lowering the activity threshold."
+        : transcribeMutation.data !== undefined
+          ? `Created ${transcribeMutation.data} notes in ${track.name}.`
+          : "A successful conversion replaces all existing notes in this MIDI track.";
 
   return (
     <RecorderPanel
@@ -227,22 +209,16 @@ export function RecorderAudioToMidi({
               Load audio or record a take before converting.
             </p>
           )}
-          {transcribeMutation.isPending ? (
-            <Button
-              className="h-9 w-full px-3 text-sm"
-              onClick={cancelConversion}
-            >
-              Cancel
-            </Button>
-          ) : (
-            <Button
-              className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-              disabled={!sources.some(({ track }) => track.id === sourceId)}
-              onClick={() => transcribeMutation.mutate()}
-            >
-              Convert to MIDI
-            </Button>
-          )}
+          <Button
+            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+            disabled={
+              transcribeMutation.isPending ||
+              !sources.some(({ track }) => track.id === sourceId)
+            }
+            onClick={() => transcribeMutation.mutate()}
+          >
+            {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
+          </Button>
           <p
             role="status"
             className="flex min-h-4 items-start gap-1.5 text-xs text-neutral-400"
