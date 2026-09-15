@@ -69,6 +69,7 @@ export function MidiTrackRow({
     <div onFocus={onFocus}>
       <TrackRow
         data-testid="recorder-midi-track-row"
+        // Keep controls at their content height so the piano keyboard shows below.
         controlsClassName="h-fit"
         title={track.name}
         height={track.height}
