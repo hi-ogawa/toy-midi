@@ -163,10 +163,10 @@ function MidiTrackEditor({
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
-  const [selectedId, setSelectedId] = useState<string>();
-  const selected = track.notes.find((note) => note.id === selectedId);
   const previewPitch = useRef<number | undefined>(undefined);
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
+  const [selectedId, setSelectedId] = useState<string>();
+  const selected = track.notes.find((note) => note.id === selectedId);
 
   function stopPreview() {
     if (previewPitch.current !== undefined) {
