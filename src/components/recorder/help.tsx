@@ -1,4 +1,5 @@
-import { Dialog } from "../ui/dialog";
+import type { ReactNode } from "react";
+import { DialogRoot, DialogTrigger, DialogContent } from "../ui/dialog";
 
 type HelpSectionData = {
   title: string;
@@ -62,28 +63,20 @@ const sections: HelpSectionData[] = [
   },
 ];
 
-export function RecorderHelp({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export function RecorderHelp({ trigger }: { trigger: ReactNode }) {
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Recorder quick reference"
-      size="wide"
-    >
-      <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
-        <div className="columns-2 gap-10">
-          {sections.map((section) => (
-            <HelpSection key={section.title} section={section} />
-          ))}
+    <DialogRoot>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent title="Recorder quick reference" size="wide">
+        <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
+          <div className="columns-2 gap-10">
+            {sections.map((section) => (
+              <HelpSection key={section.title} section={section} />
+            ))}
+          </div>
         </div>
-      </div>
-    </Dialog>
+      </DialogContent>
+    </DialogRoot>
   );
 }
 
