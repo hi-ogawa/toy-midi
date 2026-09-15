@@ -329,7 +329,7 @@ function MidiTrackEditor({
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
         style={{ height: 128 * KEY_HEIGHT }}
       >
-        <div className="relative border-r border-neutral-600 bg-neutral-900">
+        <div className="relative border-r border-neutral-700 bg-neutral-900">
           {PITCHES.map((pitch) => (
             <MidiPianoKey
               key={pitch}
@@ -346,7 +346,7 @@ function MidiTrackEditor({
           tabIndex={0}
           onPointerDown={handleGridPointerDown}
           onLostPointerCapture={stopPreview}
-          className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-violet-400"
+          className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-400"
         >
           {PITCHES.map((pitch) => (
             <MidiGridRow key={pitch} pitch={pitch} />
@@ -360,9 +360,9 @@ function MidiTrackEditor({
               subdivisionsPerBeat,
               minimumPixelSpacing: 8,
               colors: {
-                bar: "#737373",
-                beat: "#454545",
-                subdivision: "#303030",
+                bar: "#525252",
+                beat: "#404040",
+                subdivision: "#333333",
               },
             })}
           />
@@ -395,10 +395,15 @@ function MidiPianoKey({
       type="button"
       aria-label={`Preview ${formatChromaticPitch(pitch)}`}
       className={cn(
-        "absolute right-0 border-b border-neutral-500 pr-2 text-right text-[10px] active:bg-violet-400",
+        "absolute right-0 w-[50px] cursor-pointer border-b pr-2 text-right text-xs hover:brightness-110",
         isBlackKey(pitch)
-          ? "w-12 bg-neutral-800 text-neutral-300"
-          : "w-16 bg-neutral-200 text-neutral-800",
+          ? "border-neutral-700 bg-neutral-800"
+          : cn(
+              "bg-neutral-300 text-neutral-600",
+              pitch % 12 === 0 || pitch % 12 === 5
+                ? "border-neutral-500"
+                : "border-neutral-400",
+            ),
       )}
       style={{
         top: (127 - pitch) * KEY_HEIGHT,
@@ -412,7 +417,7 @@ function MidiPianoKey({
       }}
       onLostPointerCapture={onPreviewStop}
     >
-      {formatChromaticPitch(pitch)}
+      {pitch % 12 === 0 ? formatChromaticPitch(pitch) : ""}
     </button>
   );
 }
@@ -421,8 +426,9 @@ function MidiGridRow({ pitch }: { pitch: number }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 border-b border-neutral-800",
-        isBlackKey(pitch) ? "bg-neutral-950" : "bg-neutral-900",
+        "pointer-events-none absolute inset-x-0 border-t",
+        pitch % 12 === 11 ? "border-[#666666]" : "border-[#333333]",
+        isBlackKey(pitch) ? "bg-[#111111]" : "bg-[#1a1a1a]",
       )}
       style={{
         top: (127 - pitch) * KEY_HEIGHT,
@@ -448,10 +454,10 @@ function MidiNote({
       data-note-id={note.id}
       aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
       className={cn(
-        "absolute cursor-pointer rounded-sm border",
+        "absolute cursor-pointer rounded-sm border border-[#2563eb]",
         selected
-          ? "border-violet-100 bg-violet-500"
-          : "border-violet-400 bg-violet-700",
+          ? "bg-[#60a5fa] outline-2 -outline-offset-2 outline-[#dbeafe]"
+          : "bg-[#3b82f6]",
       )}
       style={{
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
