@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { CheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
@@ -222,7 +223,17 @@ export function RecorderAudioToMidi({
           >
             {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
           </Button>
-          <p role="status" className="min-h-4 text-xs text-neutral-400">
+          <p
+            role="status"
+            className="flex min-h-4 items-start gap-1.5 text-xs text-neutral-400"
+          >
+            {transcribeMutation.isSuccess &&
+              (transcribeMutation.data ?? 0) > 0 && (
+                <CheckIcon
+                  aria-hidden="true"
+                  className="size-4 shrink-0 text-emerald-400"
+                />
+              )}
             {status}
           </p>
         </section>
