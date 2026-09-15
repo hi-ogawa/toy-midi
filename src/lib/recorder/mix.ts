@@ -89,14 +89,14 @@ export async function renderAudioSources(
   const regions = sources.filter(
     (source) => source.timelineEnd > Math.max(0, source.timelineStart),
   );
-  if (regions.length === 0) {
-    throw new Error("No audio to render.");
-  }
   let offset = Infinity;
   let end = 0;
   for (const region of regions) {
     offset = Math.min(offset, Math.max(0, region.timelineStart));
     end = Math.max(end, region.timelineEnd);
+  }
+  if (end <= offset) {
+    throw new Error("No audio to render.");
   }
   const sampleRate = regions[0]!.buffer.sampleRate;
   const context = new OfflineAudioContext(
