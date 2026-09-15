@@ -204,15 +204,17 @@ function MidiTrackEditor({
     [runtime, track.id],
   );
 
-  // Vertical wheel scrolling belongs to pitches. Horizontal scrolling and Ctrl
-  // zoom continue to the shared timeline handler.
   const scrollRef = useCallback(
     (element: HTMLDivElement | null) => {
       if (!element) {
         return;
       }
+      // Center the initial pitch when the scroll container mounts.
       element.scrollTop =
         (127 - initialPitch) * KEY_HEIGHT - element.clientHeight / 2;
+
+      // Keep native vertical pitch scrolling local. Let horizontal gestures,
+      // Shift+wheel, and Ctrl+wheel reach the timeline for navigation and zoom.
       const handleWheel = (event: WheelEvent) => {
         if (!event.ctrlKey && !event.shiftKey && event.deltaX === 0) {
           event.stopPropagation();
