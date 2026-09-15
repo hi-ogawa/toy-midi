@@ -431,22 +431,6 @@ function MidiPianoKey({
         }
       }}
       onLostPointerCapture={onPreviewStop}
-      onKeyDown={(event) => {
-        if (event.key === " " || event.key === "Enter") {
-          event.preventDefault();
-          event.stopPropagation();
-          if (!event.repeat) {
-            onPreviewStart(pitch);
-          }
-        }
-      }}
-      onKeyUp={(event) => {
-        if (event.key === " " || event.key === "Enter") {
-          event.preventDefault();
-          event.stopPropagation();
-          onPreviewStop();
-        }
-      }}
     >
       {formatChromaticPitch(pitch)}
     </button>
