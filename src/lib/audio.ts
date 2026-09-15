@@ -79,7 +79,7 @@ class AudioManager {
     this.masterChannel = new Tone.Channel(0).toDestination();
 
     // OxiSynth (Rust/WASM) for SF2 playback
-    this.midiSynth = new OxiSynthSynth(context);
+    this.midiSynth = new OxiSynthSynth(context.rawContext as AudioContext);
     await this.midiSynth.init({
       workletUrl: oxisynthWorkletUrl,
       wasmUrl: oxisynthWasmUrl,
@@ -92,7 +92,7 @@ class AudioManager {
 
     // Connect synth output to Channel for volume control
     this.midiChannel = new Tone.Channel(0).connect(this.masterChannel);
-    this.midiSynth.output.connect(this.midiChannel);
+    Tone.connect(this.midiSynth.output, this.midiChannel);
 
     this.midiPart = new Tone.Part<{ pitch: number; duration: number }[]>(
       (time, event) => {

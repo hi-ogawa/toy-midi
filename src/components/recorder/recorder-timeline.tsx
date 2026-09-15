@@ -1,5 +1,6 @@
 import {
   LoaderCircleIcon,
+  Music2Icon,
   MoreVerticalIcon,
   PlusIcon,
   UploadIcon,
@@ -13,6 +14,7 @@ import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
 import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
 import type {
+  MidiTrackState,
   RecorderRuntimeState,
   RecorderLoopRange,
   RecorderLoopState,
@@ -50,8 +52,10 @@ export function TimelineHeader({
   tempo,
   timelineWidth,
   isAddingAudio,
+  isAddingMidi,
   subdivisionsPerBeat,
   onAddAudioTrack,
+  onAddMidiTrack,
   onAddAudioFile,
   onSeek,
   loop,
@@ -67,8 +71,10 @@ export function TimelineHeader({
   tempo: number;
   timelineWidth: number;
   isAddingAudio: boolean;
+  isAddingMidi: boolean;
   subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
+  onAddMidiTrack: () => void;
   onAddAudioFile: (file: File) => void;
   onSeek: (position: number) => void;
   loop: RecorderLoopState;
@@ -84,6 +90,15 @@ export function TimelineHeader({
         <span>Tracks</span>
         <div className="flex-1" />
         <div className="flex gap-1">
+          <Button
+            data-testid="recorder-add-midi-track"
+            onClick={onAddMidiTrack}
+            disabled={isAddingMidi}
+            className="size-7 hover:bg-neutral-700"
+            title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
+          >
+            <Music2Icon className="size-3.5" />
+          </Button>
           <Button
             onClick={onAddAudioTrack}
             disabled={isAddingAudio}
@@ -611,6 +626,58 @@ export function AudioTimelineLane({
           />
         );
       })}
+    </div>
+  );
+}
+
+export function MidiTimelineLane({
+  beatsPerBar,
+  notes,
+  pixelsPerBeat,
+  viewportStartBeat,
+  subdivisionsPerBeat,
+  tempo,
+  onSeek,
+}: {
+  beatsPerBar: number;
+  notes: MidiTrackState["notes"];
+  pixelsPerBeat: number;
+  viewportStartBeat: number;
+  subdivisionsPerBeat: number;
+  tempo: number;
+  onSeek: (position: number) => void;
+}) {
+  const pitches = notes.map((note) => note.pitch);
+  const minPitch = Math.min(...pitches);
+  const maxPitch = Math.max(...pitches);
+  const pitchRange = Math.max(1, maxPitch - minPitch + 1);
+  return (
+    <div
+      className="relative overflow-hidden bg-neutral-900"
+      {...getTimelineSurfaceProps({
+        beatsPerBar,
+        onSeek,
+        pixelsPerBeat,
+        tempo,
+        viewportStartBeat,
+        subdivisionsPerBeat,
+      })}
+    >
+      {notes.map((note) => (
+        <div
+          key={note.id}
+          className="pointer-events-none absolute min-w-px rounded-sm bg-violet-400/75"
+          style={{
+            left: (note.start - viewportStartBeat) * pixelsPerBeat,
+            top: `${8 + ((maxPitch - note.pitch) / pitchRange) * 32}%`,
+            width: Math.max(2, note.duration * pixelsPerBeat),
+            height: `${Math.max(8, 40 / pitchRange)}%`,
+          }}
+        />
+      ))}
+      <div className="pointer-events-none absolute inset-0 grid place-items-center text-xs text-neutral-500">
+        Piano roll coming soon
+      </div>
     </div>
   );
 }

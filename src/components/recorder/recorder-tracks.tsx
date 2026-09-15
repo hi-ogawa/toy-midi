@@ -64,8 +64,36 @@ export function AudioTrackActions({
   );
 }
 
+export function MidiTrackActions({
+  label,
+  onRemove,
+}: {
+  label: string;
+  onRemove: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
+          title={`${label} actions`}
+        >
+          <MoreVerticalIcon className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
+          <Trash2Icon />
+          Remove track
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function TrackRow({
   title,
+  testId = "recorder-audio-track-row",
   height,
   gain,
   muted,
@@ -80,6 +108,7 @@ export function TrackRow({
   children,
 }: {
   title: string;
+  testId?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -104,7 +133,7 @@ export function TrackRow({
   });
   return (
     <div
-      data-testid="recorder-audio-track-row"
+      data-testid={testId}
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
