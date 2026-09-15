@@ -379,9 +379,6 @@ export class RecorderRuntime {
     });
     this.syncTrackMix();
     playback.setTempo(this.store.get().tempo);
-    if (this.transport.store.get().isPlaying) {
-      playback.start();
-    }
     return track.id;
   }
 

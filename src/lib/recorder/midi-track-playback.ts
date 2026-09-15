@@ -67,7 +67,7 @@ export class MidiTrackPlayback implements TransportParticipant {
       gain: 0,
     });
     synth.output.connect(this.channel.input);
-    this.setNotes(track.notes);
+    this.notes = track.notes.toSorted((a, b) => a.start - b.start);
     this.tempo = tempo;
     this.transport = transport;
     this.unregister = transport.register(this);
@@ -110,7 +110,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   private refreshSchedule(): void {
-    if (this.disposeScheduling !== undefined) {
+    if (this.transport.store.get().isPlaying) {
       this.start();
     }
   }
