@@ -547,7 +547,7 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clamp(height, 180, 600),
+        height: clamp(height, 68, 600),
       }));
       return;
     }

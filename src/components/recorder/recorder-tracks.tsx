@@ -1,6 +1,5 @@
 import {
   AudioWaveformIcon,
-  Music2Icon,
   ChevronDownIcon,
   ChevronRightIcon,
   HeadphonesIcon,
@@ -65,43 +64,10 @@ export function AudioTrackActions({
   );
 }
 
-export function MidiTrackActions({
-  label,
-  onRemove,
-  onTranscribe,
-}: {
-  label: string;
-  onRemove: () => void;
-  onTranscribe: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          className="size-7 border-neutral-600 text-neutral-300 hover:bg-neutral-700"
-          title={`${label} actions`}
-        >
-          <MoreVerticalIcon className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={onTranscribe}>
-          <Music2Icon />
-          Audio to MIDI
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onRemove} className="text-red-400">
-          <Trash2Icon />
-          Remove track
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 export function TrackRow({
   title,
   "data-testid": testId,
+  controlsClassName,
   height,
   gain,
   muted,
@@ -114,10 +80,10 @@ export function TrackRow({
   onSoloedChange,
   onHeightChange,
   children,
-  editor,
 }: {
   title: string;
   "data-testid"?: string;
+  controlsClassName?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -130,7 +96,6 @@ export function TrackRow({
   onSoloedChange: (soloed: boolean) => void;
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
-  editor?: React.ReactNode;
 }) {
   const resizeRef = usePointerDrag({
     onStart: (event) => {
@@ -145,12 +110,14 @@ export function TrackRow({
     <div
       data-testid={testId ?? "recorder-audio-track-row"}
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
-      style={{
-        height,
-        gridTemplateRows: editor ? "72px minmax(0, 1fr)" : undefined,
-      }}
+      style={{ height }}
     >
-      <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
+      <div
+        className={cn(
+          "sticky left-0 z-20 col-start-1 row-start-1 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2",
+          controlsClassName,
+        )}
+      >
         <div className="min-w-0 self-center truncate text-xs font-semibold">
           {title}
         </div>
@@ -187,7 +154,6 @@ export function TrackRow({
         </label>
       </div>
       {children}
-      {editor && <div className="col-span-2 min-h-0">{editor}</div>}
       <div
         ref={resizeRef}
         className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"
