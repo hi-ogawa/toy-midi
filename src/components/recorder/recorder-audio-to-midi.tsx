@@ -56,18 +56,7 @@ export function RecorderAudioToMidi({
   cellsPerBeat: number;
   onClose: () => void;
 }) {
-  const sources = [
-    ...state.audioTracks.map((source, index) => ({
-      track: source,
-      label: `Audio ${index + 1}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
-    })),
-    { track: state.recordingTrack, label: "Capture · committed takes" },
-  ].filter(({ track }) =>
-    track.regions.some(
-      ({ clip, timelineStart, timelineEnd }) =>
-        clip.buffer && timelineEnd > Math.max(0, timelineStart),
-    ),
-  );
+  const sources = getTranscriptionSources(state);
   const [sourceId, setSourceId] = useState(sources[0]?.track.id ?? "");
   const [activityDb, setActivityDb] = useState(DEFAULT_GRID_ACTIVITY_DB);
   const [splitThreshold, setSplitThreshold] = useState(
@@ -254,5 +243,20 @@ export function RecorderAudioToMidi({
         </p>
       </div>
     </RecorderPanel>
+  );
+}
+
+function getTranscriptionSources(state: RecorderRuntimeState) {
+  return [
+    ...state.audioTracks.map((source, index) => ({
+      track: source,
+      label: `Audio ${index + 1}${source.clips[0] ? ` · ${source.clips[0].name}` : ""}`,
+    })),
+    { track: state.recordingTrack, label: "Capture · committed takes" },
+  ].filter(({ track }) =>
+    track.regions.some(
+      ({ clip, timelineStart, timelineEnd }) =>
+        clip.buffer && timelineEnd > Math.max(0, timelineStart),
+    ),
   );
 }
