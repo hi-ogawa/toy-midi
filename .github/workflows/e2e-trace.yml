@@ -68,7 +68,7 @@ jobs:
             echo "::error::Provide at least one test filter."
             exit 1
           fi
-          pnpm exec playwright test --grep "$TEST_GREP" -- "${test_filters[@]}"
+          pnpm exec playwright test "${test_filters[@]}" --grep "$TEST_GREP"
       - uses: actions/upload-artifact@v7
         id: upload
         if: always() && hashFiles('test-results/trace-pack.html') != ''
