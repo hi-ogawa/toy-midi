@@ -85,17 +85,13 @@ export async function renderRecorderMix({
 /** Effective channel gain per track id after mute and solo. */
 export function deriveTrackMix({
   audioTracks,
-  midiTrack,
+  midiTracks,
   recordingTrack,
 }: Pick<
   RecorderRuntimeState,
-  "audioTracks" | "midiTrack" | "recordingTrack"
+  "audioTracks" | "midiTracks" | "recordingTrack"
 >): Map<string, number> {
-  const tracks = [
-    ...audioTracks,
-    ...(midiTrack ? [midiTrack] : []),
-    recordingTrack,
-  ];
+  const tracks = [...audioTracks, ...midiTracks, recordingTrack];
   const anyTrackSoloed = tracks.some((track) => track.soloed);
   return new Map(
     tracks.map((track) => [

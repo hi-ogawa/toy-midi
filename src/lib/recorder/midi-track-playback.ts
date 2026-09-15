@@ -131,7 +131,7 @@ class RecorderMidiSynth {
   }
 
   async init(program: number): Promise<void> {
-    await this.context.audioWorklet.addModule(oxisynthWorkletUrl);
+    await ensureRecorderMidiWorklet(this.context);
     const node = new AudioWorkletNode(this.context, "oxisynth", {
       numberOfOutputs: 1,
       outputChannelCount: [2],
@@ -234,4 +234,15 @@ class RecorderMidiSynth {
       callback(message);
     }
   }
+}
+
+const workletPromises = new WeakMap<AudioContext, Promise<void>>();
+
+function ensureRecorderMidiWorklet(context: AudioContext): Promise<void> {
+  let promise = workletPromises.get(context);
+  if (!promise) {
+    promise = context.audioWorklet.addModule(oxisynthWorkletUrl);
+    workletPromises.set(context, promise);
+  }
+  return promise;
 }
