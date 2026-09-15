@@ -2,6 +2,7 @@ import oxisynthWasmUrl from "../../assets/oxisynth/oxisynth.wasm?url";
 import oxisynthWorkletUrl from "../../assets/oxisynth/worklet.js?url";
 import soundfontUrl from "../../assets/soundfonts/A320U.sf2?url";
 import type { Note } from "../../types.ts";
+import { startInterval } from "../../utils/timing.ts";
 import { disposeWorklet } from "../dsp/worklet-disposal.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import { AudioChannel } from "./audio-channel.ts";
@@ -19,7 +20,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   private notes: Note[] = [];
   private readonly scheduledNotes = new Set<string>();
   private tempo = 120;
-  private scheduling?: ReturnType<typeof setInterval>;
+  private disposeScheduling?: () => void;
   private readonly synth: RecorderMidiSynth;
   private readonly unregister: () => void;
   private readonly transport: AudioContextTransport;
@@ -89,12 +90,15 @@ export class MidiTrackPlayback implements TransportParticipant {
   start(): void {
     this.stop();
     this.schedule();
-    this.scheduling = setInterval(() => this.schedule(), SCHEDULER_INTERVAL_MS);
+    this.disposeScheduling = startInterval(
+      () => this.schedule(),
+      SCHEDULER_INTERVAL_MS,
+    );
   }
 
   stop(): void {
-    clearInterval(this.scheduling);
-    this.scheduling = undefined;
+    this.disposeScheduling?.();
+    this.disposeScheduling = undefined;
     this.synth.reset();
     this.scheduledNotes.clear();
   }
@@ -106,7 +110,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   private refreshSchedule(): void {
-    if (this.scheduling !== undefined) {
+    if (this.disposeScheduling !== undefined) {
       // Rebuild only this track. Sustained notes retrigger after a live edit.
       this.synth.reset();
       this.scheduledNotes.clear();
