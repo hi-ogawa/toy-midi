@@ -378,7 +378,10 @@ export class RecorderRuntime {
       midiTracks: [...this.store.get().midiTracks, track],
     });
     this.syncTrackMix();
-    this.restartTransportIfPlaying();
+    playback.setTempo(this.store.get().tempo);
+    if (this.transport.store.get().isPlaying) {
+      playback.start();
+    }
     return track.id;
   }
 
@@ -601,11 +604,10 @@ export class RecorderRuntime {
   //   this.updateMidiTrack(id, (track) => ({ ...track, program }));
   // }
 
-  // setMidiTrackNotes(id: string, notes: Note[]): void {
-  //   const track = this.updateMidiTrack(id, (track) => ({ ...track, notes }));
-  //   this.midiTrackPlaybacks.get(id)?.setTrack(track, this.store.get().tempo);
-  //   this.restartTransportIfPlaying();
-  // }
+  setMidiTrackNotes(id: string, notes: Note[]): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, notes }));
+    this.midiTrackPlaybacks.get(id)?.setNotes(notes);
+  }
 
   private updateTrack(
     id: string,
@@ -752,11 +754,10 @@ export class RecorderRuntime {
   setTempo(tempo: number): void {
     this.store.update({ tempo });
     this.metronome.setTempo(tempo);
-    for (const track of this.store.get().midiTracks) {
-      this.midiTrackPlaybacks.get(track.id)?.setTrack(track, tempo);
+    for (const playback of this.midiTrackPlaybacks.values()) {
+      playback.setTempo(tempo);
     }
     this.syncLoopRange();
-    this.restartTransportIfPlaying();
   }
 
   setPlaybackRate(playbackRate: number): void {
@@ -1088,13 +1089,6 @@ export class RecorderRuntime {
           }
         : undefined,
     );
-  }
-
-  private restartTransportIfPlaying(): void {
-    const { isPlaying, position } = this.store.get();
-    if (isPlaying) {
-      this.transport.seek(position);
-    }
   }
 
   private finishRecording(stopFrame: number): void {

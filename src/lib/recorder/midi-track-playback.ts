@@ -11,10 +11,15 @@ import type {
   TransportParticipant,
 } from "./transport.ts";
 
+const SCHEDULE_AHEAD_SECONDS = 0.1;
+const SCHEDULER_INTERVAL_MS = 25;
+
 export class MidiTrackPlayback implements TransportParticipant {
   readonly channel: AudioChannel;
   private notes: Note[] = [];
+  private readonly scheduledNotes = new Set<string>();
   private tempo = 120;
+  private scheduling?: ReturnType<typeof setInterval>;
   private readonly synth: RecorderMidiSynth;
   private readonly unregister: () => void;
 
@@ -68,10 +73,14 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   private readonly transport: AudioContextTransport;
 
-  setTrack(track: MidiTrackState, tempo: number): void {
-    this.notes = track.notes;
+  setNotes(notes: Note[]): void {
+    this.notes = notes;
+    this.refreshSchedule();
+  }
+
+  setTempo(tempo: number): void {
     this.tempo = tempo;
-    this.channel.setEq(track.eq);
+    this.refreshSchedule();
   }
 
   async setProgram(program: number): Promise<void> {
@@ -79,37 +88,67 @@ export class MidiTrackPlayback implements TransportParticipant {
   }
 
   start(): void {
-    this.synth.reset();
-    const anchor = this.transport.playbackAnchor!;
-    for (const note of this.notes) {
-      const noteStart = beatsToSeconds(note.start, this.tempo);
-      const noteEnd = beatsToSeconds(note.start + note.duration, this.tempo);
-      if (noteEnd <= anchor.position) {
-        continue;
-      }
-      const startTime =
-        anchor.contextTime +
-        Math.max(0, noteStart - anchor.position) / this.transport.playbackRate;
-      const endTime =
-        anchor.contextTime +
-        (noteEnd - anchor.position) / this.transport.playbackRate;
-      this.synth.scheduleNoteOnOff(
-        note.pitch,
-        startTime,
-        endTime,
-        note.velocity,
-      );
-    }
+    this.stop();
+    this.schedule();
+    this.scheduling = setInterval(() => this.schedule(), SCHEDULER_INTERVAL_MS);
   }
 
   stop(): void {
+    clearInterval(this.scheduling);
+    this.scheduling = undefined;
     this.synth.reset();
+    this.scheduledNotes.clear();
   }
 
   dispose(): void {
     this.unregister();
     this.synth.dispose();
     this.channel.dispose();
+  }
+
+  private refreshSchedule(): void {
+    if (this.scheduling !== undefined) {
+      // Rebuild only this track. Sustained notes retrigger after a live edit.
+      this.synth.reset();
+      this.scheduledNotes.clear();
+      this.schedule();
+    }
+  }
+
+  private schedule(): void {
+    const anchor = this.transport.playbackAnchor!;
+    const contextTime = Math.max(
+      this.transport.context.currentTime,
+      anchor.contextTime,
+    );
+    const position =
+      this.transport.getPlaybackPositionByContextTime(contextTime);
+    const windowEnd =
+      position + SCHEDULE_AHEAD_SECONDS * this.transport.playbackRate;
+    for (const note of this.notes) {
+      const start = beatsToSeconds(note.start, this.tempo);
+      const end = beatsToSeconds(note.start + note.duration, this.tempo);
+      if (
+        this.scheduledNotes.has(note.id) ||
+        end <= position ||
+        start > windowEnd
+      ) {
+        continue;
+      }
+      this.synth.scheduleNoteOnOff({
+        pitch: note.pitch,
+        velocity: note.velocity,
+        startTime: Math.max(
+          contextTime,
+          anchor.contextTime +
+            (start - anchor.position) / this.transport.playbackRate,
+        ),
+        endTime:
+          anchor.contextTime +
+          (end - anchor.position) / this.transport.playbackRate,
+      });
+      this.scheduledNotes.add(note.id);
+    }
   }
 }
 
@@ -177,12 +216,17 @@ class RecorderMidiSynth {
     this.postMessage({ type: "setPreset", soundfontId, presetId: preset.id });
   }
 
-  scheduleNoteOnOff(
-    pitch: number,
-    startTime: number,
-    endTime: number,
-    velocity: number,
-  ): void {
+  scheduleNoteOnOff({
+    pitch,
+    startTime,
+    endTime,
+    velocity,
+  }: {
+    pitch: number;
+    startTime: number;
+    endTime: number;
+    velocity: number;
+  }): void {
     this.postMessage({
       type: "scheduleNoteOnOff",
       key: pitch,
