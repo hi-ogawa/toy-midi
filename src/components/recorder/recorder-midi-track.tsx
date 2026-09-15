@@ -11,7 +11,6 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import { GM_PROGRAMS } from "../../lib/general-midi";
 import {
   isShortcutTextInputTarget,
   matchKeyboardEvent,
@@ -23,6 +22,7 @@ import type {
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
+import { InstrumentCombobox } from "../instrument-combobox";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
 import {
@@ -104,24 +104,12 @@ export function MidiTrackRow({
         title={`${track.name} program`}
         onClose={() => setIsProgramOpen(false)}
       >
-        <label className="flex min-w-0 items-center gap-2 text-xs text-neutral-400">
-          Program
-          <select
-            aria-label={`${track.name} program`}
-            value={track.program}
-            disabled={programMutation.isPending}
-            onChange={(event) =>
-              programMutation.mutate(Number(event.target.value))
-            }
-            className="max-w-64 rounded border border-neutral-600 bg-neutral-800 p-1 text-neutral-200"
-          >
-            {GM_PROGRAMS.map((name, program) => (
-              <option key={program} value={program}>
-                {program}: {name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <InstrumentCombobox
+          aria-label={`${track.name} program`}
+          value={track.program}
+          disabled={programMutation.isPending}
+          onValueChange={(program) => programMutation.mutate(program)}
+        />
       </PortalDialog>
     </div>
   );
