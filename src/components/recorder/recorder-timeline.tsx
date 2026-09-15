@@ -53,6 +53,7 @@ export function TimelineHeader({
   timelineWidth,
   isAddingAudio,
   isAddingMidi,
+  hasMidiTrack,
   subdivisionsPerBeat,
   onAddAudioTrack,
   onAddMidiTrack,
@@ -72,6 +73,7 @@ export function TimelineHeader({
   timelineWidth: number;
   isAddingAudio: boolean;
   isAddingMidi: boolean;
+  hasMidiTrack: boolean;
   subdivisionsPerBeat: number;
   onAddAudioTrack: () => void;
   onAddMidiTrack: () => void;
@@ -93,9 +95,15 @@ export function TimelineHeader({
           <Button
             data-testid="recorder-add-midi-track"
             onClick={onAddMidiTrack}
-            disabled={isAddingMidi}
+            disabled={isAddingMidi || hasMidiTrack}
             className="size-7 hover:bg-neutral-700"
-            title={isAddingMidi ? "Loading MIDI track..." : "Add MIDI track"}
+            title={
+              hasMidiTrack
+                ? "The recorder already has a MIDI track"
+                : isAddingMidi
+                  ? "Loading MIDI track..."
+                  : "Add MIDI track"
+            }
           >
             <Music2Icon className="size-3.5" />
           </Button>

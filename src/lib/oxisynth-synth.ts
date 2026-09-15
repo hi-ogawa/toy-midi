@@ -1,5 +1,7 @@
 // WASM + worklet from https://github.com/hi-ogawa/web-audio-worklet-rust
-import { disposeWorklet } from "./dsp/worklet-disposal.ts";
+import * as Tone from "tone";
+
+type ToneContext = ReturnType<typeof Tone.getContext>;
 
 interface OxiSynthState {
   soundfonts: Array<{
@@ -27,32 +29,33 @@ const PROCESSOR_NAME = "oxisynth";
  * Uses simple postMessage for communication (no comlink dependency).
  */
 export class OxiSynthSynth {
-  private node?: AudioWorkletNode;
+  private node!: AudioWorkletNode;
+  private context: ToneContext;
   private currentSoundfontId: string | undefined;
   private pendingCallbacks = new Map<string, (data: unknown) => void>();
 
-  readonly output: GainNode;
+  readonly output: Tone.Gain;
 
-  constructor(private readonly context: AudioContext) {
-    this.output = context.createGain();
+  constructor(context: ToneContext) {
+    this.context = context;
+    this.output = new Tone.Gain({ context });
   }
 
   async init(options: { workletUrl: string; wasmUrl: string }): Promise<void> {
     // Load worklet module
-    await ensureWorklet(this.context, options.workletUrl);
+    await this.context.addAudioWorkletModule(options.workletUrl);
 
     // Create worklet node
-    const node = new AudioWorkletNode(this.context, PROCESSOR_NAME, {
+    this.node = this.context.createAudioWorkletNode(PROCESSOR_NAME, {
       numberOfOutputs: 1,
       outputChannelCount: [2],
     });
-    this.node = node;
 
     // Connect to output
-    node.connect(this.output);
+    Tone.connect(this.node, this.output);
 
     // Setup message handler
-    node.port.onmessage = (e) => this.handleMessage(e.data);
+    this.node.port.onmessage = (e) => this.handleMessage(e.data);
 
     // Load and initialize WASM
     const wasmResponse = await fetch(options.wasmUrl);
@@ -177,26 +180,10 @@ export class OxiSynthSynth {
     }
   }
 
-  reset(): void {
-    this.postMessage({ type: "reset" });
-  }
-
-  dispose(): void {
-    this.pendingCallbacks.clear();
-    this.output.disconnect();
-    if (this.node) {
-      disposeWorklet(this.node);
-      this.node = undefined;
-    }
-  }
-
   private postMessage(
     msg: Record<string, unknown>,
     transfer?: Transferable[],
   ): void {
-    if (!this.node) {
-      throw new Error("OxiSynth is not initialized.");
-    }
     this.node.port.postMessage(msg, transfer ?? []);
   }
 
@@ -219,20 +206,4 @@ export class OxiSynthSynth {
       callback(msg);
     }
   }
-}
-
-const workletPromises = new WeakMap<AudioContext, Map<string, Promise<void>>>();
-
-function ensureWorklet(context: AudioContext, url: string): Promise<void> {
-  let promises = workletPromises.get(context);
-  if (!promises) {
-    promises = new Map();
-    workletPromises.set(context, promises);
-  }
-  let promise = promises.get(url);
-  if (!promise) {
-    promise = context.audioWorklet.addModule(url);
-    promises.set(url, promise);
-  }
-  return promise;
 }

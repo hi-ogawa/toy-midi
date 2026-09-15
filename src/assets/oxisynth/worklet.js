@@ -504,10 +504,11 @@ function initSync(module) {
 }
 
 // AudioWorklet Processor - simple postMessage interface (no comlink)
+let soundfontPlayer = null;
+
 class OxiSynthProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.soundfontPlayer = null;
     this.disposed = false;
     this.scheduledNoteOns = []; // [{key, velocity, frame}, ...]
     this.scheduledNoteOffs = []; // [{key, frame}, ...]
@@ -517,22 +518,20 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
   handleMessage(msg) {
     switch (msg.type) {
       case "init":
-        if (!wasm) {
-          initSync(msg.wasmBytes);
-        }
-        this.soundfontPlayer = SoundfontPlayer.new(sampleRate);
-        this.soundfontPlayer.set_gain(0.5);
+        initSync(msg.wasmBytes);
+        soundfontPlayer = SoundfontPlayer.new(sampleRate);
+        soundfontPlayer.set_gain(0.5);
         this.port.postMessage({ type: "ready" });
         break;
       case "noteOn":
-        this.soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
+        soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
         break;
       case "noteOff":
-        this.soundfontPlayer?.note_off(msg.key);
+        soundfontPlayer?.note_off(msg.key);
         break;
       case "noteOnOff":
         // Note on immediately, schedule note off (legacy - used for preview)
-        this.soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
+        soundfontPlayer?.note_on(msg.key, msg.velocity ?? 127);
         this.scheduledNoteOffs.push({
           key: msg.key,
           frame: currentFrame + msg.durationSamples,
@@ -552,31 +551,31 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
         });
         break;
       case "addSoundfont":
-        this.soundfontPlayer?.add_soundfonts_from_file(
+        soundfontPlayer?.add_soundfonts_from_file(
           msg.name,
           new Uint8Array(msg.data),
         );
         this.port.postMessage({ type: "soundfontAdded" });
         break;
       case "setPreset":
-        this.soundfontPlayer?.set_preset(msg.soundfontId, msg.presetId);
+        soundfontPlayer?.set_preset(msg.soundfontId, msg.presetId);
         break;
       case "getState":
         this.port.postMessage({
           type: "state",
-          state: this.soundfontPlayer?.get_state(),
+          state: soundfontPlayer?.get_state(),
         });
         break;
       case "setGain":
-        this.soundfontPlayer?.set_gain(msg.gain);
+        soundfontPlayer?.set_gain(msg.gain);
         break;
       case "reset":
         this.reset();
         break;
       case "dispose":
         this.reset();
-        this.soundfontPlayer?.free();
-        this.soundfontPlayer = null;
+        soundfontPlayer?.free();
+        soundfontPlayer = null;
         this.disposed = true;
         break;
     }
@@ -586,7 +585,7 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     this.scheduledNoteOns = [];
     this.scheduledNoteOffs = [];
     for (let key = 0; key < 128; key++) {
-      this.soundfontPlayer?.note_off(key);
+      soundfontPlayer?.note_off(key);
     }
   }
 
@@ -596,7 +595,7 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     if (this.disposed) {
       return false;
     }
-    if (!this.soundfontPlayer || !out_l || !out_r) {
+    if (!soundfontPlayer || !out_l || !out_r) {
       return true;
     }
 
@@ -604,7 +603,7 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     // note-off and note-on occur at the same frame
     this.scheduledNoteOffs = this.scheduledNoteOffs.filter((event) => {
       if (currentFrame >= event.frame) {
-        this.soundfontPlayer.note_off(event.key);
+        soundfontPlayer.note_off(event.key);
         return false;
       }
       return true;
@@ -613,13 +612,13 @@ class OxiSynthProcessor extends AudioWorkletProcessor {
     // Then process note-ons
     this.scheduledNoteOns = this.scheduledNoteOns.filter((event) => {
       if (currentFrame >= event.frame) {
-        this.soundfontPlayer.note_on(event.key, event.velocity);
+        soundfontPlayer.note_on(event.key, event.velocity);
         return false;
       }
       return true;
     });
 
-    this.soundfontPlayer.process(out_l, out_r);
+    soundfontPlayer.process(out_l, out_r);
     return true;
   }
 }

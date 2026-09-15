@@ -136,6 +136,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   });
 
   const takes = state.recordingTrack.clips;
+  const midiTrack = state.midiTrack;
   const flags = deriveRecorderFlags({
     captureStatus: state.captureStatus,
     project,
@@ -341,6 +342,7 @@ export function Recorder({ projectId }: { projectId: string }) {
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
               isAddingMidi={addMidiMutation.isPending}
+              hasMidiTrack={midiTrack !== undefined}
               onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
@@ -454,39 +456,40 @@ export function Recorder({ projectId }: { projectId: string }) {
                 />
               </TrackRow>
             ))}
-            {state.midiTracks.map((track) => (
+            {midiTrack && (
               <TrackRow
-                key={track.id}
                 testId="recorder-midi-track-row"
-                title={track.name}
-                height={track.height}
-                gain={track.gain}
-                muted={track.muted}
-                soloed={track.soloed}
-                effectsOpen={effects.openEffects.has(track.id)}
-                onEffectsToggle={() => effects.toggleEffects(track.id)}
-                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+                title={midiTrack.name}
+                height={midiTrack.height}
+                gain={midiTrack.gain}
+                muted={midiTrack.muted}
+                soloed={midiTrack.soloed}
+                effectsOpen={effects.openEffects.has(midiTrack.id)}
+                onEffectsToggle={() => effects.toggleEffects(midiTrack.id)}
+                onGainChange={(gain) =>
+                  runtime.setTrackMix(midiTrack.id, { gain })
+                }
                 onMutedChange={(muted) =>
-                  runtime.setTrackMix(track.id, { muted })
+                  runtime.setTrackMix(midiTrack.id, { muted })
                 }
                 onSoloedChange={(soloed) =>
-                  runtime.setTrackMix(track.id, { soloed })
+                  runtime.setTrackMix(midiTrack.id, { soloed })
                 }
                 onHeightChange={(height) =>
-                  runtime.setTrackHeight(track.id, height)
+                  runtime.setTrackHeight(midiTrack.id, height)
                 }
                 action={
                   <MidiTrackActions
-                    label={track.name}
+                    label={midiTrack.name}
                     onRemove={() => {
-                      runtime.removeMidiTrack(track.id);
-                      effects.closeEffects(track.id);
+                      runtime.removeMidiTrack(midiTrack.id);
+                      effects.closeEffects(midiTrack.id);
                     }}
                   />
                 }
               >
                 <MidiTimelineLane
-                  notes={track.notes}
+                  notes={midiTrack.notes}
                   pixelsPerBeat={timeline.pixelsPerBeat}
                   beatsPerBar={timeline.beatsPerBar}
                   subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -495,7 +498,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
-            ))}
+            )}
 
             <CaptureTrackRow
               route={input.route.label}
@@ -711,17 +714,13 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 ),
             )}
-            {state.midiTracks.map(
-              (track) =>
-                effects.openEffects.has(track.id) && (
-                  <RecorderEffects
-                    key={track.id}
-                    label={track.name}
-                    eq={track.eq}
-                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
-                    onClose={() => effects.closeEffects(track.id)}
-                  />
-                ),
+            {midiTrack && effects.openEffects.has(midiTrack.id) && (
+              <RecorderEffects
+                label={midiTrack.name}
+                eq={midiTrack.eq}
+                onChange={(eq) => runtime.setTrackEq({ id: midiTrack.id, eq })}
+                onClose={() => effects.closeEffects(midiTrack.id)}
+              />
             )}
             {effects.openEffects.has("capture") && (
               <RecorderEffects

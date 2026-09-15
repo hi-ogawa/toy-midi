@@ -54,21 +54,26 @@ export function RecorderMixer({
           onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
         />
       ))}
-      {state.midiTracks.map((track) => (
+      {state.midiTrack && (
         <RecorderTrackChannel
-          key={track.id}
-          effectsOpen={openEffects.has(track.id)}
-          onEffectsToggle={() => onEffectsToggle(track.id)}
-          label={track.name}
-          gain={track.gain}
-          muted={track.muted}
-          soloed={track.soloed}
+          effectsOpen={openEffects.has(state.midiTrack.id)}
+          onEffectsToggle={() => onEffectsToggle(state.midiTrack!.id)}
+          label={state.midiTrack.name}
+          gain={state.midiTrack.gain}
+          muted={state.midiTrack.muted}
+          soloed={state.midiTrack.soloed}
           icon={<Music2Icon className="size-4 text-muted-foreground" />}
-          onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
-          onMutedChange={(muted) => runtime.setTrackMix(track.id, { muted })}
-          onSoloedChange={(soloed) => runtime.setTrackMix(track.id, { soloed })}
+          onGainChange={(gain) =>
+            runtime.setTrackMix(state.midiTrack!.id, { gain })
+          }
+          onMutedChange={(muted) =>
+            runtime.setTrackMix(state.midiTrack!.id, { muted })
+          }
+          onSoloedChange={(soloed) =>
+            runtime.setTrackMix(state.midiTrack!.id, { soloed })
+          }
         />
-      ))}
+      )}
       <RecorderTrackChannel
         label="Capture"
         effectsOpen={openEffects.has("capture")}

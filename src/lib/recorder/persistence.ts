@@ -22,7 +22,7 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
   // Optional for recorder projects saved before MIDI track support.
-  midiTracks?: MidiTrackState[];
+  midiTrack?: MidiTrackState;
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -128,7 +128,7 @@ export function serializeRecorderRuntimeState(
         trimEnd: clip?.trimEnd ?? 0,
       };
     }),
-    midiTracks: state.midiTracks,
+    midiTrack: state.midiTrack,
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -201,10 +201,9 @@ export function deserializeRecorderRuntimeState({
         soloed: track.soloed,
       };
     }),
-    midiTracks: (project.midiTracks ?? []).map((track) => ({
-      ...track,
-      eq: deserializeEq(track.eq),
-    })),
+    midiTrack: project.midiTrack
+      ? { ...project.midiTrack, eq: deserializeEq(project.midiTrack.eq) }
+      : undefined,
     recordingTrack: {
       id: crypto.randomUUID(),
       height: project.recordingTrack.height,
