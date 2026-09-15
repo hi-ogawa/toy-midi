@@ -93,7 +93,7 @@ export function MidiTrackActions({
 
 export function TrackRow({
   title,
-  "data-testid": testId = "recorder-audio-track-row",
+  "data-testid": testId,
   height,
   gain,
   muted,
@@ -133,7 +133,7 @@ export function TrackRow({
   });
   return (
     <div
-      data-testid={testId}
+      data-testid={testId ?? "recorder-audio-track-row"}
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >
