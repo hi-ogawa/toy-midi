@@ -16,6 +16,33 @@ import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
 
+export function useRecorderAudioToMidiUi() {
+  const [openTranscriptions, setOpenTranscriptions] = useState<
+    ReadonlySet<string>
+  >(new Set());
+
+  function openTranscription(id: string) {
+    setOpenTranscriptions((current) => {
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  }
+
+  function closeTranscription(id: string) {
+    setOpenTranscriptions((current) => {
+      if (!current.has(id)) {
+        return current;
+      }
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  return { openTranscriptions, openTranscription, closeTranscription };
+}
+
 export function RecorderAudioToMidi({
   runtime,
   state,
