@@ -24,6 +24,7 @@ import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
   RecorderRuntime,
+  RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
 import { InstrumentCombobox } from "../instrument-combobox";
@@ -44,6 +45,7 @@ const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
 
 export function MidiTrackRow({
+  state,
   track,
   runtime,
   pixelsPerBeat,
@@ -55,6 +57,7 @@ export function MidiTrackRow({
   onRemove,
   onFocus,
 }: {
+  state: RecorderRuntimeState;
   track: MidiTrackState;
   runtime: RecorderRuntime;
   pixelsPerBeat: number;
@@ -122,6 +125,7 @@ export function MidiTrackRow({
       {isTranscribeOpen && (
         <RecorderAudioToMidi
           runtime={runtime}
+          state={state}
           track={track}
           cellsPerBeat={subdivisionsPerBeat}
           onClose={() => setIsTranscribeOpen(false)}

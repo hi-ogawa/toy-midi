@@ -456,6 +456,7 @@ export function Recorder({ projectId }: { projectId: string }) {
             {state.midiTracks.map((track) => (
               <MidiTrackRow
                 key={track.id}
+                state={state}
                 track={track}
                 runtime={runtime}
                 pixelsPerBeat={timeline.pixelsPerBeat}
