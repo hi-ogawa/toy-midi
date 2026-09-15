@@ -57,7 +57,6 @@ export function MidiTrackRow({
   const programMutation = useMutation({
     mutationFn: (program: number) =>
       runtime.setMidiTrackProgram(track.id, program),
-    onError: (error) => toast.error(error.message),
   });
   return (
     <div onFocus={onFocus}>
