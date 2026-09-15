@@ -70,6 +70,7 @@ export function MidiTrackRow({
     <div onFocus={onFocus}>
       <TrackRow
         data-testid="recorder-midi-track-row"
+        controlsClassName="h-fit"
         title={track.name}
         height={Math.max(180, track.height)}
         gain={track.gain}
