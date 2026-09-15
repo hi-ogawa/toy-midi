@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
   type PointerEvent,
+  type FocusEvent,
+  type KeyboardEvent,
 } from "react";
 import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
@@ -290,6 +292,30 @@ function MidiTrackEditor({
     startPreview(pitch);
   }
 
+  function handleBlur(event: FocusEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      stopPreview();
+      setSelectedId(undefined);
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (isShortcutTextInputTarget(event.target)) {
+      return;
+    }
+    if (
+      matchKeyboardEvent(event, "Delete") ||
+      matchKeyboardEvent(event, "Backspace")
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      deleteSelected();
+    } else if (matchKeyboardEvent(event, "Escape")) {
+      event.stopPropagation();
+      setSelectedId(undefined);
+    }
+  }
+
   const grid = getTimelineGridBackground({
     beatsPerBar,
     pixelsPerBeat,
@@ -301,28 +327,8 @@ function MidiTrackEditor({
 
   return (
     <div
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          stopPreview();
-          setSelectedId(undefined);
-        }
-      }}
-      onKeyDown={(event) => {
-        if (isShortcutTextInputTarget(event.target)) {
-          return;
-        }
-        if (
-          matchKeyboardEvent(event, "Delete") ||
-          matchKeyboardEvent(event, "Backspace")
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          deleteSelected();
-        } else if (matchKeyboardEvent(event, "Escape")) {
-          event.stopPropagation();
-          setSelectedId(undefined);
-        }
-      }}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
       ref={scrollRef}
       className="col-span-2 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
       style={{ height }}
