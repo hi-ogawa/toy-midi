@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
@@ -173,74 +173,64 @@ export function RecorderAudioToMidi({
               notes.
             </p>
           )}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span>Activity threshold</span>
-              <span>{activityDb} dBFS</span>
-            </div>
-            <Slider
-              aria-label="Activity threshold"
+          <section className="space-y-5 border-t border-neutral-700 pt-4">
+            <ParamSlider
+              label="Activity threshold"
+              hint="Higher values detect fewer notes"
+              valueText={`${activityDb} dBFS`}
               value={[activityDb]}
               min={-60}
               max={-10}
               step={1}
               onValueChange={([value]) => setActivityDb(value)}
             />
-            <p className="text-xs text-neutral-500">
-              Higher values detect fewer notes.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span>Split threshold</span>
-              <span>{splitThreshold.toFixed(2)}</span>
-            </div>
-            <Slider
-              aria-label="Split threshold"
+            <ParamSlider
+              label="Split threshold"
+              hint="Higher values create fewer repeated-note splits"
+              valueText={splitThreshold.toFixed(2)}
               value={[splitThreshold]}
               min={0.05}
               max={0.95}
               step={0.05}
               onValueChange={([value]) => setSplitThreshold(value)}
             />
-            <p className="text-xs text-neutral-500">
-              Higher values create fewer repeated-note splits.
-            </p>
-          </div>
-          <div className="flex items-center justify-between text-xs text-neutral-400">
-            <span>
-              {state.tempo} BPM · 1/{cellsPerBeat * 4} grid
-            </span>
-            <button
-              type="button"
-              className="underline underline-offset-2"
-              onClick={() => {
-                setActivityDb(DEFAULT_GRID_ACTIVITY_DB);
-                setSplitThreshold(DEFAULT_GRID_SPLIT_THRESHOLD);
-              }}
-            >
-              Reset thresholds
-            </button>
-          </div>
+            <div className="flex items-center justify-between text-xs text-neutral-400">
+              <span>
+                {state.tempo} BPM · 1/{cellsPerBeat * 4} grid
+              </span>
+              <button
+                type="button"
+                className="text-neutral-500 underline underline-offset-2 hover:text-neutral-300"
+                onClick={() => {
+                  setActivityDb(DEFAULT_GRID_ACTIVITY_DB);
+                  setSplitThreshold(DEFAULT_GRID_SPLIT_THRESHOLD);
+                }}
+              >
+                Reset to defaults
+              </button>
+            </div>
+          </section>
         </fieldset>
-        {sources.length === 0 && (
-          <p className="text-sm text-neutral-400">
-            Load audio or record a take before converting.
+        <section className="space-y-2 border-t border-neutral-700 pt-4">
+          {sources.length === 0 && (
+            <p className="text-sm text-neutral-400">
+              Load audio or record a take before converting.
+            </p>
+          )}
+          <Button
+            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+            disabled={
+              transcribeMutation.isPending ||
+              !sources.some(({ track }) => track.id === sourceId)
+            }
+            onClick={() => transcribeMutation.mutate()}
+          >
+            {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
+          </Button>
+          <p role="status" className="min-h-4 text-xs text-neutral-400">
+            {status}
           </p>
-        )}
-        <Button
-          className="h-9 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-          disabled={
-            transcribeMutation.isPending ||
-            !sources.some(({ track }) => track.id === sourceId)
-          }
-          onClick={() => transcribeMutation.mutate()}
-        >
-          {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
-        </Button>
-        <p role="status" className="min-h-4 text-xs text-neutral-300">
-          {status}
-        </p>
+        </section>
       </div>
     </RecorderPanel>
   );
@@ -258,5 +248,29 @@ function getTranscriptionSources(state: RecorderRuntimeState) {
       ({ clip, timelineStart, timelineEnd }) =>
         clip.buffer && timelineEnd > Math.max(0, timelineStart),
     ),
+  );
+}
+
+function ParamSlider({
+  label,
+  hint,
+  valueText,
+  ...sliderProps
+}: {
+  label: string;
+  hint: string;
+  valueText: string;
+} & ComponentProps<typeof Slider>) {
+  return (
+    <div>
+      <div className="mb-2.5 flex justify-between text-xs text-neutral-300">
+        <div>
+          <span>{label}</span>
+          <p className="mt-0.5 text-neutral-500">{hint}</p>
+        </div>
+        <span className="tabular-nums">{valueText}</span>
+      </div>
+      <Slider aria-label={label} {...sliderProps} />
+    </div>
   );
 }
