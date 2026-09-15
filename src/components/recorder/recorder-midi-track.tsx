@@ -287,46 +287,12 @@ function MidiTrackEditor({
       >
         <div className="relative border-r border-neutral-600 bg-neutral-900">
           {PITCHES.map((pitch) => (
-            <button
+            <MidiPianoKey
               key={pitch}
-              type="button"
-              aria-label={`Preview ${formatChromaticPitch(pitch)}`}
-              className={cn(
-                "absolute right-0 border-b border-neutral-500 pr-2 text-right text-[10px] active:bg-violet-400",
-                isBlackKey(pitch)
-                  ? "w-12 bg-neutral-800 text-neutral-300"
-                  : "w-16 bg-neutral-200 text-neutral-800",
-              )}
-              style={{
-                top: (127 - pitch) * KEY_HEIGHT,
-                height: KEY_HEIGHT,
-              }}
-              onPointerDown={(event) => {
-                if (event.button === 0) {
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  startPreview(pitch);
-                }
-              }}
-              onLostPointerCapture={stopPreview}
-              onKeyDown={(event) => {
-                if (event.key === " " || event.key === "Enter") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  if (!event.repeat) {
-                    startPreview(pitch);
-                  }
-                }
-              }}
-              onKeyUp={(event) => {
-                if (event.key === " " || event.key === "Enter") {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  stopPreview();
-                }
-              }}
-            >
-              {formatChromaticPitch(pitch)}
-            </button>
+              pitch={pitch}
+              onPreviewStart={startPreview}
+              onPreviewStop={stopPreview}
+            />
           ))}
         </div>
         <div
@@ -413,5 +379,57 @@ function MidiTrackEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+function MidiPianoKey({
+  pitch,
+  onPreviewStart,
+  onPreviewStop,
+}: {
+  pitch: number;
+  onPreviewStart: (pitch: number) => void;
+  onPreviewStop: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Preview ${formatChromaticPitch(pitch)}`}
+      className={cn(
+        "absolute right-0 border-b border-neutral-500 pr-2 text-right text-[10px] active:bg-violet-400",
+        isBlackKey(pitch)
+          ? "w-12 bg-neutral-800 text-neutral-300"
+          : "w-16 bg-neutral-200 text-neutral-800",
+      )}
+      style={{
+        top: (127 - pitch) * KEY_HEIGHT,
+        height: KEY_HEIGHT,
+      }}
+      onPointerDown={(event) => {
+        if (event.button === 0) {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          onPreviewStart(pitch);
+        }
+      }}
+      onLostPointerCapture={onPreviewStop}
+      onKeyDown={(event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!event.repeat) {
+            onPreviewStart(pitch);
+          }
+        }
+      }}
+      onKeyUp={(event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          onPreviewStop();
+        }
+      }}
+    >
+      {formatChromaticPitch(pitch)}
+    </button>
   );
 }
