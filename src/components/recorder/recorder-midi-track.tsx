@@ -412,7 +412,7 @@ function MidiTrackEditor({
               data-note-id={note.id}
               aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
               className={cn(
-                "absolute cursor-pointer overflow-hidden rounded-sm border px-1 text-[10px] text-violet-100",
+                "absolute cursor-pointer rounded-sm border",
                 selectedId === note.id
                   ? "border-violet-100 bg-violet-500"
                   : "border-violet-400 bg-violet-700",
@@ -423,9 +423,7 @@ function MidiTrackEditor({
                 width: Math.max(2, note.duration * pixelsPerBeat),
                 height: KEY_HEIGHT - 2,
               }}
-            >
-              {formatChromaticPitch(note.pitch)}
-            </div>
+            />
           ))}
         </div>
       </div>
