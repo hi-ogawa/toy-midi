@@ -1,6 +1,6 @@
-# Manual E2E traces
+# E2E traces on GitHub Actions
 
-Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch. Traces are retained for seven days.
+Run selected E2E tests on a branch, including `main` or a branch without a PR. The result and a **View E2E trace** link appear in the workflow summary and as comments on open PRs headed by that branch.
 
 ```sh
 gh workflow run e2e-trace.yml --ref main \
