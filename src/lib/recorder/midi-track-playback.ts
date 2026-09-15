@@ -111,7 +111,6 @@ export class MidiTrackPlayback implements TransportParticipant {
 
   private refreshSchedule(): void {
     if (this.disposeScheduling !== undefined) {
-      // Rebuild this track's upcoming notes without restarting notes already underway.
       this.synth.reset();
       this.scheduledNotes.clear();
       this.schedule();
