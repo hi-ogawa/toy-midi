@@ -17,7 +17,10 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
-import { RecorderAudioToMidi } from "./recorder-audio-to-midi";
+import {
+  RecorderAudioToMidi,
+  useRecorderAudioToMidiUi,
+} from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
@@ -50,9 +53,6 @@ import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
-  const [openTranscriptions, setOpenTranscriptions] = useState<
-    ReadonlySet<string>
-  >(new Set());
   const [isInputSetupOpen, setIsInputSetupOpen] = useState(false);
   const [isReferenceVideoOpen, setIsReferenceVideoOpen] = useState(false);
   const [takesExpanded, setTakesExpanded] = useState(false);
@@ -89,6 +89,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
     onSelect: clipInteraction.clear,
   });
+  const transcriptions = useRecorderAudioToMidiUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -143,17 +144,6 @@ export function Recorder({ projectId }: { projectId: string }) {
     captureStatus: state.captureStatus,
     project,
   });
-
-  function closeTranscription(id: string) {
-    setOpenTranscriptions((current) => {
-      if (!current.has(id)) {
-        return current;
-      }
-      const next = new Set(current);
-      next.delete(id);
-      return next;
-    });
-  }
 
   function togglePlay() {
     if (flags.playDisabled) {
@@ -482,15 +472,9 @@ export function Recorder({ projectId }: { projectId: string }) {
                 onRemove={() => {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
-                  closeTranscription(track.id);
+                  transcriptions.closeTranscription(track.id);
                 }}
-                onTranscribe={() => {
-                  setOpenTranscriptions((current) => {
-                    const next = new Set(current);
-                    next.add(track.id);
-                    return next;
-                  });
-                }}
+                onTranscribe={() => transcriptions.openTranscription(track.id)}
                 onFocus={() => {
                   clipInteraction.clear();
                   locators.select(undefined);
@@ -738,14 +722,14 @@ export function Recorder({ projectId }: { projectId: string }) {
         )}
         {state.midiTracks.map(
           (track) =>
-            openTranscriptions.has(track.id) && (
+            transcriptions.openTranscriptions.has(track.id) && (
               <RecorderAudioToMidi
                 key={track.id}
                 runtime={runtime}
                 state={state}
                 track={track}
                 cellsPerBeat={timeline.subdivisionsPerBeat}
-                onClose={() => closeTranscription(track.id)}
+                onClose={() => transcriptions.closeTranscription(track.id)}
               />
             ),
         )}
