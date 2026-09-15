@@ -106,6 +106,7 @@ export function TrackRow({
   onSoloedChange,
   onHeightChange,
   children,
+  editor,
 }: {
   title: string;
   "data-testid"?: string;
@@ -121,6 +122,7 @@ export function TrackRow({
   onSoloedChange: (soloed: boolean) => void;
   onHeightChange: (height: number) => void;
   children: React.ReactNode;
+  editor?: React.ReactNode;
 }) {
   const resizeRef = usePointerDrag({
     onStart: (event) => {
@@ -135,7 +137,10 @@ export function TrackRow({
     <div
       data-testid={testId ?? "recorder-audio-track-row"}
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
-      style={{ height }}
+      style={{
+        height,
+        gridTemplateRows: editor ? "72px minmax(0, 1fr)" : undefined,
+      }}
     >
       <div className="sticky left-0 z-20 grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[1.75rem_auto] content-start gap-2 border-r border-neutral-700 bg-neutral-800 px-3 py-2">
         <div className="min-w-0 self-center truncate text-xs font-semibold">
@@ -174,6 +179,7 @@ export function TrackRow({
         </label>
       </div>
       {children}
+      {editor && <div className="col-span-2 min-h-0">{editor}</div>}
       <div
         ref={resizeRef}
         className="absolute inset-x-0 -bottom-1 z-30 h-2 cursor-ns-resize"

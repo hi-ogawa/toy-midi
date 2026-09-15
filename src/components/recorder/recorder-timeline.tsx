@@ -14,7 +14,6 @@ import { AudioView } from "../../lib/audio-view";
 import { clamp, snapToGrid } from "../../lib/music";
 import type { AudioClip, ClipRegion } from "../../lib/recorder/audio-clip";
 import type {
-  MidiTrackState,
   RecorderRuntimeState,
   RecorderLoopRange,
   RecorderLoopState,
@@ -626,58 +625,6 @@ export function AudioTimelineLane({
           />
         );
       })}
-    </div>
-  );
-}
-
-export function MidiTimelineLane({
-  beatsPerBar,
-  notes,
-  pixelsPerBeat,
-  viewportStartBeat,
-  subdivisionsPerBeat,
-  tempo,
-  onSeek,
-}: {
-  beatsPerBar: number;
-  notes: MidiTrackState["notes"];
-  pixelsPerBeat: number;
-  viewportStartBeat: number;
-  subdivisionsPerBeat: number;
-  tempo: number;
-  onSeek: (position: number) => void;
-}) {
-  const pitches = notes.map((note) => note.pitch);
-  const minPitch = Math.min(...pitches);
-  const maxPitch = Math.max(...pitches);
-  const pitchRange = Math.max(1, maxPitch - minPitch + 1);
-  return (
-    <div
-      className="relative overflow-hidden bg-neutral-900"
-      {...getTimelineSurfaceProps({
-        beatsPerBar,
-        onSeek,
-        pixelsPerBeat,
-        tempo,
-        viewportStartBeat,
-        subdivisionsPerBeat,
-      })}
-    >
-      {notes.map((note) => (
-        <div
-          key={note.id}
-          className="pointer-events-none absolute min-w-px rounded-sm bg-violet-400/75"
-          style={{
-            left: (note.start - viewportStartBeat) * pixelsPerBeat,
-            top: `${8 + ((maxPitch - note.pitch) / pitchRange) * 32}%`,
-            width: Math.max(2, note.duration * pixelsPerBeat),
-            height: `${Math.max(8, 40 / pitchRange)}%`,
-          }}
-        />
-      ))}
-      <div className="pointer-events-none absolute inset-0 grid place-items-center text-xs text-neutral-500">
-        Piano roll coming soon
-      </div>
     </div>
   );
 }
