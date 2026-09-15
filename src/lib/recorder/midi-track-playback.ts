@@ -22,6 +22,7 @@ export class MidiTrackPlayback implements TransportParticipant {
   private scheduling?: ReturnType<typeof setInterval>;
   private readonly synth: RecorderMidiSynth;
   private readonly unregister: () => void;
+  private readonly transport: AudioContextTransport;
 
   static async create({
     transport,
@@ -70,8 +71,6 @@ export class MidiTrackPlayback implements TransportParticipant {
     this.transport = transport;
     this.unregister = transport.register(this);
   }
-
-  private readonly transport: AudioContextTransport;
 
   setNotes(notes: Note[]): void {
     this.notes = notes;
