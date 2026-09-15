@@ -1,6 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { MoreVerticalIcon, Settings2Icon, Trash2Icon } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { GM_PROGRAMS } from "../../lib/general-midi";
@@ -243,6 +249,47 @@ function MidiTrackEditor({
     setSelectedId(undefined);
   }
 
+  function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.focus({ preventScroll: true });
+    const target = (event.target as HTMLElement).closest<HTMLElement>(
+      "[data-note-id]",
+    );
+    const existing = track.notes.find(
+      (note) => note.id === target?.dataset.noteId,
+    );
+    if (existing) {
+      setSelectedId(existing.id);
+      startPreview(existing.pitch);
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pitch = clampPitch(
+      127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
+    );
+    const beat =
+      viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
+    const note = {
+      id: crypto.randomUUID(),
+      pitch,
+      start: Math.max(
+        0,
+        snapToGrid(beat, 1 / subdivisionsPerBeat, {
+          floor: true,
+        }),
+      ),
+      duration: 1 / subdivisionsPerBeat,
+      velocity: 100,
+    };
+    runtime.setMidiTrackNotes(track.id, [...track.notes, note]);
+    setSelectedId(note.id);
+    startPreview(pitch);
+  }
+
   const grid = getTimelineGridBackground({
     beatsPerBar,
     pixelsPerBeat,
@@ -302,46 +349,7 @@ function MidiTrackEditor({
           tabIndex={0}
           onLostPointerCapture={stopPreview}
           className="relative overflow-hidden outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-violet-400"
-          onPointerDown={(event) => {
-            if (event.button !== 0) {
-              return;
-            }
-            event.preventDefault();
-            event.currentTarget.setPointerCapture(event.pointerId);
-            event.currentTarget.focus({ preventScroll: true });
-            const target = (event.target as HTMLElement).closest<HTMLElement>(
-              "[data-note-id]",
-            );
-            const existing = track.notes.find(
-              (note) => note.id === target?.dataset.noteId,
-            );
-            if (existing) {
-              setSelectedId(existing.id);
-              startPreview(existing.pitch);
-              return;
-            }
-            const rect = event.currentTarget.getBoundingClientRect();
-            const pitch = clampPitch(
-              127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
-            );
-            const beat =
-              viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
-            const note = {
-              id: crypto.randomUUID(),
-              pitch,
-              start: Math.max(
-                0,
-                snapToGrid(beat, 1 / subdivisionsPerBeat, {
-                  floor: true,
-                }),
-              ),
-              duration: 1 / subdivisionsPerBeat,
-              velocity: 100,
-            };
-            runtime.setMidiTrackNotes(track.id, [...track.notes, note]);
-            setSelectedId(note.id);
-            startPreview(pitch);
-          }}
+          onPointerDown={handleGridPointerDown}
         >
           {PITCHES.map((pitch) => (
             <div
