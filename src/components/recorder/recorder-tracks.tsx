@@ -45,7 +45,7 @@ export function AudioTrackActions({
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent>
         <DropdownMenuItem
           onSelect={() =>
             openFilePicker({ accept: "audio/*,.wav", onFile: onFileChange })
@@ -403,7 +403,7 @@ export function TakeTrackRow({
               <MoreVerticalIcon className="size-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent>
             <DropdownMenuItem onSelect={onDelete}>
               <Trash2Icon />
               Delete take

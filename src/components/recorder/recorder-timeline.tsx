@@ -737,7 +737,7 @@ export function ReferenceTimelineRow({
                 <MoreVerticalIcon className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent>
               <DropdownMenuItem onSelect={onRemove} className="text-red-400">
                 <Trash2Icon />
                 Remove reference video
