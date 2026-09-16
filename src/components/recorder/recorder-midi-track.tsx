@@ -370,6 +370,8 @@ function useMidiNotePreview({
   });
 
   function start(pitch: number) {
+    // Keep the note sounding during horizontal or in-cell dragging.
+    // Audition again only when the pitch changes.
     if (previewPitch.current === pitch) {
       return;
     }
