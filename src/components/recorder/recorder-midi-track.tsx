@@ -181,7 +181,7 @@ function MidiTrackEditor({
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
-  const editPreview = midiInteraction.getEditPreview(track.id);
+
   useWindowEvent("blur", midiInteraction.cancelEdit);
 
   // Stop auditioning when the selected note is cleared or removed.
@@ -265,8 +265,7 @@ function MidiTrackEditor({
       }
     },
     onDragEnd: (event) => {
-      midiInteraction.updateEdit(getPointerPosition(event));
-      midiInteraction.finishEdit();
+      midiInteraction.finishEdit(getPointerPosition(event));
       preview.stop();
     },
     onCancel: cancelEdit,
@@ -336,7 +335,12 @@ function MidiTrackEditor({
           {track.notes.map((note) => (
             <MidiNote
               key={note.id}
-              note={editPreview?.id === note.id ? editPreview : note}
+              note={
+                midiInteraction.getEditPreview({
+                  trackId: track.id,
+                  noteId: note.id,
+                }) ?? note
+              }
               selected={selectedId === note.id}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}

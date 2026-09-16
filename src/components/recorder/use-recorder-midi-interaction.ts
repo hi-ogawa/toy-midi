@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import type { Note } from "../../types";
+
+type MidiNoteEdit = {
+  trackId: string;
+  original: Note;
+  note: Note;
+  getNote: (position: { beat: number; pitch: number }) => Note;
+};
 
 export function useRecorderMidiInteraction({
   runtime,
@@ -22,18 +29,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
-  const edit = useRef<{
-    trackId: string;
-    mode: "move" | "resize-start" | "resize-end";
-    original: Note;
-    note: Note;
-    cellOffset: number;
-    step: number;
-  }>(undefined);
-  const [editPreview, setEditPreview] = useState<{
-    trackId: string;
-    note: Note;
-  }>();
+  const [edit, setEdit] = useState<MidiNoteEdit>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -43,26 +39,26 @@ export function useRecorderMidiInteraction({
 
   useEffect(() => {
     if (!selectedNote) {
+      cancelEdit();
       setSelection(undefined);
     }
   }, [selectedNote]);
 
-  // Discard an edit if its note is removed or replaced while the pointer is held.
-  useEffect(() => {
-    const current = edit.current;
-    if (
-      current &&
-      !state.midiTracks
-        .find((track) => track.id === current.trackId)
-        ?.notes.includes(current.original)
-    ) {
-      cancelEdit();
-    }
-  }, [state.midiTracks]);
-
   function getSelectedNoteId(trackId: string) {
     return selectedNote && selection?.trackId === trackId
       ? selection.noteId
+      : undefined;
+  }
+
+  function getEditPreview({
+    trackId,
+    noteId,
+  }: {
+    trackId: string;
+    noteId: string;
+  }) {
+    return edit?.trackId === trackId && edit.note.id === noteId
+      ? edit.note
       : undefined;
   }
 
@@ -84,96 +80,86 @@ export function useRecorderMidiInteraction({
     mode: "move" | "resize-start" | "resize-end";
   }) {
     select({ trackId, noteId });
-    const original = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId)
+    const original = state.midiTracks
+      .find((track) => track.id === trackId)
       ?.notes.find((note) => note.id === noteId);
     if (!original) {
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    edit.current = {
+    const cellOffset = Math.floor((beat - original.start) / step);
+    setEdit({
       trackId,
-      mode,
       original,
       note: original,
-      step,
-      cellOffset: Math.floor((beat - original.start) / step),
-    };
-  }
-
-  function updateEdit({ beat, pitch }: { beat: number; pitch: number }) {
-    const current = edit.current;
-    if (!current) {
-      return;
-    }
-    const { original, step } = current;
-    const cellStart = Math.floor(beat / step) * step;
-    let note: Note;
-    switch (current.mode) {
-      case "move": {
-        note = {
-          ...original,
-          start: Math.max(0, cellStart - current.cellOffset * step),
-          pitch: clampPitch(pitch),
-        };
-        break;
-      }
-      case "resize-start": {
-        const end = original.start + original.duration;
-        // A coarser grid may leave no room for a whole cell before the fixed end.
-        if (end < step) {
-          return current.note;
+      getNote: ({ beat, pitch }) => {
+        const cellStart = snapToGrid(beat, step, { floor: true });
+        switch (mode) {
+          case "move": {
+            return {
+              ...original,
+              start: Math.max(0, cellStart - cellOffset * step),
+              pitch: clampPitch(pitch),
+            };
+          }
+          case "resize-start": {
+            const end = original.start + original.duration;
+            // A coarser grid may leave no room for a whole cell before the fixed end.
+            if (end < step) {
+              return original;
+            }
+            const start = Math.max(0, Math.min(end - step, cellStart));
+            return { ...original, start, duration: end - start };
+          }
+          case "resize-end": {
+            return {
+              ...original,
+              duration: Math.max(step, cellStart + step - original.start),
+            };
+          }
         }
-        const start = Math.max(0, Math.min(end - step, cellStart));
-        note = { ...original, start, duration: end - start };
-        break;
-      }
-      case "resize-end": {
-        note = {
-          ...original,
-          duration: Math.max(step, cellStart + step - original.start),
-        };
-        break;
-      }
-    }
-    if (
-      note.start !== current.note.start ||
-      note.pitch !== current.note.pitch ||
-      note.duration !== current.note.duration
-    ) {
-      current.note = note;
-      setEditPreview({ trackId: current.trackId, note });
-    }
-    return current.note;
+      },
+    });
   }
 
-  function finishEdit() {
-    const current = edit.current;
-    cancelEdit();
-    if (!current) {
+  function updateEdit(position: { beat: number; pitch: number }) {
+    const note = edit?.getNote(position);
+    if (
+      edit &&
+      note &&
+      (note.start !== edit.note.start ||
+        note.pitch !== edit.note.pitch ||
+        note.duration !== edit.note.duration)
+    ) {
+      setEdit({ ...edit, note });
+    }
+    return note;
+  }
+
+  function finishEdit(position: { beat: number; pitch: number }) {
+    // Calculate from the release position rather than waiting for a preview render.
+    const note = edit?.getNote(position);
+    if (!edit || !note) {
       return;
     }
-    const { trackId, original, note } = current;
-    const track = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId);
+    cancelEdit();
+    const { trackId, original } = edit;
+    const track = state.midiTracks.find((track) => track.id === trackId);
     if (
-      track?.notes.includes(original) &&
+      track &&
       (note.start !== original.start ||
         note.pitch !== original.pitch ||
         note.duration !== original.duration)
     ) {
       runtime.setMidiTrackNotes(
         trackId,
-        track.notes.map((entry) => (entry === original ? note : entry)),
+        track.notes.map((entry) => (entry.id === note.id ? note : entry)),
       );
     }
   }
 
   function cancelEdit() {
-    edit.current = undefined;
-    setEditPreview(undefined);
+    setEdit(undefined);
   }
 
   function clear() {
@@ -190,9 +176,7 @@ export function useRecorderMidiInteraction({
     pitch: number;
     beat: number;
   }) {
-    const track = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId);
+    const track = state.midiTracks.find((track) => track.id === trackId);
     if (!track) {
       return;
     }
@@ -230,8 +214,7 @@ export function useRecorderMidiInteraction({
     updateEdit,
     finishEdit,
     cancelEdit,
-    getEditPreview: (trackId: string) =>
-      editPreview?.trackId === trackId ? editPreview.note : undefined,
+    getEditPreview,
     create,
     removeSelected,
   };
