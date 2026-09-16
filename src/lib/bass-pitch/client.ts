@@ -40,7 +40,17 @@ class BassPitchClient {
     signal?.throwIfAborted();
     this.transcribing = true;
 
+    const aborted = Promise.withResolvers<never>();
+    const handleAbort = () => {
+      this.resetWorker();
+      aborted.reject(signal?.reason);
+    };
+
     try {
+      signal?.addEventListener("abort", handleAbort, { once: true });
+      if (signal?.aborted) {
+        handleAbort();
+      }
       const transcription = (async () => {
         const pcm = await resampleToModelRate(audioBuffer);
         signal?.throwIfAborted();
@@ -55,24 +65,9 @@ class BassPitchClient {
           },
         });
       })();
-
-      if (!signal) {
-        return await transcription;
-      }
-      return await new Promise((resolve, reject) => {
-        const handleAbort = () => {
-          this.resetWorker();
-          reject(signal.reason);
-        };
-        signal.addEventListener("abort", handleAbort, { once: true });
-        if (signal.aborted) {
-          handleAbort();
-        }
-        transcription.then(resolve, reject).finally(() => {
-          signal.removeEventListener("abort", handleAbort);
-        });
-      });
+      return await Promise.race([transcription, aborted.promise]);
     } finally {
+      signal?.removeEventListener("abort", handleAbort);
       this.transcribing = false;
     }
   }
