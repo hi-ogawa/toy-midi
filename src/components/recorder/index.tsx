@@ -81,7 +81,8 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
-  const { clipInteraction, locatorInteraction } = recorderInteraction;
+  const { clipInteraction, locatorInteraction, midiInteraction } =
+    recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
 
   const playMutation = useMutation({
@@ -467,8 +468,8 @@ export function Recorder({ projectId }: { projectId: string }) {
                   effects.closeEffects(track.id);
                   transcriptions.closeTranscription(track.id);
                 }}
+                midiInteraction={midiInteraction}
                 onTranscribe={() => transcriptions.openTranscription(track.id)}
-                onFocus={recorderInteraction.clearSelection}
               />
             ))}
 
