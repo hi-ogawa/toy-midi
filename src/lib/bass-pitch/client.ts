@@ -13,7 +13,9 @@ import type { BassPitchWorkerHandlers } from "./worker.ts";
 // song minute, reporting per-chunk progress along the way.
 
 class BassPitchClient {
+  private worker: Worker | undefined;
   private rpc: RpcClient<BassPitchWorkerHandlers> | undefined;
+  private transcribing = false;
 
   // Spawning the worker and fetching/compiling the wasm take noticeable time
   // on a cold cache, so the panel warms them up on mount instead of paying
@@ -30,20 +32,65 @@ class BassPitchClient {
     audioBuffer: AudioBuffer,
     params: GridTranscribeParams,
     onProgress: (fraction: number) => void,
+    signal?: AbortSignal,
   ): Promise<GridTranscribedNote[]> {
-    const pcm = await resampleToModelRate(audioBuffer);
-    const rpc = this.getRpc();
-    return await rpc.transcribe({ pcm, params, onProgress });
+    if (this.transcribing) {
+      throw new Error("Bass pitch transcription is already in progress");
+    }
+    signal?.throwIfAborted();
+    this.transcribing = true;
+
+    try {
+      const transcription = (async () => {
+        const pcm = await resampleToModelRate(audioBuffer);
+        signal?.throwIfAborted();
+        const rpc = this.getRpc();
+        return await rpc.transcribe({
+          pcm,
+          params,
+          onProgress: (fraction) => {
+            if (!signal?.aborted) {
+              onProgress(fraction);
+            }
+          },
+        });
+      })();
+
+      if (!signal) {
+        return await transcription;
+      }
+      return await new Promise((resolve, reject) => {
+        const handleAbort = () => {
+          this.resetWorker();
+          reject(signal.reason);
+        };
+        signal.addEventListener("abort", handleAbort, { once: true });
+        if (signal.aborted) {
+          handleAbort();
+        }
+        transcription.then(resolve, reject).finally(() => {
+          signal.removeEventListener("abort", handleAbort);
+        });
+      });
+    } finally {
+      this.transcribing = false;
+    }
   }
 
   private getRpc(): RpcClient<BassPitchWorkerHandlers> {
     if (!this.rpc) {
-      const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+      this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
         type: "module",
       });
-      this.rpc = createWorkerRpc<BassPitchWorkerHandlers>(worker);
+      this.rpc = createWorkerRpc<BassPitchWorkerHandlers>(this.worker);
     }
     return this.rpc;
+  }
+
+  private resetWorker(): void {
+    this.worker?.terminate();
+    this.worker = undefined;
+    this.rpc = undefined;
   }
 }
 
