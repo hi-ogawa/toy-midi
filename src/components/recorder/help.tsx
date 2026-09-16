@@ -48,6 +48,8 @@ const sections: HelpSectionData[] = [
     items: [
       { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
       { action: "Select and preview a note", gesture: "Press note" },
+      { action: "Move a note in time and pitch", gesture: "Drag note" },
+      { action: "Cancel note drag", keys: "Esc" },
       { action: "Preview a pitch", gesture: "Hold piano key" },
       { action: "Delete selected note", keys: "Delete / Backspace" },
       { action: "Scroll pitches", gesture: "Wheel over MIDI grid" },

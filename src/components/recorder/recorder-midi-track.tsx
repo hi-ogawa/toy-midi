@@ -10,10 +10,10 @@ import {
   useEffect,
   useRef,
   useState,
-  type PointerEvent,
   type FocusEvent,
 } from "react";
 import { toast } from "sonner";
+import { usePointerDrag } from "../../hooks/use-pointer-drag";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { isBlackKey, clampPitch } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
@@ -181,6 +181,8 @@ function MidiTrackEditor({
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
+  const movePreview = midiInteraction.getMovePreview(track.id);
+  useWindowEvent("blur", midiInteraction.cancelMove);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
@@ -211,43 +213,77 @@ function MidiTrackEditor({
     [initialPitch],
   );
 
-  function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) {
+  function getPointerPosition(event: PointerEvent) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return {
+      pitch: clampPitch(
+        127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
+      ),
+      beat: viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat,
+    };
+  }
+
+  const gridRef = usePointerDrag({
+    onStart: (event) => {
+      // Focus the grid and select an existing note, or create one in an empty cell.
+      event.preventDefault();
+      (event.currentTarget as HTMLElement).focus({ preventScroll: true });
+      const target = (event.target as HTMLElement).closest<HTMLElement>(
+        "[data-note-id]",
+      );
+      const existing = track.notes.find(
+        (note) => note.id === target?.dataset.noteId,
+      );
+      const position = getPointerPosition(event);
+      if (existing) {
+        midiInteraction.startMove({
+          trackId: track.id,
+          noteId: existing.id,
+          beat: position.beat,
+        });
+        preview.start(existing.pitch);
+        return {
+          startX: event.clientX,
+          startY: event.clientY,
+          dragging: false,
+        };
+      }
+      midiInteraction.create({ trackId: track.id, ...position });
+      preview.start(position.pitch);
+    },
+    onMove: updateMove,
+    onEnd: (event, drag) => {
+      updateMove(event, drag);
+      midiInteraction.finishMove();
+      preview.stop();
+    },
+    onCancel: () => {
+      midiInteraction.cancelMove();
+      preview.stop();
+    },
+  });
+
+  function updateMove(
+    event: PointerEvent,
+    drag: { startX: number; startY: number; dragging: boolean } | undefined,
+  ) {
+    if (!drag) {
       return;
     }
-    // Capture the pointer for preview release and focus the grid for shortcuts.
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.currentTarget.focus({ preventScroll: true });
-
-    // Select and preview an existing note when clicked.
-    const target = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-note-id]",
-    );
-    const existing = track.notes.find(
-      (note) => note.id === target?.dataset.noteId,
-    );
-    if (existing) {
-      midiInteraction.select({ trackId: track.id, noteId: existing.id });
-      preview.start(existing.pitch);
-      return;
+    // Keep a click as selection/preview, including notes that start off the grid.
+    drag.dragging ||=
+      Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 3;
+    if (drag.dragging) {
+      const note = midiInteraction.updateMove(getPointerPosition(event));
+      if (note) {
+        preview.start(note.pitch);
+      }
     }
-
-    // Convert an empty-grid click to a pitch and beat.
-    const rect = event.currentTarget.getBoundingClientRect();
-    const pitch = clampPitch(
-      127 - Math.floor((event.clientY - rect.top) / KEY_HEIGHT),
-    );
-    const beat =
-      viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
-
-    // Add a note snapped down to the grid, then select and preview it.
-    midiInteraction.create({ trackId: track.id, pitch, beat });
-    preview.start(pitch);
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
+      midiInteraction.cancelMove();
       preview.stop();
       if (selectedId !== undefined) {
         midiInteraction.clear();
@@ -282,8 +318,7 @@ function MidiTrackEditor({
           role="group"
           aria-label={`${track.name} notes`}
           tabIndex={0}
-          onPointerDown={handleGridPointerDown}
-          onLostPointerCapture={preview.stop}
+          ref={gridRef}
         >
           {PITCHES.map((pitch) => (
             <MidiGridRow key={pitch} pitch={pitch} />
@@ -306,7 +341,7 @@ function MidiTrackEditor({
           {track.notes.map((note) => (
             <MidiNote
               key={note.id}
-              note={note}
+              note={movePreview?.id === note.id ? movePreview : note}
               selected={selectedId === note.id}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}
@@ -338,6 +373,9 @@ function useMidiNotePreview({
   });
 
   function start(pitch: number) {
+    if (previewPitch.current === pitch) {
+      return;
+    }
     stop();
     previewPitch.current = pitch;
     previewMutation.mutate(pitch);
@@ -435,7 +473,7 @@ function MidiNote({
       data-note-id={note.id}
       aria-label={`${formatChromaticPitch(note.pitch)}, beat ${note.start + 1}`}
       className={cn(
-        "absolute cursor-pointer rounded-sm border border-[#2563eb]",
+        "absolute cursor-grab active:cursor-grabbing rounded-sm border border-[#2563eb]",
         selected
           ? "bg-[#60a5fa] outline-2 -outline-offset-2 outline-[#dbeafe]"
           : "bg-[#3b82f6]",
