@@ -133,7 +133,8 @@ export function useRecorderMidiInteraction({
       ...move.original,
       start: Math.max(
         0,
-        (Math.floor(beat / move.step) - move.cellOffset) * move.step,
+        snapToGrid(beat, move.step, { floor: true }) -
+          move.cellOffset * move.step,
       ),
       pitch: clampPitch(pitch),
     };
