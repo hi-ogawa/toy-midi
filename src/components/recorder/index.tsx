@@ -31,6 +31,10 @@ import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
+  RecorderScorePreview,
+  useRecorderScorePreviewUi,
+} from "./recorder-score-preview";
+import {
   TakeTimelineLane,
   ReferenceTimelineRow,
   TimelineHeader,
@@ -84,6 +88,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const { clipInteraction, locatorInteraction, midiInteraction } =
     recorderInteraction;
   const transcriptions = useRecorderAudioToMidiUi();
+  const scores = useRecorderScorePreviewUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -471,9 +476,11 @@ export function Recorder({ projectId }: { projectId: string }) {
                   runtime.removeMidiTrack(track.id);
                   effects.closeEffects(track.id);
                   transcriptions.closeTranscription(track.id);
+                  scores.close(track.id);
                 }}
                 midiInteraction={midiInteraction}
                 onTranscribe={() => transcriptions.openTranscription(track.id)}
+                onScorePreview={() => scores.open(track.id)}
               />
             ))}
 
@@ -712,6 +719,22 @@ export function Recorder({ projectId }: { projectId: string }) {
                 }
                 onClose={() => effects.closeEffects("capture")}
               />
+            )}
+          </div>
+        )}
+        {scores.openTracks.size > 0 && (
+          <div className="pointer-events-auto flex min-w-0 items-end gap-4 overflow-x-auto">
+            {state.midiTracks.map(
+              (track) =>
+                scores.openTracks.has(track.id) && (
+                  <RecorderScorePreview
+                    key={track.id}
+                    runtime={runtime}
+                    state={state}
+                    track={track}
+                    onClose={() => scores.close(track.id)}
+                  />
+                ),
             )}
           </div>
         )}

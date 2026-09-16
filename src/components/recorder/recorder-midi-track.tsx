@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   MoreVerticalIcon,
   Music2Icon,
+  FileMusicIcon,
   Settings2Icon,
   Trash2Icon,
 } from "lucide-react";
@@ -56,6 +57,7 @@ export function MidiTrackRow({
   onRemove,
   midiInteraction,
   onTranscribe,
+  onScorePreview,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -68,6 +70,7 @@ export function MidiTrackRow({
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
+  onScorePreview: () => void;
 }) {
   const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   return (
@@ -92,6 +95,7 @@ export function MidiTrackRow({
             label={track.name}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
+            onScorePreview={onScorePreview}
             onInstrumentOpen={() => setIsInstrumentOpen(true)}
           />
         }
@@ -122,11 +126,13 @@ function MidiTrackActions({
   onRemove,
   onInstrumentOpen,
   onTranscribe,
+  onScorePreview,
 }: {
   label: string;
   onRemove: () => void;
   onInstrumentOpen: () => void;
   onTranscribe: () => void;
+  onScorePreview: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -142,6 +148,10 @@ function MidiTrackActions({
         <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
           Instrument…
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onScorePreview}>
+          <FileMusicIcon />
+          Score preview
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onTranscribe}>
           <Music2Icon />

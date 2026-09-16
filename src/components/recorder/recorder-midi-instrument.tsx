@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { KEY_SIGNATURE_OPTION_GROUPS } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
   RecorderRuntime,
@@ -31,6 +32,37 @@ export function MidiInstrument({
           onValueChange={(program) => programMutation.mutate(program)}
         />
       </section>
+      <label className="flex items-center justify-between gap-3 text-sm text-neutral-300">
+        Key signature
+        <select
+          aria-label="Key signature"
+          value={`${track.keySignature.fifths}:${track.keySignature.mode}`}
+          onChange={(event) => {
+            const [fifths, mode] = event.target.value.split(":");
+            runtime.setMidiTrackKeySignature({
+              id: track.id,
+              keySignature: {
+                fifths: Number(fifths),
+                mode: mode as "major" | "minor",
+              },
+            });
+          }}
+          className="h-8 rounded border border-neutral-600 bg-neutral-900 px-2 text-sm text-neutral-100"
+        >
+          {KEY_SIGNATURE_OPTION_GROUPS.map((group) => (
+            <optgroup key={group.mode} label={group.label}>
+              {group.options.map((key) => (
+                <option
+                  key={`${key.fifths}:${group.mode}`}
+                  value={`${key.fifths}:${group.mode}`}
+                >
+                  {key.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
       <section className="space-y-3 border-t border-neutral-700 pt-4">
         <h3 className="text-sm text-neutral-300">Strings</h3>
         <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer">

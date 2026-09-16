@@ -12,6 +12,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import type { KeySignature } from "../pitch-spelling.ts";
 import { getFret, TAB_STRING_PRESETS } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
@@ -72,6 +73,7 @@ export interface AudioTrackState {
 }
 
 export interface MidiTrackState {
+  keySignature: KeySignature;
   tabAnnotationEnabled: boolean;
   tabOpenStringPitches: number[];
   id: string;
@@ -604,6 +606,16 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, program }));
     }
+  }
+
+  setMidiTrackKeySignature({
+    id,
+    keySignature,
+  }: {
+    id: string;
+    keySignature: KeySignature;
+  }): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, keySignature }));
   }
 
   setMidiTrackTabSettings({
@@ -1351,6 +1363,7 @@ function createRecordingTrackState(): AudioTrackState {
 
 function createMidiTrackState(number: number): MidiTrackState {
   return {
+    keySignature: { fifths: 0, mode: "major" },
     tabAnnotationEnabled: false,
     tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
     id: crypto.randomUUID(),
