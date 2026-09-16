@@ -18,7 +18,7 @@ import { GRID_SNAP_VALUES } from "../types";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
-const conversionCancelled = new Error("Conversion cancelled");
+const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
 export function AudioToMidi({ track }: { track: AudioTrack }) {
   return (
@@ -51,7 +51,8 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
 
   useEffect(() => {
     bassPitchClient.warmUp();
-    return () => conversionController.current?.abort(conversionCancelled);
+    return () =>
+      conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
   }, []);
 
   const convertMutation = useMutation({
@@ -96,7 +97,7 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
       setProgress(0);
     },
     onError: (error) => {
-      if (error === conversionCancelled) {
+      if (error === CONVERSION_CANCELLED_ERROR) {
         return;
       }
       console.error("Failed to convert audio to MIDI:", error);
@@ -114,7 +115,7 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const conversionStatus = convertMutation.isPending
     ? `Converting ${Math.round((progress ?? 0) * 100)}%`
     : convertMutation.error
-      ? convertMutation.error === conversionCancelled
+      ? convertMutation.error === CONVERSION_CANCELLED_ERROR
         ? "Conversion cancelled"
         : "Conversion failed"
       : convertMutation.data === 0
@@ -171,7 +172,7 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
         {convertMutation.isPending && (
           <Button
             onClick={() =>
-              conversionController.current?.abort(conversionCancelled)
+              conversionController.current?.abort(CONVERSION_CANCELLED_ERROR)
             }
             className="h-9 w-full"
           >
