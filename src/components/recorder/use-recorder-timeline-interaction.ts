@@ -40,6 +40,7 @@ export function useRecorderTimelineInteraction({
     selection: current?.type === "clips" ? current.keys : EMPTY_CLIPS,
     onSelectionChange: setClips,
   });
+
   const locators = useRecorderLocators({
     runtime,
     state,
