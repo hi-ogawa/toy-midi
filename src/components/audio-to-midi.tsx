@@ -174,7 +174,7 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
               convertMutation.mutate();
             }
           }}
-          className={`h-9 w-full px-3 text-sm ${convertMutation.isPending ? "hover:bg-neutral-800" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+          className={`h-9 w-full cursor-pointer px-3 text-sm ${convertMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
         >
           {convertMutation.isPending ? "Cancel" : "Convert to MIDI"}
         </Button>
