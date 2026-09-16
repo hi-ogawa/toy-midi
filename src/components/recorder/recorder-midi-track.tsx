@@ -1,5 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
-import { MoreVerticalIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import {
+  MoreVerticalIcon,
+  Music2Icon,
+  Settings2Icon,
+  Trash2Icon,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -45,6 +50,7 @@ export function MidiTrackRow({
   onEffectsToggle,
   onRemove,
   midiInteraction,
+  onTranscribe,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -56,6 +62,7 @@ export function MidiTrackRow({
   onEffectsToggle: () => void;
   onRemove: () => void;
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
+  onTranscribe: () => void;
 }) {
   const [isProgramOpen, setIsProgramOpen] = useState(false);
   const programMutation = useMutation({
@@ -83,6 +90,7 @@ export function MidiTrackRow({
           <MidiTrackActions
             label={track.name}
             onRemove={onRemove}
+            onTranscribe={onTranscribe}
             onProgramSelect={() => setIsProgramOpen(true)}
           />
         }
@@ -117,10 +125,12 @@ function MidiTrackActions({
   label,
   onRemove,
   onProgramSelect,
+  onTranscribe,
 }: {
   label: string;
   onRemove: () => void;
   onProgramSelect: () => void;
+  onTranscribe: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -136,6 +146,10 @@ function MidiTrackActions({
         <DropdownMenuItem onSelect={onProgramSelect}>
           <Settings2Icon />
           Select program
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onTranscribe}>
+          <Music2Icon />
+          Audio to MIDI
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onRemove} className="text-red-400">
