@@ -13,8 +13,10 @@ import type { BassPitchWorkerHandlers } from "./worker.ts";
 // song minute, reporting per-chunk progress along the way.
 
 class BassPitchClient {
-  private worker: Worker | undefined;
-  private rpc: RpcClient<BassPitchWorkerHandlers> | undefined;
+  private connection?: {
+    worker: Worker;
+    rpc: RpcClient<BassPitchWorkerHandlers>;
+  };
   private transcribing = false;
 
   // Spawning the worker and fetching/compiling the wasm take noticeable time
@@ -70,19 +72,21 @@ class BassPitchClient {
   }
 
   private getRpc(): RpcClient<BassPitchWorkerHandlers> {
-    if (!this.rpc) {
-      this.worker = new Worker(new URL("./worker.ts", import.meta.url), {
+    if (!this.connection) {
+      const worker = new Worker(new URL("./worker.ts", import.meta.url), {
         type: "module",
       });
-      this.rpc = createWorkerRpc<BassPitchWorkerHandlers>(this.worker);
+      this.connection = {
+        worker,
+        rpc: createWorkerRpc<BassPitchWorkerHandlers>(worker),
+      };
     }
-    return this.rpc;
+    return this.connection.rpc;
   }
 
   private resetRpc(): void {
-    this.worker?.terminate();
-    this.worker = undefined;
-    this.rpc = undefined;
+    this.connection?.worker.terminate();
+    this.connection = undefined;
   }
 }
 
