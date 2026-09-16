@@ -66,6 +66,7 @@ export function AudioTrackActions({
 
 export function TrackRow({
   title,
+  "data-testid": testId,
   height,
   gain,
   muted,
@@ -80,6 +81,7 @@ export function TrackRow({
   children,
 }: {
   title: string;
+  "data-testid"?: string;
   height: number;
   gain: number;
   muted: boolean;
@@ -104,7 +106,7 @@ export function TrackRow({
   });
   return (
     <div
-      data-testid="recorder-audio-track-row"
+      data-testid={testId ?? "recorder-audio-track-row"}
       className="relative grid grid-cols-[15rem_1fr] border-b border-neutral-700"
       style={{ height }}
     >

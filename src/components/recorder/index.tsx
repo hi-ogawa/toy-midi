@@ -23,6 +23,7 @@ import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow } from "./recorder-locators";
+import { MidiTrackActions, MidiTimelineLane } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -107,6 +108,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         await runtime.setAudioTrack(id, file);
       }
     },
+  });
+  const addMidiMutation = useMutation({
+    mutationFn: () => runtime.addMidiTrack(),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -322,6 +326,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
+              isAddingMidi={addMidiMutation.isPending}
+              onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => {
@@ -437,6 +443,48 @@ export function Recorder({ projectId }: { projectId: string }) {
                     recorderInteraction.clearSelection();
                     runtime.seek(position);
                   }}
+                />
+              </TrackRow>
+            ))}
+            {state.midiTracks.map((track) => (
+              <TrackRow
+                key={track.id}
+                data-testid="recorder-midi-track-row"
+                title={track.name}
+                height={track.height}
+                gain={track.gain}
+                muted={track.muted}
+                soloed={track.soloed}
+                effectsOpen={effects.openEffects.has(track.id)}
+                onEffectsToggle={() => effects.toggleEffects(track.id)}
+                onGainChange={(gain) => runtime.setTrackMix(track.id, { gain })}
+                onMutedChange={(muted) =>
+                  runtime.setTrackMix(track.id, { muted })
+                }
+                onSoloedChange={(soloed) =>
+                  runtime.setTrackMix(track.id, { soloed })
+                }
+                onHeightChange={(height) =>
+                  runtime.setTrackHeight(track.id, height)
+                }
+                action={
+                  <MidiTrackActions
+                    label={track.name}
+                    onRemove={() => {
+                      runtime.removeMidiTrack(track.id);
+                      effects.closeEffects(track.id);
+                    }}
+                  />
+                }
+              >
+                <MidiTimelineLane
+                  notes={track.notes}
+                  pixelsPerBeat={timeline.pixelsPerBeat}
+                  beatsPerBar={timeline.beatsPerBar}
+                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                  viewportStartBeat={timeline.viewportStartBeat}
+                  tempo={timeline.tempo}
+                  onSeek={(position) => runtime.seek(position)}
                 />
               </TrackRow>
             ))}
@@ -649,6 +697,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                   <RecorderEffects
                     key={track.id}
                     label={`Audio ${index + 1}`}
+                    eq={track.eq}
+                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
+                    onClose={() => effects.closeEffects(track.id)}
+                  />
+                ),
+            )}
+            {state.midiTracks.map(
+              (track) =>
+                effects.openEffects.has(track.id) && (
+                  <RecorderEffects
+                    key={track.id}
+                    label={track.name}
                     eq={track.eq}
                     onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
                     onClose={() => effects.closeEffects(track.id)}
