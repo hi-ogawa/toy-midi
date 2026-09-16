@@ -26,8 +26,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     original: Note;
     note: Note;
-    cellOffset: number;
-    step: number;
+    snapStart: (beat: number) => number;
   }>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
@@ -84,12 +83,16 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
+    const cellOffset = Math.floor((beat - original.start) / step);
     setMove({
       trackId,
       original,
       note: original,
-      step,
-      cellOffset: Math.floor((beat - original.start) / step),
+      snapStart: (beat) =>
+        Math.max(
+          0,
+          snapToGrid(beat, step, { floor: true }) - cellOffset * step,
+        ),
     });
   }
 
@@ -131,11 +134,7 @@ export function useRecorderMidiInteraction({
     }
     return {
       ...move.original,
-      start: Math.max(
-        0,
-        snapToGrid(beat, move.step, { floor: true }) -
-          move.cellOffset * move.step,
-      ),
+      start: move.snapStart(beat),
       pitch: clampPitch(pitch),
     };
   }
