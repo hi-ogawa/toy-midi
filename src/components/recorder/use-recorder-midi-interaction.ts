@@ -73,11 +73,13 @@ export function useRecorderMidiInteraction({
     noteId,
     beat,
     mode,
+    pixelsPerBeat,
   }: {
     trackId: string;
     noteId: string;
     beat: number;
     mode: "move" | "resize-start" | "resize-end";
+    pixelsPerBeat: number;
   }) {
     select({ trackId, noteId });
     const original = state.midiTracks
@@ -88,14 +90,33 @@ export function useRecorderMidiInteraction({
     }
     const step = 1 / subdivisionsPerBeat;
     const cellOffset = Math.floor((beat - original.start) / step);
+    const tolerance =
+      Math.max(2, Math.min(8, step * pixelsPerBeat * 0.15)) / pixelsPerBeat;
+    let resizeCellStart =
+      mode === "resize-start"
+        ? original.start
+        : original.start + original.duration - step;
     setEdit({
       trackId,
       original,
       note: original,
       getNote: ({ beat, pitch }) => {
-        const cellStart = snapToGrid(beat, step, { floor: true });
+        // Cross the grid boundary by 15% of a cell (2–8px) before resizing.
+        // Retain the current cell inside that band, including when reversing direction.
+        if (mode !== "move") {
+          if (beat < resizeCellStart - tolerance) {
+            resizeCellStart = snapToGrid(beat + tolerance, step, {
+              floor: true,
+            });
+          } else if (beat > resizeCellStart + step + tolerance) {
+            resizeCellStart = snapToGrid(beat - tolerance, step, {
+              floor: true,
+            });
+          }
+        }
         switch (mode) {
           case "move": {
+            const cellStart = snapToGrid(beat, step, { floor: true });
             return {
               ...original,
               start: Math.max(0, cellStart - cellOffset * step),
@@ -108,14 +129,17 @@ export function useRecorderMidiInteraction({
             if (end < step) {
               return original;
             }
-            const start = Math.max(0, Math.min(end - step, cellStart));
+            const start = Math.max(0, Math.min(end - step, resizeCellStart));
+            resizeCellStart = start;
             return { ...original, start, duration: end - start };
           }
           case "resize-end": {
-            return {
-              ...original,
-              duration: Math.max(step, cellStart + step - original.start),
-            };
+            const duration = Math.max(
+              step,
+              resizeCellStart + step - original.start,
+            );
+            resizeCellStart = original.start + duration - step;
+            return { ...original, duration };
           }
         }
       },

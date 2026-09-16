@@ -249,6 +249,7 @@ function MidiTrackEditor({
           trackId: track.id,
           noteId: existing.id,
           mode,
+          pixelsPerBeat,
           beat: position.beat,
         });
         preview.start(existing.pitch);
