@@ -180,10 +180,7 @@ function MidiTrackEditor({
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
-  const selectedId =
-    midiInteraction.selection?.trackId === track.id
-      ? midiInteraction.selection.noteId
-      : undefined;
+  const selectedId = midiInteraction.getSelectedNoteId(track.id);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
@@ -252,7 +249,7 @@ function MidiTrackEditor({
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       preview.stop();
-      if (midiInteraction.selection?.trackId === track.id) {
+      if (selectedId !== undefined) {
         midiInteraction.clear();
       }
     }

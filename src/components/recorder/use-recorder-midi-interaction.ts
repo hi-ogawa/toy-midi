@@ -34,6 +34,12 @@ export function useRecorderMidiInteraction({
     }
   }, [selectedNote]);
 
+  function getSelectedNoteId(trackId: string) {
+    return selectedNote && selection?.trackId === trackId
+      ? selection.noteId
+      : undefined;
+  }
+
   function select(selection: { trackId: string; noteId: string }) {
     onSelect();
     setSelection(selection);
@@ -82,7 +88,7 @@ export function useRecorderMidiInteraction({
     activate: onSelect,
     clear: () => setSelection(undefined),
     hasSelection: selectedNote !== undefined,
-    selection: selectedNote ? selection : undefined,
+    getSelectedNoteId,
     select,
     create,
     removeSelected,
