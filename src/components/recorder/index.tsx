@@ -22,7 +22,7 @@ import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
-import { RecorderLocatorRow, useRecorderLocators } from "./recorder-locators";
+import { RecorderLocatorRow } from "./recorder-locators";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -41,8 +41,8 @@ import {
 } from "./recorder-tracks";
 import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
-import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
+import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
 
@@ -71,19 +71,12 @@ export function Recorder({ projectId }: { projectId: string }) {
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const clipInteraction = useRecorderClipInteraction({
-    runtime,
-    state,
-    onSelect: () => {
-      locators.select(undefined);
-    },
-  });
-  const locators = useRecorderLocators({
+  const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
-    onSelect: clipInteraction.clear,
   });
+  const { clipInteraction, locatorInteraction } = recorderInteraction;
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -199,20 +192,23 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "L")) {
       event.preventDefault();
-      locators.add();
+      locatorInteraction.add();
       return;
     }
     if (
-      locators.selectedId &&
       (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
+        matchKeyboardEvent(event, "Backspace")) &&
+      recorderInteraction.deleteSelection()
     ) {
       event.preventDefault();
-      locators.removeSelected();
       return;
     }
-    if (matchKeyboardEvent(event, "Escape")) {
-      locators.select(undefined);
+    if (
+      matchKeyboardEvent(event, "Escape") &&
+      recorderInteraction.clearSelection()
+    ) {
+      event.preventDefault();
+      return;
     }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
       ? -1
@@ -225,17 +221,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       runtime.seek(position);
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
-      event.preventDefault();
-      clipInteraction.clear();
-    } else if (
-      clipInteraction.hasSelection &&
-      (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
-    ) {
-      event.preventDefault();
-      clipInteraction.removeSelected();
-    } else if (matchKeyboardEvent(event, "Space")) {
+    if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
     } else if (matchKeyboardEvent(event, "R")) {
@@ -301,7 +287,8 @@ export function Recorder({ projectId }: { projectId: string }) {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <RecorderLocatorRow
-          locators={locators}
+          locatorInteraction={locatorInteraction}
+          onClearSelection={recorderInteraction.clearSelection}
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}
@@ -337,7 +324,10 @@ export function Recorder({ projectId }: { projectId: string }) {
               isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
-              onSeek={(position) => runtime.seek(position)}
+              onSeek={(position) => {
+                recorderInteraction.clearSelection();
+                runtime.seek(position);
+              }}
               loop={state.loop}
               punch={state.punch}
               onLoopRangeChange={(range) => runtime.setLoop({ range })}
@@ -359,7 +349,10 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 tempo={timeline.tempo}
                 viewportWidth={timeline.viewportWidth}
-                onSeek={(position) => runtime.seek(position)}
+                onSeek={(position) => {
+                  recorderInteraction.clearSelection();
+                  runtime.seek(position);
+                }}
                 selected={clipInteraction.isSelected({ type: "reference" })}
                 onClipClick={(additive) =>
                   clipInteraction.select({ type: "reference" }, additive)
@@ -441,7 +434,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                   onClipDragMove={clipInteraction.move}
                   onSeek={(position) => {
-                    clipInteraction.clear();
+                    recorderInteraction.clearSelection();
                     runtime.seek(position);
                   }}
                 />
@@ -503,7 +496,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                 viewportStartBeat={timeline.viewportStartBeat}
                 viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  clipInteraction.clear();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
                 onTakeDragStart={(id, additive) =>
@@ -591,7 +584,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     }
                     onClipDragMove={clipInteraction.move}
                     onSeek={(position) => {
-                      clipInteraction.clear();
+                      recorderInteraction.clearSelection();
                       runtime.seek(position);
                     }}
                   />
