@@ -12,14 +12,9 @@ import {
   useState,
   type PointerEvent,
   type FocusEvent,
-  type KeyboardEvent,
 } from "react";
 import { useWindowEvent } from "../../hooks/use-window-event";
-import {
-  isShortcutTextInputTarget,
-  matchKeyboardEvent,
-} from "../../lib/keyboard";
-import { isBlackKey, clampPitch, snapToGrid } from "../../lib/music";
+import { isBlackKey, clampPitch } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
 import type {
   MidiTrackState,
@@ -39,6 +34,8 @@ import {
 import { cn } from "../ui/utils";
 import { TrackRow } from "./recorder-tracks";
 
+import type { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
+
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
 
@@ -52,8 +49,8 @@ export function MidiTrackRow({
   effectsOpen,
   onEffectsToggle,
   onRemove,
+  midiInteraction,
   onTranscribe,
-  onFocus,
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
@@ -64,8 +61,8 @@ export function MidiTrackRow({
   effectsOpen: boolean;
   onEffectsToggle: () => void;
   onRemove: () => void;
+  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
-  onFocus: () => void;
 }) {
   const [isProgramOpen, setIsProgramOpen] = useState(false);
   const programMutation = useMutation({
@@ -73,7 +70,7 @@ export function MidiTrackRow({
       runtime.setMidiTrackProgram(track.id, program),
   });
   return (
-    <div onFocus={onFocus}>
+    <div onFocus={midiInteraction.activate}>
       <TrackRow
         data-testid="recorder-midi-track-row"
         // Keep controls at their content height so the piano keyboard shows below.
@@ -101,6 +98,7 @@ export function MidiTrackRow({
         <MidiTrackEditor
           track={track}
           runtime={runtime}
+          midiInteraction={midiInteraction}
           pixelsPerBeat={pixelsPerBeat}
           beatsPerBar={beatsPerBar}
           subdivisionsPerBeat={subdivisionsPerBeat}
@@ -166,6 +164,7 @@ function MidiTrackActions({
 function MidiTrackEditor({
   track,
   runtime,
+  midiInteraction,
   pixelsPerBeat,
   beatsPerBar,
   subdivisionsPerBeat,
@@ -173,6 +172,7 @@ function MidiTrackEditor({
 }: {
   track: MidiTrackState;
   runtime: RecorderRuntime;
+  midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   pixelsPerBeat: number;
   beatsPerBar: number;
   subdivisionsPerBeat: number;
@@ -180,8 +180,10 @@ function MidiTrackEditor({
 }) {
   const previewPitch = useRef<number | undefined>(undefined);
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
-  const [selectedId, setSelectedId] = useState<string>();
-  const selected = track.notes.find((note) => note.id === selectedId);
+  const selectedId =
+    midiInteraction.selection?.trackId === track.id
+      ? midiInteraction.selection.noteId
+      : undefined;
 
   function stopPreview() {
     if (previewPitch.current !== undefined) {
@@ -220,6 +222,13 @@ function MidiTrackEditor({
     [runtime, track.id],
   );
 
+  // Stop auditioning when the selected note is cleared or removed.
+  useEffect(() => {
+    if (selectedId === undefined) {
+      stopPreview();
+    }
+  }, [selectedId]);
+
   const scrollRef = useCallback(
     (element: HTMLDivElement | null) => {
       if (!element) {
@@ -242,18 +251,6 @@ function MidiTrackEditor({
     [initialPitch],
   );
 
-  function deleteSelected() {
-    if (!selected) {
-      return;
-    }
-    stopPreview();
-    runtime.setMidiTrackNotes(
-      track.id,
-      track.notes.filter((note) => note.id !== selected.id),
-    );
-    setSelectedId(undefined);
-  }
-
   function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) {
       return;
@@ -271,7 +268,7 @@ function MidiTrackEditor({
       (note) => note.id === target?.dataset.noteId,
     );
     if (existing) {
-      setSelectedId(existing.id);
+      midiInteraction.select({ trackId: track.id, noteId: existing.id });
       startPreview(existing.pitch);
       return;
     }
@@ -285,44 +282,16 @@ function MidiTrackEditor({
       viewportStartBeat + (event.clientX - rect.left) / pixelsPerBeat;
 
     // Add a note snapped down to the grid, then select and preview it.
-    const note = {
-      id: crypto.randomUUID(),
-      pitch,
-      start: Math.max(
-        0,
-        snapToGrid(beat, 1 / subdivisionsPerBeat, {
-          floor: true,
-        }),
-      ),
-      duration: 1 / subdivisionsPerBeat,
-      velocity: 100,
-    };
-    runtime.setMidiTrackNotes(track.id, [...track.notes, note]);
-    setSelectedId(note.id);
+    midiInteraction.create({ trackId: track.id, pitch, beat });
     startPreview(pitch);
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       stopPreview();
-      setSelectedId(undefined);
-    }
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (isShortcutTextInputTarget(event.target)) {
-      return;
-    }
-    if (
-      matchKeyboardEvent(event, "Delete") ||
-      matchKeyboardEvent(event, "Backspace")
-    ) {
-      event.preventDefault();
-      event.stopPropagation();
-      deleteSelected();
-    } else if (matchKeyboardEvent(event, "Escape")) {
-      event.stopPropagation();
-      setSelectedId(undefined);
+      if (midiInteraction.selection?.trackId === track.id) {
+        midiInteraction.clear();
+      }
     }
   }
 
@@ -332,7 +301,6 @@ function MidiTrackEditor({
       className="col-span-2 col-start-1 row-start-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain"
       ref={scrollRef}
       onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
     >
       <div
         className="grid grid-cols-[15rem_minmax(0,1fr)]"
