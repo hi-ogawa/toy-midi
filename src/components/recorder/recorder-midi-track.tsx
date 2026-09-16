@@ -13,7 +13,7 @@ import {
   type FocusEvent,
 } from "react";
 import { toast } from "sonner";
-import { usePointerDrag } from "../../hooks/use-pointer-drag";
+import { usePointerGesture } from "../../hooks/use-pointer-gesture";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { isBlackKey, clampPitch } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
@@ -223,7 +223,7 @@ function MidiTrackEditor({
     };
   }
 
-  const gridRef = usePointerDrag({
+  const gridRef = usePointerGesture({
     onStart: (event) => {
       // Focus the grid and select an existing note, or create one in an empty cell.
       event.preventDefault();
@@ -252,49 +252,36 @@ function MidiTrackEditor({
           beat: position.beat,
         });
         preview.start(existing.pitch);
-        return {
-          startX: event.clientX,
-          startY: event.clientY,
-          dragging: false,
-        };
+        return;
       }
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
     },
-    onMove: updateEdit,
-    onEnd: (event, drag) => {
-      updateEdit(event, drag);
+    onClick: cancelEdit,
+    onDragMove: updateEdit,
+    onDragEnd: (event) => {
+      updateEdit(event);
       midiInteraction.finishEdit();
       preview.stop();
     },
-    onCancel: () => {
-      midiInteraction.cancelEdit();
-      preview.stop();
-    },
+    onCancel: cancelEdit,
   });
 
-  function updateEdit(
-    event: PointerEvent,
-    drag: { startX: number; startY: number; dragging: boolean } | undefined,
-  ) {
-    if (!drag) {
-      return;
+  function updateEdit(event: PointerEvent) {
+    const note = midiInteraction.updateEdit(getPointerPosition(event));
+    if (note) {
+      preview.start(note.pitch);
     }
-    // Keep a click as selection/preview, including notes that start off the grid.
-    drag.dragging ||=
-      Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 3;
-    if (drag.dragging) {
-      const note = midiInteraction.updateEdit(getPointerPosition(event));
-      if (note) {
-        preview.start(note.pitch);
-      }
-    }
+  }
+
+  function cancelEdit() {
+    midiInteraction.cancelEdit();
+    preview.stop();
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
-      midiInteraction.cancelEdit();
-      preview.stop();
+      cancelEdit();
       if (selectedId !== undefined) {
         midiInteraction.clear();
       }
