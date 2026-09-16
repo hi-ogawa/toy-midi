@@ -1,12 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   type RecorderClipId,
   type RecorderClipMove,
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-
-export type RecorderClipSelection = ReadonlySet<string>;
 
 export type RecorderClipMoveSnapshot = {
   clips: RecorderClipMove[];
@@ -22,14 +20,14 @@ export type RecorderClipTrimSnapshot = {
 export function useRecorderClipInteraction({
   runtime,
   state,
-  selection: keys,
-  onSelectionChange,
+  onActivate,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
-  selection: RecorderClipSelection;
-  onSelectionChange: (selection: RecorderClipSelection) => void;
+  onActivate: () => void;
 }) {
+  const [keys, setKeys] = useState(() => new Set<string>());
+
   function getKey(clip: RecorderClipId): string {
     return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
   }
@@ -54,17 +52,18 @@ export function useRecorderClipInteraction({
       ),
       ...(state.referenceVideo ? [getKey({ type: "reference" })] : []),
     ]);
-    const next = new Set([...keys].filter((key) => available.has(key)));
-    if (next.size !== keys.size) {
-      onSelectionChange(next);
-    }
+    setKeys((current) => {
+      const next = new Set([...current].filter((key) => available.has(key)));
+      return next.size === current.size ? current : next;
+    });
   }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
+    onActivate();
     const key = getKey(clip);
     if (!additive) {
       const next = keys.has(key) ? keys : new Set([key]);
-      onSelectionChange(next);
+      setKeys(next);
       return;
     }
     const next = new Set(keys);
@@ -73,7 +72,7 @@ export function useRecorderClipInteraction({
     } else {
       next.add(key);
     }
-    onSelectionChange(next);
+    setKeys(next);
   }
 
   function startMove({
@@ -83,6 +82,7 @@ export function useRecorderClipInteraction({
     clip: RecorderClipId;
     additive: boolean;
   }): RecorderClipMoveSnapshot {
+    onActivate();
     const draggedKey = getKey(clip);
     // Dragging a selected clip preserves the group; an unselected clip joins
     // with Ctrl/Cmd or replaces the selection otherwise.
@@ -91,7 +91,7 @@ export function useRecorderClipInteraction({
       : additive
         ? new Set([...keys, draggedKey])
         : new Set([draggedKey]);
-    onSelectionChange(selectedKeys);
+    setKeys(selectedKeys);
     const selected = getSelectedClips(selectedKeys);
     const clips = [
       ...selected.clips.map((clip) => ({
@@ -153,9 +153,10 @@ export function useRecorderClipInteraction({
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
     }
+    onActivate();
     const key = getKey(clip);
     if (!keys.has(key)) {
-      onSelectionChange(new Set([key]));
+      setKeys(new Set([key]));
     }
     return {
       clip,
@@ -184,10 +185,12 @@ export function useRecorderClipInteraction({
       })),
       ...(selected.referenceVideo ? [{ type: "reference" as const }] : []),
     ]);
-    onSelectionChange(new Set());
+    setKeys(new Set());
   }
 
   return {
+    clear: () => setKeys(new Set()),
+    hasSelection: keys.size > 0,
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     select,
     startMove,

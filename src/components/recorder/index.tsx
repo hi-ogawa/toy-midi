@@ -288,6 +288,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       <div className="flex min-h-0 flex-1 flex-col">
         <RecorderLocatorRow
           locatorInteraction={locatorInteraction}
+          onClearSelection={timelineInteraction.clearSelection}
           pixelsPerBeat={timelineView.pixelsPerBeat}
           viewportStartBeat={timelineView.viewportStartBeat}
           subdivisionsPerBeat={timelineView.subdivisionsPerBeat}

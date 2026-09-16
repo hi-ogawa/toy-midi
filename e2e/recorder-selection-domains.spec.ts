@@ -28,8 +28,8 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await expect(audio).toBeVisible();
 
   // Creation also clears clip selection, and clip drag/trim clear locators.
-  await audio.click();
   await seekRecorderByPixels(page, DEFAULT_PIXELS_PER_BEAT * 8);
+  await audio.click();
   await add.click();
   await expect(marker).toHaveAttribute("aria-pressed", "true");
   await expect(audio).not.toHaveAttribute("data-selected", "true");
@@ -60,6 +60,15 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await expect(marker).toHaveAttribute("aria-pressed", "false");
   await expect(audio).toHaveAttribute("data-selected", "true");
 
+  // Clear each domain with Escape while preserving both timeline items.
+  await page.keyboard.press("Escape");
+  await expect(audio).not.toHaveAttribute("data-selected", "true");
+  await marker.click();
+  await page.keyboard.press("Escape");
+  await expect(marker).toHaveAttribute("aria-pressed", "false");
+  await expect(audio).toBeVisible();
+  await expect(marker).toBeVisible();
+
   // Selecting a waveform after a locator makes Delete remove only the clip.
   await marker.click();
   await audio.click();
@@ -67,4 +76,9 @@ test("keeps recorder clip and locator selection domains exclusive", async ({
   await page.keyboard.press("Delete");
   await expect(audio).toHaveCount(0);
   await expect(marker).toBeVisible();
+
+  // Select the remaining locator and remove it with Backspace.
+  await marker.click();
+  await page.keyboard.press("Backspace");
+  await expect(marker).toHaveCount(0);
 });

@@ -1,19 +1,9 @@
-import { useState } from "react";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
 import { useRecorderLocatorInteraction } from "./recorder-locators";
-import {
-  type RecorderClipSelection,
-  useRecorderClipInteraction,
-} from "./use-recorder-clip-interaction";
-
-type RecorderTimelineSelection =
-  | { type: "clips"; keys: RecorderClipSelection }
-  | { type: "locator"; id: string };
-
-const EMPTY_CLIPS: RecorderClipSelection = new Set();
+import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 
 export function useRecorderTimelineInteraction({
   runtime,
@@ -24,53 +14,40 @@ export function useRecorderTimelineInteraction({
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
 }) {
-  const [current, setCurrent] = useState<RecorderTimelineSelection>();
-
-  function setClips(keys: RecorderClipSelection) {
-    setCurrent(keys.size > 0 ? { type: "clips", keys } : undefined);
-  }
-
-  function setLocator(id: string | undefined) {
-    setCurrent(id !== undefined ? { type: "locator", id } : undefined);
-  }
-
   const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
-    selection: current?.type === "clips" ? current.keys : EMPTY_CLIPS,
-    onSelectionChange: setClips,
+    onActivate: () => locatorInteraction.clear(),
   });
 
   const locatorInteraction = useRecorderLocatorInteraction({
     runtime,
     state,
     subdivisionsPerBeat,
-    selectedId: current?.type === "locator" ? current.id : undefined,
-    onSelectionChange: setLocator,
+    onActivate: () => clipInteraction.clear(),
   });
 
   function clearSelection() {
-    if (!current) {
-      return false;
-    }
-    setCurrent(undefined);
-    return true;
+    const hadSelection =
+      clipInteraction.hasSelection ||
+      locatorInteraction.selectedId !== undefined;
+    clipInteraction.clear();
+    locatorInteraction.clear();
+    return hadSelection;
   }
 
   function deleteSelection() {
-    if (!current) {
-      return false;
-    }
-    if (current.type === "clips") {
+    if (clipInteraction.hasSelection) {
       clipInteraction.removeSelected();
-    } else {
+    } else if (locatorInteraction.selectedId !== undefined) {
       locatorInteraction.removeSelected();
+    } else {
+      return false;
     }
     return true;
   }
 
   return {
-    selection: current,
     clipInteraction,
     locatorInteraction,
     clearSelection,

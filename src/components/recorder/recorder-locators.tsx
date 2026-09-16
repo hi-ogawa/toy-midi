@@ -16,15 +16,15 @@ export function useRecorderLocatorInteraction({
   runtime,
   state,
   subdivisionsPerBeat,
-  selectedId,
-  onSelectionChange,
+  onActivate,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
-  selectedId: string | undefined;
-  onSelectionChange: (id: string | undefined) => void;
+  onActivate: () => void;
 }) {
+  const [selectedId, setSelectedId] = useState<string>();
+
   function add() {
     const beat = Math.max(
       0,
@@ -36,8 +36,9 @@ export function useRecorderLocatorInteraction({
     select(runtime.addLocator(beat));
   }
 
-  function select(id: string | undefined) {
-    onSelectionChange(id);
+  function select(id: string) {
+    onActivate();
+    setSelectedId(id);
   }
 
   function update(update: RecorderLocatorUpdate) {
@@ -48,10 +49,11 @@ export function useRecorderLocatorInteraction({
     if (selectedId !== undefined) {
       runtime.deleteLocator(selectedId);
     }
-    select(undefined);
+    setSelectedId(undefined);
   }
 
   return {
+    clear: () => setSelectedId(undefined),
     items: state.locators,
     selectedId,
     select,
@@ -63,12 +65,14 @@ export function useRecorderLocatorInteraction({
 
 export function RecorderLocatorRow({
   locatorInteraction,
+  onClearSelection,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
   onSeekBeat,
 }: {
   locatorInteraction: ReturnType<typeof useRecorderLocatorInteraction>;
+  onClearSelection: () => void;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
@@ -92,7 +96,7 @@ export function RecorderLocatorRow({
         className="relative overflow-hidden"
         onPointerDown={(event) => {
           if (event.button === 0) {
-            locatorInteraction.select(undefined);
+            onClearSelection();
           }
         }}
       >
