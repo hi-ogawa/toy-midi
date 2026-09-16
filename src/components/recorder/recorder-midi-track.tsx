@@ -28,8 +28,7 @@ import {
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
 import { TrackRow } from "./recorder-tracks";
-
-import type { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
+import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
 
 const KEY_HEIGHT = 18;
 const PITCHES = Array.from({ length: 128 }, (_, index) => 127 - index);
