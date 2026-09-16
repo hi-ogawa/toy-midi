@@ -214,7 +214,7 @@ export function RecorderAudioToMidi({
             </p>
           )}
           <Button
-            className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
+            className={`h-9 w-full cursor-pointer px-3 text-sm ${transcribeMutation.isPending ? "border-neutral-600 text-neutral-100 hover:bg-neutral-700 active:bg-neutral-600" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
             disabled={
               !transcribeMutation.isPending &&
               !sources.some(({ track }) => track.id === sourceId)
