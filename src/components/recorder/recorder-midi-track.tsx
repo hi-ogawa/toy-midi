@@ -171,16 +171,6 @@ function MidiTrackEditor({
       ? midiInteraction.selection.noteId
       : undefined;
 
-  function stopPreview() {
-    if (previewPitch.current !== undefined) {
-      runtime.stopMidiNotePreview({
-        id: track.id,
-        pitch: previewPitch.current,
-      });
-      previewPitch.current = undefined;
-    }
-  }
-
   const previewMutation = useMutation({
     mutationFn: (pitch: number) =>
       runtime.startMidiNotePreview({ id: track.id, pitch }),
@@ -195,6 +185,16 @@ function MidiTrackEditor({
     stopPreview();
     previewPitch.current = pitch;
     previewMutation.mutate(pitch);
+  }
+
+  function stopPreview() {
+    if (previewPitch.current !== undefined) {
+      runtime.stopMidiNotePreview({
+        id: track.id,
+        pitch: previewPitch.current,
+      });
+      previewPitch.current = undefined;
+    }
   }
 
   // Pointer capture handles release and cancellation. Also stop when the app loses focus.
