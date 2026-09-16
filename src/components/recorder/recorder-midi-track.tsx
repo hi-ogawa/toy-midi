@@ -8,6 +8,7 @@ import {
   type PointerEvent,
   type FocusEvent,
 } from "react";
+import { toast } from "sonner";
 import { useWindowEvent } from "../../hooks/use-window-event";
 import { isBlackKey, clampPitch } from "../../lib/music";
 import { formatChromaticPitch } from "../../lib/pitch-spelling";
@@ -183,12 +184,17 @@ function MidiTrackEditor({
   const previewMutation = useMutation({
     mutationFn: (pitch: number) =>
       runtime.startMidiNotePreview({ id: track.id, pitch }),
+    onError: (error) => {
+      stopPreview();
+      console.error(error);
+      toast.error(error.message);
+    },
   });
 
   function startPreview(pitch: number) {
     stopPreview();
     previewPitch.current = pitch;
-    previewMutation.mutate(pitch, { onError: stopPreview });
+    previewMutation.mutate(pitch);
   }
 
   // Pointer capture handles release and cancellation. Also stop when the app loses focus.
