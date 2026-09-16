@@ -37,35 +37,32 @@ class BassPitchClient {
     if (this.transcribing) {
       throw new Error("Bass pitch transcription is already in progress");
     }
-    signal?.throwIfAborted();
     this.transcribing = true;
 
     const aborted = Promise.withResolvers<never>();
     const handleAbort = () => {
-      this.resetWorker();
+      this.resetRpc();
       aborted.reject(signal?.reason);
+    };
+
+    const transcribeInner = async () => {
+      signal?.throwIfAborted();
+      const pcm = await resampleToModelRate(audioBuffer);
+      signal?.throwIfAborted();
+      return this.getRpc().transcribe({
+        pcm,
+        params,
+        onProgress: (fraction) => {
+          if (!signal?.aborted) {
+            onProgress(fraction);
+          }
+        },
+      });
     };
 
     try {
       signal?.addEventListener("abort", handleAbort, { once: true });
-      if (signal?.aborted) {
-        handleAbort();
-      }
-      const transcription = (async () => {
-        const pcm = await resampleToModelRate(audioBuffer);
-        signal?.throwIfAborted();
-        const rpc = this.getRpc();
-        return await rpc.transcribe({
-          pcm,
-          params,
-          onProgress: (fraction) => {
-            if (!signal?.aborted) {
-              onProgress(fraction);
-            }
-          },
-        });
-      })();
-      return await Promise.race([transcription, aborted.promise]);
+      return await Promise.race([transcribeInner(), aborted.promise]);
     } finally {
       signal?.removeEventListener("abort", handleAbort);
       this.transcribing = false;
@@ -82,7 +79,7 @@ class BassPitchClient {
     return this.rpc;
   }
 
-  private resetWorker(): void {
+  private resetRpc(): void {
     this.worker?.terminate();
     this.worker = undefined;
     this.rpc = undefined;
