@@ -203,16 +203,27 @@ export function Recorder({ projectId }: { projectId: string }) {
       return;
     }
     if (
-      locators.selectedId &&
       (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
+        matchKeyboardEvent(event, "Backspace")) &&
+      selection.handleCurrent({
+        clips: clipInteraction.removeSelected,
+        locator: locators.removeSelected,
+      })
     ) {
       event.preventDefault();
-      locators.removeSelected();
       return;
     }
     if (matchKeyboardEvent(event, "Escape")) {
-      locators.select(undefined);
+      const handled = selection.handleCurrent({
+        clips: () => {
+          event.preventDefault();
+          selection.clear();
+        },
+        locator: selection.clear,
+      });
+      if (handled) {
+        return;
+      }
     }
     const seekDirection = matchKeyboardEvent(event, "ArrowLeft")
       ? -1
@@ -225,17 +236,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       runtime.seek(position);
       return;
     }
-    if (matchKeyboardEvent(event, "Escape") && clipInteraction.hasSelection) {
-      event.preventDefault();
-      clipInteraction.clear();
-    } else if (
-      clipInteraction.hasSelection &&
-      (matchKeyboardEvent(event, "Delete") ||
-        matchKeyboardEvent(event, "Backspace"))
-    ) {
-      event.preventDefault();
-      clipInteraction.removeSelected();
-    } else if (matchKeyboardEvent(event, "Space")) {
+    if (matchKeyboardEvent(event, "Space")) {
       event.preventDefault();
       togglePlay();
     } else if (matchKeyboardEvent(event, "R")) {
