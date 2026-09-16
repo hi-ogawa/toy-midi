@@ -185,16 +185,6 @@ function MidiTrackEditor({
       ? midiInteraction.selection.noteId
       : undefined;
 
-  function stopPreview() {
-    if (previewPitch.current !== undefined) {
-      runtime.stopMidiNotePreview({
-        id: track.id,
-        pitch: previewPitch.current,
-      });
-      previewPitch.current = undefined;
-    }
-  }
-
   const previewMutation = useMutation({
     mutationFn: (pitch: number) =>
       runtime.startMidiNotePreview({ id: track.id, pitch }),
@@ -211,21 +201,21 @@ function MidiTrackEditor({
     previewMutation.mutate(pitch);
   }
 
+  function stopPreview() {
+    if (previewPitch.current !== undefined) {
+      runtime.stopMidiNotePreview({
+        id: track.id,
+        pitch: previewPitch.current,
+      });
+      previewPitch.current = undefined;
+    }
+  }
+
   // Pointer capture handles release and cancellation. Also stop when the app loses focus.
   useWindowEvent("blur", stopPreview);
 
   // Stop a held note if the editor unmounts or switches to another track/runtime.
-  useEffect(
-    () => () => {
-      if (previewPitch.current !== undefined) {
-        runtime.stopMidiNotePreview({
-          id: track.id,
-          pitch: previewPitch.current,
-        });
-      }
-    },
-    [runtime, track.id],
-  );
+  useEffect(() => () => stopPreview(), [runtime, track.id]);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
