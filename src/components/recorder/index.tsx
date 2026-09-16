@@ -41,19 +41,11 @@ import {
 } from "./recorder-tracks";
 import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
-import {
-  type RecorderClipSelection,
-  useRecorderClipInteraction,
-} from "./use-recorder-clip-interaction";
+import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 import { useRecorderInput } from "./use-recorder-input";
 import { useRecorderProject } from "./use-recorder-project";
 import { useRecorderTimeline } from "./use-recorder-timeline";
-
-type RecorderTimelineSelection =
-  | { type: "clips"; keys: RecorderClipSelection }
-  | { type: "locator"; id: string };
-
-const EMPTY_CLIP_SELECTION: RecorderClipSelection = new Set();
+import { useRecorderTimelineSelection } from "./use-recorder-timeline-selection";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -65,7 +57,7 @@ export function Recorder({ projectId }: { projectId: string }) {
   const effects = useRecorderEffectsUi();
   const [isAudioExportOpen, setIsAudioExportOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [selection, setSelection] = useState<RecorderTimelineSelection>();
+  const selection = useRecorderTimelineSelection();
   const state = useSyncExternalStore(
     runtime.store.subscribe,
     runtime.store.get,
@@ -84,20 +76,13 @@ export function Recorder({ projectId }: { projectId: string }) {
   const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
-    selection:
-      selection?.type === "clips" ? selection.keys : EMPTY_CLIP_SELECTION,
-    onSelectionChange: (keys) => {
-      setSelection(keys.size > 0 ? { type: "clips", keys } : undefined);
-    },
+    ...selection.clips,
   });
   const locators = useRecorderLocators({
     runtime,
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
-    selectedId: selection?.type === "locator" ? selection.id : undefined,
-    onSelectionChange: (id) => {
-      setSelection(id !== undefined ? { type: "locator", id } : undefined);
-    },
+    ...selection.locator,
   });
 
   const playMutation = useMutation({
