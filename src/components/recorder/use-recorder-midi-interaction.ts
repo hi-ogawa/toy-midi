@@ -128,7 +128,7 @@ export function useRecorderMidiInteraction({
             if (end < step) {
               return original;
             }
-            const start = Math.max(0, Math.min(end - step, resizeCellStart));
+            const start = clamp(resizeCellStart, 0, end - step);
             resizeCellStart = start;
             return { ...original, start, duration: end - start };
           }
