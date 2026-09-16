@@ -5,7 +5,7 @@ import type {
 import { useRecorderLocatorInteraction } from "./recorder-locators";
 import { useRecorderClipInteraction } from "./use-recorder-clip-interaction";
 
-export function useRecorderTimelineInteraction({
+export function useRecorderInteraction({
   runtime,
   state,
   subdivisionsPerBeat,

@@ -42,9 +42,9 @@ import {
 import { RecorderTuner } from "./recorder-tuner";
 import { ReferenceVideoPanel } from "./reference-video";
 import { useRecorderInput } from "./use-recorder-input";
+import { useRecorderInteraction } from "./use-recorder-interaction";
 import { useRecorderProject } from "./use-recorder-project";
-import { useRecorderTimelineInteraction } from "./use-recorder-timeline-interaction";
-import { useRecorderTimelineView } from "./use-recorder-timeline-view";
+import { useRecorderTimeline } from "./use-recorder-timeline";
 
 export function Recorder({ projectId }: { projectId: string }) {
   const [runtime] = useState(() => new RecorderRuntime());
@@ -64,19 +64,19 @@ export function Recorder({ projectId }: { projectId: string }) {
     runtime,
     state,
   });
-  const timelineView = useRecorderTimelineView({
+  const timeline = useRecorderTimeline({
     isPlaying: state.isPlaying,
     position: state.position,
     tempo: state.tempo,
     timeSignature: state.timeSignature,
   });
   const project = useRecorderProject({ projectId, runtime });
-  const timelineInteraction = useRecorderTimelineInteraction({
+  const recorderInteraction = useRecorderInteraction({
     runtime,
     state,
-    subdivisionsPerBeat: timelineView.subdivisionsPerBeat,
+    subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
-  const { clipInteraction, locatorInteraction } = timelineInteraction;
+  const { clipInteraction, locatorInteraction } = recorderInteraction;
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -198,14 +198,14 @@ export function Recorder({ projectId }: { projectId: string }) {
     if (
       (matchKeyboardEvent(event, "Delete") ||
         matchKeyboardEvent(event, "Backspace")) &&
-      timelineInteraction.deleteSelection()
+      recorderInteraction.deleteSelection()
     ) {
       event.preventDefault();
       return;
     }
     if (
       matchKeyboardEvent(event, "Escape") &&
-      timelineInteraction.clearSelection()
+      recorderInteraction.clearSelection()
     ) {
       event.preventDefault();
       return;
@@ -232,7 +232,7 @@ export function Recorder({ projectId }: { projectId: string }) {
       runtime.setMetronomeEnabled(!state.metronomeEnabled);
     } else if (matchKeyboardEvent(event, "F")) {
       event.preventDefault();
-      timelineView.setAutoScrollEnabled(!timelineView.autoScrollEnabled);
+      timeline.setAutoScrollEnabled(!timeline.autoScrollEnabled);
     }
   });
 
@@ -248,23 +248,23 @@ export function Recorder({ projectId }: { projectId: string }) {
         isPlaying={state.isPlaying}
         flags={flags}
         isExporting={exportProjectMutation.isPending}
-        autoScrollEnabled={timelineView.autoScrollEnabled}
+        autoScrollEnabled={timeline.autoScrollEnabled}
         metronomeEnabled={state.metronomeEnabled}
         masterGain={state.masterGain}
         loop={state.loop}
         punch={state.punch}
         position={state.position}
         playbackRate={state.playbackRate}
-        tempo={timelineView.tempo}
-        timeSignature={timelineView.timeSignature}
-        gridDivision={timelineView.gridDivision}
+        tempo={timeline.tempo}
+        timeSignature={timeline.timeSignature}
+        gridDivision={timeline.gridDivision}
         onPlayToggle={togglePlay}
         onTitleChange={(nextTitle) => {
           runtime.setTitle(nextTitle);
         }}
         onSave={project.save}
         onRecordToggle={toggleRecord}
-        onAutoScrollChange={timelineView.setAutoScrollEnabled}
+        onAutoScrollChange={timeline.setAutoScrollEnabled}
         onPlaybackRateChange={(playbackRate) => {
           runtime.setPlaybackRate(playbackRate);
         }}
@@ -276,7 +276,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         onTimeSignatureChange={(timeSignature) =>
           runtime.setTimeSignature(parseTimeSignature(timeSignature))
         }
-        onGridDivisionChange={timelineView.setGridDivision}
+        onGridDivisionChange={timeline.setGridDivision}
         onExportProject={() => exportProjectMutation.mutate()}
         onExportAudio={() => setIsAudioExportOpen(true)}
         onReferenceVideoOpenChange={setIsReferenceVideoOpen}
@@ -288,12 +288,12 @@ export function Recorder({ projectId }: { projectId: string }) {
       <div className="flex min-h-0 flex-1 flex-col">
         <RecorderLocatorRow
           locatorInteraction={locatorInteraction}
-          onClearSelection={timelineInteraction.clearSelection}
-          pixelsPerBeat={timelineView.pixelsPerBeat}
-          viewportStartBeat={timelineView.viewportStartBeat}
-          subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
+          onClearSelection={recorderInteraction.clearSelection}
+          pixelsPerBeat={timeline.pixelsPerBeat}
+          viewportStartBeat={timeline.viewportStartBeat}
+          subdivisionsPerBeat={timeline.subdivisionsPerBeat}
           onSeekBeat={(beat) =>
-            runtime.seek(beatsToSeconds(beat, timelineView.tempo))
+            runtime.seek(beatsToSeconds(beat, timeline.tempo))
           }
         />
         <section
@@ -301,31 +301,31 @@ export function Recorder({ projectId }: { projectId: string }) {
           className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
         >
           <div
-            ref={timelineView.viewportRef}
+            ref={timeline.viewportRef}
             className="pointer-events-none absolute inset-y-0 left-[15rem] right-0"
           />
           <div className="relative">
-            {timelineView.showPlayhead && (
+            {timeline.showPlayhead && (
               <div className="pointer-events-none absolute inset-y-0 left-[15rem] right-0 z-50 overflow-hidden">
                 <div
                   data-testid="recorder-playhead"
                   className="absolute inset-y-0 w-px bg-sky-400"
-                  style={{ left: timelineView.playheadX }}
+                  style={{ left: timeline.playheadX }}
                 />
               </div>
             )}
             <TimelineHeader
-              pixelsPerBeat={timelineView.pixelsPerBeat}
-              beatsPerBar={timelineView.beatsPerBar}
-              subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
-              viewportStartBeat={timelineView.viewportStartBeat}
-              tempo={timelineView.tempo}
-              timelineWidth={timelineView.viewportWidth}
+              pixelsPerBeat={timeline.pixelsPerBeat}
+              beatsPerBar={timeline.beatsPerBar}
+              subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+              viewportStartBeat={timeline.viewportStartBeat}
+              tempo={timeline.tempo}
+              timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => {
-                timelineInteraction.clearSelection();
+                recorderInteraction.clearSelection();
                 runtime.seek(position);
               }}
               loop={state.loop}
@@ -343,14 +343,14 @@ export function Recorder({ projectId }: { projectId: string }) {
               <ReferenceTimelineRow
                 referenceVideo={state.referenceVideo}
                 position={state.position}
-                pixelsPerBeat={timelineView.pixelsPerBeat}
-                beatsPerBar={timelineView.beatsPerBar}
-                subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
-                viewportStartBeat={timelineView.viewportStartBeat}
-                tempo={timelineView.tempo}
-                viewportWidth={timelineView.viewportWidth}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                tempo={timeline.tempo}
+                viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  timelineInteraction.clearSelection();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
                 selected={clipInteraction.isSelected({ type: "reference" })}
@@ -406,12 +406,12 @@ export function Recorder({ projectId }: { projectId: string }) {
                   clips={track.clips}
                   regions={track.regions}
                   testId="audio"
-                  pixelsPerBeat={timelineView.pixelsPerBeat}
-                  beatsPerBar={timelineView.beatsPerBar}
-                  subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
-                  viewportStartBeat={timelineView.viewportStartBeat}
-                  tempo={timelineView.tempo}
-                  viewportWidth={timelineView.viewportWidth}
+                  pixelsPerBeat={timeline.pixelsPerBeat}
+                  beatsPerBar={timeline.beatsPerBar}
+                  subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                  viewportStartBeat={timeline.viewportStartBeat}
+                  tempo={timeline.tempo}
+                  viewportWidth={timeline.viewportWidth}
                   emptyLabel="Load an audio file"
                   isClipSelected={(id) =>
                     clipInteraction.isSelected({ type: "clip", id })
@@ -434,7 +434,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }
                   onClipDragMove={clipInteraction.move}
                   onSeek={(position) => {
-                    timelineInteraction.clearSelection();
+                    recorderInteraction.clearSelection();
                     runtime.seek(position);
                   }}
                 />
@@ -489,14 +489,14 @@ export function Recorder({ projectId }: { projectId: string }) {
                 isTakeSelected={(id) =>
                   clipInteraction.isSelected({ type: "clip", id })
                 }
-                beatsPerBar={timelineView.beatsPerBar}
-                subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
-                pixelsPerBeat={timelineView.pixelsPerBeat}
-                tempo={timelineView.tempo}
-                viewportStartBeat={timelineView.viewportStartBeat}
-                viewportWidth={timelineView.viewportWidth}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                tempo={timeline.tempo}
+                viewportStartBeat={timeline.viewportStartBeat}
+                viewportWidth={timeline.viewportWidth}
                 onSeek={(position) => {
-                  timelineInteraction.clearSelection();
+                  recorderInteraction.clearSelection();
                   runtime.seek(position);
                 }}
                 onTakeDragStart={(id, additive) =>
@@ -552,12 +552,12 @@ export function Recorder({ projectId }: { projectId: string }) {
                       audioView: take.audioView,
                       audioOffset: take.trimStart,
                     }}
-                    pixelsPerBeat={timelineView.pixelsPerBeat}
-                    beatsPerBar={timelineView.beatsPerBar}
-                    subdivisionsPerBeat={timelineView.subdivisionsPerBeat}
-                    viewportStartBeat={timelineView.viewportStartBeat}
-                    tempo={timelineView.tempo}
-                    viewportWidth={timelineView.viewportWidth}
+                    pixelsPerBeat={timeline.pixelsPerBeat}
+                    beatsPerBar={timeline.beatsPerBar}
+                    subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                    viewportStartBeat={timeline.viewportStartBeat}
+                    tempo={timeline.tempo}
+                    viewportWidth={timeline.viewportWidth}
                     emptyLabel=""
                     selected={clipInteraction.isSelected({
                       type: "clip",
@@ -584,7 +584,7 @@ export function Recorder({ projectId }: { projectId: string }) {
                     }
                     onClipDragMove={clipInteraction.move}
                     onSeek={(position) => {
-                      timelineInteraction.clearSelection();
+                      recorderInteraction.clearSelection();
                       runtime.seek(position);
                     }}
                   />
