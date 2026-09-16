@@ -42,22 +42,10 @@ export function useRecorderMidiInteraction({
 
   useEffect(() => {
     if (!selectedNote) {
+      cancelMove();
       setSelection(undefined);
     }
   }, [selectedNote]);
-
-  // Discard an edit if its note is removed or replaced while the pointer is held.
-  useEffect(() => {
-    const current = move.current;
-    if (
-      current &&
-      !state.midiTracks
-        .find((track) => track.id === current.trackId)
-        ?.notes.includes(current.original)
-    ) {
-      cancelMove();
-    }
-  }, [state.midiTracks]);
 
   function getSelectedNoteId(trackId: string) {
     return selectedNote && selection?.trackId === trackId
@@ -81,9 +69,8 @@ export function useRecorderMidiInteraction({
     beat: number;
   }) {
     select({ trackId, noteId });
-    const original = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId)
+    const original = state.midiTracks
+      .find((track) => track.id === trackId)
       ?.notes.find((note) => note.id === noteId);
     if (!original) {
       return;
@@ -122,16 +109,14 @@ export function useRecorderMidiInteraction({
       return;
     }
     const { trackId, original, note } = current;
-    const track = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId);
+    const track = state.midiTracks.find((track) => track.id === trackId);
     if (
-      track?.notes.includes(original) &&
+      track &&
       (note.start !== original.start || note.pitch !== original.pitch)
     ) {
       runtime.setMidiTrackNotes(
         trackId,
-        track.notes.map((entry) => (entry === original ? note : entry)),
+        track.notes.map((entry) => (entry.id === note.id ? note : entry)),
       );
     }
   }
@@ -155,9 +140,7 @@ export function useRecorderMidiInteraction({
     pitch: number;
     beat: number;
   }) {
-    const track = runtime.store
-      .get()
-      .midiTracks.find((track) => track.id === trackId);
+    const track = state.midiTracks.find((track) => track.id === trackId);
     if (!track) {
       return;
     }
