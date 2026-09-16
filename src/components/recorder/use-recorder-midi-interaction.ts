@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
@@ -22,16 +22,12 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
-  const move = useRef<{
+  const [move, setMove] = useState<{
     trackId: string;
     original: Note;
     note: Note;
     cellOffset: number;
     step: number;
-  }>(undefined);
-  const [movePreview, setMovePreview] = useState<{
-    trackId: string;
-    note: Note;
   }>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
@@ -60,8 +56,8 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }) {
-    return movePreview?.trackId === trackId && movePreview.note.id === noteId
-      ? movePreview.note
+    return move?.trackId === trackId && move.note.id === noteId
+      ? move.note
       : undefined;
   }
 
@@ -88,39 +84,35 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    move.current = {
+    setMove({
       trackId,
       original,
       note: original,
       step,
       cellOffset: Math.floor((beat - original.start) / step),
-    };
+    });
   }
 
-  function updateMove({ beat, pitch }: { beat: number; pitch: number }) {
-    const current = move.current;
-    if (!current) {
+  function updateMove(position: { beat: number; pitch: number }) {
+    const note = getMovedNote(position);
+    if (
+      move &&
+      note &&
+      (note.start !== move.note.start || note.pitch !== move.note.pitch)
+    ) {
+      setMove({ ...move, note });
+    }
+    return note;
+  }
+
+  function finishMove(position: { beat: number; pitch: number }) {
+    // Calculate from the release position rather than waiting for a preview render.
+    const note = getMovedNote(position);
+    if (!move || !note) {
       return;
     }
-    const start = Math.max(
-      0,
-      (Math.floor(beat / current.step) - current.cellOffset) * current.step,
-    );
-    const nextPitch = clampPitch(pitch);
-    if (start !== current.note.start || nextPitch !== current.note.pitch) {
-      current.note = { ...current.original, start, pitch: nextPitch };
-      setMovePreview({ trackId: current.trackId, note: current.note });
-    }
-    return current.note;
-  }
-
-  function finishMove() {
-    const current = move.current;
     cancelMove();
-    if (!current) {
-      return;
-    }
-    const { trackId, original, note } = current;
+    const { trackId, original } = move;
     const track = state.midiTracks.find((track) => track.id === trackId);
     if (
       track &&
@@ -133,9 +125,22 @@ export function useRecorderMidiInteraction({
     }
   }
 
+  function getMovedNote({ beat, pitch }: { beat: number; pitch: number }) {
+    if (!move) {
+      return;
+    }
+    return {
+      ...move.original,
+      start: Math.max(
+        0,
+        (Math.floor(beat / move.step) - move.cellOffset) * move.step,
+      ),
+      pitch: clampPitch(pitch),
+    };
+  }
+
   function cancelMove() {
-    move.current = undefined;
-    setMovePreview(undefined);
+    setMove(undefined);
   }
 
   function clear() {

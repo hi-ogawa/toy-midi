@@ -255,8 +255,7 @@ function MidiTrackEditor({
       }
     },
     onDragEnd: (event) => {
-      midiInteraction.updateMove(getPointerPosition(event));
-      midiInteraction.finishMove();
+      midiInteraction.finishMove(getPointerPosition(event));
       preview.stop();
     },
     onCancel: cancelMove,
