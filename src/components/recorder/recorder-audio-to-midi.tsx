@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { CheckIcon } from "lucide-react";
 import { type ComponentProps, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { bassPitchClient } from "../../lib/bass-pitch/client";
 import {
   DEFAULT_GRID_ACTIVITY_DB,
@@ -16,6 +17,8 @@ import type {
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
 import { RecorderPanel } from "./recorder-panel";
+
+const CONVERSION_CANCELLED_ERROR = new Error("Conversion cancelled");
 
 export function useRecorderAudioToMidiUi() {
   const [openTranscriptions, setOpenTranscriptions] = useState<
@@ -64,18 +67,17 @@ export function RecorderAudioToMidi({
     DEFAULT_GRID_SPLIT_THRESHOLD,
   );
   const [progress, setProgress] = useState(0);
-  const mounted = useRef(false);
+  const conversionController = useRef<AbortController>(undefined);
   useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
+    bassPitchClient.warmUp();
+    return () =>
+      conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
   }, []);
 
-  // TODO: Support worker cancellation before adding Cancel so retries can start
-  // immediately instead of waiting behind the cancelled computation.
   const transcribeMutation = useMutation({
     mutationFn: async () => {
+      const controller = new AbortController();
+      conversionController.current = controller;
       const state = runtime.store.get();
       const destination = state.midiTracks.find(
         (candidate) => candidate.id === track.id,
@@ -92,15 +94,10 @@ export function RecorderAudioToMidi({
         cellsPerBeat,
         activityDb,
         splitThreshold,
-        onProgress: (progress) => {
-          if (mounted.current) {
-            setProgress(progress);
-          }
-        },
+        onProgress: setProgress,
+        signal: controller.signal,
       });
-      if (!mounted.current) {
-        return;
-      }
+      controller.signal.throwIfAborted();
       const current = runtime.store.get();
       const target = current.midiTracks.find(
         (candidate) => candidate.id === track.id,
@@ -114,9 +111,16 @@ export function RecorderAudioToMidi({
       return notes.length;
     },
     onMutate: () => setProgress(0),
+    onError: (error) => {
+      if (error !== CONVERSION_CANCELLED_ERROR) {
+        console.error(error);
+        toast.error(error.message);
+      }
+    },
+    onSettled: () => {
+      conversionController.current = undefined;
+    },
   });
-
-  useEffect(() => bassPitchClient.warmUp(), []);
 
   const status = transcribeMutation.isPending
     ? `Converting ${Math.round(progress * 100)}%`
@@ -212,12 +216,18 @@ export function RecorderAudioToMidi({
           <Button
             className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
             disabled={
-              transcribeMutation.isPending ||
+              !transcribeMutation.isPending &&
               !sources.some(({ track }) => track.id === sourceId)
             }
-            onClick={() => transcribeMutation.mutate()}
+            onClick={() => {
+              if (transcribeMutation.isPending) {
+                conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
+              } else {
+                transcribeMutation.mutate();
+              }
+            }}
           >
-            {transcribeMutation.isPending ? "Converting..." : "Convert to MIDI"}
+            {transcribeMutation.isPending ? "Cancel" : "Convert to MIDI"}
           </Button>
           <p
             role="status"

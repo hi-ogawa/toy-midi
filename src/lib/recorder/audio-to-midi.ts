@@ -13,6 +13,7 @@ export async function transcribeRecorderAudio({
   activityDb,
   splitThreshold,
   onProgress,
+  signal,
 }: {
   sources: AudioPlaybackSource[];
   tempo: number;
@@ -20,8 +21,11 @@ export async function transcribeRecorderAudio({
   activityDb: number;
   splitThreshold: number;
   onProgress: (fraction: number) => void;
+  signal: AbortSignal;
 }): Promise<Note[]> {
+  signal.throwIfAborted();
   const { buffer, offset } = await renderAudioSources(sources);
+  signal.throwIfAborted();
   const notes = await bassPitchClient.transcribe(
     buffer,
     makeGridTranscribeParams({
@@ -32,6 +36,7 @@ export async function transcribeRecorderAudio({
       splitThreshold,
     }),
     onProgress,
+    signal,
   );
   return notes.map((note) => ({
     id: crypto.randomUUID(),
