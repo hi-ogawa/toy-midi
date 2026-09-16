@@ -16,16 +16,15 @@ export function useRecorderLocators({
   runtime,
   state,
   subdivisionsPerBeat,
-  onSelect,
+  selectedId,
+  onSelectionChange,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
-  /** Only coordinates selection domains by clearing selection in the other domain. */
-  onSelect: () => void;
+  selectedId: string | undefined;
+  onSelectionChange: (id: string | undefined) => void;
 }) {
-  const [selectedId, setSelectedId] = useState<string>();
-
   function add() {
     const beat = Math.max(
       0,
@@ -38,10 +37,7 @@ export function useRecorderLocators({
   }
 
   function select(id: string | undefined) {
-    if (id !== undefined) {
-      onSelect();
-    }
-    setSelectedId(id);
+    onSelectionChange(id);
   }
 
   function update(update: RecorderLocatorUpdate) {
