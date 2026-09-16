@@ -181,7 +181,6 @@ function MidiTrackEditor({
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
-  const movePreview = midiInteraction.getMovePreview(track.id);
 
   useWindowEvent("blur", midiInteraction.cancelMove);
 
@@ -327,7 +326,12 @@ function MidiTrackEditor({
           {track.notes.map((note) => (
             <MidiNote
               key={note.id}
-              note={movePreview?.id === note.id ? movePreview : note}
+              note={
+                midiInteraction.getMovePreview({
+                  trackId: track.id,
+                  noteId: note.id,
+                }) ?? note
+              }
               selected={selectedId === note.id}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}

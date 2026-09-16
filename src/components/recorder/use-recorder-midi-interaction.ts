@@ -53,6 +53,18 @@ export function useRecorderMidiInteraction({
       : undefined;
   }
 
+  function getMovePreview({
+    trackId,
+    noteId,
+  }: {
+    trackId: string;
+    noteId: string;
+  }) {
+    return movePreview?.trackId === trackId && movePreview.note.id === noteId
+      ? movePreview.note
+      : undefined;
+  }
+
   function select(selection: { trackId: string; noteId: string }) {
     cancelMove();
     onSelect();
@@ -178,8 +190,7 @@ export function useRecorderMidiInteraction({
     updateMove,
     finishMove,
     cancelMove,
-    getMovePreview: (trackId: string) =>
-      movePreview?.trackId === trackId ? movePreview.note : undefined,
+    getMovePreview,
     create,
     removeSelected,
   };
