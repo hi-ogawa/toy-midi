@@ -155,6 +155,7 @@ export function useRecorderClipInteraction({
       throw new Error("Recorder clip state is missing.");
     }
     onSelect();
+    // TODO: Decide separately whether starting a trim should select the clip.
     const key = getKey(clip);
     if (!keys.has(key)) {
       setKeys(new Set([key]));
