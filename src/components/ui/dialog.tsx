@@ -1,5 +1,6 @@
 import { XIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./utils";
 
 type DialogProps = {
@@ -10,6 +11,25 @@ type DialogProps = {
   "data-testid"?: string;
   size?: "default" | "wide";
 };
+
+export function PortalDialog(props: DialogProps) {
+  if (!props.isOpen) {
+    return;
+  }
+  return createPortal(
+    <div
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === "Escape") {
+          props.onClose();
+        }
+      }}
+    >
+      <Dialog {...props} />
+    </div>,
+    document.body,
+  );
+}
 
 export function Dialog({
   isOpen,

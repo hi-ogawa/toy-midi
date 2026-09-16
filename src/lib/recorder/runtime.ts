@@ -546,7 +546,7 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({
         ...track,
-        height: clampTrackHeight(height),
+        height: clamp(height, 68, 600),
       }));
       return;
     }
@@ -595,11 +595,27 @@ export class RecorderRuntime {
     }
   }
 
-  // TODO: integrate UI
-  // async setMidiTrackProgram(id: string, program: number): Promise<void> {
-  //   await this.midiTrackPlaybacks.get(id)?.setProgram(program);
-  //   this.updateMidiTrack(id, (track) => ({ ...track, program }));
-  // }
+  async setMidiTrackProgram(id: string, program: number): Promise<void> {
+    await this.midiTrackPlaybacks.get(id)?.setProgram(program);
+    if (this.store.get().midiTracks.some((track) => track.id === id)) {
+      this.updateMidiTrack(id, (track) => ({ ...track, program }));
+    }
+  }
+
+  async startMidiNotePreview({
+    id,
+    pitch,
+  }: {
+    id: string;
+    pitch: number;
+  }): Promise<void> {
+    await this.context.resume();
+    this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
+  }
+
+  stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
+    this.midiTrackPlaybacks.get(id)?.noteOff(pitch);
+  }
 
   setMidiTrackNotes(id: string, notes: Note[]): void {
     this.updateMidiTrack(id, (track) => ({ ...track, notes }));
@@ -1289,40 +1305,10 @@ function createMidiTrackState(number: number): MidiTrackState {
   return {
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
-    // TODO: integrate UI
-    notes: [
-      {
-        id: crypto.randomUUID(),
-        pitch: 60,
-        start: 0,
-        duration: 0.75,
-        velocity: 100,
-      },
-      {
-        id: crypto.randomUUID(),
-        pitch: 64,
-        start: 1,
-        duration: 0.75,
-        velocity: 100,
-      },
-      {
-        id: crypto.randomUUID(),
-        pitch: 67,
-        start: 2,
-        duration: 0.75,
-        velocity: 100,
-      },
-      {
-        id: crypto.randomUUID(),
-        pitch: 72,
-        start: 3,
-        duration: 1,
-        velocity: 100,
-      },
-    ],
+    notes: [],
     program: 0,
     eq: createDefaultMultibandEq(),
-    height: DEFAULT_TRACK_HEIGHT,
+    height: 300,
     gain: 1,
     muted: false,
     soloed: false,
