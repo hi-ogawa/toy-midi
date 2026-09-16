@@ -22,14 +22,15 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
-  const move = useRef<{
+  const edit = useRef<{
     trackId: string;
+    mode: "move" | "resize-start" | "resize-end";
     original: Note;
     note: Note;
     cellOffset: number;
     step: number;
   }>(undefined);
-  const [movePreview, setMovePreview] = useState<{
+  const [editPreview, setEditPreview] = useState<{
     trackId: string;
     note: Note;
   }>();
@@ -48,14 +49,14 @@ export function useRecorderMidiInteraction({
 
   // Discard an edit if its note is removed or replaced while the pointer is held.
   useEffect(() => {
-    const current = move.current;
+    const current = edit.current;
     if (
       current &&
       !state.midiTracks
         .find((track) => track.id === current.trackId)
         ?.notes.includes(current.original)
     ) {
-      cancelMove();
+      cancelEdit();
     }
   }, [state.midiTracks]);
 
@@ -66,19 +67,21 @@ export function useRecorderMidiInteraction({
   }
 
   function select(selection: { trackId: string; noteId: string }) {
-    cancelMove();
+    cancelEdit();
     onSelect();
     setSelection(selection);
   }
 
-  function startMove({
+  function startEdit({
     trackId,
     noteId,
     beat,
+    mode,
   }: {
     trackId: string;
     noteId: string;
     beat: number;
+    mode: "move" | "resize-start" | "resize-end";
   }) {
     select({ trackId, noteId });
     const original = runtime.store
@@ -89,8 +92,9 @@ export function useRecorderMidiInteraction({
       return;
     }
     const step = 1 / subdivisionsPerBeat;
-    move.current = {
+    edit.current = {
       trackId,
+      mode,
       original,
       note: original,
       step,
@@ -98,26 +102,55 @@ export function useRecorderMidiInteraction({
     };
   }
 
-  function updateMove({ beat, pitch }: { beat: number; pitch: number }) {
-    const current = move.current;
+  function updateEdit({ beat, pitch }: { beat: number; pitch: number }) {
+    const current = edit.current;
     if (!current) {
       return;
     }
-    const start = Math.max(
-      0,
-      (Math.floor(beat / current.step) - current.cellOffset) * current.step,
-    );
-    const nextPitch = clampPitch(pitch);
-    if (start !== current.note.start || nextPitch !== current.note.pitch) {
-      current.note = { ...current.original, start, pitch: nextPitch };
-      setMovePreview({ trackId: current.trackId, note: current.note });
+    const { original, step } = current;
+    const cellStart = Math.floor(beat / step) * step;
+    let note: Note;
+    switch (current.mode) {
+      case "move": {
+        note = {
+          ...original,
+          start: Math.max(0, cellStart - current.cellOffset * step),
+          pitch: clampPitch(pitch),
+        };
+        break;
+      }
+      case "resize-start": {
+        const end = original.start + original.duration;
+        // A coarser grid may leave no room for a whole cell before the fixed end.
+        if (end < step) {
+          return current.note;
+        }
+        const start = Math.max(0, Math.min(end - step, cellStart));
+        note = { ...original, start, duration: end - start };
+        break;
+      }
+      case "resize-end": {
+        note = {
+          ...original,
+          duration: Math.max(step, cellStart + step - original.start),
+        };
+        break;
+      }
+    }
+    if (
+      note.start !== current.note.start ||
+      note.pitch !== current.note.pitch ||
+      note.duration !== current.note.duration
+    ) {
+      current.note = note;
+      setEditPreview({ trackId: current.trackId, note });
     }
     return current.note;
   }
 
-  function finishMove() {
-    const current = move.current;
-    cancelMove();
+  function finishEdit() {
+    const current = edit.current;
+    cancelEdit();
     if (!current) {
       return;
     }
@@ -127,7 +160,9 @@ export function useRecorderMidiInteraction({
       .midiTracks.find((track) => track.id === trackId);
     if (
       track?.notes.includes(original) &&
-      (note.start !== original.start || note.pitch !== original.pitch)
+      (note.start !== original.start ||
+        note.pitch !== original.pitch ||
+        note.duration !== original.duration)
     ) {
       runtime.setMidiTrackNotes(
         trackId,
@@ -136,13 +171,13 @@ export function useRecorderMidiInteraction({
     }
   }
 
-  function cancelMove() {
-    move.current = undefined;
-    setMovePreview(undefined);
+  function cancelEdit() {
+    edit.current = undefined;
+    setEditPreview(undefined);
   }
 
   function clear() {
-    cancelMove();
+    cancelEdit();
     setSelection(undefined);
   }
 
@@ -176,7 +211,7 @@ export function useRecorderMidiInteraction({
   }
 
   function removeSelected() {
-    cancelMove();
+    cancelEdit();
     if (selectedTrack && selectedNote) {
       runtime.setMidiTrackNotes(
         selectedTrack.id,
@@ -191,12 +226,12 @@ export function useRecorderMidiInteraction({
     clear,
     hasSelection: selectedNote !== undefined,
     getSelectedNoteId,
-    startMove,
-    updateMove,
-    finishMove,
-    cancelMove,
-    getMovePreview: (trackId: string) =>
-      movePreview?.trackId === trackId ? movePreview.note : undefined,
+    startEdit,
+    updateEdit,
+    finishEdit,
+    cancelEdit,
+    getEditPreview: (trackId: string) =>
+      editPreview?.trackId === trackId ? editPreview.note : undefined,
     create,
     removeSelected,
   };

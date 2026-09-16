@@ -3,6 +3,7 @@ import { createCheckpoint } from "./helpers";
 import {
   addRecorderAudio,
   createRecorderProject,
+  dragBy,
   getRecorderPosition,
 } from "./recorder-helpers";
 
@@ -278,4 +279,72 @@ test("moves a MIDI note with a cancellable preview and saves on release", async 
   await page.reload();
   await expect(note).toHaveAttribute("aria-label", "D4, beat 1.5");
   expect((await note.boundingBox())!.width).toBe(original.width);
+});
+
+test("resizes both MIDI note edges with a cancellable preview and minimum duration", async ({
+  page,
+}) => {
+  // Create and save a one-cell note, leaving both edges available around its move target.
+  await createRecorderProject(page);
+  await page.getByTestId("recorder-add-midi-track").click();
+  const row = page.getByTestId("recorder-midi-track-row");
+  const grid = row.getByTestId("recorder-midi-grid");
+  const note = grid.locator("[data-note-id]");
+  const key = row.getByRole("button", { name: "Preview C4", exact: true });
+  await expect(key).toBeVisible();
+  const gridBox = (await grid.boundingBox())!;
+  const keyBox = (await key.boundingBox())!;
+  await page.mouse.click(gridBox.x + 5, keyBox.y + keyBox.height / 2);
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
+  const save = page.getByTestId("recorder-save-button");
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  const cellWidth = (await note.boundingBox())!.width;
+  const startEdge = note.locator('[data-note-edge="start"]');
+  const endEdge = note.locator('[data-note-edge="end"]');
+
+  // Extend the right edge in preview, then cancel without making the project dirty.
+  const endBox = (await endEdge.boundingBox())!;
+  const endX = endBox.x + endBox.width / 2;
+  const endY = endBox.y + endBox.height / 2;
+  await page.mouse.move(endX, endY);
+  await page.mouse.down();
+  await page.mouse.move(endX + cellWidth * 3, endY, { steps: 4 });
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth * 4);
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await note.boundingBox())!.width)
+    .toBe(cellWidth);
+  await expect(save).toHaveAttribute("data-status", "saved");
+
+  // Extend the end, then trim the start while keeping the opposite edge and pitch fixed.
+  await dragBy(page, endEdge, cellWidth * 3);
+  await expect(save).toHaveAttribute("data-status", "unsaved");
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
+  expect((await note.boundingBox())!.width).toBe(cellWidth * 4);
+  await dragBy(page, startEdge, cellWidth * 2);
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1.5");
+  expect((await note.boundingBox())!.width).toBe(cellWidth * 2);
+
+  // Clamp the start at beat zero and clamp either edge to a one-cell minimum duration.
+  await dragBy(page, startEdge, -cellWidth * 4);
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
+  expect((await note.boundingBox())!.width).toBe(cellWidth * 4);
+  await dragBy(page, startEdge, cellWidth * 6);
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1.75");
+  expect((await note.boundingBox())!.width).toBe(cellWidth);
+  await dragBy(page, endEdge, -cellWidth * 2);
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1.75");
+  expect((await note.boundingBox())!.width).toBe(cellWidth);
+
+  // Save and reload the resized note with its final start and duration.
+  await save.click();
+  await expect(save).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await expect(note).toHaveAttribute("aria-label", "C4, beat 1.75");
+  expect((await note.boundingBox())!.width).toBe(cellWidth);
 });

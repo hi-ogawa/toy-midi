@@ -181,8 +181,8 @@ function MidiTrackEditor({
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
-  const movePreview = midiInteraction.getMovePreview(track.id);
-  useWindowEvent("blur", midiInteraction.cancelMove);
+  const editPreview = midiInteraction.getEditPreview(track.id);
+  useWindowEvent("blur", midiInteraction.cancelEdit);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
@@ -236,9 +236,19 @@ function MidiTrackEditor({
       );
       const position = getPointerPosition(event);
       if (existing) {
-        midiInteraction.startMove({
+        const edge = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-note-edge]",
+        )?.dataset.noteEdge;
+        const mode =
+          edge === "start"
+            ? "resize-start"
+            : edge === "end"
+              ? "resize-end"
+              : "move";
+        midiInteraction.startEdit({
           trackId: track.id,
           noteId: existing.id,
+          mode,
           beat: position.beat,
         });
         preview.start(existing.pitch);
@@ -251,19 +261,19 @@ function MidiTrackEditor({
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
     },
-    onMove: updateMove,
+    onMove: updateEdit,
     onEnd: (event, drag) => {
-      updateMove(event, drag);
-      midiInteraction.finishMove();
+      updateEdit(event, drag);
+      midiInteraction.finishEdit();
       preview.stop();
     },
     onCancel: () => {
-      midiInteraction.cancelMove();
+      midiInteraction.cancelEdit();
       preview.stop();
     },
   });
 
-  function updateMove(
+  function updateEdit(
     event: PointerEvent,
     drag: { startX: number; startY: number; dragging: boolean } | undefined,
   ) {
@@ -274,7 +284,7 @@ function MidiTrackEditor({
     drag.dragging ||=
       Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) >= 3;
     if (drag.dragging) {
-      const note = midiInteraction.updateMove(getPointerPosition(event));
+      const note = midiInteraction.updateEdit(getPointerPosition(event));
       if (note) {
         preview.start(note.pitch);
       }
@@ -283,7 +293,7 @@ function MidiTrackEditor({
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
-      midiInteraction.cancelMove();
+      midiInteraction.cancelEdit();
       preview.stop();
       if (selectedId !== undefined) {
         midiInteraction.clear();
@@ -341,7 +351,7 @@ function MidiTrackEditor({
           {track.notes.map((note) => (
             <MidiNote
               key={note.id}
-              note={movePreview?.id === note.id ? movePreview : note}
+              note={editPreview?.id === note.id ? editPreview : note}
               selected={selectedId === note.id}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}
@@ -484,6 +494,17 @@ function MidiNote({
         width: Math.max(2, note.duration * pixelsPerBeat),
         height: KEY_HEIGHT - 2,
       }}
-    />
+    >
+      <div
+        data-note-edge="start"
+        className="absolute inset-y-0 left-0 w-1/4 max-w-1.5 cursor-ew-resize"
+        title="Resize note start"
+      />
+      <div
+        data-note-edge="end"
+        className="absolute inset-y-0 right-0 w-1/4 max-w-1.5 cursor-ew-resize"
+        title="Resize note end"
+      />
+    </div>
   );
 }
