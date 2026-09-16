@@ -142,7 +142,7 @@ function MidiTrackActions({
           <MoreVerticalIcon className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent>
         <DropdownMenuItem onSelect={onProgramSelect}>
           <Settings2Icon />
           Select program
