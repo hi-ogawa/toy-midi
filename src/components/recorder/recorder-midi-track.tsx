@@ -201,17 +201,7 @@ function MidiTrackEditor({
   useWindowEvent("blur", stopPreview);
 
   // Stop a held note if the editor unmounts or switches to another track/runtime.
-  useEffect(
-    () => () => {
-      if (previewPitch.current !== undefined) {
-        runtime.stopMidiNotePreview({
-          id: track.id,
-          pitch: previewPitch.current,
-        });
-      }
-    },
-    [runtime, track.id],
-  );
+  useEffect(() => () => stopPreview(), [runtime, track.id]);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
