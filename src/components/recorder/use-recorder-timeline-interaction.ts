@@ -3,7 +3,7 @@ import type {
   RecorderRuntime,
   RecorderRuntimeState,
 } from "../../lib/recorder/runtime";
-import { useRecorderLocators } from "./recorder-locators";
+import { useRecorderLocatorInteraction } from "./recorder-locators";
 import {
   type RecorderClipSelection,
   useRecorderClipInteraction,
@@ -34,14 +34,14 @@ export function useRecorderTimelineInteraction({
     setCurrent(id !== undefined ? { type: "locator", id } : undefined);
   }
 
-  const clips = useRecorderClipInteraction({
+  const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
     selection: current?.type === "clips" ? current.keys : EMPTY_CLIPS,
     onSelectionChange: setClips,
   });
 
-  const locators = useRecorderLocators({
+  const locatorInteraction = useRecorderLocatorInteraction({
     runtime,
     state,
     subdivisionsPerBeat,
@@ -62,17 +62,17 @@ export function useRecorderTimelineInteraction({
       return false;
     }
     if (current.type === "clips") {
-      clips.removeSelected();
+      clipInteraction.removeSelected();
     } else {
-      locators.removeSelected();
+      locatorInteraction.removeSelected();
     }
     return true;
   }
 
   return {
     selection: current,
-    clips,
-    locators,
+    clipInteraction,
+    locatorInteraction,
     clearSelection,
     deleteSelection,
   };

@@ -76,8 +76,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
-  const clipInteraction = timelineInteraction.clips;
-  const locators = timelineInteraction.locators;
+  const { clipInteraction, locatorInteraction } = timelineInteraction;
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -193,7 +192,7 @@ export function Recorder({ projectId }: { projectId: string }) {
     }
     if (matchKeyboardEvent(event, "L")) {
       event.preventDefault();
-      locators.add();
+      locatorInteraction.add();
       return;
     }
     if (
@@ -288,7 +287,7 @@ export function Recorder({ projectId }: { projectId: string }) {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <RecorderLocatorRow
-          locators={locators}
+          locatorInteraction={locatorInteraction}
           pixelsPerBeat={timeline.pixelsPerBeat}
           viewportStartBeat={timeline.viewportStartBeat}
           subdivisionsPerBeat={timeline.subdivisionsPerBeat}

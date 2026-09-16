@@ -12,7 +12,7 @@ import { secondsToBeats } from "../../lib/timeline";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 
-export function useRecorderLocators({
+export function useRecorderLocatorInteraction({
   runtime,
   state,
   subdivisionsPerBeat,
@@ -62,13 +62,13 @@ export function useRecorderLocators({
 }
 
 export function RecorderLocatorRow({
-  locators,
+  locatorInteraction,
   pixelsPerBeat,
   viewportStartBeat,
   subdivisionsPerBeat,
   onSeekBeat,
 }: {
-  locators: ReturnType<typeof useRecorderLocators>;
+  locatorInteraction: ReturnType<typeof useRecorderLocatorInteraction>;
   pixelsPerBeat: number;
   viewportStartBeat: number;
   subdivisionsPerBeat: number;
@@ -82,7 +82,7 @@ export function RecorderLocatorRow({
           title="Add locator at playhead (L)"
           aria-label="Add locator at playhead"
           className="size-6 hover:bg-neutral-700"
-          onClick={locators.add}
+          onClick={locatorInteraction.add}
         >
           <PlusIcon className="size-3.5" />
         </Button>
@@ -92,22 +92,22 @@ export function RecorderLocatorRow({
         className="relative overflow-hidden"
         onPointerDown={(event) => {
           if (event.button === 0) {
-            locators.select(undefined);
+            locatorInteraction.select(undefined);
           }
         }}
       >
-        {locators.items.map((locator) => (
+        {locatorInteraction.items.map((locator) => (
           <LocatorMarker
             key={locator.id}
             locator={locator}
-            selected={locators.selectedId === locator.id}
+            selected={locatorInteraction.selectedId === locator.id}
             left={(locator.beat - viewportStartBeat) * pixelsPerBeat}
             pixelsPerBeat={pixelsPerBeat}
             subdivisionsPerBeat={subdivisionsPerBeat}
-            onSelect={() => locators.select(locator.id)}
+            onSelect={() => locatorInteraction.select(locator.id)}
             onSeek={() => onSeekBeat(locator.beat)}
             onUpdate={(changes) =>
-              locators.update({ id: locator.id, ...changes })
+              locatorInteraction.update({ id: locator.id, ...changes })
             }
           />
         ))}
