@@ -24,13 +24,11 @@ export function useRecorderClipInteraction({
   state,
   selection: keys,
   onSelectionChange,
-  onActivate,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   selection: RecorderClipSelection;
   onSelectionChange: (selection: RecorderClipSelection) => void;
-  onActivate: () => void;
 }) {
   function getKey(clip: RecorderClipId): string {
     return clip.type === "reference" ? clip.type : `${clip.type}:${clip.id}`;
@@ -155,7 +153,10 @@ export function useRecorderClipInteraction({
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
     }
-    onActivate();
+    const key = getKey(clip);
+    if (!keys.has(key)) {
+      onSelectionChange(new Set([key]));
+    }
     return {
       clip,
       edge,
@@ -187,7 +188,6 @@ export function useRecorderClipInteraction({
   }
 
   return {
-    clear: () => onSelectionChange(new Set()),
     isSelected: (clip: RecorderClipId) => keys.has(getKey(clip)),
     select,
     startMove,
