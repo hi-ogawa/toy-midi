@@ -162,23 +162,22 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
 
       <section className="space-y-2 border-t border-neutral-700 pt-4">
         <Button
-          data-testid="convert-button"
-          onClick={() => convertMutation.mutate()}
-          disabled={convertMutation.isPending}
-          className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
-        >
-          {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
-        </Button>
-        {convertMutation.isPending && (
-          <Button
-            onClick={() =>
-              conversionController.current?.abort(CONVERSION_CANCELLED_ERROR)
+          data-testid={
+            convertMutation.isPending
+              ? "cancel-conversion-button"
+              : "convert-button"
+          }
+          onClick={() => {
+            if (convertMutation.isPending) {
+              conversionController.current?.abort(CONVERSION_CANCELLED_ERROR);
+            } else {
+              convertMutation.mutate();
             }
-            className="h-9 w-full"
-          >
-            Cancel
-          </Button>
-        )}
+          }}
+          className={`h-9 w-full px-3 text-sm ${convertMutation.isPending ? "hover:bg-neutral-800" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}
+        >
+          {convertMutation.isPending ? "Cancel" : "Convert to MIDI"}
+        </Button>
         <p
           data-testid="audio-to-midi-conversion-status"
           aria-live="polite"
