@@ -17,14 +17,14 @@ export function useRecorderInteraction({
   const clipInteraction = useRecorderClipInteraction({
     runtime,
     state,
-    onActivate: () => locatorInteraction.clear(),
+    onSelect: () => locatorInteraction.select(undefined),
   });
 
   const locatorInteraction = useRecorderLocatorInteraction({
     runtime,
     state,
     subdivisionsPerBeat,
-    onActivate: () => clipInteraction.clear(),
+    onSelect: () => clipInteraction.clear(),
   });
 
   function clearSelection() {
@@ -32,7 +32,7 @@ export function useRecorderInteraction({
       clipInteraction.hasSelection ||
       locatorInteraction.selectedId !== undefined;
     clipInteraction.clear();
-    locatorInteraction.clear();
+    locatorInteraction.select(undefined);
     return hadSelection;
   }
 

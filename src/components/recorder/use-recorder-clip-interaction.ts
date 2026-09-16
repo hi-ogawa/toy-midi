@@ -20,11 +20,12 @@ export type RecorderClipTrimSnapshot = {
 export function useRecorderClipInteraction({
   runtime,
   state,
-  onActivate,
+  onSelect,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
-  onActivate: () => void;
+  /** Only coordinates selection domains by clearing selection in the other domain. */
+  onSelect: () => void;
 }) {
   const [keys, setKeys] = useState(() => new Set<string>());
 
@@ -59,7 +60,7 @@ export function useRecorderClipInteraction({
   }, [state.audioTracks, state.recordingTrack.clips, state.referenceVideo]);
 
   function select(clip: RecorderClipId, additive: boolean): void {
-    onActivate();
+    onSelect();
     const key = getKey(clip);
     if (!additive) {
       const next = keys.has(key) ? keys : new Set([key]);
@@ -82,7 +83,7 @@ export function useRecorderClipInteraction({
     clip: RecorderClipId;
     additive: boolean;
   }): RecorderClipMoveSnapshot {
-    onActivate();
+    onSelect();
     const draggedKey = getKey(clip);
     // Dragging a selected clip preserves the group; an unselected clip joins
     // with Ctrl/Cmd or replaces the selection otherwise.
@@ -153,7 +154,7 @@ export function useRecorderClipInteraction({
     if (!selected) {
       throw new Error("Recorder clip state is missing.");
     }
-    onActivate();
+    onSelect();
     const key = getKey(clip);
     if (!keys.has(key)) {
       setKeys(new Set([key]));

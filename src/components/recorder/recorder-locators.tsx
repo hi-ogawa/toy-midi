@@ -16,12 +16,13 @@ export function useRecorderLocatorInteraction({
   runtime,
   state,
   subdivisionsPerBeat,
-  onActivate,
+  onSelect,
 }: {
   runtime: RecorderRuntime;
   state: RecorderRuntimeState;
   subdivisionsPerBeat: number;
-  onActivate: () => void;
+  /** Only coordinates selection domains by clearing selection in the other domain. */
+  onSelect: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string>();
 
@@ -36,8 +37,10 @@ export function useRecorderLocatorInteraction({
     select(runtime.addLocator(beat));
   }
 
-  function select(id: string) {
-    onActivate();
+  function select(id: string | undefined) {
+    if (id !== undefined) {
+      onSelect();
+    }
     setSelectedId(id);
   }
 
@@ -49,11 +52,10 @@ export function useRecorderLocatorInteraction({
     if (selectedId !== undefined) {
       runtime.deleteLocator(selectedId);
     }
-    setSelectedId(undefined);
+    select(undefined);
   }
 
   return {
-    clear: () => setSelectedId(undefined),
     items: state.locators,
     selectedId,
     select,
