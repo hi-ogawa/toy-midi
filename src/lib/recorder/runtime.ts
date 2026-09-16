@@ -1,6 +1,7 @@
 import {
   DEFAULT_TIME_SIGNATURE,
   type Note,
+  type TabString,
   type TimeSignature,
 } from "../../types.ts";
 import { createStore, shallowEqual } from "../../utils/store.ts";
@@ -11,6 +12,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
+import { getFret, TAB_STRING_PRESETS } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
@@ -70,6 +72,8 @@ export interface AudioTrackState {
 }
 
 export interface MidiTrackState {
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
   id: string;
   name: string;
   notes: Note[];
@@ -600,6 +604,50 @@ export class RecorderRuntime {
     if (this.store.get().midiTracks.some((track) => track.id === id)) {
       this.updateMidiTrack(id, (track) => ({ ...track, program }));
     }
+  }
+
+  setMidiTrackTabSettings({
+    id,
+    ...settings
+  }: { id: string } & Partial<
+    Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+  >): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
+  }
+
+  setMidiNoteTabString({
+    trackId,
+    noteId,
+    tabString,
+  }: {
+    trackId: string;
+    noteId: string;
+    tabString?: TabString;
+  }): void {
+    const track = this.store
+      .get()
+      .midiTracks.find((track) => track.id === trackId);
+    const note = track?.notes.find((note) => note.id === noteId);
+    if (
+      !track ||
+      !note ||
+      note.tabString === tabString ||
+      (tabString !== undefined &&
+        getFret({
+          pitch: note.pitch,
+          tabString,
+          openStringPitches: track.tabOpenStringPitches,
+        }) === undefined)
+    ) {
+      return;
+    }
+    // String assignments change notation only, so keep the playback schedule intact.
+    const { tabString: _previous, ...rest } = note;
+    const updated = tabString === undefined ? rest : { ...rest, tabString };
+    this.updateMidiTrack(trackId, (track) => ({
+      ...track,
+      notes: track.notes.map((note) => (note.id === noteId ? updated : note)),
+    }));
   }
 
   async startMidiNotePreview({
@@ -1303,6 +1351,8 @@ function createRecordingTrackState(): AudioTrackState {
 
 function createMidiTrackState(number: number): MidiTrackState {
   return {
+    tabAnnotationEnabled: false,
+    tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
     id: crypto.randomUUID(),
     name: `MIDI ${number}`,
     notes: [],

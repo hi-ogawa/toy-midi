@@ -21,8 +21,12 @@ import type {
   MidiTrackState,
   RecorderRuntime,
 } from "../../lib/recorder/runtime";
+import {
+  formatTabPosition,
+  getTabStringColor,
+  resolveTabPosition,
+} from "../../lib/tab-annotation";
 import { getTimelineGridBackground } from "../../lib/timeline-grid";
-import { InstrumentCombobox } from "../instrument-combobox";
 import { Button } from "../ui/button";
 import { PortalDialog } from "../ui/dialog";
 import {
@@ -33,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { MidiInstrument } from "./recorder-midi-instrument";
 import { TrackRow } from "./recorder-tracks";
 import { useRecorderMidiInteraction } from "./use-recorder-midi-interaction";
 
@@ -64,11 +69,7 @@ export function MidiTrackRow({
   midiInteraction: ReturnType<typeof useRecorderMidiInteraction>;
   onTranscribe: () => void;
 }) {
-  const [isProgramOpen, setIsProgramOpen] = useState(false);
-  const programMutation = useMutation({
-    mutationFn: (program: number) =>
-      runtime.setMidiTrackProgram(track.id, program),
-  });
+  const [isInstrumentOpen, setIsInstrumentOpen] = useState(false);
   return (
     <div onFocus={midiInteraction.activate}>
       <TrackRow
@@ -91,7 +92,7 @@ export function MidiTrackRow({
             label={track.name}
             onRemove={onRemove}
             onTranscribe={onTranscribe}
-            onProgramSelect={() => setIsProgramOpen(true)}
+            onInstrumentOpen={() => setIsInstrumentOpen(true)}
           />
         }
       >
@@ -106,16 +107,11 @@ export function MidiTrackRow({
         />
       </TrackRow>
       <PortalDialog
-        isOpen={isProgramOpen}
-        title={`${track.name} program`}
-        onClose={() => setIsProgramOpen(false)}
+        isOpen={isInstrumentOpen}
+        title={`${track.name} instrument`}
+        onClose={() => setIsInstrumentOpen(false)}
       >
-        <InstrumentCombobox
-          aria-label={`${track.name} program`}
-          value={track.program}
-          disabled={programMutation.isPending}
-          onValueChange={(program) => programMutation.mutate(program)}
-        />
+        <MidiInstrument track={track} runtime={runtime} />
       </PortalDialog>
     </div>
   );
@@ -124,12 +120,12 @@ export function MidiTrackRow({
 function MidiTrackActions({
   label,
   onRemove,
-  onProgramSelect,
+  onInstrumentOpen,
   onTranscribe,
 }: {
   label: string;
   onRemove: () => void;
-  onProgramSelect: () => void;
+  onInstrumentOpen: () => void;
   onTranscribe: () => void;
 }) {
   return (
@@ -143,9 +139,9 @@ function MidiTrackActions({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={onProgramSelect}>
+        <DropdownMenuItem onSelect={onInstrumentOpen}>
           <Settings2Icon />
-          Select program
+          Instrument…
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onTranscribe}>
           <Music2Icon />
@@ -307,6 +303,8 @@ function MidiTrackEditor({
             <MidiNote
               key={note.id}
               note={note}
+              tabAnnotationEnabled={track.tabAnnotationEnabled}
+              tabOpenStringPitches={track.tabOpenStringPitches}
               selected={selectedId === note.id}
               pixelsPerBeat={pixelsPerBeat}
               viewportStartBeat={viewportStartBeat}
@@ -421,15 +419,29 @@ function MidiGridRow({ pitch }: { pitch: number }) {
 
 function MidiNote({
   note,
+  tabAnnotationEnabled,
+  tabOpenStringPitches,
   selected,
   pixelsPerBeat,
   viewportStartBeat,
 }: {
   note: MidiTrackState["notes"][number];
   selected: boolean;
+  tabAnnotationEnabled: boolean;
+  tabOpenStringPitches: number[];
   pixelsPerBeat: number;
   viewportStartBeat: number;
 }) {
+  const annotation = tabAnnotationEnabled
+    ? resolveTabPosition({
+        pitch: note.pitch,
+        tabString: note.tabString,
+        openStringPitches: tabOpenStringPitches,
+      })
+    : undefined;
+  const color = annotation
+    ? getTabStringColor(annotation.tabString)
+    : undefined;
   return (
     <div
       data-note-id={note.id}
@@ -441,11 +453,29 @@ function MidiNote({
           : "bg-[#3b82f6]",
       )}
       style={{
+        backgroundColor: color?.background,
+        borderColor: color?.border,
         left: (note.start - viewportStartBeat) * pixelsPerBeat,
         top: (127 - note.pitch) * KEY_HEIGHT + 1,
         width: Math.max(2, note.duration * pixelsPerBeat),
         height: KEY_HEIGHT - 2,
       }}
-    />
+    >
+      {annotation && (
+        <span
+          data-testid="tab-annotation"
+          className="absolute inset-0 flex items-center justify-center overflow-hidden font-mono font-semibold leading-none pointer-events-none"
+          style={{
+            fontSize: Math.max(7, Math.min(14, KEY_HEIGHT * 0.55)),
+            color: color?.text,
+          }}
+        >
+          {formatTabPosition({
+            position: annotation,
+            openStringPitches: tabOpenStringPitches,
+          })}
+        </span>
+      )}
+    </div>
   );
 }

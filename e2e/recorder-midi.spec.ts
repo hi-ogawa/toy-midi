@@ -110,7 +110,7 @@ test("creates and deletes a note and persists its instrument", async ({
   // Select a bass program through the track actions.
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menuitem", { name: "Select program", exact: true })
+    .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   const instrument = page.getByRole("combobox", { name: "MIDI 1 program" });
   await instrument.click();
@@ -130,7 +130,7 @@ test("creates and deletes a note and persists its instrument", async ({
   await expect(notes.first()).toHaveAttribute("aria-label", "C4, beat 1");
   await row.getByRole("button", { name: "MIDI 1 actions" }).click();
   await page
-    .getByRole("menuitem", { name: "Select program", exact: true })
+    .getByRole("menuitem", { name: "Instrument…", exact: true })
     .click();
   await expect(instrument).toContainText("33: Electric Bass (finger)");
   await page.getByRole("button", { name: "Close", exact: true }).click();
