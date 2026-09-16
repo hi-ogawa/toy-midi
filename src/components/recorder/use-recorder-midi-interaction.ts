@@ -6,6 +6,13 @@ import type {
 } from "../../lib/recorder/runtime";
 import type { Note } from "../../types";
 
+type MidiNoteMove = {
+  trackId: string;
+  original: Note;
+  note: Note;
+  snapStart: (beat: number) => number;
+};
+
 export function useRecorderMidiInteraction({
   runtime,
   state,
@@ -22,12 +29,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
-  const [move, setMove] = useState<{
-    trackId: string;
-    original: Note;
-    note: Note;
-    snapStart: (beat: number) => number;
-  }>();
+  const [move, setMove] = useState<MidiNoteMove>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -128,7 +130,13 @@ export function useRecorderMidiInteraction({
     }
   }
 
-  function getMovedNote({ beat, pitch }: { beat: number; pitch: number }) {
+  function getMovedNote({
+    beat,
+    pitch,
+  }: {
+    beat: number;
+    pitch: number;
+  }): Note | undefined {
     if (!move) {
       return;
     }
