@@ -602,16 +602,15 @@ export class RecorderRuntime {
     }
   }
 
-  startMidiNotePreview({
+  async startMidiNotePreview({
     id,
     pitch,
   }: {
     id: string;
     pitch: number;
   }): Promise<void> {
-    const resumed = this.context.resume();
+    await this.context.resume();
     this.midiTrackPlaybacks.get(id)?.noteOn(pitch);
-    return resumed;
   }
 
   stopMidiNotePreview({ id, pitch }: { id: string; pitch: number }): void {
