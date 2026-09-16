@@ -6,11 +6,11 @@ import type {
 } from "../../lib/recorder/runtime";
 import type { Note } from "../../types";
 
-type MidiNoteMove = {
+type MidiNoteEdit = {
   trackId: string;
   original: Note;
   note: Note;
-  snapStart: (beat: number) => number;
+  getNote: (position: { beat: number; pitch: number }) => Note;
 };
 
 export function useRecorderMidiInteraction({
@@ -29,7 +29,7 @@ export function useRecorderMidiInteraction({
     trackId: string;
     noteId: string;
   }>();
-  const [move, setMove] = useState<MidiNoteMove>();
+  const [edit, setEdit] = useState<MidiNoteEdit>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -39,7 +39,7 @@ export function useRecorderMidiInteraction({
 
   useEffect(() => {
     if (!selectedNote) {
-      cancelMove();
+      cancelEdit();
       setSelection(undefined);
     }
   }, [selectedNote]);
@@ -50,25 +50,25 @@ export function useRecorderMidiInteraction({
       : undefined;
   }
 
-  function getMovePreview({
+  function getEditPreview({
     trackId,
     noteId,
   }: {
     trackId: string;
     noteId: string;
   }) {
-    return move?.trackId === trackId && move.note.id === noteId
-      ? move.note
+    return edit?.trackId === trackId && edit.note.id === noteId
+      ? edit.note
       : undefined;
   }
 
   function select(selection: { trackId: string; noteId: string }) {
-    cancelMove();
+    cancelEdit();
     onSelect();
     setSelection(selection);
   }
 
-  function startMove({
+  function startEdit({
     trackId,
     noteId,
     beat,
@@ -86,42 +86,49 @@ export function useRecorderMidiInteraction({
     }
     const step = 1 / subdivisionsPerBeat;
     const cellOffset = Math.floor((beat - original.start) / step);
-    setMove({
+    setEdit({
       trackId,
       original,
       note: original,
-      snapStart: (beat) =>
-        Math.max(
-          0,
-          snapToGrid(beat, step, { floor: true }) - cellOffset * step,
-        ),
+      getNote: ({ beat, pitch }) => {
+        const cellStart = snapToGrid(beat, step, { floor: true });
+        return {
+          ...original,
+          start: Math.max(0, cellStart - cellOffset * step),
+          pitch: clampPitch(pitch),
+        };
+      },
     });
   }
 
-  function updateMove(position: { beat: number; pitch: number }) {
-    const note = getMovedNote(position);
+  function updateEdit(position: { beat: number; pitch: number }) {
+    const note = edit?.getNote(position);
     if (
-      move &&
+      edit &&
       note &&
-      (note.start !== move.note.start || note.pitch !== move.note.pitch)
+      (note.start !== edit.note.start ||
+        note.pitch !== edit.note.pitch ||
+        note.duration !== edit.note.duration)
     ) {
-      setMove({ ...move, note });
+      setEdit({ ...edit, note });
     }
     return note;
   }
 
-  function finishMove(position: { beat: number; pitch: number }) {
+  function finishEdit(position: { beat: number; pitch: number }) {
     // Calculate from the release position rather than waiting for a preview render.
-    const note = getMovedNote(position);
-    if (!move || !note) {
+    const note = edit?.getNote(position);
+    if (!edit || !note) {
       return;
     }
-    cancelMove();
-    const { trackId, original } = move;
+    cancelEdit();
+    const { trackId, original } = edit;
     const track = state.midiTracks.find((track) => track.id === trackId);
     if (
       track &&
-      (note.start !== original.start || note.pitch !== original.pitch)
+      (note.start !== original.start ||
+        note.pitch !== original.pitch ||
+        note.duration !== original.duration)
     ) {
       runtime.setMidiTrackNotes(
         trackId,
@@ -130,29 +137,12 @@ export function useRecorderMidiInteraction({
     }
   }
 
-  function getMovedNote({
-    beat,
-    pitch,
-  }: {
-    beat: number;
-    pitch: number;
-  }): Note | undefined {
-    if (!move) {
-      return;
-    }
-    return {
-      ...move.original,
-      start: move.snapStart(beat),
-      pitch: clampPitch(pitch),
-    };
-  }
-
-  function cancelMove() {
-    setMove(undefined);
+  function cancelEdit() {
+    setEdit(undefined);
   }
 
   function clear() {
-    cancelMove();
+    cancelEdit();
     setSelection(undefined);
   }
 
@@ -184,7 +174,7 @@ export function useRecorderMidiInteraction({
   }
 
   function removeSelected() {
-    cancelMove();
+    cancelEdit();
     if (selectedTrack && selectedNote) {
       runtime.setMidiTrackNotes(
         selectedTrack.id,
@@ -199,11 +189,11 @@ export function useRecorderMidiInteraction({
     clear,
     hasSelection: selectedNote !== undefined,
     getSelectedNoteId,
-    startMove,
-    updateMove,
-    finishMove,
-    cancelMove,
-    getMovePreview,
+    startEdit,
+    updateEdit,
+    finishEdit,
+    cancelEdit,
+    getEditPreview,
     create,
     removeSelected,
   };

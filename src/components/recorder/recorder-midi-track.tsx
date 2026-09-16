@@ -182,7 +182,7 @@ function MidiTrackEditor({
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
 
-  useWindowEvent("blur", midiInteraction.cancelMove);
+  useWindowEvent("blur", midiInteraction.cancelEdit);
 
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
@@ -236,7 +236,7 @@ function MidiTrackEditor({
       );
       const position = getPointerPosition(event);
       if (existing) {
-        midiInteraction.startMove({
+        midiInteraction.startEdit({
           trackId: track.id,
           noteId: existing.id,
           beat: position.beat,
@@ -247,28 +247,28 @@ function MidiTrackEditor({
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
     },
-    onClick: cancelMove,
+    onClick: cancelEdit,
     onDragMove: (event) => {
-      const note = midiInteraction.updateMove(getPointerPosition(event));
+      const note = midiInteraction.updateEdit(getPointerPosition(event));
       if (note) {
         preview.start(note.pitch);
       }
     },
     onDragEnd: (event) => {
-      midiInteraction.finishMove(getPointerPosition(event));
+      midiInteraction.finishEdit(getPointerPosition(event));
       preview.stop();
     },
-    onCancel: cancelMove,
+    onCancel: cancelEdit,
   });
 
-  function cancelMove() {
-    midiInteraction.cancelMove();
+  function cancelEdit() {
+    midiInteraction.cancelEdit();
     preview.stop();
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
-      cancelMove();
+      cancelEdit();
       if (selectedId !== undefined) {
         midiInteraction.clear();
       }
@@ -326,7 +326,7 @@ function MidiTrackEditor({
             <MidiNote
               key={note.id}
               note={
-                midiInteraction.getMovePreview({
+                midiInteraction.getEditPreview({
                   trackId: track.id,
                   noteId: note.id,
                 }) ?? note
