@@ -45,13 +45,15 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const [progress, setProgress] = useState<number>();
   const [convertElapsedMs, setConvertElapsedMs] = useState<number>();
   const convertStartedAt = useRef<number>(undefined);
+  const conversionController = useRef<AbortController>(undefined);
 
   useEffect(() => {
     bassPitchClient.warmUp();
+    return () => conversionController.current?.abort();
   }, []);
 
   const convertMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (controller: AbortController) => {
       const buffer = audioManager.getAudioTrackBuffer(track.id);
       if (!buffer) {
         throw new Error("Audio is still loading");
@@ -71,7 +73,9 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
           splitThreshold,
         }),
         setProgress,
+        controller.signal,
       );
+      controller.signal.throwIfAborted();
       const notes = transcribed.map((note) => ({
         id: generateNoteId(),
         pitch: note.pitch,
@@ -87,11 +91,15 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
       setConvertElapsedMs(undefined);
       setProgress(0);
     },
-    onError: (error) => {
+    onError: (error, controller) => {
+      if (controller.signal.aborted) {
+        return;
+      }
       console.error("Failed to convert audio to MIDI:", error);
       toast.error("Failed to convert audio to MIDI");
     },
     onSettled: () => {
+      conversionController.current = undefined;
       setProgress(undefined);
       if (convertStartedAt.current !== undefined) {
         setConvertElapsedMs(performance.now() - convertStartedAt.current);
@@ -102,7 +110,9 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
   const conversionStatus = convertMutation.isPending
     ? `Converting ${Math.round((progress ?? 0) * 100)}%`
     : convertMutation.error
-      ? "Conversion failed"
+      ? convertMutation.variables?.signal.aborted
+        ? "Conversion cancelled"
+        : "Conversion failed"
       : convertMutation.data === 0
         ? "No notes detected. Check the project tempo and the track offset."
         : convertMutation.data !== undefined && convertElapsedMs !== undefined
@@ -148,12 +158,24 @@ function GridBassConvert({ track }: { track: AudioTrack }) {
       <section className="space-y-2 border-t border-neutral-700 pt-4">
         <Button
           data-testid="convert-button"
-          onClick={() => convertMutation.mutate()}
+          onClick={() => {
+            const controller = new AbortController();
+            conversionController.current = controller;
+            convertMutation.mutate(controller);
+          }}
           disabled={convertMutation.isPending}
           className="h-9 w-full bg-primary px-3 text-sm text-primary-foreground hover:bg-primary/90"
         >
           {convertMutation.isPending ? "Converting..." : "Convert to MIDI"}
         </Button>
+        {convertMutation.isPending && (
+          <Button
+            onClick={() => conversionController.current?.abort()}
+            className="h-9 w-full"
+          >
+            Cancel
+          </Button>
+        )}
         <p
           data-testid="audio-to-midi-conversion-status"
           aria-live="polite"
