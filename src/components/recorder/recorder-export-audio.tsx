@@ -1,26 +1,21 @@
 import { useMutation } from "@tanstack/react-query";
+import { useSyncExternalStore } from "react";
 import { buildExportFileName, downloadBlob } from "../../lib/export-utils";
-import type {
-  RecorderRuntime,
-  RecorderRuntimeState,
-} from "../../lib/recorder/runtime";
+import type { RecorderRuntime } from "../../lib/recorder/runtime";
 import { encodeWav } from "../../lib/wav";
 import { Button } from "../ui/button";
-import { Dialog } from "../ui/dialog";
 
-export function RecorderExportDialog({
+export function RecorderExportAudio({
   runtime,
-  state,
-  isOpen,
-  onClose,
   disabled,
 }: {
   runtime: RecorderRuntime;
-  state: RecorderRuntimeState;
-  isOpen: boolean;
-  onClose: () => void;
   disabled: boolean;
 }) {
+  const state = useSyncExternalStore(
+    runtime.store.subscribe,
+    runtime.store.get,
+  );
   const exportMutation = useMutation({
     mutationFn: async () => {
       const fileName = buildExportFileName({
@@ -33,12 +28,7 @@ export function RecorderExportDialog({
   });
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Export Audio"
-      data-testid="recorder-audio-export"
-    >
+    <>
       <div className="mb-6 space-y-4">
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <dt className="text-neutral-400">Format</dt>
@@ -52,6 +42,6 @@ export function RecorderExportDialog({
       >
         {exportMutation.isPending ? "Exporting..." : "Export file"}
       </Button>
-    </Dialog>
+    </>
   );
 }

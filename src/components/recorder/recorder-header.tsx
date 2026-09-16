@@ -17,11 +17,13 @@ import {
   VideoIcon,
   SlidersVerticalIcon,
 } from "lucide-react";
+import { useRef, useState } from "react";
 import { useDraftInput } from "../../hooks/use-draft-input";
 import { useTapTempo } from "../../hooks/use-tap-tempo";
 import { formatGainDb } from "../../lib/music";
 import { PLAYBACK_RATES } from "../../lib/recorder/playback-rate";
 import type {
+  RecorderRuntime,
   RecorderLoopState,
   RecorderPunchState,
 } from "../../lib/recorder/runtime";
@@ -36,6 +38,7 @@ import {
 import { COMMON_TIME_SIGNATURES, type TimeSignature } from "../../types";
 import { MetronomeIcon } from "../icons";
 import { Button } from "../ui/button";
+import { Dialog } from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +48,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { cn } from "../ui/utils";
+import { RecorderHelp } from "./help";
+import { RecorderExportAudio } from "./recorder-export-audio";
 import type { RecorderFlags } from "./recorder-flags";
 import { RecorderGainSlider } from "./recorder-mixer";
 import { RecorderRangeControl } from "./recorder-range-control";
@@ -81,10 +86,10 @@ export function RecorderHeader({
   onTimeSignatureChange,
   onGridDivisionChange,
   onExportProject,
-  onExportAudio,
+  runtime,
+  exportAudioDisabled,
   onReferenceVideoOpenChange,
   onMixerToggle,
-  onHelpOpen,
   mixerOpen,
 }: {
   /** Undefined until the project has initialized, so the default title never shows. */
@@ -118,10 +123,10 @@ export function RecorderHeader({
   onTimeSignatureChange: (value: string) => void;
   onGridDivisionChange: (value: GridDivision) => void;
   onExportProject: () => void;
-  onExportAudio: () => void;
+  runtime: RecorderRuntime;
+  exportAudioDisabled: boolean;
   onReferenceVideoOpenChange: (open: boolean) => void;
   onMixerToggle: () => void;
-  onHelpOpen: () => void;
   mixerOpen: boolean;
 }) {
   const timeSignatureValue = `${timeSignature.numerator}/${timeSignature.denominator}`;
@@ -387,9 +392,39 @@ export function RecorderHeader({
       >
         <SlidersVerticalIcon className="size-5" />
       </Button>
+      <RecorderMenu
+        runtime={runtime}
+        exportAudioDisabled={exportAudioDisabled}
+        isRecording={flags.isRecording}
+        isExporting={isExporting}
+        onExportProject={onExportProject}
+      />
+    </header>
+  );
+}
+
+function RecorderMenu({
+  runtime,
+  exportAudioDisabled,
+  isRecording,
+  isExporting,
+  onExportProject,
+}: {
+  runtime: RecorderRuntime;
+  exportAudioDisabled: boolean;
+  isRecording: boolean;
+  isExporting: boolean;
+  onExportProject: () => void;
+}) {
+  const [dialog, setDialog] = useState<"help" | "export">();
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            ref={menuButtonRef}
             title="More"
             aria-label="More"
             className="size-9 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
@@ -397,21 +432,29 @@ export function RecorderHeader({
             <MoreVerticalIcon className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={onHelpOpen}>
+        <DropdownMenuContent
+          align="end"
+          onCloseAutoFocus={(event) => {
+            // Let the opening dialog take focus instead of returning to More.
+            if (dialog) {
+              event.preventDefault();
+            }
+          }}
+        >
+          <DropdownMenuItem onSelect={() => setDialog("help")}>
             <CircleHelpIcon />
             Help & Shortcuts
           </DropdownMenuItem>
           <DropdownMenuItem
-            disabled={flags.isRecording}
-            onSelect={onExportAudio}
+            disabled={exportAudioDisabled}
+            onSelect={() => setDialog("export")}
           >
             <DownloadIcon />
             Export Audio
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="recorder-export-project"
-            disabled={flags.isRecording || isExporting}
+            disabled={isRecording || isExporting}
             onSelect={(event) => {
               event.preventDefault();
               onExportProject();
@@ -435,7 +478,25 @@ export function RecorderHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </header>
+      <Dialog
+        isOpen={dialog === "help"}
+        onClose={() => setDialog(undefined)}
+        title="Recorder quick reference"
+        size="wide"
+        returnFocusRef={menuButtonRef}
+      >
+        <RecorderHelp />
+      </Dialog>
+      <Dialog
+        isOpen={dialog === "export"}
+        onClose={() => setDialog(undefined)}
+        title="Export Audio"
+        data-testid="recorder-audio-export"
+        returnFocusRef={menuButtonRef}
+      >
+        <RecorderExportAudio runtime={runtime} disabled={exportAudioDisabled} />
+      </Dialog>
+    </>
   );
 }
 

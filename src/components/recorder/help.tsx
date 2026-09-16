@@ -1,5 +1,3 @@
-import { Dialog } from "../ui/dialog";
-
 type HelpSectionData = {
   title: string;
   items: { action: string; keys?: string; gesture?: string }[];
@@ -62,28 +60,15 @@ const sections: HelpSectionData[] = [
   },
 ];
 
-export function RecorderHelp({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export function RecorderHelp() {
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Recorder quick reference"
-      size="wide"
-    >
-      <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
-        <div className="columns-2 gap-10">
-          {sections.map((section) => (
-            <HelpSection key={section.title} section={section} />
-          ))}
-        </div>
+    <div className="max-h-[calc(90vh-8rem)] overflow-y-auto">
+      <div className="columns-2 gap-10">
+        {sections.map((section) => (
+          <HelpSection key={section.title} section={section} />
+        ))}
       </div>
-    </Dialog>
+    </div>
   );
 }
 

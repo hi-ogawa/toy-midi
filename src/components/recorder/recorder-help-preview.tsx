@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
+import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
 
 export function RecorderHelpPreview() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="relative isolate h-[720px] w-full overflow-hidden rounded-lg border border-neutral-700 p-4 [contain:layout]">
@@ -13,7 +14,14 @@ export function RecorderHelpPreview() {
       >
         Open recorder help
       </Button>
-      <RecorderHelp isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <Dialog
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Recorder quick reference"
+        size="wide"
+      >
+        <RecorderHelp />
+      </Dialog>
     </div>
   );
 }

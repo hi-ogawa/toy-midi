@@ -100,11 +100,7 @@ export function Editor({ projectId, initialProjectName }: EditorProps) {
     }
 
     if (matchKeyboardEvent(e, "Escape")) {
-      if (isSettingsOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsSettingsOpen(false);
-      } else if (isHelpOpen) {
+      if (isHelpOpen) {
         e.preventDefault();
         e.stopPropagation();
         setIsHelpOpen(false);

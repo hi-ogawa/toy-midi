@@ -24,7 +24,11 @@ test("exports a stereo WAV from the audio export modal", async ({ page }) => {
   ).toBeVisible();
   await modal.getByRole("button", { name: "Close", exact: true }).click();
 
-  // Add backing audio and name the project for the downloaded file.
+  // Return to More with the menu closed, then add audio and name the project.
+  await expect(
+    page.getByRole("button", { name: "More", exact: true }),
+  ).toBeFocused();
+  await expect(page.getByRole("menu")).toBeHidden();
   await addRecorderAudio(page, "e2e/fixtures/test-audio.wav");
   page.once("dialog", (dialog) => dialog.accept("Final mix"));
   await page.getByTestId("recorder-project-name").click();
