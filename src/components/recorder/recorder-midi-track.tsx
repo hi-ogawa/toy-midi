@@ -182,6 +182,7 @@ function MidiTrackEditor({
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId = midiInteraction.getSelectedNoteId(track.id);
   const movePreview = midiInteraction.getMovePreview(track.id);
+
   useWindowEvent("blur", midiInteraction.cancelMove);
 
   // Stop auditioning when the selected note is cleared or removed.
