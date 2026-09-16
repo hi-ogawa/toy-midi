@@ -178,49 +178,17 @@ function MidiTrackEditor({
   subdivisionsPerBeat: number;
   viewportStartBeat: number;
 }) {
-  const previewPitch = useRef<number | undefined>(undefined);
+  const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
   const selectedId =
     midiInteraction.selection?.trackId === track.id
       ? midiInteraction.selection.noteId
       : undefined;
 
-  const previewMutation = useMutation({
-    mutationFn: (pitch: number) =>
-      runtime.startMidiNotePreview({ id: track.id, pitch }),
-    onError: (error) => {
-      stopPreview();
-      console.error(error);
-      toast.error(error.message);
-    },
-  });
-
-  function startPreview(pitch: number) {
-    stopPreview();
-    previewPitch.current = pitch;
-    previewMutation.mutate(pitch);
-  }
-
-  function stopPreview() {
-    if (previewPitch.current !== undefined) {
-      runtime.stopMidiNotePreview({
-        id: track.id,
-        pitch: previewPitch.current,
-      });
-      previewPitch.current = undefined;
-    }
-  }
-
-  // Pointer capture handles release and cancellation. Also stop when the app loses focus.
-  useWindowEvent("blur", stopPreview);
-
-  // Stop a held note if the editor unmounts or switches to another track/runtime.
-  useEffect(() => () => stopPreview(), [runtime, track.id]);
-
   // Stop auditioning when the selected note is cleared or removed.
   useEffect(() => {
     if (selectedId === undefined) {
-      stopPreview();
+      preview.stop();
     }
   }, [selectedId]);
 
@@ -264,7 +232,7 @@ function MidiTrackEditor({
     );
     if (existing) {
       midiInteraction.select({ trackId: track.id, noteId: existing.id });
-      startPreview(existing.pitch);
+      preview.start(existing.pitch);
       return;
     }
 
@@ -278,12 +246,12 @@ function MidiTrackEditor({
 
     // Add a note snapped down to the grid, then select and preview it.
     midiInteraction.create({ trackId: track.id, pitch, beat });
-    startPreview(pitch);
+    preview.start(pitch);
   }
 
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
-      stopPreview();
+      preview.stop();
       if (midiInteraction.selection?.trackId === track.id) {
         midiInteraction.clear();
       }
@@ -306,8 +274,8 @@ function MidiTrackEditor({
             <MidiPianoKey
               key={pitch}
               pitch={pitch}
-              onPreviewStart={startPreview}
-              onPreviewStop={stopPreview}
+              onPreviewStart={preview.start}
+              onPreviewStop={preview.stop}
             />
           ))}
         </div>
@@ -318,7 +286,7 @@ function MidiTrackEditor({
           aria-label={`${track.name} notes`}
           tabIndex={0}
           onPointerDown={handleGridPointerDown}
-          onLostPointerCapture={stopPreview}
+          onLostPointerCapture={preview.stop}
         >
           {PITCHES.map((pitch) => (
             <MidiGridRow key={pitch} pitch={pitch} />
@@ -351,6 +319,50 @@ function MidiTrackEditor({
       </div>
     </div>
   );
+}
+
+function useMidiNotePreview({
+  runtime,
+  trackId,
+}: {
+  runtime: RecorderRuntime;
+  trackId: string;
+}) {
+  const previewPitch = useRef<number>(undefined);
+
+  const previewMutation = useMutation({
+    mutationFn: (pitch: number) =>
+      runtime.startMidiNotePreview({ id: trackId, pitch }),
+    onError: (error) => {
+      stop();
+      console.error(error);
+      toast.error(error.message);
+    },
+  });
+
+  function start(pitch: number) {
+    stop();
+    previewPitch.current = pitch;
+    previewMutation.mutate(pitch);
+  }
+
+  function stop() {
+    if (previewPitch.current !== undefined) {
+      runtime.stopMidiNotePreview({
+        id: trackId,
+        pitch: previewPitch.current,
+      });
+      previewPitch.current = undefined;
+    }
+  }
+
+  // Pointer capture handles release and cancellation. Also stop when the app loses focus.
+  useWindowEvent("blur", stop);
+
+  // Stop a held note if the editor unmounts or switches to another track/runtime.
+  useEffect(() => () => stop(), [runtime, trackId]);
+
+  return { start, stop };
 }
 
 function MidiPianoKey({
