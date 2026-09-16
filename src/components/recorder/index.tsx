@@ -17,12 +17,17 @@ import { beatsToSeconds } from "../../lib/timeline";
 import { parseTimeSignature } from "../../types";
 import { Dialog } from "../ui/dialog";
 import { RecorderHelp } from "./help";
+import {
+  RecorderAudioToMidi,
+  useRecorderAudioToMidiUi,
+} from "./recorder-audio-to-midi";
 import { RecorderEffects, useRecorderEffectsUi } from "./recorder-effects";
 import { RecorderExportDialog } from "./recorder-export-dialog";
 import { deriveRecorderFlags } from "./recorder-flags";
 import { RecorderHeader } from "./recorder-header";
 import { InputSetup } from "./recorder-input";
 import { RecorderLocatorRow } from "./recorder-locators";
+import { MidiTrackRow } from "./recorder-midi-track";
 import { RecorderMixer } from "./recorder-mixer";
 import { RecorderPanel } from "./recorder-panel";
 import {
@@ -76,7 +81,9 @@ export function Recorder({ projectId }: { projectId: string }) {
     state,
     subdivisionsPerBeat: timeline.subdivisionsPerBeat,
   });
-  const { clipInteraction, locatorInteraction } = recorderInteraction;
+  const { clipInteraction, locatorInteraction, midiInteraction } =
+    recorderInteraction;
+  const transcriptions = useRecorderAudioToMidiUi();
 
   const playMutation = useMutation({
     mutationFn: () => {
@@ -107,6 +114,9 @@ export function Recorder({ projectId }: { projectId: string }) {
         await runtime.setAudioTrack(id, file);
       }
     },
+  });
+  const addMidiMutation = useMutation({
+    mutationFn: () => runtime.addMidiTrack(),
   });
   const exportProjectMutation = useMutation({
     mutationFn: async () => {
@@ -298,7 +308,7 @@ export function Recorder({ projectId }: { projectId: string }) {
         />
         <section
           data-testid="recorder-track-scroll"
-          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
+          className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#525252_transparent]"
         >
           <div
             ref={timeline.viewportRef}
@@ -322,6 +332,8 @@ export function Recorder({ projectId }: { projectId: string }) {
               tempo={timeline.tempo}
               timelineWidth={timeline.viewportWidth}
               isAddingAudio={addAudioMutation.isPending}
+              isAddingMidi={addMidiMutation.isPending}
+              onAddMidiTrack={() => addMidiMutation.mutate()}
               onAddAudioTrack={() => runtime.addAudioTrack()}
               onAddAudioFile={(file) => addAudioMutation.mutate(file)}
               onSeek={(position) => {
@@ -439,6 +451,26 @@ export function Recorder({ projectId }: { projectId: string }) {
                   }}
                 />
               </TrackRow>
+            ))}
+            {state.midiTracks.map((track) => (
+              <MidiTrackRow
+                key={track.id}
+                track={track}
+                runtime={runtime}
+                pixelsPerBeat={timeline.pixelsPerBeat}
+                beatsPerBar={timeline.beatsPerBar}
+                subdivisionsPerBeat={timeline.subdivisionsPerBeat}
+                viewportStartBeat={timeline.viewportStartBeat}
+                effectsOpen={effects.openEffects.has(track.id)}
+                onEffectsToggle={() => effects.toggleEffects(track.id)}
+                onRemove={() => {
+                  runtime.removeMidiTrack(track.id);
+                  effects.closeEffects(track.id);
+                  transcriptions.closeTranscription(track.id);
+                }}
+                midiInteraction={midiInteraction}
+                onTranscribe={() => transcriptions.openTranscription(track.id)}
+              />
             ))}
 
             <CaptureTrackRow
@@ -655,6 +687,18 @@ export function Recorder({ projectId }: { projectId: string }) {
                   />
                 ),
             )}
+            {state.midiTracks.map(
+              (track) =>
+                effects.openEffects.has(track.id) && (
+                  <RecorderEffects
+                    key={track.id}
+                    label={track.name}
+                    eq={track.eq}
+                    onChange={(eq) => runtime.setTrackEq({ id: track.id, eq })}
+                    onClose={() => effects.closeEffects(track.id)}
+                  />
+                ),
+            )}
             {effects.openEffects.has("capture") && (
               <RecorderEffects
                 label="Capture"
@@ -666,6 +710,19 @@ export function Recorder({ projectId }: { projectId: string }) {
               />
             )}
           </div>
+        )}
+        {state.midiTracks.map(
+          (track) =>
+            transcriptions.openTranscriptions.has(track.id) && (
+              <RecorderAudioToMidi
+                key={track.id}
+                runtime={runtime}
+                state={state}
+                track={track}
+                cellsPerBeat={timeline.subdivisionsPerBeat}
+                onClose={() => transcriptions.closeTranscription(track.id)}
+              />
+            ),
         )}
         {isTunerOpen && (
           <RecorderTuner

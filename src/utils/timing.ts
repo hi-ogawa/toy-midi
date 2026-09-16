@@ -78,3 +78,11 @@ export function startThrottledAnimationFrameLoop({
     callback(time);
   });
 }
+
+export function startInterval(
+  callback: () => void,
+  milliseconds: number,
+): () => void {
+  const id = setInterval(callback, milliseconds);
+  return () => clearInterval(id);
+}

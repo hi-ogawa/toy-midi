@@ -44,6 +44,17 @@ const sections: HelpSectionData[] = [
     ],
   },
   {
+    title: "MIDI notes",
+    items: [
+      { action: "Create a snapped note", gesture: "Click empty MIDI grid" },
+      { action: "Select and preview a note", gesture: "Press note" },
+      { action: "Preview a pitch", gesture: "Hold piano key" },
+      { action: "Delete selected note", keys: "Delete / Backspace" },
+      { action: "Scroll pitches", gesture: "Wheel over MIDI grid" },
+      { action: "Scroll time in MIDI grid", gesture: "Shift + wheel" },
+    ],
+  },
+  {
     title: "Locators",
     items: [
       { action: "Add locator at playhead", keys: "L" },
