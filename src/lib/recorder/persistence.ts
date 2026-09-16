@@ -9,6 +9,7 @@ import {
   type PersistableRecorderRuntimeState,
   type RecorderRuntimeState,
   type RecorderLocator,
+  type MidiTrackState,
 } from "./runtime.ts";
 
 /**
@@ -20,6 +21,8 @@ export interface SerializedRecorderRuntimeState<ChannelData = Float32Array> {
   // Optional for recorder projects saved before locator support.
   locators?: RecorderLocator[];
   audioTracks: SerializedAudioTrackState<ChannelData>[];
+  // Optional for recorder projects saved before MIDI track support.
+  midiTracks?: MidiTrackState[];
   recordingTrack: {
     // Optional for projects saved before track EQ support.
     eq?: MultibandEqParameters | EqParameters;
@@ -125,6 +128,7 @@ export function serializeRecorderRuntimeState(
         trimEnd: clip?.trimEnd ?? 0,
       };
     }),
+    midiTracks: state.midiTracks,
     recordingTrack: {
       height: state.recordingTrack.height,
       eq: state.recordingTrack.eq,
@@ -197,6 +201,10 @@ export function deserializeRecorderRuntimeState({
         soloed: track.soloed,
       };
     }),
+    midiTracks: (project.midiTracks ?? []).map((track) => ({
+      ...track,
+      eq: deserializeEq(track.eq),
+    })),
     recordingTrack: {
       id: crypto.randomUUID(),
       height: project.recordingTrack.height,
