@@ -11,7 +11,7 @@ import {
 } from "../../lib/timeline";
 import type { TimeSignature } from "../../types";
 
-export function useRecorderTimeline({
+export function useRecorderTimelineView({
   isPlaying,
   position,
   tempo,
