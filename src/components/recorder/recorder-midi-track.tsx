@@ -248,21 +248,19 @@ function MidiTrackEditor({
       preview.start(position.pitch);
     },
     onClick: cancelMove,
-    onDragMove: updateMove,
+    onDragMove: (event) => {
+      const note = midiInteraction.updateMove(getPointerPosition(event));
+      if (note) {
+        preview.start(note.pitch);
+      }
+    },
     onDragEnd: (event) => {
-      updateMove(event);
+      midiInteraction.updateMove(getPointerPosition(event));
       midiInteraction.finishMove();
       preview.stop();
     },
     onCancel: cancelMove,
   });
-
-  function updateMove(event: PointerEvent) {
-    const note = midiInteraction.updateMove(getPointerPosition(event));
-    if (note) {
-      preview.start(note.pitch);
-    }
-  }
 
   function cancelMove() {
     midiInteraction.cancelMove();
