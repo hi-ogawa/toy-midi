@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { clampPitch, snapToGrid } from "../../lib/music";
+import { clamp, clampPitch, snapToGrid } from "../../lib/music";
 import type {
   RecorderRuntime,
   RecorderRuntimeState,
@@ -90,8 +90,7 @@ export function useRecorderMidiInteraction({
     }
     const step = 1 / subdivisionsPerBeat;
     const cellOffset = Math.floor((beat - original.start) / step);
-    const tolerance =
-      Math.max(2, Math.min(8, step * pixelsPerBeat * 0.15)) / pixelsPerBeat;
+    const tolerance = clamp(step * pixelsPerBeat * 0.15, 2, 8) / pixelsPerBeat;
     let resizeCellStart =
       mode === "resize-start"
         ? original.start
