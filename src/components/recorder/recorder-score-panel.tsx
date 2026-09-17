@@ -171,6 +171,7 @@ function RecorderScorePreview({
       locators,
     ],
     enabled: isRuntimeAttached && notes.length > 0,
+    retry: false,
     queryFn: async () => {
       await loadMutation.mutateAsync();
       return true;
