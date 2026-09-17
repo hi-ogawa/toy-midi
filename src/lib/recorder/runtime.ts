@@ -612,24 +612,13 @@ export class RecorderRuntime {
     }
   }
 
-  setMidiTrackTabAnnotationEnabled({
+  setMidiTrackTabSettings({
     id,
-    tabAnnotationEnabled,
-  }: {
-    id: string;
-    tabAnnotationEnabled: boolean;
-  }): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, tabAnnotationEnabled }));
-  }
-
-  setMidiTrackTabOpenStringPitches({
-    id,
-    tabOpenStringPitches,
-  }: {
-    id: string;
-    tabOpenStringPitches: number[];
-  }): void {
-    this.updateMidiTrack(id, (track) => ({ ...track, tabOpenStringPitches }));
+    ...settings
+  }: { id: string } & Partial<
+    Pick<MidiTrackState, "tabAnnotationEnabled" | "tabOpenStringPitches">
+  >): void {
+    this.updateMidiTrack(id, (track) => ({ ...track, ...settings }));
   }
 
   setMidiNoteTabString({

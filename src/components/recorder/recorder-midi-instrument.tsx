@@ -38,7 +38,7 @@ export function MidiInstrument({
             type="checkbox"
             checked={track.tabAnnotationEnabled}
             onChange={(event) =>
-              runtime.setMidiTrackTabAnnotationEnabled({
+              runtime.setMidiTrackTabSettings({
                 id: track.id,
                 tabAnnotationEnabled: event.target.checked,
               })
@@ -56,7 +56,7 @@ export function MidiInstrument({
               const preset = TAB_STRING_PRESETS.find(
                 ({ id }) => id === event.target.value,
               )!;
-              runtime.setMidiTrackTabOpenStringPitches({
+              runtime.setMidiTrackTabSettings({
                 id: track.id,
                 tabOpenStringPitches: [...preset.openStringPitches],
               });
