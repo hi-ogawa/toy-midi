@@ -93,17 +93,23 @@ export function useRecorderMidiInteraction({
       return;
     }
     const gridStep = 1 / subdivisionsPerBeat;
+    let getNote: GetNote;
+    switch (mode) {
+      case "move":
+        getNote = createNoteMove({ original, initialBeat: beat, gridStep });
+        break;
+      case "resize-start":
+        getNote = createNoteResizeStart({ original, gridStep, pixelsPerBeat });
+        break;
+      case "resize-end":
+        getNote = createNoteResizeEnd({ original, gridStep, pixelsPerBeat });
+        break;
+    }
     setEdit({
       trackId,
       original,
       note: original,
-      getNote: createNoteEdit({
-        mode,
-        original,
-        initialBeat: beat,
-        gridStep,
-        pixelsPerBeat,
-      }),
+      getNote,
     });
   }
 
@@ -203,29 +209,6 @@ export function useRecorderMidiInteraction({
     create,
     removeSelected,
   };
-}
-
-function createNoteEdit({
-  mode,
-  original,
-  initialBeat,
-  gridStep,
-  pixelsPerBeat,
-}: {
-  mode: EditMode;
-  original: Note;
-  initialBeat: number;
-  gridStep: number;
-  pixelsPerBeat: number;
-}): GetNote {
-  switch (mode) {
-    case "move":
-      return createNoteMove({ original, initialBeat, gridStep });
-    case "resize-start":
-      return createNoteResizeStart({ original, gridStep, pixelsPerBeat });
-    case "resize-end":
-      return createNoteResizeEnd({ original, gridStep, pixelsPerBeat });
-  }
 }
 
 function createNoteMove({
