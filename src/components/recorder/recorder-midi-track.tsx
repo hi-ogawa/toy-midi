@@ -169,7 +169,7 @@ function MidiTrackActions({
 type MidiGridGesture =
   | { type: "select"; noteId: string }
   | { type: "edit" }
-  | { type: "box-select"; start: { beat: number; pitch: number } }
+  | { type: "box-select" }
   | { type: "create" };
 
 function MidiTrackEditor({
@@ -191,10 +191,7 @@ function MidiTrackEditor({
 }) {
   const preview = useMidiNotePreview({ runtime, trackId: track.id });
   const [initialPitch] = useState(() => track.notes[0]?.pitch ?? 60);
-  const [boxSelection, setBoxSelection] = useState<{
-    start: { beat: number; pitch: number };
-    current: { beat: number; pitch: number };
-  }>();
+  const boxSelection = midiInteraction.getBoxSelectionPreview(track.id);
   const hasSelection = midiInteraction.hasTrackSelection(track.id);
 
   useWindowEvent("blur", midiInteraction.cancelEdit);
@@ -274,14 +271,14 @@ function MidiTrackEditor({
         return { type: "edit" };
       }
       if (event.shiftKey) {
-        midiInteraction.activate();
-        return { type: "box-select", start: position };
+        midiInteraction.startBoxSelection({ trackId: track.id, position });
+        return { type: "box-select" };
       }
       midiInteraction.create({ trackId: track.id, ...position });
       preview.start(position.pitch);
       return { type: "create" };
     },
-    onClick: (_event, gesture) => {
+    onClick: (event, gesture) => {
       if (gesture.data.type === "select") {
         midiInteraction.select({
           trackId: track.id,
@@ -289,31 +286,15 @@ function MidiTrackEditor({
           additive: true,
         });
       } else if (gesture.data.type === "box-select") {
-        midiInteraction.selectBox({
-          trackId: track.id,
-          start: gesture.data.start,
-          end: gesture.data.start,
-        });
+        midiInteraction.finishBoxSelection(getPointerPosition(event));
       } else {
         midiInteraction.cancelEdit();
       }
-      setBoxSelection(undefined);
       preview.stop();
-    },
-    onDragStart: (event, gesture) => {
-      if (gesture.data.type === "box-select") {
-        setBoxSelection({
-          start: gesture.data.start,
-          current: getPointerPosition(event),
-        });
-      }
     },
     onDragMove: (event, gesture) => {
       if (gesture.data.type === "box-select") {
-        setBoxSelection({
-          start: gesture.data.start,
-          current: getPointerPosition(event),
-        });
+        midiInteraction.updateBoxSelection(getPointerPosition(event));
         return;
       }
       if (gesture.data.type !== "edit") {
@@ -327,21 +308,13 @@ function MidiTrackEditor({
     onDragEnd: (event, gesture) => {
       const position = getPointerPosition(event);
       if (gesture.data.type === "box-select") {
-        midiInteraction.selectBox({
-          trackId: track.id,
-          start: gesture.data.start,
-          end: position,
-        });
-        setBoxSelection(undefined);
+        midiInteraction.finishBoxSelection(position);
       } else if (gesture.data.type === "edit") {
         midiInteraction.finishEdit(position);
       }
       preview.stop();
     },
-    onCancel: () => {
-      setBoxSelection(undefined);
-      cancelEdit();
-    },
+    onCancel: cancelEdit,
   });
 
   function cancelEdit() {

@@ -36,6 +36,11 @@ export function useRecorderMidiInteraction({
     noteIds: Set<string>;
   }>();
   const [edit, setEdit] = useState<MidiNoteEdit>();
+  const [boxSelection, setBoxSelection] = useState<{
+    trackId: string;
+    start: EditPosition;
+    current: EditPosition;
+  }>();
   const selectedTrack = state.midiTracks.find(
     (track) => track.id === selection?.trackId,
   );
@@ -103,17 +108,34 @@ export function useRecorderMidiInteraction({
     });
   }
 
-  function selectBox({
+  function getBoxSelectionPreview(trackId: string) {
+    return boxSelection?.trackId === trackId ? boxSelection : undefined;
+  }
+
+  function startBoxSelection({
     trackId,
-    start,
-    end,
+    position,
   }: {
     trackId: string;
-    start: EditPosition;
-    end: EditPosition;
+    position: EditPosition;
   }) {
     cancelEdit();
     onSelect();
+    setBoxSelection({ trackId, start: position, current: position });
+  }
+
+  function updateBoxSelection(position: EditPosition) {
+    if (boxSelection) {
+      setBoxSelection({ ...boxSelection, current: position });
+    }
+  }
+
+  function finishBoxSelection(end: EditPosition) {
+    if (!boxSelection) {
+      return;
+    }
+    const { trackId, start } = boxSelection;
+    cancelEdit();
     const track = state.midiTracks.find((entry) => entry.id === trackId);
     if (!track) {
       return;
@@ -229,6 +251,7 @@ export function useRecorderMidiInteraction({
 
   function cancelEdit() {
     setEdit(undefined);
+    setBoxSelection(undefined);
   }
 
   function clear() {
@@ -316,7 +339,10 @@ export function useRecorderMidiInteraction({
     hasTrackSelection,
     isSelected,
     select,
-    selectBox,
+    startBoxSelection,
+    updateBoxSelection,
+    finishBoxSelection,
+    getBoxSelectionPreview,
     startEdit,
     updateEdit,
     finishEdit,

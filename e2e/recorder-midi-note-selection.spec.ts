@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createRecorderProject } from "./recorder-helpers";
 
 test("selects and deletes multiple MIDI notes", async ({ page }) => {
+  // Create three notes and save the project before changing selection.
   await createRecorderProject(page);
   await page.getByTestId("recorder-add-midi-track").click();
   const row = page.getByTestId("recorder-midi-track-row");
@@ -47,6 +48,38 @@ test("selects and deletes multiple MIDI notes", async ({ page }) => {
   await d4.click();
   await expect(c4).toHaveAttribute("data-selected", "false");
   await expect(d4).toHaveAttribute("data-selected", "true");
+
+  // Cancel a box selection with Escape and keep it cancelled through release.
+  const cancelC4Box = (await c4.boundingBox())!;
+  const cancelD4Box = (await d4.boundingBox())!;
+  await page.keyboard.down("Shift");
+  await page.mouse.move(
+    cancelD4Box.x + cancelD4Box.width * 1.5,
+    cancelD4Box.y + cancelD4Box.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    cancelC4Box.x + 1,
+    cancelC4Box.y + cancelC4Box.height / 2,
+    {
+      steps: 4,
+    },
+  );
+  await expect(grid.getByTestId("recorder-midi-box-selection")).toBeVisible();
+  await page.keyboard.up("Shift");
+  await page.keyboard.press("Escape");
+  await expect(grid.getByTestId("recorder-midi-box-selection")).toHaveCount(0);
+  await page.mouse.move(
+    cancelC4Box.x + 2,
+    cancelC4Box.y + cancelC4Box.height / 2,
+  );
+  await page.mouse.up();
+  await expect(grid.getByTestId("recorder-midi-box-selection")).toHaveCount(0);
+  await expect(grid.locator("[data-note-id][data-selected=true]")).toHaveCount(
+    0,
+  );
+  await expect(notes).toHaveCount(3);
+  await expect(save).toHaveAttribute("data-status", "saved");
 
   // Shift-drag from empty space selects overlapping notes without creating one.
   const c4Box = (await c4.boundingBox())!;
