@@ -13,6 +13,9 @@ export const TAB_STRING_PRESETS = [
   },
 ] as const;
 
+export const DEFAULT_TAB_OPEN_STRING_PITCHES =
+  TAB_STRING_PRESETS[0].openStringPitches;
+
 const TAB_STRING_COLORS = [
   { background: "#06b6d4", border: "#0891b2", text: "#083344" },
   { background: "#22c55e", border: "#16a34a", text: "#052e16" },

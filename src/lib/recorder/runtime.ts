@@ -12,7 +12,7 @@ import {
 } from "../dsp/biquad-eq-node.ts";
 import { ensurePitchShifterWorklet } from "../dsp/pitch-shifter-node.ts";
 import { clamp } from "../music.ts";
-import { getFret, TAB_STRING_PRESETS } from "../tab-annotation.ts";
+import { getFret, DEFAULT_TAB_OPEN_STRING_PITCHES } from "../tab-annotation.ts";
 import { beatsToSeconds } from "../timeline.ts";
 import type { YouTubePlayerApi } from "../youtube.ts";
 import {
@@ -1361,7 +1361,7 @@ function createMidiTrackState(number: number): MidiTrackState {
     muted: false,
     soloed: false,
     tabAnnotationEnabled: false,
-    tabOpenStringPitches: [...TAB_STRING_PRESETS[0].openStringPitches],
+    tabOpenStringPitches: [...DEFAULT_TAB_OPEN_STRING_PITCHES],
   };
 }
 
