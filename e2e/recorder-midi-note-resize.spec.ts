@@ -23,8 +23,8 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   const startEdge = note.locator('[data-note-edge="start"]');
   const endEdge = note.locator('[data-note-edge="end"]');
 
-  // Hold the right edge near its boundary, then extend and reverse beyond the tolerance.
-  const tolerance = Math.max(2, Math.min(8, cellWidth * 0.15));
+  // Snap the right edge to the nearest grid point in either direction.
+  const halfCellWidth = cellWidth / 2;
   const originalBox = (await note.boundingBox())!;
   const boundaryX = originalBox.x + originalBox.width;
   const endBox = (await endEdge.boundingBox())!;
@@ -33,19 +33,15 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   await page.mouse.move(endX, endY);
   await page.mouse.down();
   // Cross the gesture threshold vertically so the assertions exercise resize snapping.
-  await page.mouse.move(boundaryX + tolerance - 0.5, endY + 6);
+  await page.mouse.move(boundaryX + halfCellWidth - 0.5, endY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth);
-  await page.mouse.move(boundaryX + tolerance + 0.5, endY + 6);
+  await page.mouse.move(boundaryX + halfCellWidth + 0.5, endY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth * 2);
-  await page.mouse.move(boundaryX - tolerance + 0.5, endY + 6);
-  await expect
-    .poll(async () => (await note.boundingBox())!.width)
-    .toBe(cellWidth * 2);
-  await page.mouse.move(boundaryX - tolerance - 0.5, endY + 6);
+  await page.mouse.move(boundaryX + halfCellWidth - 0.5, endY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth);
@@ -72,29 +68,25 @@ test("resizes both MIDI note edges with a cancellable preview and minimum durati
   await expect(save).toHaveAttribute("data-status", "unsaved");
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1");
   expect((await note.boundingBox())!.width).toBe(cellWidth * 4);
-  await dragBy(page, startEdge, cellWidth * 2 + tolerance);
+  await dragBy(page, startEdge, cellWidth * 2);
   await expect(note).toHaveAttribute("aria-label", "C4, beat 1.5");
   expect((await note.boundingBox())!.width).toBe(cellWidth * 2);
 
-  // Hold the left edge near its boundary and require crossing back to reverse an extension.
+  // Snap the left edge to the nearest grid point in either direction.
   const trimmedBox = (await note.boundingBox())!;
   const startBox = (await startEdge.boundingBox())!;
   const startY = startBox.y + startBox.height / 2;
   await page.mouse.move(startBox.x + startBox.width / 2, startY);
   await page.mouse.down();
-  await page.mouse.move(trimmedBox.x - tolerance + 0.5, startY + 6);
+  await page.mouse.move(trimmedBox.x - halfCellWidth + 0.5, startY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth * 2);
-  await page.mouse.move(trimmedBox.x - tolerance - 0.5, startY + 6);
+  await page.mouse.move(trimmedBox.x - halfCellWidth - 0.5, startY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth * 3);
-  await page.mouse.move(trimmedBox.x + tolerance - 0.5, startY + 6);
-  await expect
-    .poll(async () => (await note.boundingBox())!.width)
-    .toBe(cellWidth * 3);
-  await page.mouse.move(trimmedBox.x + tolerance + 0.5, startY + 6);
+  await page.mouse.move(trimmedBox.x - halfCellWidth + 0.5, startY + 6);
   await expect
     .poll(async () => (await note.boundingBox())!.width)
     .toBe(cellWidth * 2);
