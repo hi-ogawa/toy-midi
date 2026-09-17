@@ -641,7 +641,6 @@ export class RecorderRuntime {
     ) {
       return;
     }
-    // String assignments change notation only, so keep the playback schedule intact.
     const { tabString: _previous, ...rest } = note;
     const updated = tabString === undefined ? rest : { ...rest, tabString };
     this.updateMidiTrack(trackId, (track) => ({
